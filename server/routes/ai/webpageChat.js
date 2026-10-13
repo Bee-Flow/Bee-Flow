@@ -90,6 +90,7 @@ const {
 const terminationStore = require('../../stores/terminationStore');
 const { sanitizeError } = require('../../core/privacy/errorSanitizer');
 const { emitPhase, emitPhaseEnd } = require('../../core/agentRuntime/phaseEvents');
+const { resolveTurnTier } = require('../../core/llm/resolveTurnModel');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
@@ -211,21 +212,14 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
 
     let tiers = await getEUAwareTiers({ userOrgId: userOrgForTiers, userId });
 
-    let resolvedTier = modelTier || 'fast';
-    if (resolvedTier === 'standard') resolvedTier = 'fast';
-
-    if (resolvedTier === 'auto') {
-        try {
-            const { classifyWithLLM } = require('../../core/llm/promptClassifier');
-            const result = await classifyWithLLM(message, tiers, { userOrgId: userOrgForTiers, userId });
-            resolvedTier = result.tier;
-            log.info(`[WebpageChat] Auto: tier="${resolvedTier}" (${result.method}: ${result.reason})`);
-        } catch (err) {
-            log.info(`[WebpageChat] Auto classification failed: ${err.message}, using fast`);
-            resolvedTier = 'fast';
-        }
-    }
-    if (resolvedTier === 'standard') resolvedTier = 'fast';
+    // Which tier: core/llm/resolveTurnModel — `standard` is read as `fast`,
+    // `auto` is classified, a tier the person's groups do not allow is refused.
+    const turnTier = await resolveTurnTier({
+        modelTier, message, tiers, userId, userOrgId: userOrgForTiers,
+        surface: 'WebpageChat', standardIsFast: true,
+    });
+    if (turnTier.refusal) return res.status(turnTier.refusal.status).json({ error: turnTier.refusal.error, code: turnTier.refusal.code });
+    const resolvedTier = turnTier.tier;
 
     const tier = tiers[resolvedTier] || {};
     let modelId = tier.modelId;

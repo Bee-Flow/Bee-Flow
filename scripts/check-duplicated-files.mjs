@@ -29,6 +29,21 @@ export const PAIRS = [
         b: 'agent-hub/src/assets/BeeFlow-logo-Icon-2026.svg',
         why: 'the server embeds the logo in exports; the agent-hub image cannot see server/',
     },
+    {
+        a: 'server/core/http/ssrfGuard.js',
+        b: 'components/webpage-to-markdown/ssrfGuard.js',
+        why: 'a component runs from its own directory and cannot require server/; the SSRF guard of its fetches',
+    },
+    {
+        a: 'server/core/http/ssrfGuard.js',
+        b: 'components/website-sitemap-fetcher/ssrfGuard.js',
+        why: 'a component runs from its own directory and cannot require server/; the SSRF guard of its fetches',
+    },
+    {
+        a: 'components/webpage-to-markdown/safeGet.js',
+        b: 'components/website-sitemap-fetcher/safeGet.js',
+        why: 'both web-fetching components share the guarded GET; neither can require the other',
+    },
 ];
 
 /**

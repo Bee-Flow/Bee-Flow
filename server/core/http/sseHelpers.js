@@ -104,6 +104,51 @@ function startSseHeartbeat(res, intervalMs = 10000, opts = {}) {
 }
 
 /**
+ * Open a streaming chat response: the SSE headers, a guarded `send`, the
+ * client-stop wiring and (opt-in) the keep-alive, in one call, so a route
+ * cannot forget one of them.
+ *
+ *   - headers: 200 + `text/event-stream`, `no-cache`, `keep-alive` and
+ *     `X-Accel-Buffering: no` (nginx would otherwise buffer the stream);
+ *   - send(event, data): a no-op once the response has ended or the socket
+ *     is gone, so a late callback never writes after end();
+ *   - signal / isGone(): the composer's stop button aborts the browser fetch,
+ *     which closes this response. Our own end() also emits 'close', so
+ *     `writableEnded` keeps it from reading as a cancel;
+ *   - heartbeat: startSseHeartbeat, which keeps a long, silent turn alive
+ *     through the Nextcloud AppAPI proxy instead of an idle 504 (BFSF-221).
+ *
+ * @param {Object} res - Express response (headers not yet sent)
+ * @param {{ heartbeat?: boolean, intervalMs?: number, tag?: string }} [opts]
+ *   tag — log prefix for the disconnect line (e.g. 'TemplateChat').
+ * @returns {{ send: (event: string, data: any) => void, signal: AbortSignal,
+ *   isGone: () => boolean, stopHeartbeat: Function }}
+ */
+function openSse(res, opts = {}) {
+    const { heartbeat = false, intervalMs = 10000, tag = 'SSE' } = opts;
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+    });
+    const send = (event, data) => {
+        if (res.writableEnded || res.destroyed) return;
+        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+    const abortController = new AbortController();
+    let gone = false;
+    res.on('close', () => {
+        if (res.writableEnded) return;
+        gone = true;
+        log.info(`[${tag}] client disconnected — aborting the generation`);
+        try { abortController.abort(); } catch (_) { /* already aborted */ }
+    });
+    const stopHeartbeat = heartbeat ? startSseHeartbeat(res, intervalMs) : () => {};
+    return { send, signal: abortController.signal, isGone: () => gone, stopHeartbeat };
+}
+
+/**
  * Send an SSE error and end the response (for limit errors etc.)
  * @param {Object} res - Express response
  * @param {string} error - Error message
@@ -213,4 +258,4 @@ async function getOrCreateAgentConversation(agent, conversationId, userId, encry
     return conversation;
 }
 
-module.exports = { setupSSE, sendSSEError, startSseHeartbeat, persistAndTitle, getOrCreateAgentConversation };
+module.exports = { setupSSE, openSse, sendSSEError, startSseHeartbeat, persistAndTitle, getOrCreateAgentConversation };

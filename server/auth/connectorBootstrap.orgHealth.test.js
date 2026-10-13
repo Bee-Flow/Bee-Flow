@@ -47,6 +47,13 @@ const MOCKS = {
             return true;
         },
         logAccessAudit: async (...args) => { fx.calls.push(['logAccessAudit', ...args]); },
+        // Verification-code send paths (resend / retarget): the per-pendingId cap.
+        resetNcVerificationCode: async (id) => { fx.calls.push(['resetNcVerificationCode', id]); return fx.sendResult; },
+        retargetNcVerification: async (id) => { fx.calls.push(['retargetNcVerification', id]); return fx.sendResult; },
+        getPendingNcBinding: async () => fx.pendingRow,
+        getUserByEmail: async () => null,
+        findUnboundOrgByEmailDomain: async () => ({ id: 'org-v' }),
+        getOrganization: async (id) => ({ id, name: 'Acme' }),
     },
     '../stores/configStore': {
         getConfig: async () => null,
@@ -71,7 +78,7 @@ const MOCKS = {
         touchLiveness: (orgId, kind, opts) => { fx.calls.push(['touchLiveness', orgId, kind, opts]); return Promise.resolve(); },
     },
     '../utils/emailService': {
-        sendNcVerificationCodeEmail: async () => ({ success: true }),
+        sendNcVerificationCodeEmail: async (args) => { fx.calls.push(['sendNcVerificationCodeEmail', args]); return { success: true }; },
     },
     '../utils/freeEmailDomains': {
         isFreeEmailDomain: () => false,
@@ -123,6 +130,8 @@ function resetFx() {
     fx.defaultPlanId = null;
     fx.setSubThrows = false;
     fx.resolvedTenant = null;
+    fx.sendResult = null;
+    fx.pendingRow = null;
     fx.calls = [];
 }
 
@@ -223,11 +232,11 @@ test('subscription write throws → never throws out of bootstrap, emits plan_ap
 
 // ═══ POST /connector/status (phone-home) ═════════════════════════════
 
-function dispatch({ headers = {}, body = {} }) {
+function dispatch({ headers = {}, body = {}, url = '/connector/status' }) {
     return new Promise((resolve, reject) => {
         const request = {
             method: 'POST',
-            url: '/connector/status',
+            url,
             ip: '127.0.0.1',
             body,          // express.json skips parsing (no content-length) and keeps this
             query: {},
@@ -246,7 +255,7 @@ function dispatch({ headers = {}, body = {} }) {
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
         };
-        router(request, res, (err) => reject(err || new Error('fell through router: POST /connector/status')));
+        router(request, res, (err) => reject(err || new Error(`fell through router: POST ${url}`)));
     });
 }
 
@@ -333,4 +342,59 @@ test('phone-home: unknown state → 204, liveness only (report counted, nothing 
     assert.equal(callsOf('touchLiveness').length, 1);
     assert.equal(callsOf('problem').length, 0);
     assert.equal(callsOf('resolve').length, 0);
+});
+
+// ═══ Verification code resend / retarget: capped per pendingId ═══════════
+// The store counts sends and guesses per pending row (ncBindings.js); once that
+// budget is spent the route answers 429 and mails nothing, whatever the IP.
+
+const SENT_ROW = { orgId: 'org-v', verificationEmail: 'admin@acme.test', ncAdminEmail: 'admin@acme.test', expiresAt: '2026-10-13T12:00:00.000Z' };
+
+test('resend: a spent per-pendingId budget answers 429 and sends no mail', async () => {
+    resetFx();
+    fx.sendResult = { status: 'too_many' };
+    const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.body.code, 'too_many_code_requests');
+    assert.equal(callsOf('sendNcVerificationCodeEmail').length, 0);
+});
+
+test('resend: not a pending verification stays 410 expired', async () => {
+    resetFx();
+    fx.sendResult = { status: 'not_eligible' };
+    const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
+    assert.equal(res.statusCode, 410);
+    assert.deepEqual(res.body, { status: 'expired', code: 'expired' });
+});
+
+test('resend: within budget mails the new code and answers as before', async () => {
+    resetFx();
+    fx.sendResult = { status: 'ok', row: SENT_ROW };
+    const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.expiresAt, SENT_ROW.expiresAt);
+    assert.equal(res.body.emailSent, true);
+    assert.equal(callsOf('sendNcVerificationCodeEmail')[0][1].to, 'admin@acme.test');
+});
+
+test('retarget: a spent per-pendingId budget answers 429 and sends no mail', async () => {
+    resetFx();
+    fx.pendingRow = { orgId: 'org-v', hasVerification: true, status: 'pending', expiresAt: new Date(Date.now() + 60_000).toISOString() };
+    fx.sendResult = { status: 'too_many' };
+    const res = await dispatch({ url: '/connector/bootstrap/pending/p1/retarget', body: { email: 'setup@acme.test' } });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.body.code, 'too_many_code_requests');
+    assert.equal(callsOf('retargetNcVerification').length, 1);
+    assert.equal(callsOf('sendNcVerificationCodeEmail').length, 0);
+});
+
+test('retarget: within budget mails the code to the new admin', async () => {
+    resetFx();
+    fx.pendingRow = { orgId: 'org-v', hasVerification: true, status: 'pending', expiresAt: new Date(Date.now() + 60_000).toISOString() };
+    fx.sendResult = { status: 'ok', row: SENT_ROW };
+    const res = await dispatch({ url: '/connector/bootstrap/pending/p1/retarget', body: { email: 'setup@acme.test' } });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.expiresAt, SENT_ROW.expiresAt);
+    assert.equal(callsOf('sendNcVerificationCodeEmail')[0][1].to, 'setup@acme.test');
 });

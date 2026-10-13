@@ -352,6 +352,8 @@ function rowToSession(r) {
         runId: r.run_id ?? null,
         rootStepId: r.root_step_id ?? null,
         triggerHeaders: r.trigger_headers ?? null,
+        pendingWork: r.pending_work ?? null,
+        pendingAttempts: r.pending_attempts ?? 0,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
         expiresAt: r.expires_at,
@@ -400,6 +402,84 @@ async function touchFormSession(id) {
     );
 }
 
+// ── Accepted form work that has not started yet (automation/formQueue.js) ──
+//
+// The work is written onto the session BEFORE the visitor gets their 202, so a
+// deploy or a crash cannot drop it. `pending_lease_until` says how long the pod
+// that queued it owns it; a lapsed lease is claimable by the sweep on any pod.
+
+/** Persist the work and lease it to this pod for `leaseMs`. */
+async function setFormSessionPending(id, work, leaseMs) {
+    await initDB();
+    await run(
+        `UPDATE automation_form_sessions
+            SET pending_work = $2::jsonb, pending_attempts = 0,
+                pending_lease_until = NOW() + ($3::bigint * INTERVAL '1 millisecond'),
+                updated_at = NOW()
+          WHERE id = $1`,
+        [id, JSON.stringify(work), leaseMs],
+    );
+}
+
+/** The work is done with (its run exists, or it was given up on): drop the payload. */
+async function clearFormSessionPending(id) {
+    await initDB();
+    await run(
+        `UPDATE automation_form_sessions
+            SET pending_work = NULL, pending_lease_until = NULL, pending_attempts = 0
+          WHERE id = $1`,
+        [id],
+    );
+}
+
+/** Keep the lease on work this pod still holds. */
+async function renewFormSessionLeases(ids, leaseMs) {
+    if (!ids.length) return;
+    await initDB();
+    await run(
+        `UPDATE automation_form_sessions
+            SET pending_lease_until = NOW() + ($2::bigint * INTERVAL '1 millisecond')
+          WHERE id = ANY($1::text[]) AND pending_work IS NOT NULL`,
+        [ids, leaseMs],
+    );
+}
+
+/** Hand work back so the sweep may claim it after `delayMs` (0: at once). */
+async function releaseFormSessionLeases(ids, delayMs = 0) {
+    if (!ids.length) return;
+    await initDB();
+    await run(
+        `UPDATE automation_form_sessions
+            SET pending_lease_until = NOW() + ($2::bigint * INTERVAL '1 millisecond')
+          WHERE id = ANY($1::text[]) AND pending_work IS NOT NULL`,
+        [ids, Math.max(0, delayMs)],
+    );
+}
+
+/**
+ * Claim work whose lease lapsed (its pod died, or handed it back). Atomic and
+ * SKIP LOCKED, so two pods sweeping at once never claim the same row.
+ */
+async function claimStaleFormSessionWork(limit, leaseMs) {
+    await initDB();
+    const rows = await getAll(
+        `UPDATE automation_form_sessions
+            SET pending_lease_until = NOW() + ($2::bigint * INTERVAL '1 millisecond'),
+                pending_attempts = pending_attempts + 1
+          WHERE id IN (
+                SELECT id FROM automation_form_sessions
+                 WHERE pending_work IS NOT NULL
+                   AND (pending_lease_until IS NULL OR pending_lease_until < NOW())
+                   AND expires_at > NOW()
+                 ORDER BY created_at
+                 LIMIT $1
+                 FOR UPDATE SKIP LOCKED)
+          RETURNING *`,
+        [limit, leaseMs],
+    );
+    return rows.map(rowToSession);
+}
+
 async function deleteExpiredFormSessions(limit = 500) {
     await initDB();
     const { rowCount } = await run(
@@ -417,6 +497,11 @@ module.exports = {
     getFormSession,
     attachFormSessionRun,
     touchFormSession,
+    setFormSessionPending,
+    clearFormSessionPending,
+    renewFormSessionLeases,
+    releaseFormSessionLeases,
+    claimStaleFormSessionWork,
     deleteExpiredFormSessions,
     createFormPage,
     getFormPage,

@@ -26,7 +26,7 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'openobserve').catch(() => null);
+        const config = await isoEvidenceStore.getConfig(orgId, 'openobserve');
         if (!config?.enabled) {
             return {
                 status: 'not_applicable',
@@ -34,7 +34,7 @@ module.exports = {
                 details: 'OpenObserve connector not enabled — link your monitoring instance under ISO 27001 → Connectors.',
             };
         }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'openobserve').catch(() => []);
+        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'openobserve');
         if (!snaps.length) {
             return {
                 status: 'warn',

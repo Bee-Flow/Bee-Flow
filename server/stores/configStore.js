@@ -191,6 +191,9 @@ async function getConfig(key) {
  * Note: unlike getConfig (which returns the SHARED cached object on a hit),
  * this always hands back a private JSON.parse copy — so callers that mutate the
  * result in place (getProject/getAdminPayload) can't corrupt a cached object.
+ * The cache gets its own structuredClone of that copy: caching the very object
+ * we return would make the caller's in-place edits (saved or not) the value
+ * every later getConfig on this replica serves for up to a minute.
  */
 async function getConfigFresh(key) {
     await initDB();
@@ -205,7 +208,7 @@ async function getConfigFresh(key) {
     } catch (e) {
         result = row.value;
     }
-    _cacheSet(key, result);
+    _cacheSet(key, structuredClone(result));
     return result;
 }
 

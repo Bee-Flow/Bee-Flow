@@ -4,8 +4,8 @@
  * override), provider/adapter resolution, conversation-ownership check and
  * subscription-limit enforcement. Moved verbatim out of streamTurn.js.
  *
- * Every early-exit path in here answers the response itself (a 400 JSON or
- * an SSE-shaped error) — the caller checks `res.headersSent` after awaiting
+ * Every early-exit path in here answers the response itself (a 400 or 403
+ * JSON, or an SSE-shaped error) — the caller checks `res.headersSent` after awaiting
  * and stops when a path already responded.
  */
 
@@ -19,6 +19,7 @@ const agentStore = require('../../../stores/agentStore');
 const { checkSubscriptionLimits, resolveOrgId } = require('../../../core/entitlements/limits');
 const orgHealth = require('../../../services/orgHealth');
 const log = require('../../../telemetry/log');
+const { resolveTurnTier } = require('../../../core/llm/resolveTurnModel');
 
 async function resolveTurnSetup({ req, res, userId, message, modelTier, conversationId, attachments }) {
     // EU mode + org privacy shield: resolve user's org early.
@@ -76,26 +77,20 @@ async function resolveTurnSetup({ req, res, userId, message, modelTier, conversa
         }
     }
 
-    // Auto mode: classify which tier to use
-    if (resolvedTier === 'auto') {
-        try {
-            const { classifyWithLLM } = require('../../../core/llm/promptClassifier');
-            // Strip custom tiers — they require explicit user choice and must never
-            // win automatic selection. Swarm is also excluded (auto must never
-            // spend the cost of a multi-agent swarm without the user asking).
-            // Flow (standard) IS eligible for auto, but the classifier is
-            // instructed to reserve it for clear multi-stage tasks.
-            const classifyTiers = Object.fromEntries(
-                Object.entries(tiers).filter(([k]) => !k.startsWith('custom:') && k !== 'swarm')
-            );
-            const result = await classifyWithLLM(message, classifyTiers, { userOrgId: userOrgForTiers, userId });
-            resolvedTier = result.tier;
-            log.info(`[DirectChat] Auto: tier="${resolvedTier}" (${result.method}: ${result.reason})`);
-        } catch (err) {
-            log.info(`[DirectChat] Auto classification failed: ${err.message}, using fast`);
-            resolvedTier = 'fast';
-        }
-    }
+    // Which tier: core/llm/resolveTurnModel — `auto` is classified, a tier the
+    // person's groups do not allow is refused (403, as the builders do).
+    // Custom tiers are stripped from the auto pool — they require explicit
+    // user choice and must never win automatic selection. Swarm is also
+    // excluded (auto must never spend the cost of a multi-agent swarm without
+    // the user asking). Flow (standard) IS eligible for auto, but the
+    // classifier is instructed to reserve it for clear multi-stage tasks.
+    const turnTier = await resolveTurnTier({
+        modelTier: resolvedTier, message, tiers, userId, userOrgId: userOrgForTiers,
+        surface: 'DirectChat',
+        autoEligible: (k) => !k.startsWith('custom:') && k !== 'swarm',
+    });
+    if (turnTier.refusal) return res.status(turnTier.refusal.status).json({ error: turnTier.refusal.error, code: turnTier.refusal.code });
+    resolvedTier = turnTier.tier;
 
     // Vision override: images require a vision-capable model
     // Auto classifier only looks at text complexity — override to smart/vision tier

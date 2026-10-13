@@ -11,13 +11,25 @@
  * mirror of the external system (cheaper, less data, hashable evidence).
  */
 
-const { pool } = require('../db');
-const isoEvidenceStore = require('../stores/isoEvidenceStore');
-const connectors = require('../compliance/connectors');
-const { recordJobRun } = require('../telemetry/metrics');
+const db = require('../db');
+const realIsoEvidenceStore = require('../stores/isoEvidenceStore');
+const realConnectors = require('../compliance/connectors');
+const metrics = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 
-const LOCK_KEY = 0xBEEF10A;
+// Test seam (_setDepsForTests): the pool whose advisory lock guards the sweep,
+// the evidence store, the connector registry and the job metric, so a test
+// runs the real lock calls against a fake pool without touching the module
+// cache. Each entry is a getter.
+const DEFAULT_DEPS = {
+    pool: () => db.pool,
+    isoEvidenceStore: () => realIsoEvidenceStore,
+    connectors: () => realConnectors,
+    recordJobRun: () => metrics.recordJobRun,
+};
+let _deps = { ...DEFAULT_DEPS };
+
+const LOCK_KEY = 0xBEEF10A; // this job's alone: the Meet import discovery used to share it (see isoEvidenceCollector.test.js)
 const INTERVAL_MS = 6 * 60 * 60 * 1000; // matches the compliance scheduler cadence
 const BOOT_DELAY_MS = 90 * 1000;
 
@@ -26,7 +38,8 @@ let _timer = null;
 
 /** Sweep one org × connector config. Exported for the manual sweep route. */
 async function sweepOne(config) {
-    const connector = connectors.get(config.connector_id);
+    const isoEvidenceStore = _deps.isoEvidenceStore();
+    const connector = _deps.connectors().get(config.connector_id);
     if (!connector) return { ok: false, error: `unknown connector ${config.connector_id}` };
     const orgId = config.organization_id;
 
@@ -85,11 +98,11 @@ async function processSweep() {
     const t0 = Date.now();
     let ok = true;
     try {
-        client = await pool.connect();
+        client = await _deps.pool().connect();
         const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [LOCK_KEY]);
         acquired = !!lockRes.rows[0]?.locked;
         if (!acquired) return; // another replica owns this tick
-        const configs = await isoEvidenceStore.listEnabledConfigs();
+        const configs = await _deps.isoEvidenceStore().listEnabledConfigs();
         for (const config of configs) {
             const r = await sweepOne(config);
             if (!r.ok) ok = false;
@@ -102,7 +115,7 @@ async function processSweep() {
             try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
             client.release();
         }
-        if (acquired) recordJobRun({ job: 'iso_evidence_collect', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
+        if (acquired) _deps.recordJobRun()({ job: 'iso_evidence_collect', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
         _inFlight = false;
     }
 }
@@ -119,4 +132,13 @@ function start() {
     }, BOOT_DELAY_MS).unref?.();
 }
 
-module.exports = { start, processSweep, sweepOne };
+/**
+ * Test seam: replace any of the getters in DEFAULT_DEPS; no argument restores
+ * the real ones.
+ * @param {Partial<typeof DEFAULT_DEPS> | null} [over]
+ */
+function _setDepsForTests(over = null) {
+    _deps = { ...DEFAULT_DEPS, ...(over || {}) };
+}
+
+module.exports = { start, processSweep, sweepOne, _setDepsForTests };

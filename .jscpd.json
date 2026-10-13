@@ -35,6 +35,8 @@
     "**/*.lock",
     "**/migrations/**",
     "agent-hub/src/shared/expr/**",
+    "components/*/ssrfGuard.js",
+    "components/website-sitemap-fetcher/safeGet.js",
     "deploy/**",
     "docs_old/**"
   ]

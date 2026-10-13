@@ -500,6 +500,13 @@ async function _initDB() {
             ADD COLUMN IF NOT EXISTS verification_code_hash TEXT,
             ADD COLUMN IF NOT EXISTS verification_email      TEXT,
             ADD COLUMN IF NOT EXISTS verification_attempts   INTEGER DEFAULT 0`,
+        // Per-row lifetime counters for the email-code branch. Unlike
+        // verification_attempts (per code, reset on every new code) these never
+        // reset while the row is live, so resend/retarget/re-bootstrap cannot
+        // buy unlimited guesses at a 6-digit code (ncBindings.js).
+        `ALTER TABLE pending_nc_bindings
+            ADD COLUMN IF NOT EXISTS verification_attempts_total INTEGER NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS verification_code_sends     INTEGER NOT NULL DEFAULT 0`,
     ]);
 
     await runDdl('userSchema', [

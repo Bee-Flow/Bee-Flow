@@ -12,7 +12,9 @@
  *   - a query parameter is refused with a 400 that names it;
  *   - a refused request never reaches a provider;
  *   - /meta/models wants a session, and without one no provider is called;
- *   - /meta/components stays open, as the exemption says;
+ *   - /meta/components stays open, as the exemption says, but only for the
+ *     file components: it asks for an org's subworkflows only on behalf of a
+ *     signed-in user (which org's is agentTools.subworkflowScope.test.js);
  *   - the plain requests the designer and the Android app send still pass.
  *
  * Run: cd server && node --test routes/agents/meta.validation.test.js
@@ -29,10 +31,16 @@ const Module = require('module');
 // Every provider lookup lands in `touched`. A refused request must leave it empty.
 const touched = [];
 const inert = {};
+// The scope each catalogue request asked the runtime for.
+const scopes = [];
 
 const MOCKS = {
     '../../core/agentRuntime': {
-        getAvailableComponents: async () => { touched.push('components'); return [{ id: 'c1' }]; },
+        getAvailableComponents: async (scope) => {
+            touched.push('components');
+            scopes.push(scope);
+            return [{ id: 'c1' }];
+        },
     },
     '../../core/aiAgent': {
         getAIConfig: async () => ({ model: 'm1' }),
@@ -104,7 +112,7 @@ function dispatch({ method, url, session = SIGNED_IN }) {
     });
 }
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; scopes.length = 0; });
 
 test('a provider filter is refused by name, not answered with every provider', async () => {
     const res = await dispatch({ method: 'GET', url: '/meta/models?providerId=p1' });
@@ -140,4 +148,17 @@ test('the component catalogue stays open, as its exemption says', async () => {
     const res = await dispatch({ method: 'GET', url: '/meta/components', session: {} });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(res.body, [{ id: 'c1' }]);
+});
+
+test('an anonymous catalogue request asks for no user\'s subworkflows', async () => {
+    // getAvailableComponents lists subworkflows only for a userId, and only
+    // that user's org's. Anonymous, it used to get every org's.
+    await dispatch({ method: 'GET', url: '/meta/components', session: {} });
+    await dispatch({ method: 'GET', url: '/meta/components', session: { isAuthenticated: false, user: { id: 'u1' } } });
+    assert.deepStrictEqual(scopes, [{ userId: null }, { userId: null }]);
+});
+
+test('a signed-in catalogue request asks on behalf of that user', async () => {
+    await dispatch({ method: 'GET', url: '/meta/components' });
+    assert.deepStrictEqual(scopes, [{ userId: 'u1' }]);
 });

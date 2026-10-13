@@ -43,7 +43,9 @@
  *   6. per-field coercion against the DECLARED fields (never the body's keys)
  *   7. a per-automation FIFO queue, because automationRunner cancels a second
  *      concurrent run of the same automation with "already running" — without
- *      the queue two visitors inside one run window means one lost submission
+ *      the queue two visitors inside one run window means one lost submission.
+ *      The queued work is persisted on the session row before the 202 goes
+ *      out, so a deploy or a crash does not lose it (automation/formQueue.js)
  *
  * ── WHY THERE IS NO SCHEMA ON THE SUBMISSION BODY ───────────────────────
  * Two reasons, and both are about this surface rather than about effort.
@@ -97,6 +99,8 @@ const { searchRecords, describePick } = require('../../automation/formPickRecord
 const { walkAllSteps } = require('../../automation/portability');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const { endingFrom, resultOf, markdownToSafeHtml, webpageSlots, aiStepsOf, resultFilename } = require('../../automation/formResult');
+const formQueue = require('../../automation/formQueue');
+const { lostToConcurrency } = formQueue;
 
 const FORM_RPM_PER_IP = parseInt(process.env.AUTOMATION_FORM_RPM_PER_IP, 10) || 60;
 const FORM_RPM_PER_TOKEN = parseInt(process.env.AUTOMATION_FORM_RPM_PER_TOKEN, 10) || 120;
@@ -499,8 +503,8 @@ router.post('/form/:token', ipLimiter, tokenLimiter, contentLengthGuard, async (
         // off; null is what an anonymous visitor will read as once it is on.
         const submitterId = req.session?.user?.id || null;
 
-        // The answers TABLE gets its row first, before the run is even queued:
-        // the queue is in memory, the table is not. `null` when the form does
+        // The answers TABLE gets its row first, before the run is even queued,
+        // so the owner sees the submission whatever the run does. `null` when the form does
         // not collect, or when the table refused — the submission still
         // proceeds, the owner sees why on the Form page.
         const answers = collectEnabled(found.definition)
@@ -527,30 +531,15 @@ router.post('/form/:token', ipLimiter, tokenLimiter, contentLengthGuard, async (
             rootStepId, triggerHeaders,
         });
 
-        enqueue(found.automation.id, session.id, () => runner().executeAutomation(found.automation, {
-            triggerKind: 'form',
-            triggerPayload: { ...values },
-            triggerHeaders,
-            rootStepId,
-            // Point the session at the run the MOMENT it exists, not when it
-            // returns. executeAutomation resolves only once the automation has
-            // paused or finished, so waiting for it left session.runId null for
-            // the whole first stretch — and the poll has nothing to report
-            // progress from without a run to read.
-            onRunCreated: async (r) => {
-                await automationStore.attachFormSessionRun(session.id, r.id);
-                // FRM-08: who submitted, on the run — and the run, on the row.
-                if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch(() => {});
-                if (answers) await formAnswers().attachRun({ automation: found.automation, datatableId: answers.datatableId, rowId: answers.rowId, run: r });
-            },
-            // No more pages to answer: the journey is complete (an error is
-            // "complete" too — nothing further will be asked).
-            onRunFinished: answers
-                ? (r, { status }) => ((status === 'success' || status === 'error')
-                    ? formAnswers().markCompleted({ automation: found.automation, datatableId: answers.datatableId, rowId: answers.rowId })
-                    : null)
-                : null,
-        }), res, { sessionId: session.id });
+        // Persisted on the session BEFORE the 202, then queued: the visitor is
+        // told "received" only once a restart can no longer lose it. The run
+        // itself (and its onRunCreated/onRunFinished wiring) is built by
+        // formQueue from the session row and this payload alone.
+        await formQueue.accept({
+            automation: found.automation,
+            session,
+            work: { kind: 'submit', payload: { ...values }, submitterId },
+        }, res, { sessionId: session.id });
         return undefined;
     } catch (e) {
         log.error('[automation/form] submit error:', e.message);
@@ -1198,7 +1187,7 @@ router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard
         const { session, run, stepId } = pending;
         // This page has now been ANSWERED — stop handing it back.
         //
-        // enqueue() acks the visitor immediately and resumes in the background,
+        // The queue acks the visitor immediately and resumes in the background,
         // so until the child run lands the session still points at THIS run,
         // still `awaiting_form` on THIS step. The poll would serve the very
         // page just submitted, the visitor would answer it again, and each
@@ -1209,16 +1198,10 @@ router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard
         //
         // Clearing the pointer (not the status) routes the poll onto the
         // branch it already has for "paused, but the step row has not landed
-        // yet": keep waiting. Restored below if the resume never happens, so
-        // an answer is never stranded on a run nobody can reach.
-        const stopServingPage = () => automationStore.updateRun(run.id, { awaitingStepId: null }).catch(() => {});
-        const serveAgain = () => automationStore.updateRun(run.id, { awaitingStepId: stepId }).catch(() => {});
-        // The session is pointed at the child as soon as it exists (below), so
-        // a resume that never completed has to hand the pointer BACK — else the
-        // poll reads a dead child and shows a failure for an answer that is
-        // about to be retried.
-        const pointAtParent = () => automationStore.attachFormSessionRun(session.id, run.id).catch(() => {});
-        await stopServingPage();
+        // yet": keep waiting. The queued resume (formQueue's resumeThunk)
+        // restores it if the resume never happens, so an answer is never
+        // stranded on a run nobody can reach.
+        await formQueue.stopServingPage(run.id);
 
         // This page's answers land on the SAME row page one made (its id rode
         // in on the session's trigger headers). Best-effort, like page one.
@@ -1233,43 +1216,19 @@ router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard
         // fresh executeAutomation, which takes the per-automation running
         // marker — a resume racing another visitor's run would come back
         // "Skipped: automation already running", i.e. a silently lost answer.
-        enqueue(found.automation.id, session.id, async () => {
-            await stopServingPage();   // idempotent: runQueued may retry this thunk
-            let child;
-            try {
-                child = await runner().resumeFromStep(run.id, stepId, {
-                    decision: { ...values },
-                    rootStepId: session.rootStepId,
-                    triggerHeaders: session.triggerHeaders,
-                    // Same reason as the first submission: the child is where
-                    // the work happens, and it must be readable while it
-                    // happens. finaliseResumedParent only runs once the child
-                    // is DONE, which is far too late to show progress.
-                    onRunCreated: async (r) => {
-                        await automationStore.attachFormSessionRun(session.id, r.id);
-                        if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch(() => {});
-                    },
-                    onRunFinished: answersRef
-                        ? (r, { status }) => ((status === 'success' || status === 'error')
-                            ? formAnswers().markCompleted({ automation: found.automation, ...answersRef })
-                            : null)
-                        : null,
-                });
-            } catch (e) {
-                await pointAtParent();
-                await serveAgain();    // the answer never ran — let them retry
-                throw e;
-            }
-            // A lost cross-pod race is not a completed resume — leave the
-            // parent paused so runQueued's retry can try again.
-            if (child?.id && !lostToConcurrency(child)) {
-                await finaliseResumedParent(session, run.id, child);
-            } else {
-                await pointAtParent();
-                await serveAgain();
-            }
-            return child;
-        }, res);
+        // Persisted before the 202 like a first submission.
+        try {
+            await formQueue.accept({
+                automation: found.automation,
+                session,
+                work: { kind: 'resume', parentRunId: run.id, stepId, values: { ...values }, submitterId },
+            }, res);
+        } catch (e) {
+            // Not persisted, so not queued: the answer was never accepted, and
+            // the page goes back up for the visitor to send again.
+            await automationStore.updateRun(run.id, { awaitingStepId: stepId }).catch(() => {});
+            throw e;
+        }
         return undefined;
     } catch (e) {
         log.error('[automation/form] resume error:', e.message);
@@ -1277,127 +1236,13 @@ router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard
     }
 });
 
-// ── per-automation FIFO ───────────────────────────────
-
-/**
- * automationRunner single-flights live runs: a second run started while the
- * first is going is CANCELLED with "Skipped: automation already running". For a
- * webhook that is arguably fine; for a public form it silently drops a real
- * person's submission — and for a RESUME it drops an answer to a form the
- * visitor is already halfway through. So all form work for one automation is
- * serialised here, first submissions and resumes alike.
- *
- * The queue is in-memory and therefore per-instance. Across pods the runner's
- * own lock is what serialises, and a loser comes back `cancelled` with that
- * message — which is what CANCELLED_RE + the retry below exist for.
- */
-const QUEUE_DEPTH = 25;
-// Cross-pod collision backoff. Three tries covers a normal run's length
-// without holding a browser's poll open indefinitely.
-const RETRY_DELAYS_MS = [1000, 3000, 9000];
-const CANCELLED_RE = /already running/i;
-const queues = new Map(); // automationId → { running: bool, items: [] }
-
-/**
- * Queue a unit of form work and ack the visitor immediately — they should never
- * wait on the automation. `sessionId` is re-pointed at whatever run the thunk
- * produces, which is how a resume's CHILD run becomes the session's current run.
- */
-function enqueue(automationId, sessionId, thunk, res, extra = {}) {
-    let q = queues.get(automationId);
-    if (!q) { q = { running: false, items: [] }; queues.set(automationId, q); }
-    if (q.items.length >= QUEUE_DEPTH) {
-        return res.status(503).json({ error: 'This form is busy right now — please try again in a moment.' });
-    }
-    q.items.push({ sessionId, thunk });
-    res.status(202).json({ accepted: true, ...extra });
-    if (!q.running) drainQueue(automationId);
-    return undefined;
-}
-
-const runner = () => require('../../core/automationRunner');
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-/**
- * Another pod held the automation's running marker, so this run did nothing.
- * Our own queue cannot see theirs, hence the back-off retry in runQueued.
- */
-function lostToConcurrency(run) {
-    return !!run && run.status === 'cancelled' && CANCELLED_RE.test(run.error || '');
-}
-
-/**
- * Close out the run the visitor just resumed.
- *
- * resumeFromStep starts a CHILD run and leaves the parent sitting in
- * 'awaiting_form' forever — so reapExpiredFormWaits later flipped a form the
- * visitor had actually COMPLETED to a "FormExpired" error, and the owner's run
- * history recorded a failure for a submission that worked (W5-15). The
- * approve-step endpoint has always finalised its parent this way; this is the
- * same shape for the form pause: the parent's own portion, up to the pause,
- * succeeded, and its summary points at the child that carries the continuation.
- *
- * The session is re-pointed at the child FIRST. It happens again in runQueued
- * (idempotent), but doing it here closes a real window: the poll reads
- * `session.runId`, and a parent flipped to 'success' while the session still
- * pointed at it would answer `state: 'done'` — ending the visitor's journey
- * before the child had a chance to serve the next page.
- */
-async function finaliseResumedParent(session, parentRunId, child) {
-    if (session?.id) await automationStore.attachFormSessionRun(session.id, child.id).catch(() => {});
-    await automationStore.updateRun(parentRunId, {
-        status: 'success',
-        summary: `Resumed from the form — see child run ${child.id}`,
-        finishedAt: new Date().toISOString(),
-        awaitingStepId: null,
-    }).catch(() => {});
-}
-
-async function runQueued({ sessionId, thunk }) {
-    for (let attempt = 0; ; attempt++) {
-        const run = await thunk();
-        const lost = lostToConcurrency(run);
-        if (!lost) {
-            if (sessionId && run?.id) await automationStore.attachFormSessionRun(sessionId, run.id).catch(() => {});
-            return;
-        }
-        if (attempt >= RETRY_DELAYS_MS.length) {
-            log.warn(`[automation/form] gave up after ${attempt} retries — automation stayed busy`);
-            // Deliberately NOT attached: `run` here is the run that lost the
-            // race and did nothing. The thunk has already pointed the session
-            // back at the paused parent and restored its page, so the visitor
-            // gets the question again rather than a failure for an answer that
-            // was never executed.
-            return;
-        }
-        await sleep(RETRY_DELAYS_MS[attempt]);
-    }
-}
-
-async function drainQueue(automationId) {
-    const q = queues.get(automationId);
-    if (!q || q.running) return;
-    q.running = true;
-    try {
-        while (q.items.length) {
-            const item = q.items.shift();
-            try {
-                await runQueued(item);
-            } catch (e) {
-                log.error('[automation/form] run error:', e.message);
-            }
-        }
-    } finally {
-        q.running = false;
-        if (!q.items.length) queues.delete(automationId);
-        else drainQueue(automationId);
-    }
-}
+// The per-automation FIFO, its persistence and its recovery live in
+// automation/formQueue.js.
 
 module.exports = router;
 // Exported for tests.
-module.exports._queues = queues;
+module.exports._queues = formQueue._queues;
 module.exports._constants = {
-    MIN_FORM_AGE_MS, HONEYPOT_FIELD, MAX_SUBMISSION_BYTES, QUEUE_DEPTH,
-    UPLOAD_QUOTA_FILES, UPLOAD_QUOTA_BYTES, UPLOAD_QUOTA_WINDOW_MS, RETRY_DELAYS_MS,
+    MIN_FORM_AGE_MS, HONEYPOT_FIELD, MAX_SUBMISSION_BYTES, QUEUE_DEPTH: formQueue.QUEUE_DEPTH,
+    UPLOAD_QUOTA_FILES, UPLOAD_QUOTA_BYTES, UPLOAD_QUOTA_WINDOW_MS, RETRY_DELAYS_MS: formQueue.RETRY_DELAYS_MS,
 };

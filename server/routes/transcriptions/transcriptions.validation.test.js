@@ -49,6 +49,8 @@ function mock(absId, exports) {
 // Elke store-aanroep komt in `touched` terecht. Een geweigerd verzoek moet
 // hem leeg laten.
 let touched = [];
+/** @type {Error | null} */
+let ingestFails = null;
 const spy = (what, value) => (...args) => { touched.push({ what, args }); return value; };
 
 const NOTE = {
@@ -86,7 +88,11 @@ mock(path.join(SERVER, 'stores/meetingPrefsStore'), {
     loadMeetingPrefs: async () => ({ opinionFor: () => true }),
 });
 mock(path.join(SERVER, 'core/meetingNotes/ingestNextcloudRecording'), {
-    ingestNextcloudRecording: spy('ingestNextcloudRecording', Promise.resolve({ id: 't-2' })),
+    // `ingestFails` lets a test make the pipeline throw instead.
+    ingestNextcloudRecording: (...args) => {
+        touched.push({ what: 'ingestNextcloudRecording', args });
+        return ingestFails ? Promise.reject(ingestFails) : Promise.resolve({ id: 't-2' });
+    },
     // The route reads the room token out of the path to decide whether the
     // recording came from a Talk call; a plain upload path has none.
     parseTalkRoomToken: () => null,
@@ -244,6 +250,40 @@ test('de body die het scherm echt verstuurt importeert nog steeds', async () => 
     });
     assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
     assert.strictEqual(touched.find((x) => x.what === 'ingestNextcloudRecording').args[0].language, 'en');
+});
+
+test('een onverwachte fout bij het importeren lekt zijn tekst niet meer naar de client', async () => {
+    // `res.status(err.status || 500).json({ error: err.message, code })`: een
+    // databasefout of een ENOENT gaf de client de query- of padtekst mee.
+    const leak = Object.assign(new Error('relation "transcriptions" does not exist at /srv/beeflow/data/uploads'), { code: '42P01' });
+    ingestFails = leak;
+    try {
+        const res = await dispatch({ method: 'POST', url: '/from-nextcloud', body: { nextcloud_path: '/Talk/abc/a.ogg' } });
+        assert.strictEqual(res.statusCode, 500);
+        assert.strictEqual(res.body.error, 'Internal server error');
+        assert.ok(res.body.correlationId, 'the client can quote a correlationId');
+        assert.strictEqual(res.body.code, undefined);
+        assert.doesNotMatch(JSON.stringify(res.body), /does not exist|\/srv\/|42P01/);
+    } finally { ingestFails = null; }
+});
+
+test('een bedoelde weigering van de import houdt zijn status, code en zin', async () => {
+    const ingestError = (message, code, status) => Object.assign(new Error(message), { name: 'IngestError', code, status });
+    const cases = [
+        ingestError('Nextcloud is not connected for this account', 'not_connected', 400),
+        ingestError('This recording has already been imported by someone else. Ask them to share the meeting note with you.', 'already_imported', 409),
+        ingestError('Recording exceeds the 500 MB limit. Record audio-only or trim the file.', 'recording_too_large', 413),
+        ingestError('Local transcription unavailable. Pick a cloud provider.', 'local_whisper_unavailable', 503),
+    ];
+    try {
+        for (const err of cases) {
+            ingestFails = err;
+            const res = await dispatch({ method: 'POST', url: '/from-nextcloud', body: { nextcloud_path: '/Talk/abc/a.ogg' } });
+            assert.strictEqual(res.statusCode, err.status, err.message);
+            assert.strictEqual(res.body.error, err.message);
+            assert.strictEqual(res.body.code, err.code);
+        }
+    } finally { ingestFails = null; }
 });
 
 // ═══ De notitie zelf ════════════════════════════════════════════════

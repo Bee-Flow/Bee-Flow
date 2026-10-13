@@ -10,7 +10,9 @@
  *   - every selected meeting note reaches the prompt, the budget shared;
  *   - a caller's conversation id cannot open another user's token map;
  *   - the composer's shared payload is accepted, a misspelling is not, and
- *     a refusal is a JSON 400 before the stream opens.
+ *     a refusal is a JSON 400 before the stream opens;
+ *   - a tier the person's groups leave out is a JSON 403 before the stream
+ *     opens (core/llm/resolveTurnModel); `auto` and no tier run as before.
  *
  * Run: cd server && node --test routes/ai/templateChat.validation.test.js
  */
@@ -188,4 +190,24 @@ test('a caller\'s conversation id is namespaced before it keys the privacy-shiel
     assert.strictEqual(res.statusCode, 200);
     assert.ok(dlpScopes.length > 0, 'the shield ran');
     for (const scope of dlpScopes) assert.strictEqual(scope, 'tmpl-u1-someone-elses-conversation');
+});
+
+test('a tier the person\'s groups leave out is refused; auto and no tier still run', async () => {
+    const userStore = require('../../stores/userStore');
+    const { makeSwaps } = require('../../testUtils/swaps');
+    const { swap, restore } = makeSwaps();
+    swap(userStore, 'getUser', async (id) => ({ id, groups: ['g1'] }));
+    swap(userStore, 'getAllGroups', async () => [{ id: 'g1', allowedTiers: ['auto', 'fast'] }]);
+    try {
+        const refused = await post({ ...COMPOSER, modelTier: 'pro' });
+        assert.strictEqual(refused.statusCode, 403);
+        assert.deepStrictEqual(refused.body, { error: 'Tier "pro" is not available on your account.', code: 'tier_not_permitted' });
+        assert.strictEqual(sentMessages, null, 'no model was called');
+        assert.strictEqual((await post(COMPOSER)).statusCode, 200, 'auto');
+        const { modelTier: _omit, ...noTier } = COMPOSER;
+        assert.strictEqual((await post(noTier)).statusCode, 200, 'no tier');
+        assert.strictEqual((await post({ ...COMPOSER, modelTier: 'standard' })).statusCode, 200, 'standard reads as fast');
+    } finally {
+        restore();
+    }
 });

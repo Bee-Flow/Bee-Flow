@@ -11,14 +11,29 @@
  *   - renewExpiringSubscriptions() : MS Graph subscription refresh
  */
 
-const automationStore = require('../stores/automationStore');
+const REAL_AUTOMATION_STORE = require('../stores/automationStore');
+// `let` only for _setDepsForTests (bottom of this file); production never reassigns it.
+let automationStore = REAL_AUTOMATION_STORE;
 const { applyDslFilter } = require('./triggers/dslFilters');
 
 // §WS5 — matchers + dispatch live in ./triggerBus/{filters,dispatch}.js.
 const { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchSupportTicketResolvedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, pickMatcher } = require('./triggerBus/filters');
 const { dispatchEvent, dispatchToSubscription, dispatchSupportEvent } = require('./triggerBus/dispatch');
 const { makePassCtx } = require('./triggerSources/pollDiff');
+const { walkGmailHistory } = require('./triggerBus/pollers/gmailHistory');
 const log = require('../telemetry/log');
+
+// Test seam (_setDepsForTests): the credential lookups, the Google client
+// factory and the per-subscription dispatcher the polling pass goes through,
+// so a test drives runPollingPass against fakes without touching the module
+// cache. Modules stay lazily required, as they were inline.
+const DEFAULT_DEPS = {
+    userStore: () => require('../stores/userStore'),
+    automationAuth: () => require('../auth/automationAuth'),
+    googleClient: () => require('../integrations/googleClient'),
+    dispatchToSubscription: () => dispatchToSubscription,
+};
+let _deps = { ...DEFAULT_DEPS };
 
 /**
  * Gmail-aware mail.new filter. The shallow `matchFilter` above is fine
@@ -94,7 +109,7 @@ async function runPollingPass() {
             // subscription on the same provider+event+user every time any
             // one of them polls, double- (or N-times-) firing automations.
             for (const ev of events) {
-                dispatchToSubscription(sub, { provider: sub.provider, event: sub.eventType, payload: ev });
+                _deps.dispatchToSubscription()(sub, { provider: sub.provider, event: sub.eventType, payload: ev });
             }
             await automationStore.updateSubscription(sub.id, { lastPolledAt: new Date().toISOString() });
             await automationStore.resetSubscriptionFailures(sub.id);
@@ -159,7 +174,7 @@ async function runDeclaredSource(sub, passCtx) {
     }
 
     for (const ev of outcome.events) {
-        dispatchToSubscription(sub, { provider: sub.provider, event: sub.eventType, payload: ev });
+        _deps.dispatchToSubscription()(sub, { provider: sub.provider, event: sub.eventType, payload: ev });
     }
     if (outcome.events.length) {
         log.info(`[TriggerBus] sub ${sub.id} (${sub.provider}.${sub.eventType}) → ${outcome.events.length} event(s)`);
@@ -206,7 +221,7 @@ async function loadSession(userId) {
     // returns raw columns, so the uid is `nc_uid` (snake_case).
     let connectorFields = null;
     try {
-        const userStore = require('../stores/userStore');
+        const userStore = _deps.userStore();
         const u = await userStore.getUser(userId).catch(() => null);
         if (u && u.provider === 'nextcloud_connector') {
             connectorFields = {
@@ -219,7 +234,7 @@ async function loadSession(userId) {
 
     // 1) Vault first.
     try {
-        const automationAuth = require('../auth/automationAuth');
+        const automationAuth = _deps.automationAuth();
         const built = await automationAuth.buildUserAuth(userId, {
             enabledIntegrations: ['gmail', 'google-calendar', 'google-drive', 'google-docs', 'google-contacts', 'google-keep', 'google-groups', 'outlook', 'ms-calendar', 'onedrive', 'ms-contacts', 'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts'],
         });
@@ -419,7 +434,7 @@ async function _ncPollChannel({ sub, session, predicate }) {
 const POLLERS = {
     gmail: {
         'mail.new': async (sub, session) => {
-            const { createGoogleApiClient } = require('../integrations/googleClient');
+            const { createGoogleApiClient } = _deps.googleClient();
             const gmail = await createGoogleApiClient(session, { api: 'gmail', version: 'v1' });
 
             // Recoverable failure: history.list 404 / "Requested entity was
@@ -439,57 +454,36 @@ const POLLERS = {
 
             if (sub.lastCursor) {
                 try {
-                    // Paginate through history pages — the old single-page read
-                    // dropped every messageAdded beyond page 1 while still
-                    // advancing the cursor to the latest historyId, silently
-                    // losing those events. Walk records in order; when we hit
-                    // the per-tick cap, advance the cursor only as far as the
-                    // LAST record we processed so the next tick continues from
-                    // there — making steady progress without re-dispatching.
-                    const MAX_GMAIL_HISTORY_PAGES = 10;
+                    // Paginated walk (./triggerBus/pollers/gmailHistory.js): a
+                    // single-page read dropped every messageAdded beyond page 1
+                    // while still advancing the cursor to the latest historyId.
+                    // On the per-tick cap the cursor advances only to the LAST
+                    // record processed, so the next tick continues from there.
                     const MAX_GMAIL_EVENTS = 100;
                     const seen = new Set();
                     const ids = [];
-                    let pageToken;
-                    let latestHistoryId = null;      // newest historyId Gmail reported
-                    let lastProcessedHistoryId = null; // historyId of the last record we drained
-                    let pages = 0;
-                    let capped = false;
-                    outer:
-                    do {
-                        const r = await gmail.users.history.list({
-                            userId: 'me',
-                            startHistoryId: sub.lastCursor,
-                            historyTypes: ['messageAdded'],
-                            pageToken,
-                        });
-                        if (r.data.historyId) latestHistoryId = r.data.historyId;
-                        for (const h of (r.data.history || [])) {
+                    const walk = await walkGmailHistory(gmail, {
+                        startHistoryId: sub.lastCursor,
+                        historyTypes: ['messageAdded'],
+                        maxEvents: MAX_GMAIL_EVENTS,
+                        onRecord: (h) => {
                             for (const m of (h.messagesAdded || [])) {
                                 const id = m.message?.id;
                                 if (id && !seen.has(id)) { seen.add(id); ids.push({ id, threadId: m.message?.threadId }); }
                             }
-                            if (h.id) lastProcessedHistoryId = h.id;
-                            if (ids.length >= MAX_GMAIL_EVENTS) { capped = true; break outer; }
-                        }
-                        pageToken = r.data.nextPageToken || undefined;
-                        pages++;
-                        if (pages >= MAX_GMAIL_HISTORY_PAGES && pageToken) { capped = true; break; }
-                    } while (pageToken);
+                            return ids.length;
+                        },
+                    });
 
-                    if (capped) {
-                        log.warn(`[TriggerBus] gmail sub ${sub.id}: large history backlog — processed ${ids.length} event(s) this tick, advancing cursor to ${lastProcessedHistoryId}; the remainder is picked up next tick.`);
+                    if (walk.capped) {
+                        log.warn(`[TriggerBus] gmail sub ${sub.id}: large history backlog — processed ${ids.length} event(s) this tick, advancing cursor to ${walk.lastProcessedHistoryId}; the remainder is picked up next tick.`);
                     }
                     const events = [];
                     for (const { id, threadId } of ids) {
                         const enriched = await fetchGmailMessageMetadata(gmail, id).catch(() => null);
                         events.push({ messageId: id, threadId, ...(enriched || {}) });
                     }
-                    // Advance the cursor: to the last record we drained when
-                    // capped (so the next tick resumes right after it), else to
-                    // the newest historyId (fully caught up).
-                    const nextCursor = capped ? (lastProcessedHistoryId || latestHistoryId) : latestHistoryId;
-                    if (nextCursor) await automationStore.updateSubscription(sub.id, { lastCursor: String(nextCursor) });
+                    if (walk.nextCursor) await automationStore.updateSubscription(sub.id, { lastCursor: String(walk.nextCursor) });
                     return events;
                 } catch (err) {
                     if (isCursorStaleError(err)) {
@@ -550,7 +544,7 @@ const POLLERS = {
          * different `historyType`. Bootstrap path is identical.
          */
         'label.added': async (sub, session) => {
-            const { createGoogleApiClient } = require('../integrations/googleClient');
+            const { createGoogleApiClient } = _deps.googleClient();
             const gmail = await createGoogleApiClient(session, { api: 'gmail', version: 'v1' });
 
             const isCursorStaleError = (err) => {
@@ -564,32 +558,43 @@ const POLLERS = {
 
             if (sub.lastCursor) {
                 try {
-                    const r = await gmail.users.history.list({
-                        userId: 'me',
-                        startHistoryId: sub.lastCursor,
-                        historyTypes: ['labelAdded'],
-                    });
                     // Group label-added rows by messageId so a single
                     // message that picked up multiple labels in one batch
                     // fires once with all addedLabelIds aggregated.
+                    // Paginated like mail.new: at most MAX_LABEL_EVENTS
+                    // messages per tick, and on that cap the cursor stops at
+                    // the last record drained instead of jumping to the
+                    // newest historyId (which silently dropped the rest).
+                    const MAX_LABEL_EVENTS = 20;
                     const byMsg = new Map();
-                    for (const h of (r.data.history || [])) {
-                        for (const la of (h.labelsAdded || [])) {
-                            const id = la.message?.id;
-                            if (!id) continue;
-                            const existing = byMsg.get(id) || { messageId: id, threadId: la.message?.threadId, addedLabelIds: [] };
-                            for (const lid of (la.labelIds || [])) {
-                                if (!existing.addedLabelIds.includes(lid)) existing.addedLabelIds.push(lid);
+                    const walk = await walkGmailHistory(gmail, {
+                        startHistoryId: sub.lastCursor,
+                        historyTypes: ['labelAdded'],
+                        maxEvents: MAX_LABEL_EVENTS,
+                        onRecord: (h) => {
+                            for (const la of (h.labelsAdded || [])) {
+                                const id = la.message?.id;
+                                if (!id) continue;
+                                const existing = byMsg.get(id) || { messageId: id, threadId: la.message?.threadId, addedLabelIds: [] };
+                                for (const lid of (la.labelIds || [])) {
+                                    if (!existing.addedLabelIds.includes(lid)) existing.addedLabelIds.push(lid);
+                                }
+                                byMsg.set(id, existing);
                             }
-                            byMsg.set(id, existing);
-                        }
+                            return byMsg.size;
+                        },
+                    });
+                    if (walk.capped) {
+                        log.warn(`[TriggerBus] gmail label sub ${sub.id}: large history backlog — processed ${byMsg.size} message(s) this tick, advancing cursor to ${walk.lastProcessedHistoryId}; the remainder is picked up next tick.`);
                     }
+                    // Every collected message is dispatched: the cursor has
+                    // moved past all of their records, so none may be dropped.
                     const events = [];
-                    for (const ev of [...byMsg.values()].slice(0, 20)) {
+                    for (const ev of byMsg.values()) {
                         const enriched = await fetchGmailMessageMetadata(gmail, ev.messageId).catch(() => null);
                         events.push({ ...ev, ...(enriched || {}) });
                     }
-                    if (r.data.historyId) await automationStore.updateSubscription(sub.id, { lastCursor: String(r.data.historyId) });
+                    if (walk.nextCursor) await automationStore.updateSubscription(sub.id, { lastCursor: String(walk.nextCursor) });
                     return events;
                 } catch (err) {
                     if (isCursorStaleError(err)) {
@@ -630,7 +635,7 @@ const POLLERS = {
     'google-calendar': {
         'event.changed': async (sub, session) => {
             try {
-                const { createGoogleApiClient } = require('../integrations/googleClient');
+                const { createGoogleApiClient } = _deps.googleClient();
                 const cal = await createGoogleApiClient(session, { api: 'calendar', version: 'v3' });
                 const isBootstrap = !sub.lastCursor;
                 // Calendar's syncToken expires after ~1 month of disuse and
@@ -701,7 +706,7 @@ const POLLERS = {
          */
         'event.upcoming': async (sub, session) => {
             try {
-                const { createGoogleApiClient } = require('../integrations/googleClient');
+                const { createGoogleApiClient } = _deps.googleClient();
                 const cal = await createGoogleApiClient(session, { api: 'calendar', version: 'v3' });
 
                 const filter = sub.filter || {};
@@ -780,7 +785,7 @@ const POLLERS = {
          * `changes.list({pageToken})` and emit creates only.
          */
         'file.new': async (sub, session) => {
-            const { createGoogleApiClient } = require('../integrations/googleClient');
+            const { createGoogleApiClient } = _deps.googleClient();
             const drive = await createGoogleApiClient(session, { api: 'drive', version: 'v3' });
 
             const isStaleCursor = (err) => {
@@ -1263,7 +1268,7 @@ async function fetchLatestGmailMatch(userId, filter) {
     try {
         const session = await loadSession(userId);
         if (!session?.accessToken) return null;
-        const { createGoogleApiClient } = require('../integrations/googleClient');
+        const { createGoogleApiClient } = _deps.googleClient();
         const gmail = await createGoogleApiClient(session, { api: 'gmail', version: 'v1' });
 
         // Coarse server-side narrowing. Only fields Gmail's `q` understands
@@ -1328,7 +1333,21 @@ async function fetchLatestNextcloudMatch(userId, event, filter) {
     }
 }
 
+/**
+ * Test seam: replace any of `automationStore` (the module), `userStore`,
+ * `automationAuth`, `googleClient` (getters returning the module) and
+ * `dispatchToSubscription` (a getter returning the function). No argument
+ * restores the real ones.
+ * @param {any} [over]
+ */
+function _setDepsForTests(over = null) {
+    const { automationStore: store, ...rest } = over || {};
+    automationStore = store || REAL_AUTOMATION_STORE;
+    _deps = { ...DEFAULT_DEPS, ...rest };
+}
+
 module.exports = {
+    _setDepsForTests,
     dispatchEvent,
     dispatchSupportEvent,
     runPollingPass,

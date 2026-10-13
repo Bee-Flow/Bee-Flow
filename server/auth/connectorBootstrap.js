@@ -47,6 +47,7 @@ const { sendNcVerificationCodeEmail } = require('../utils/emailService');
 const { buildAutoOrgName, ncHostFromUrl } = require('./orgNaming');
 const { isFreeEmailDomain, getEffectiveFreeEmailDomains } = require('../utils/freeEmailDomains');
 const { NC_INTEGRATION_IDS } = require('../utils/ncIntegrationCatalog');
+const { nextcloudFetch } = require('../integrations/nextcloudTarget');
 
 // Auto-apply the operator-flagged "Nextcloud recommended" plan to freshly
 // provisioned or freshly-adopted NC orgs so they get enterprise-equivalent
@@ -284,11 +285,18 @@ function readBootstrapHeaders(req) {
 // can host a fake NC that returns whatever instance id they put in the
 // header. The adoption gate (pending_nc_bindings + admin approval) closes
 // that gap.
+//
+// The base URL comes from an unauthenticated request header, so the fetch goes
+// through nextcloudFetch (the same SSRF gate as every other Nextcloud call):
+// private, loopback and metadata targets are refused, and every redirect hop
+// is re-checked at connect time. A self-host whose Nextcloud sits on a LAN
+// address opts in with NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1. A refusal surfaces as
+// "unreachable", the same branch as any other connection failure.
 async function verifyNcInstance(ncBaseUrl, expectedInstanceId) {
     const url = `${ncBaseUrl}/ocs/v2.php/cloud/capabilities?format=json`;
     let res;
     try {
-        res = await fetch(url, {
+        res = await nextcloudFetch(url, {
             headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' },
             signal: AbortSignal.timeout(8000),
         });
@@ -963,15 +971,25 @@ router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async
     });
 });
 
-// Re-send the verification code (new code, attempts reset, TTL extended). Goes
-// to the same mailbox the original was sent to, so a held pendingId can't
-// redirect the code elsewhere.
+// A pending row's code-send/attempt budget is spent (ncBindings.js caps it per
+// pendingId, independent of the per-IP limiter): no new code until it expires.
+const tooManyCodeRequests = (res) => res.status(429).json({
+    error: 'Too many code requests for this connection; try again later.',
+    code: 'too_many_code_requests',
+    remediation: 'Wait for the current verification to expire (15 minutes) and retry from the connector.',
+});
+
+// Re-send the verification code (new code, per-code attempts reset, TTL
+// extended), capped per pendingId. Goes to the same mailbox the original was
+// sent to, so a held pendingId can't redirect the code elsewhere.
 router.post('/connector/bootstrap/pending/:id/resend', verificationResendLimiter, async (req, res) => {
     const id = String(req.params.id || '').trim();
     if (!id) return res.status(400).json({ error: 'Missing id' });
     const code = generateVerificationCode();
-    const row = await userStore.resetNcVerificationCode(id, code);
-    if (!row) return res.status(410).json({ status: 'expired', code: 'expired' });
+    const sent = await userStore.resetNcVerificationCode(id, code);
+    if (sent.status === 'too_many') return tooManyCodeRequests(res);
+    if (sent.status !== 'ok') return res.status(410).json({ status: 'expired', code: 'expired' });
+    const row = sent.row;
     const to = row.verificationEmail || row.ncAdminEmail;
     let emailSent = false;
     try {
@@ -1024,8 +1042,10 @@ router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimit
     }
 
     const code = generateVerificationCode();
-    const updated = await userStore.retargetNcVerification(id, { email, uid, displayName, code });
-    if (!updated) return res.status(410).json({ status: 'expired', code: 'expired' });
+    const sent = await userStore.retargetNcVerification(id, { email, uid, displayName, code });
+    if (sent.status === 'too_many') return tooManyCodeRequests(res);
+    if (sent.status !== 'ok') return res.status(410).json({ status: 'expired', code: 'expired' });
+    const updated = sent.row;
 
     let emailSent = false;
     try {
@@ -1213,5 +1233,6 @@ module.exports.helpers = {
     defaultProvisioningMode,
     resolveProvisioningMode,
     stableInstanceIdFallback,
+    verifyNcInstance,
     PROVISIONING_MODES,
 };

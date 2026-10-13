@@ -13,7 +13,8 @@
  * index.js. They were requireAuth only, but the agent behind them is the
  * Component Designer, whose system tools include `update_component` (writes
  * any file of an existing component, index.js included) and
- * `execute_component` (spawns it with the server's env). So any signed-in
+ * `execute_component` (spawns it as the server's uid; its env is allow-listed,
+ * see buildComponentEnv in core/executionEngine.js). So any signed-in
  * user could have code written into a component and run, around the gate
  * that /create-component was given for exactly that reason. The only client,
  * the AI designer in the Component Studio, already renders behind
@@ -173,7 +174,8 @@ router.get('/history', requireAuth, (req, res) => {
 
 // Get available tools/components for research
 router.get('/tools', requireAuth, async (req, res) => {
-    const components = await getAvailableComponents();
+    // Subworkflows in the list are the caller's org's only (agentTools.js).
+    const components = await getAvailableComponents({ userId: req.session.user.id });
     const researchTools = components.filter(c => {
         const name = (c.name || '').toLowerCase();
         const desc = (c.description || '').toLowerCase();
@@ -199,7 +201,8 @@ router.get('/tools', requireAuth, async (req, res) => {
 // route is mounted under /ai and carried only requireAuth — so the enterprise
 // gate on writing executable component code was reachable around, by any
 // authenticated user. componentManager runs `npm install` in the component's
-// directory and executionEngine spawns index.js with the server's env, so the
+// directory and executionEngine spawns index.js as the server's uid (with an
+// allow-listed env, see buildComponentEnv), so the
 // capability is the boundary, not a paywall.
 //
 // ORDER MATTERS: requireCapability opens with
@@ -215,6 +218,17 @@ router.post('/create-component', requireAuth, requireCapability('component_desig
     if (fs.existsSync(componentDir)) {
         return res.status(400).json({ error: 'Component with this ID already exists' });
     }
+
+    // Who this component belongs to. components/ is one global directory, and
+    // without this a component a member of org A had the model write was
+    // listed in, and callable from, every other org's agents too
+    // (core/agentRuntime/agentTools.js, componentVisibleTo). The org is read
+    // from the user row, the same source the readers compare it with; a
+    // creator without an org keeps it to themselves.
+    const userStore = require('../../stores/userStore');
+    const creatorId = req.session.user.id;
+    const creator = await userStore.getUser(creatorId);
+    const owner = creator?.organizationId ? { orgId: creator.organizationId } : { userId: creatorId };
 
     await fs.promises.mkdir(componentDir, { recursive: true });
 
@@ -235,7 +249,8 @@ router.post('/create-component', requireAuth, requireCapability('component_desig
         // toggle. Flip the fallback to `false` if AI-authored components
         // should instead be opt-in.
         agentEnabled: component.agentEnabled !== false,
-        directChatEnabled: component.directChatEnabled === true
+        directChatEnabled: component.directChatEnabled === true,
+        owner,
     };
     await fs.promises.writeFile(path.join(componentDir, 'component.json'), JSON.stringify(componentJson, null, 2));
 

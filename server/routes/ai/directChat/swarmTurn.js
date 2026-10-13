@@ -11,6 +11,7 @@ const agentStore = require('../../../stores/agentStore');
 const { encryptionOpts } = require('./shared');
 const chatSignalsTurn = require('./chatSignalsTurn');
 const log = require('../../../telemetry/log');
+const { turnTierRefusal } = require('../../../core/llm/resolveTurnModel');
 
 async function runSwarmTierTurn({ req, res, userId, message, conversationId, attachments }) {
         const { runSwarmTurn, loadSwarmById } = require('../../../core/swarms/swarmRuntime');
@@ -23,6 +24,12 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
         const allowed = await userHasBetaFeature(userId, 'swarm', req.session).catch(() => false);
         if (!allowed) {
             return res.status(403).json({ error: 'Swarm Agents beta is not enabled for your organisation.' });
+        }
+        // Group gate: a group whose Allowed tiers leave Swarm out refuses it,
+        // as every other named tier (core/llm/resolveTurnModel).
+        const tierRefusal = await turnTierRefusal({ tier: 'swarm', userId });
+        if (tierRefusal) {
+            return res.status(tierRefusal.status).json({ error: tierRefusal.error, code: tierRefusal.code });
         }
         const swarmId = 'builtin:research_swarm';
         const swarmEntry = loadSwarmById(swarmId);

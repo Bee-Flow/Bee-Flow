@@ -17,6 +17,7 @@ const automationStore = require('../../stores/automationStore');
 const configStore = require('../../stores/configStore');
 const triggerBus = require('../../automation/triggerBus');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { verifyConnectorSig } = require('../../auth/connectorSig');
 
 // ── PUBLIC routes (defined first; auth comes after) ────
 
@@ -171,7 +172,8 @@ router.post('/events/gmail', eventsLimiter, express.json({ limit: '128kb' }), as
 // the org's stored connector_tenant_key, map the connector's stable
 // event name to a subscription, and dispatch through triggerBus.
 //
-// Auth model (mirrors /webhook/nc-user-sync exactly):
+// Auth model (the same check as /webhook/nc-user-sync: auth/connectorSig.js,
+// the one copy every connector route calls):
 //   X-Beeflow-NC-Instance-Id  identifies the org
 //   X-Beeflow-Sig             ts.hmac(tenantKey, "ts\nMETHOD\nurl\nbody")
 //   ±5 min skew, constant-time compare.
@@ -184,33 +186,8 @@ const captureRawNc = express.json({
     verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); },
 });
 
-async function verifyNcConnectorSig(req) {
-    const instanceId = String(req.headers['x-beeflow-nc-instance-id'] || '');
-    if (!instanceId) return null;
-    const userStore = require('../../stores/userStore');
-    const org = await userStore.getOrganizationByNcInstanceId(instanceId).catch(() => null);
-    if (!org) return null;
-    const tenantKey = await configStore.getSecret(`connector_tenant_key_${org.id}`);
-    if (!tenantKey) return null;
-
-    const sigHeader = String(req.headers['x-beeflow-sig'] || '');
-    const dot = sigHeader.indexOf('.');
-    if (dot === -1) return null;
-    const ts = parseInt(sigHeader.slice(0, dot), 10);
-    const sig = sigHeader.slice(dot + 1);
-    if (!Number.isFinite(ts) || Math.abs(Math.floor(Date.now() / 1000) - ts) > 300) return null;
-
-    const message = `${ts}\n${req.method}\n${req.originalUrl}\n${req.rawBody || ''}`;
-    const expected = crypto.createHmac('sha256', tenantKey).update(message).digest('hex');
-    if (expected.length !== sig.length) return null;
-    try {
-        if (!crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(sig, 'hex'))) return null;
-    } catch { return null; }
-    return org;
-}
-
 router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) => {
-    const org = await verifyNcConnectorSig(req);
+    const org = await verifyConnectorSig(req);
     if (!org) return res.status(401).json({ error: 'Invalid or missing signature' });
 
     const { event, ncUid, payload } = req.body || {};

@@ -100,6 +100,8 @@ const {
 const configStore = require('../../stores/configStore');
 const { getAdapter } = require('../../core/providers');
 const templateStore = require('../../stores/templateStore');
+const { resolveTurnTier } = require('../../core/llm/resolveTurnModel');
+const { openSse } = require('../../core/http/sseHelpers');
 const transcriptionStore = require('../../stores/transcriptionStore');
 require('../../core/serviceAuth');
 
@@ -134,11 +136,16 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     const { resolveModelForTier, getTierConfig, resolveEffectiveOrgId } = require('../../core/llm/modelResolver');
     const userOrgId = await resolveEffectiveOrgId(req, { userId });
 
-    // Resolve model from tier config (EU-aware)
-    let resolvedTier = modelTier || 'fast';
-    if (resolvedTier === 'standard') {
-        resolvedTier = 'fast';
-    }
+    // Resolve model from tier config (EU-aware). Which tier:
+    // core/llm/resolveTurnModel — `standard` is read as `fast`, `auto` is left
+    // to the resolver (which answers it with fast), and a tier the person's
+    // groups do not allow is refused.
+    const turnTier = await resolveTurnTier({
+        modelTier, message, tiers: null, userId, userOrgId,
+        surface: 'TemplateChat', standardIsFast: true, classifyAuto: false,
+    });
+    if (turnTier.refusal) return res.status(turnTier.refusal.status).json({ error: turnTier.refusal.error, code: turnTier.refusal.code });
+    const resolvedTier = turnTier.tier;
     const tierConfig = await getTierConfig(resolvedTier, { userOrgId, userId });
     let modelId = await resolveModelForTier(`tier:${resolvedTier}`, { userOrgId, userId, fallbackTier: 'fast' });
 
@@ -170,30 +177,12 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
 
     log.info(`[TemplateChat] Model: ${modelId} (tier: ${resolvedTier}) for template: ${template.name}`);
 
-    // Set SSE headers
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-
-    const send = (event, data) => {
-        if (res.writableEnded || res.destroyed) return;
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    };
-    // STOP: the composer's stop button aborts the browser fetch, which closes
-    // this response. Without a listener the turn ran on — tool rounds and all —
-    // and on a single-slot local model the next message queued behind an answer
-    // nobody wanted. `writableEnded` keeps our own end() from reading as a cancel.
-    const clientAbort = new AbortController();
-    let clientGone = false;
-    res.on('close', () => {
-        if (res.writableEnded) return;
-        clientGone = true;
-        log.info('[TemplateChat] client disconnected — aborting the generation');
-        try { clientAbort.abort(); } catch (_) { /* already aborted */ }
-    });
+    // SSE headers, the client's stop (the composer's stop button aborts the
+    // browser fetch; without it the turn ran on, tool rounds and all, and on a
+    // single-slot local model the next message queued behind an answer nobody
+    // wanted) and the keep-alive that stops the Nextcloud AppAPI proxy from
+    // idle-timing a long, silent turn out to a 504 (BFSF-221).
+    const { send, signal: clientSignal, isGone } = openSse(res, { heartbeat: true, tag: 'TemplateChat' });
 
     try {
         // Build template context
@@ -453,7 +442,7 @@ ABSOLUTE RULES:
         const tierDefaults = TIER_DEFAULTS[resolvedTier] || TIER_DEFAULTS['fast'];
         const chatOptions = {
             // Carries the client's stop all the way to the model request.
-            signal: clientAbort.signal,
+            signal: clientSignal,
             maxTokens: tierSettings.maxTokens || tierDefaults.maxTokens,
             temperature: tierSettings.temperature !== undefined ? tierSettings.temperature : tierDefaults.temperature,
         };
@@ -490,7 +479,7 @@ ABSOLUTE RULES:
     } catch (err) {
         // The user pressed stop: the socket is already gone, and a cancelled
         // answer is not an error to report.
-        if (clientGone || err?.name === 'AbortError' || clientAbort.signal.aborted) {
+        if (isGone() || err?.name === 'AbortError' || clientSignal.aborted) {
             log.info('[TemplateChat] turn cancelled by the client');
             try { if (!res.writableEnded) res.end(); } catch (_) { /* socket already gone */ }
             return;

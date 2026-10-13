@@ -38,6 +38,7 @@ const { runAiAutoResponder } = require('../services/supportAiResponder');
 // /api/support/stream skips them and our /stream forwards only in-scope inboxes.
 const { supportEvents } = require('./support');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const S = require('./support/inboxSchemas');
 const agentStore = require('../stores/agentStore');
 
@@ -1044,7 +1045,9 @@ router.put('/inboxes/:id/access', validate({ body: S.AccessBody }), async (req, 
     try {
         groups = await validateSharedGroupsForOrg(inbox.organization_id, req.body.sharedGroups);
     } catch (err) {
-        return res.status(err.status || 400).json({ error: err.message });
+        // Its refusals carry a status; a database failure does not and is a 500.
+        if (err?.status) return res.status(err.status).json({ error: err.message });
+        throw err;
     }
     const updated = await supportInboxStore.setSharedGroups(req.params.id, groups || [], inbox.organization_id);
     audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'inbox_access_changed', payload: { sharedGroups: groups || [] } });
@@ -1113,6 +1116,23 @@ async function _firstWritableOrg(req) {
     return scope[0] || null;
 }
 
+// These writes used to answer every failure with a 400 carrying err.message:
+// a dropped database connection read as the caller's mistake, and a unique
+// violation handed the client the index name. The refusals a caller can cause
+// keep their 400 and their sentence; anything else goes to the terminal error
+// handler, which logs it and answers a generic 500 with a correlationId.
+const STORE_REFUSALS = new Set(['tag name required', 'title required', 'body required', 'invalid priority']);
+function _studioWriteError(err, duplicate = null) {
+    if (err?.expose === true) return err;
+    if (typeof err?.message === 'string' && STORE_REFUSALS.has(err.message)) {
+        return new HttpError(400, 'invalid_input', err.message);
+    }
+    if (err?.code === '23505' && duplicate) return new HttpError(400, 'duplicate', duplicate);
+    // A path id that is not a uuid.
+    if (err?.code === '22P02') return new HttpError(400, 'invalid_id', 'Invalid id');
+    return err;
+}
+
 router.post('/tags', validate({ body: S.TagBody }), async (req, res) => {
     try {
         const orgId = await _firstWritableOrg(req);
@@ -1122,7 +1142,7 @@ router.post('/tags', validate({ body: S.TagBody }), async (req, res) => {
         const tag = await supportStore.createTag({ organizationId: orgId, name: name.trim(), color: color || null, description: description || null });
         audit.emit(req, { organizationId: orgId, action: 'tag_created', payload: { name: tag.name } });
         res.json({ tag });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw _studioWriteError(err, 'tag already exists'); }
 });
 
 router.delete('/tags/:id', async (req, res) => {
@@ -1132,7 +1152,7 @@ router.delete('/tags/:id', async (req, res) => {
         await supportStore.deleteTag(req.params.id, orgId);
         audit.emit(req, { organizationId: orgId, action: 'tag_deleted', payload: { id: req.params.id } });
         res.json({ ok: true });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw _studioWriteError(err); }
 });
 
 router.post('/canned', validate({ body: S.CreateCanned }), async (req, res) => {
@@ -1143,7 +1163,7 @@ router.post('/canned', validate({ body: S.CreateCanned }), async (req, res) => {
         const canned = await supportStore.createCannedResponse({ organizationId: orgId, title, body, shortcut: shortcut || null, createdBy: getUserId(req) });
         audit.emit(req, { organizationId: orgId, action: 'canned_created', payload: { id: canned.id, title: canned.title } });
         res.json({ canned });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw _studioWriteError(err, 'shortcut already in use'); }
 });
 
 router.put('/canned/:id', validate({ body: S.UpdateCanned }), async (req, res) => {
@@ -1155,7 +1175,7 @@ router.put('/canned/:id', validate({ body: S.UpdateCanned }), async (req, res) =
         if (!canned) return res.status(404).json({ error: 'Canned response not found' });
         audit.emit(req, { organizationId: orgId, action: 'canned_updated', payload: { id: req.params.id } });
         res.json({ canned });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw _studioWriteError(err, 'shortcut already in use'); }
 });
 
 router.delete('/canned/:id', async (req, res) => {
@@ -1165,7 +1185,7 @@ router.delete('/canned/:id', async (req, res) => {
         await supportStore.deleteCannedResponse(req.params.id, orgId);
         audit.emit(req, { organizationId: orgId, action: 'canned_deleted', payload: { id: req.params.id } });
         res.json({ ok: true });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw _studioWriteError(err); }
 });
 
 router.get('/sla-policies', async (req, res) => {
@@ -1190,7 +1210,7 @@ router.put('/sla-policies', validate({ body: S.SlaBody }), async (req, res) => {
         });
         audit.emit(req, { organizationId: orgId, action: 'sla_policy_changed', payload: { priority } });
         res.json({ policy });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw _studioWriteError(err); }
 });
 
 module.exports = router;

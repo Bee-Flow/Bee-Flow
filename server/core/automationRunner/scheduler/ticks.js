@@ -15,6 +15,9 @@ const automationStore = require('../../../stores/automationStore');
 const { pool } = require('../../../db');
 const holidays = require('../../../automation/holidays');
 const { holidaySkipFor } = require('./holidaySkip');
+// Google Meet auto-import: discovery under a NAMED lock (one pod per tick),
+// then the ingest worker on every pod.
+const { processGmeetAutoImport } = require('./gmeetImportTick');
 const { ACTIVE_RUNS } = require('../cancellation');
 const {
     RUNNER_INTERVAL_MS, POLLING_INTERVAL_MS, REAPER_INTERVAL_MS, RETENTION_INTERVAL_MS,
@@ -248,39 +251,9 @@ async function processTalkAutoRecord() {
     }
 }
 
-// Google Meet auto-import: discovery (calendar scan → seed gmeet_import_jobs)
-// is metadata-only and runs under its own advisory lock so one pod scans per
-// tick; the ingest worker claims jobs via FOR UPDATE SKIP LOCKED, so it runs
-// AFTER the lock is released and on every pod.
-const GMEET_IMPORT_LOCK_KEY = 0xBEEF10A;
-
-async function processGmeetAutoImport() {
-    const gmeetAutoImport = require('../../meetingNotes/gmeetAutoImport');
-    let acquired = false;
-    let client;
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [GMEET_IMPORT_LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (acquired) await gmeetAutoImport.discover();
-    } catch (e) {
-        log.error('[AutomationRunner] gmeet auto-import discovery error:', e.message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [GMEET_IMPORT_LOCK_KEY]); } catch (_) { /* best-effort */ }
-            client.release();
-        }
-    }
-    try {
-        await gmeetAutoImport.processDue();
-    } catch (e) {
-        log.error('[AutomationRunner] gmeet auto-import ingest error:', e.message);
-    }
-}
-
-// Microsoft Teams auto-import: same two-phase shape as Google Meet above, with
+// Microsoft Teams auto-import: same two-phase shape as Google Meet (./gmeetImportTick.js), with
 // its own lock key so the two discoveries never wait on each other.
-const TEAMS_IMPORT_LOCK_KEY = 0xBEEF113; // 0xBEEF105–0xBEEF112 are all taken
+const TEAMS_IMPORT_LOCK_KEY = 0xBEEF113; // 0xBEEF105–0xBEEF112 are all taken (0xBEEF10A by the ISO evidence collector)
 
 async function processTeamsAutoImport() {
     const teamsAutoImport = require('../../meetingNotes/teamsAutoImport');
@@ -392,6 +365,18 @@ async function processDatatableRetention() {
 const NOTIFICATION_DIGEST_LOCK_KEY = 0xBEEF112;
 const NOTIFICATION_DIGEST_INTERVAL_MS = 5 * 60_000;
 
+// Form submissions that were accepted (202) but whose pod died before their
+// run started: the work is on the session row, and a lapsed lease means no
+// live pod holds it. Every pod sweeps — the claim is atomic (SKIP LOCKED), so
+// no lock is needed. See automation/formQueue.js.
+async function processQueuedFormWork() {
+    try {
+        await require('../../../automation/formQueue').recoverPending();
+    } catch (e) {
+        log.warn('[AutomationRunner] form-queue recovery failed:', e.message);
+    }
+}
+
 async function processNotificationDigest() {
     let acquired = false;
     let client;
@@ -490,6 +475,7 @@ async function start() {
     const transcriptionTick = nonOverlapping(moduleGatedTick('meetingNotes', reapStuckTranscriptions, 'reapStuckTranscriptions'), 'reapStuckTranscriptions');
     const datatableRetentionTick = nonOverlapping(processDatatableRetention, 'processDatatableRetention');
     const digestTick = nonOverlapping(moduleGatedTick('automation', processNotificationDigest, 'processNotificationDigest'), 'processNotificationDigest');
+    const formQueueTick = nonOverlapping(moduleGatedTick('automation', processQueuedFormWork, 'processQueuedFormWork'), 'processQueuedFormWork');
     _tickHandles.push(setInterval(dueTick, RUNNER_INTERVAL_MS).unref());
     _tickHandles.push(setInterval(pollingTick, POLLING_INTERVAL_MS).unref());
     _tickHandles.push(setInterval(reapTick, REAPER_INTERVAL_MS).unref());
@@ -502,6 +488,7 @@ async function start() {
     _tickHandles.push(setInterval(transcriptionTick, 15 * 60_000).unref());
     _tickHandles.push(setInterval(datatableRetentionTick, RETENTION_INTERVAL_MS).unref());
     _tickHandles.push(setInterval(digestTick, NOTIFICATION_DIGEST_INTERVAL_MS).unref());
+    _tickHandles.push(setInterval(formQueueTick, REAPER_INTERVAL_MS).unref());
     // Boot kickoffs. The first interval fire is a whole period away, and for
     // retention that period is an HOUR — longer than plenty of pods live, so
     // this timeout is the only retention pass a short-lived replica ever runs.
@@ -515,7 +502,7 @@ async function start() {
     // Their handles go into _tickHandles too, so a SIGTERM inside the first
     // minute cancels the pending sweep instead of racing it. stop() needs no
     // special case for them: Node's clearInterval IS clearTimeout.
-    for (const [fn, delay] of [[dueTick, 10_000], [reapTick, 15_000], [retentionTick, 60_000], [datatableRetentionTick, 90_000]]) {
+    for (const [fn, delay] of [[dueTick, 10_000], [reapTick, 15_000], [formQueueTick, 20_000], [retentionTick, 60_000], [datatableRetentionTick, 90_000]]) {
         const t = setTimeout(fn, delay);
         t.unref?.();
         _tickHandles.push(t);
@@ -536,6 +523,14 @@ async function stop({ timeoutMs = 25_000 } = {}) {
     stopping = true;
     for (const h of _tickHandles) { try { clearInterval(h); } catch (_) { /* noop */ } }
     _tickHandles.length = 0;
+    // Form submissions still waiting in this pod's queue: start no more of
+    // them, and hand them back so another pod runs them now rather than after
+    // their lease lapses. The one already running is an ACTIVE_RUN below.
+    try {
+        await require('../../../automation/formQueue').stop();
+    } catch (e) {
+        log.warn('[AutomationRunner] form-queue hand-back failed:', e.message);
+    }
     const deadline = Date.now() + Math.max(0, timeoutMs);
     while (ACTIVE_RUNS.size > 0 && Date.now() < deadline) {
         log.info(`[AutomationRunner] draining — ${ACTIVE_RUNS.size} run(s) still in flight…`);
@@ -559,4 +554,4 @@ async function stop({ timeoutMs = 25_000 } = {}) {
 // racing the SIGTERM could claim work we're trying to wind down.
 function isStopping() { return stopping; }
 
-module.exports = { start, stop, isStopping, processDueAutomations };
+module.exports = { start, stop, isStopping, processDueAutomations, processGmeetAutoImport, processQueuedFormWork };

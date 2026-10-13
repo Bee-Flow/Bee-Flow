@@ -38,9 +38,17 @@ const NoQuery = z.object({}).strict();
 
 // ============ Meta endpoints (must be before /:id routes) ============
 
-// Get available components for tool selection
+// Get available components for tool selection.
+//
+// Open on purpose for the FILE components (one global directory, see above).
+// Subworkflows are another matter: they are rows of one organisation, and the
+// catalogue used to list every org's to anybody who asked, signed in or not.
+// They now come only with a signed-in session, and only that user's org's
+// (core/agentRuntime/agentTools.js, subworkflowsVisibleTo); an anonymous
+// caller gets the file components alone.
 router.get('/meta/components', validate({ query: NoQuery }), async (req, res) => {
-    const components = await agentRuntime.getAvailableComponents();
+    const userId = (req.session?.isAuthenticated && req.session.user?.id) || null;
+    const components = await agentRuntime.getAvailableComponents({ userId });
     res.json(components);
 });
 

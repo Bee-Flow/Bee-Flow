@@ -25,7 +25,7 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'github').catch(() => null);
+        const config = await isoEvidenceStore.getConfig(orgId, 'github');
         if (!config?.enabled) {
             return {
                 status: 'not_applicable',
@@ -33,7 +33,7 @@ module.exports = {
                 details: 'GitHub connector not enabled — link a token and list your repositories under ISO 27001 → Connectors.',
             };
         }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'github').catch(() => []);
+        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'github');
         if (!snaps.length) {
             return {
                 status: 'warn',

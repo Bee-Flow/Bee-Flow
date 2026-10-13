@@ -23,7 +23,7 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'nextcloud').catch(() => null);
+        const config = await isoEvidenceStore.getConfig(orgId, 'nextcloud');
         if (!config?.enabled) {
             return {
                 status: 'not_applicable',
@@ -31,7 +31,7 @@ module.exports = {
                 details: 'Nextcloud connector not enabled — link an admin app password under ISO 27001 → Connectors to record the workplace server version.',
             };
         }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'nextcloud').catch(() => []);
+        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'nextcloud');
         if (!snaps.length) {
             return {
                 status: 'warn',

@@ -8,7 +8,7 @@
 
 const { test, mock } = require('node:test');
 const assert = require('assert');
-const { startSseHeartbeat } = require('./sseHelpers');
+const { startSseHeartbeat, openSse } = require('./sseHelpers');
 
 function fakeRes() {
     const r = { writes: [], writableEnded: false, destroyed: false, _handlers: {} };
@@ -76,6 +76,66 @@ test('a dead socket stops itself on the next tick', () => {
         mock.timers.tick(15000);
         assert.strictEqual(count, 0, 'no ping written to an ended socket');
         assert.strictEqual(res.writes.length, count, 'and none after');
+    } finally {
+        mock.timers.reset();
+    }
+});
+
+// ── openSse: headers, guarded send, client stop and the opt-in keep-alive ──
+
+function fakeStreamRes() {
+    const r = fakeRes();
+    const handlers = {};
+    r.on = (ev, fn) => { (handlers[ev] = handlers[ev] || []).push(fn); return r; };
+    r.emit = (ev) => { for (const fn of handlers[ev] || []) fn(); };
+    r.writeHead = (status, headers) => { r.status = status; r.headers = headers; return r; };
+    return r;
+}
+
+test('openSse writes the SSE headers and sends framed events until the response ends', () => {
+    const res = fakeStreamRes();
+    const { send } = openSse(res);
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.headers, {
+        'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive', 'X-Accel-Buffering': 'no',
+    });
+    send('content', { text: 'hi' });
+    assert.deepStrictEqual(res.writes, ['event: content\ndata: {"text":"hi"}\n\n']);
+    res.writableEnded = true;
+    send('content', { text: 'late' });
+    assert.strictEqual(res.writes.length, 1, 'no write after end()');
+});
+
+test('openSse: a client close aborts the signal; our own end() does not', () => {
+    const own = fakeStreamRes();
+    const a = openSse(own);
+    own.writableEnded = true;
+    own.emit('close');
+    assert.strictEqual(a.signal.aborted, false);
+    assert.strictEqual(a.isGone(), false);
+
+    const left = fakeStreamRes();
+    const b = openSse(left);
+    left.emit('close');
+    assert.strictEqual(b.signal.aborted, true);
+    assert.strictEqual(b.isGone(), true);
+});
+
+test('openSse starts the keep-alive only when asked', () => {
+    mock.timers.enable({ apis: ['setInterval'] });
+    try {
+        const quiet = fakeStreamRes();
+        openSse(quiet);
+        const warm = fakeStreamRes();
+        const { stopHeartbeat } = openSse(warm, { heartbeat: true });
+        mock.timers.tick(10000);
+        assert.strictEqual(quiet.writes.length, 0);
+        assert.ok(warm.writes.join('').includes('event: ping'));
+        stopHeartbeat();
+        const n = warm.writes.length;
+        mock.timers.tick(30000);
+        assert.strictEqual(warm.writes.length, n);
     } finally {
         mock.timers.reset();
     }

@@ -24,7 +24,7 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'tls-endpoints').catch(() => null);
+        const config = await isoEvidenceStore.getConfig(orgId, 'tls-endpoints');
         if (!config?.enabled) {
             return {
                 status: 'not_applicable',
@@ -32,7 +32,7 @@ module.exports = {
                 details: 'TLS-endpoint connector not enabled — list your public endpoints under ISO 27001 → Connectors.',
             };
         }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'tls-endpoints').catch(() => []);
+        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'tls-endpoints');
         const probed = snaps.filter(s => !s.payload?.skipped);
         if (!probed.length) {
             return {

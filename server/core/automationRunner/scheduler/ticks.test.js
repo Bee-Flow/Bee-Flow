@@ -53,7 +53,7 @@ function mock(relPath, exports) {
 
 // What the ticks actually touch, one counter each, so "did this pass reach its
 // work?" is a number and not an inference.
-const calls = { claimDue: 0, connect: 0, reapStuck: 0, reapOrphan: 0, flushEgress: 0 };
+const calls = { claimDue: 0, connect: 0, reapStuck: 0, reapOrphan: 0, flushEgress: 0, formRecover: 0, formStop: 0 };
 // Swappable so the overlap test can make the due tick hang mid-flight.
 let claimDueImpl = async () => [];
 
@@ -88,6 +88,13 @@ mock('./reapers', {
 });
 // stop() flushes the detached egress rows before the process goes.
 mock('../../integrations/integrationLogging', { flushEgressLogs: async () => { calls.flushEgress += 1; } });
+// U3: accepted form work whose pod died is swept up; on stop() the queue
+// hands what is still waiting back. Its own behaviour is in
+// automation/formQueue.test.js; here only that the runner drives it.
+mock('../../../automation/formQueue', {
+    recoverPending: async () => { calls.formRecover += 1; return 0; },
+    stop: async () => { calls.formStop += 1; return 0; },
+});
 
 // A stand-in for the real gate with the same contract (pinned in
 // modules/moduleGatedTick.test.js): consult state, no-op when inactive, pass
@@ -143,13 +150,14 @@ try {
     globalThis.setTimeout = realSetTimeout;
 }
 
-test('start() mounted the ten ticks and the four boot kickoffs', () => {
+test('start() mounted the eleven ticks and the five boot kickoffs', () => {
     assert.strictEqual(startError, null, startError && startError.stack);
     // Nine since handoff 5: the notification digest (throttle bundles and the
-    // daily summary) has its own five-minute tick and lock.
-    assert.strictEqual(intervals.length, 10, 'expected ten setInterval ticks');
-    assert.strictEqual(timeouts.length, 4, 'expected four one-shot boot kickoffs');
-    assert.deepStrictEqual(timeouts.map(t => t.delay), [10_000, 15_000, 60_000, 90_000]);
+    // daily summary) has its own five-minute tick and lock. Eleven since U3:
+    // the sweep for queued form work whose pod died, with a boot kickoff too.
+    assert.strictEqual(intervals.length, 11, 'expected eleven setInterval ticks');
+    assert.strictEqual(timeouts.length, 5, 'expected five one-shot boot kickoffs');
+    assert.deepStrictEqual(timeouts.map(t => t.delay), [10_000, 15_000, 20_000, 60_000, 90_000]);
 });
 
 test('BFSF-433: every boot kickoff IS one of the mounted interval ticks', () => {
@@ -160,7 +168,7 @@ test('BFSF-433: every boot kickoff IS one of the mounted interval ticks', () => 
     const intervalCallbacks = intervals.map(i => i.callback);
     const shared = timeouts.map(t => intervalCallbacks.includes(t.callback));
     assert.deepStrictEqual(
-        shared, [true, true, true, true],
+        shared, [true, true, true, true, true],
         'a boot kickoff is wired to something other than the wrapped interval tick '
         + '(before the fix this is [false, false, false] — the raw functions)',
     );
@@ -171,7 +179,7 @@ test('an INACTIVE module: the kickoffs consult the gate and then do nothing', as
     gateConsulted.length = 0;
     const before = { ...calls };
     for (const t of timeouts) await t.callback();
-    // THREE of the four consult the gate. The fourth — datatable row retention
+    // FOUR of the five consult the gate. The fifth — datatable row retention
     // — deliberately does not, and that exception is the point rather than an
     // oversight: a module gate re-reads the runtime row on every invocation, so
     // switching Automations off (or letting a licence lapse) would stop DELETING
@@ -179,11 +187,12 @@ test('an INACTIVE module: the kickoffs consult the gate and then do nothing', as
     // "deleted after N days". A retention obligation is not a billable feature.
     // See the header of jobs/datatableRetention.js.
     assert.deepStrictEqual(
-        gateConsulted.map(g => g.moduleId), ['automation', 'automation', 'automation'],
+        gateConsulted.map(g => g.moduleId), ['automation', 'automation', 'automation', 'automation'],
         'the module-gated kickoffs did not go through the module gate at all',
     );
     assert.strictEqual(calls.claimDue, before.claimDue, 'the due-tick kickoff claimed work for an inactive module');
     assert.strictEqual(calls.reapStuck, before.reapStuck, 'the reaper kickoff ran for an inactive module');
+    assert.strictEqual(calls.formRecover, before.formRecover, 'the form-queue sweep ran for an inactive module');
     // One connect: the datatable-retention kickoff reaching its advisory lock.
     // The run-history retention kickoff must NOT have added a second.
     assert.strictEqual(calls.connect, before.connect + 1,
@@ -202,6 +211,7 @@ test('an ACTIVE module: the same kickoffs still reach their work', async () => {
     for (const t of timeouts) await t.callback();
     assert.strictEqual(calls.claimDue, before.claimDue + 1, 'the due-tick kickoff did not claim due automations');
     assert.strictEqual(calls.reapStuck, before.reapStuck + 1, 'the reaper kickoff did not run');
+    assert.strictEqual(calls.formRecover, before.formRecover + 1, 'the form-queue sweep kickoff did not run');
     // Two now: run-history retention and datatable row retention, each taking
     // its own advisory lock.
     assert.strictEqual(calls.connect, before.connect + 2, 'a retention kickoff never reached the advisory-lock check');
@@ -253,6 +263,7 @@ test('stop() cancels the pending kickoffs, not just the intervals', async () => 
         );
     }
     for (const i of intervals) assert.ok(cleared.includes(i.handle), 'an interval handle went untracked');
-    assert.strictEqual(cleared.length, 14, 'expected all ten intervals and all four kickoffs to be cleared');
+    assert.strictEqual(cleared.length, 16, 'expected all eleven intervals and all five kickoffs to be cleared');
     assert.strictEqual(calls.flushEgress, 1, 'stop() did not flush the detached egress logs');
+    assert.strictEqual(calls.formStop, 1, 'stop() did not hand the queued form work back');
 });

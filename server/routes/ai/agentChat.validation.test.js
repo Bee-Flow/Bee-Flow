@@ -33,7 +33,7 @@ const Module = require('module');
 
 // Every agent turn lands in `touched`. A refused request must leave it empty.
 const touched = [];
-const state = { capabilities: new Set(['component_designer']), initialized: 0 };
+const state = { capabilities: new Set(['component_designer']), initialized: 0, users: {} };
 const pass = (req, res, next) => next();
 
 const MOCKS = {
@@ -51,6 +51,8 @@ const MOCKS = {
     '../../core/agentRuntime': { getAvailableComponents: async () => [] },
     '../../core/cms/componentManager': { initialize: async () => { state.initialized++; } },
     '../../core/entitlements/limits': { checkSubscriptionLimits: async () => null },
+    // The creator's row: create-component records its org as the owner.
+    '../../stores/userStore': { getUser: async (id) => (state.users[id] ? { ...state.users[id] } : null) },
     '../../auth': {
         requireAuth: pass,
         resolvePrimaryOrgId: async () => 'orgA',
@@ -120,6 +122,7 @@ test.beforeEach(() => {
     touched.length = 0;
     state.capabilities = new Set(['component_designer']);
     state.initialized = 0;
+    state.users = { u1: { id: 'u1', organizationId: 'orgA' } };
 });
 test.after(() => { fs.rmSync(PROBE_DIR, { recursive: true, force: true }); });
 
@@ -243,4 +246,48 @@ test('a key beside `component` is refused — the body is the envelope, not the 
     const res = await dispatch({ method: 'POST', url: '/create-component', body: { component: COMPONENT, agentEnabled: false } });
     assert.strictEqual(res.statusCode, 400);
     assert.ok(!fs.existsSync(PROBE_DIR));
+});
+
+// ═══ Who a created component belongs to ══════════════════════════════
+// components/ is one global directory. Without an owner in component.json a
+// component a member of org A had the model write was listed in, and callable
+// from, every other org's agents (core/agentRuntime/agentTools.js reads it).
+
+test('a created component records the creator\'s org as its owner', async () => {
+    try {
+        const res = await dispatch({ method: 'POST', url: '/create-component', body: { component: COMPONENT } });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        const spec = JSON.parse(fs.readFileSync(path.join(PROBE_DIR, 'component.json'), 'utf8'));
+        assert.deepStrictEqual(spec.owner, { orgId: 'orgA' },
+            'without an owner the component is offered to every organisation\'s agents');
+        assert.strictEqual(spec.agentEnabled, true, 'the creating org keeps the component callable, as before');
+    } finally {
+        fs.rmSync(PROBE_DIR, { recursive: true, force: true });
+    }
+});
+
+test('the owner comes from the session, never from the body the model wrote', async () => {
+    try {
+        const res = await dispatch({
+            method: 'POST', url: '/create-component',
+            body: { component: { ...COMPONENT, owner: { orgId: 'orgB' } } },
+        });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        const spec = JSON.parse(fs.readFileSync(path.join(PROBE_DIR, 'component.json'), 'utf8'));
+        assert.deepStrictEqual(spec.owner, { orgId: 'orgA' });
+    } finally {
+        fs.rmSync(PROBE_DIR, { recursive: true, force: true });
+    }
+});
+
+test('a creator without an organisation keeps the component to themselves', async () => {
+    state.users = { u1: { id: 'u1', organizationId: null } };
+    try {
+        const res = await dispatch({ method: 'POST', url: '/create-component', body: { component: COMPONENT } });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        const spec = JSON.parse(fs.readFileSync(path.join(PROBE_DIR, 'component.json'), 'utf8'));
+        assert.deepStrictEqual(spec.owner, { userId: 'u1' });
+    } finally {
+        fs.rmSync(PROBE_DIR, { recursive: true, force: true });
+    }
 });

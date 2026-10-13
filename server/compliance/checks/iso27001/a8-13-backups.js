@@ -27,7 +27,7 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'scaleway').catch(() => null);
+        const config = await isoEvidenceStore.getConfig(orgId, 'scaleway');
         if (!config?.enabled) {
             return {
                 status: 'not_applicable',
@@ -35,7 +35,7 @@ module.exports = {
                 details: 'Scaleway connector not enabled — link a read-only API key under ISO 27001 → Connectors to collect backup evidence.',
             };
         }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'scaleway').catch(() => []);
+        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'scaleway');
         if (!snaps.length) {
             return {
                 status: 'warn',

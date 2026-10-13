@@ -1,6 +1,6 @@
-const axios = require('axios');
 const cheerio = require('cheerio');
 const { URL } = require('url');
+const { safeGet } = require('./safeGet');
 
 // Elements to completely remove from the DOM before conversion
 const REMOVE_SELECTORS = [
@@ -246,7 +246,9 @@ async function fetchAndConvert(url, options = {}) {
     const timeout = options.timeout || 15000;
     const userAgent = options.userAgent || 'Mozilla/5.0 (compatible; BeeFlowBot/1.0; +https://beeflow.nl)';
 
-    const response = await axios.get(url, {
+    // safeGet, not axios.get: the URL is caller-supplied (an agent tool), and
+    // every hop, redirects included, must stay off internal addresses.
+    const { response, url: resolvedUrl } = await safeGet(url, {
         timeout,
         headers: {
             'User-Agent': userAgent,
@@ -258,7 +260,6 @@ async function fetchAndConvert(url, options = {}) {
     });
 
     const html = response.data;
-    const resolvedUrl = response.request?.res?.responseUrl || url;
     const { markdown, title } = htmlToMarkdown(html, resolvedUrl, options);
 
     return {

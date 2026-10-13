@@ -24,7 +24,7 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'youtrack').catch(() => null);
+        const config = await isoEvidenceStore.getConfig(orgId, 'youtrack');
         if (!config?.enabled) {
             return {
                 status: 'not_applicable',
@@ -32,7 +32,7 @@ module.exports = {
                 details: 'YouTrack connector not enabled — link a permanent token and set the operations project under ISO 27001 → Connectors.',
             };
         }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'youtrack').catch(() => []);
+        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'youtrack');
         // The project as the connector trims it into the subject; a project
         // that was configured before keeps its last snapshot in the list.
         const snap = snapshotFor(snaps, String(config.settings?.project || '').trim());

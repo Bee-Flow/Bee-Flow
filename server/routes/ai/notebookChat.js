@@ -33,6 +33,7 @@ const { runAgentSearchWithEgress } = require('../../integrations/agentSearchEgre
 const { searchNotebookKB, findSourceForChunk, executeNotebookKBSearchTool, NOTEBOOK_KB_SEARCH_TOOL } = require('../../core/kb/notebookKnowledgeSearch');
 const { emitPhase, emitPhaseEnd, startPrivacyScanPhase, messageText } = require('../../core/agentRuntime/phaseEvents');
 const { checkSubscriptionLimits } = require('../../core/entitlements/limits');
+const { resolveTurnTier } = require('../../core/llm/resolveTurnModel');
 
 require('../../core/entitlements/betaFeatures');
 
@@ -134,26 +135,14 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         }
     }
 
-    let resolvedTier = modelTier || 'fast';
-    if (resolvedTier === 'standard') {
-        resolvedTier = 'fast';
-    }
-
-    // Auto mode: classify which tier to use (matches direct chat)
-    if (resolvedTier === 'auto') {
-        try {
-            const { classifyWithLLM } = require('../../core/llm/promptClassifier');
-            const result = await classifyWithLLM(message, tiers, { userOrgId: userOrgForTiers, userId });
-            resolvedTier = result.tier;
-            log.info(`[NotebookChat] Auto: tier="${resolvedTier}" (${result.method}: ${result.reason})`);
-        } catch (err) {
-            log.info(`[NotebookChat] Auto classification failed: ${err.message}, using fast`);
-            resolvedTier = 'fast';
-        }
-    }
-    if (resolvedTier === 'standard') {
-        resolvedTier = 'fast';
-    }
+    // Which tier: core/llm/resolveTurnModel — `standard` is read as `fast`,
+    // `auto` is classified, a tier the person's groups do not allow is refused.
+    const turnTier = await resolveTurnTier({
+        modelTier, message, tiers, userId, userOrgId: userOrgForTiers,
+        surface: 'NotebookChat', standardIsFast: true,
+    });
+    if (turnTier.refusal) return res.status(turnTier.refusal.status).json({ error: turnTier.refusal.error, code: turnTier.refusal.code });
+    const resolvedTier = turnTier.tier;
 
     const tier = tiers[resolvedTier] || {};
     let modelId = tier.modelId;

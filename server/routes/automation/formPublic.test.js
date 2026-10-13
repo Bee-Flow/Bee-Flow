@@ -186,6 +186,25 @@ mock(path.join(SERVER, 'stores/automationStore'), {
         if (row) row.runId = runId;
     },
     touchFormSession: async () => {},
+    // ── queued form work, persisted on the session (automation/formQueue.js) ──
+    setFormSessionPending: async (id, work, leaseMs) => {
+        const row = state.sessions.get(id);
+        if (row) Object.assign(row, { pendingWork: JSON.parse(JSON.stringify(work)), pendingAttempts: 0, leaseUntil: Date.now() + leaseMs });
+    },
+    clearFormSessionPending: async (id) => {
+        const row = state.sessions.get(id);
+        if (row) Object.assign(row, { pendingWork: null, pendingAttempts: 0, leaseUntil: null });
+    },
+    renewFormSessionLeases: async () => {},
+    releaseFormSessionLeases: async (ids, delayMs = 0) => {
+        for (const id of ids) {
+            const row = state.sessions.get(id);
+            if (row?.pendingWork) row.leaseUntil = Date.now() + delayMs;
+        }
+    },
+    claimStaleFormSessionWork: async () => [...state.sessions.values()]
+        .filter(r => r.pendingWork && (r.leaseUntil == null || r.leaseUntil < Date.now()))
+        .map(r => { r.pendingAttempts = (r.pendingAttempts || 0) + 1; r.leaseUntil = Date.now() + 120_000; return { ...r }; }),
     getRun: async (id) => (state.runs.get(id) ? { ...state.runs.get(id) } : null),
     getLatestRunInChain: async (id) => { const r = latestInChain(id); return r ? { ...r } : null; },
     getRunsInChain: async (id) => {
@@ -1184,6 +1203,151 @@ test('a resume that never ran leaves the page answerable again', async () => {
 
     assert.strictEqual(state.runs.get('parentT').awaitingStepId, 'fp1',
         'the visitor can answer again instead of being stuck on a silent failure');
+});
+
+// ── U3: accepted work survives a restart ─────────────────────────────────────
+//
+// The visitor is told 202 "received" before the run starts. The queue that
+// held the work used to live only in this process's memory, so a deploy or a
+// crash with submissions still waiting lost answers the visitor had already
+// been thanked for. The work is now written onto the session row BEFORE the
+// 202, and a sweep on any pod picks up work whose lease lapsed.
+
+const formQueue = require(path.join(SERVER, 'automation/formQueue'));
+
+/** Capture what the session rows held at the moment the 202 was sent. */
+function ackSnapshot(res) {
+    const status = res.status;
+    res.atAck = null;
+    res.status = (c) => {
+        if (c === 202) res.atAck = [...state.sessions.values()].map(r => ({ id: r.id, pendingWork: r.pendingWork ? JSON.parse(JSON.stringify(r.pendingWork)) : null }));
+        return status(c);
+    };
+    return res;
+}
+
+test('a submission is on its session row before the visitor is told it was received', async () => {
+    const res = ackSnapshot(makeRes());
+    await postSubmit(makeReq({ body: submissionBody({ nonce: 'persist1' }) }), res);
+    assert.strictEqual(res.statusCode, 202, JSON.stringify(res.body));
+    const row = res.atAck.find(r => r.id === res.body.sessionId);
+    assert.ok(row?.pendingWork, 'the 202 went out with nothing a restart could recover');
+    assert.strictEqual(row.pendingWork.kind, 'submit');
+    assert.strictEqual(row.pendingWork.payload.email, 'a@b.nl');
+    assert.strictEqual(row.pendingWork.submitterId, 'colleague1');
+
+    await flushAsync();
+    await flushAsync();
+    assert.strictEqual(state.sessions.get(res.body.sessionId).pendingWork, null,
+        'once its run exists the answers are not kept on the session as well');
+});
+
+test('a later page\'s answers are on the session row before the 202 as well', async () => {
+    state.runQueue = [{ id: 'parentP' }, { id: 'childP' }];
+    const sid = await startSession();
+    awaitingRun('parentP', 'fp1', PAGE_2);
+
+    let release;
+    state.resolveRun = () => new Promise(r => { release = r; });
+    const res = ackSnapshot(makeRes());
+    await postSession(makeReq({
+        sid,
+        body: { csrf: issueCsrf(`${TOKEN}:${sid}`), nonce: 'persist2', address: 'Main Street 4' },
+    }), res);
+    assert.strictEqual(res.statusCode, 202, JSON.stringify(res.body));
+    const row = res.atAck.find(r => r.id === sid);
+    assert.deepStrictEqual(
+        { kind: row.pendingWork.kind, parentRunId: row.pendingWork.parentRunId, stepId: row.pendingWork.stepId, address: row.pendingWork.values.address },
+        { kind: 'resume', parentRunId: 'parentP', stepId: 'fp1', address: 'Main Street 4' },
+    );
+    await flushAsync();
+    release();
+    state.resolveRun = null;
+    await flushAsync();
+    await flushAsync();
+});
+
+test('submissions still queued when the pod died are run after the restart, and only those', async () => {
+    let release;
+    const gate = new Promise(r => { release = r; });
+    state.resolveRun = () => gate;
+
+    const a = makeRes();
+    await postSubmit(makeReq({ body: submissionBody({ nonce: 'crash1', email: 'first@x.nl' }) }), a);
+    const b = makeRes();
+    await postSubmit(makeReq({ body: submissionBody({ nonce: 'crash2', email: 'second@x.nl' }) }), b);
+    await flushAsync();
+    assert.strictEqual(b.statusCode, 202, 'the second visitor was told their submission was received');
+    assert.strictEqual(state.executions.length, 1, 'the second is still waiting in the queue');
+
+    // The first one's run row exists (the runner created it before the pod went).
+    putRun('runFirst', 'running');
+    state.sessions.get(a.body.sessionId).runId = 'runFirst';
+
+    // The pod dies: its memory is gone and its leases lapse.
+    formQueue._reset();
+    for (const row of state.sessions.values()) if (row.pendingWork) row.leaseUntil = 0;
+    state.resolveRun = null;
+    state.runQueue = [{ id: 'runSecond' }];
+
+    const recovered = await formQueue.recoverPending();
+    await flushAsync();
+    await flushAsync();
+
+    assert.strictEqual(recovered, 1, 'only the submission that never got a run is queued again');
+    assert.strictEqual(state.executions.length, 2);
+    const again = state.executions[1].opts;
+    assert.strictEqual(again.triggerKind, 'form');
+    assert.strictEqual(again.triggerPayload.email, 'second@x.nl', 'the run gets the answers the visitor sent');
+    assert.strictEqual(again.triggerHeaders.form_page_id, TOKEN);
+    assert.strictEqual(state.sessions.get(b.body.sessionId).runId, 'runSecond', 'and the visitor\'s poll follows it');
+    assert.strictEqual(state.sessions.get(b.body.sessionId).pendingWork, null);
+    assert.strictEqual(state.sessions.get(a.body.sessionId).pendingWork, null, 'the one that already ran is only cleared');
+
+    release();
+    await flushAsync();
+});
+
+test('a page answer still queued when the pod died resumes the paused run after the restart', async () => {
+    state.runQueue = [{ id: 'parentQ' }];
+    const sid = await startSession();
+    awaitingRun('parentQ', 'fp1', PAGE_2);
+
+    // Another visitor's run holds the queue, so the answer waits behind it.
+    let release;
+    const gate = new Promise(r => { release = r; });
+    state.resolveRun = () => gate;
+    const other = makeRes();
+    await postSubmit(makeReq({ body: submissionBody({ nonce: 'crash3' }) }), other);
+    const res = makeRes();
+    await postSession(makeReq({
+        sid,
+        body: { csrf: issueCsrf(`${TOKEN}:${sid}`), nonce: 'crash4', address: 'Main Street 5' },
+    }), res);
+    await flushAsync();
+    assert.strictEqual(res.statusCode, 202);
+    assert.strictEqual(state.resumes.length, 0);
+
+    putRun('runOther', 'running');
+    state.sessions.get(other.body.sessionId).runId = 'runOther';
+    formQueue._reset();
+    for (const row of state.sessions.values()) if (row.pendingWork) row.leaseUntil = 0;
+    state.resolveRun = null;
+    state.runQueue = [{ id: 'childQ' }];
+
+    await formQueue.recoverPending();
+    await flushAsync();
+    await flushAsync();
+
+    assert.strictEqual(state.resumes.length, 1, 'the answer was delivered after all');
+    assert.strictEqual(state.resumes[0].runId, 'parentQ');
+    assert.strictEqual(state.resumes[0].stepId, 'fp1');
+    assert.strictEqual(state.resumes[0].opts.decision.address, 'Main Street 5');
+    assert.strictEqual(state.sessions.get(sid).runId, 'childQ');
+    assert.strictEqual(state.runs.get('parentQ').status, 'success');
+
+    release();
+    await flushAsync();
 });
 
 // ── "Just a moment…" should say WHICH moment ─────────────────────────────────

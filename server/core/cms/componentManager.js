@@ -258,6 +258,18 @@ async function updateComponent(id, files) {
 
     log.info(`[ComponentManager] Updating component ${id} with ${Object.keys(files).length} files`);
 
+    // `owner` (which org may list and call this component, see componentVisibleTo
+    // in core/agentRuntime/agentTools.js) is set once, by the route that created
+    // the component, and never by a rewrite of component.json. Without this the
+    // designer's update_component could drop it — and the component would be
+    // offered to every org again — or name another org and put the code in
+    // that org's catalogue.
+    const componentJsonPath = path.join(componentPath, 'component.json');
+    let ownerOnDisk;
+    try {
+        ownerOnDisk = JSON.parse(await fs.promises.readFile(componentJsonPath, 'utf8')).owner;
+    } catch { ownerOnDisk = undefined; }
+
     for (const [filename, content] of Object.entries(files)) {
         const filePath = path.join(componentPath, filename);
 
@@ -272,6 +284,10 @@ async function updateComponent(id, files) {
             try {
                 // Formatting
                 const json = JSON.parse(content);
+                if (filePath === componentJsonPath && json && typeof json === 'object' && !Array.isArray(json)) {
+                    if (ownerOnDisk === undefined) delete json.owner;
+                    else json.owner = ownerOnDisk;
+                }
                 await fs.promises.writeFile(filePath, JSON.stringify(json, null, 2), 'utf8');
             } catch (e) {
                 log.warn(`[ComponentManager] Invalid JSON for ${filename}, writing as string`, e);
