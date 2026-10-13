@@ -99,9 +99,8 @@ jobs:
       guard-unit: ${{ steps.filter.outputs.guard-unit || steps.all.outputs.all }}
       nextcloud: ${{ steps.filter.outputs.nextcloud || steps.all.outputs.all }}
       hub-module-sdk: ${{ steps.filter.outputs.hub-module-sdk || steps.all.outputs.all }}
-      install-wizard: ${{ steps.filter.outputs.install-wizard || steps.all.outputs.all }}
-      nc-login-mini: ${{ steps.filter.outputs.nc-login-mini || steps.all.outputs.all }}
       e2e: ${{ steps.filter.outputs.e2e || steps.all.outputs.all }}
+      desktop: ${{ steps.filter.outputs.desktop || steps.all.outputs.all }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The tree this PR run tests (the merge ref: the PR on top of its base).
@@ -229,6 +228,7 @@ jobs:
               - 'server/**'
               - '.nvmrc'
               - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
+              - 'scripts/eslint/**'
               - 'scripts/rotate-master-key.js'
               - 'docs/docs/**'
               - 'components/**'
@@ -245,6 +245,7 @@ jobs:
               - 'agent-hub/src/components/admin/Studio/Solutions/{SolutionCard,SolutionsOverview}.jsx'
               - 'nextcloud-connector/src/{appApiClient,config,taskProcessing}.js'
               - '.github/workflows/ci.yml'
+              - '.github/actions/npm-install/**'
             # The server side of the agent-hub tests is their transitive
             # require graph, not only the files they name: a whole directory
             # where the tests list it or load most of it, single files where
@@ -285,6 +286,7 @@ jobs:
               - 'server/telemetry/{httpMetrics,log}.js'
               - 'server/utils/{buildInfo,engineFlag}.js'
               - '.github/workflows/ci.yml'
+              - '.github/actions/npm-install/**'
             # Plus mobile_server above.
             mobile:
               # mobile/** (minus Markdown) is the mobile_src step above.
@@ -298,6 +300,7 @@ jobs:
               - 'agent-hub/src/hooks/useChatEngine/sseEvents.ts'
               - 'scripts/{coverage-ratchet,count-ratchet}.mjs'
               - '.github/workflows/ci.yml'
+              - '.github/actions/npm-install/**'
               - '.github/workflows/android-release.yml'
               # agent-hub's meeting-notes logic, which the Insights and meeting
               # rules lockstep tests read as text (loadWebModule)
@@ -318,14 +321,10 @@ jobs:
               - 'agent-hub/src/components/forms/{PublicFormRenderer.jsx,resultFile.ts}'
               - 'agent-hub/src/components/shared/{AnchoredMenu.jsx,illustrations.tsx}'
               - 'agent-hub/src/hooks/{useAutomationApi.ts,useTranslation.tsx}'
-              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,helpers.js,sseStream.js,storageMigrations.js}'
+              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,copyText.ts,helpers.js,sseStream.js,storageMigrations.js}'
             python:
               - 'guard-service/**'
-              - 'pii-service/**'
               - 'classify-service/**'
-              - 'reranker/**'
-              - 'search-service/**'
-              - 'whisperx-service/**'
               - 'ruff.toml'
               - 'scripts/coverage-ratchet.mjs'
               - '.github/workflows/ci.yml'
@@ -343,7 +342,7 @@ jobs:
               - 'scripts/coverage-ratchet.mjs'
               - '.github/workflows/ci.yml'
             # The four small Node services share one lint config
-            # (scripts/eslint-service-config.cjs) and the two ratchets.
+            # (scripts/eslint-service-config.cjs, on scripts/eslint/base.cjs) and the two ratchets.
             nextcloud:
               - 'nextcloud-connector/**'
               - '.nvmrc'
@@ -360,24 +359,15 @@ jobs:
               - 'server/core/integrations/integrationToolMap.js'
               - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
               - 'scripts/eslint-service-config.cjs'
+              - 'scripts/eslint/**'
               - '.github/workflows/ci.yml'
+              - '.github/actions/npm-install/**'
             hub-module-sdk:
               - 'hub-module-sdk/**'
               - '.nvmrc'
               - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
               - 'scripts/eslint-service-config.cjs'
-              - '.github/workflows/ci.yml'
-            install-wizard:
-              - 'install-wizard/**'
-              - '.nvmrc'
-              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
-              - 'scripts/eslint-service-config.cjs'
-              - '.github/workflows/ci.yml'
-            nc-login-mini:
-              - 'nc-login-mini/**'
-              - '.nvmrc'
-              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
-              - 'scripts/eslint-service-config.cjs'
+              - 'scripts/eslint/**'
               - '.github/workflows/ci.yml'
             # The generated Playwright specs must never drift from the
             # scenario Markdown they are generated from (e2e/runner/gen.mjs);
@@ -386,6 +376,18 @@ jobs:
               - 'e2e/**'
               - '.nvmrc'
               - '.github/workflows/ci.yml'
+              - '.github/actions/npm-install/**'
+            # The desktop client (lint, typecheck, unit tests, build). The
+            # release workflow is here because desktop/src/main/
+            # releaseWorkflow.test.ts parses its packaging-path list, so an
+            # edit to that list has to run the test.
+            desktop:
+              - 'desktop/**'
+              - 'tsconfig.base.json'
+              - '.nvmrc'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/desktop-release.yml'
+              - '.github/actions/npm-install/**'
       # mobile/** minus docs. A negation cannot sit in the main filter (dorny
       # would read `!x` there as "every path except x"), so it gets its own
       # step with `predicate-quantifier: every`: a file counts when it matches
@@ -485,13 +487,9 @@ jobs:
         working-directory: server
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: server/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+          directory: server
       # Correctness floor only (see server/eslint.config.js); errors fail, and
       # the warning count may not rise above server/.eslint-budget.json.
       - name: Lint (errors fail, warnings budgeted)
@@ -517,41 +515,13 @@ jobs:
       - name: Legal catalogue sources and review dates
         working-directory: .
         run: node scripts/check-legal-catalogue.mjs
-      # A test that reads a source file and matches a regex against it pins
-      # the shape of the code, not what it does. Phase 2 is replacing them;
-      # the count may only fall (server/.source-text-ratchet.json).
-      - name: Source-text test ratchet (assertions on code text may only fall)
-        working-directory: .
-        run: node scripts/source-text-tests.mjs server --gate
-      # Three more counts that may only fall:
-      # test files that stub through the module cache instead of an injected
-      # seam, files over 800 lines, and files with Dutch comments. All three
-      # grew while nothing counted them. `--update` lowers either budget.
-      - name: Module-mock ratchet (tests stubbing via require.cache may only fall)
-        working-directory: .
-        run: node scripts/count-ratchet.mjs module-mock server
-      - name: Big-file ratchet (files over 800 lines may only fall)
-        working-directory: .
-        run: node scripts/count-ratchet.mjs big-file server
-      - name: Dutch-comment ratchet (files with Dutch comments may only fall)
-        working-directory: .
-        run: node scripts/count-ratchet.mjs dutch-comment server
-      - name: Line-reference ratchet (comments naming a line number may only fall)
-        working-directory: .
-        run: node scripts/count-ratchet.mjs line-ref server
+      # The source-text, module-mock, big-file, Dutch-comment, line-reference
+      # and checkJs ratchets and the generated-dictionary check for this tree
+      # run in fast-gates (npm run check:fast), on every run.
       # JSDoc types, checked per file: every file marked `// @typecheck` must pass
       # tsc, and the number of such files may only rise (phase 6.4).
       - name: Typecheck (files marked // @typecheck)
         run: npm run typecheck
-      - name: checkJs ratchet (checked files may only rise)
-        working-directory: .
-        run: node scripts/checkjs-ratchet.mjs server
-      # agent-hub/src/i18n/en-defaults.js is GENERATED from the per-namespace
-      # server dictionary (server/i18n/defaults/en/); a hand edit or a
-      # forgotten regeneration fails here, not as drift weeks later.
-      - name: Frontend English dictionary is generated from the server's
-        working-directory: .
-        run: node scripts/gen-i18n-defaults.mjs --check
       # A merge in which "the second wins" drops keys without a conflict git
       # shows. Every key the PR base has must still exist, or be listed in
       # server/i18n/defaults/removed-keys.txt. The checkout is shallow, so the
@@ -583,13 +553,9 @@ jobs:
         working-directory: server
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: server/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+          directory: server
       - name: Unit tests (shard ${{ matrix.shard }}/3, with coverage)
         env:
           NODE_ENV: test
@@ -632,13 +598,9 @@ jobs:
         working-directory: server
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: server/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+          directory: server
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: server-shard-coverage-*
@@ -720,52 +682,16 @@ jobs:
       # No server/ install here: it only serves the cross-package tests, which
       # run in the shards. Measured without it: eslint message for message,
       # knip, typecheck and the bundle (bar its build timestamp) identical.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: agent-hub/package-lock.json
-      # agent-hub/src/shared/expr/ is GENERATED from server/shared/expr/
-      # (npm run gen:shared). Checked before the install, so drift fails in
-      # seconds instead of in the vitest sync test a quarter of an hour in.
-      - name: Expression engine mirror matches the server's
-        run: node ../scripts/gen-shared-mirror.mjs --check
-      - name: Install dependencies
-        run: npm ci
+          directory: agent-hub
       # Errors fail; the warning count may not rise above
       # agent-hub/.eslint-budget.json, and `--update` lowers it after a clean-up.
       - name: Lint (errors fail, warnings budgeted)
         run: node ../scripts/eslint-budget.mjs agent-hub
-      # Phase 3 converts src/ to TypeScript directory by directory; until it
-      # is done the honest gate is a count that may only fall, so a new .js or
-      # .jsx file under src fails here. `--update` lowers it after a conversion.
-      - name: TypeScript ratchet (the .js/.jsx count may only fall)
-        run: node ../scripts/ts-ratchet.mjs agent-hub
-      # The other direction of src/i18n/i18nGuard.test.js: that one asks whether
-      # every t('key') has a word, this one whether every word has a key. What
-      # counts as user-facing text, and the thirteen things that deliberately do
-      # not, are written out in the script's header. `--update` lowers it.
-      - name: i18n ratchet (untranslated literals may only fall)
-        run: node ../scripts/i18n-ratchet.mjs agent-hub
-      # Two more counts that may only fall, both conversions phase 3 does file
-      # set by file set: `style={{…}}` objects (the target is a Tailwind class
-      # on the theme variable), and fireEvent calls userEvent can replace. The
-      # low-level events (keyDown, drag, scroll) are not counted — see the
-      # script's header. `--update` lowers either one.
-      - name: Inline-style ratchet (style={{…}} objects may only fall)
-        run: node ../scripts/count-ratchet.mjs inline-style agent-hub
-      - name: fireEvent ratchet (calls userEvent can replace may only fall)
-        run: node ../scripts/count-ratchet.mjs fire-event agent-hub
-      # Phase 6: files pairing authFetch with useEffect (the data layer is
-      # React Query), files over 400 lines, and files with Dutch comments.
-      - name: authFetch-in-effect ratchet (hand-wired fetches may only fall)
-        run: node ../scripts/count-ratchet.mjs authfetch-effect agent-hub
-      - name: Big-file ratchet (files over 400 lines may only fall)
-        run: node ../scripts/count-ratchet.mjs big-file agent-hub
-      - name: Dutch-comment ratchet (files with Dutch comments may only fall)
-        run: node ../scripts/count-ratchet.mjs dutch-comment agent-hub
-      - name: Line-reference ratchet (comments naming a line number may only fall)
-        run: node ../scripts/count-ratchet.mjs line-ref agent-hub
+      # The agent-hub ratchets (TypeScript, i18n, inline-style, fireEvent,
+      # authFetch-in-effect, big-file, Dutch-comment, line-reference) and the
+      # expression-engine mirror check run in fast-gates (npm run check:fast).
       # A source file nothing imports is a file nobody maintains. knip.json
       # names the real entry points (main, tests, the two modules the server
       # bundles, the build scripts); the tree is clean, so a new orphan fails.
@@ -785,14 +711,10 @@ jobs:
         working-directory: agent-hub
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: agent-hub/package-lock.json
       # No server/ install here (see frontend-tests): the program stays small.
-      - name: Install dependencies
-        run: npm ci
+      - uses: ./.github/actions/npm-install
+        with:
+          directory: agent-hub
       # With server/node_modules present, allowJs plus the cross-package test
       # imports pulled the server's dependency typings into the program
       # (12,523 files, 3.6 GB; 2048 OOM'd). This job no longer installs it:
@@ -815,14 +737,10 @@ jobs:
         working-directory: agent-hub
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: agent-hub/package-lock.json
       # No server/ install here (see frontend-tests): the program stays small.
-      - name: Install dependencies
-        run: npm ci
+      - uses: ./.github/actions/npm-install
+        with:
+          directory: agent-hub
       # What a browser downloads, gzipped: the whole build and its largest
       # chunk, against agent-hub/.bundle-budget.json (measurement + 5%).
       # A PR that needs more says why in the commit that raises the budget.
@@ -863,13 +781,9 @@ jobs:
         working-directory: agent-hub
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: agent-hub/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+          directory: agent-hub
       # No server/ install: the few tests that import server source needing
       # server/node_modules (agent-hub/.server-deps-tests.json) run in
       # frontend-tests-server-deps and are left out of the shards here.
@@ -957,13 +871,9 @@ jobs:
         working-directory: agent-hub
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: agent-hub/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+          directory: agent-hub
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: vitest-blob-*
@@ -1010,13 +920,9 @@ jobs:
         working-directory: mobile
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: mobile/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+          directory: mobile
       # eslint's result cache, content-hashed (checkout mtimes differ on every
       # run). Measured locally: 61 s cold, 2 s warm. PRs only: eslint's
       # cross-file import rules would trust a stale verdict for an unchanged
@@ -1046,8 +952,6 @@ jobs:
       - name: Coverage floor
         if: github.event.pull_request.draft != true
         run: node ../scripts/coverage-ratchet.mjs mobile
-      - name: Line-reference ratchet (comments naming a line number may only fall)
-        run: node ../scripts/count-ratchet.mjs line-ref mobile
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() && github.event.pull_request.draft != true }}
         with:
@@ -1089,13 +993,12 @@ jobs:
       - name: Install ruff
         run: pip install --no-cache-dir ruff==0.16.4
       - name: ruff check
-        run: ruff check guard-service pii-service classify-service reranker search-service whisperx-service --output-format=github
+        run: ruff check guard-service classify-service --output-format=github
       - name: ruff format --check
-        run: ruff format --check guard-service pii-service classify-service reranker search-service whisperx-service
+        run: ruff format --check guard-service classify-service
 
-  # The sidecar suites exercise parsing, request models, the auth middleware,
-  # the fetch guard, KB search and the upload limits: no model, no torch, no
-  # running Postgres or Redis (search-service/tests/fakes.py). Each service
+  # The sidecar suites exercise parsing, request models and the auth
+  # middleware: no model, no torch. Each service
   # lists what its tests import in its own requirements-dev.txt, at the pins
   # its image ships, and each suite installs its own file right before it
   # runs: dependabot bumps one service at a time, and one combined install
@@ -1115,39 +1018,14 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: |
-            pii-service/requirements-dev.txt
+            classify-service/requirements.txt
             classify-service/requirements-dev.txt
-            search-service/requirements-dev.txt
-            reranker/requirements-dev.txt
-            whisperx-service/requirements-dev.txt
-      - name: pii-service unit tests
-        run: |
-          pip install -r pii-service/requirements-dev.txt
-          python -m pytest pii-service/tests --cov=pii-service/app --cov-report=term --cov-report=xml:coverage-pii.xml --cov-report=json:coverage-pii.json
-          node scripts/coverage-ratchet.mjs pii-service --summary coverage-pii.json
       # FakeClassifier only: no torch, no gliclass, no model (tests/conftest.py).
       - name: classify-service unit tests
         run: |
           pip install -r classify-service/requirements-dev.txt
           python -m pytest classify-service/tests --cov=classify-service/app --cov-report=term --cov-report=xml:coverage-classify.xml --cov-report=json:coverage-classify.json
           node scripts/coverage-ratchet.mjs classify-service --summary coverage-classify.json
-      - name: search-service unit tests
-        run: |
-          pip install -r search-service/requirements-dev.txt
-          python -m pytest search-service/tests --cov=search-service/app --cov-report=term --cov-report=xml:coverage-search.xml --cov-report=json:coverage-search.json
-          node scripts/coverage-ratchet.mjs search-service --summary coverage-search.json
-      # One module each, with the tests beside it: the service's own
-      # pyproject.toml omits */tests/* so only the module counts.
-      - name: reranker unit tests
-        run: |
-          pip install -r reranker/requirements-dev.txt
-          python -m pytest reranker/tests --cov=reranker --cov-config=reranker/pyproject.toml --cov-report=term --cov-report=xml:coverage-reranker.xml --cov-report=json:coverage-reranker.json
-          node scripts/coverage-ratchet.mjs reranker --summary coverage-reranker.json
-      - name: whisperx-service unit tests
-        run: |
-          pip install -r whisperx-service/requirements-dev.txt
-          python -m pytest whisperx-service/tests --cov=whisperx-service --cov-config=whisperx-service/pyproject.toml --cov-report=term --cov-report=xml:coverage-whisperx.xml --cov-report=json:coverage-whisperx.json
-          node scripts/coverage-ratchet.mjs whisperx-service --summary coverage-whisperx.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -1174,7 +1052,9 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: guard-service/requirements-dev.txt
+          cache-dependency-path: |
+            guard-service/requirements.txt
+            guard-service/requirements-dev.txt
       # The classes that read app/config.py need pydantic-settings; they carry
       # invariants whose violation reads as "no PII here". Pure wheels, pinned
       # as in requirements.txt.
@@ -1259,7 +1139,6 @@ jobs:
       needs.changes.outputs.server == 'true' || needs.changes.outputs.frontend == 'true'
       || needs.changes.outputs.mobile == 'true' || needs.changes.outputs.python == 'true'
       || needs.changes.outputs.nextcloud == 'true' || needs.changes.outputs.hub-module-sdk == 'true'
-      || needs.changes.outputs.install-wizard == 'true' || needs.changes.outputs.nc-login-mini == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -1287,12 +1166,9 @@ jobs:
         working-directory: nextcloud-connector
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: nextcloud-connector/package-lock.json
-      - run: npm ci
+          directory: nextcloud-connector
       - name: Lint (errors fail, warnings budgeted)
         run: node ../scripts/eslint-budget.mjs nextcloud-connector
       - name: Unit tests (with coverage)
@@ -1325,12 +1201,9 @@ jobs:
         working-directory: server
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: server/package-lock.json
-      - run: npm ci
+          directory: server
       # An explicit file list, not a glob: this job's contract is that it
       # stays infra-free and fast. No --test-force-exit: the module-level
       # timers that once kept automation/sideEffectMap.test.js alive are
@@ -1392,53 +1265,66 @@ jobs:
       - name: Coverage floor
         run: node ../scripts/coverage-ratchet.mjs hub-module-sdk
 
-  install-wizard:
-    name: Install wizard
+  # ── Desktop client ─────────────────────────────────────────────────────
+  # `npm run verify` (typecheck, lint, unit tests) plus a build and a load
+  # check of the compiled main process. This used to be desktop-checks.yml,
+  # outside checks-passed; it is a job here so that a red desktop verify blocks
+  # the merge. The packaging legs (installers, launch, e2e) stay in
+  # desktop-release.yml.
+  desktop:
+    name: Desktop client
     needs: changes
-    if: needs.changes.outputs.install-wizard == 'true'
+    if: needs.changes.outputs.desktop == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
-        working-directory: install-wizard
+        working-directory: desktop
+    env:
+      # ~150 MB of Electron binary that none of these steps launch. The package
+      # is still installed, so its TypeScript definitions are there and the
+      # typecheck is real; only the runtime download is skipped.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/npm-install
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: install-wizard/package-lock.json
-      - run: npm ci
-      - name: Lint (errors fail, warnings budgeted)
-        run: node ../scripts/eslint-budget.mjs install-wizard
-      - name: Unit tests (with coverage)
-        run: npm run test:coverage
-      - name: Coverage floor
-        run: node ../scripts/coverage-ratchet.mjs install-wizard
-
-  nc-login-mini:
-    name: NC login mini (ExApp)
-    needs: changes
-    if: needs.changes.outputs.nc-login-mini == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: nc-login-mini
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: nc-login-mini/package-lock.json
-      - run: npm ci
-      - name: Lint (errors fail, warnings budgeted)
-        run: node ../scripts/eslint-budget.mjs nc-login-mini
-      - name: Unit tests (with coverage)
-        run: npm run test:coverage
-      - name: Coverage floor
-        run: node ../scripts/coverage-ratchet.mjs nc-login-mini
+          directory: desktop
+      # Three typecheck programs (the Node side, the browser side of the local
+      # shell pages, the e2e suite), eslint, then `node --test` over the
+      # TypeScript sources directly (Node 22 strips the types). The suites that
+      # matter most are the security ones: the navigation policy and the
+      # deep-link parser, both reachable from any web page on the machine.
+      - name: Verify (typecheck, lint, unit tests)
+        run: npm run verify
+      # Catches the mistakes that only appear at emit time — a path that does
+      # not resolve once the `.ts` specifiers are rewritten to `.js`, a shell
+      # asset that never gets copied — without building an installer. It also
+      # bundles the preload and FAILS if the bundle requires anything but
+      # `electron` (scripts/build-preload.mjs): a sandboxed preload cannot, and
+      # a tsc-emitted relative require once left every page without its bridge.
+      - name: Build
+        run: npm run build
+      - name: Check the compiled main process loads
+        run: |
+          set -euo pipefail
+          node -e "
+            // Everything in the main process that does not need Electron.
+            // If one of these grew an accidental top-level electron import,
+            // the app would fail at launch rather than here.
+            for (const m of [
+              './dist/main/config/store.js',
+              './dist/main/config/schema.js',
+              './dist/main/nextcloud/bridge.js',
+              './dist/main/security/policy.js',
+              './dist/main/server/probe.js',
+              './dist/main/server/chromiumFetch.js',
+              './dist/main/server/secureOrigin.js',
+              './dist/main/linux/appImageEntry.js',
+              './dist/main/deepLink.js',
+            ]) require(m);
+            console.log('main-process modules load cleanly');
+          "
 
   # ── E2E spec freshness ────────────────────────────────────────────────
   # The specs under e2e/tests are GENERATED from the scenario Markdown
@@ -1457,14 +1343,35 @@ jobs:
         working-directory: e2e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/npm-install
+        with:
+          directory: e2e
+      - name: Generated specs match the scenarios
+        run: npm run gen:check
+
+  # ── Repo plumbing gates ────────────────────────────────────────────────
+  # What `npm run check:fast` runs locally (every root lint:* ratchet and
+  # guard bar the slow ones, see scripts/check-fast.mjs) plus the unit tests
+  # of scripts/*.mjs. Nothing is installed: these scripts import only node:*.
+  # Runs on every run, drafts included, because it costs seconds and its
+  # gates read the whole tree, not one package. The i18n key guard and the
+  # commit secret scan inside check:fast skip themselves on this shallow
+  # checkout (no origin/main); ci.yml's server-checks job and secret-scan.yml
+  # run those two. workflow-policy.yml also runs test:scripts, for a change
+  # that touches only scripts/ or the workflows.
+  fast-gates:
+    name: Fast gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: e2e/package-lock.json
-      - run: npm ci
-      - name: Generated specs match the scenarios
-        run: npm run gen:check
+      - name: Ratchets and repo guards (check:fast)
+        run: node scripts/check-fast.mjs
+      - name: Repo-script unit tests
+        run: npm run test:scripts
 
   # ── The one context the ruleset requires ───────────────────────────────
   # (Repo ruleset 23605458; mirrored in .github/required-checks.json.) Runs
@@ -1481,7 +1388,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, install-wizard, nc-login-mini, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs]
+    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, desktop, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

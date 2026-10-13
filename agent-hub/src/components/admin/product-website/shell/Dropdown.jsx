@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
 
 /**
  * Minimal TopBar dropdown: trigger + anchored panel with click-outside and
@@ -12,19 +13,7 @@ export default function Dropdown({ trigger, children, align = 'left', width = 28
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
 
-    useEffect(() => {
-        if (!open) return undefined;
-        const onDoc = (e) => {
-            if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
-        };
-        const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-        document.addEventListener('mousedown', onDoc);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('mousedown', onDoc);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open]);
+    useOutsideDismiss(rootRef, () => setOpen(false), { enabled: open, defer: false });
 
     useEffect(() => { onOpenChange?.(open); }, [open, onOpenChange]);
 

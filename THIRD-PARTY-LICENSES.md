@@ -84,17 +84,12 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `@azure/ai-text-analytics@5.1.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/core-asynciterator-polyfill@1.0.2` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/core-auth@1.10.1` | MIT | https://github.com/Azure/azure-sdk-for-js |
-| `@azure/core-client@1.10.1` | MIT | https://github.com/Azure/azure-sdk-for-js |
-| `@azure/core-http-compat@2.4.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
-| `@azure/core-lro@2.7.2` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/core-lro@3.3.1` | MIT | https://github.com/Azure/azure-sdk-for-js |
-| `@azure/core-paging@1.6.2` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/core-rest-pipeline@1.23.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/core-sse@2.3.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/core-tracing@1.0.0-preview.12` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/core-tracing@1.3.1` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/core-util@1.13.1` | MIT | https://github.com/Azure/azure-sdk-for-js |
-| `@azure/core-xml@1.5.1` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/identity@4.13.1` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/logger@1.3.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure/msal-browser@5.10.0` | MIT | https://github.com/AzureAD/microsoft-authentication-library-for-js |
@@ -103,8 +98,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `@azure-rest/ai-content-safety@1.0.1` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure-rest/ai-document-intelligence@1.1.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `@azure-rest/core-client@2.6.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
-| `@azure/storage-blob@12.31.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
-| `@azure/storage-common@12.3.0` | MIT | https://github.com/Azure/azure-sdk-for-js |
 | `b4a@1.8.1` | Apache-2.0 | https://github.com/holepunchto/b4a |
 | `@babel/runtime@7.29.2` | MIT | https://github.com/babel/babel |
 | `balanced-match@1.0.2` | MIT | https://github.com/juliangruber/balanced-match |
@@ -146,7 +139,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `browserify-zlib@0.2.0` | MIT | https://github.com/devongovett/browserify-zlib |
 | `browser-split@0.0.1` | MIT | https://github.com/juliangruber/browser-split |
 | `buffer@5.7.1` | MIT | https://github.com/feross/buffer |
-| `buffer@6.0.3` | MIT | https://github.com/feross/buffer |
 | `buffer-crc32@0.2.13` | MIT | https://github.com/brianloveswords/buffer-crc32 |
 | `buffer-equal-constant-time@1.0.1` | BSD-3-Clause | https://github.com/goinstant/buffer-equal-constant-time |
 | `buffer-from@1.1.2` | MIT | https://github.com/LinusU/buffer-from |
@@ -175,7 +167,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `concat-map@0.0.1` | MIT | https://github.com/substack/node-concat-map |
 | `concat-stream@1.6.2` | MIT | https://github.com/maxogden/concat-stream |
 | `connect-pg-simple@10.0.0` | MIT | https://github.com/voxpelli/node-connect-pg-simple |
-| `connect-redis@9.0.0` | MIT | https://github.com/tj/connect-redis |
 | `content-disposition@1.1.0` | MIT | https://github.com/jshttp/content-disposition |
 | `content-type@1.0.5` | MIT | https://github.com/jshttp/content-type |
 | `cookie@0.7.2` | MIT | https://github.com/jshttp/cookie |
@@ -221,7 +212,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `docxtemplater@3.68.7` | MIT | https://github.com/open-xml-templating/docxtemplater |
 | `domelementtype@1.3.1` | BSD-2-Clause | https://github.com/fb55/domelementtype |
 | `domelementtype@2.3.0` | BSD-2-Clause | https://github.com/fb55/domelementtype |
-| `domexception@4.0.0` | MIT | https://github.com/jsdom/domexception |
 | `domhandler@2.4.2` | BSD-2-Clause | https://github.com/fb55/DomHandler |
 | `domhandler@5.0.3` | BSD-2-Clause | https://github.com/fb55/domhandler |
 | `dom-serializer@0.2.2` | MIT | https://github.com/cheeriojs/dom-renderer |
@@ -262,7 +252,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `estraverse@5.3.0` | BSD-2-Clause | https://github.com/estools/estraverse |
 | `esutils@2.0.3` | BSD-2-Clause | https://github.com/estools/esutils |
 | `etag@1.8.1` | MIT | https://github.com/jshttp/etag |
-| `events@3.3.0` | MIT | https://github.com/Gozala/events |
 | `eventsource@3.0.7` | MIT | git://git@github.com/EventSource/eventsource |
 | `eventsource-parser@3.0.8` | MIT | https://github.com/rexxars/eventsource-parser |
 | `events-universal@1.0.1` | Apache-2.0 | https://github.com/holepunchto/events-universal |
@@ -428,7 +417,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `minimist@1.2.8` | MIT | https://github.com/minimistjs/minimist |
 | `@mistralai/mistralai@1.15.1` | Apache* | https://github.com/mistralai/client-ts |
 | `mitt@3.0.1` | MIT | https://github.com/developit/mitt |
-| `@mixmark-io/domino@2.2.0` | BSD-2-Clause | https://github.com/mixmark-io/domino |
 | `mkdirp@0.5.6` | MIT | https://github.com/substack/node-mkdirp |
 | `mkdirp-classic@0.5.3` | MIT | https://github.com/mafintosh/mkdirp-classic |
 | `@modelcontextprotocol/sdk@1.29.0` | MIT | https://github.com/modelcontextprotocol/typescript-sdk |
@@ -444,9 +432,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `@napi-rs/canvas-linux-x64-gnu@0.1.100` | MIT | https://github.com/Brooooooklyn/canvas |
 | `@napi-rs/canvas-linux-x64-gnu@0.1.80` | MIT | https://github.com/Brooooooklyn/canvas |
 | `negotiator@1.0.0` | MIT | https://github.com/jshttp/negotiator |
-| `neo4j-driver@5.28.3` | Apache-2.0 | https://github.com/neo4j/neo4j-javascript-driver |
-| `neo4j-driver-bolt-connection@5.28.3` | Apache-2.0 | https://github.com/neo4j/neo4j-javascript-driver |
-| `neo4j-driver-core@5.28.3` | Apache-2.0 | https://github.com/neo4j/neo4j-javascript-driver |
 | `netmask@2.1.1` | MIT | https://github.com/rs/node-netmask |
 | `next-tick@0.2.2` | MIT | https://github.com/medikoo/next-tick |
 | `@noble/ciphers@1.3.0` | MIT | https://github.com/paulmillr/noble-ciphers |
@@ -519,8 +504,8 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `pizzip@3.2.0` | (MIT OR GPL-3.0) | https://github.com/open-xml-templating/pizzip |
 | `pkce-challenge@5.0.1` | MIT | https://github.com/crouchcd/pkce-challenge |
 | `platform@1.3.6` | MIT | https://github.com/bestiejs/platform.js |
-| `playwright@1.59.1` | Apache-2.0 | https://github.com/microsoft/playwright |
-| `playwright-core@1.59.1` | Apache-2.0 | https://github.com/microsoft/playwright |
+| `playwright@1.64.0` | Apache-2.0 | https://github.com/microsoft/playwright |
+| `playwright-core@1.64.0` | Apache-2.0 | https://github.com/microsoft/playwright |
 | `png-js@1.1.0` | MIT* | https://github.com/devongovett/png.js |
 | `postgres-array@2.0.0` | MIT | https://github.com/bendrucker/postgres-array |
 | `postgres-bytea@1.0.1` | MIT | https://github.com/bendrucker/postgres-bytea |
@@ -575,12 +560,9 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `restructure@3.0.2` | MIT | https://github.com/devongovett/restructure |
 | `retry@0.13.1` | MIT | https://github.com/tim-kos/node-retry |
 | `rimraf@2.7.1` | ISC | https://github.com/isaacs/rimraf |
-| `@roamhq/wrtc@0.8.0` | BSD-2-Clause | https://github.com/WonderInventions/node-webrtc |
-| `@roamhq/wrtc-linux-x64@0.8.1` | BSD-2-Clause | https://github.com/WonderInventions/node-webrtc |
 | `roarr@2.15.4` | BSD-3-Clause | https://github.com/gajus/roarr |
 | `router@2.2.0` | MIT | https://github.com/pillarjs/router |
 | `run-applescript@7.1.0` | MIT | https://github.com/sindresorhus/run-applescript |
-| `rxjs@7.8.2` | Apache-2.0 | https://github.com/reactivex/rxjs |
 | `safe-buffer@5.1.2` | MIT | https://github.com/feross/safe-buffer |
 | `safe-buffer@5.2.1` | MIT | https://github.com/feross/safe-buffer |
 | `safer-buffer@2.1.2` | MIT | https://github.com/ChALkeR/safer-buffer |
@@ -704,7 +686,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `ts-algebra@2.0.0` | MIT | https://github.com/ThomasAribart/ts-algebra |
 | `tslib@2.8.1` | 0BSD | https://github.com/Microsoft/tslib |
 | `tunnel-agent@0.6.0` | Apache-2.0 | https://github.com/mikeal/tunnel-agent |
-| `turndown@7.2.4` | MIT | https://github.com/mixmark-io/turndown |
 | `typedarray@0.0.6` | MIT | https://github.com/substack/typedarray |
 | `typed-query-selector@2.12.2` | MIT | https://github.com/g-plane/typed-query-selector |
 | `type-fest@0.13.1` | (MIT OR CC0-1.0) | https://github.com/sindresorhus/type-fest |
@@ -736,7 +717,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `w3c-xmlserializer@5.0.0` | MIT | https://github.com/jsdom/w3c-xmlserializer |
 | `webdriver-bidi-protocol@0.4.1` | Apache-2.0 | https://github.com/GoogleChromeLabs/webdriver-bidi-protocol |
 | `webidl-conversions@3.0.1` | BSD-2-Clause | https://github.com/jsdom/webidl-conversions |
-| `webidl-conversions@7.0.0` | BSD-2-Clause | https://github.com/jsdom/webidl-conversions |
 | `webidl-conversions@8.0.1` | BSD-2-Clause | https://github.com/jsdom/webidl-conversions |
 | `web-streams-polyfill@3.3.3` | MIT | https://github.com/MattiasBuelens/web-streams-polyfill |
 | `web-streams-polyfill@4.0.0-beta.3` | MIT | https://github.com/MattiasBuelens/web-streams-polyfill |
@@ -1186,10 +1166,6 @@ For the legal scope of these notices, see [NOTICE.md](NOTICE.md).
 | `zustand@4.5.7` | MIT | https://github.com/pmndrs/zustand |
 | `zwitch@2.0.4` | MIT | https://github.com/wooorm/zwitch |
 
-### install-wizard
-
-_Not scanned: `node_modules` missing. Run `npm install` in [`install-wizard`](install-wizard) and re-run this script._
-
 ### nextcloud-connector
 
 | Package | License | Source |
@@ -1339,49 +1315,6 @@ _Not scanned: `node_modules` missing. Run `npm install` in [`install-wizard`](in
 | `date-fns@2.30.0` | MIT | https://github.com/date-fns/date-fns |
 | `get-date-time@1.0.0` | UNKNOWN | — |
 
-### components/get-organization
-
-| Package | License | Source |
-|---|---|---|
-| `base64-js@1.5.1` | MIT | https://github.com/beatgammit/base64-js |
-| `better-sqlite3@11.10.0` | MIT | https://github.com/WiseLibs/better-sqlite3 |
-| `bindings@1.5.0` | MIT | https://github.com/TooTallNate/node-bindings |
-| `bl@4.1.0` | MIT | https://github.com/rvagg/bl |
-| `buffer@5.7.1` | MIT | https://github.com/feross/buffer |
-| `chownr@1.1.4` | ISC | https://github.com/isaacs/chownr |
-| `decompress-response@6.0.0` | MIT | https://github.com/sindresorhus/decompress-response |
-| `deep-extend@0.6.0` | MIT | https://github.com/unclechu/node-deep-extend |
-| `detect-libc@2.1.2` | Apache-2.0 | https://github.com/lovell/detect-libc |
-| `end-of-stream@1.4.5` | MIT | https://github.com/mafintosh/end-of-stream |
-| `expand-template@2.0.3` | (MIT OR WTFPL) | https://github.com/ralphtheninja/expand-template |
-| `file-uri-to-path@1.0.0` | MIT | https://github.com/TooTallNate/file-uri-to-path |
-| `fs-constants@1.0.0` | MIT | https://github.com/mafintosh/fs-constants |
-| `github-from-package@0.0.0` | MIT | https://github.com/substack/github-from-package |
-| `ieee754@1.2.1` | BSD-3-Clause | https://github.com/feross/ieee754 |
-| `inherits@2.0.4` | ISC | https://github.com/isaacs/inherits |
-| `ini@1.3.8` | ISC | https://github.com/isaacs/ini |
-| `mimic-response@3.1.0` | MIT | https://github.com/sindresorhus/mimic-response |
-| `minimist@1.2.8` | MIT | https://github.com/minimistjs/minimist |
-| `mkdirp-classic@0.5.3` | MIT | https://github.com/mafintosh/mkdirp-classic |
-| `napi-build-utils@2.0.0` | MIT | https://github.com/inspiredware/napi-build-utils |
-| `node-abi@3.87.0` | MIT | https://github.com/electron/node-abi |
-| `once@1.4.0` | ISC | https://github.com/isaacs/once |
-| `prebuild-install@7.1.3` | MIT | https://github.com/prebuild/prebuild-install |
-| `pump@3.0.3` | MIT | https://github.com/mafintosh/pump |
-| `rc@1.2.8` | (BSD-2-Clause OR MIT OR Apache-2.0) | https://github.com/dominictarr/rc |
-| `readable-stream@3.6.2` | MIT | https://github.com/nodejs/readable-stream |
-| `safe-buffer@5.2.1` | MIT | https://github.com/feross/safe-buffer |
-| `semver@7.7.4` | ISC | https://github.com/npm/node-semver |
-| `simple-concat@1.0.1` | MIT | https://github.com/feross/simple-concat |
-| `simple-get@4.0.1` | MIT | https://github.com/feross/simple-get |
-| `string_decoder@1.3.0` | MIT | https://github.com/nodejs/string_decoder |
-| `strip-json-comments@2.0.1` | MIT | https://github.com/sindresorhus/strip-json-comments |
-| `tar-fs@2.1.4` | MIT | https://github.com/mafintosh/tar-fs |
-| `tar-stream@2.2.0` | MIT | https://github.com/mafintosh/tar-stream |
-| `tunnel-agent@0.6.0` | Apache-2.0 | https://github.com/mikeal/tunnel-agent |
-| `util-deprecate@1.0.2` | MIT | https://github.com/TooTallNate/util-deprecate |
-| `wrappy@1.0.2` | ISC | https://github.com/npm/wrappy |
-
 ### components/n8n-webhook-header-auth
 
 | Package | License | Source |
@@ -1439,49 +1372,6 @@ _Not scanned: `node_modules` missing. Run `npm install` in [`install-wizard`](in
 | `mime-types@2.1.35` | MIT | https://github.com/jshttp/mime-types |
 | `proxy-from-env@1.1.0` | MIT | https://github.com/Rob--W/proxy-from-env |
 | `tavily-search@1.0.0` | UNKNOWN | — |
-
-### components/update-organization
-
-| Package | License | Source |
-|---|---|---|
-| `base64-js@1.5.1` | MIT | https://github.com/beatgammit/base64-js |
-| `better-sqlite3@11.10.0` | MIT | https://github.com/WiseLibs/better-sqlite3 |
-| `bindings@1.5.0` | MIT | https://github.com/TooTallNate/node-bindings |
-| `bl@4.1.0` | MIT | https://github.com/rvagg/bl |
-| `buffer@5.7.1` | MIT | https://github.com/feross/buffer |
-| `chownr@1.1.4` | ISC | https://github.com/isaacs/chownr |
-| `decompress-response@6.0.0` | MIT | https://github.com/sindresorhus/decompress-response |
-| `deep-extend@0.6.0` | MIT | https://github.com/unclechu/node-deep-extend |
-| `detect-libc@2.1.2` | Apache-2.0 | https://github.com/lovell/detect-libc |
-| `end-of-stream@1.4.5` | MIT | https://github.com/mafintosh/end-of-stream |
-| `expand-template@2.0.3` | (MIT OR WTFPL) | https://github.com/ralphtheninja/expand-template |
-| `file-uri-to-path@1.0.0` | MIT | https://github.com/TooTallNate/file-uri-to-path |
-| `fs-constants@1.0.0` | MIT | https://github.com/mafintosh/fs-constants |
-| `github-from-package@0.0.0` | MIT | https://github.com/substack/github-from-package |
-| `ieee754@1.2.1` | BSD-3-Clause | https://github.com/feross/ieee754 |
-| `inherits@2.0.4` | ISC | https://github.com/isaacs/inherits |
-| `ini@1.3.8` | ISC | https://github.com/isaacs/ini |
-| `mimic-response@3.1.0` | MIT | https://github.com/sindresorhus/mimic-response |
-| `minimist@1.2.8` | MIT | https://github.com/minimistjs/minimist |
-| `mkdirp-classic@0.5.3` | MIT | https://github.com/mafintosh/mkdirp-classic |
-| `napi-build-utils@2.0.0` | MIT | https://github.com/inspiredware/napi-build-utils |
-| `node-abi@3.87.0` | MIT | https://github.com/electron/node-abi |
-| `once@1.4.0` | ISC | https://github.com/isaacs/once |
-| `prebuild-install@7.1.3` | MIT | https://github.com/prebuild/prebuild-install |
-| `pump@3.0.3` | MIT | https://github.com/mafintosh/pump |
-| `rc@1.2.8` | (BSD-2-Clause OR MIT OR Apache-2.0) | https://github.com/dominictarr/rc |
-| `readable-stream@3.6.2` | MIT | https://github.com/nodejs/readable-stream |
-| `safe-buffer@5.2.1` | MIT | https://github.com/feross/safe-buffer |
-| `semver@7.7.4` | ISC | https://github.com/npm/node-semver |
-| `simple-concat@1.0.1` | MIT | https://github.com/feross/simple-concat |
-| `simple-get@4.0.1` | MIT | https://github.com/feross/simple-get |
-| `string_decoder@1.3.0` | MIT | https://github.com/nodejs/string_decoder |
-| `strip-json-comments@2.0.1` | MIT | https://github.com/sindresorhus/strip-json-comments |
-| `tar-fs@2.1.4` | MIT | https://github.com/mafintosh/tar-fs |
-| `tar-stream@2.2.0` | MIT | https://github.com/mafintosh/tar-stream |
-| `tunnel-agent@0.6.0` | Apache-2.0 | https://github.com/mikeal/tunnel-agent |
-| `util-deprecate@1.0.2` | MIT | https://github.com/TooTallNate/util-deprecate |
-| `wrappy@1.0.2` | ISC | https://github.com/npm/wrappy |
 
 ### components/webpage-to-markdown
 
@@ -1615,9 +1505,6 @@ These models are downloaded from Hugging Face the first time the corresponding f
 | `knowledgator/gliclass-multilang-mini` | [classify-service/](classify-service/) (baked into the image at build time, never downloaded at runtime) | Apache 2.0 | https://huggingface.co/knowledgator/gliclass-multilang-mini |
 | `openai/privacy-filter` | [server/core/localPiiDetection.js](server/core/localPiiDetection.js) | Apache 2.0 | https://huggingface.co/openai |
 | `Xenova/whisper-base` | [server/core/voice/localWhisper.js](server/core/voice/localWhisper.js) | MIT (OpenAI Whisper) | https://huggingface.co/Xenova/whisper-base |
-| `Qwen/Qwen3-Embedding-4B` | [search-service/app/config.py](search-service/app/config.py) | Apache 2.0 / Tongyi Qianwen | https://huggingface.co/Qwen/Qwen3-Embedding-4B |
-| `BAAI/bge-reranker-v2-m3` | [search-service/app/config.py](search-service/app/config.py) | Apache 2.0 / MIT | https://huggingface.co/BAAI/bge-reranker-v2-m3 |
-| `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | [reranker/reranker.py](reranker/reranker.py) (fallback) | Apache 2.0 | https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1 |
 
 The classify-service image also ships the library that loads its model:
 

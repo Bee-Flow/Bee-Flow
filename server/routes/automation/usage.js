@@ -21,11 +21,11 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 
 const NAME_TEXT = (what) => `${what} is a name of letters, digits, "_", ".", ":" or "-", at most 120 characters.`;
-const name = (what) => z.string({ required_error: `${what} is required.`, invalid_type_error: NAME_TEXT(what) })
+const name = (what) => z.string({ error: typeError({ required: `${what} is required.`, invalid: NAME_TEXT(what) }) })
     .trim()
     .regex(/^[A-Za-z][A-Za-z0-9_.:-]{0,119}$/, NAME_TEXT(what));
 

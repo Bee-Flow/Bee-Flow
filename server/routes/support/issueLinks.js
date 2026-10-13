@@ -49,11 +49,11 @@ const egress = require('../../support/issueEgress');
 
 const { requireStaffSupport, getUserId, _emit } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -67,7 +67,7 @@ const ConnectionBody = bodyOf({
     token: worded('token must be text.').nullish(),
     project: worded('project must be a project short name.').nullish(),
     // Only a real false keeps the ticket subject out of YouTrack (BFSF-441).
-    includeSubject: z.boolean({ invalid_type_error: 'includeSubject is true or false.' }).optional(),
+    includeSubject: z.boolean({ error: typeError({ invalid: 'includeSubject is true or false.' }) }).optional(),
 });
 
 const SearchQuery = z.object({
@@ -77,9 +77,7 @@ const SearchQuery = z.object({
 }).strict();
 
 const AttachBody = bodyOf({
-    issueIds: z.array(issueId('issueIds is a list of YouTrack issue ids.'), {
-        invalid_type_error: 'issueIds is a list of YouTrack issue ids.',
-    }).max(50, 'At most 50 issues at a time.').optional(),
+    issueIds: z.array(issueId('issueIds is a list of YouTrack issue ids.'), { error: typeError({ invalid: 'issueIds is a list of YouTrack issue ids.' }) }).max(50, 'At most 50 issues at a time.').optional(),
     issueId: issueId().optional(),
     reason: reasonText.nullish(),
 });
@@ -96,17 +94,15 @@ const ESCALATE_TEXT = 'An escalation needs a reason.';
 const EscalateBody = bodyOf({
     reason: worded(ESCALATE_TEXT).trim().min(1, ESCALATE_TEXT).max(300, 'A reason is at most 300 characters.'),
     issueId: issueId().nullish(),
-    raisePriority: z.boolean({ invalid_type_error: 'raisePriority is true or false.' }).optional(),
+    raisePriority: z.boolean({ error: typeError({ invalid: 'raisePriority is true or false.' }) }).optional(),
 });
 
 const NotificationsBody = bodyOf({
     webhookUrl: worded('webhookUrl must be a URL.').nullish(),
     provider: worded('provider must be the name of a chat provider.').trim().max(64, 'provider is at most 64 characters.').optional(),
     // Only a real false stops the outbound feed.
-    enabled: z.boolean({ invalid_type_error: 'enabled is true or false.' }).optional(),
-    events: z.array(worded('events is a list of event names.'), {
-        invalid_type_error: 'events is a list of event names.',
-    }).max(50, 'At most 50 events.').optional(),
+    enabled: z.boolean({ error: typeError({ invalid: 'enabled is true or false.' }) }).optional(),
+    events: z.array(worded('events is a list of event names.'), { error: typeError({ invalid: 'events is a list of event names.' }) }).max(50, 'At most 50 events.').optional(),
 });
 
 /** The refresh, test and follow-up buttons post nothing and read nothing. */

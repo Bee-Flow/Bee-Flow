@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Heart } from 'lucide-react';
 import React, { useState, useEffect, useEffectEvent, useRef, useCallback, Suspense } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import AgentChatView from './AgentHub/AgentChatView';
 import ChatSidePanels from './AgentHub/ChatSidePanels';
 import DirectChatView from './AgentHub/DirectChatView';

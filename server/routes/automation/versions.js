@@ -44,7 +44,7 @@ const formAnswers = require('../../automation/formAnswers');
 const { validateApprovalAssignees } = require('../../automation/approvalService');
 const { editedPinRefusal } = require('../../automation/goLive');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 const NoQuery = z.object({}).strict();

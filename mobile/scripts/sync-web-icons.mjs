@@ -2,9 +2,11 @@
  * Generate src/shared/ui/icons/registry.generated.ts: every Lucide icon the
  * phone can draw, by name.
  *
- * The web app draws Lucide (`lucide-react`, 0.562); the phone draws the same
- * set through `lucide-react-native`, pinned to the same release so a name
- * means the same glyph on both. The registry holds two lists:
+ * The web app draws Lucide (`lucide-react`); the phone draws the same set
+ * through `lucide-react-native`, pinned to the same release so a name means the
+ * same glyph on both. Lucide 1.0 dropped its brand icons (Github, Linkedin...);
+ * the two the web registry still names are drawn from ./brandIcons instead
+ * (BRAND_ICON_NAMES), with the glyph data of 0.562. The registry holds two lists:
  *
  *   - the web's own ICON_REGISTRY (agent-hub/src/components/icons/iconRegistry.js,
  *     read as text: Metro cannot import from agent-hub), because those are the
@@ -17,9 +19,9 @@
  * which re-exports all ~1,670 icons. Metro does not tree-shake, so even a
  * named `import { Bot } from 'lucide-react-native'` bundles every one of them
  * (and makes every Jest test that renders an icon load 1,670 modules). The
- * registry therefore imports each icon's own file, `dist/esm/icons/<file>.js`;
- * metro.config.js and jest.config.js resolve those paths, and icons.d.ts types
- * them. Never `import *`.
+ * registry therefore imports each icon's own module, `lucide-react-native/icons/<file>`
+ * (a subpath the package exports and types; jest.config.js points Jest at the
+ * CommonJS twin). Never `import *`.
  *
  * A web name that Lucide has since renamed (HelpCircle, MoreVertical, …) stays
  * a key here — the web and stored content still use it — and points at the
@@ -40,9 +42,11 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MOBILE = path.resolve(HERE, '..');
 const WEB_REGISTRY = path.resolve(MOBILE, '../agent-hub/src/components/icons/iconRegistry.js');
-const LUCIDE_BARREL = path.join(MOBILE, 'node_modules/lucide-react-native/dist/esm/lucide-react-native.js');
+const LUCIDE_BARREL = path.join(MOBILE, 'node_modules/lucide-react-native/dist/esm/lucide-react-native.mjs');
 const OUT = path.join(MOBILE, 'src/shared/ui/icons/registry.generated.ts');
-const ICON_PATH = 'lucide-react-native/dist/esm/icons';
+const ICON_PATH = 'lucide-react-native/icons';
+/** Glyphs Lucide 1.x no longer ships: src/shared/ui/icons/brandIcons.tsx draws them. */
+const BRAND_ICON_NAMES = ['Github', 'Linkedin'];
 
 /** Names the phone's screens use directly, as current Lucide names. */
 export const MOBILE_ICONS = [
@@ -127,7 +131,7 @@ export function webFallbackName(src) {
 /** Every name lucide-react-native exports, mapped to the icon file it comes from. */
 export function lucideExports(barrelSrc) {
     const files = new Map();
-    for (const m of barrelSrc.matchAll(/export \{([^}]*)\} from '\.\/icons\/([a-z0-9-]+)\.js'/g)) {
+    for (const m of barrelSrc.matchAll(/export \{([^}]*)\} from '\.\/icons\/([a-z0-9-]+)\.mjs'/g)) {
         for (const part of m[1].split(',')) {
             files.set(part.trim().replace(/^default as /, ''), m[2]);
         }
@@ -144,23 +148,27 @@ const pascal = (file) =>
 
 export function render({ webNames, fallback, mobileNames, exportsMap }) {
     const names = [...new Set([...webNames, fallback, ...mobileNames])].sort();
-    const missing = names.filter((n) => !exportsMap.has(n));
+    const lucideNames = names.filter((n) => !BRAND_ICON_NAMES.includes(n));
+    const missing = lucideNames.filter((n) => !exportsMap.has(n));
     if (missing.length) throw new Error(`Not in lucide-react-native: ${missing.join(', ')}`);
 
     // One import per icon FILE, bound to that icon's current name.
     const bindings = new Map();
-    for (const name of names) {
+    for (const name of lucideNames) {
         const file = exportsMap.get(name);
         const current = pascal(file);
-        if (exportsMap.get(current) !== file) throw new Error(`Cannot name ${file}.js (${name})`);
+        if (exportsMap.get(current) !== file) throw new Error(`Cannot name ${file} (${name})`);
         bindings.set(file, current);
     }
     // Code-unit order, like `names` above: localeCompare follows the machine's
     // locale (Estonian files Z between S and T), and --check must not.
+    const brands = names.filter((n) => BRAND_ICON_NAMES.includes(n));
     const imports = [...bindings]
         .sort(([, a], [, b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([file, binding]) => `import ${binding} from '${ICON_PATH}/${file}.js';`);
+        .map(([file, binding]) => `import ${binding} from '${ICON_PATH}/${file}';`);
+    if (brands.length) imports.push(`import { ${brands.join(', ')} } from './brandIcons';`);
     const entries = names.map((name) => {
+        if (BRAND_ICON_NAMES.includes(name)) return `    ${name},`;
         const binding = bindings.get(exportsMap.get(name));
         return binding === name ? `    ${name},` : `    ${name}: ${binding},`;
     });

@@ -74,14 +74,14 @@ const ARCHITECTURE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 4
     <text x="60" y="336" font-size="12" fill="${MUTED}">CPU · Apache-2.0 model</text>
 
     <rect x="320" y="268" width="240" height="88" rx="12" fill="#FFFFFF" stroke="${HAIRLINE}"/>
-    <text x="340" y="296" font-size="14" font-weight="600" fill="${INK}">Search &amp; reranker</text>
-    <text x="340" y="318" font-size="12" fill="${MUTED}">Extraction · chunking</text>
-    <text x="340" y="336" font-size="12" fill="${MUTED}">Cross-encoder rerank</text>
+    <text x="340" y="296" font-size="14" font-weight="600" fill="${INK}">Classify service</text>
+    <text x="340" y="318" font-size="12" fill="${MUTED}">Zero-shot topic rules</text>
+    <text x="340" y="336" font-size="12" fill="${MUTED}">CPU · Apache-2.0 model</text>
 
     <rect x="600" y="268" width="240" height="88" rx="12" fill="#FFFFFF" stroke="${HAIRLINE}"/>
-    <text x="620" y="296" font-size="14" font-weight="600" fill="${INK}">WhisperX</text>
-    <text x="620" y="318" font-size="12" fill="${MUTED}">Transcription + diarisation</text>
-    <text x="620" y="336" font-size="12" fill="${MUTED}">GPU · optional profile</text>
+    <text x="620" y="296" font-size="14" font-weight="600" fill="${INK}">Headless browser</text>
+    <text x="620" y="318" font-size="12" fill="${MUTED}">PDF · thumbnails · browse_web</text>
+    <text x="620" y="336" font-size="12" fill="${MUTED}">Sidecar · isolated network</text>
 
     <rect x="40" y="380" width="800" height="60" rx="12" fill="${AMBER}" opacity="0.14"/>
     <text x="64" y="408" font-size="14" font-weight="600" fill="${INK}">PostgreSQL + pgvector · S3-compatible object storage · Redis</text>

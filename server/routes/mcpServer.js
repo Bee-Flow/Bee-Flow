@@ -46,7 +46,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 // The tool registry and dispatcher pull in the whole integration surface (and,
 // through it, DB-backed stores). Required lazily so importing this module in a
 // unit test does not stand up that machinery.
@@ -178,7 +178,7 @@ const INVALID_REQUEST = 'Invalid Request: a JSON-RPC message needs a method (or,
 
 const ToolCallParams = z.object({
     name: z.string().min(1),
-    arguments: z.record(z.unknown()).nullish(),
+    arguments: z.record(z.string(), z.unknown()).nullish(),
 }).passthrough();
 
 /**

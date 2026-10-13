@@ -32,7 +32,7 @@ const { requireCapability } = require('../../core/entitlements/entitlements');
 const { requireModule } = require('../../modules');
 const { validate } = require('../../core/http/validate');
 const { contentDisposition } = require('../../core/http/contentDisposition');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -49,7 +49,7 @@ const { z } = require('zod');
 // ones somebody had filtered for.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -64,7 +64,7 @@ const STATUS_TEXT = `status is a comma-separated list of: ${APPROVAL_STATUSES.jo
 const SCOPE_TEXT = 'scope is "mine" or "org".';
 const DECISION_TEXT = 'decision is "approve" or "reject".';
 
-const scope = () => z.enum(['mine', 'org'], { errorMap: () => ({ message: SCOPE_TEXT }) }).default('mine');
+const scope = () => z.enum(['mine', 'org'], { error: () => SCOPE_TEXT }).default('mine');
 
 const ApprovalsQuery = z.object({
     scope: scope(),
@@ -73,7 +73,7 @@ const ApprovalsQuery = z.object({
         .refine((list) => list.length > 0 && list.every((x) => APPROVAL_STATUSES.includes(x)), STATUS_TEXT)
         .optional(),
     cursor: one('cursor', 'the value a previous page returned as nextCursor'),
-    limit: z.coerce.number({ invalid_type_error: 'limit must be a number.' })
+    limit: z.coerce.number({ error: typeError({ invalid: 'limit must be a number.' }) })
         .int('limit must be a whole number.').optional(),
     appId: one('appId', 'the id of an app'),
     automationId: one('automationId', 'the id of an automation'),
@@ -88,13 +88,13 @@ const DecideBody = bodyOf({
     // answered with a 400 after the row had already been read.
     decision: z.preprocess(
         (v) => (typeof v === 'string' ? v.trim().toLowerCase() : v),
-        z.enum(['approve', 'reject'], { errorMap: () => ({ message: DECISION_TEXT }) }),
+        z.enum(['approve', 'reject'], { error: () => DECISION_TEXT }),
     ),
     reason: worded('reason must be text.').nullish(),
     // The answers to THIS approval's questions. Their shape is the approval's
     // own `fields`, and approvalService.coerceSubmission measures them against
     // it -- so the schema asks only that it be a map, not a list or a word.
-    answers: z.record(z.unknown()).nullish(),
+    answers: z.record(z.string(), z.unknown()).nullish(),
 });
 
 const WithdrawBody = bodyOf({ reason: worded('reason must be text.').nullish() });

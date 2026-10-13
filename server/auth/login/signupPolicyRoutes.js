@@ -15,12 +15,12 @@ const { requireSuperAdmin } = require('../permissions');
 const { getSignupAccessConfig } = require('../signupGuards');
 const { isOrgDirectoryPublic } = require('./signupIntakeRoutes');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const LOGIN_METHODS = ['password', 'google', 'microsoft'];
 const GEO_MODES = ['off', 'allowlist', 'blocklist'];
 
-const flag = (name) => z.boolean({ invalid_type_error: `${name} must be true or false.` }).optional();
+const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} must be true or false.` }) }).optional();
 
 /**
  * An enum whose every refusal is a sentence. `invalid_type_error` alone is not
@@ -28,7 +28,7 @@ const flag = (name) => z.boolean({ invalid_type_error: `${name} must be true or 
  * `invalid_enum_value`, whose default message quotes the whole option list
  * back at the caller. The errorMap covers every issue this schema can raise.
  */
-const wordedEnum = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const wordedEnum = (values, message) => z.enum(values, { error: () => message });
 
 /**
  * Every field the admin console can change here, and every value each one may
@@ -52,17 +52,17 @@ const SignupSettingsBody = z.object({
     requireMfaForPasswordAccounts: flag('requireMfaForPasswordAccounts'),
     consumerLoginMethods: z.array(
         wordedEnum(LOGIN_METHODS, `A login method is one of ${LOGIN_METHODS.join(', ')}.`),
-        { invalid_type_error: 'consumerLoginMethods must be a list of login methods.' },
+        { error: typeError({ invalid: 'consumerLoginMethods must be a list of login methods.' }) },
     ).optional(),
     orgDirectoryPublic: flag('orgDirectoryPublic'),
     connectorOnly: flag('connectorOnly'),
     geoMode: wordedEnum(GEO_MODES, `geoMode is one of ${GEO_MODES.join(', ')}.`).optional(),
     geoCountries: z.array(
-        z.string({ invalid_type_error: 'A country is a two-letter ISO code, e.g. NL.' })
+        z.string({ error: typeError({ invalid: 'A country is a two-letter ISO code, e.g. NL.' }) })
             .trim()
             .regex(/^[A-Za-z]{2}$/, 'A country is a two-letter ISO code, e.g. NL.')
             .transform((c) => c.toUpperCase()),
-        { invalid_type_error: 'geoCountries must be a list of two-letter ISO codes.' },
+        { error: typeError({ invalid: 'geoCountries must be a list of two-letter ISO codes.' }) },
     ).optional(),
     geoBlockUnknown: flag('geoBlockUnknown'),
     geoApplyConnector: flag('geoApplyConnector'),

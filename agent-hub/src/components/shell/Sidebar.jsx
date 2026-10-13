@@ -14,6 +14,7 @@ import { useStudioSectionData } from './sidebar/useStudioSectionData';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import beeFlowIcon from '../../assets/BeeFlow-logo-Icon-2026.svg';
 import { usesProjectRail, usesStudioRail } from '../../authedApp/appRoutes';
+import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import { useStudioMenuHidden } from '../../hooks/useStudioChrome';
 import { countFor } from '../../hooks/useStudioCounts';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -185,12 +186,7 @@ const Sidebar = ({
     const canSeeStudio = _studioSurface && canSeeStudioFor({ user, sections: studioSections });
 
     // Close profile menu on outside click
-    useEffect(() => {
-        if (!showProfileMenu) return;
-        const close = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setShowProfileMenu(false); };
-        document.addEventListener('mousedown', close);
-        return () => document.removeEventListener('mousedown', close);
-    }, [showProfileMenu]);
+    useOutsideDismiss(profileRef, () => setShowProfileMenu(false), { enabled: showProfileMenu, escape: false, defer: false });
 
     // Track which secondaryNav items have scrolled above the visible scroll
     // region so we can render them as a compact icon strip pinned below the

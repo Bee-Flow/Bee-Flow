@@ -12,7 +12,7 @@ label.
   the text do not have to be in the same language.
 - **CPU only.** There is no GPU variant and no CUDA anywhere: torch comes from
   PyTorch's CPU wheel index, and the model is loaded with `device="cpu"`.
-- **Port 8300.** 8200 is taken by pii-service.
+- **Port 8300.** 8200 was the port of the retired pii-service; keep it free.
 
 ## Where the image comes from
 

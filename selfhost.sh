@@ -26,7 +26,7 @@
 #
 # Profiles — choose once, reused by every later run (saved as PROFILES= in
 # .env; an explicit PROFILES="…" on the command line wins and is re-saved):
-#   PROFILES="core search guard" ./selfhost.sh
+#   PROFILES="core guard" ./selfhost.sh
 #
 # Run models on your own hardware (no API keys, no per-token cost):
 #   PROFILES="core local-llm" ./selfhost.sh
@@ -88,7 +88,7 @@ PROFILES="${PROFILES:-core}"
 # Every profile declared in docker-compose.from-registry.yml — keep in sync
 # when a profile is added there. Used where the whole install must be covered
 # no matter which subset was started (--stop / --down / --uninstall).
-ALL_PROFILES="core search search-gpu search-llm guard whisperx pii classify local-llm analytics"
+ALL_PROFILES="core guard classify local-llm analytics"
 
 # ── Compose command (v2 plugin or legacy binary) ─────────────────
 compose() {
@@ -205,9 +205,9 @@ set_env() { # $1=key $2=value
 
 # ── Ensure the few files the compose file bind-mounts exist ──────
 # Makes this a true no-clone install: we materialise init-db.sh and the
-# (initially empty) components/ and workflows/ content dirs if missing.
+# (initially empty) components/ content dir if missing.
 ensure_mounts() {
-    mkdir -p "$SCRIPT_DIR/components" "$SCRIPT_DIR/workflows" "$SCRIPT_DIR/docker"
+    mkdir -p "$SCRIPT_DIR/components" "$SCRIPT_DIR/docker"
     if [ ! -f "$SCRIPT_DIR/docker/init-db.sh" ]; then
         log "Writing docker/init-db.sh (creates the 3 databases + pgvector)"
         cat > "$SCRIPT_DIR/docker/init-db.sh" <<'INITDB'
@@ -496,9 +496,7 @@ uninstall() {
     echo -e "                   (license-public-key.pem) if you placed one there"
     echo -e "  ${BOLD}rustfs-data${NC}      object storage: uploaded documents and meeting"
     echo -e "                   recordings — the only durable copy (+ rustfs-logs)"
-    echo -e "  sidecar data     search-pgdata, search-redis-data, search-hf-cache,"
-    echo -e "                   guard-redis-data, whisperx-cache, ollama-models,"
-    echo -e "                   pii-model-cache"
+    echo -e "  sidecar data     guard-redis-data, ollama-models"
     echo ""
     echo -e "  Only want to stop or free RAM? ${BOLD}./selfhost.sh --down${NC} removes the"
     echo -e "  containers and keeps ALL data — that is never destructive."

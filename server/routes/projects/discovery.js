@@ -1,6 +1,6 @@
 'use strict';
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { notFound } = require('../../core/http/errors');

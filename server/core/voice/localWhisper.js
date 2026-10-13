@@ -34,6 +34,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
+const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
 
 const LOCAL_WHISPER_MODEL_ID = process.env.LOCAL_WHISPER_MODEL || 'Xenova/whisper-base';
 const LOCAL_WHISPER_DTYPE    = process.env.LOCAL_WHISPER_DTYPE   || 'q4';
@@ -122,24 +123,22 @@ function withTimeout(promise, ms, label) {
 // We laten ffmpeg het input-formaat decoderen en uitschrijven als raw
 // 32-bit float little-endian @ 16 kHz mono. Daarna lezen we het buffer
 // en mappen 'm 1-op-1 op een Float32Array.
-async function decodeAudioToFloat32(audioPath) {
-    const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-    const ffmpegLib = require('fluent-ffmpeg');
-    ffmpegLib.setFfmpegPath(ffmpegInstaller.path);
+function decodeArgs(audioPath, tmpRaw) {
+    return buildAudioArgs({
+        input: audioPath,
+        output: tmpRaw,
+        channels: 1,
+        sampleRate: 16000,
+        codec: 'pcm_f32le',
+        format: 'f32le',
+    });
+}
 
+async function decodeAudioToFloat32(audioPath) {
     const tmpRaw = path.join(os.tmpdir(), `whisper-${crypto.randomUUID()}.f32`);
 
     try {
-        await new Promise((resolve, reject) => {
-            ffmpegLib(audioPath)
-                .audioChannels(1)
-                .audioFrequency(16000)
-                .audioCodec('pcm_f32le')
-                .format('f32le')
-                .on('end', resolve)
-                .on('error', reject)
-                .save(tmpRaw);
-        });
+        await runFfmpeg(decodeArgs(audioPath, tmpRaw));
     } catch (err) {
         // ffmpeg writes as it goes, so a mid-run failure (corrupt input,
         // unsupported codec) leaves a partial raw dump behind. At 16 kHz mono
@@ -278,6 +277,7 @@ module.exports = {
     transcribeLocally,
     warmLocalWhisper,
     LOCAL_WHISPER_MODEL_ID,
+    _decodeArgs: decodeArgs, // exported for tests
     _limits: {
         maxDurationSec: LOCAL_WHISPER_MAX_DURATION_SEC,
         timeoutMs:      LOCAL_WHISPER_TIMEOUT_MS,

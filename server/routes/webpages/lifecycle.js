@@ -16,7 +16,7 @@ const { requireAuth } = require('../../auth/permissions');
 const webpageUsageSync = require('../../core/webpages/webpageUsageSync');
 const { describeWebpageDeleteBlock } = require('./deleteGuard');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { worded, bodyOf, flag, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 

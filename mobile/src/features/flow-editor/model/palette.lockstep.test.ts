@@ -205,9 +205,9 @@ describe('app naming and the integration catalogue', () => {
     });
 
     it('every icon the picker or a Step can name is one lucide-react-native draws', () => {
-        const barrel = fs.readFileSync(path.join(REPO, 'mobile/node_modules/lucide-react-native/dist/esm/lucide-react-native.js'), 'utf8');
+        const barrel = fs.readFileSync(path.join(REPO, 'mobile/node_modules/lucide-react-native/dist/esm/lucide-react-native.mjs'), 'utf8');
         const drawable = new Set<string>();
-        for (const m of barrel.matchAll(/export \{([^}]*)\} from '\.\/icons\/[a-z0-9-]+\.js'/g)) {
+        for (const m of barrel.matchAll(/export \{([^}]*)\} from '\.\/icons\/[a-z0-9-]+\.mjs'/g)) {
             for (const part of (m[1] as string).split(',')) drawable.add(part.trim().replace(/^default as /, ''));
         }
         expect(drawable.size).toBeGreaterThan(1000);

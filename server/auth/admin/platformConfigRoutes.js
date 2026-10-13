@@ -13,7 +13,7 @@ const { requireSuperAdmin } = require('../permissions');
 const freeEmailDomains = require('../../utils/freeEmailDomains');
 const { ALL_INTEGRATIONS } = require('./integrationCatalog');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 // Declared up here because the request schema names it in its refusal message;
 // the route below documents what each mode means.
@@ -21,7 +21,7 @@ const { z } = require('zod');
 const CONNECTOR_PROVISIONING_MODES = ['open', 'pairing_only'];
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const DEFAULTS_TEXT = 'Send a list of integration ids, or null for "all enabled".';
 /**
@@ -32,19 +32,17 @@ const DEFAULTS_TEXT = 'Send a list of integration ids, or null for "all enabled"
  * and answered 200.
  */
 const DefaultIntegrationsBody = z.object({
-    defaults: z.array(worded('An integration id must be text.').trim().min(1, 'An integration id cannot be blank.'), {
-        required_error: DEFAULTS_TEXT, invalid_type_error: DEFAULTS_TEXT,
-    }).nullable(),
+    defaults: z.array(worded('An integration id must be text.').trim().min(1, 'An integration id cannot be blank.'), { error: DEFAULTS_TEXT }).nullable(),
 }).strict();
 
 const MODE_TEXT = `mode must be one of ${CONNECTOR_PROVISIONING_MODES.join(', ')}, or null`;
 const ConnectorModeBody = z.object({
-    mode: z.enum(CONNECTOR_PROVISIONING_MODES, { errorMap: () => ({ message: MODE_TEXT }) }).nullable(),
+    mode: z.enum(CONNECTOR_PROVISIONING_MODES, { error: () => MODE_TEXT }).nullable(),
 }).strict();
 
 const DOMAINS_TEXT = 'extra must be an array of domains';
 const FreeEmailDomainsBody = z.object({
-    extra: z.array(z.unknown(), { required_error: DOMAINS_TEXT, invalid_type_error: DOMAINS_TEXT })
+    extra: z.array(z.unknown(), { error: DOMAINS_TEXT })
         .max(500, 'too many domains (max 500)'),
 }).strict();
 

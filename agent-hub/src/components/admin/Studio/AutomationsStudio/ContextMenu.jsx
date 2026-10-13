@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
 
 /**
  * Lightweight click-outside-to-close popover anchored at an absolute
@@ -23,19 +24,7 @@ export default function ContextMenu({ position, items, onClose }) {
     // (translated strings, long automation names) don't overflow the viewport.
     const [shift, setShift] = useState({ x: 0, y: 0 });
 
-    useEffect(() => {
-        if (!position) return;
-        const onDoc = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) onCloseRef.current?.();
-        };
-        const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current?.(); };
-        document.addEventListener('mousedown', onDoc);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('mousedown', onDoc);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [position]);
+    useOutsideDismiss(ref, () => onCloseRef.current?.(), { enabled: !!position, defer: false });
 
     useLayoutEffect(() => {
         if (!position || !ref.current) {

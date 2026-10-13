@@ -37,7 +37,7 @@
 
 const express = require('express');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
@@ -87,13 +87,13 @@ function makeDefaultDeps() {
 
 // ── What a caller may send ──────────────────────────────────────────────────
 
-const methodEnum = z.enum(METHODS, { errorMap: () => ({ message: 'The method is words, pattern or ai.' }) });
-const typeId = z.string({ required_error: 'The type needs its id.' })
+const methodEnum = z.enum(METHODS, { error: () => 'The method is words, pattern or ai.' });
+const typeId = z.string({ error: typeError({ required: 'The type needs its id.' }) })
     .regex(TYPE_ID_RX, 'A type id is cdt_ followed by 10 hexadecimal characters.');
 
 const TypeRef = z.object({
     id: typeId,
-    name: z.string({ required_error: 'Give the type a name first.' })
+    name: z.string({ error: typeError({ required: 'Give the type a name first.' }) })
         .trim().min(1, 'Give the type a name first.').max(60, 'A name holds at most 60 characters.'),
     description: z.string().max(400, 'A description holds at most 400 characters.').optional().default(''),
     method: methodEnum,
@@ -108,7 +108,7 @@ const KeepFixed = z.array(z.string().min(1).max(8, 'A fixed part holds at most 8
 
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the request as a JSON object.' }),
+    z.object(shape, { error: typeError({ invalid: 'Send the request as a JSON object.' }) }),
 );
 
 const PreviewBody = bodyOf({ type: TypeRef, examples: Examples, keepFixed: KeepFixed });
@@ -116,9 +116,7 @@ const AssistBody = bodyOf({
     type: TypeRef,
     examples: Examples,
     keepFixed: KeepFixed,
-    expectLookalikes: z.array(z.string().max(100), {
-        required_error: 'Look at the preview first: expectLookalikes is what it showed.',
-    }).max(10),
+    expectLookalikes: z.array(z.string().max(100), { error: typeError({ required: 'Look at the preview first: expectLookalikes is what it showed.' }) }).max(10),
 });
 
 const DraftType = z.object({
@@ -147,7 +145,7 @@ const DraftType = z.object({
     createdBy: z.string().max(200).optional(),
     updatedAt: z.string().max(100).optional(),
 }).superRefine((t, ctx) => {
-    if (!t[t.method]) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [t.method], message: `A ${t.method} type needs its ${t.method} settings.` });
+    if (!t[t.method]) ctx.addIssue({ code: 'custom', path: [t.method], message: `A ${t.method} type needs its ${t.method} settings.` });
 });
 
 const Span = z.object({ start: z.number().int().min(0), end: z.number().int().min(1) });
@@ -161,11 +159,11 @@ const Sentence = z.object({
     let lastEnd = -1;
     for (const g of [...s.gold].sort((a, b) => a.start - b.start)) {
         if (g.start >= g.end || g.end > s.text.length) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['gold'], message: 'A marked part lies outside its sentence.' });
+            ctx.addIssue({ code: 'custom', path: ['gold'], message: 'A marked part lies outside its sentence.' });
             return;
         }
         if (g.start < lastEnd) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['gold'], message: 'Marked parts cannot overlap.' });
+            ctx.addIssue({ code: 'custom', path: ['gold'], message: 'Marked parts cannot overlap.' });
             return;
         }
         lastEnd = g.end;
@@ -175,7 +173,7 @@ const uniqueIds = (list, ctx) => {
     const seen = new Set();
     for (const s of list) {
         if (seen.has(s.id)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Two test sentences have the same id.' });
+            ctx.addIssue({ code: 'custom', message: 'Two test sentences have the same id.' });
             return;
         }
         seen.add(s.id);
@@ -188,7 +186,7 @@ const TestBody = bodyOf({
 });
 const TuneBody = bodyOf({
     type: DraftType,
-    sentences: z.array(Sentence).max(40, 'Tune on at most 40 sentences.').superRefine(uniqueIds).default([]),
+    sentences: z.array(Sentence).max(40, 'Tune on at most 40 sentences.').superRefine(uniqueIds).prefault([]),
     examples: Examples,
     candidates: z.object({
         aiLabels: z.array(z.string().max(60)).max(6).optional(),

@@ -10,7 +10,7 @@ const { getAll } = require('../../db');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** This route reads nothing from the query; a parameter there is a typo. */
 const NoQuery = z.object({}).strict();

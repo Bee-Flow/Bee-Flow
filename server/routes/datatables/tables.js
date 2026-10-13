@@ -26,7 +26,7 @@ const { PG, DATA_LIMITS, keyOf, MAX_RETENTION_DAYS } = require('./engine');
 const { quota, answerDatatableError } = require('./refusals');
 const { publicTable, scopeDescriptor } = require('./projection');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const {
     bodyOf, worded, tableKey, tableName, tablePurpose, scopeWord, SCOPE_WORDS, rowScopeWord,
 } = require('./schemas');
@@ -58,8 +58,8 @@ const CreateBody = bodyOf({
     // The column list. Shape is normalizeFields' to judge — it mints the
     // stable ids the migration planner matches on — and the length is the
     // quota's, which answers 409 rather than 400.
-    fields: z.array(z.unknown(), { invalid_type_error: 'Send the columns as a list' }).default([]),
-    rowScope: rowScopeWord().default('all'),
+    fields: z.array(z.unknown(), { error: typeError({ invalid: 'Send the columns as a list' }) }).default([]),
+    rowScope: rowScopeWord().prefault('all'),
     projectId: worded('projectId is the id of a project').trim().min(1, 'projectId is the id of a project').nullish(),
 });
 
@@ -76,7 +76,7 @@ const ManagedBody = bodyOf({
     // is used. Sent blank, it is still refused — an empty purpose makes the
     // generated register a record of nothing.
     description: tablePurpose().optional(),
-    retentionDays: z.number({ invalid_type_error: `Rows are kept for a whole number of days between 1 and ${MAX_RETENTION_DAYS}` })
+    retentionDays: z.number({ error: typeError({ invalid: `Rows are kept for a whole number of days between 1 and ${MAX_RETENTION_DAYS}` }) })
         .int(`Rows are kept for a whole number of days between 1 and ${MAX_RETENTION_DAYS}`)
         .min(1, `Rows are kept for a whole number of days between 1 and ${MAX_RETENTION_DAYS}`)
         .max(MAX_RETENTION_DAYS, `Rows are kept for a whole number of days between 1 and ${MAX_RETENTION_DAYS}`)

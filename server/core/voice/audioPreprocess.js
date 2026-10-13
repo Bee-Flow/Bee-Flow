@@ -28,6 +28,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
+const { getFfmpegPath, buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
 
 const FILTERS = [
     'highpass=f=80',
@@ -44,6 +45,39 @@ const FORMATS = {
     // Lossless but ~half the bytes of WAV — worth it for large cloud uploads.
     flac: { codec: 'flac', format: 'flac' },
 };
+
+/**
+ * ffmpeg arguments for `preprocessForStt`: 16 kHz mono, the speech filter chain,
+ * and an optional hard clip. Exported so a test can pin them.
+ *
+ * @param {string} inputPath
+ * @param {string} outPath
+ * @param {{ codec: string, container: string, maxSeconds?: number }} o
+ * @returns {string[]}
+ */
+function conditionArgs(inputPath, outPath, { codec, container, maxSeconds }) {
+    return buildAudioArgs({
+        input: inputPath,
+        output: outPath,
+        channels: CHANNELS,
+        sampleRate: SAMPLE_RATE,
+        codec,
+        format: container,
+        filters: FILTERS,
+        durationSec: Number(maxSeconds) > 0 ? Number(maxSeconds) : undefined,
+    });
+}
+
+/** ffmpeg arguments for `asM4aIfAdts`: copy the AAC stream into MPEG-4. */
+function repackArgs(inputPath, outPath) {
+    return buildAudioArgs({
+        input: inputPath,
+        output: outPath,
+        codec: 'copy',
+        format: 'mp4',
+        outputOptions: ['-movflags', '+faststart'],
+    });
+}
 
 /**
  * Condition an audio file for speech recognition.
@@ -70,11 +104,8 @@ async function preprocessForStt(inputPath, opts = {}) {
 
     const noop = { path: inputPath, preprocessed: false, cleanup: () => {} };
 
-    let ffmpegLib;
     try {
-        const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-        ffmpegLib = require('fluent-ffmpeg');
-        ffmpegLib.setFfmpegPath(ffmpegInstaller.path);
+        getFfmpegPath();
     } catch (err) {
         log.warn(`[AudioPreprocess] ffmpeg unavailable, sending original audio: ${err.message}`);
         return noop;
@@ -88,23 +119,11 @@ async function preprocessForStt(inputPath, opts = {}) {
     const started = Date.now();
 
     try {
-        await new Promise((resolve, reject) => {
-            const chain = ffmpegLib(inputPath)
-                .audioChannels(CHANNELS)
-                .audioFrequency(SAMPLE_RATE)
-                .audioCodec(codec)
-                .format(container)
-                .audioFilters(FILTERS);
-            // Voiceprint enrollment only: pyannoteAI rejects anything over 30s,
-            // and a browser recorder's wall-clock timer is not the encoded
-            // duration. Omitted by every other caller, so their output is
-            // byte-identical.
-            if (Number(opts.maxSeconds) > 0) chain.duration(Number(opts.maxSeconds));
-            chain
-                .on('end', resolve)
-                .on('error', reject)
-                .save(outPath);
-        });
+        // Voiceprint enrollment only: pyannoteAI rejects anything over 30s,
+        // and a browser recorder's wall-clock timer is not the encoded
+        // duration. Omitted by every other caller, so their output is
+        // byte-identical.
+        await runFfmpeg(conditionArgs(inputPath, outPath, { codec, container, maxSeconds: opts.maxSeconds }));
     } catch (err) {
         // Corrupt input, unsupported codec, ffmpeg missing a library — none of
         // these should cost the user their transcription.
@@ -158,11 +177,8 @@ async function asM4aIfAdts(inputPath, fileName) {
     const same = { path: inputPath, fileName, cleanup: () => {} };
     if (!/\.aac$/i.test(fileName || '')) return same;
 
-    let ffmpegLib;
     try {
-        const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-        ffmpegLib = require('fluent-ffmpeg');
-        ffmpegLib.setFfmpegPath(ffmpegInstaller.path);
+        getFfmpegPath();
     } catch (err) {
         log.warn(`[AudioPreprocess] ffmpeg unavailable, sending the .aac as is: ${err.message}`);
         return same;
@@ -170,15 +186,7 @@ async function asM4aIfAdts(inputPath, fileName) {
 
     const outPath = path.join(os.tmpdir(), `adts-${crypto.randomUUID()}.m4a`);
     try {
-        await new Promise((resolve, reject) => {
-            ffmpegLib(inputPath)
-                .audioCodec('copy')
-                .format('mp4')
-                .outputOptions(['-movflags', '+faststart'])
-                .on('end', resolve)
-                .on('error', reject)
-                .save(outPath);
-        });
+        await runFfmpeg(repackArgs(inputPath, outPath));
     } catch (err) {
         log.warn(`[AudioPreprocess] Repacking .aac failed, sending it as is: ${err.message}`);
         try { fs.unlinkSync(outPath); } catch (_) {}
@@ -191,4 +199,4 @@ async function asM4aIfAdts(inputPath, fileName) {
     };
 }
 
-module.exports = { preprocessForStt, asM4aIfAdts, FILTERS, SAMPLE_RATE };
+module.exports = { preprocessForStt, asM4aIfAdts, conditionArgs, repackArgs, FILTERS, SAMPLE_RATE };

@@ -17,21 +17,19 @@ const supportStore = require('../../stores/supportStore');
 
 const { requireStaffSupport, _actingOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 const MINUTES_TEXT = (name) => `${name} is a whole number of minutes, at least 1.`;
-const minutes = (name) => z.coerce.number({
-    required_error: MINUTES_TEXT(name), invalid_type_error: MINUTES_TEXT(name),
-}).int(MINUTES_TEXT(name)).min(1, MINUTES_TEXT(name)).max(525600, `${name} is at most a year.`);
+const minutes = (name) => z.coerce.number({ error: MINUTES_TEXT(name) }).int(MINUTES_TEXT(name)).min(1, MINUTES_TEXT(name)).max(525600, `${name} is at most a year.`);
 
 const SlaBody = z.object({
-    priority: z.enum(PRIORITIES, { errorMap: () => ({ message: `priority is one of: ${PRIORITIES.join(', ')}.` }) }),
+    priority: z.enum(PRIORITIES, { error: () => `priority is one of: ${PRIORITIES.join(', ')}.` }),
     first_response_minutes: minutes('first_response_minutes'),
     resolution_minutes: minutes('resolution_minutes'),
     // The clock is on unless it is switched off, and only a real false does that.
-    enabled: z.boolean({ invalid_type_error: 'enabled is true or false.' }).optional(),
+    enabled: z.boolean({ error: typeError({ invalid: 'enabled is true or false.' }) }).optional(),
 }).strict();
 
 function register(router) {

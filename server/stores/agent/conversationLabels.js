@@ -3,7 +3,7 @@
  * Conversation Labels - User-defined labels for organizing conversations
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { run, getAll } = require('../../db');
 const { initDB } = require('./initSchema');
 const { buildUpdate } = require('../lib/sqlBuilder');
@@ -15,7 +15,7 @@ async function listLabels(userId) {
 
 async function createLabel(userId, name, color) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     await run('INSERT INTO conversation_labels (id, user_id, name, color) VALUES ($1, $2, $3, $4)', [id, userId, name, color]);
     return { id, name, color };
 }

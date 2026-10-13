@@ -19,7 +19,7 @@ const { requireAuth } = require('../auth/permissions');
 
 const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -47,24 +47,24 @@ const { z } = require('zod');
 // They are accepted; the stamp is ignored and rewritten on save.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the settings as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
 
 /** An enum whose refusal is one sentence, for a wrong value as well as a wrong type. */
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const choice = (values, message) => z.enum(values, { error: () => message });
 
-const onOff = (name) => z.boolean({ invalid_type_error: `${name} is true, false, or null for no opinion.` })
+const onOff = (name) => z.boolean({ error: typeError({ invalid: `${name} is true, false, or null for no opinion.` }) })
     .nullable().optional();
 
 const LANGUAGE_TEXT = 'language is a language code, like nl or en.';
 const legacyList = (name) => z.array(
     worded(`${name} is a list of ids.`).min(1, `${name} is a list of ids.`),
-    { invalid_type_error: `${name} is a list of ids.` },
+    { error: typeError({ invalid: `${name} is a list of ids.` }) },
 ).optional();
 
 const SettingsBody = bodyOf({
@@ -73,7 +73,7 @@ const SettingsBody = bodyOf({
     importScope: choice(['organizer', 'calendar'], "importScope is 'organizer' or 'calendar', or null for no opinion.")
         .nullable().optional(),
     language: worded(LANGUAGE_TEXT).trim().min(1, LANGUAGE_TEXT).max(35, LANGUAGE_TEXT).nullable().optional(),
-    lookbackHours: z.number({ invalid_type_error: 'lookbackHours is a number of hours.' }).nullable().optional(),
+    lookbackHours: z.number({ error: typeError({ invalid: 'lookbackHours is a number of hours.' }) }).nullable().optional(),
     excludedEventIds: legacyList('excludedEventIds'),
     excludedMeetingCodes: legacyList('excludedMeetingCodes'),
     updatedAt: z.string().nullish(),

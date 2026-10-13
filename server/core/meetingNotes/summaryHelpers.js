@@ -38,6 +38,7 @@ const { extractSpeakerEvidence } = require('./speakerEvidence');
 const { parseJsonArray, parseJsonObject } = require('./llmJson');
 const { buildSummarySystemPrompt } = require('./summaryTemplates');
 const log = require('../../telemetry/log');
+const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
 
 // A transcript this long is a runaway recording, not a meeting. Bounds the
 // request; the real limit is the model's context, which we are nowhere near
@@ -981,11 +982,24 @@ async function transcribeWithWhisperX(filePath, fileName, language, contextTerms
 // (webm/opus, m4a/aac, mp4) is transcoded to mp3 first.
 const SCALEWAY_AUDIO_EXTS = new Set(['.mp3', '.wav', '.flac', '.ogg', '.oga', '.mpga']);
 
-function ffmpegLib() {
-    const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-    const lib = require('fluent-ffmpeg');
-    lib.setFfmpegPath(ffmpegInstaller.path);
-    return lib;
+function scalewayTranscodeArgs(filePath, outPath) {
+    return buildAudioArgs({ input: filePath, output: outPath, channels: 1, sampleRate: 16000, format: 'mp3' });
+}
+
+function scalewaySplitArgs(filePath, listPath, chunkPattern, chunkSeconds) {
+    return buildAudioArgs({
+        input: filePath,
+        output: chunkPattern,
+        channels: 1,
+        sampleRate: 16000,
+        outputOptions: [
+            '-f', 'segment',
+            '-segment_time', String(chunkSeconds),
+            '-reset_timestamps', '1',
+            '-segment_list', listPath,
+            '-segment_list_type', 'csv',
+        ],
+    });
 }
 
 /** Transcode `filePath` to a temp mp3 if its format isn't Scaleway-accepted. Returns {path, cleanup}. */
@@ -1000,15 +1014,7 @@ async function ensureScalewayFormat(filePath) {
     // concurrently in one process and shared the same output path.
     const outPath = path.join(os.tmpdir(), `scaleway-stt-${crypto.randomUUID()}.mp3`);
     try {
-        await new Promise((resolve, reject) => {
-            ffmpegLib()(filePath)
-                .audioChannels(1)
-                .audioFrequency(16000)
-                .format('mp3')
-                .on('end', resolve)
-                .on('error', reject)
-                .save(outPath);
-        });
+        await runFfmpeg(scalewayTranscodeArgs(filePath, outPath));
     } catch (err) {
         // ffmpeg writes as it goes, so a failed transcode leaves a partial mp3
         // behind and the caller never gets a `cleanup` to call.
@@ -1033,21 +1039,7 @@ async function splitForScaleway(filePath, chunkSeconds) {
     // directory — a long recording that fails mid-split otherwise leaves tens
     // of megabytes of chunks behind on every retry.
     try {
-    await new Promise((resolve, reject) => {
-        ffmpegLib()(filePath)
-            .audioChannels(1)
-            .audioFrequency(16000)
-            .outputOptions([
-                '-f', 'segment',
-                '-segment_time', String(chunkSeconds),
-                '-reset_timestamps', '1',
-                '-segment_list', listPath,
-                '-segment_list_type', 'csv',
-            ])
-            .on('end', resolve)
-            .on('error', reject)
-            .save(path.join(dir, 'chunk_%03d.mp3'));
-    });
+    await runFfmpeg(scalewaySplitArgs(filePath, listPath, path.join(dir, 'chunk_%03d.mp3'), chunkSeconds));
     // CSV rows: filename,start,end (seconds, relative to the source).
     const rows = fs.readFileSync(listPath, 'utf8').trim().split('\n').filter(Boolean);
     const chunks = rows.map(line => {
@@ -1270,4 +1262,6 @@ module.exports = {
     artifactsUsable,
     ARTIFACTS_FAILED,
     SUMMARY_MAX_TOKENS,
+    _scalewayTranscodeArgs: scalewayTranscodeArgs, // exported for tests
+    _scalewaySplitArgs: scalewaySplitArgs,
 };

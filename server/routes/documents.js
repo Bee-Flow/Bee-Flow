@@ -41,7 +41,7 @@ const fs = require('fs');
 const os = require('os');
 const { requireAuth } = require('../auth');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 
 const OUTPUT_DIR = path.join(os.tmpdir(), 'document-renderer');
 
@@ -51,7 +51,7 @@ const OUTPUT_DIR = path.join(os.tmpdir(), 'document-renderer');
 const DOCUMENT_NAME = /^[A-Za-z0-9._-]+\.pdf$/;
 const NAME_TEXT = 'Name a document by its id from /api/documents/list: letters, digits, dots, dashes or underscores, ending in .pdf.';
 const FileParams = z.object({
-    filename: z.string({ required_error: NAME_TEXT, invalid_type_error: NAME_TEXT }).regex(DOCUMENT_NAME, NAME_TEXT),
+    filename: z.string({ error: NAME_TEXT }).regex(DOCUMENT_NAME, NAME_TEXT),
 });
 
 // Anonymous callers stop here with a 401 (the routes/versions.js idiom). The

@@ -30,17 +30,17 @@ const { deleteDocumentChunks } = require('../../core/kb/kbIngestionHelpers');
 const { getUserId, canAccessKB, blockIfSystemKB } = require('./shared');
 const { statusFilter, piiFilter } = require('./docFilters');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
 const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 const NoQuery = orEmpty(z.object({}).strict());
-const NoBody = orEmpty(z.object({}, { invalid_type_error: 'This request takes no body.' }).strict());
+const NoBody = orEmpty(z.object({}, { error: typeError({ invalid: 'This request takes no body.' }) }).strict());
 
 /**
  * A page size or offset. Out of range is clamped — a page size of 1000 is
@@ -51,7 +51,7 @@ function pageNumber(name, { min, max, fallback }) {
     const text = `${name} is a whole number.`;
     return worded(text).trim().regex(/^-?\d+$/, text)
         .transform((v) => Math.min(Math.max(Number(v), min), max))
-        .default(String(fallback));
+        .prefault(String(fallback));
 }
 
 /** What `(metadata->>'date')::timestamptz` will take: an ISO date, optionally with a time. */
@@ -66,7 +66,7 @@ const DocumentsQuery = orEmpty(z.object({
     offset: pageNumber('offset', { min: 0, max: Number.MAX_SAFE_INTEGER, fallback: 0 }),
     sender: worded('sender must be text.').trim().max(200, 'sender is at most 200 characters.').optional(),
     threadId: worded('threadId must be text.').trim().max(500, 'threadId is at most 500 characters.').optional(),
-    hasAttachment: z.enum(['true', 'false'], { errorMap: () => ({ message: 'hasAttachment is true or false.' }) }).optional(),
+    hasAttachment: z.enum(['true', 'false'], { error: () => 'hasAttachment is true or false.' }).optional(),
     dateFrom: isoDate('dateFrom').optional(),
     dateTo: isoDate('dateTo').optional(),
     sourceType: worded('sourceType must be text.').trim().max(50, 'sourceType is at most 50 characters.').optional(),
@@ -83,7 +83,7 @@ const MAX_BULK_DELETE = 200;
 const DOC_ID_TEXT = 'Each entry in documentIds is the id of a document.';
 const IDS_TEXT = 'documentIds is a list of the documents to delete.';
 const BulkDeleteBody = orEmpty(z.object({
-    documentIds: z.array(worded(DOC_ID_TEXT).trim().uuid(DOC_ID_TEXT), { required_error: IDS_TEXT, invalid_type_error: IDS_TEXT })
+    documentIds: z.array(worded(DOC_ID_TEXT).trim().guid(DOC_ID_TEXT), { error: IDS_TEXT })
         .min(1, 'Choose at least one document to delete.')
         .max(MAX_BULK_DELETE, `At most ${MAX_BULK_DELETE} documents can be deleted at once — send the rest in another request.`),
 }).strict());

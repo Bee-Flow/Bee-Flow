@@ -6,13 +6,13 @@
  * schema refuses a body that is plainly not a credential, and caps its size.
  */
 
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const credentialJson = z.object({
     id: z.string().min(1).max(1024),
     rawId: z.string().min(1).max(1024),
     type: z.literal('public-key'),
-    response: z.record(z.unknown()),
+    response: z.record(z.string(), z.unknown()),
 }).passthrough();
 
 module.exports = { credentialJson };

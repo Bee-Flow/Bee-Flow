@@ -50,7 +50,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { assertUserCanUseOrg, hasPermission, Permissions } = require('../auth');
 const datatableStore = require('../stores/datatableStore');
 const { resolveDatatablePrincipal } = require('../auth/datatableAccess');
@@ -62,12 +62,12 @@ const log = require('../telemetry/log');
 const NC_ID_TEXT = 'A Nextcloud table or view id is a whole number.';
 
 /** On the query string an id arrives as text; `12x` is not twelve. */
-const ncIdQuery = () => z.string({ invalid_type_error: NC_ID_TEXT }).regex(/^\d+$/, NC_ID_TEXT)
+const ncIdQuery = () => z.string({ error: typeError({ invalid: NC_ID_TEXT }) }).regex(/^\d+$/, NC_ID_TEXT)
     .transform(Number).refine((n) => n > 0, NC_ID_TEXT).optional();
 /** In a body it is a number — or its digits, which link.js reads the same way. */
 const ncIdBody = () => z.preprocess(
     (v) => (typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : v),
-    z.number({ invalid_type_error: NC_ID_TEXT }).int(NC_ID_TEXT).positive(NC_ID_TEXT).nullish(),
+    z.number({ error: typeError({ invalid: NC_ID_TEXT }) }).int(NC_ID_TEXT).positive(NC_ID_TEXT).nullish(),
 );
 
 const ScopeQuery = z.object({ scope: scopeWord() }).strict();
@@ -80,14 +80,14 @@ const LinkTable = z.object({
     name: worded('A table name is text.').optional(),
     key: worded('A technical name is text.').optional(),
     description: worded('A table\'s purpose is text.').optional(),
-}, { invalid_type_error: TABLE_TEXT }).strict();
+}, { error: typeError({ invalid: TABLE_TEXT }) }).strict();
 
 const LinkBody = bodyOf({
     scope: scopeWord(),
     // An empty or missing list is link.js's refusal, in its own words.
-    tables: z.array(LinkTable, { invalid_type_error: TABLE_TEXT }).optional(),
+    tables: z.array(LinkTable, { error: typeError({ invalid: TABLE_TEXT }) }).optional(),
     // Nextcloud-native pairs; one that names nothing is a WARNING from link.js, not a refusal.
-    relations: z.array(z.record(z.unknown()), { invalid_type_error: 'relations is a list of { from, to } pairs.' }).optional(),
+    relations: z.array(z.record(z.string(), z.unknown()), { error: typeError({ invalid: 'relations is a list of { from, to } pairs.' }) }).optional(),
     schedule: z.unknown().optional(),
 });
 

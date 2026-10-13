@@ -26,7 +26,7 @@
  * reasoning and returns no tool call at all.
  */
 
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 const { toEvidenceCard } = require('./evidenceCard');
 const { normaliseApp, humaniseTool } = require('./builderMapping');

@@ -16,7 +16,7 @@ const { executeOutlookSend, executeOutlookSaveDraft } = require('../../integrati
 const { GRAPH_ID_RE, MESSAGE_ID_TEXT, FOLDER_TEXT } = require('../../integrations/graphIds');
 const { resolveMicrosoftSession } = require('../../auth/microsoftSessionHydration');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -42,7 +42,7 @@ const { z } = require('zod');
 // `/me/messages/${id}/reply`, so it is pinned to a Graph id too.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
 const optionalText = (name) => worded(`${name} must be text.`).nullish();
@@ -52,7 +52,7 @@ const optionalText = (name) => worded(`${name} must be text.`).nullish();
 
 const MessagesQuery = z.object({
     search: worded('search must be text.').optional(),
-    top: z.coerce.number({ invalid_type_error: 'top must be a number.' })
+    top: z.coerce.number({ error: typeError({ invalid: 'top must be a number.' }) })
         .int('top must be a whole number.')
         .min(1, 'top must be at least 1.')
         .optional(),
@@ -72,7 +72,7 @@ const EmailBody = z.object({
     replyToMessageId: worded(MESSAGE_ID_TEXT).regex(GRAPH_ID_RE, MESSAGE_ID_TEXT).nullish(),
     // Carried by the draft outlookTools builds; read by nobody here.
     conversationId: optionalText('conversationId'),
-    _provider: z.enum(['microsoft'], { errorMap: () => ({ message: '_provider is microsoft on this route.' }) }).optional(),
+    _provider: z.enum(['microsoft'], { error: () => '_provider is microsoft on this route.' }).optional(),
 }).strict();
 
 /**

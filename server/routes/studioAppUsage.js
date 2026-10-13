@@ -42,7 +42,7 @@ const usageStore = require('../stores/usageStore');
 const { requireAuth } = require('../auth/permissions');
 const { resolveAudienceContext } = require('../auth/audience');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // The window vocabulary lives with the query (usageStore.RUN_COUNT_WINDOWS) so
 // there is exactly one closed list; the route only decides what an unknown key
@@ -57,7 +57,7 @@ function isKnownWindow(w) {
 // had asked for a week. The key set is strict; the VALUE stays with the check
 // below, whose 400 carries `code: 'invalid_window'` and the `supported` list.
 const UsageQuery = z.object({
-    window: z.string({ invalid_type_error: 'window is one word, e.g. "month".' }).optional(),
+    window: z.string({ error: typeError({ invalid: 'window is one word, e.g. "month".' }) }).optional(),
 }).strict();
 
 router.get('/usage-counts', requireAuth, validate({ query: UsageQuery }), async (req, res) => {

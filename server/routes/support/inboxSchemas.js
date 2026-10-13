@@ -19,19 +19,19 @@
  *   - `limit=abc` on the ticket list reached the store as NaN.
  */
 
-const { z, worded, bodyOf, queryOf, orEmpty, choice, wholeNumber } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, orEmpty, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
 const { STATUSES, PATCH_THREAD_SHAPE } = require('./threads');
 const { TagBody } = require('./tags');
 const { CreateCanned, UpdateCanned } = require('./cannedResponses');
 
 const text = (message, max) => worded(message).max(max, message);
-const bool = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` });
-const fraction = (name) => z.number({ invalid_type_error: `${name} is a number from 0 to 1.` })
+const bool = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
+const fraction = (name) => z.number({ error: typeError({ invalid: `${name} is a number from 0 to 1.` }) })
     .min(0, `${name} is a number from 0 to 1.`).max(1, `${name} is a number from 0 to 1.`);
-const ids = (name) => z.array(text(`${name} is a list of ids.`, 200), { invalid_type_error: `${name} is a list of ids.` }).max(200, `${name} holds at most 200 ids.`);
+const ids = (name) => z.array(text(`${name} is a list of ids.`, 200), { error: typeError({ invalid: `${name} is a list of ids.` }) }).max(200, `${name} holds at most 200 ids.`);
 const REPLY_MODES = ['draft', 'auto_confident', 'autonomous'];
 const replyMode = (name) => choice(REPLY_MODES, `${name} is one of: ${REPLY_MODES.join(', ')}.`);
-const folders = (name) => z.array(text(`${name} is a list of folder names.`, 200), { invalid_type_error: `${name} is a list of folder names.` }).max(50, `${name} holds at most 50 folders.`);
+const folders = (name) => z.array(text(`${name} is a list of folder names.`, 200), { error: typeError({ invalid: `${name} is a list of folder names.` }) }).max(50, `${name} holds at most 50 folders.`);
 
 const CreateInboxBody = bodyOf({
     organizationId: text('organizationId is the id of your organisation.', 200).optional(),
@@ -78,7 +78,7 @@ const ScanBody = bodyOf({
 
 const SHARED_GROUPS_TEXT = 'sharedGroups is the list of group ids that may open this inbox; an empty list means everyone.';
 const AccessBody = bodyOf({
-    sharedGroups: z.array(text(SHARED_GROUPS_TEXT, 200), { required_error: SHARED_GROUPS_TEXT, invalid_type_error: SHARED_GROUPS_TEXT }),
+    sharedGroups: z.array(text(SHARED_GROUPS_TEXT, 200), { error: SHARED_GROUPS_TEXT }),
 }, 'Inbox access');
 
 const STATUS_LIST_TEXT = `status is a comma-separated list of: ${STATUSES.join(', ')}.`;

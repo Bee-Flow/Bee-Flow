@@ -15,11 +15,11 @@ const supportStore = require('../../stores/supportStore');
 
 const { _hasAdminSupport, requireStaffSupport, _actingOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'A tag needs a name.';
 const TagBody = z.object({

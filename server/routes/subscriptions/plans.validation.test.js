@@ -106,7 +106,7 @@ test('a misspelled plan_type is refused, instead of creating a plan no list show
     const res = await dispatch({ method: 'POST', url: '/plans', body: { ...PLAN, plan_type: 'consumr' } });
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(res.body.error, 'plan_type is "organization" or "consumer".',
-        'an enum needs an errorMap: invalid_type_error would not have caught a wrong VALUE');
+        'an enum needs an error function: typeError would not have caught a wrong VALUE');
     assert.deepStrictEqual(touched, []);
 });
 

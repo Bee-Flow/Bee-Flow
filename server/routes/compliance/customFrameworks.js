@@ -43,7 +43,7 @@ const { requireCapability } = require('../../core/entitlements/entitlements');
 const { resolveOrgId } = require('./shared');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_custom')];
 
@@ -51,19 +51,17 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const MAX_EXPIRES_MONTHS = 120;
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const STATUSES = ['draft', 'active'];
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
-const oneOf = (name, values) => z.enum(values, {
-    errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }),
-});
+const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 const MONTHS_TEXT = `attestation_valid_months is a whole number of months, 1..${MAX_EXPIRES_MONTHS}.`;
-const months = z.coerce.number({ invalid_type_error: MONTHS_TEXT })
+const months = z.coerce.number({ error: typeError({ invalid: MONTHS_TEXT }) })
     .int(MONTHS_TEXT).min(1, MONTHS_TEXT).max(MAX_EXPIRES_MONTHS, MONTHS_TEXT);
 
 const NAME_TEXT = 'A framework needs a name.';
@@ -96,16 +94,16 @@ const CheckRow = z.object({
     description: worded('description must be text.').max(4000, 'A description is at most 4000 characters.').nullish(),
     severity: oneOf('severity', SEVERITIES).nullish(),
     // 'yes' used to import the item as NOT requiring evidence.
-    evidence_required: z.boolean({ invalid_type_error: 'evidence_required is true or false.' }).optional(),
-    evidenceRequired: z.boolean({ invalid_type_error: 'evidenceRequired is true or false.' }).optional(),
+    evidence_required: z.boolean({ error: typeError({ invalid: 'evidence_required is true or false.' }) }).optional(),
+    evidenceRequired: z.boolean({ error: typeError({ invalid: 'evidenceRequired is true or false.' }) }).optional(),
     mapped_check_id: worded('mapped_check_id must be a check id.').max(120, 'mapped_check_id is at most 120 characters.').nullish(),
     mappedCheckId: worded('mappedCheckId must be a check id.').max(120, 'mappedCheckId is at most 120 characters.').nullish(),
-    sort_order: z.coerce.number({ invalid_type_error: 'sort_order is a whole number.' }).int('sort_order is a whole number.').optional(),
-    sortOrder: z.coerce.number({ invalid_type_error: 'sortOrder is a whole number.' }).int('sortOrder is a whole number.').optional(),
+    sort_order: z.coerce.number({ error: typeError({ invalid: 'sort_order is a whole number.' }) }).int('sort_order is a whole number.').optional(),
+    sortOrder: z.coerce.number({ error: typeError({ invalid: 'sortOrder is a whole number.' }) }).int('sortOrder is a whole number.').optional(),
 }).strict();
 
 const ROWS_TEXT = 'checks must be an array of rows';
-const rowList = z.array(CheckRow, { required_error: ROWS_TEXT, invalid_type_error: ROWS_TEXT })
+const rowList = z.array(CheckRow, { error: ROWS_TEXT })
     .max(500, 'At most 500 rows per upsert.');
 /**
  * The import posts a bare array, `{ checks: [...] }` or `{ rows: [...] }`.
@@ -136,21 +134,21 @@ const AttestBody = bodyOf({
     outcome: worded('outcome must be an outcome.').optional(),
     statement: worded('statement must be text.').max(4000, 'A statement is at most 4000 characters.').nullish(),
     subject_id: worded('subject_id must be a subject id.').max(200, 'subject_id is at most 200 characters.').nullish(),
-    evidence_refs: z.array(evidenceRef, { invalid_type_error: 'evidence_refs is a list of evidence references.' })
+    evidence_refs: z.array(evidenceRef, { error: typeError({ invalid: 'evidence_refs is a list of evidence references.' }) })
         .max(50, 'At most 50 evidence references.').optional(),
     // `null` is evergreen; anything else is a whole number of months.
-    expires_in_months: z.coerce.number({ invalid_type_error: EXPIRES_TEXT })
+    expires_in_months: z.coerce.number({ error: typeError({ invalid: EXPIRES_TEXT }) })
         .int(EXPIRES_TEXT).min(1, EXPIRES_TEXT).max(MAX_EXPIRES_MONTHS, EXPIRES_TEXT).nullable().optional(),
 });
 
 const ARCHIVED_TEXT = 'include_archived is one of: 1, 0, true, false.';
 const ListQuery = z.object({
-    include_archived: z.enum(['1', '0', 'true', 'false'], { errorMap: () => ({ message: ARCHIVED_TEXT }) }).optional(),
+    include_archived: z.enum(['1', '0', 'true', 'false'], { error: () => ARCHIVED_TEXT }).optional(),
 }).strict();
 
 const LIMIT_TEXT = 'limit must be a whole number of rows.';
 const AttestationsQuery = z.object({
-    limit: z.coerce.number({ invalid_type_error: LIMIT_TEXT }).int(LIMIT_TEXT).min(1, LIMIT_TEXT).optional(),
+    limit: z.coerce.number({ error: typeError({ invalid: LIMIT_TEXT }) }).int(LIMIT_TEXT).min(1, LIMIT_TEXT).optional(),
     subject_id: worded('subject_id must be a subject id.').max(200, 'subject_id is at most 200 characters.').optional(),
 }).strict();
 

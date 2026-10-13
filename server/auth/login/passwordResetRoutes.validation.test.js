@@ -47,7 +47,7 @@ const MOCKS = {
     '../../utils/emailService': { sendPasswordResetEmail: async () => { touched.push({ what: 'sendPasswordResetEmail', args: [] }); } },
     '../../utils/appPaths': { clientHost: () => 'https://example.test', legacyLoginPath: (q) => `/login?${q}` },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
-    'bcryptjs': { hash: async () => 'hash' },
+    '../passwordHash': { hash: async () => 'hash' },
 };
 
 const MOCK_IDS = {};

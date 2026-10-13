@@ -14,7 +14,7 @@ const { requireCloud, requireAuth, resolveOrgIdForUser, getOrigin, stripeIpLimit
 const { handleCheckoutCompleted } = require('./checkoutEvents');
 const { accountLicenseSettingsPath, orgLicenseSettingsPath } = require('../../utils/appPaths');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 const router = express.Router();
@@ -42,7 +42,7 @@ const router = express.Router();
 // `successUrl` keeps its own `startsWith(origin)` check in the handler.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -58,7 +58,7 @@ const CheckoutBody = bodyOf({
     // The waiver's own gate (consentGuards.validateWaiver) decides whether it
     // is required and whether it counts; the schema only says what it is.
     withdrawalWaiver: z.object({
-        accepted: z.boolean({ invalid_type_error: 'withdrawalWaiver.accepted is true or false.' }).optional(),
+        accepted: z.boolean({ error: typeError({ invalid: 'withdrawalWaiver.accepted is true or false.' }) }).optional(),
     }).strict().optional(),
 });
 

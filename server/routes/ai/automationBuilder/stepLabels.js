@@ -13,7 +13,7 @@
 const express = require('express');
 const log = require('../../../telemetry/log');
 const router = express.Router();
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 
 const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
@@ -62,10 +62,10 @@ const ICONS_TEXT = 'allowedIcons is the list of icon names the client can draw.'
 const LabelStepsBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     definition: z.unknown().superRefine((def, ctx) => {
         if (!def || typeof def !== 'object' || Array.isArray(def) || !Array.isArray(def.steps)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: DEFINITION_TEXT });
+            ctx.addIssue({ code: 'custom', message: DEFINITION_TEXT });
         }
     }),
-    allowedIcons: z.array(z.string({ invalid_type_error: ICONS_TEXT }), { invalid_type_error: ICONS_TEXT })
+    allowedIcons: z.array(z.string({ error: typeError({ invalid: ICONS_TEXT }) }), { error: typeError({ invalid: ICONS_TEXT }) })
         .max(MAX_ALLOWED_ICONS, `allowedIcons holds at most ${MAX_ALLOWED_ICONS} icon names.`).optional(),
 }).strict());
 

@@ -45,7 +45,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const router = express.Router();
@@ -85,7 +85,7 @@ const guard = uploadGuard({ maxBytes: DATA_LIMITS.MAX_ATTACHMENT_BYTES });
 
 // ── What a caller may send ──────────────────────────────────────────
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 /** An object that also accepts nothing at all: no body, or a test's bare req, reads as {}. */
 const partOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 

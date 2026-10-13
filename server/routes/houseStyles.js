@@ -24,7 +24,7 @@ require('../stores/userStore');
 const { resolveUserOrgIds } = require('../auth');
 
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -49,12 +49,12 @@ const upload = multer({
 // and `isDefault` was `=== 'true'`: an HTML checkbox's "on" meant NO.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the changes as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the changes as a JSON object.' }) }).strict(),
 );
 
 const NAME_TEXT = 'A house style needs a name.';
@@ -64,15 +64,15 @@ const PatchBody = bodyOf({
     name: worded(NAME_TEXT).trim().min(1, NAME_TEXT).optional(),
     // null clears it; it used to be saved as the word "null".
     description: worded(DESCRIPTION_TEXT).nullable().optional().transform((v) => (v === null ? '' : v)),
-    isDefault: z.boolean({ invalid_type_error: 'isDefault is true or false.' }).optional(),
-    reExtract: z.boolean({ invalid_type_error: 'reExtract is true or false.' }).optional(),
+    isDefault: z.boolean({ error: typeError({ invalid: 'isDefault is true or false.' }) }).optional(),
+    reExtract: z.boolean({ error: typeError({ invalid: 'reExtract is true or false.' }) }).optional(),
 });
 
 const UploadBody = bodyOf({
     // Empty falls back to the file's name, as before.
     name: worded(NAME_TEXT).trim().optional(),
     description: worded(DESCRIPTION_TEXT).optional(),
-    isDefault: z.enum(['true', 'false'], { errorMap: () => ({ message: "isDefault is 'true' or 'false'." }) }).optional(),
+    isDefault: z.enum(['true', 'false'], { error: () => "isDefault is 'true' or 'false'." }).optional(),
 });
 
 // requireAuth is the canonical gate from auth/permissions (verifies the

@@ -45,7 +45,7 @@ const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailur
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ───────────────── Incidents (GDPR Art. 33/34 · NIS2 · CRA · DORA) ─────────────────
 //
@@ -123,14 +123,12 @@ function _stringList(v, max = 50, len = 200) {
 // ── What a body may carry ───────────────────────────────────────────
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-const oneOf = (name, values) => z.enum(values, {
-    errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }),
-});
+const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 // Mirrors incidentStore.VALID_SEVERITIES / VALID_STATUSES. Kept here rather
 // than read off the store so the router still loads under a stubbed store.
@@ -156,7 +154,7 @@ const awareness = (name) => moment(name)
 const nameList = z.union([
     z.string(),
     z.array(z.union([z.string(), z.object({ name: z.string().optional(), version_range: z.string().nullish() }).passthrough()])),
-], { errorMap: () => ({ message: 'affected_products is a list of product names.' }) });
+], { error: () => 'affected_products is a list of product names.' });
 
 const TITLE_TEXT = 'An incident needs a title.';
 const CreateIncident = bodyOf({
@@ -164,21 +162,17 @@ const CreateIncident = bodyOf({
     description: worded('description must be text.').nullish(),
     // The picker in agent-hub offers all four; the store used to know three.
     severity: oneOf('severity', SEVERITIES).optional(),
-    high_risk: z.boolean({ invalid_type_error: 'high_risk is true or false.' }).optional(),
+    high_risk: z.boolean({ error: typeError({ invalid: 'high_risk is true or false.' }) }).optional(),
     occurred_at: moment('occurred_at').nullish(),
     detected_at: awareness('detected_at').nullish(),
     // Text only — the route answers a wrong VALUE with invalid_kind/invalid_regime.
     kind: worded('kind must be text.').nullish(),
-    regimes: z.union([z.string(), z.array(z.string())], {
-        errorMap: () => ({ message: 'regimes is a list of regulation codes.' }),
-    }).nullish(),
-    exploited_in_wild: z.boolean({ invalid_type_error: 'exploited_in_wild is true or false.' }).optional(),
+    regimes: z.union([z.string(), z.array(z.string())], { error: () => 'regimes is a list of regulation codes.' }).nullish(),
+    exploited_in_wild: z.boolean({ error: typeError({ invalid: 'exploited_in_wild is true or false.' }) }).optional(),
     // The name this field had before `exploited_in_wild`; both still arrive.
-    actively_exploited: z.boolean({ invalid_type_error: 'actively_exploited is true or false.' }).optional(),
+    actively_exploited: z.boolean({ error: typeError({ invalid: 'actively_exploited is true or false.' }) }).optional(),
     affected_products: nameList.nullish(),
-    cve_ids: z.union([z.string(), z.array(z.string())], {
-        errorMap: () => ({ message: 'cve_ids is a list of CVE identifiers.' }),
-    }).nullish(),
+    cve_ids: z.union([z.string(), z.array(z.string())], { error: () => 'cve_ids is a list of CVE identifiers.' }).nullish(),
     reported_via: worded('reported_via must be text.').trim().max(100, 'reported_via is at most 100 characters.').nullish(),
 });
 
@@ -186,7 +180,7 @@ const PatchIncident = bodyOf({
     title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT).max(300, 'An incident title is at most 300 characters.').optional(),
     description: worded('description must be text.').nullish(),
     severity: oneOf('severity', SEVERITIES).optional(),
-    high_risk: z.boolean({ invalid_type_error: 'high_risk is true or false.' }).optional(),
+    high_risk: z.boolean({ error: typeError({ invalid: 'high_risk is true or false.' }) }).optional(),
     // The workflow step an auditor samples — never a near-miss spelling.
     status: oneOf('status', STATUSES).optional(),
     occurred_at: moment('occurred_at').nullish(),

@@ -1,7 +1,7 @@
 // mistralOCR is still invoked, but via the unified attachmentExtractor helper
 // (see ../attachmentExtractor.js) so PDF handling stays consistent with direct chat.
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { persistExtractedText } = require('../documents/extractedTextStore');
 const log = require('../../telemetry/log');
 
@@ -49,7 +49,7 @@ async function uploadImageForInference(base64DataUrl, mimeType, userId, filename
 
         // Build a unique key under attachments/
         const ext = path.extname(filename) || `.${mimeType.split('/')[1] || 'png'}`;
-        const key = `users/${userId}/attachments/${uuidv4()}${ext}`;
+        const key = `users/${userId}/attachments/${randomUUID()}${ext}`;
 
         await storageStore.uploadFile(key, buffer, mimeType);
 

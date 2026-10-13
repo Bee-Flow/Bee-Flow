@@ -2,7 +2,7 @@
 const router = require('express').Router();
 const { requireSuperAdmin, invalidatePermissionCache } = require('../permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const store = require('../../stores/microsoftIdentityStore');
 const configStore = require('../../stores/configStore');
 const { GUID } = require('../microsoftIdentity');
@@ -10,7 +10,7 @@ const { start, stopAllPeriodicSyncs } = require('../../integrations/azureGroupSy
 
 router.get('/microsoft/link-requests', requireSuperAdmin, async (_req, res) => res.json(await store.listRequests()));
 router.put('/microsoft/users/:userId/identity', requireSuperAdmin,
-    validate({ body: z.object({ requestId: z.string().uuid() }).strict() }), async (req, res) => {
+    validate({ body: z.object({ requestId: z.string().guid() }).strict() }), async (req, res) => {
         await store.bind(req.params.userId, req.body.requestId, req.session.user.id);
         await invalidatePermissionCache(req.params.userId);
         res.json({ ok: true });

@@ -34,13 +34,11 @@ const NO_ORG_ORG_ID = 'default';
 
 const KeyParams = z.object({
     id: z.string(),
-    key: z.enum(/** @type {[string, ...string[]]} */ ([...hints.HINT_KEYS]), {
-        errorMap: () => ({ message: `key must be one of ${hints.HINT_KEYS.join(', ')}.` }),
-    }),
+    key: z.enum(/** @type {[string, ...string[]]} */ ([...hints.HINT_KEYS]), { error: () => `key must be one of ${hints.HINT_KEYS.join(', ')}.` }),
 }).strict();
 const DismissBody = bodyOf({}, 'Dismissing a hint');
 const SnoozeBody = bodyOf({
-    days: z.union([z.literal(7), z.literal(30)], { errorMap: () => ({ message: 'days must be 7 or 30.' }) }).optional(),
+    days: z.union([z.literal(7), z.literal(30)], { error: () => 'days must be 7 or 30.' }).optional(),
 }, 'Snoozing a hint');
 
 function makeComplianceHintsRouter(deps = {}) {

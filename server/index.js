@@ -5,7 +5,6 @@ const otel = require('./telemetry/otel');
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 
@@ -222,7 +221,7 @@ app.use((req, res, next) => {
 });
 // ── cors-dispatch:end ──
 
-// Stripe webhook needs raw body for signature verification — must be BEFORE bodyParser.json
+// Stripe webhook needs raw body for signature verification — must be BEFORE express.json
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 // Capture the raw JSON bytes on every request. The Nextcloud connector's
 // HMAC endpoints (task-processing/execute, automation/events/nextcloud) sign
@@ -231,7 +230,7 @@ app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 // stream first, so the signature was checked against an empty body and every
 // connector→SaaS call 401'd. Storing the raw string here (a no-op for parsing)
 // makes `req.rawBody` available to those verifiers.
-app.use(bodyParser.json({ limit: '20mb', verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); } }));
+app.use(express.json({ limit: '20mb', verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); } }));
 
 // ── Request-timing instrumentation ─────────────────────────────────────────────
 // Per-route latency recording — see boot/requestTiming.js. The same counters are
@@ -242,53 +241,22 @@ require('./boot/requestTiming').mountRequestTiming(app);
 
 // ── Sessions ──────────────────────────────────────────────────────────────────────
 const pgSession = require('connect-pg-simple')(session);
-const { pool, disconnectRedis } = require('./db');
-const { wrapWithRedisCache } = require('./auth/sessionCache');
+const { pool, getRedis, disconnectRedis } = require('./db');
+const { installRedisCacheWhenReady } = require('./auth/sessionCache');
 
 // Sessions: PostgreSQL is the durable source of truth (survives Redis restarts).
 // Redis is wired as a read-through cache layer on top — cache hit avoids a DB
 // round-trip for the session lookup that happens on every authenticated request.
-let sessionStore;
-let _sessionRedisClient = null; // kept for graceful shutdown
-
 // Primary: PostgreSQL (persistent via beeflow-pgdata volume)
 const pgStore = new pgSession({ pool, tableName: 'user_sessions', createTableIfMissing: true, pruneSessionInterval: 900 });
 log.info('[Sessions] Using PostgreSQL session store (persistent across deploys)');
+const sessionStore = pgStore;
 
-// Phase 3: Redis session cache — read-through layer over pgStore.
-// Falls back transparently to pgStore if Redis is unavailable.
-if (process.env.REDIS_URL) {
-    try {
-        const { createClient } = require('redis');
-        // Scaleway managed Redis uses an internal CA. Scope TLS validation
-        // skip to this client only (encryption stays on).
-        const _redisIsTls = process.env.REDIS_URL.startsWith('rediss://');
-        _sessionRedisClient = createClient({
-            url: process.env.REDIS_URL,
-            ...(_redisIsTls ? {
-                socket: { tls: true, rejectUnauthorized: process.env.REDIS_TLS_STRICT === '1' }
-            } : {})
-        });
-        _sessionRedisClient.on('error', (err) => log.warn('[Sessions] Redis error:', err.message));
-        _sessionRedisClient.connect().then(() => {
-            log.info('[Sessions] Redis connected — activating session read-through cache');
-            // Re-wrap the store now that Redis is confirmed ready.
-            // express-session holds a reference to sessionStore.get/set/destroy
-            // so we patch the prototype methods in-place via the wrapper.
-            const cached = wrapWithRedisCache(pgStore, _sessionRedisClient);
-            // Copy the wrapped methods onto the live store object
-            sessionStore.get     = cached.get.bind(cached);
-            sessionStore.set     = cached.set.bind(cached);
-            sessionStore.touch   = cached.touch.bind(cached);
-            sessionStore.destroy = cached.destroy.bind(cached);
-        }).catch((err) => {
-            log.warn('[Sessions] Redis connect failed, using PG-only sessions:', err.message);
-        });
-    } catch (err) {
-        log.warn('[Sessions] Failed to create Redis client:', err.message);
-    }
-}
-sessionStore = pgStore;
+// Redis session cache — read-through layer over pgStore, on the shared ioredis
+// client from db.js (TLS, reconnects and fail-fast are configured there). It
+// activates once that client is connected; without Redis, or when Redis is not
+// reachable at boot, sessions stay PG-only.
+installRedisCacheWhenReady(sessionStore, pgStore, getRedis());
 
 // Session lifetime and whether it slides — see auth/sessionLifetime.js for
 // what these two values actually were versus what the docs claimed.
@@ -1088,8 +1056,9 @@ async function startServer() {
     // own gate). The proxy mount (http-proxy-middleware + the WS 'upgrade'
     // listener) is additionally only required — not just gated internally —
     // when the flag is on, so installs that never touch this feature never
-    // load that dependency. See server/webpage-runner/README.md before
-    // enabling in production: this needs a security review first.
+    // load that dependency. No runner image is built from this repository
+    // any more; enabling it in production needs its own image and a security
+    // review first.
     const webpageRuntimeManager = require('./services/webpageRuntimeManager');
     webpageRuntimeManager.startReaper();
     if (webpageRuntimeManager.isEnabled()) {
@@ -1134,11 +1103,7 @@ const shutdown = async (signal) => {
     // Chat signals: write the last minute of counters (bounded; a lost minute is acceptable, a hung shutdown is not).
     try { await Promise.race([require('./core/privacy/chatSignals').flush(), new Promise(r => setTimeout(r, 2000).unref())]); } catch (_) { /* best-effort */ }
     try { require('./stores/configStore')._stopInvalidationListener(); } catch (_) { /* best-effort */ }
-    await disconnectRedis(); // ioredis client (caching)
-    // node-redis v5: close() replaces deprecated quit()
-    if (_sessionRedisClient) {
-        try { await _sessionRedisClient.close(); } catch (_) { }
-    }
+    await disconnectRedis(); // shared ioredis client (caching and the session cache)
     // Flush the SQLite blob engines' dirty handles BEFORE exiting. Their own
     // SIGTERM listeners fire concurrently, but the process.exit() below used
     // to race them to death — an unawaited flush loses up to the debounce

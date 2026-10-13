@@ -1,7 +1,7 @@
 'use strict';
 const crypto = require('crypto');
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, conflict, notFound } = require('../../core/http/errors');

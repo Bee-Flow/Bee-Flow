@@ -82,7 +82,7 @@ const { getBridgeGrants } = require('../stores/webpage/bridgeGrants');
 const { resolveDatatablePrincipalForUser } = require('../auth/datatableAccess');
 const datatableRuntime = require('../core/dataEngine/datatableRuntime');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 /** Een body die óók geen body accepteert: Express 5 laat `req.body` dan undefined. */
 const bodyOf = (shape) => z.preprocess(
@@ -97,12 +97,12 @@ const LIMIT_TEXT = 'limit is a whole number of rows, at least 1.';
 const CURSOR_TEXT = 'cursor is the nextCursor a previous page returned.';
 
 /** Eén voorwaarde: een object — wat erin staat is aan de compiler. */
-const clause = (message) => z.record(z.unknown(), { invalid_type_error: message });
+const clause = (message) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: message }) });
 
 // Elke weigering binnen een sortering is dezelfde zin: een union antwoordt met
-// de eerste tak die tot een CHECK kwam, dus alleen een errorMap op de union
+// de eerste tak die tot een CHECK kwam, dus alleen een error op de union
 // zou "Unrecognized key(s) in object" laten doorlekken.
-const sorted = { errorMap: () => ({ message: SORT_TEXT }) };
+const sorted = { error: () => SORT_TEXT };
 /** Een richting zoals resolvePrimarySort hem leest (hoofdletters telden altijd al). */
 const sortDir = z.string(sorted).refine((v) => ['asc', 'desc'].includes(v.toLowerCase()), SORT_TEXT);
 /** Eén sortering: de sleutels die de compiler leest, en niets dat hij stil negeert. */
@@ -115,17 +115,17 @@ const SortClause = z.object({
 // `null` is "niet ingesteld" en blijft dat: paginacode schrijft makkelijk
 // `filters: actief ? [f] : null`, en dat vraagt om precies alle rijen.
 const QueryBody = bodyOf({
-    filters: z.array(clause(FILTERS_TEXT), { invalid_type_error: FILTERS_TEXT }).nullish(),
-    match: z.enum(['all', 'any'], { errorMap: () => ({ message: MATCH_TEXT }) }).nullish(),
-    sort: z.union([SortClause, z.array(SortClause)], { errorMap: () => ({ message: SORT_TEXT }) }).nullish(),
+    filters: z.array(clause(FILTERS_TEXT), { error: typeError({ invalid: FILTERS_TEXT }) }).nullish(),
+    match: z.enum(['all', 'any'], { error: () => MATCH_TEXT }).nullish(),
+    sort: z.union([SortClause, z.array(SortClause)], { error: () => SORT_TEXT }).nullish(),
     // Een getal als tekst ("20" uit een data-attribuut) telde altijd al; 0 of
     // een woord gaf stil de standaardpagina en is nu een zin.
-    limit: z.coerce.number({ invalid_type_error: LIMIT_TEXT }).int(LIMIT_TEXT).min(1, LIMIT_TEXT).nullish(),
-    cursor: z.string({ invalid_type_error: CURSOR_TEXT }).nullish(),
+    limit: z.coerce.number({ error: typeError({ invalid: LIMIT_TEXT }) }).int(LIMIT_TEXT).min(1, LIMIT_TEXT).nullish(),
+    cursor: z.string({ error: typeError({ invalid: CURSOR_TEXT }) }).nullish(),
 });
 
-const InsertBody = bodyOf({ values: z.unknown() });
-const UpdateBody = bodyOf({ rowId: z.unknown(), values: z.unknown(), expectedUpdatedAt: z.unknown() });
+const InsertBody = bodyOf({ values: z.unknown().optional() });
+const UpdateBody = bodyOf({ rowId: z.unknown().optional(), values: z.unknown().optional(), expectedUpdatedAt: z.unknown().optional() });
 
 /**
  * Elke weigering hier GOOIT, in plaats van zelf te antwoorden.

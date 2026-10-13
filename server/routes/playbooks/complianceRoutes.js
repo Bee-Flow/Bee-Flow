@@ -14,7 +14,7 @@
 'use strict';
 
 const lifecycle = require('../../playbooks/lifecycle');
-const { z, sendErr, isObject, worded, bodyOf, check } = require('./contract');
+const { z, sendErr, isObject, worded, bodyOf, check, onUnknownKeys, typeError } = require('./contract');
 const { directoryFor } = require('./directory');
 
 // -- The envelope around the three POSTs ------------------------------
@@ -37,7 +37,7 @@ const DAYS_TEXT = 'retentionDays is a number of days.';
  * boolean asked for "keep one day". The value itself is measured where it is
  * used (1..MAX_RETENTION_DAYS), in a sentence.
  */
-const dayCount = () => z.union([z.number(), z.string().trim().regex(/^\d+(\.\d+)?$/)], { errorMap: () => ({ message: DAYS_TEXT }) });
+const dayCount = () => z.union([z.number(), z.string().trim().regex(/^\d+(\.\d+)?$/)], { error: () => DAYS_TEXT });
 const RetentionPreviewBody = bodyOf({
     retentionField: worded(FIELD_TEXT).trim().min(1, FIELD_TEXT),
     retentionDays: dayCount(),
@@ -59,14 +59,14 @@ const RetentionPreviewBody = bodyOf({
 const REG_TEXT = 'registration holds lawfulBasis, retentionDays, retentionField and subjectColumn, and nothing else.';
 const Registration = z.object({
     lawfulBasis: worded('lawfulBasis is one of the six legal bases, as text.').nullish(),
-    retentionDays: z.union([dayCount(), z.literal('')], { errorMap: () => ({ message: DAYS_TEXT }) }).nullish(),
+    retentionDays: z.union([dayCount(), z.literal('')], { error: () => DAYS_TEXT }).nullish(),
     retentionField: worded(FIELD_TEXT).nullish(),
     subjectColumn: worded('subjectColumn is the column that names the person.').nullish(),
-}, { invalid_type_error: 'registration is a document.' }).strict(REG_TEXT);
+}, { error: onUnknownKeys(REG_TEXT, typeError({ invalid: 'registration is a document.' })) }).strict();
 const RISKS_TEXT = 'risks is a list of finding codes.';
 const RegisterBody = bodyOf({
     registration: Registration.nullish(),
-    risks: z.array(worded(RISKS_TEXT), { invalid_type_error: RISKS_TEXT }).nullish(),
+    risks: z.array(worded(RISKS_TEXT), { error: typeError({ invalid: RISKS_TEXT }) }).nullish(),
 });
 const { kindOf, firstOfKind, localeOf } = require('./phaseList');
 const log = require('../../telemetry/log');

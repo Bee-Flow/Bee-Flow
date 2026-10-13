@@ -52,6 +52,13 @@ class ApiKeyMiddlewareTest(unittest.TestCase):
             self.client.post("/pii", headers={"X-API-Key": "s3cret"}).status_code, 200
         )
 
+    def test_non_ascii_key_is_refused_not_an_error(self) -> None:
+        # A latin-1 header value must give 401, not a TypeError (500).
+        resp = self.client.post(
+            "/pii", headers={"X-API-Key": "s\u00e9cret".encode("latin-1")}
+        )
+        self.assertEqual(resp.status_code, 401)
+
     def test_health_stays_open(self) -> None:
         self.assertEqual(self.client.get("/health").status_code, 200)
 

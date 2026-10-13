@@ -96,7 +96,7 @@ const cmsBlog = require('./cmsBlog');
 const { UPLOAD_MIME_WHITELIST, IMAGE_MAX_BYTES } = require('../core/cms/uploadPolicy');
 const { parseRangeHeader } = require('../core/http/httpRange');
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, typeError } = require('../core/http/schemaParts');
 
 // ── What an admin request may send ───────────────────────────────────
 // The envelope of every admin JSON body is closed: a misspelled key is a 400
@@ -107,9 +107,9 @@ const { z, worded, bodyOf } = require('../core/http/schemaParts');
 // a page an admin had switched out of analytics was still tracked; a
 // misspelled `noAnalyitcs` likewise.
 const cmsText = (message, max = 500) => worded(message).max(max, message);
-const doc = (message) => z.record(z.unknown(), { required_error: message, invalid_type_error: message });
-const bool = (message) => z.boolean({ required_error: message, invalid_type_error: message });
-const cmsIds = (message) => z.array(cmsText(message, 200), { required_error: message, invalid_type_error: message });
+const doc = (message) => z.record(z.string(), z.unknown(), { error: typeError({ required: message, invalid: message }) });
+const bool = (message) => z.boolean({ error: message });
+const cmsIds = (message) => z.array(cmsText(message, 200), { error: message });
 const cmsBody = (shape, subject) => validate({ body: bodyOf(shape, subject) });
 
 const siteDocBody = cmsBody({ site: doc('site object required') }, 'Saving a site');
@@ -134,7 +134,7 @@ const pageMetaBody = cmsBody({
 const templateBody = cmsBody({
     name: cmsText('A template needs a name.', 200),
     description: cmsText('description is text.', 2000).nullish(),
-    blocks: z.array(z.unknown(), { required_error: 'blocks is the list of blocks to keep.', invalid_type_error: 'blocks is the list of blocks to keep.' }),
+    blocks: z.array(z.unknown(), { error: 'blocks is the list of blocks to keep.' }),
 }, 'Saving a template');
 const createSiteBody = cmsBody({ name: cmsText('name is text of at most 200 characters.', 200).nullish() }, 'Creating a site');
 const renameSiteBody = cmsBody({ name: cmsText('name required', 200) }, 'Renaming a site');

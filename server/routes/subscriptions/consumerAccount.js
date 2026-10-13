@@ -9,7 +9,7 @@ const usageStore = require('../../stores/usageStore');
 const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ const router = express.Router();
 // reported as a missing field.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const PLAN_ID_TEXT = 'plan_id is required — the plan to start the trial on.';
 const StartTrialBody = z.object({

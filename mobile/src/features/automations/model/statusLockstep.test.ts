@@ -85,9 +85,9 @@ function webIcons(src: string): Record<string, string> {
 
 /** Lucide export name → icon file, from the package barrel (aliases included). */
 function lucideFile(): (name: string) => string | undefined {
-    const barrel = path.resolve(__dirname, '../../../../node_modules/lucide-react-native/dist/esm/lucide-react-native.js');
+    const barrel = path.resolve(__dirname, '../../../../node_modules/lucide-react-native/dist/esm/lucide-react-native.mjs');
     const files = new Map<string, string>();
-    for (const m of fs.readFileSync(barrel, 'utf8').matchAll(/export \{([^}]*)\} from '\.\/icons\/([a-z0-9-]+)\.js'/g)) {
+    for (const m of fs.readFileSync(barrel, 'utf8').matchAll(/export \{([^}]*)\} from '\.\/icons\/([a-z0-9-]+)\.mjs'/g)) {
         for (const part of (m[1] ?? '').split(',')) files.set(part.trim().replace(/^default as /, ''), m[2] as string);
     }
     return (name) => files.get(name);

@@ -64,7 +64,7 @@ const { z, worded, bodyOf } = require('../core/http/schemaParts');
 const R = require('./studio/appRuntimeSchemas');
 const BatchBody = bodyOf({
     // The handler answers a missing or non-list `reads` itself, with its cap.
-    reads: z.unknown(),
+    reads: z.unknown().optional(),
 }, 'A batch of reads');
 const UploadFields = bodyOf({
     fieldKey: worded('fieldKey is the key of the form field.').max(100, 'fieldKey is at most 100 characters.').optional(),

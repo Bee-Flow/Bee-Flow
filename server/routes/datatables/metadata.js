@@ -18,7 +18,7 @@ const { requireDatatableGrade, requireManageForOrgScope } = require('./grade');
 const { bad, answerDatatableError } = require('./refusals');
 const { publicTable } = require('./projection');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { worded, choice, rowScopeWord, NAME_TEXT, PURPOSE_TEXT } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -68,7 +68,7 @@ const PATCH_SHAPE = {
     // unchecked, and only a meta read knows which columns exist.
     subjectColumn: worded(FIELD_TEXT).trim().min(1, FIELD_TEXT).nullable(),
     retentionField: worded(FIELD_TEXT).trim().min(1, FIELD_TEXT),
-    retentionDays: z.number({ invalid_type_error: RETENTION_TEXT })
+    retentionDays: z.number({ error: typeError({ invalid: RETENTION_TEXT }) })
         .int(RETENTION_TEXT).min(1, RETENTION_TEXT).max(MAX_RETENTION_DAYS, RETENTION_TEXT)
         .nullable(),
     rowScope: rowScopeWord(),
@@ -79,7 +79,7 @@ const PatchBody = z.preprocess(
         for (const k of Object.keys(body)) {
             if (Object.hasOwn(PATCH_SHAPE, k)) continue;
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: 'custom',
                 path: [k],
                 message: IMMUTABLE.includes(k)
                     ? `A table's ${k} cannot be changed — it names the table's own storage`

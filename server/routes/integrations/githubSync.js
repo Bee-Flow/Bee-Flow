@@ -17,7 +17,7 @@ const githubSyncService = require('../../services/githubSyncService');
 const configStore = require('../../stores/configStore');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -46,10 +46,10 @@ const NAME_TEXT = 'repoName is the repository name, e.g. agent-configs.';
 const BRANCH_TEXT = 'branch must be a valid git branch name.';
 
 const ConfigureBody = z.object({
-    repoOwner: z.string({ required_error: OWNER_TEXT, invalid_type_error: OWNER_TEXT }).trim().regex(NAME_RE, OWNER_TEXT),
-    repoName: z.string({ required_error: NAME_TEXT, invalid_type_error: NAME_TEXT }).trim().regex(NAME_RE, NAME_TEXT),
-    branch: z.string({ invalid_type_error: BRANCH_TEXT }).trim().regex(BRANCH_RE, BRANCH_TEXT).optional(),
-    autoSync: z.boolean({ invalid_type_error: 'autoSync is true or false.' }).optional(),
+    repoOwner: z.string({ error: OWNER_TEXT }).trim().regex(NAME_RE, OWNER_TEXT),
+    repoName: z.string({ error: NAME_TEXT }).trim().regex(NAME_RE, NAME_TEXT),
+    branch: z.string({ error: typeError({ invalid: BRANCH_TEXT }) }).trim().regex(BRANCH_RE, BRANCH_TEXT).optional(),
+    autoSync: z.boolean({ error: typeError({ invalid: 'autoSync is true or false.' }) }).optional(),
 }).strict();
 
 // Helper: resolve the user's first org ID

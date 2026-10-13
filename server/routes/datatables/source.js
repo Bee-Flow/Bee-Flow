@@ -34,7 +34,7 @@ const { requireDatatableGrade, requireManageForOrgScope } = require('./grade');
 const { answerDatatableError } = require('./refusals');
 const { publicTable, publicSource } = require('./projection');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 /** The reading routes take nothing but the table in the path. */

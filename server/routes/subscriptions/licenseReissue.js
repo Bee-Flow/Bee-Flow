@@ -14,7 +14,7 @@ const userStore = require('../../stores/userStore');
 const { getAdminId } = require('./shared');
 const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const router = express.Router();
 
@@ -27,11 +27,9 @@ const WHY = 'the retry issues the licence for the plan on the stored subscriptio
 const NoBody = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({}, {
-        errorMap: (issue) => ({
-            message: issue.code === 'unrecognized_keys'
-                ? `This request takes no body, so ${issue.keys.map((k) => `'${k}'`).join(', ')} would change nothing: ${WHY}`
-                : `This request takes no body: ${WHY}`,
-        }),
+        error: (iss) => (iss.code === 'unrecognized_keys'
+            ? `This request takes no body, so ${iss.keys.map((k) => `'${k}'`).join(', ')} would change nothing: ${WHY}`
+            : `This request takes no body: ${WHY}`),
     }).strict(),
 );
 

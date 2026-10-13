@@ -44,7 +44,7 @@
 
 'use strict';
 
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { DRAFT_TOOL, MAX_BRIEF_CHARS, MAX_NOTE_CHARS, buildDraftMessages, parseDatatableDraft } = require('../core/dataEngine/dataModel/datatableDraft');
@@ -59,12 +59,12 @@ const BRIEF_TEXT = `A table description is at most ${MAX_BRIEF_CHARS} characters
 const DraftBody = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({
-        mode: choice(['create', 'revise'], 'mode is "create" or "revise".').default('create'),
+        mode: choice(['create', 'revise'], 'mode is "create" or "revise".').prefault('create'),
         // Capped, not cut: the model is only ever sent this much of either.
-        brief: z.string({ invalid_type_error: 'brief must be text.' }).trim().max(MAX_BRIEF_CHARS, BRIEF_TEXT).nullish(),
-        note: z.string({ invalid_type_error: 'note must be text.' }).trim().max(MAX_NOTE_CHARS, NOTE_TEXT).nullish(),
-        current: z.record(z.unknown(), { invalid_type_error: 'current is the table as the designer holds it.' }).nullish(),
-        allowDestructive: z.boolean({ invalid_type_error: 'allowDestructive is true or false.' }).optional(),
+        brief: z.string({ error: typeError({ invalid: 'brief must be text.' }) }).trim().max(MAX_BRIEF_CHARS, BRIEF_TEXT).nullish(),
+        note: z.string({ error: typeError({ invalid: 'note must be text.' }) }).trim().max(MAX_NOTE_CHARS, NOTE_TEXT).nullish(),
+        current: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'current is the table as the designer holds it.' }) }).nullish(),
+        allowDestructive: z.boolean({ error: typeError({ invalid: 'allowDestructive is true or false.' }) }).optional(),
     }).strict(),
 );
 const validateDraft = validate({ body: DraftBody });

@@ -22,7 +22,7 @@ const router = express.Router();
 const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 
 // ─── Web-Search Inference Routing ────────────────────────────────
 // Controls how the search-service handles its 3 inference tasks:
@@ -53,9 +53,9 @@ const RERANK_METHODS = ['cosine', 'cpu', 'provider', 'local', 'disabled'];
 function pairOf(section, meaning) {
     const missing = `${section} is required — send { providerId: '', modelId: '' } for ${meaning}.`;
     return z.object({
-        providerId: z.string({ invalid_type_error: `${section}.providerId must be text.` }).trim().default(''),
-        modelId: z.string({ invalid_type_error: `${section}.modelId must be text.` }).trim().default(''),
-    }, { required_error: missing, invalid_type_error: missing }).strict();
+        providerId: z.string({ error: typeError({ invalid: `${section}.providerId must be text.` }) }).trim().default(''),
+        modelId: z.string({ error: typeError({ invalid: `${section}.modelId must be text.` }) }).trim().default(''),
+    }, { error: typeError({ required: missing, invalid: missing }) }).strict();
 }
 
 /** Half a pair was treated as unset — a selection that silently did nothing. */
@@ -63,7 +63,7 @@ function wholePair(section) {
     return (pair, ctx) => {
         if (!pair.providerId !== !pair.modelId) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: 'custom',
                 path: [pair.providerId ? 'modelId' : 'providerId'],
                 message: `${section} needs both a provider and a model, or neither.`,
             });
@@ -74,15 +74,10 @@ function wholePair(section) {
 const WebSearchInferenceBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     embed: pairOf('embed', 'the global Embeddings settings').superRefine(wholePair('embed')),
     rerank: z.object({
-        method: z.enum(RERANK_METHODS, {
-            errorMap: () => ({ message: `rerank.method is one of ${RERANK_METHODS.join(', ')}.` }),
-        }),
-        providerId: z.string({ invalid_type_error: 'rerank.providerId must be text.' }).trim().default(''),
-        modelId: z.string({ invalid_type_error: 'rerank.modelId must be text.' }).trim().default(''),
-    }, {
-        required_error: "rerank is required — send { method: 'cosine' } for the default.",
-        invalid_type_error: "rerank is an object, like { method: 'cosine' }.",
-    }).strict().superRefine(wholePair('rerank')),
+        method: z.enum(RERANK_METHODS, { error: () => `rerank.method is one of ${RERANK_METHODS.join(', ')}.` }),
+        providerId: z.string({ error: typeError({ invalid: 'rerank.providerId must be text.' }) }).trim().default(''),
+        modelId: z.string({ error: typeError({ invalid: 'rerank.modelId must be text.' }) }).trim().default(''),
+    }, { error: typeError({ required: "rerank is required — send { method: 'cosine' } for the default.", invalid: "rerank is an object, like { method: 'cosine' }." }) }).strict().superRefine(wholePair('rerank')),
     cleanup: pairOf('cleanup', 'no cleanup').superRefine(wholePair('cleanup')),
 }).strict());
 

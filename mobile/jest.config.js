@@ -39,9 +39,10 @@ module.exports = {
     setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
     transform: { '\\.mjs$': PRESET_BABEL },
     // `@/*` mirrors the path in tsconfig.json; Metro reads tsconfig itself.
-    // The Lucide line: the icon registry imports each icon's own ESM module,
-    // a path the package's `exports` does not list (metro.config.js explains
-    // why); tests load the CommonJS twin of the same file.
+    // The Lucide line: the icon registry imports each icon's own module
+    // (`lucide-react-native/icons/<name>`, metro.config.js explains why); the
+    // package's `react-native` export condition would hand Jest the ESM file,
+    // which is not transformed, so tests load the CommonJS twin of the same icon.
     // The last three serve the differential lockstep tests, which require a
     // web module from ../agent-hub and run it beside its port: Babel gives
     // that file `@babel/runtime` helper imports, and the web's dagre layout
@@ -50,7 +51,7 @@ module.exports = {
     // `@shared/*` is the web's Vite alias for agent-hub/src/shared.
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
-        '^lucide-react-native/dist/esm/icons/(.*)$': '<rootDir>/node_modules/lucide-react-native/dist/cjs/icons/$1',
+        '^lucide-react-native/icons/(.*)$': '<rootDir>/node_modules/lucide-react-native/dist/cjs/icons/$1.js',
         '^@babel/runtime/(.*)$': '<rootDir>/node_modules/@babel/runtime/$1',
         '^@dagrejs/dagre$': '<rootDir>/node_modules/@dagrejs/dagre',
         '^@shared/(.*)$': '<rootDir>/../agent-hub/src/shared/$1',

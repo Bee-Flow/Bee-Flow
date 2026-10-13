@@ -18,7 +18,7 @@ const { resolveOrgId } = require('./shared');
 // metadata — so the chain stays verifiable while the file stays downloadable.
 
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── Why POST /iso/evidence/upload has no body schema ───────────
 //
@@ -115,7 +115,7 @@ function _int(v, dflt, min, max) {
  * count under the SAME filter (the pager needs it); `regulation` filters on
  * the check-id prefix the store already understands.
  */
-const _word = (name) => z.string({ invalid_type_error: `${name} must be text.` }).optional();
+const _word = (name) => z.string({ error: typeError({ invalid: `${name} must be text.` }) }).optional();
 
 /**
  * `.strict()` only. `?regulaton=GDPR` used to drop the filter and hand back

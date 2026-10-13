@@ -23,7 +23,7 @@ const { isSuperAdmin } = require('../../auth');
 
 const { getUserId, requireStaffSupport } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 const SUPPORT_AGENT_ID = 'system-bee-flow-support';
@@ -35,21 +35,19 @@ function requireSuperAdmin(req, res, next) {
 }
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-const idList = (name) => z.array(worded(`${name} is a list of ids.`), {
-    required_error: `${name} is a list of ids.`, invalid_type_error: `${name} is a list of ids.`,
-});
+const idList = (name) => z.array(worded(`${name} is a list of ids.`), { error: `${name} is a list of ids.` });
 
 const ConfigBody = bodyOf({
     agentId: worded('agentId must be an agent id.').trim().max(200, 'agentId is at most 200 characters.').nullish(),
     kbIds: idList('kbIds').optional(),
     // Only a real false switches the tool-using responder off.
-    v2Enabled: z.boolean({ invalid_type_error: 'v2Enabled is true or false.' }).optional(),
-    autoResolveThreshold: z.coerce.number({ invalid_type_error: 'autoResolveThreshold is a number between 0 and 1.' })
+    v2Enabled: z.boolean({ error: typeError({ invalid: 'v2Enabled is true or false.' }) }).optional(),
+    autoResolveThreshold: z.coerce.number({ error: typeError({ invalid: 'autoResolveThreshold is a number between 0 and 1.' }) })
         .min(0, 'autoResolveThreshold is a number between 0 and 1.')
         .max(1, 'autoResolveThreshold is a number between 0 and 1.')
         .optional(),
@@ -60,11 +58,11 @@ const AgentBody = bodyOf({
     description: worded('description must be text.').nullish(),
     systemPrompt: worded('systemPrompt must be text.').nullish(),
     model: worded('model must be a model id or tier.').trim().max(200, 'model is at most 200 characters.').nullish(),
-    starterPrompts: z.array(z.string(), { invalid_type_error: 'starterPrompts is a list of prompts.' }).optional(),
+    starterPrompts: z.array(z.string(), { error: typeError({ invalid: 'starterPrompts is a list of prompts.' }) }).optional(),
     knowledgeBaseIds: idList('knowledgeBaseIds').optional(),
     // Merged over the stored config — a sub-flag a later release adds must
     // survive a save made by an older client, so this one stays open.
-    config: z.record(z.unknown(), { invalid_type_error: 'config is a JSON object.' }).optional(),
+    config: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'config is a JSON object.' }) }).optional(),
 });
 
 const MESSAGE_TEXT = 'A preview needs a message.';

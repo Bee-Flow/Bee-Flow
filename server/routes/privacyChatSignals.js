@@ -20,18 +20,18 @@
 
 const express = require('express');
 const router = express.Router();
-const { z } = require('zod');
+const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { validate } = require('../core/http/validate');
 // requireAuth is the canonical gate from auth/permissions (verifies the user
 // still exists in the DB, cached 5 s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
 const objections = require('../stores/chatSignalObjectionStore');
 
-const NO_QUERY = z.object({}).strict('Your chat-signals preference is always your own; it takes no query parameters.');
+const NO_QUERY = z.object({}, { error: onUnknownKeys('Your chat-signals preference is always your own; it takes no query parameters.') }).strict();
 const COUNTED_TEXT = 'counted is true or false.';
 const PreferenceBody = z.object({
-    counted: z.boolean({ required_error: COUNTED_TEXT, invalid_type_error: COUNTED_TEXT }),
-}, { invalid_type_error: 'The preference is { counted: true|false }.' }).strict('The preference is { counted: true|false }; it takes no other keys.');
+    counted: z.boolean({ error: COUNTED_TEXT }),
+}, { error: onUnknownKeys('The preference is { counted: true|false }; it takes no other keys.', typeError({ invalid: 'The preference is { counted: true|false }.' })) }).strict();
 
 // GET /preference: are the caller's chat turns counted? A read error reads as
 // "not counted" (the store's rule: when in doubt, do not count).

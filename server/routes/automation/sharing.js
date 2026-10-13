@@ -28,29 +28,26 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { makeAutomationAccess, projectForViewer, RANK } = require('../../automation/access');
 
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const PRINCIPAL_TYPE_TEXT = 'principalType is "user" or "group".';
 const ROLE_TEXT = 'role is "run", "view" or "edit".';
 const PRINCIPAL_ID_TEXT = 'principalId is the id of a person or a group.';
 
 const ShareEntry = z.object({
-    principalType: z.enum(['user', 'group'], { errorMap: () => ({ message: PRINCIPAL_TYPE_TEXT }) }),
+    principalType: z.enum(['user', 'group'], { error: () => PRINCIPAL_TYPE_TEXT }),
     principalId: worded(PRINCIPAL_ID_TEXT).trim().min(1, PRINCIPAL_ID_TEXT).max(200, PRINCIPAL_ID_TEXT),
-    role: z.enum(['run', 'view', 'edit'], { errorMap: () => ({ message: ROLE_TEXT }) }),
+    role: z.enum(['run', 'view', 'edit'], { error: () => ROLE_TEXT }),
 }).strict();
 
 const SharesBody = z.object({
-    shares: z.array(ShareEntry, {
-        required_error: 'shares is the full list of people and groups, [] for none.',
-        invalid_type_error: 'shares is the full list of people and groups, [] for none.',
-    }).max(200, 'At most 200 people and groups on one automation.'),
+    shares: z.array(ShareEntry, { error: 'shares is the full list of people and groups, [] for none.' }).max(200, 'At most 200 people and groups on one automation.'),
 }).strict();
 
 const TRANSFER_TEXT = 'userId is the id of the person who becomes the owner.';

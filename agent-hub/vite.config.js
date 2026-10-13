@@ -17,7 +17,7 @@ const ShardListSequencer = process.env.VITEST_FILE_LIST
 function resolveBuildSha(envSha) {
     if (envSha && envSha.length > 0) return envSha.slice(0, 7);
     try {
-        return execSync('git rev-parse --short HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] })
+        return execSync('git rev-parse --short HEAD', { cwd: import.meta.dirname, stdio: ['ignore', 'pipe', 'ignore'] })
             .toString().trim();
     } catch (_) {
         return 'dev';
@@ -36,7 +36,7 @@ function resolveBuildSha(envSha) {
  * code step's editor opens, exactly as the CDN copy was). Dev: served from
  * node_modules.
  */
-const MONACO_VS = path.resolve(__dirname, 'node_modules/monaco-editor/min/vs')
+const MONACO_VS = path.resolve(import.meta.dirname, 'node_modules/monaco-editor/min/vs')
 const MONACO_TYPES = { '.js': 'application/javascript', '.css': 'text/css', '.ttf': 'font/ttf', '.json': 'application/json' }
 function monacoSelfHost() {
     let outDir = null
@@ -109,8 +109,6 @@ const VENDOR_CHUNKS = {
             '@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities',
             '@xyflow/react', '@dagrejs/dagre',
         ],
-        // React Grid Layout — used only by ComponentBuilder.
-        'vendor-grid-layout': ['react-grid-layout'],
         'vendor-markdown': ['react-markdown', 'remark-gfm', 'highlight.js'],
         // Charts / misc
         'vendor-charts': ['recharts'],
@@ -124,19 +122,19 @@ const VENDOR_CHUNKS = {
         // AppIcon fetches on a non-registry icon name. Pinning the
         // package again would weld all ~1,900 icons back into one
         // eagerly-loaded chunk — the exact 170 KB this change removed.
-        'vendor-misc': ['@tanstack/react-query', 'uuid'],
+        'vendor-misc': ['@tanstack/react-query'],
 };
 
 export default defineConfig(({ mode }) => {
     // Load env file from parent directory
-    const env = loadEnv(mode, path.resolve(__dirname, '..'), '')
+    const env = loadEnv(mode, path.resolve(import.meta.dirname, '..'), '')
 
     // Get ports from env or default
     const SERVER_PORT = env.SERVER_PORT || 3001
     const CLIENT_PORT = env.CLIENT_PORT || 5175
 
     // Version metadata — injected at build time as a JS constant.
-    const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'));
+    const pkg = JSON.parse(readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf8'));
     const buildSha = resolveBuildSha(env.VITE_BUILD_SHA || process.env.VITE_BUILD_SHA);
     const buildDate = new Date().toISOString();
 
@@ -166,12 +164,12 @@ export default defineConfig(({ mode }) => {
             // existing relative imports. Keep the alias in sync with the
             // 'paths' mapping in tsconfig.json.
             alias: {
-                '@': path.resolve(__dirname, 'src'),
+                '@': path.resolve(import.meta.dirname, 'src'),
                 // Isomorphic modules mirrored from the server (e.g. the
                 // expression engine). Kept IN-TREE (src/shared) so they're in
                 // the agent-hub Docker build context; a byte-identical copy
                 // lives at server/shared and a sync test pins them equal.
-                '@shared': path.resolve(__dirname, 'src/shared'),
+                '@shared': path.resolve(import.meta.dirname, 'src/shared'),
             },
         },
         define: {
@@ -188,7 +186,7 @@ export default defineConfig(({ mode }) => {
             // served Docker image (nginx 404 + Dockerfile delete) and keep them
             // only as CI artifacts for decoding minified production stack traces.
             sourcemap: 'hidden',
-            rollupOptions: {
+            rolldownOptions: {
                 output: {
                     /* HISTORY, because this looks like something worth
                        "simplifying" and is not. A hand-written function form was
@@ -224,25 +222,36 @@ export default defineConfig(({ mode }) => {
                        has no such gravity — it imports nothing, so nothing can
                        ride along with it. Measure before/after out of
                        dist/index.html when touching this. */
-                    manualChunks(id) {
-                        const path = id.replace(/\\/g, '/');
-                        /* Generated runtime shims, not packages. Both are virtual
-                           modules a few lines long, both are imported from all
-                           over, and both were being parked inside whichever big
-                           chunk happened to reference them first — which is how a
-                           marketing page ended up preloading Mermaid (187 KB) for
-                           `__vitePreload`, and then recharts (117 KB) for
-                           `getDefaultExportFromCjs`, an eight-line CommonJS
-                           interop shim. Collect them in one ~1 KB chunk that
-                           imports nothing, so nothing can ride along with them. */
-                        if (path.includes('vite/preload-helper')) return 'vendor-runtime-helpers';
-                        if (path.includes('commonjsHelpers')) return 'vendor-runtime-helpers';
-                        if (!path.includes('node_modules')) return undefined;
-                        for (const [chunk, pkgs] of Object.entries(VENDOR_CHUNKS)) {
-                            // Trailing slash so `react` cannot swallow `react-dom`.
-                            if (pkgs.some(p => path.includes(`node_modules/${p}/`))) return chunk;
-                        }
-                        return undefined;
+                    codeSplitting: {
+                        // Rolldown (Vite 8) replaced the `manualChunks` function
+                        // with ordered groups. Same table, same helper-chunk
+                        // rule. `includeDependenciesRecursively: false` is what
+                        // keeps the old semantics: a group holds exactly the
+                        // modules that match, nothing they import. With the
+                        // default (true) every vendor chunk drags its whole
+                        // dependency closure along and the entry path fills up
+                        // with mermaid, dnd and charts.
+                        includeDependenciesRecursively: false,
+                        groups: [
+                            {
+                                name: 'vendor-runtime-helpers',
+                                test: (id) => {
+                                    const p = id.replace(/\\/g, '/');
+                                    return p.includes('vite/preload-helper') || p.includes('commonjsHelpers');
+                                },
+                                priority: 100,
+                            },
+                            ...Object.entries(VENDOR_CHUNKS).map(([name, pkgs]) => ({
+                                name,
+                                priority: 50,
+                                test: (id) => {
+                                    const p = id.replace(/\\/g, '/');
+                                    if (!p.includes('node_modules')) return false;
+                                    // Trailing slash so `react` cannot swallow `react-dom`.
+                                    return pkgs.some(pkg => p.includes(`node_modules/${pkg}/`));
+                                },
+                            })),
+                        ],
                     },
                 },
             },

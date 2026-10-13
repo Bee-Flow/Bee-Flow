@@ -30,7 +30,7 @@ const userStore = require('../../stores/userStore');
 const { requireAuth, requirePermission, isSuperAdmin } = require('../../auth/permissions');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may ask for ───────────────────────────────
 //
@@ -44,15 +44,11 @@ const { z } = require('zod');
 // the epoch"): the alternative they refused was silently moving the range to
 // 1970. A 400 would be better still, but that is the owner's call to make on
 // a contract with a written reason, not a side effect of adding a schema.
-const _word = (name) => z.string({ invalid_type_error: `${name} must be text.` }).optional();
+const _word = (name) => z.string({ error: typeError({ invalid: `${name} must be text.` }) }).optional();
 const AuditQuery = z.object({
     scope: _word('scope'),
-    action: z.union([z.string(), z.array(z.string())], {
-        errorMap: () => ({ message: 'action is an event name, or a comma-separated list of them.' }),
-    }).optional(),
-    actions: z.union([z.string(), z.array(z.string())], {
-        errorMap: () => ({ message: 'actions is a comma-separated list of event names.' }),
-    }).optional(),
+    action: z.union([z.string(), z.array(z.string())], { error: () => 'action is an event name, or a comma-separated list of them.' }).optional(),
+    actions: z.union([z.string(), z.array(z.string())], { error: () => 'actions is a comma-separated list of event names.' }).optional(),
     actor: _word('actor'),
     targetType: _word('targetType'),
     targetId: _word('targetId'),

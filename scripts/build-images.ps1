@@ -20,7 +20,6 @@
 # Env (precedence everywhere: explicit flag -> process env -> repo .env -> default):
 #   $env:REGISTRY   image namespace; default ghcr.io/bee-flow (matches docker-compose.from-registry.yml).
 #   $env:TAG        image tag for `build dev`; default 'dev'.
-#   $env:HF_TOKEN   required for reranker build (passed as build secret; also read from .env)
 #   $env:LICENSE_SERVER_SRC  Bee Flow-internal only: where the private license-server
 #                   source is checked out; default ../Bee-Flow-AI-internal/license-server
 #                   (relative paths resolve against the repo root, as in compose).
@@ -28,7 +27,12 @@
 #                   build - by far the slowest part of rebuilding that image for
 #                   local iteration. The resulting image will NOT serve a working
 #                   Nextcloud connector /embed/ shell. Never set this for a `prd`
-#                   build or anything you intend to push.
+#                   build or anything you intend to push. It also skips the server
+#                   image's App Studio runtime bundle (a Vite build of agent-hub;
+#                   Studio screenshots then report unavailable).
+#
+# The server image is staged and stamped like CI's (scripts/stage-server-context.sh,
+# APP_BUILD_SHA); the runtime bundle needs agent-hub/node_modules (cd agent-hub; npm ci).
 
 [CmdletBinding()]
 param(
@@ -99,10 +103,6 @@ if (-not $ComposeFile) {
     $ComposeFile = Get-EnvOrDotEnv "COMPOSE_FILE" "docker-compose.from-registry.yml"
 }
 
-# HF_TOKEN from .env (reranker build secret) unless already in the process env.
-$hf = Get-EnvOrDotEnv "HF_TOKEN" ""
-if ($hf -and -not $env:HF_TOKEN) { $env:HF_TOKEN = $hf }
-
 # license-server (the module hub) is Bee Flow-internal: its source lives in the
 # private Bee-Flow-AI-internal repository, not in this one. It is built from a
 # checkout of that repository next to this one, the same path
@@ -112,17 +112,10 @@ $LicenseServerSrc = Get-EnvOrDotEnv "LICENSE_SERVER_SRC" "../Bee-Flow-AI-interna
 
 # service | context | dockerfile (relative to context, empty = Dockerfile)
 # A relative context resolves against the repo root.
-# NOTE: GPU images (search-inference-gpu, whisperx) are deliberately NOT built
-# here — this box has no GPU and their CUDA bases are huge. CI still builds
-# them for GPU deployments (.github/workflows/build-push-ghcr.yml).
 $Services = @(
     [pscustomobject]@{ Name = "server";               Context = "server";          Dockerfile = "" }
     [pscustomobject]@{ Name = "agent-hub";            Context = "agent-hub";       Dockerfile = "" }
-    [pscustomobject]@{ Name = "search-api";           Context = "search-service";  Dockerfile = "Dockerfile" }
     [pscustomobject]@{ Name = "guard";                Context = "guard-service";   Dockerfile = "" }
-    [pscustomobject]@{ Name = "pii";                  Context = "pii-service";     Dockerfile = "" }
-    [pscustomobject]@{ Name = "install-wizard";       Context = "install-wizard";  Dockerfile = "" }
-    [pscustomobject]@{ Name = "reranker";             Context = "reranker";        Dockerfile = "" }
     [pscustomobject]@{ Name = "license-server";       Context = $LicenseServerSrc; Dockerfile = "" }
     # Headless-Chromium runner. NOT a compose service — the server spawns it via
     # the docker socket as the shared `bf-browser` container that backs the
@@ -132,8 +125,8 @@ $Services = @(
     [pscustomobject]@{ Name = "pwt-runner";           Context = "server/pwt-runner"; Dockerfile = "" }
 )
 
-# classify: CPU image, built only by CI (build-push-ghcr.yml). Not a GPU image;
-# it is left out because its model is baked in at build time and that build
+# classify: CPU image, built only by CI (build-push-ghcr.yml). It
+# is left out because its model is baked in at build time and that build
 # happens in one place only. `build dev` and `build dev classify` say so and
 # skip it; run it from ghcr.io/bee-flow/classify:<tag> instead.
 $CiOnlyServices = @("classify")
@@ -200,6 +193,39 @@ function Get-GitSha {
     } catch { }
     finally { $ErrorActionPreference = $old }
     return "local"
+}
+
+# The server image takes the App Studio runtime bundle and the SBOM from
+# gitignored folders of its build context; CI stages them
+# (scripts/stage-server-context.sh, shared with build-push-ghcr.yml and
+# build-images.sh). Best-effort like CI's non-prod run: the image is valid
+# without them, so a failure is a warning, never a failed build. The script is
+# bash, so this needs a bash on PATH (Git for Windows ships one); without it the
+# server image is built unstaged, as before. FAST_DEV=1 (dev only) skips the
+# runtime bundle, a Vite build of agent-hub.
+function Initialize-ServerContext {
+    param([string]$Env, [string]$Sha)
+    $what = if ($env:FAST_DEV -eq "1" -and $Env -ne "prd") { "sbom" } else { "all" }
+    $bash = Get-Command bash -ErrorAction SilentlyContinue
+    if (-not $bash) {
+        Write-Host "WARNING: bash not found - the server image is built WITHOUT the App Studio runtime bundle and the SBOM (CI stages both; install Git for Windows to get them)." -ForegroundColor Yellow
+        return
+    }
+    Write-Host "==> Staging the server build context ($what) ..."
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $oldSha = $env:BUILD_SHA
+    try {
+        $env:BUILD_SHA = $Sha
+        & $bash.Source "$RepoFwd/scripts/stage-server-context.sh" $what
+        $ok = ($LASTEXITCODE -eq 0)
+    } catch { $ok = $false } finally {
+        $env:BUILD_SHA = $oldSha
+        $ErrorActionPreference = $old
+    }
+    if (-not $ok) {
+        Write-Host "WARNING: server context staging failed - the image is built WITHOUT the App Studio runtime bundle and/or the SBOM (same as CI's non-prod fallback)." -ForegroundColor Yellow
+    }
 }
 
 # Which builder Build-One uses, decided once by Confirm-Builder below.
@@ -294,6 +320,12 @@ function Build-One {
         "server" {
             # DB-IP Lite edition month for the Dockerfile's `geo` stage (cache key).
             $extra += @("--build-arg", "GEO_DB_MONTH=$((Get-Date).ToUniversalTime().ToString('yyyy-MM'))")
+            # Same context staging and build stamp as CI (build-push-ghcr.yml, job
+            # `server`): the App Studio runtime bundle and the SBOM, which is
+            # stamped with the very sha baked in as APP_BUILD_SHA.
+            $buildSha = Get-GitSha
+            $extra += @("--build-arg", "APP_BUILD_SHA=$buildSha")
+            Initialize-ServerContext $Env $buildSha
         }
         "agent-hub" {
             $extra += @("--build-arg", "VITE_BUILD_SHA=$(Get-GitSha)")
@@ -303,24 +335,9 @@ function Build-One {
                 $extra += @("--build-arg", "BUILD_EMBED=false")
             }
         }
-        "reranker" {
-            if (-not $env:HF_TOKEN) {
-                # Explicitly asked for reranker → hard error. Part of a broader
-                # build (e.g. `build dev` with no service filter) → skip it with a
-                # warning instead of aborting every remaining service.
-                if ($Selected -and ($Selected -contains "reranker")) {
-                    throw "HF_TOKEN must be set to build reranker"
-                }
-                Write-Host "==> Skipping reranker - HF_TOKEN not set (set `$env:HF_TOKEN to include it)." -ForegroundColor Yellow
-                $script:BuildSkipped = $true
-                return
-            }
-            # docker reads the value straight from this process's environment.
-            $extra += @("--secret", "id=HF_TOKEN,env=HF_TOKEN")
-        }
         "license-server" {
             # Private source, checked out beside this repo (see $LicenseServerSrc
-            # above). Same rule as the reranker: named → hard error, bulk → skip.
+            # above). Named → hard error, bulk → skip.
             if (-not (Test-Path -LiteralPath "$ctxDir/Dockerfile")) {
                 if ($Selected -and ($Selected -contains "license-server")) {
                     throw "license-server is Bee Flow-internal and its source is not in this repository - no checkout at $ctxDir. Check out Bee-Flow-AI-internal next to this repo, or set `$env:LICENSE_SERVER_SRC."
@@ -374,7 +391,6 @@ function Confirm-Login {
 # A handful of build-image names differ from their docker-compose service name.
 $ComposeServiceMap = @{
     "guard" = "guard-service"
-    "pii"   = "pii-service"
 }
 
 # The guarantee: after a recreate, every container MUST be running the exact
@@ -483,7 +499,7 @@ function Update-Containers {
         # Services in the ACTIVE profile set only (COMPOSE_PROFILES from .env, or
         # profile-less files like docker-compose.dev.yml). Deliberately NOT
         # --profile '*': a bulk `build dev -Recreate` must never force-start
-        # profile-gated services (GPU, search, ...) the stack doesn't run.
+        # profile-gated services (guard, classify, ...) the stack doesn't run.
         $composeServices = @(& docker @composeBase config --services 2>$null)
         if ($LASTEXITCODE -ne 0 -or -not $composeServices) {
             throw "Could not list services in $ComposeFile - refusing to report success without recreating."
@@ -496,7 +512,7 @@ function Update-Containers {
             elseif ($Selected -contains $b) {
                 # Explicitly asked for on the command line, so it MUST land. Only a
                 # bulk build (no service filter) may quietly pass over the images
-                # that are not compose services at all (pwt-runner, install-wizard).
+                # that are not compose services at all (pwt-runner).
                 throw "'$b' was built but is not a service in the active stack ($ComposeFile) - it cannot be recreated, so the running containers would NOT have your changes."
             }
             else { Write-Host "==> '$b' is not in the active stack ($ComposeFile) - not recreating it." -ForegroundColor Yellow }

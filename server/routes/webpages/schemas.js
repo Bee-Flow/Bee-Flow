@@ -21,10 +21,10 @@
 
 'use strict';
 
-const { z } = require('zod');
+const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 
 /** Een string waarvan élke weigering — ook "je liet hem weg" — een zin is. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** Een body die óók geen body accepteert: Express 5 laat `req.body` dan undefined. */
 const bodyOf = (shape) => z.preprocess(
@@ -33,7 +33,7 @@ const bodyOf = (shape) => z.preprocess(
 );
 
 /** Een enum waarvan de weigering één zin is, voor een verkeerde waarde net zo goed. */
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const choice = (values, message) => z.enum(values, { error: () => message });
 
 /** Een "ja" op de query string. `?confirm=1` en `?confirm=true` allebei. */
 const flag = (message) => choice(['true', '1', 'false', '0'], message)
@@ -44,17 +44,15 @@ const flag = (message) => choice(['true', '1', 'false', '0'], message)
 const text = (message, max = 2000) => worded(message).trim().min(1, message).max(max, message);
 
 /** Een geheel getal op de query string. */
-const whole = (name) => z.coerce.number({ invalid_type_error: `${name} is een getal.` })
+const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} is een getal.` }) })
     .int(`${name} is een heel getal.`)
     .optional();
 
 /** Een lijst van id's — wat er ín staat is aan de store om te toetsen. */
-const idList = (message) => z.array(worded(message).trim().min(1, message), {
-    required_error: message, invalid_type_error: message,
-});
+const idList = (message) => z.array(worded(message).trim().min(1, message), { error: message });
 
 /** Niets. Gezegd in plaats van weggelaten: een genegeerde sleutel is een belofte. */
-const NO_QUERY = z.object({}).strict('Dit accepteert geen queryparameters.');
+const NO_QUERY = z.object({}, { error: onUnknownKeys('Dit accepteert geen queryparameters.') }).strict();
 const NOTHING = bodyOf({});
 
 module.exports = { worded, bodyOf, choice, flag, text, whole, idList, NO_QUERY, NOTHING };

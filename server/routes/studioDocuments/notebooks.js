@@ -25,13 +25,13 @@
 const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { notFound } = require('../../core/http/errors');
-const { z, worded, bodyOf } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
 
 const FOLDER_TEXT = 'folderId is the id of one of your document folders, or null for none.';
 const CATEGORY_TEXT = 'categories is a list of up to 30 short names.';
 const Filing = bodyOf({
     folderId: worded(FOLDER_TEXT).max(200, FOLDER_TEXT).nullable().optional(),
-    categories: z.array(worded(CATEGORY_TEXT).max(80, CATEGORY_TEXT), { invalid_type_error: CATEGORY_TEXT }).max(30, CATEGORY_TEXT).optional(),
+    categories: z.array(worded(CATEGORY_TEXT).max(80, CATEGORY_TEXT), { error: typeError({ invalid: CATEGORY_TEXT }) }).max(30, CATEGORY_TEXT).optional(),
 }, 'Filing a notebook');
 
 /**

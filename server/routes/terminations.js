@@ -46,7 +46,7 @@ const terminationStore = require('../stores/terminationStore');
 const { resolveUserOrgIds, isOrgAdminRole, requirePermission } = require('../auth');
 const userStore = require('../stores/userStore');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError, datetimeWithOffset } = require('../utils/zod');
 
 // What terminationStore.logTermination accepts (its VALID_TYPES) — the only
 // values a `type` filter can ever match.
@@ -57,21 +57,21 @@ const DATE_TEXT = (name) => `${name} is a date (2026-09-22) or a date and time w
 // Each branch carries the sentence too: a union answers with the first branch
 // that got as far as a CHECK, so the errorMap alone would leak "Invalid datetime".
 const when = (name) => z.union(
-    [z.string().datetime({ offset: true, message: DATE_TEXT(name) }), z.string().date(DATE_TEXT(name))],
-    { errorMap: () => ({ message: DATE_TEXT(name) }) },
+    [z.string().regex(datetimeWithOffset, DATE_TEXT(name)), z.string().date(DATE_TEXT(name))],
+    { error: () => DATE_TEXT(name) },
 ).optional();
-const who = (name) => z.string({ invalid_type_error: `${name} is one id.` }).trim().optional();
+const who = (name) => z.string({ error: typeError({ invalid: `${name} is one id.` }) }).trim().optional();
 
 const TerminationsQuery = z.object({
-    days: z.string({ invalid_type_error: DAYS_TEXT }).refine((v) => v === 'all' || /^[1-9]\d*$/.test(v), DAYS_TEXT).optional(),
+    days: z.string({ error: typeError({ invalid: DAYS_TEXT }) }).refine((v) => v === 'all' || /^[1-9]\d*$/.test(v), DAYS_TEXT).optional(),
     startDate: when('startDate'),
     endDate: when('endDate'),
     agent: who('agent'),
     user: who('user'),
-    type: z.enum(TERMINATION_TYPES, { errorMap: () => ({ message: `type is one of: ${TERMINATION_TYPES.join(', ')}.` }) }).optional(),
-    interval: z.enum(['hour', 'day'], { errorMap: () => ({ message: 'interval is "hour" or "day".' }) }).optional(),
+    type: z.enum(TERMINATION_TYPES, { error: () => `type is one of: ${TERMINATION_TYPES.join(', ')}.` }).optional(),
+    interval: z.enum(['hour', 'day'], { error: () => 'interval is "hour" or "day".' }).optional(),
     // Above 500 is answered with 500 rows, as before: a page, not a lie.
-    limit: z.coerce.number({ invalid_type_error: 'limit must be a number.' })
+    limit: z.coerce.number({ error: typeError({ invalid: 'limit must be a number.' }) })
         .int('limit must be a whole number.').min(1, 'limit must be at least 1.').optional(),
 }).strict();
 

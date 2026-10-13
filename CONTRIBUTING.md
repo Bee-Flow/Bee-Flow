@@ -47,29 +47,24 @@ npm run lint          # eslint 9
 
 ### Python services
 
-Install-free lint for the five FastAPI services (config in `ruff.toml`):
+Install-free lint for the Python FastAPI services (config in `ruff.toml`):
 
 ```bash
-uvx ruff check guard-service pii-service reranker search-service whisperx-service
+uvx ruff check guard-service classify-service
 ```
 
-### End-to-end suites
+### End-to-end suite
 
-Two separate Playwright suites exist — don't mix them up:
-
-- **`e2e/`** — the CI smoke harness. Specs are *generated* from Markdown
-  scenarios (`npm run gen`) and must not be hand-edited. It runs as a reusable
-  workflow on demand (`workflow_dispatch`); it is not yet wired in as a release
-  gate. See [e2e/README.md](./e2e/README.md).
-- **`playwright-tests/`** — hand-written UI regression tests against the
-  running local stack. Start here for new UI checks and edit the specs
-  directly. See [playwright-tests/README.md](./playwright-tests/README.md).
+The Playwright suite lives in **`e2e/`** — the CI smoke harness. Specs are
+*generated* from Markdown scenarios (`npm run gen`) and must not be hand-edited.
+It runs as a reusable workflow on demand (`workflow_dispatch`); it is not yet
+wired in as a release gate. See [e2e/README.md](./e2e/README.md).
 
 ## What CI runs on a pull request
 
-One workflow, `.github/workflows/ci.yml`: a `changes` job filters by path,
+The main workflow is `.github/workflows/ci.yml`: a `changes` job filters by path,
 the per-tree jobs (server, frontend, mobile, Python lint and tests, guard,
-Nextcloud connector and server) run for what changed, and
+Nextcloud connector and server, the desktop client) run for what changed, and
 `checks-passed` aggregates them into one context. Two more run on every pull
 request and again on every push to `main`: `scan` (`secret-scan.yml`,
 gitleaks over the tree and over the commits the PR or push adds) and `audit`

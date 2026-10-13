@@ -66,7 +66,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { assertUserCanUseOrg, hasPermission, Permissions } = require('../auth');
 const datatableStore = require('../stores/datatableStore');
 const { resolveDatatablePrincipal } = require('../auth/datatableAccess');
@@ -104,15 +104,15 @@ const DescribeQuery = z.object({
 
 const COLUMN_TEXT = 'Each declared column is { col, header, type } — col the 0-based column number.';
 const SheetColumn = z.object({
-    col: z.number({ required_error: COLUMN_TEXT, invalid_type_error: COLUMN_TEXT }).int(COLUMN_TEXT).min(0, COLUMN_TEXT),
+    col: z.number({ error: COLUMN_TEXT }).int(COLUMN_TEXT).min(0, COLUMN_TEXT),
     // What the wizard saw in the header cell, for the "is now …" warning.
-    header: z.union([z.string(), z.number()], { errorMap: () => ({ message: COLUMN_TEXT }) }).nullish(),
+    header: z.union([z.string(), z.number()], { error: () => COLUMN_TEXT }).nullish(),
     // The word is link.js's to judge (DECLARABLE_TYPES), with the sheet's ref on the refusal.
     type: worded(COLUMN_TEXT).nullish(),
-}, { invalid_type_error: COLUMN_TEXT }).strict();
+}, { error: typeError({ invalid: COLUMN_TEXT }) }).strict();
 
 const SHEET_TEXT = 'Each sheet to link is { provider, fileId, sheet, headerRow, keyColumn, columns, name, key }.';
-const whole = (message) => z.number({ invalid_type_error: message }).int(message).nullish();
+const whole = (message) => z.number({ error: typeError({ invalid: message }) }).int(message).nullish();
 const LinkSheet = z.object({
     provider: worded(SHEET_TEXT).optional(),
     fileId: worded(SHEET_TEXT).optional(),
@@ -121,19 +121,19 @@ const LinkSheet = z.object({
     sheet: worded('sheet is the name of a sheet in the file, or null for a CSV.').nullish(),
     headerRow: whole('headerRow is the row number of the header, from 1.'),
     keyColumn: whole('keyColumn is the 0-based number of the key column, or null for row numbers.'),
-    columns: z.array(SheetColumn, { invalid_type_error: COLUMN_TEXT }).optional(),
-    sharedWriteOptIn: z.boolean({ invalid_type_error: 'sharedWriteOptIn is true or false.' }).optional(),
+    columns: z.array(SheetColumn, { error: typeError({ invalid: COLUMN_TEXT }) }).optional(),
+    sharedWriteOptIn: z.boolean({ error: typeError({ invalid: 'sharedWriteOptIn is true or false.' }) }).optional(),
     name: worded('A table name is text.').optional(),
     key: worded('A technical name is text.').optional(),
     description: worded('A table\'s purpose is text.').optional(),
-}, { invalid_type_error: SHEET_TEXT }).strict();
+}, { error: typeError({ invalid: SHEET_TEXT }) }).strict();
 
 const LinkBody = bodyOf({
     scope: scopeWord(),
     // An empty or missing list is link.js's refusal, in its own words.
-    tables: z.array(LinkSheet, { invalid_type_error: SHEET_TEXT }).optional(),
+    tables: z.array(LinkSheet, { error: typeError({ invalid: SHEET_TEXT }) }).optional(),
     // A side that names no linked sheet is a WARNING from link.js, not a refusal.
-    relations: z.array(z.record(z.unknown()), { invalid_type_error: 'relations is a list of { from, to } pairs.' }).optional(),
+    relations: z.array(z.record(z.string(), z.unknown()), { error: typeError({ invalid: 'relations is a list of { from, to } pairs.' }) }).optional(),
 });
 
 const KIND = 'spreadsheet_file';

@@ -99,7 +99,7 @@ const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -118,17 +118,17 @@ const { z } = require('zod');
 //     RAN EVERY TEST, which is up to 25 agent turns on somebody's plan.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-const whole = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
+const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
 const RunsQuery = z.object({ limit: whole('limit') }).strict();
 
 const QUESTION_TEXT = 'Write the question this agent should answer.';
-const listOf = (name) => z.array(worded(`${name} is a list of phrases.`), { invalid_type_error: `${name} is a list of phrases.` }).optional();
+const listOf = (name) => z.array(worded(`${name} is a list of phrases.`), { error: typeError({ invalid: `${name} is a list of phrases.` }) }).optional();
 
 /** The five things a test may check. Anything else is a typo, not a check. */
 const Expect = z.object({
@@ -140,7 +140,7 @@ const Expect = z.object({
 }).strict();
 
 const SOURCE_TEXT = 'writtenBy names, per field, one of: ai, observed, human, empty.';
-const FieldSource = z.enum(['ai', 'observed', 'human', 'empty'], { errorMap: () => ({ message: SOURCE_TEXT }) });
+const FieldSource = z.enum(['ai', 'observed', 'human', 'empty'], { error: () => SOURCE_TEXT });
 const WrittenBy = z.object({
     mustMention: FieldSource.optional(),
     mustNotMention: FieldSource.optional(),
@@ -167,11 +167,11 @@ const PatchBody = bodyOf({
 const SuggestBody = bodyOf({
     question: worded('question must be text.').optional(),
     answer: worded('answer must be text.').optional(),
-    toolsUsed: z.array(z.unknown(), { invalid_type_error: 'toolsUsed is a list.' }).optional(),
+    toolsUsed: z.array(z.unknown(), { error: typeError({ invalid: 'toolsUsed is a list.' }) }).optional(),
 });
 
 const RunBody = bodyOf({
-    testIds: z.array(worded('testIds is a list of test ids.'), { invalid_type_error: 'testIds is a list of test ids.' }).optional(),
+    testIds: z.array(worded('testIds is a list of test ids.'), { error: typeError({ invalid: 'testIds is a list of test ids.' }) }).optional(),
     // LEFT OPEN on purpose: `gateTestAsRequest` already refuses a group that
     // is not a usable id, and it refuses it with its OWN codes
     // (`test_as_invalid_group`, `test_as_group_not_found`) that the tab reads.

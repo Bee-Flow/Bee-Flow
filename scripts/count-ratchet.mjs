@@ -40,6 +40,13 @@
  *   line-ref          comment lines that point at a line number (`L353`,
  *                     `file.js#L3922`). The comment policy: name a symbol,
  *                     never a position — every one of these had gone stale.
+ *   status-5xx        `.status(5xx)` calls with a literal 5xx status in non-test
+ *                     code: a route that answers a server failure by hand. The
+ *                     convention is to throw an HttpError (or next(err)) and
+ *                     let core/http/terminalErrorHandler.js answer with a
+ *                     correlation id. The eslint rule already forbids echoing
+ *                     err.message in these; this metric counts all of them, so
+ *                     the hand-written 5xx responses can only go down.
  *   dutch-comment     files with at least one comment line in Dutch (two
  *                     distinct Dutch function words on one comment line). The
  *                     comment policy is English in code; Dutch belongs in the
@@ -111,6 +118,12 @@ const METRICS = {
         },
         what: 'comments pointing at a line number',
         advice: 'name the function or symbol instead — line numbers go stale with the next edit above them',
+    },
+    'status-5xx': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: countMatches(/\.status\(\s*5\d\d\s*\)/g),
+        what: 'hand-written .status(5xx) responses',
+        advice: 'throw an HttpError (core/http/errors.js) or call next(err) and let core/http/terminalErrorHandler.js answer',
     },
     'dutch-comment': {
         // The dictionaries hold translations and translator notes; their

@@ -10,7 +10,7 @@
 
 'use strict';
 
-const { z } = require('zod');
+const { z, typeError, onUnknownKeys } = require('../../utils/zod');
 const { normaliseLocale } = require('../../playbooks/copy');
 const { MAX_BRIEF_CHARS } = require('../../playbooks/recipeDoc');
 const { MAX_DESIGN_BRIEF_CHARS } = require('../../playbooks/phases/designPhase');
@@ -68,10 +68,10 @@ const { worded, unknownKeysText } = require('../../core/http/schemaParts');
 /** An object that refuses a key it does not know, in a sentence naming what `subject` does take. */
 const closedObject = (shape, subject = 'This request') => {
     const known = Object.keys(shape);
-    const errorMap = (issue, ctx) => (issue.code === 'unrecognized_keys'
-        ? { message: unknownKeysText(issue.keys, known, subject) }
-        : { message: ctx.defaultError });
-    return z.object(shape, { errorMap }).strict();
+    const error = (iss) => (iss.code === 'unrecognized_keys'
+        ? unknownKeysText(iss.keys, known, subject)
+        : undefined);
+    return z.object(shape, { error }).strict();
 };
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
@@ -106,7 +106,7 @@ const VERSION_TEXT = 'expectedVersion is the version this playbook had when you 
  * Every client sends the number it read from the playbook's JSON
  * (usePlaybook/phaseMachine, scripts/drive-playbook.js; mobile has none).
  */
-const expectedVersion = () => z.number({ required_error: VERSION_TEXT, invalid_type_error: VERSION_TEXT })
+const expectedVersion = () => z.number({ error: VERSION_TEXT })
     .int(VERSION_TEXT).optional();
 
 /**
@@ -132,6 +132,8 @@ function isObject(v) { return v !== null && typeof v === 'object' && !Array.isAr
 
 module.exports = {
     z,
+    typeError,
+    onUnknownKeys,
     worded,
     closedObject,
     bodyOf,

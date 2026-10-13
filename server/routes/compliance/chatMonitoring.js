@@ -29,7 +29,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const router = express.Router();
 
 const complianceStore = require('../../stores/complianceStore');
@@ -59,19 +59,15 @@ const STRUCTURAL_CODES = Object.freeze(['surfaces_required', 'surface_not_availa
 
 // ── What a caller may send ──────────────────────────────────────────────
 
-const oneOf = (name, values) => z.enum(/** @type {[string, ...string[]]} */ ([...values]), {
-    errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }),
-});
-const flag = (name) => z.boolean({ required_error: `${name} is true or false.`, invalid_type_error: `${name} is true or false.` });
-const uniqueList = (name, values, max) => z.array(oneOf(name, values), {
-    required_error: `${name} is a list.`, invalid_type_error: `${name} is a list.`,
-})
+const oneOf = (name, values) => z.enum(/** @type {[string, ...string[]]} */ ([...values]), { error: () => `${name} is one of: ${values.join(', ')}.` });
+const flag = (name) => z.boolean({ error: `${name} is true or false.` });
+const uniqueList = (name, values, max) => z.array(oneOf(name, values), { error: `${name} is a list.` })
     .max(max, `${name} has at most ${max} entries.`)
     .refine(a => new Set(a).size === a.length, `${name} lists each value once.`);
-const date = (name) => z.string({ required_error: `${name} is a date (YYYY-MM-DD) or null.`, invalid_type_error: `${name} is a date (YYYY-MM-DD) or null.` })
+const date = (name) => z.string({ error: `${name} is a date (YYYY-MM-DD) or null.` })
     .refine(v => rules.dayString(v) === v, `${name} is a date (YYYY-MM-DD) or null.`)
     .nullable();
-const retention = (name) => z.number({ required_error: `${name} is a number of days.`, invalid_type_error: `${name} is a number of days.` })
+const retention = (name) => z.number({ error: `${name} is a number of days.` })
     .int(`${name} is a whole number of days.`)
     .min(V.RETENTION.min, `${name} is at least ${V.RETENTION.min} days.`)
     .max(V.RETENTION.max, `${name} is at most ${V.RETENTION.max} days.`);
@@ -80,15 +76,15 @@ const Scope = z.object({
     surfaces: uniqueList('works_council_scope.surfaces', V.SURFACES, V.SURFACES.length),
     signals: uniqueList('works_council_scope.signals', V.SIGNALS, V.SIGNALS.length),
     max_retention_days: retention('works_council_scope.max_retention_days'),
-}, { required_error: 'works_council_scope is an object or null.', invalid_type_error: 'works_council_scope is an object or null.' })
-    .strict('works_council_scope takes surfaces, signals and max_retention_days only.')
+}, { error: onUnknownKeys('works_council_scope takes surfaces, signals and max_retention_days only.', typeError({ required: 'works_council_scope is an object or null.', invalid: 'works_council_scope is an object or null.' })) })
+    .strict()
     .nullable();
 
 const PutBody = z.object({
     enabled: flag('enabled'),
     surfaces: uniqueList('surfaces', V.SURFACES, V.SURFACES.length),
     signals: uniqueList('signals', V.SIGNALS, V.SIGNALS.length),
-    effective_from: z.string({ invalid_type_error: 'effective_from is a moment (ISO 8601) or null.' })
+    effective_from: z.string({ error: typeError({ invalid: 'effective_from is a moment (ISO 8601) or null.' }) })
         .max(40, 'effective_from is a moment (ISO 8601) or null.').nullish(),
     retention_days: retention('retention_days'),
     legal_basis: oneOf('legal_basis', V.LEGAL_BASES).nullable(),
@@ -96,13 +92,13 @@ const PutBody = z.object({
     works_council_reason: oneOf('works_council_reason', V.WORKS_COUNCIL_REASONS).nullable(),
     works_council_at: date('works_council_at'),
     works_council_scope: Scope,
-    dpia_ref: z.string({ required_error: 'dpia_ref is text or null.', invalid_type_error: 'dpia_ref is text or null.' })
+    dpia_ref: z.string({ error: 'dpia_ref is text or null.' })
         .trim().min(1, 'dpia_ref is text or null.').max(200, 'dpia_ref is at most 200 characters.').nullable(),
     dpia_at: date('dpia_at'),
     dpia_risk_level: oneOf('dpia_risk_level', V.DPIA_RISK_LEVELS).nullable(),
     dpo_advice_at: date('dpo_advice_at'),
     prior_consultation_at: date('prior_consultation_at'),
-    notice_url: z.string({ required_error: 'notice_url is an https link or null.', invalid_type_error: 'notice_url is an https link or null.' })
+    notice_url: z.string({ error: 'notice_url is an https link or null.' })
         .max(500, 'notice_url is at most 500 characters.')
         .refine(v => rules.httpsUrl(v) !== null, 'notice_url is an https link or null.')
         .nullable(),
@@ -112,15 +108,15 @@ const PutBody = z.object({
         ropa_reviewed: flag('acknowledgements.ropa_reviewed').optional(),
         informed_before_start: flag('acknowledgements.informed_before_start').optional(),
         lia_documented: flag('acknowledgements.lia_documented').optional(),
-    }, { invalid_type_error: 'acknowledgements is an object.' })
-        .strict('acknowledgements takes notice_published, ropa_reviewed, informed_before_start and lia_documented only.')
-        .default({}),
-}, { invalid_type_error: 'The body is a JSON object.' }).strict('The body has a field chat signals do not know.');
+    }, { error: onUnknownKeys('acknowledgements takes notice_published, ropa_reviewed, informed_before_start and lia_documented only.', typeError({ invalid: 'acknowledgements is an object.' })) })
+        .strict()
+        .prefault({}),
+}, { error: onUnknownKeys('The body has a field chat signals do not know.', typeError({ invalid: 'The body is a JSON object.' })) }).strict();
 
 const SummaryQuery = z.object({
-    days: z.enum(['30', '90'], { errorMap: () => ({ message: 'days is 30 or 90.' }) }).optional(),
-}).strict('The summary takes days only.');
-const NoQuery = z.object({}).strict('This takes no query parameters.');
+    days: z.enum(['30', '90'], { error: () => 'days is 30 or 90.' }).optional(),
+}, { error: onUnknownKeys('The summary takes days only.') }).strict();
+const NoQuery = z.object({}, { error: onUnknownKeys('This takes no query parameters.') }).strict();
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 

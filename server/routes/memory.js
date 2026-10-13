@@ -65,7 +65,7 @@ const memoryPolicy = require('../core/memory/memoryPolicy');
 const { resolveMemoryPolicy, getOrgMemorySettings } = memoryPolicy;
 const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 const router = express.Router();
 
@@ -102,7 +102,7 @@ const MEMORY_TYPES = [
 // path would leave the identical hole one verb away.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
 const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
@@ -118,7 +118,7 @@ const IMPORTANCE_TEXT = 'importance is a number from 0 to 1.';
 const memoryContent = worded(CONTENT_TEXT)
     .max(MAX_CONTENT_CHARS, `content exceeds ${MAX_CONTENT_CHARS} characters`)
     .trim().min(1, CONTENT_TEXT);
-const memoryType = z.enum([...VALID_TYPES], { errorMap: () => ({ message: TYPE_TEXT }) });
+const memoryType = z.enum([...VALID_TYPES], { error: () => TYPE_TEXT });
 /** A blank summary is no summary: the store then derives one from the content. */
 const memorySummary = worded(SUMMARY_TEXT).max(MAX_SUMMARY_CHARS, SUMMARY_TEXT)
     .transform((v) => v.trim() || null).nullish();
@@ -128,7 +128,7 @@ const memorySummary = worded(SUMMARY_TEXT).max(MAX_SUMMARY_CHARS, SUMMARY_TEXT)
  */
 const memoryImportance = z.preprocess(
     (v) => (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : v),
-    z.number({ invalid_type_error: IMPORTANCE_TEXT }).finite(IMPORTANCE_TEXT)
+    z.number({ error: typeError({ invalid: IMPORTANCE_TEXT }) }).finite(IMPORTANCE_TEXT)
         .transform((n) => Math.min(1, Math.max(0, n))),
 ).nullish();
 const optionalId = (what) => worded(`${what} is an id.`).trim().max(200, `${what} is at most 200 characters.`).nullish();
@@ -153,14 +153,14 @@ const UpdateMemoryBody = orEmpty(z.object({
 ));
 
 const BulkUpdateBody = orEmpty(z.object({
-    ids: z.array(worded('Each id is the id of a memory.'), { required_error: 'ids array is required', invalid_type_error: 'ids array is required' })
+    ids: z.array(worded('Each id is the id of a memory.'), { error: 'ids array is required' })
         .min(1, 'ids array is required')
         .max(500, 'Update at most 500 memories at a time.'),
     type: memoryType,
 }).strict());
 
 const BulkDeleteBody = orEmpty(z.object({
-    ids: z.array(worded('Each id is the id of a memory.'), { required_error: 'ids array is required', invalid_type_error: 'ids array is required' })
+    ids: z.array(worded('Each id is the id of a memory.'), { error: 'ids array is required' })
         .min(1, 'ids array is required')
         .max(500, 'Delete at most 500 memories at a time.'),
 }).strict());
@@ -175,7 +175,7 @@ const PROJECT_ID_TEXT = 'projectId is the id of the project whose memory to clea
 const ClearBody = orEmpty(z.object({
     projectId: worded(PROJECT_ID_TEXT).trim().min(1, PROJECT_ID_TEXT)
         .max(200, 'projectId is at most 200 characters.').optional(),
-}, { invalid_type_error: 'The body is empty, or names the project to clear: {"projectId": "…"}.' }).strict());
+}, { error: typeError({ invalid: 'The body is empty, or names the project to clear: {"projectId": "…"}.' }) }).strict());
 
 const ImportBody = orEmpty(z.object({
     // The byte limit is the handler's: it is a limit on bytes, not characters.
@@ -191,9 +191,9 @@ function pageNumber(name, { min, max, fallback }) {
     const text = `${name} is a whole number.`;
     return worded(text).trim().regex(/^-?\d+$/, text)
         .transform((v) => Math.min(Math.max(Number(v), min), max))
-        .default(String(fallback));
+        .prefault(String(fallback));
 }
-const oneOf = (name, values) => z.enum(values, { errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }) });
+const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 const ListQuery = orEmpty(z.object({
     scope: oneOf('scope', memoryQueries.SCOPES).optional(),
     origin: oneOf('origin', ['explicit', 'inferred', 'imported', 'tool']).optional(),
@@ -201,7 +201,7 @@ const ListQuery = orEmpty(z.object({
     sort: oneOf('sort', memoryQueries.SORTS).optional(),
     agentId: worded('agentId is an id.').trim().max(200, 'agentId is at most 200 characters.').optional(),
     projectId: worded('projectId is an id.').trim().max(200, 'projectId is at most 200 characters.').optional(),
-    type: z.enum(LIST_TYPES, { errorMap: () => ({ message: `type is one of: ${LIST_TYPES.join(', ')}.` }) }).optional(),
+    type: z.enum(LIST_TYPES, { error: () => `type is one of: ${LIST_TYPES.join(', ')}.` }).optional(),
     search: worded('The search term must be text.').trim().max(200, 'The search term is at most 200 characters.').optional(),
     // The same clamp the store applies (1–200), so the echoed limit is honest.
     limit: pageNumber('limit', { min: 1, max: 200, fallback: 50 }),
@@ -218,7 +218,7 @@ const IdsQuery = orEmpty(z.object({
 
 /** `?undo=1` is the chip's Undo; nothing else is accepted. */
 const DeleteQuery = orEmpty(z.object({
-    undo: z.literal('1', { errorMap: () => ({ message: 'undo is 1 or left out.' }) }).optional(),
+    undo: z.literal('1', { error: () => 'undo is 1 or left out.' }).optional(),
 }).strict());
 
 const RecentQuery = orEmpty(z.object({

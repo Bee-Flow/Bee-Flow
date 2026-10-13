@@ -5,7 +5,7 @@
 
 const express = require('express');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** The review button posts nothing; this stamp reads nothing out of a body. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());

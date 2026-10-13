@@ -10,10 +10,10 @@ const router = express.Router();
 
 const { loadConfig, saveConfig, requireSuperAdmin } = require('../permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const URL_TEXT = 'Enter the Nextcloud URL of this installation.';
 const CLIENT_ID_TEXT = 'Enter the OAuth client id of this installation.';

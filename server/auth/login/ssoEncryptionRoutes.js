@@ -11,10 +11,10 @@ const router = express.Router();
 
 const { setupSSOUserDEK, unlockSSOUserDEK, unlockWithRecoveryKey, secureClear } = require('../encryption');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const MIN_PIN = 6;
 const PIN_TEXT = `Encryption PIN must be at least ${MIN_PIN} characters`;

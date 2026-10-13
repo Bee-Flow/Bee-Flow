@@ -1189,3 +1189,84 @@ describe('AppDataGrid — new props at their defaults are the identity path', ()
         expect(withDefaults).toBe(plain);
     });
 });
+
+/*
+ * Table-engine parity (@tanstack/react-table 8 -> 9). These pin behaviour the
+ * engine owns and the older tests above do not reach: the tri-state select-all
+ * checkbox, the page reset after a filter change, the 'auto' sort choice and
+ * the single-select mode. Expectations are the v8 behaviour.
+ */
+describe('AppDataGrid — table engine parity', () => {
+    const lastSelected = (runAction) => {
+        const calls = runAction.mock.calls.filter(([id]) => id === 'act_sel');
+        return calls[calls.length - 1][1].formValues.selected.map((r) => r.name);
+    };
+
+    it('select-all is indeterminate only for a partial selection and selects every page', () => {
+        const runAction = vi.fn();
+        const { getAllByLabelText, getByLabelText } = withRuntime(
+            <AppDataGrid node={gridNode({ onRowSelect: 'act_sel' }, { selectable: 'multi', pageSize: 2 })} />,
+            { runAction },
+        );
+        const all = () => getByLabelText('Select all rows');
+        expect(all().indeterminate).toBe(false);
+        expect(all().checked).toBe(false);
+        fireEvent.click(getAllByLabelText('Select row')[0]);
+        expect(all().indeterminate).toBe(true);
+        expect(all().checked).toBe(false);
+        fireEvent.click(all());
+        expect(all().indeterminate).toBe(false);
+        expect(all().checked).toBe(true);
+        expect(lastSelected(runAction)).toHaveLength(5);
+        fireEvent.click(all());
+        expect(all().indeterminate).toBe(false);
+        expect(all().checked).toBe(false);
+        expect(lastSelected(runAction)).toHaveLength(0);
+    });
+
+    it("selectable:'single' keeps at most one row selected", () => {
+        const runAction = vi.fn();
+        const { getAllByLabelText } = withRuntime(
+            <AppDataGrid node={gridNode({ onRowSelect: 'act_sel' }, { selectable: 'single' })} />,
+            { runAction },
+        );
+        fireEvent.click(getAllByLabelText('Select row')[0]);
+        fireEvent.click(getAllByLabelText('Select row')[1]);
+        expect(lastSelected(runAction)).toEqual(['Amy']);
+    });
+
+    it('returns to the first page when the search changes', async () => {
+        const { container, getByLabelText, findByText } = withRuntime(
+            <AppDataGrid node={gridNode({}, { searchable: true, pageSize: 2 })} />,
+        );
+        fireEvent.click(getByLabelText('Next page'));
+        expect(bodyRowTexts(container)).toEqual(['Max', 'Bea']);
+        fireEvent.change(getByLabelText('Search rows'), { target: { value: 'e' } });
+        await findByText('Amy');
+        // 'e' also hits the status column (done/open), so all five rows match:
+        // what matters is that page 1 is showing again, not page 2.
+        expect(bodyRowTexts(container)).toEqual(['Zoe', 'Amy']);
+    });
+
+    it("sorts text naturally ('auto' picks alphanumeric) and dates chronologically", () => {
+        const rows = [
+            { id: 1, name: 'item10', when: new Date('2024-03-01T00:00:00Z') },
+            { id: 2, name: 'item2', when: new Date('2023-01-01T00:00:00Z') },
+            { id: 3, name: 'item1', when: new Date('2025-06-01T00:00:00Z') },
+        ];
+        const columns = [
+            { key: 'name', label: 'Name', format: 'text', sortable: true },
+            { key: 'when', label: 'When', format: 'text', sortable: true },
+        ];
+        const { container, getByRole } = withRuntime(
+            <AppDataGrid node={gridNode({}, { source: { kind: 'static', value: rows }, columns })} />,
+        );
+        fireEvent.click(getByRole('button', { name: /Name/ }));
+        expect(bodyRowTexts(container)).toEqual(['item1', 'item2', 'item10']);
+        // A non-string column starts descending (v8 and v9 alike), then flips.
+        fireEvent.click(getByRole('button', { name: /When/ }));
+        expect(bodyRowTexts(container)).toEqual(['item1', 'item10', 'item2']);
+        fireEvent.click(getByRole('button', { name: /When/ }));
+        expect(bodyRowTexts(container)).toEqual(['item2', 'item10', 'item1']);
+    });
+});

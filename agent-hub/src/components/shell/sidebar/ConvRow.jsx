@@ -4,6 +4,7 @@ import CreateLabelInline from './CreateLabelInline';
 import DeleteConversationDialog from './DeleteConversationDialog';
 import EditLabelInline from './EditLabelInline';
 import { ACCENT_BAR_CONV, CONV_ROW, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
+import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 import { projectChipStyle, projectIcon } from '../../projects/workspace/projectVisuals';
 import useConfirm from '../../shared/useConfirm';
 
@@ -26,12 +27,7 @@ const ConvRow = ({
     const [confirmDelete, setConfirmDelete] = useState(false);
 
     // Close menu on outside click
-    useEffect(() => {
-        if (!showMenu) return;
-        const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
-        document.addEventListener('mousedown', close);
-        return () => document.removeEventListener('mousedown', close);
-    }, [showMenu]);
+    useOutsideDismiss(menuRef, () => setShowMenu(false), { enabled: showMenu, escape: false, defer: false });
 
     // Focus input when rename starts
     useEffect(() => {

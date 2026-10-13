@@ -12,7 +12,7 @@
 const express = require('express');
 const log = require('../../../telemetry/log');
 const router = express.Router();
-const { z } = require('zod');
+const { z } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 
 const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
@@ -40,7 +40,7 @@ function validateLayerForSummary(layer) {
 const SummariseLayerBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     layer: z.unknown().superRefine((layer, ctx) => {
         const invalid = validateLayerForSummary(layer);
-        if (invalid) ctx.addIssue({ code: z.ZodIssueCode.custom, message: invalid });
+        if (invalid) ctx.addIssue({ code: 'custom', message: invalid });
     }),
 }).strict());
 

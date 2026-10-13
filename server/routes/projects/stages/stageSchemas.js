@@ -8,7 +8,7 @@
  * applyBindings.validateBinding); here they are only bounded in size.
  */
 
-const { z, worded, bodyOf, queryOf, closedObject, choice, flag, wholeNumber } = require('../../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, closedObject, choice, flag, wholeNumber, typeError } = require('../../../core/http/schemaParts');
 
 const ID_MAX = 200;
 const KEY_MAX = 128;
@@ -27,14 +27,14 @@ const DEPLOY_KINDS = ['deploy', 'rollback', 'redeploy'];
 const boundedJson = (message) => z.unknown().refine((v) => {
     try { return JSON.stringify(v).length <= MAX_JSON_BYTES; } catch { return false; }
 }, message);
-const jsonObject = (message) => z.record(z.unknown(), { invalid_type_error: message }).refine((v) => {
+const jsonObject = (message) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: message }) }).refine((v) => {
     try { return JSON.stringify(v).length <= MAX_JSON_BYTES; } catch { return false; }
 }, message);
 
 // ── Stages ────────────────────────────────────────────────────────────────────
 
 const CreateStagesBody = bodyOf({
-    stages: z.array(stageName, { required_error: 'stages lists the stages to create: uat, prd.', invalid_type_error: 'stages lists the stages to create: uat, prd.' })
+    stages: z.array(stageName, { error: 'stages lists the stages to create: uat, prd.' })
         .min(1, 'Create at least one stage.').max(2, 'There are two stages: uat and prd.')
         .refine((l) => new Set(l).size === l.length, 'Name each stage once.'),
     requestKey: requestKey.optional(),
@@ -71,7 +71,7 @@ const PutBindingsBody = bodyOf({
     bindings: z.array(closedObject({
         slot: anId('A binding needs a slot.'),
         value: boundedJson('A binding value is a small JSON document.').nullable(),
-    }, 'A binding'), { required_error: 'bindings is a list of { slot, value }.', invalid_type_error: 'bindings is a list of { slot, value }.' })
+    }, 'A binding'), { error: 'bindings is a list of { slot, value }.' })
         .min(1, 'Give at least one binding.').max(200, 'At most 200 bindings per request.'),
 }, 'Writing bindings');
 
@@ -88,16 +88,16 @@ const variableDecl = closedObject({
 }, 'A variable');
 
 const PutVariablesBody = bodyOf({
-    variables: z.array(variableDecl, { required_error: 'variables is a list.', invalid_type_error: 'variables is a list.' })
+    variables: z.array(variableDecl, { error: 'variables is a list.' })
         .max(100, 'A Solution has at most 100 variables.'),
 }, 'Declaring variables');
 
 const valueScalar = z.union([
     z.string().max(2000, 'A variable value has at most 2000 characters.'), z.number().finite(), z.boolean(), z.null(),
-], { errorMap: () => ({ message: 'A variable value is text, a number, true/false, or null to clear it.' }) });
+], { error: () => 'A variable value is text, a number, true/false, or null to clear it.' });
 
 const PutValuesBody = bodyOf({
-    values: z.record(valueScalar, { required_error: 'values is { name: value }.', invalid_type_error: 'values is { name: value }.' })
+    values: z.record(z.string(), valueScalar, { error: typeError({ required: 'values is { name: value }.', invalid: 'values is { name: value }.' }) })
         .refine((v) => Object.keys(v).length >= 1, 'Give at least one value.')
         .refine((v) => Object.keys(v).length <= 100, 'At most 100 values per request.'),
 }, 'Entering variable values');
@@ -136,7 +136,7 @@ const acknowledgement = closedObject({
     ref: anId('ref is a part ref.').nullable().optional(),
     docRef: anId('docRef is a document ref.').nullable().optional(),
 }, 'An acknowledgement');
-const acknowledgements = z.array(acknowledgement, { invalid_type_error: 'acknowledgements is a list of { code, ref?, docRef? }.' })
+const acknowledgements = z.array(acknowledgement, { error: typeError({ invalid: 'acknowledgements is a list of { code, ref?, docRef? }.' }) })
     .max(300, 'At most 300 acknowledgements.');
 
 const PlanBody = bodyOf({
@@ -146,17 +146,17 @@ const PlanBody = bodyOf({
 
 const DeployBody = bodyOf({
     releaseId: anId('releaseId is the id of a release.').nullable().optional(),
-    kind: choice(DEPLOY_KINDS, 'kind is deploy, rollback or redeploy.').default('deploy'),
+    kind: choice(DEPLOY_KINDS, 'kind is deploy, rollback or redeploy.').prefault('deploy'),
     planHash: worded('planHash is the hash of the plan that was reviewed.').trim().min(1, 'planHash is the hash of the plan that was reviewed.').max(200, 'planHash is the hash of the plan.'),
     requestKey,
-    acknowledgements: acknowledgements.default([]),
+    acknowledgements: acknowledgements.prefault([]),
     note: worded('note is text.').max(500, 'note has at most 500 characters.').optional(),
 }, 'Deploying a release');
 
 const ReleaseAndDeployBody = bodyOf({
     requestKey,
     notes: worded('notes is text.').max(NOTE_MAX, `notes has at most ${NOTE_MAX} characters.`).optional(),
-    acknowledgements: acknowledgements.default([]),
+    acknowledgements: acknowledgements.prefault([]),
 }, 'Cutting a release and deploying it');
 
 const DeploymentsQuery = queryOf({

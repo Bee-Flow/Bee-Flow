@@ -24,7 +24,7 @@ const router = express.Router();
 const { requireAuth } = require('../../../auth/permissions');
 const { isAdminUser } = require('./shared');
 const { validate } = require('../../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 
 async function requireAdmin(req, res, next) {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
@@ -38,20 +38,20 @@ async function requireAdmin(req, res, next) {
 // setModelCost stores Number(input): "2,5" became NaN, '' became a free model.
 
 const COSTS_TEXT = 'costs must be an array of { model, input, output }';
-const price = (which) => z.number({ invalid_type_error: `The ${which} price is a number (per million tokens).` })
+const price = (which) => z.number({ error: typeError({ invalid: `The ${which} price is a number (per million tokens).` }) })
     .nonnegative(`The ${which} price cannot be negative.`);
 
 const CostEntry = z.object({
-    model: z.string({ required_error: 'Each cost names the model it prices.', invalid_type_error: 'Each cost names the model it prices.' })
+    model: z.string({ error: 'Each cost names the model it prices.' })
         .trim().min(1, 'Each cost names the model it prices.'),
     input: price('input').optional(),
     output: price('output').optional(),
-    reset: z.boolean({ invalid_type_error: 'reset is true or false.' }).optional(),
-}, { invalid_type_error: COSTS_TEXT }).strict().superRefine((c, ctx) => {
+    reset: z.boolean({ error: typeError({ invalid: 'reset is true or false.' }) }).optional(),
+}, { error: typeError({ invalid: COSTS_TEXT }) }).strict().superRefine((c, ctx) => {
     if (c.reset) return;
     if (c.input === undefined || c.output === undefined) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             path: [c.input === undefined ? 'input' : 'output'],
             message: `The cost of ${c.model} needs both an input and an output price — or reset: true to go back to the default.`,
         });
@@ -59,7 +59,7 @@ const CostEntry = z.object({
 });
 
 const CostsBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    costs: z.array(CostEntry, { required_error: COSTS_TEXT, invalid_type_error: COSTS_TEXT }),
+    costs: z.array(CostEntry, { error: COSTS_TEXT }),
 }).strict());
 
 // ─── Model Costs ─────────────────────────────────────────────────

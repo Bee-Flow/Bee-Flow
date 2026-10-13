@@ -76,7 +76,7 @@ const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { googleAdapter } = require('../core/providers');
 const { EMOJI_CATEGORIES, ALL_EMOJI_IDS, EMOJI_BY_ID } = require('../core/cms/emojiCatalog');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { validate } = require('../core/http/validate');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
@@ -126,7 +126,7 @@ const imageGenLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
 // ── Request schemas (see the header) ────────────────────────────────
 
 /** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -137,26 +137,26 @@ const iconKey = worded(KEY_TEXT).regex(/^[A-Za-z0-9_.:-]{1,120}$/, KEY_TEXT);
 const IMAGE_TEXT = 'An image icon is a file uploaded or generated here (/api/icons/data/…).';
 const EMOJI_TEXT = 'An emoji icon is at most 64 characters.';
 const TYPE_TEXT = "An icon's type is 'emoji' or 'image'.";
-const iconType = z.enum(['emoji', 'image'], { errorMap: () => ({ message: TYPE_TEXT }) });
+const iconType = z.enum(['emoji', 'image'], { error: () => TYPE_TEXT });
 const iconValue = worded('An icon needs a value.').min(1, 'An icon needs a value.');
 function checkIconValue(icon, ctx) {
     if (icon.type === 'image' && !/^\/api\/icons\/data\/[A-Za-z0-9._-]+$/.test(icon.value)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: IMAGE_TEXT });
+        ctx.addIssue({ code: 'custom', path: ['value'], message: IMAGE_TEXT });
     }
     if (icon.type === 'emoji' && icon.value.length > 64) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: EMOJI_TEXT });
+        ctx.addIssue({ code: 'custom', path: ['value'], message: EMOJI_TEXT });
     }
 }
-const Icon = z.object({ type: iconType, value: iconValue }, { invalid_type_error: 'An icon is { type, value }.' })
+const Icon = z.object({ type: iconType, value: iconValue }, { error: typeError({ invalid: 'An icon is { type, value }.' }) })
     .strict()
     .superRefine(checkIconValue);
 const ICONS_TEXT = 'icons is an object of icon key to { type, value }.';
-const IconMap = z.record(iconKey, Icon, { required_error: ICONS_TEXT, invalid_type_error: ICONS_TEXT });
+const IconMap = z.record(iconKey, Icon, { error: typeError({ required: ICONS_TEXT, invalid: ICONS_TEXT }) });
 
 const NAME_TEXT = 'A pack needs a name.';
 const packName = worded(NAME_TEXT).trim().min(1, NAME_TEXT).max(100, 'A pack name is at most 100 characters.');
 
-const CreateBody = z.object({ name: packName, icons: IconMap.default({}) }).strict();
+const CreateBody = z.object({ name: packName, icons: IconMap.prefault({}) }).strict();
 const UpdateBody = z.object({ name: packName.optional(), icons: IconMap.optional() }).strict();
 
 // {} clears the override (what the editor sends); both halves set it.
@@ -164,7 +164,7 @@ const HALF_ICON_TEXT = 'Send both type and value to set an icon, or neither to c
 const SetIconBody = bodyOf({ type: iconType.optional(), value: iconValue.optional() })
     .superRefine((b, ctx) => {
         if ((b.type === undefined) !== (b.value === undefined)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: [b.type === undefined ? 'type' : 'value'], message: HALF_ICON_TEXT });
+            ctx.addIssue({ code: 'custom', path: [b.type === undefined ? 'type' : 'value'], message: HALF_ICON_TEXT });
             return;
         }
         if (b.type !== undefined) checkIconValue(b, ctx);
@@ -192,7 +192,7 @@ const ONLY_TEXT = 'only is a list of the icon keys to generate.';
 const BulkGenerateBody = bodyOf({
     style: style.optional(),
     model: imageModel.nullish(),
-    overwrite: z.boolean({ invalid_type_error: 'overwrite is true or false.' }).default(false),
+    overwrite: z.boolean({ error: typeError({ invalid: 'overwrite is true or false.' }) }).default(false),
     // Capped at the catalogue's own size: `only` names icons to (re)generate,
     // and generating more than the catalogue has is never a real request. A
     // bulk run is one request against imageGenLimiter, but nothing capped how
@@ -201,7 +201,7 @@ const BulkGenerateBody = bodyOf({
     // (duplicate) entries ran one real Google generation per entry. The
     // dedupe also means the count above is a request's own generations, not
     // its raw entry count.
-    only: z.array(iconKey, { invalid_type_error: ONLY_TEXT })
+    only: z.array(iconKey, { error: typeError({ invalid: ONLY_TEXT }) })
         .min(1, ONLY_TEXT)
         .max(ALL_EMOJI_IDS.length, ONLY_TEXT)
         .transform((ids) => [...new Set(ids)])
@@ -211,8 +211,8 @@ const BulkGenerateBody = bodyOf({
 // The shape GET /:id/export writes; the name of someone else's file is cut
 // to size rather than refused (see the header).
 const ImportBody = z.object({
-    kind: z.literal('beeflow.iconpack', { errorMap: () => ({ message: 'This file is not a Bee Flow icon pack.' }) }).optional(),
-    version: z.literal(1, { errorMap: () => ({ message: 'This icon pack comes from a newer version of Bee Flow.' }) }).optional(),
+    kind: z.literal('beeflow.iconpack', { error: () => 'This file is not a Bee Flow icon pack.' }).optional(),
+    version: z.literal(1, { error: () => 'This icon pack comes from a newer version of Bee Flow.' }).optional(),
     name: worded('A pack name must be text.').nullish().transform((v) => ((v || '').trim() || 'Imported Pack').slice(0, 100)),
     exportedAt: worded('exportedAt must be text.').optional(),
     icons: IconMap,

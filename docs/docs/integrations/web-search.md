@@ -8,7 +8,7 @@ Bee Flow exposes a single agent tool — `agent_search` — backed by one of thr
 
 | Provider | Where the search loop runs | Needs | Best for |
 |---|---|---|---|
-| **Self-hosted (Agent Search + Serper)** | A separate GPU service (`SEARCH_SERVICE_URL`) that does SERP + page fetch + embed + rerank + cleanup on its own hardware. | Serper.dev API key + a self-hosted search-service deployment | Highest throughput, full control of every inference step |
+| **Self-hosted (Agent Search + Serper)** | A search service at `SEARCH_SERVICE_URL` that does SERP + page fetch + embed + rerank + cleanup. The bundled compose files point it at this server's own `/api/search`. | Serper.dev API key + a reachable `SEARCH_SERVICE_URL` | Full control of every inference step |
 | **Cloud-only (Serper + provider APIs)** | This Node.js server. SERP via Serper, page fetch in-process, embed/rerank/cleanup via your configured providers (Mistral, OpenAI, Cohere, Azure) or the in-process CPU models. | Serper.dev API key + a configured chat/embedding provider | No GPU box required; runs on a small VPS |
 | **Azure Bing Web Search** | Azure Bing v7 API. Snippet-only — no page fetch / cleanup. | Azure Bing key | Compliance-driven deployments where Microsoft is the only allowed cloud |
 | **Disabled** | — | — | Lock down `agent_search` entirely |
@@ -27,9 +27,9 @@ The agent always calls the same tool name, so swapping providers is invisible to
 
 ## Setup — Self-hosted Agent Search service
 
-1. Set `SEARCH_SERVICE_URL` env var on the server (e.g. `https://services.beeflow.nl`).
+1. Set `SEARCH_SERVICE_URL` env var on the server (e.g. `https://services.beeflow.nl`). The bundled compose files already set it to the server's own `/api/search`.
 2. **Admin → Integrations → Zoeken** → Search Provider: **Self-hosted (Agent Search + Serper)**.
-3. Paste the Serper.dev API key. The search-service uses it for SERP retrieval; embeddings / reranking happen on the GPU box.
+3. Paste the Serper.dev API key. The search service uses it for SERP retrieval; embeddings / reranking use the providers configured under **Web Search Inference**.
 
 ## Setup — Bing
 

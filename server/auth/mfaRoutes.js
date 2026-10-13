@@ -56,10 +56,10 @@ async function ensureUserRow(userId) {
 
 // Current MFA state for the security settings UI.
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /**
  * `force` means "throw away the secret I am already showing and mint a new
@@ -70,7 +70,7 @@ const worded = (message) => z.string({ required_error: message, invalid_type_err
  * secret.
  */
 const SetupBody = z.object({
-    force: z.boolean({ invalid_type_error: 'force must be true or false.' }).optional(),
+    force: z.boolean({ error: typeError({ invalid: 'force must be true or false.' }) }).optional(),
 }).strict();
 
 const CODE_TEXT = 'Enter the code from your authenticator app, or one of your recovery codes.';
@@ -93,7 +93,7 @@ const proofShape = {
     securityKey: credentialJson.optional(),
 };
 const requireOneProof = (b, ctx) => {
-    if (!b.code && !b.securityKey) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['code'], message: CODE_TEXT });
+    if (!b.code && !b.securityKey) ctx.addIssue({ code: 'custom', path: ['code'], message: CODE_TEXT });
 };
 const ProofBody = z.object(proofShape).strict().superRefine(requireOneProof);
 
@@ -111,7 +111,7 @@ const QUESTION_TEXT = 'Question is required';
 // assistant answered a follow-up as if it were the first question.
 const AssistBody = z.object({
     question: worded(QUESTION_TEXT).min(1, QUESTION_TEXT).max(4000, 'That question is too long.'),
-    history: z.array(z.unknown(), { invalid_type_error: 'history must be a list of messages.' }).optional(),
+    history: z.array(z.unknown(), { error: typeError({ invalid: 'history must be a list of messages.' }) }).optional(),
 }).strict();
 
 router.get('/status', requireAuth, async (req, res) => {

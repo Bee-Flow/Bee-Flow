@@ -21,7 +21,7 @@ This page covers only what differs when pulling from Docker Hub. For the install
 | `beeflowapp/agent-hub` | Web interface (nginx + React) | `80`, published as `5176` |
 | `beeflowapp/guard` | Privacy Shield — PII detection and redaction | `8100` |
 
-The optional sidecars (`search-api`, `pii`, `whisperx`, `reranker`) are **not** on Docker Hub.
+The optional sidecars (`classify`) are **not** on Docker Hub.
 Pull those from `ghcr.io/bee-flow` — it is public and needs no login.
 
 :::note

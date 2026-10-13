@@ -17,11 +17,12 @@ const Module = require('module');
 
 // Every read lands in `touched`. A refused request must leave it empty.
 const touched = [];
+let failList = false;
 const pass = (req, res, next) => next();
 
 const MOCKS = {
     '../../core/swarms/swarmRuntime': {
-        listAvailableSwarms: () => { touched.push('listAvailableSwarms'); return [{ id: 'research', name: 'Research' }]; },
+        listAvailableSwarms: () => { touched.push('listAvailableSwarms'); if (failList) throw new Error('secret internal detail'); return [{ id: 'research', name: 'Research' }]; },
     },
     '../../auth/permissions': { requireAuth: pass },
 };
@@ -70,7 +71,7 @@ function dispatch({ method, url }) {
     });
 }
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; failList = false; });
 
 test('a filter the route does not have is refused by name, not answered with every swarm', async () => {
     const res = await dispatch({ method: 'GET', url: '/available?kind=research' });
@@ -85,4 +86,12 @@ test('the plain request the chat and the onboarding check send still gets the li
     const res = await dispatch({ method: 'GET', url: '/available' });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(res.body, { swarms: [{ id: 'research', name: 'Research' }] });
+});
+
+test('a failing list answers 500 with the same message and leaks nothing of the cause', async () => {
+    failList = true;
+    const res = await dispatch({ method: 'GET', url: '/available' });
+    assert.strictEqual(res.statusCode, 500);
+    assert.strictEqual(res.body.error, 'Failed to list available swarms');
+    assert.ok(!JSON.stringify(res.body).includes('secret internal detail'));
 });

@@ -223,7 +223,7 @@ definitions without the ~150 MB runtime — which is what CI's check job does.
 
 | Workflow | Trigger | Result |
 |---|---|---|
-| `desktop-checks.yml` | PR touching `desktop/**` | lint, typecheck, tests, a build, ~2 minutes |
+| `ci.yml` (job `desktop`, part of `checks-passed`) | PR touching `desktop/**` | typecheck, lint, tests, a build, ~2 minutes |
 | `desktop-release.yml` | PR touching `desktop/**` | Linux installers by default, each installed and launched (below); all three platforms when the PR changes packaging (`electron-builder.yml`, the manifests, `build/`, `resources/`, `.nvmrc`, the workflow) or carries the `desktop-full` label |
 | `desktop-release.yml` | push to `main` | a **dev release**: the rolling `desktop-dev` prerelease, replaced in place |
 | `desktop-release.yml` | Run workflow → `channel=dev` | the same, on demand, from any branch |

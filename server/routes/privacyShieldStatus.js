@@ -86,7 +86,7 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, onUnknownKeys } = require('../utils/zod');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
@@ -95,7 +95,7 @@ const { requireAuth } = require('../auth/permissions');
 // No query, said rather than left out. The answer is always about the
 // CALLER's own organisation, so `?orgId=B` was answered with org A's status
 // under a 200 — and whoever asked read it as B's green lock.
-const NO_QUERY = z.object({}).strict('The Privacy Shield status is always your own; it takes no query parameters.');
+const NO_QUERY = z.object({}, { error: onUnknownKeys('The Privacy Shield status is always your own; it takes no query parameters.') }).strict();
 
 const GUARD_PROBE_TTL_MS = 15_000;
 

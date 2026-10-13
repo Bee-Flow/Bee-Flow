@@ -9,7 +9,7 @@ require('../../auth');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { makeReadAgentConversation } = require('./sharedThreadRead');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 require('../../stores/userStore');
 require('../../stores/usageStore');
@@ -35,7 +35,7 @@ const MAX_WORKSPACE_BYTES = 10 * 1024 * 1024; // 10 MB
 // fail to stick with nothing on screen to explain it.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const TITLE_TEXT = 'A conversation title must be text.';
 const Title = worded(TITLE_TEXT).max(MAX_TITLE_LEN, `A conversation title is at most ${MAX_TITLE_LEN} characters.`);
@@ -43,7 +43,7 @@ const Title = worded(TITLE_TEXT).max(MAX_TITLE_LEN, `A conversation title is at 
 const LABEL_TEXT = 'Each label must be text.';
 const Labels = z.array(
     worded(LABEL_TEXT).max(MAX_LABEL_LEN, `A label is at most ${MAX_LABEL_LEN} characters.`),
-    { invalid_type_error: 'labels is a list of labels.' },
+    { error: typeError({ invalid: 'labels is a list of labels.' }) },
 ).max(MAX_LABELS, `At most ${MAX_LABELS} labels on one conversation.`);
 
 const NewConversationBody = z.object({
@@ -55,15 +55,15 @@ const ConversationPatch = z.object({
     // A boolean, like the direct-chat conversation routes. The check this
     // replaced also let a number through, which the store then coerced —
     // so `pinned: 0` unpinned and `pinned: 2` pinned, by accident.
-    pinned: z.boolean({ invalid_type_error: 'pinned is true or false.' }).optional(),
+    pinned: z.boolean({ error: typeError({ invalid: 'pinned is true or false.' }) }).optional(),
     labels: Labels.optional(),
 }).strict();
 
 const THREAD_TITLES_TEXT = 'threadTitles maps a thread id to its title.';
 const ThreadTitlesBody = z.object({
     threadTitles: z.record(
-        worded('A thread title must be text.').max(MAX_THREAD_TITLE_LEN, `A thread title is at most ${MAX_THREAD_TITLE_LEN} characters.`),
-        { required_error: THREAD_TITLES_TEXT, invalid_type_error: THREAD_TITLES_TEXT },
+        z.string(), worded('A thread title must be text.').max(MAX_THREAD_TITLE_LEN, `A thread title is at most ${MAX_THREAD_TITLE_LEN} characters.`),
+        { error: typeError({ required: THREAD_TITLES_TEXT, invalid: THREAD_TITLES_TEXT }) },
     ).refine((m) => Object.keys(m).length <= MAX_THREAD_TITLES,
         `At most ${MAX_THREAD_TITLES} thread titles on one conversation.`),
 }).strict();

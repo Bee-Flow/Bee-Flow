@@ -13,7 +13,7 @@ const router = express.Router();
 const notificationStore = require('../stores/notificationStore');
 const { pool } = require('../db');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -36,16 +36,16 @@ const { z } = require('zod');
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const NoBody = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object({}, { invalid_type_error: 'This request takes no body.' }).strict(),
+    z.object({}, { error: typeError({ invalid: 'This request takes no body.' }) }).strict(),
 );
 
 const UNREAD_TEXT = "unread is 'true' or 'false'.";
 const LIMIT_TEXT = 'limit is a whole number of notifications, 1 or more.';
 const ListQuery = z.object({
-    unread: z.enum(['true', 'false', '1', '0'], { errorMap: () => ({ message: UNREAD_TEXT }) })
+    unread: z.enum(['true', 'false', '1', '0'], { error: () => UNREAD_TEXT })
         .transform((v) => v === 'true' || v === '1')
         .optional(),
-    limit: z.coerce.number({ invalid_type_error: LIMIT_TEXT })
+    limit: z.coerce.number({ error: typeError({ invalid: LIMIT_TEXT }) })
         .int(LIMIT_TEXT).min(1, LIMIT_TEXT)
         .optional(),
 }).strict();

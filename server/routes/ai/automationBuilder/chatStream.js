@@ -114,7 +114,7 @@ const {
 const { requireAuth } = require('../../../auth/permissions');
 const { rankAppsForMessage, applyCatalogOrder, catalogOrderOf } = require('../../../automation/builderPrompt/rankApps');
 const { validate } = require('../../../core/http/validate');
-const { z, worded, bodyOf, queryOf, closedObject, choice, flag } = require('../../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = require('../../../core/http/schemaParts');
 
 // ── What a turn may send ─────────────────────────────────────────────
 // The keys the stream reads (see the header) and nothing else. The values
@@ -134,10 +134,10 @@ const TurnBody = bodyOf({
     workMode: choice(MODES, 'workMode is discuss, approve, plan or build.').optional(),
     approvedPlanId: text('approvedPlanId is the exact plan revision approved by the user.').nullish(),
     selectedStepId: text('selectedStepId is the step the user is asking about.').nullish(),
-    history: z.array(z.unknown(), { invalid_type_error: 'history is the list of earlier turns.' }).nullish(),
-    attachments: z.array(z.unknown(), { invalid_type_error: 'attachments is a list of files.' }).nullish(),
+    history: z.array(z.unknown(), { error: typeError({ invalid: 'history is the list of earlier turns.' }) }).nullish(),
+    attachments: z.array(z.unknown(), { error: typeError({ invalid: 'attachments is a list of files.' }) }).nullish(),
     webSearchEnabled: flag('webSearchEnabled is true or false.').nullish(),
-    disabledMedia: z.record(z.unknown(), { invalid_type_error: 'disabledMedia is an object of media kinds.' }).nullish(),
+    disabledMedia: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'disabledMedia is an object of media kinds.' }) }).nullish(),
     timezone: text('timezone is a zone name, like Europe/Amsterdam.').nullish(),
     canvasScope: text('canvasScope is the key of the layer on screen.').nullish(),
     seedMetadata: closedObject({

@@ -49,7 +49,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError, datetimeWithOffset } = require('../utils/zod');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
@@ -70,7 +70,7 @@ const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 // ── Request schemas (see the header) ────────────────────────────────
 
 /** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -91,7 +91,7 @@ function isKnownTimezone(value) {
 
 const REPEAT_TEXT = `repeatInterval is one of ${[...VALID_REPEAT_INTERVALS].join(', ')}, or null.`;
 const repeatIntervalField = blankIsNull(
-    z.enum([...VALID_REPEAT_INTERVALS], { errorMap: () => ({ message: REPEAT_TEXT }) }).nullable(),
+    z.enum([...VALID_REPEAT_INTERVALS], { error: () => REPEAT_TEXT }).nullable(),
 );
 
 // A weekday is its three-letter token or (a start of) its English name:
@@ -102,13 +102,13 @@ const weekday = worded(DAYS_TEXT).transform((v, ctx) => {
     const word = v.trim().toLowerCase();
     const name = word.length >= 3 ? DAY_NAMES.find((d) => d.startsWith(word)) : null;
     if (!name) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `"${v}" is not a weekday. ${DAYS_TEXT}` });
+        ctx.addIssue({ code: 'custom', message: `"${v}" is not a weekday. ${DAYS_TEXT}` });
         return z.NEVER;
     }
     return name.slice(0, 3);
 });
 // An EMPTY list means "no day restriction", which is stored as null.
-const daysOfWeekField = z.array(weekday, { invalid_type_error: DAYS_TEXT }).nullable()
+const daysOfWeekField = z.array(weekday, { error: typeError({ invalid: DAYS_TEXT }) }).nullable()
     .transform((list) => (list && list.length > 0 ? Array.from(new Set(list)) : null));
 
 const TIME_TEXT = 'timeOfDay is a 24-hour time like 09:00, or null.';
@@ -116,7 +116,7 @@ const timeOfDayField = blankIsNull(worded(TIME_TEXT).regex(/^([01]\d|2[0-3]):[0-
 
 const TZ_TEXT = 'timezone is an IANA zone name like Europe/Amsterdam.';
 const timezoneField = blankIsNull(
-    worded(TZ_TEXT).refine(isKnownTimezone, (v) => ({ message: `Unknown timezone: ${v}` })).nullable(),
+    worded(TZ_TEXT).refine(isKnownTimezone, { error: (iss) => `Unknown timezone: ${iss.input}` }).nullable(),
 );
 
 // Which apps THIS item may use. `null` means "no per-item restriction", i.e.
@@ -124,7 +124,7 @@ const timezoneField = blankIsNull(
 // had before the column existed. An EMPTY array is a real answer ("this one
 // may use nothing") and must not collapse to null.
 const APPS_TEXT = 'enabledApps is a list of app ids, or null.';
-const enabledAppsField = z.array(worded(APPS_TEXT), { invalid_type_error: APPS_TEXT }).nullable()
+const enabledAppsField = z.array(worded(APPS_TEXT), { error: typeError({ invalid: APPS_TEXT }) }).nullable()
     .transform((list) => (list === null ? null : Array.from(new Set(list.map((v) => v.trim()).filter(Boolean)))));
 
 const TITLE_TEXT = 'Title is required.';
@@ -133,7 +133,7 @@ const NEXT_RUN_TEXT = 'nextRunAt is required: an ISO timestamp with a time zone,
 const scheduleFields = {
     title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT).max(500, 'A title is at most 500 characters.'),
     prompt: worded(PROMPT_TEXT).trim().min(1, PROMPT_TEXT),
-    nextRunAt: worded(NEXT_RUN_TEXT).datetime({ offset: true, message: NEXT_RUN_TEXT }),
+    nextRunAt: worded(NEXT_RUN_TEXT).regex(datetimeWithOffset, NEXT_RUN_TEXT),
     repeatInterval: repeatIntervalField.optional(),
     // Open text on purpose: see the header.
     modelTier: worded('modelTier names a model tier.').trim().max(100, 'modelTier is at most 100 characters.').nullish(),
@@ -146,7 +146,7 @@ const scheduleFields = {
 
 const CreateBody = z.object({
     ...scheduleFields,
-    startNow: z.boolean({ invalid_type_error: 'startNow is true or false.' }).optional(),
+    startNow: z.boolean({ error: typeError({ invalid: 'startNow is true or false.' }) }).optional(),
 }).strict();
 
 // Every field optional: an update names only what it changes.
@@ -155,7 +155,7 @@ const UpdateBody = z.object({
     title: scheduleFields.title.optional(),
     prompt: scheduleFields.prompt.optional(),
     nextRunAt: scheduleFields.nextRunAt.optional(),
-    isActive: z.boolean({ invalid_type_error: 'isActive is true or false.' }).optional(),
+    isActive: z.boolean({ error: typeError({ invalid: 'isActive is true or false.' }) }).optional(),
 }).strict();
 
 // toggle / run-now act on the schedule as it is.
@@ -171,8 +171,8 @@ const ComposeBody = z.object({
 const LIMIT_TEXT = 'limit is a whole number from 1 to 100.';
 const OFFSET_TEXT = 'offset is a whole number, 0 or more.';
 const RunsQuery = z.object({
-    limit: z.coerce.number({ invalid_type_error: LIMIT_TEXT }).int(LIMIT_TEXT).min(1, LIMIT_TEXT).max(100, LIMIT_TEXT).optional(),
-    offset: z.coerce.number({ invalid_type_error: OFFSET_TEXT }).int(OFFSET_TEXT).min(0, OFFSET_TEXT).optional(),
+    limit: z.coerce.number({ error: typeError({ invalid: LIMIT_TEXT }) }).int(LIMIT_TEXT).min(1, LIMIT_TEXT).max(100, LIMIT_TEXT).optional(),
+    offset: z.coerce.number({ error: typeError({ invalid: OFFSET_TEXT }) }).int(OFFSET_TEXT).min(0, OFFSET_TEXT).optional(),
 }).strict();
 
 async function getMaxSchedules() {

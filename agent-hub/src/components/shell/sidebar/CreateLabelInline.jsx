@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
+import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 
 /* ─── Inline label creator (with color wheel) ─── */
 const CreateLabelInline = ({ onCreateLabel, t }) => {
@@ -13,16 +14,7 @@ const CreateLabelInline = ({ onCreateLabel, t }) => {
         if (isCreating && inputRef.current) inputRef.current.focus();
     }, [isCreating]);
 
-    useEffect(() => {
-        if (!isCreating) return;
-        const close = (e) => {
-            if (containerRef.current && !containerRef.current.contains(e.target)) {
-                setIsCreating(false); setName('');
-            }
-        };
-        document.addEventListener('mousedown', close);
-        return () => document.removeEventListener('mousedown', close);
-    }, [isCreating]);
+    useOutsideDismiss(containerRef, () => { setIsCreating(false); setName(''); }, { enabled: isCreating, escape: false, defer: false });
 
     const handleCreate = async () => {
         const trimmed = name.trim();

@@ -44,12 +44,11 @@ HASH_DIR="${CACHE_ROOT}/.dev-rebuild-hashes"
 mkdir -p "$HASH_DIR"
 
 # service|context|dockerfile (relative to context, empty = Dockerfile).
-# Scoped to the two images of the everyday dev loop — the python/GPU services
-# (search-api, guard, pii, whisperx, reranker) live under
-# scripts/build-images.sh instead: their build-images.sh service ids don't
-# match their compose service names (e.g. "guard" vs "guard-service"), so
-# folding them in here would need a separate name-mapping table for little
-# local-iteration benefit. Add an entry here if that changes.
+# Scoped to the two images of the everyday dev loop — the python services
+# (guard) live under scripts/build-images.sh instead: their build-images.sh
+# service ids don't match their compose service names (e.g. "guard" vs
+# "guard-service"), so folding them in here would need a separate
+# name-mapping table for little local-iteration benefit. Add an entry here if that changes.
 SERVICES=(
   "server|server|"
   "agent-hub|agent-hub|"

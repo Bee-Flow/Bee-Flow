@@ -1,0 +1,80 @@
+{
+    "_comment": "Registry of every directory that holds a package.json or a requirements*.txt in git. scripts/check-package-registry.mjs (npm run lint:package-registry) fails when this list and the tree disagree, or when a package's Dependabot entry in .github/dependabot.yml is missing, stale or on another cadence. scripts/check-version-drift.mjs reads the npm packages from here. Fields: dir (repo-relative, '.' for the root), ecosystem (npm | pip), role, lockfile (npm = package-lock.json tracked, pip = pinned requirements.txt tracked, none), dependabot (weekly | monthly | none; none needs a reason).",
+    "roles": {
+        "service": "ships to customers as a server-side image",
+        "client": "ships to customers as an app the user runs",
+        "sidecar": "Python service next to the server",
+        "satellite": "separate artefact built from this repo (connector, SDK, components)",
+        "tooling": "build, test or docs tooling that ships nowhere"
+    },
+    "packages": [
+        { "dir": "server", "ecosystem": "npm", "role": "service", "lockfile": "npm", "dependabot": "weekly" },
+        { "dir": "agent-hub", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "weekly" },
+        { "dir": "mobile", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "weekly" },
+        { "dir": "desktop", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "weekly" },
+        { "dir": "guard-service", "ecosystem": "pip", "role": "sidecar", "lockfile": "pip", "dependabot": "weekly" },
+        { "dir": "classify-service", "ecosystem": "pip", "role": "sidecar", "lockfile": "pip", "dependabot": "weekly" },
+        { "dir": "server/pwt-runner", "ecosystem": "npm", "role": "service", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": ".", "ecosystem": "npm", "role": "tooling", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "docs", "ecosystem": "npm", "role": "tooling", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "e2e", "ecosystem": "npm", "role": "tooling", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "nextcloud-connector", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "hub-module-sdk", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components/afas-customer-data", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components/email-sender-smtp", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components/get-date-time", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components/n8n-webhook-header-auth", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components/tavily-search", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components/webpage-to-markdown", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components/website-sitemap-fetcher", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components/youtrack-read-items", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        {
+            "dir": "hub-module-sdk/modules/security_scan",
+            "ecosystem": "npm",
+            "role": "satellite",
+            "lockfile": "npm",
+            "dependabot": "none",
+            "reason": "a module packed by hub-module-sdk with its own lockfile; no entry yet (candidate for the monthly satellite entry)"
+        },
+        {
+            "dir": "hub-module-sdk/modules/security_scan/frontend",
+            "ecosystem": "npm",
+            "role": "satellite",
+            "lockfile": "npm",
+            "dependabot": "none",
+            "reason": "frontend of the security_scan module; no entry yet (candidate for the monthly satellite entry)"
+        },
+        {
+            "dir": "scripts/release-notes",
+            "ecosystem": "npm",
+            "role": "tooling",
+            "lockfile": "npm",
+            "dependabot": "none",
+            "reason": "release-notes drafter run by hand by a maintainer; no entry yet (candidate for the monthly satellite entry)"
+        },
+        {
+            "dir": "docs/cms-auth",
+            "ecosystem": "npm",
+            "role": "tooling",
+            "lockfile": "none",
+            "dependabot": "none",
+            "reason": "Cloudflare worker for the docs CMS, one dev dependency (wrangler) and no lockfile"
+        },
+        {
+            "dir": "mobile/modules/beeflow-argon2",
+            "ecosystem": "npm",
+            "role": "client",
+            "lockfile": "none",
+            "dependabot": "none",
+            "reason": "local Expo module of mobile/ with no dependencies of its own"
+        },
+        {
+            "dir": "classify-service/eval",
+            "ecosystem": "pip",
+            "role": "tooling",
+            "lockfile": "none",
+            "dependabot": "none",
+            "reason": "offline model-evaluation requirements, one file per candidate model; never built into an image"
+        }
+    ]
+}

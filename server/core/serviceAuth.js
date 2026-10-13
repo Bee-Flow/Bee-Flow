@@ -1,8 +1,8 @@
 /**
  * Service Authentication Helper
  * 
- * Provides headers with X-API-Key for outgoing calls to GPU services
- * (search-api, inference-gpu, guard-service, whisperx).
+ * Provides headers with X-API-Key for outgoing calls to sidecar services
+ * (guard-service, classify-service, a remote search-service, whisperx).
  * 
  * When SERVICES_API_KEY is set in env, all outgoing service calls include it.
  * When not set (e.g. localhost direct access), calls work without it.

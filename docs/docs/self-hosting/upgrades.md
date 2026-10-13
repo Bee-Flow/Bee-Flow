@@ -114,7 +114,7 @@ the Component Designer cannot save.
 
 :::
 
-Add each extra profile you use (`--profile guard`, `--profile search`, …) to **both** commands.
+Add each extra profile you use (`--profile guard`, `--profile classify`, …) to **both** commands.
 If you installed with `./selfhost.sh`, re-running it does the same pull + up for your `PROFILES`
 and leaves your `.env` untouched:
 

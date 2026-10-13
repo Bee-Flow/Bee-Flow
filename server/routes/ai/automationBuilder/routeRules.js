@@ -76,7 +76,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const log = require('../../../telemetry/log');
 const router = express.Router();
 
@@ -93,7 +93,7 @@ const MAX_ROUTE_RULES_DESCRIPTION_CHARS = 500;
 const MAX_FIELD_KEY_CHARS = 200;
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const DESCRIBE_TEXT = 'Describe the outputs you want.';
 const FIELD_TEXT = 'Each field is { key, name, type } — the field\'s name, never its values.';
@@ -103,15 +103,15 @@ const RouteField = z.object({
     key: worded('A field key is its path, as text.').max(2000, 'A field key is at most 2000 characters.').nullable(),
     name: worded('A field name is the text shown for it.').max(500, 'A field name is at most 500 characters.').nullable(),
     type: worded('A field type is text, like "text" or "number".').max(100, 'A field type is at most 100 characters.').nullable(),
-}, { invalid_type_error: FIELD_TEXT }).partial().strict();
+}, { error: typeError({ invalid: FIELD_TEXT }) }).partial().strict();
 const RouteRulesBody = z.object({
     description: worded(DESCRIBE_TEXT).trim().min(1, DESCRIBE_TEXT)
         .max(MAX_ROUTE_RULES_DESCRIPTION_CHARS, `That description is too long (max ${MAX_ROUTE_RULES_DESCRIPTION_CHARS} characters).`),
-    fields: z.array(RouteField, { invalid_type_error: FIELD_TEXT }).optional(),
+    fields: z.array(RouteField, { error: typeError({ invalid: FIELD_TEXT }) }).optional(),
     // Checked for its TYPE only: a value that is not an identifier still
     // falls back to 'item' in validateRouteRulesRequest (see its test).
     itemVar: worded('itemVar is the loop variable\'s name, as text.').max(100, 'itemVar is at most 100 characters.').optional(),
-    perItem: z.boolean({ invalid_type_error: 'perItem is true or false.' }).optional(),
+    perItem: z.boolean({ error: typeError({ invalid: 'perItem is true or false.' }) }).optional(),
 }).strict();
 
 /** The Automations beta gate, ahead of the schema so a 403 stays a 403. */

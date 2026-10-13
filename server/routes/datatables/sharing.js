@@ -18,7 +18,7 @@ const {
 } = require('./grade');
 const { publicTable } = require('./projection');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { bodyOf, choice, idText, worded } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -49,11 +49,11 @@ const SharingBody = bodyOf({
     // it is the one place that knows which groups this organisation has, and
     // it refuses an empty result by name (`groups_required`) rather than
     // letting it widen to the whole organisation.
-    sharedGroups: z.array(z.unknown(), { invalid_type_error: 'sharedGroups is a list of group ids' }).optional(),
+    sharedGroups: z.array(z.unknown(), { error: typeError({ invalid: 'sharedGroups is a list of group ids' }) }).optional(),
     // The OLD body shape, listed ONLY so the handler can answer the 409 that
     // tells an out-of-date tab to reload. Dropping it from the schema would
     // turn that 409 into a 400 and lose the instruction with it.
-    isPublished: z.boolean({ invalid_type_error: 'isPublished is true or false' }).optional(),
+    isPublished: z.boolean({ error: typeError({ invalid: 'isPublished is true or false' }) }).optional(),
 });
 
 const GRANTEE_TEXT = 'Share with a person or a group';

@@ -74,6 +74,17 @@ test('migration verifies the database readback before removing legacy plaintext'
     assert.deepEqual((await pg.query('SELECT * FROM config ORDER BY key')).rows, before);
     await pg.exec('DROP TRIGGER corrupt_secret ON config');
 });
+test('replaceAdminPasswordHash swaps only the hash it was given, keeping the rest of the admin entry', async () => {
+    await store.save({ admin: { username: 'operator', passwordHash: '$2b$12$old' } });
+    invalidations.length = 0;
+    assert.equal(await store.replaceAdminPasswordHash('$2b$12$someone-else', '$argon2id$new'), false);
+    assert.equal((await store.load()).admin.passwordHash, '$2b$12$old');
+    assert.deepEqual(invalidations, []);
+    assert.equal(await store.replaceAdminPasswordHash('$2b$12$old', '$argon2id$new'), true);
+    assert.deepEqual((await store.load()).admin, { username: 'operator', passwordHash: '$argon2id$new' });
+    assert.ok(invalidations.includes('admin'));
+    assert.equal(await store.replaceAdminPasswordHash('', '$argon2id$x'), false);
+});
 test('corrupt metadata or encrypted credentials fail without writing defaults or plaintext fallback', async () => {
     await pg.query('UPDATE config SET value=$1 WHERE key=$2', ['{bad', 'providers']);
     await assert.rejects(store.load());

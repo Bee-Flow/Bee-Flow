@@ -38,7 +38,7 @@ const userStore = require('../stores/userStore');
 const { requireAuth } = require('./permissions');
 const { invalidateTenantKeyCache } = require('./connectorJwt');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 
 const TENANT_KEY_PREFIX = 'connector_tenant_key_';
 

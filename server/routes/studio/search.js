@@ -63,7 +63,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const { validate } = require('../../core/http/validate');
 
@@ -112,13 +112,11 @@ const Q_TEXT = 'q is the text to search for, sent once.';
 const SearchQuery = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({
-        q: z.string({ invalid_type_error: Q_TEXT }).optional(),
+        q: z.string({ error: typeError({ invalid: Q_TEXT }) }).optional(),
     }, {
-        errorMap: (issue, ctx) => ({
-            message: issue.code === z.ZodIssueCode.unrecognized_keys
-                ? `The search takes only q, the text to look for (got ${issue.keys.map((k) => `"${k}"`).join(', ')}).`
-                : ctx.defaultError,
-        }),
+        error: (iss) => (iss.code === 'unrecognized_keys'
+            ? `The search takes only q, the text to look for (got ${iss.keys.map((k) => `"${k}"`).join(', ')}).`
+            : undefined),
     }).strict(),
 );
 

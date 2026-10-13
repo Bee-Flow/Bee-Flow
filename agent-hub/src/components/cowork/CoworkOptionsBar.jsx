@@ -9,7 +9,8 @@
  * Flow's own tokens.
  */
 import { Clock, Repeat, Bot, Check, ChevronDown } from 'lucide-react';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
+import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
 import {
@@ -29,17 +30,7 @@ function Sheet({ open, onClose, title, subtitle, isMobile, children, anchorClass
 
     // Desktop only: the mobile sheet goes through Modal below, which already
     // owns its own backdrop-click and Escape handling.
-    useEffect(() => {
-        if (!open || isMobile) return undefined;
-        const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
-        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-        document.addEventListener('mousedown', onDown);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('mousedown', onDown);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open, isMobile, onClose]);
+    useOutsideDismiss(ref, onClose, { enabled: open && !isMobile, defer: false });
 
     useLayoutEffect(() => {
         if (!open || isMobile) { setDropDown(false); return; }

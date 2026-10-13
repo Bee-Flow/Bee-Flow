@@ -1,9 +1,9 @@
 import React from 'react';
-import {motion} from 'framer-motion';
+import {motion, type Variants} from 'framer-motion';
 import Link from '@docusaurus/Link';
 import styles from './styles.module.css';
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: {opacity: 0, y: 20},
   show: (i = 0) => ({
     opacity: 1,
@@ -12,7 +12,7 @@ const fadeUp = {
   }),
 };
 
-export default function Hero(): JSX.Element {
+export default function Hero(): React.JSX.Element {
   return (
     <section className={styles.hero}>
       <div className={styles.bgOrb} aria-hidden="true" />

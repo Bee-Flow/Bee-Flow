@@ -13,10 +13,10 @@
  * happened (a typo in a narrowing option meant "everyone").
  */
 
-const { z } = require('zod');
+const { z, typeError, onUnknownKeys } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 // How many unknown keys a refusal names, and how much of each: the names are
 // the caller's own input, echoed back.
@@ -35,12 +35,10 @@ function unknownKeysText(keys, known, subject) {
 /** An object that refuses a key it does not know, naming what `subject` does take. */
 const closedObject = (shape, subject = 'This request') => {
     const known = Object.keys(shape);
-    const errorMap = (issue, ctx) => (issue.code === 'unrecognized_keys'
-        ? { message: unknownKeysText(issue.keys, known, subject) }
-        : issue.code === 'invalid_type'
-            ? { message: `${subject} takes a JSON object.` }
-            : { message: ctx.defaultError });
-    return z.object(shape, { errorMap }).strict();
+    const error = (iss) => (iss.code === 'unrecognized_keys'
+        ? unknownKeysText(iss.keys, known, subject)
+        : iss.code === 'invalid_type' ? `${subject} takes a JSON object.` : undefined);
+    return z.object(shape, { error }).strict();
 };
 
 /** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
@@ -53,7 +51,7 @@ const bodyOf = (shape, subject = 'This request') => orEmpty(closedObject(shape, 
 const queryOf = (shape, subject = 'This request') => orEmpty(closedObject(shape, subject));
 
 /** One of a fixed list, refused with the list rather than zod's enum text. */
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const choice = (values, message) => z.enum(values, { error: () => message });
 
 /**
  * An on/off flag. Only the booleans and their exact spellings count: the
@@ -61,18 +59,16 @@ const choice = (values, message) => z.enum(values, { errorMap: () => ({ message 
  */
 const flag = (message) => z.preprocess(
     (v) => (v === 'true' ? true : v === 'false' ? false : v),
-    z.boolean({ required_error: message, invalid_type_error: message }),
+    z.boolean({ error: message }),
 );
 
 /** A whole number within [min, max], from JSON or from the digits of a query string. */
 const wholeNumber = (message, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) => z.preprocess(
     (v) => (typeof v === 'string' && /^-?\d+$/.test(v.trim()) ? Number(v.trim()) : v),
-    z.number({ required_error: message, invalid_type_error: message }).int(message).min(min, message).max(max, message),
+    z.number({ error: message }).int(message).min(min, message).max(max, message),
 );
 
 /** A list of ids, each a non-empty string. */
-const idList = (message, max = 200) => z.array(worded(message).trim().min(1, message).max(200, message), {
-    required_error: message, invalid_type_error: message,
-}).max(max, message);
+const idList = (message, max = 200) => z.array(worded(message).trim().min(1, message).max(200, message), { error: message }).max(max, message);
 
-module.exports = { z, worded, closedObject, orEmpty, bodyOf, queryOf, choice, flag, wholeNumber, idList, unknownKeysText };
+module.exports = { z, typeError, onUnknownKeys, worded, closedObject, orEmpty, bodyOf, queryOf, choice, flag, wholeNumber, idList, unknownKeysText };

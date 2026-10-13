@@ -124,7 +124,7 @@ describe('the AI Act assessment', () => {
     it('matches the write: PUT on the same path, `{ answers }` only, answered with the stored row', () => {
         const src = fs.readFileSync(path.join(SERVER, 'routes/compliance/aiAct.js'), 'utf8');
         expect(src).toContain("router.put('/ai-act/assessments/:kind/:id'");
-        expect(src).toContain('answers: z.record(z.unknown()');
+        expect(src).toContain('answers: z.record(z.string(), z.unknown()');
         expect(src).toContain('}).strict());');
         expect(src).toContain('res.json({ ...(_publicRow(row) || {}), title: _titleOf(t.kind, target), open_duties: result.open_duties });');
     });

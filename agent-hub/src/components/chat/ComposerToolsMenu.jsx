@@ -50,6 +50,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Plus, ChevronRight } from 'lucide-react';
+import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import useTranslation from '../../hooks/useTranslation';
 
 const GROUP_ORDER = ['add', 'reach', 'mode'];
@@ -187,22 +188,7 @@ export default function ComposerToolsMenu({ items = [], className = '', children
 
     useEffect(() => () => clearTimeout(hoverTimer.current), []);
 
-    useEffect(() => {
-        if (!open) return undefined;
-        const onDown = (e) => {
-            if (rootRef.current && !rootRef.current.contains(e.target)) {
-                setOpen(false);
-                closePanels();
-            }
-        };
-        const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); closePanels(); } };
-        document.addEventListener('mousedown', onDown);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('mousedown', onDown);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open, closePanels]);
+    useOutsideDismiss(rootRef, () => { setOpen(false); closePanels(); }, { enabled: open, defer: false });
 
     // Shutting the menu takes its flyout with it — a picker left floating over
     // the conversation with nothing to anchor it reads as a bug.

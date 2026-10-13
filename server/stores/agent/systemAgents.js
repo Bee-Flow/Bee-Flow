@@ -10,7 +10,6 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
 const { run, getOne } = require('../../db');
 const { initDB } = require('./initSchema');
 const { REGISTRY, REGISTRY_MAP, SYSTEM_AGENT_IDS, PROMPTS_DIR } = require('./systemAgentRegistry');
@@ -73,7 +72,7 @@ async function seedSystemAgents() {
                 for (const toolId of def.tools) {
                     await run(
                         'INSERT INTO agent_tools (id, agent_id, component_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-                        [uuidv4(), def.id, toolId]
+                        [crypto.randomUUID(), def.id, toolId]
                     );
                 }
                 log.info(`[SystemAgents]   └─ Attached ${def.tools.length} tools`);

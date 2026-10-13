@@ -30,12 +30,12 @@
  */
 const express = require('express');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, onUnknownKeys } = require('../utils/zod');
 
 const router = express.Router();
 
 const NO_QUERY_TEXT = 'This endpoint reports one repository, chosen on the server; it takes no parameters.';
-const NO_QUERY = z.object({}).strict(NO_QUERY_TEXT);
+const NO_QUERY = z.object({}, { error: onUnknownKeys(NO_QUERY_TEXT) }).strict();
 
 const REPO = process.env.GITHUB_STATS_REPO || 'Bee-Flow/Bee-Flow';
 const TTL_MS = 24 * 60 * 60 * 1000;

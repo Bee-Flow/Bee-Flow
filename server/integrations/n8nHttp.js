@@ -23,7 +23,9 @@ function allowInsecureTls() {
 
 function n8nFetch(url, init = {}) {
     if (!N8N_ALLOW_INSECURE_TLS || !String(url).startsWith('https://')) return fetch(url, init);
-    insecureAgent ||= new Agent({ connect: { rejectUnauthorized: false } });
+    // HTTP/1.1 only, as before undici 8 (which offers h2 by default).
+    // nosemgrep: problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification -- operator opt-in (N8N_ALLOW_INSECURE_TLS=1, exactly '1') for a self-signed n8n; verification stays on otherwise
+    insecureAgent ||= new Agent({ allowH2: false, connect: { rejectUnauthorized: false } });
     return undiciFetch(url, { ...init, dispatcher: insecureAgent });
 }
 

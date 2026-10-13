@@ -18,7 +18,7 @@ const { requireAuth } = require('../../../auth/permissions');
 const { usableKbIdsForRequest } = require('../../../support/kbAccess');
 const { MAX_ATTACHED_KB_IDS } = require('../../../core/kb/kbSelection');
 const { encryptionOpts } = require('./shared');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 
 // ── What a caller may send ────────────────────────────────────────────────
@@ -27,15 +27,15 @@ const { validate } = require('../../../core/http/validate');
 // fail to stick with nothing on screen to explain it.
 
 /** An id a caller supplies, in a list. Blank entries are a client bug, not a gap. */
-const ID = (message) => z.string({ invalid_type_error: message }).trim().min(1, message);
+const ID = (message) => z.string({ error: typeError({ invalid: message }) }).trim().min(1, message);
 
 const KB_IDS_TEXT = 'Each knowledge base id must be a non-empty string.';
 const ConversationPatch = z.object({
-    title: z.string({ invalid_type_error: 'A conversation title must be text.' }).optional(),
-    pinned: z.boolean({ invalid_type_error: 'pinned is true or false.' }).optional(),
+    title: z.string({ error: typeError({ invalid: 'A conversation title must be text.' }) }).optional(),
+    pinned: z.boolean({ error: typeError({ invalid: 'pinned is true or false.' }) }).optional(),
     labels: z.array(ID('Each label id must be a non-empty string.'),
-        { invalid_type_error: 'labels must be a list of label ids.' }).optional(),
-    knowledgeBaseIds: z.array(ID(KB_IDS_TEXT), { invalid_type_error: 'knowledgeBaseIds must be an array.' })
+        { error: typeError({ invalid: 'labels must be a list of label ids.' }) }).optional(),
+    knowledgeBaseIds: z.array(ID(KB_IDS_TEXT), { error: typeError({ invalid: 'knowledgeBaseIds must be an array.' }) })
         .max(MAX_ATTACHED_KB_IDS, `At most ${MAX_ATTACHED_KB_IDS} knowledge bases`)
         // The route asks the access layer about each id, so the same id twice
         // is the same question twice.
@@ -44,23 +44,23 @@ const ConversationPatch = z.object({
 }).strict();
 
 const RegenerateBody = z.object({
-    message: z.string({ invalid_type_error: 'message must be text.' }).trim().optional(),
+    message: z.string({ error: typeError({ invalid: 'message must be text.' }) }).trim().optional(),
     // The prompt is written for a place, so an absent or blank zone is UTC
     // rather than a refusal — the caller did not claim a zone, it has none.
-    timezone: z.string({ invalid_type_error: 'timezone must be text.' }).trim().optional()
+    timezone: z.string({ error: typeError({ invalid: 'timezone must be text.' }) }).trim().optional()
         .transform((v) => v || 'UTC'),
 }).strict();
 
 const ImportSkillBody = z.object({
-    name: z.string({ invalid_type_error: 'A skill name must be text.' }).trim().min(1).max(120).optional(),
-    isShared: z.boolean({ invalid_type_error: 'isShared is true or false.' }).default(false),
-    dynamicActivation: z.boolean({ invalid_type_error: 'dynamicActivation is true or false.' }).default(true),
+    name: z.string({ error: typeError({ invalid: 'A skill name must be text.' }) }).trim().min(1).max(120).optional(),
+    isShared: z.boolean({ error: typeError({ invalid: 'isShared is true or false.' }) }).default(false),
+    dynamicActivation: z.boolean({ error: typeError({ invalid: 'dynamicActivation is true or false.' }) }).default(true),
 }).strict();
 
 const LABEL_NAME = 'A label needs a name.';
 const LabelBody = z.object({
-    name: z.string({ required_error: LABEL_NAME, invalid_type_error: LABEL_NAME }).trim().min(1, LABEL_NAME).max(120),
-    color: z.string({ invalid_type_error: 'A label colour must be text.' }).trim().min(1).max(32).default('#6366f1'),
+    name: z.string({ error: LABEL_NAME }).trim().min(1, LABEL_NAME).max(120),
+    color: z.string({ error: typeError({ invalid: 'A label colour must be text.' }) }).trim().min(1).max(32).default('#6366f1'),
 }).strict();
 
 /** Every field optional: renaming a label must not have to resend its colour. */
@@ -69,8 +69,8 @@ const LabelPatch = LabelBody.partial();
 const WorkspaceBody = z.object({
     // The store refuses a non-string with INVALID_WORKSPACE_CONTENT, which the
     // client swallowed as a 500; said here, the caller learns which field.
-    content: z.string({ invalid_type_error: 'Workspace content must be a string' }).default(''),
-    notebookId: z.string({ invalid_type_error: 'notebookId must be text.' }).trim().min(1).nullish()
+    content: z.string({ error: typeError({ invalid: 'Workspace content must be a string' }) }).default(''),
+    notebookId: z.string({ error: typeError({ invalid: 'notebookId must be text.' }) }).trim().min(1).nullish()
         .transform((v) => v ?? null),
 }).strict();
 

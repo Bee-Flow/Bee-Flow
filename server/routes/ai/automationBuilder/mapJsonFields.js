@@ -14,7 +14,7 @@
 const express = require('express');
 const log = require('../../../telemetry/log');
 const router = express.Router();
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 
 const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
@@ -128,13 +128,13 @@ const EXISTING_TEXT = 'existingFields is the list of fields the step already map
 // Blank, too long, and the sample itself stay validateMapJsonRequest's: its
 // messages are pinned by automationBuilder.mapJson.test.js.
 const MapJsonBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    sample: z.unknown(),
-    instruction: z.string({ required_error: INSTRUCTION_TEXT, invalid_type_error: 'The instruction must be text.' }),
+    sample: z.unknown().optional(),
+    instruction: z.string({ error: typeError({ required: INSTRUCTION_TEXT, invalid: 'The instruction must be text.' }) }),
     existingFields: z.array(z.object({
-        name: z.string({ required_error: EXISTING_TEXT, invalid_type_error: EXISTING_TEXT }),
-        path: z.string({ invalid_type_error: 'An existing field\'s path must be text.' }).optional(),
-        description: z.string({ invalid_type_error: 'An existing field\'s description must be text.' }).optional(),
-    }, { invalid_type_error: EXISTING_TEXT }).strict(), { invalid_type_error: EXISTING_TEXT }).optional(),
+        name: z.string({ error: EXISTING_TEXT }),
+        path: z.string({ error: typeError({ invalid: 'An existing field\'s path must be text.' }) }).optional(),
+        description: z.string({ error: typeError({ invalid: 'An existing field\'s description must be text.' }) }).optional(),
+    }, { error: typeError({ invalid: EXISTING_TEXT }) }).strict(), { error: typeError({ invalid: EXISTING_TEXT }) }).optional(),
 }).strict());
 
 /**

@@ -13,7 +13,7 @@
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl, CODES } = require('./lib/_ddl');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 
 const initDB = makeStoreInit('AppStore', _initDB);
 
@@ -61,7 +61,7 @@ async function _initDB() {
 
 async function createApp(name, description, code, createdBy, createdByUsername = null, thumbnail = null, isPublished = true, organizationId = null, sharedGroups = []) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     const groupsJson = JSON.stringify(Array.isArray(sharedGroups) ? sharedGroups : []);
     await run(`
         INSERT INTO apps (id, name, description, code, thumbnail, created_by, created_by_username, is_published, organization_id, shared_groups)

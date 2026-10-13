@@ -3,7 +3,7 @@
  * Agent CRUD - Create, Read, Update, Delete for agents + publish/org filtering
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { run, getOne, getAll, withTransaction } = require('../../db');
 const { initDB } = require('./initSchema');
 const managedParts = require('../lib/managedParts');
@@ -147,7 +147,7 @@ async function buildToolParams(agentId) {
  */
 async function createAgent(name, description, systemPrompt, ownerId, model = null, starterPrompts = [], threadsEnabled = true, copyEnabled = true, workspaceEnabled = false, config = {}, organizationId = null, sharedGroups = [], categoryId = null, opts = {}) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     const persona = opts && opts.persona !== undefined ? opts.persona : null;
     const personaJson = persona === null || persona === undefined ? null : JSON.stringify(persona);
     await run(`INSERT INTO agents (id, name, description, system_prompt, model, starter_prompts, threads_enabled, copy_enabled, workspace_enabled, config, organization_id, shared_groups, category_id, owner_id, persona, created_at, updated_at)
@@ -786,7 +786,7 @@ async function getAgentCategories(orgId) {
 
 async function createAgentCategory(orgId, name, icon, color) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     await run('INSERT INTO agent_categories (id, organization_id, name, icon, color) VALUES ($1,$2,$3,$4,$5)',
         [id, orgId || null, name, icon || '📁', color || '#6366f1']);
     return { id, organization_id: orgId, name, icon: icon || '📁', color: color || '#6366f1' };

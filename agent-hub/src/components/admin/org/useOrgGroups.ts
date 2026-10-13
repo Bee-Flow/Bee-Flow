@@ -3,6 +3,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { OrgMember, Organization } from './useOrgDirectory';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { toast } from '../../shared/Toast';
+import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 
 export interface OrgGroups {
     showCreateGroup: boolean;
@@ -91,22 +92,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
     const [memberBusy, setMemberBusy] = useState(false);
 
     // Close the group-assign popover on outside-click or Esc.
-    useEffect(() => {
-        if (!groupAssignOpenFor) return;
-        const onDocClick = (e: MouseEvent) => {
-            if (groupAssignRef.current && e.target instanceof Node && !groupAssignRef.current.contains(e.target)) {
-                setGroupAssignOpenFor(null);
-                setGroupAssignSearch('');
-            }
-        };
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setGroupAssignOpenFor(null); setGroupAssignSearch(''); } };
-        document.addEventListener('mousedown', onDocClick);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('mousedown', onDocClick);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [groupAssignOpenFor]);
+    useOutsideDismiss(groupAssignRef, () => { setGroupAssignOpenFor(null); setGroupAssignSearch(''); }, { enabled: !!groupAssignOpenFor, defer: false });
 
     useEffect(() => {
         if (!newGroupOrg && organizations.length > 0) {

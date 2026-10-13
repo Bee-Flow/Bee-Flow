@@ -31,7 +31,7 @@ const { SITE_ID_RE, getLiveSiteId } = require('./cmsShared');
 const { requireSuperAdmin } = require('../auth/permissions');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf, closedObject, choice } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, closedObject, choice, typeError } = require('../core/http/schemaParts');
 
 const router = express.Router();
 
@@ -798,7 +798,7 @@ async function getAnalyticsOverviewHandler(req, res) {
 // (RESOURCES, REPORTS, metricTypes()), which vary by resource and by the
 // Umami version, and every value is clamped before it leaves. Nothing they
 // take is written anywhere.
-const flagOf = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` });
+const flagOf = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
 const aText = (message, max) => worded(message).max(max, message);
 const SettingsBody = bodyOf({
     enabled: flagOf('enabled').optional(),
@@ -815,7 +815,7 @@ const SettingsBody = bodyOf({
         domains: aText('tracker.domains is a comma-separated list of at most 300 characters.', 300).optional(),
     }, 'tracker').optional(),
     recorder: closedObject({
-        sampleRate: z.number({ invalid_type_error: 'recorder.sampleRate is a number above 0, at most 1.' })
+        sampleRate: z.number({ error: typeError({ invalid: 'recorder.sampleRate is a number above 0, at most 1.' }) })
             .gt(0, 'recorder.sampleRate is a number above 0, at most 1.').lte(1, 'recorder.sampleRate is a number above 0, at most 1.').optional(),
         // Read when a request arrives: routes/cms.public.test.js stubs
         // umamiClient with a partial object (see metricTypes below).

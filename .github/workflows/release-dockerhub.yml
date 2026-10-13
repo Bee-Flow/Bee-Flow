@@ -26,7 +26,7 @@ on:
         default: ''
         required: false
       services:
-        description: '"published" (server,agent-hub,guard — the repos that exist on Docker Hub), "all" (adds pii,search-api,whisperx,search-inference-gpu,reranker,install-wizard,pwt-runner — several have no image yet, so pair it with a dry run), or a comma-separated list'
+        description: '"published" (server,agent-hub,guard — the repos that exist on Docker Hub), "all" (adds pwt-runner — it may have no image yet, so pair it with a dry run), or a comma-separated list'
         default: published
         required: true
       also_latest:
@@ -49,9 +49,9 @@ env:
   # profile means postgres + rustfs + server + agent-hub, with guard in its own
   # `guard` profile. Reusing that word for a different set here would mislead.
   PUBLISHED_SERVICES: server,agent-hub,guard
-  # Mirrorable in principle; several have never been built to GHCR, so `all`
+  # Mirrorable in principle; it may never have been built to GHCR, so `all`
   # is mostly useful with dry_run to see what exists.
-  EXTRA_SERVICES: pii,search-api,whisperx,search-inference-gpu,reranker,install-wizard,pwt-runner
+  EXTRA_SERVICES: pwt-runner
 
 jobs:
   mirror:

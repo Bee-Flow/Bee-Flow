@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
+import { copyText } from '../../../../utils/copyText';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
 
 /**
@@ -177,20 +178,8 @@ export default function useWebhooks(automation, { triggerStepId = null } = {}) {
 
     const copyToClipboard = useCallback(async (text, copyKey) => {
         try {
-            if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(text);
-            } else {
-                // Fallback for non-HTTPS / older browsers
-                const ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                const ok = document.execCommand('copy');
-                document.body.removeChild(ta);
-                if (!ok) throw new Error('execCommand copy returned false');
-            }
+            // Falls back to execCommand for non-HTTPS / older browsers.
+            await copyText(text, { failMessage: 'execCommand copy returned false' });
             setCopied(copyKey);
             setTimeout(() => setCopied((c) => (c === copyKey ? null : c)), 1500);
             setErrorMsg(null);

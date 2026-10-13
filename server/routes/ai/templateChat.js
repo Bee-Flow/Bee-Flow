@@ -42,14 +42,14 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { formatLocalNow } = require('../../core/llm/clock');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** The meeting-note context budget: five notes at 4,000 characters, shared. */
 const MEETING_CONTEXT_CHARS = 20_000;
@@ -63,34 +63,34 @@ const TZ_TEXT = 'timezone is a zone name, like Europe/Amsterdam.';
 const TemplateTurnBody = z.object({
     message: worded('Message required').min(1, 'Message required'),
     templateId: worded('Template ID required').min(1, 'Template ID required').max(200, 'Template ID required'),
-    conversationId: z.string({ invalid_type_error: 'conversationId must be text.' }).max(200).nullish(),
+    conversationId: z.string({ error: typeError({ invalid: 'conversationId must be text.' }) }).max(200).nullish(),
     history: z.array(z.object({
-        role: z.enum(['user', 'assistant'], { errorMap: () => ({ message: HISTORY_TEXT }) }),
+        role: z.enum(['user', 'assistant'], { error: () => HISTORY_TEXT }),
         content: worded(HISTORY_TEXT),
         attachments: z.array(z.unknown()).optional(),   // history carries them; this route reads text only
-    }, { invalid_type_error: HISTORY_TEXT }).strict(), { invalid_type_error: HISTORY_TEXT }).max(500, HISTORY_TEXT).optional(),
-    meetingNoteIds: z.array(worded(NOTES_TEXT).min(1, NOTES_TEXT).max(200, NOTES_TEXT), { invalid_type_error: NOTES_TEXT })
+    }, { error: typeError({ invalid: HISTORY_TEXT }) }).strict(), { error: typeError({ invalid: HISTORY_TEXT }) }).max(500, HISTORY_TEXT).optional(),
+    meetingNoteIds: z.array(worded(NOTES_TEXT).min(1, NOTES_TEXT).max(200, NOTES_TEXT), { error: typeError({ invalid: NOTES_TEXT }) })
         .max(MAX_MEETING_NOTES, NOTES_TEXT).optional(),
-    modelTier: z.string({ invalid_type_error: 'modelTier is the name of a model tier.' }).max(100).optional(),
+    modelTier: z.string({ error: typeError({ invalid: 'modelTier is the name of a model tier.' }) }).max(100).optional(),
     // Text, but not checked against the zone list: see the header.
-    timezone: z.string({ invalid_type_error: TZ_TEXT }).max(64, TZ_TEXT).optional(),
+    timezone: z.string({ error: typeError({ invalid: TZ_TEXT }) }).max(64, TZ_TEXT).optional(),
     // The composer's own shape; image, Drive-export, PDF, Word or text.
     attachments: z.array(z.object({
-        name: z.string({ invalid_type_error: ATTACHMENT_TEXT }).max(500).nullish(),
-        type: z.string({ invalid_type_error: ATTACHMENT_TEXT }).max(200).nullish(),
-        content: z.string({ invalid_type_error: ATTACHMENT_TEXT }).nullish(),
-        source: z.string({ invalid_type_error: ATTACHMENT_TEXT }).max(100).nullish(),
-    }, { invalid_type_error: ATTACHMENT_TEXT }).passthrough(), { invalid_type_error: ATTACHMENT_TEXT }).max(50, 'At most 50 attachments per message.').optional(),
+        name: z.string({ error: typeError({ invalid: ATTACHMENT_TEXT }) }).max(500).nullish(),
+        type: z.string({ error: typeError({ invalid: ATTACHMENT_TEXT }) }).max(200).nullish(),
+        content: z.string({ error: typeError({ invalid: ATTACHMENT_TEXT }) }).nullish(),
+        source: z.string({ error: typeError({ invalid: ATTACHMENT_TEXT }) }).max(100).nullish(),
+    }, { error: typeError({ invalid: ATTACHMENT_TEXT }) }).passthrough(), { error: typeError({ invalid: ATTACHMENT_TEXT }) }).max(50, 'At most 50 attachments per message.').optional(),
     // Sent by the shared composer to every direct endpoint; not used here.
-    imageGenSettings: z.unknown(),
-    nanoBananaSettings: z.unknown(),
-    disabledMedia: z.unknown(),
-    webSearchEnabled: z.unknown(),
-    memoryWriteEnabled: z.unknown(),
-    memoryReadEnabled: z.unknown(),
-    projectId: z.unknown(),
-    activeSkillIds: z.unknown(),
-    reasoningEffort: z.unknown(),
+    imageGenSettings: z.unknown().optional(),
+    nanoBananaSettings: z.unknown().optional(),
+    disabledMedia: z.unknown().optional(),
+    webSearchEnabled: z.unknown().optional(),
+    memoryWriteEnabled: z.unknown().optional(),
+    memoryReadEnabled: z.unknown().optional(),
+    projectId: z.unknown().optional(),
+    activeSkillIds: z.unknown().optional(),
+    reasoningEffort: z.unknown().optional(),
 }).strict();
 
 const {

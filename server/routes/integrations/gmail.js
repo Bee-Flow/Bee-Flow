@@ -33,7 +33,7 @@ const { extractTextBody, getGmailHeader: getHeader } = require('../../services/e
 // paths sanitise header values identically (no second copy to keep in sync).
 const { buildRawMessage } = require('../../integrations/gmailTools');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -63,7 +63,7 @@ const { z } = require('zod');
 // `includeSpamTrash`, which this route never sets.)
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
 const optionalText = (name) => worded(`${name} must be text.`).nullish();
@@ -71,7 +71,7 @@ const optionalText = (name) => worded(`${name} must be text.`).nullish();
 const MessagesQuery = z.object({
     query: worded('query must be text.').optional(),
     pageToken: worded('pageToken must be text.').optional(),
-    pageSize: z.coerce.number({ invalid_type_error: 'pageSize must be a number.' })
+    pageSize: z.coerce.number({ error: typeError({ invalid: 'pageSize must be a number.' }) })
         .int('pageSize must be a whole number.')
         .min(1, 'pageSize must be at least 1.')
         .optional(),

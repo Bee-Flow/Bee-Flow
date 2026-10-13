@@ -30,7 +30,7 @@
 
 const crypto = require('crypto');
 const express = require('express');
-const { z, bodyOf, choice } = require('../../core/http/schemaParts');
+const { z, bodyOf, choice, typeError } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const findingState = require('../../compliance/findingState');
@@ -39,15 +39,15 @@ const MAX_DAYS = 365;
 const DAY_MS = 24 * 3600 * 1000;
 
 const StateBody = bodyOf({
-    scope_id: z.string({ invalid_type_error: 'scope_id must be a text id or null.' })
+    scope_id: z.string({ error: typeError({ invalid: 'scope_id must be a text id or null.' }) })
         .max(300, 'scope_id is at most 300 characters.').nullable().optional(),
     state: choice(['acknowledged', 'accepted_risk', 'snoozed', 'open'],
         'state must be one of acknowledged, accepted_risk, snoozed or open.'),
-    reason: z.string({ invalid_type_error: 'reason must be text.' }).trim()
+    reason: z.string({ error: typeError({ invalid: 'reason must be text.' }) }).trim()
         .max(500, 'reason is at most 500 characters.').optional(),
-    until: z.string({ invalid_type_error: 'until must be an ISO date.' })
+    until: z.string({ error: typeError({ invalid: 'until must be an ISO date.' }) })
         .max(40, 'until must be an ISO date.').optional(),
-    days: z.number({ invalid_type_error: 'days must be a whole number of days.' })
+    days: z.number({ error: typeError({ invalid: 'days must be a whole number of days.' }) })
         .int('days must be a whole number of days.')
         .min(1, 'days must be at least 1.').max(MAX_DAYS, `days is at most ${MAX_DAYS}.`).optional(),
 }, 'A finding decision');

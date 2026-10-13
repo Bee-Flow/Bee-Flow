@@ -16,7 +16,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
@@ -31,10 +31,10 @@ const router = express.Router();
 const MAX_PREVIEW_TEXTS = 25;
 
 const TopicPreviewBody = z.object({
-    texts: z.array(z.string().max(MAX_TOPIC_TEXT_CHARS * 2), { invalid_type_error: 'texts is a list of sample texts.' })
+    texts: z.array(z.string().max(MAX_TOPIC_TEXT_CHARS * 2), { error: typeError({ invalid: 'texts is a list of sample texts.' }) })
         .min(1, 'Send at least one sample text.')
         .max(MAX_PREVIEW_TEXTS, `At most ${MAX_PREVIEW_TEXTS} sample texts.`),
-    labels: z.array(z.string().max(MAX_TOPIC_LABEL_CHARS * 2), { invalid_type_error: 'labels is a list of topics.' })
+    labels: z.array(z.string().max(MAX_TOPIC_LABEL_CHARS * 2), { error: typeError({ invalid: 'labels is a list of topics.' }) })
         .min(1, 'Send at least one topic.')
         .max(MAX_TOPIC_LABELS, `At most ${MAX_TOPIC_LABELS} topics.`),
 }).strict();

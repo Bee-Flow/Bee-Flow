@@ -5,7 +5,8 @@
  */
 
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const passwords = require('../passwordHash');
+const { upgradeStoredHash } = require('./passwordRehash');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -18,10 +19,10 @@ const { auditLoginFailure, auditLoginBlocked } = require('../loginAudit');
 const { loginIpLimiter } = require('../authRateLimits');
 const { finalizeLogin } = require('./finalizeLogin');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 // One sentence for both fields and for every way they can be wrong. The 400
 // must not distinguish a missing username from a missing password any more
@@ -63,23 +64,25 @@ const LoginBody = z.object({
  *
  * The dummy is generated once per process from random bytes — nobody can supply
  * a password that matches it, and the salt is irrelevant since only the cost
- * matters. Cost 10 is what every user row uses (see the bcrypt.hash calls in
- * this file and in adminRoutes). The built-in `admin` row in config is hashed at
- * cost 12 and therefore still answers measurably slower than everything else,
- * which is accepted: `admin` is a fixed, documented account name whose existence
- * was never the secret. Every other identifier is now indistinguishable.
+ * matters. It comes from the shared hash function, so it uses the algorithm and cost
+ * every new password gets (auth/passwordHash.js: bcrypt cost 10 by default,
+ * argon2id with PASSWORD_HASH_ALGORITHM=argon2id). Rows hashed differently
+ * (the built-in admin at cost 12, or bcrypt rows awaiting an argon2id upgrade)
+ * cost a different amount than the dummy; the failure-response floor in
+ * loginThrottle.js (padFailureResponse) sits above all of them and is what
+ * makes every failure path take the same time. `admin` is a fixed, documented
+ * account name whose existence was never the secret.
  */
-const BCRYPT_ROUNDS = 10;
 let _dummyHashPromise = null;
 function dummyPasswordHash() {
     if (!_dummyHashPromise) {
-        _dummyHashPromise = bcrypt.hash(crypto.randomBytes(32).toString('hex'), BCRYPT_ROUNDS);
+        _dummyHashPromise = passwords.hash(crypto.randomBytes(32).toString('hex'));
     }
     return _dummyHashPromise;
 }
 async function burnPasswordCompare(password) {
     try {
-        await bcrypt.compare(String(password ?? ''), await dummyPasswordHash());
+        await passwords.verify(String(password ?? ''), await dummyPasswordHash());
     } catch (_) { /* the result is discarded — only the elapsed time matters */ }
 }
 
@@ -123,17 +126,18 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
     let user = null;
     let isAdmin = false;
     let storedUser = null;
-    // Did we spend a real bcrypt comparison? If not, one is spent on a dummy
+    // Did we spend a real password-hash comparison? If not, one is spent on a dummy
     // hash before answering — see burnPasswordCompare at the top of this file.
     let hashCompared = false;
 
     // 1. Check Config Admin
     if (config.admin.passwordHash && username === config.admin.username) {
-        const isValid = await bcrypt.compare(password, config.admin.passwordHash);
+        const isValid = await passwords.verify(password, config.admin.passwordHash);
         hashCompared = true;
         if (isValid) {
             user = { id: 'admin', displayName: 'Administrator', role: 'admin' };
             isAdmin = true;
+            await upgradeStoredHash({ userId: 'admin', storedHash: config.admin.passwordHash, password, isConfigAdmin: true });
         }
     }
 
@@ -173,9 +177,10 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
                     kdfMode: 'opaque_v1'
                 });
             }
-            const isValid = await bcrypt.compare(password, storedUser.passwordHash);
+            const isValid = await passwords.verify(password, storedUser.passwordHash);
             hashCompared = true;
             if (isValid) {
+                await upgradeStoredHash({ userId: storedUser.id, storedHash: storedUser.passwordHash, password });
                 user = {
                     id: storedUser.id,
                     displayName: storedUser.displayName,

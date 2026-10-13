@@ -17,11 +17,7 @@ const lifecycle = require('../../playbooks/lifecycle');
 const { refreshFillPhase } = require('../../playbooks/phases/fillPhase');
 const { copyFor } = require('../../playbooks/copy');
 const { userIdOf } = require('../studio/shared');
-const {
-    z, sendErr, isObject, localeOfRequest,
-    worded, closedObject, bodyOf, localeCode, tierName, check,
-    MAX_TITLE, MAX_FOLDER, MAX_DESCRIPTION, MAX_BRIEF, TABLE_MODES, CLIENT_STATUSES,
-} = require('./contract');
+const { z, sendErr, isObject, localeOfRequest, worded, closedObject, bodyOf, localeCode, tierName, check, MAX_TITLE, MAX_FOLDER, MAX_DESCRIPTION, MAX_BRIEF, TABLE_MODES, CLIENT_STATUSES, onUnknownKeys, typeError } = require('./contract');
 const { kindOf, localeOf, withClosingPhases, summarise } = require('./phaseList');
 const log = require('../../telemetry/log');
 
@@ -56,12 +52,12 @@ const CreateOptions = closedObject({
     folderPath: worded('folderPath is an absolute Nextcloud path (/…).').nullish(),
     approverGroupId: worded('approverGroupId is the id of a group.').trim().nullish(),
     ask: worded('ask is what the person asked for, in their own words.').nullish(),
-    inputs: z.record(z.unknown(), { invalid_type_error: 'inputs is a map of the recipe\'s own fields.' }).nullish(),
+    inputs: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'inputs is a map of the recipe\'s own fields.' }) }).nullish(),
 }, 'options');
 
 const CreateBody = bodyOf({
     recipeId: worded('recipeId is the id of a recipe.').trim().nullish(),
-    recipe: z.record(z.unknown(), { invalid_type_error: 'recipe is the playbook document.' }).nullish(),
+    recipe: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'recipe is the playbook document.' }) }).nullish(),
     title: worded('title must be text.').nullish(),
     options: CreateOptions.nullish(),
 });
@@ -88,25 +84,25 @@ const CreateBody = bodyOf({
 // the TYPE of its message would leave a dead phase that cannot say it died.
 const VERSION_TEXT = 'expectedVersion is the version this playbook had when you read it.';
 const PatchLock = z.preprocess((v) => (isObject(v) ? v : {}), z.object({
-    expectedVersion: z.union([z.number().int(), z.string().trim().regex(/^\d+$/).transform(Number)], { errorMap: () => ({ message: VERSION_TEXT }) }),
+    expectedVersion: z.union([z.number().int(), z.string().trim().regex(/^\d+$/).transform(Number)], { error: () => VERSION_TEXT }),
 }).passthrough());
 
 const ENTRY_TEXT = 'A phase entry names its phase (key) and may carry status, artifacts, summary, error and brief.';
 const PatchEntry = z.object({
     key: worded('A phase entry names its phase (key).'),
     status: z.unknown().optional(),
-    artifacts: z.record(z.unknown(), { invalid_type_error: 'artifacts is a document.' }).optional(),
+    artifacts: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'artifacts is a document.' }) }).optional(),
     summary: z.unknown().optional(),
     error: z.unknown().optional(),
     brief: worded('brief is text.').optional(),
-}, { invalid_type_error: ENTRY_TEXT }).strict(ENTRY_TEXT);
+}, { error: onUnknownKeys(ENTRY_TEXT, typeError({ invalid: ENTRY_TEXT })) }).strict();
 const PATCH_TEXT = 'A playbook patch carries expectedVersion, and may carry status, title and phases.';
 const PatchBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    expectedVersion: z.unknown(),
+    expectedVersion: z.unknown().optional(),
     status: z.unknown().optional(),
     title: worded('title is text.').optional(),
-    phases: z.array(PatchEntry, { invalid_type_error: 'phases is a list of phase entries.' }).optional(),
-}, { invalid_type_error: PATCH_TEXT }).strict(PATCH_TEXT));
+    phases: z.array(PatchEntry, { error: typeError({ invalid: 'phases is a list of phase entries.' }) }).optional(),
+}, { error: onUnknownKeys(PATCH_TEXT, typeError({ invalid: PATCH_TEXT })) }).strict());
 
 function register(router, ctx) {
     const { d, flow, requireManageApps } = ctx;

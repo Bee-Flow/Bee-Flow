@@ -60,7 +60,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { requireAuth: _requireAuth, requireAdmin: _requireAdmin } = require('../auth/permissions');
 const brandingStore = require('../stores/brandingStore');
 const { validate } = require('../core/http/validate');
@@ -87,16 +87,16 @@ const requireAdmin = safe(_requireAdmin);
 // The same words brandingStore.sanitize accepts. An enum whose refusal is one
 // sentence, for a wrong value as much as a wrong type (see validate.js).
 
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const choice = (values, message) => z.enum(values, { error: () => message });
 const within = (name, lo, hi) => {
     const text = `${name} is a number from ${lo} to ${hi}.`;
-    return z.number({ invalid_type_error: text }).min(lo, text).max(hi, text);
+    return z.number({ error: typeError({ invalid: text }) }).min(lo, text).max(hi, text);
 };
 
 const PRESET_TEXT = 'preset is one of: light, dark, glass, glass-dark, paper, obsidian, sepia, high-contrast, custom.';
 const preset = () => choice(['light', 'dark', 'glass', 'glass-dark', 'paper', 'obsidian', 'sepia', 'high-contrast', 'custom'], PRESET_TEXT);
 const ACCENT_TEXT = 'accent is a colour like #3b82f6 (six hex digits).';
-const accent = () => z.string({ invalid_type_error: ACCENT_TEXT }).regex(/^#[0-9a-fA-F]{6}$/, ACCENT_TEXT);
+const accent = () => z.string({ error: typeError({ invalid: ACCENT_TEXT }) }).regex(/^#[0-9a-fA-F]{6}$/, ACCENT_TEXT);
 const WALLPAPER_TEXT = 'wallpaperPreset is one of: mono, slate, sand, frost, sage, ash.';
 const wallpaperPreset = () => choice(['mono', 'slate', 'sand', 'frost', 'sage', 'ash'], WALLPAPER_TEXT);
 
@@ -105,7 +105,7 @@ const glassTier = (name) => z.object({
     blur: within(`${name}.blur`, 0, 60).optional(),
     saturate: within(`${name}.saturate`, 100, 300).optional(),
     brightness: within(`${name}.brightness`, 0.8, 1.3).optional(),
-}, { invalid_type_error: `${name} is { blur, saturate, brightness }, or null.` }).strict().nullable();
+}, { error: typeError({ invalid: `${name} is { blur, saturate, brightness }, or null.` }) }).strict().nullable();
 
 const AdminBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     preset: preset().optional(),
@@ -123,8 +123,8 @@ const AdminBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), 
     glassTierSubtle: glassTier('glassTierSubtle').optional(),
     glassTierDefault: glassTier('glassTierDefault').optional(),
     glassTierOpaque: glassTier('glassTierOpaque').optional(),
-    allowUserOverride: z.boolean({ invalid_type_error: 'allowUserOverride is true or false.' }).optional(),
-}, { invalid_type_error: 'Send the theme as an object of settings.' }).strict());
+    allowUserOverride: z.boolean({ error: typeError({ invalid: 'allowUserOverride is true or false.' }) }).optional(),
+}, { error: typeError({ invalid: 'Send the theme as an object of settings.' }) }).strict());
 
 /**
  * A member's own theme: the three knobs sanitize lets a non-admin set — or no
@@ -135,7 +135,7 @@ const UserBody = z.preprocess((v) => (v === undefined ? null : v), z.object({
     preset: preset().optional(),
     accent: accent().optional(),
     wallpaperPreset: wallpaperPreset().optional(),
-}, { invalid_type_error: USER_TEXT }).strict().nullable());
+}, { error: typeError({ invalid: USER_TEXT }) }).strict().nullable());
 
 // ── Storage ─────────────────────────────────────────────────────
 

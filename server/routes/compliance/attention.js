@@ -15,12 +15,12 @@ const attention = require('../../compliance/attention');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { requireOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const LIMIT_TEXT = 'limit must be a whole number of rows.';
 /** `?limt=10` used to fall back to five rows without saying so. */
 const AttentionQuery = z.object({
-    limit: z.coerce.number({ invalid_type_error: LIMIT_TEXT })
+    limit: z.coerce.number({ error: typeError({ invalid: LIMIT_TEXT }) })
         .int(LIMIT_TEXT).min(0, LIMIT_TEXT).max(50, 'limit is at most 50.').optional(),
 }).strict();
 

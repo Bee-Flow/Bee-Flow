@@ -7,7 +7,7 @@
  */
 
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const passwords = require('../passwordHash');
 const log = require('../../telemetry/log');
 const router = express.Router();
 
@@ -20,10 +20,10 @@ const { sanitizePlainText } = require('../../utils/htmlSanitizer');
 const signupCaptcha = require('../signupCaptcha');
 const { signupIpLimiter, signupTargetLimiter } = require('../authRateLimits');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const CREDENTIALS_TEXT = 'Username and password are required';
 
@@ -52,8 +52,8 @@ const SignupBody = z.object({
     inviteToken: worded('An invitation token must be text.').trim().max(512, 'That invitation token is too long.').optional(),
     newOrgName: worded('An organization name must be text.').trim().max(200, 'An organization name is at most 200 characters.').optional(),
     organizationId: worded('An organization id must be text.').trim().max(200, 'That organization id is too long.').optional(),
-    orgDetails: z.record(z.unknown(), { invalid_type_error: 'orgDetails must be an object.' }).optional(),
-    privacyShield: z.record(z.unknown(), { invalid_type_error: 'privacyShield must be an object.' }).nullable().optional(),
+    orgDetails: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'orgDetails must be an object.' }) }).optional(),
+    privacyShield: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'privacyShield must be an object.' }) }).nullable().optional(),
 }).strict();
 
 // Public signup — create user + optionally a new organization
@@ -128,7 +128,7 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
     }
 
     const orgId = placement.organizationId;
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await passwords.hash(password);
     const resolvedStatus = placement.status;
     const needsVerification = placement.needsVerification;
 

@@ -29,7 +29,7 @@ const {
     decorateKbList,
 } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const SURFACES = [...VALID_USAGE_CONTEXTS];
 
@@ -39,7 +39,7 @@ const SURFACES = [...VALID_USAGE_CONTEXTS];
  */
 const surface = (name) => z.preprocess(
     (v) => (typeof v === 'string' ? (v.trim() || undefined) : v),
-    z.enum(SURFACES, { errorMap: () => ({ message: `${name} is one of: ${SURFACES.join(', ')}.` }) }).optional(),
+    z.enum(SURFACES, { error: () => `${name} is one of: ${SURFACES.join(', ')}.` }).optional(),
 );
 
 const INCLUDE_AUTO_TEXT = 'includeAuto is 1 or 0 (true and false work too).';
@@ -50,7 +50,7 @@ const ListQuery = z.object({
     // An empty value stays what it was: absent.
     includeAuto: z.preprocess(
         (v) => (v === '' ? undefined : v),
-        z.enum(['1', '0', 'true', 'false'], { errorMap: () => ({ message: INCLUDE_AUTO_TEXT }) })
+        z.enum(['1', '0', 'true', 'false'], { error: () => INCLUDE_AUTO_TEXT })
             .transform((v) => (v === '1' || v === 'true' ? '1' : '0'))
             .optional(),
     ),

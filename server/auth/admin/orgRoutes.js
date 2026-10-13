@@ -16,7 +16,7 @@ const userStore = require('../../stores/userStore');
 const { requireAuth, requireSuperAdmin, getUserPermissions, resolveUserOrgIds } = require('../permissions');
 const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const freeEmailDomains = require('../../utils/freeEmailDomains');
 const { requireOrgAdmin } = require('./orgAdminGuards');
 const { HttpError } = require('../../core/http/errors');
@@ -36,7 +36,7 @@ const ORG_UPDATE_FIELDS = Object.freeze([
 const ORG_UPDATE_ALLOWED_KEYS = new Set(ORG_UPDATE_FIELDS);
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const ORG_NAME_TEXT = 'Organization name required';
 const text = (max) => worded('That field must be text.').max(max, `That field is at most ${max} characters.`);
@@ -63,8 +63,8 @@ const CreateOrgBody = z.object({
     vat: text(64).optional(),
     logo: text(2_000_000).optional(),
     footerText: text(2000).optional(),
-    defaultGroups: z.array(worded('A group id must be text.'), { invalid_type_error: 'defaultGroups must be a list of group ids.' }).optional(),
-    allowSignup: z.boolean({ invalid_type_error: 'allowSignup must be true or false.' }).optional(),
+    defaultGroups: z.array(worded('A group id must be text.'), { error: typeError({ invalid: 'defaultGroups must be a list of group ids.' }) }).optional(),
+    allowSignup: z.boolean({ error: typeError({ invalid: 'allowSignup must be true or false.' }) }).optional(),
 }).strict();
 
 // tier and scope are checked in the handler, against the tier table and the
@@ -72,13 +72,11 @@ const CreateOrgBody = z.object({
 // from stores/encryptionPolicy.js the first time a surface is added.
 const EncryptionBody = z.object({
     tier: worded('A tier must be text.').optional(),
-    scope: z.union([z.record(z.unknown()), z.null()], {
-        invalid_type_error: 'scope must be an object of surface booleans, or null',
-    }).optional(),
+    scope: z.union([z.record(z.string(), z.unknown()), z.null()], { error: typeError({ invalid: 'scope must be an object of surface booleans, or null' }) }).optional(),
 }).strict();
 
 const EncryptionBackfillBody = z.object({
-    dryRun: z.boolean({ required_error: 'dryRun is required', invalid_type_error: 'dryRun must be true or false' }),
+    dryRun: z.boolean({ error: typeError({ required: 'dryRun is required', invalid: 'dryRun must be true or false' }) }),
 }).strict();
 
 /**

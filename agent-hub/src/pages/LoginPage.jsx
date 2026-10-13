@@ -734,7 +734,7 @@ const LoginPage = ({ onLogin }) => {
     };
 
     // Setup mode now only shows password creation (LoginForm handles this).
-    // All AI/service configuration is handled by the Docker install wizard.
+    // All AI/service configuration is handled by the installer env (INIT_*) and the in-app admin settings.
 
     // Signup is a dedicated full-page wizard (welcome → steps → auto-login),
     // mirroring the Nextcloud-connector onboarding flow. Shown once auth

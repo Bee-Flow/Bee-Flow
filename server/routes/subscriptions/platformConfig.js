@@ -9,7 +9,7 @@ const userStore = require('../../stores/userStore');
 const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ const router = express.Router();
 // validated key shape rather than a fixed field list.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A plan slot: a plan id, or empty/null to clear it. */
 const PLAN_SLOT_TEXT = 'A trial plan is the id of a plan, or empty to offer none.';
@@ -42,12 +42,12 @@ const CODE_TEXT = 'A currency code is three letters, like EUR.';
 const RATES_TEXT = 'Send the rates as { eur: 0.92, gbp: 0.78 }.';
 const CurrencyRatesBody = z.record(
     worded(CODE_TEXT).regex(/^[a-z]{3}$/i, CODE_TEXT),
-    z.coerce.number({ invalid_type_error: 'A rate is a number of <currency> per USD.' })
+    z.coerce.number({ error: typeError({ invalid: 'A rate is a number of <currency> per USD.' }) })
         .positive('A rate is greater than zero.'),
-    { required_error: RATES_TEXT, invalid_type_error: RATES_TEXT },
+    { error: typeError({ required: RATES_TEXT, invalid: RATES_TEXT }) },
 );
 
-const whole = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
+const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`)
     .min(1, `${name} is at least 1.`)
     .optional();

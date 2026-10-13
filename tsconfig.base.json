@@ -1,0 +1,18 @@
+{
+    // Compiler flags that every TypeScript package here with a tsconfig of its
+    // own sets to the same value (agent-hub/, desktop/ and mobile/). Only flags
+    // that are identical everywhere belong here; a package's own tsconfig adds
+    // the rest. Extended today by desktop/ (tsconfig.json, tsconfig.shell.json).
+    //
+    // Not extended, on purpose:
+    //   agent-hub/  its Docker build context is agent-hub/ alone, so a path
+    //               outside it would not resolve in the image;
+    //   mobile/     already extends expo/tsconfig.base, and Expo/Metro tooling
+    //               reads `extends` as a single string, not a list;
+    //   docs/       extends @docusaurus/tsconfig.
+    "compilerOptions": {
+        "strict": true,
+        "noFallthroughCasesInSwitch": true,
+        "forceConsistentCasingInFileNames": true
+    }
+}

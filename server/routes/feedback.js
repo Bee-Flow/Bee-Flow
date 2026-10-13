@@ -34,7 +34,7 @@ const userStore = require('../stores/userStore');
 const { getAll } = require('../db');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 const router = express.Router();
 
@@ -65,7 +65,7 @@ const MAX_FEEDBACK_LIMIT = 500;
 const DEFAULT_FEEDBACK_LIMIT = 200;
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** An id as the chat holds it: text, or a number the store keeps as text. */
 const asIdText = (v) => (typeof v === 'number' && Number.isFinite(v) ? String(v) : v);
@@ -75,8 +75,8 @@ const requiredIdText = (message) => z.preprocess(asIdText, worded(message).trim(
 
 const RATING_TEXT = 'rating must be "up" or "down"';
 const SOURCE_TEXT = 'source is "agent" or "direct".';
-const rating = () => z.enum(['up', 'down'], { errorMap: () => ({ message: RATING_TEXT }) });
-const source = () => z.enum(['agent', 'direct'], { errorMap: () => ({ message: SOURCE_TEXT }) });
+const rating = () => z.enum(['up', 'down'], { error: () => RATING_TEXT });
+const source = () => z.enum(['agent', 'direct'], { error: () => SOURCE_TEXT });
 
 /** A moment, handed to the database as ISO text rather than as a string it has to guess at. */
 const moment = (name) => {
@@ -99,10 +99,10 @@ const FeedbackBody = z.object({
     comment: worded('A comment is text.').nullish(),
     source: source().optional(),
     conversationSnapshot: z.array(
-        z.record(z.unknown(), { invalid_type_error: SNAPSHOT_TEXT }),
-        { invalid_type_error: SNAPSHOT_TEXT },
+        z.record(z.string(), z.unknown(), { error: typeError({ invalid: SNAPSHOT_TEXT }) }),
+        { error: typeError({ invalid: SNAPSHOT_TEXT }) },
     ).nullish(),
-}, { required_error: RATING_TEXT, invalid_type_error: RATING_TEXT }).strict();
+}, { error: typeError({ required: RATING_TEXT, invalid: RATING_TEXT }) }).strict();
 
 const LIMIT_TEXT = `limit is a whole number from 1 to ${MAX_FEEDBACK_LIMIT}.`;
 const RangeQuery = z.object({ startDate: moment('startDate'), endDate: moment('endDate') }).strict();
@@ -112,7 +112,7 @@ const ListQuery = RangeQuery.extend({
     source: source().optional(),
     // Clamped rather than refused above the cap: a page size is a request, and
     // the answer to "more than that" is the most there is.
-    limit: z.coerce.number({ invalid_type_error: LIMIT_TEXT }).int(LIMIT_TEXT).min(1, LIMIT_TEXT)
+    limit: z.coerce.number({ error: typeError({ invalid: LIMIT_TEXT }) }).int(LIMIT_TEXT).min(1, LIMIT_TEXT)
         .transform((n) => Math.min(n, MAX_FEEDBACK_LIMIT)).optional(),
 }).strict();
 

@@ -28,7 +28,7 @@
 
 const express = require('express');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // The note is the justification an auditor reads beside a "not relevant"
 // decision, and it was the second key in a body nobody checked: `notes`
@@ -39,8 +39,8 @@ const { z } = require('zod');
 // note instead would change a contract no caller asked to have changed.
 const NoteBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     // The route answers a wrong VALUE with invalid_relevance, which lists them.
-    relevance: z.string({ invalid_type_error: 'relevance must be text.' }).optional(),
-    note: z.string({ invalid_type_error: 'note must be text.' }).nullish(),
+    relevance: z.string({ error: typeError({ invalid: 'relevance must be text.' }) }).optional(),
+    note: z.string({ error: typeError({ invalid: 'note must be text.' }) }).nullish(),
 }).strict());
 
 /** The enable and disable buttons post nothing and read nothing. */

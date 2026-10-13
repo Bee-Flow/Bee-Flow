@@ -19,7 +19,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const executionEngine = require('../core/executionEngine');
 const componentManager = require('../core/cms/componentManager');
 const log = require('../telemetry/log');
@@ -31,27 +31,27 @@ const { getUserAuth } = require('../utils/routeHelpers');
 const { requireAuth } = require('../auth');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const WORKFLOW_TEXT = 'workflow is the graph to run: { nodes: [...], edges: [...] }.';
 const Graph = z.object({
-    nodes: z.array(z.record(z.unknown(), { invalid_type_error: 'Each node is an object.' }), { required_error: WORKFLOW_TEXT, invalid_type_error: WORKFLOW_TEXT }),
-    edges: z.array(z.record(z.unknown(), { invalid_type_error: 'Each edge is an object.' }), { required_error: WORKFLOW_TEXT, invalid_type_error: WORKFLOW_TEXT }),
-}, { required_error: WORKFLOW_TEXT, invalid_type_error: WORKFLOW_TEXT }).passthrough();
+    nodes: z.array(z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'Each node is an object.' }) }), { error: WORKFLOW_TEXT }),
+    edges: z.array(z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'Each edge is an object.' }) }), { error: WORKFLOW_TEXT }),
+}, { error: typeError({ required: WORKFLOW_TEXT, invalid: WORKFLOW_TEXT }) }).passthrough();
 
 const RUN_ID_TEXT = 'workflowId is the id of the saved workflow this run belongs to.';
 const ExecuteBody = z.object({
     workflow: Graph,
     workflowId: worded(RUN_ID_TEXT).trim().min(1, RUN_ID_TEXT).optional(),
     workflowName: worded('workflowName is text.').optional(),
-}, { required_error: WORKFLOW_TEXT, invalid_type_error: WORKFLOW_TEXT }).strict();
+}, { error: typeError({ required: WORKFLOW_TEXT, invalid: WORKFLOW_TEXT }) }).strict();
 
 const COMPONENT_TEXT = 'componentId is required';
 const INPUTS_TEXT = 'inputs is an object of input values, like { "input": "hello" }.';
 const TestComponentBody = z.object({
     componentId: worded(COMPONENT_TEXT).trim().min(1, COMPONENT_TEXT),
-    inputs: z.record(z.unknown(), { invalid_type_error: INPUTS_TEXT }).nullish(),
-}, { required_error: COMPONENT_TEXT, invalid_type_error: COMPONENT_TEXT }).strict();
+    inputs: z.record(z.string(), z.unknown(), { error: typeError({ invalid: INPUTS_TEXT }) }).nullish(),
+}, { error: typeError({ required: COMPONENT_TEXT, invalid: COMPONENT_TEXT }) }).strict();
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const SubworkflowBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({

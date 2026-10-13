@@ -41,19 +41,19 @@ const {
     VALID_USAGE_CONTEXTS,
 } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
 const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
 /** GET /:id takes no options: the base, its documents, its counts. */
 const NoQuery = orEmpty(z.object({}).strict());
-const NoBody = orEmpty(z.object({}, { invalid_type_error: 'This request takes no body.' }).strict());
+const NoBody = orEmpty(z.object({}, { error: typeError({ invalid: 'This request takes no body.' }) }).strict());
 
 const NAME_TEXT = 'A knowledge base needs a name.';
 const CATEGORY_TEXT = 'categoryId is the id of a category, or null for none.';
@@ -73,8 +73,8 @@ const UpdateKbBody = orEmpty(z.object({
     // store never wrote one (sanitizeUsageContexts reads `[]` as "leave
     // as-is"), so accepting it promised a change that did not happen.
     usageContexts: z.array(
-        z.enum(CONTEXTS, { errorMap: () => ({ message: CONTEXT_TEXT }) }),
-        { invalid_type_error: 'usageContexts is a list of places this base may be used.' },
+        z.enum(CONTEXTS, { error: () => CONTEXT_TEXT }),
+        { error: typeError({ invalid: 'usageContexts is a list of places this base may be used.' }) },
     ).min(1, 'A knowledge base has to be usable somewhere. Pick at least one place.').optional(),
     // Whether the caller may use this organisation is assertUserCanUseOrg's
     // answer; null means "leave it", exactly as before.
@@ -85,17 +85,17 @@ const PUBLISHED_TEXT = 'Say whether the knowledge base is published: isPublished
 const GROUP_TEXT = 'Each shared group is the id of a group.';
 const PublishBody = orEmpty(z.object({
     // Required: a publish body without it used to UNPUBLISH the base.
-    isPublished: z.boolean({ required_error: PUBLISHED_TEXT, invalid_type_error: PUBLISHED_TEXT }),
+    isPublished: z.boolean({ error: PUBLISHED_TEXT }),
     // `[]` is the documented "whole organisation"; a blank entry is refused
     // rather than dropped, because dropping the only one is `[]` as well.
     // Absent or null: the groups stay as they are.
     sharedGroups: z.array(worded(GROUP_TEXT).trim().min(1, GROUP_TEXT),
-        { invalid_type_error: 'sharedGroups is a list of group ids.' }).nullish(),
+        { error: typeError({ invalid: 'sharedGroups is a list of group ids.' }) }).nullish(),
 }).strict());
 
 const CONFIRM_TEXT = 'confirm is 1 (or true) once the list of what breaks has been seen.';
 const DeleteQuery = orEmpty(z.object({
-    confirm: z.enum(['1', 'true', '0', 'false'], { errorMap: () => ({ message: CONFIRM_TEXT }) }).optional(),
+    confirm: z.enum(['1', 'true', '0', 'false'], { error: () => CONFIRM_TEXT }).optional(),
 }).strict());
 
 /**

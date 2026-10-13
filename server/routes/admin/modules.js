@@ -42,7 +42,7 @@ const entitlementRefresh = require('../../modules/entitlementRefresh');
 const platformModuleStore = require('../../stores/platformModuleStore');
 const { requireSuperAdmin } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -62,17 +62,17 @@ const { z } = require('zod');
 // .bfgrant document that packageLoader verifies by signature.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const one = (name, what) => worded(`${name} is ${what}.`).trim().optional();
-const whole = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
+const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
 const idList = (name) => z.array(
     worded(`${name} is a list of permission ids.`).trim().min(1, `${name} is a list of permission ids.`),
-    { invalid_type_error: `${name} is a list of permission ids.` },
+    { error: typeError({ invalid: `${name} is a list of permission ids.` }) },
 ).optional();
 
 const LEVELS = ['debug', 'info', 'warn', 'error', 'system'];
@@ -83,7 +83,7 @@ const PIN_TEXT = 'pin is "none", "major" or "minor".';
 const AuditQuery = z.object({ moduleId: one('moduleId', 'a module id'), limit: whole('limit') }).strict();
 const LogsQuery = z.object({
     limit: whole('limit'),
-    level: z.enum(LEVELS, { errorMap: () => ({ message: LEVEL_TEXT }) }).optional(),
+    level: z.enum(LEVELS, { error: () => LEVEL_TEXT }).optional(),
 }).strict();
 const MarketplaceQuery = z.object({
     q: one('q', 'a search term'),
@@ -107,11 +107,11 @@ const UpdateBody = bodyOf({ acceptedPermissions: idList('acceptedPermissions') }
 const VersionBody = bodyOf({ version: one('version', 'a version') });
 const RollbackBody = bodyOf({
     version: one('version', 'a version'),
-    force: z.boolean({ invalid_type_error: 'force is true or false.' }).optional(),
+    force: z.boolean({ error: typeError({ invalid: 'force is true or false.' }) }).optional(),
 });
 const UpdatePolicyBody = bodyOf({
-    channel: z.enum(['stable', 'beta'], { errorMap: () => ({ message: CHANNEL_TEXT }) }).default('stable'),
-    pin: z.enum(['none', 'major', 'minor'], { errorMap: () => ({ message: PIN_TEXT }) }).default('none'),
+    channel: z.enum(['stable', 'beta'], { error: () => CHANNEL_TEXT }).default('stable'),
+    pin: z.enum(['none', 'major', 'minor'], { error: () => PIN_TEXT }).default('none'),
 });
 
 // Map a HubError onto the PRODUCT ADMIN API's HTTP vocabulary. Everything the

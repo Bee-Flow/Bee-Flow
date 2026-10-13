@@ -33,8 +33,8 @@ on:
 permissions:
   contents: read
   # The images are pulled with this run's token (TRIVY_USERNAME/PASSWORD
-  # below). pii, search-api and reranker are PRIVATE packages, and without
-  # packages: read the pull is refused before anything is scanned.
+  # below). A package that is private would be refused before anything is
+  # scanned without packages: read.
   # Packages this repository publishes grant it Actions access by default; a
   # package created any other way needs it added under Package settings.
   packages: read
@@ -54,19 +54,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The images a customer actually runs. GPU images (whisperx,
-        # search-inference-gpu) are excluded: they are enormous, rarely
-        # deployed, and would dominate the runtime of this job without changing
-        # what anyone does on a Tuesday morning.
+        # The images a customer actually runs.
         # Names as build-push-ghcr.yml publishes them (`guard`, not
         # `guard-service`) — a wrong name here scans nothing and reports a clean
         # summary, which is the worst outcome a scanner can produce.
-        image: [server, agent-hub, guard, pii, classify, search-api, reranker]
+        image: [server, agent-hub, guard, classify]
     env:
       # Whether the full report may be shown. This repository is public, so a
       # run's summary and artifacts are readable by anyone. For a PUBLIC image
       # that adds nothing (anyone can pull it and run the same scan); for a
-      # PRIVATE one (pii, search-api, reranker, ...) it would publish the
+      # PRIVATE one it would publish the
       # known-vulnerable packages of images outsiders cannot inspect. An
       # allow-list of the public packages, not a list of private ones: an
       # image added to the matrix later stays count-only until someone

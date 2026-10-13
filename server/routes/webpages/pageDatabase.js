@@ -10,7 +10,7 @@ const webpageStore = require('../../stores/webpageStore');
 const webpageDbStore = require('../../stores/webpageDbStore');
 const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -29,7 +29,7 @@ const SQL_TEXT = 'sql is required';
 const PARAMS_TEXT = 'params is een lijst met waarden.';
 const DbBody = bodyOf({
     sql: worded(SQL_TEXT).trim().min(1, SQL_TEXT),
-    params: z.array(z.unknown(), { invalid_type_error: PARAMS_TEXT }).optional(),
+    params: z.array(z.unknown(), { error: typeError({ invalid: PARAMS_TEXT }) }).optional(),
 });
 
 function register(router) {

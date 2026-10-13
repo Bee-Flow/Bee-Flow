@@ -24,20 +24,20 @@ const userStore = require('../../stores/userStore');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const ConnectorConfig = bodyOf({
-    enabled: z.boolean({ invalid_type_error: 'enabled is true or false.' }).optional(),
+    enabled: z.boolean({ error: typeError({ invalid: 'enabled is true or false.' }) }).optional(),
     // `null` unlinks the vault connection — a credential-less probe needs none.
     connection_id: worded('connection_id must be a connection id.').trim().max(200, 'connection_id is at most 200 characters.').nullable().optional(),
     // Per-connector keys; the catalog's settings_hint is the contract.
-    settings: z.record(z.unknown(), { invalid_type_error: 'settings is a JSON object.' }).optional(),
+    settings: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'settings is a JSON object.' }) }).optional(),
 });
 
 /** The sweep button posts `{}`. */

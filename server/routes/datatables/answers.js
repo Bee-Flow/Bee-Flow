@@ -17,7 +17,7 @@ const { answerDatatableError, confirmedBreaking, breakingColumnUsage } = require
 const { publicTable, publicSource } = require('./projection');
 const { readFilters } = require('./rowDescriptor');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { worded, bodyOf, ConfirmBreakingQuery } = require('./schemas');
 const log = require('../../telemetry/log');
 

@@ -38,7 +38,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const log = require('../../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
@@ -60,15 +60,15 @@ const SIGNREQUEST_SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
 const LEARNING_PATHS = ['everyday', 'builder', 'admin', 'skipped', ''];
 
 /** Text, trimmed; '' or null disconnects. */
-const credential = (label) => z.string({ invalid_type_error: `${label} must be text.` })
+const credential = (label) => z.string({ error: typeError({ invalid: `${label} must be text.` }) })
     .trim().max(4096, `${label} is at most 4096 characters.`).nullable();
 /** Text that must match `re` unless it is '' (disconnect). */
-const shaped = (re, message) => z.string({ invalid_type_error: message })
+const shaped = (re, message) => z.string({ error: typeError({ invalid: message }) })
     .trim().refine((v) => v === '' || re.test(v), message).nullable();
 /** One of `values`, case-insensitive; '' clears it. */
-const oneOf = (values, message) => z.string({ invalid_type_error: message })
-    .trim().toLowerCase().pipe(z.enum(values, { errorMap: () => ({ message }) })).nullable();
-const flag = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` });
+const oneOf = (values, message) => z.string({ error: typeError({ invalid: message }) })
+    .trim().toLowerCase().pipe(z.enum(values, { error: () => message })).nullable();
+const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
 
 function isHttpUrl(value) {
     try {
@@ -87,7 +87,7 @@ const APPS_TEXT = 'enabledApps is a list of app ids, or null for all apps.';
 const UserSettingsBody = z.object({
     firefliesApiKey: credential('The Fireflies API key'),
     gammaApiKey: credential('The Gamma API key'),
-    youtrackUrl: z.string({ invalid_type_error: YOUTRACK_URL_TEXT }).trim().max(2048, YOUTRACK_URL_TEXT)
+    youtrackUrl: z.string({ error: typeError({ invalid: YOUTRACK_URL_TEXT }) }).trim().max(2048, YOUTRACK_URL_TEXT)
         .refine((v) => v === '' || isHttpUrl(v), YOUTRACK_URL_TEXT).nullable(),
     youtrackToken: credential('The YouTrack token'),
     signrequestSubdomain: shaped(SIGNREQUEST_SUBDOMAIN_RE, 'The SignRequest subdomain is just your team name (e.g. "your-team"), no dots or slashes.'),
@@ -97,11 +97,11 @@ const UserSettingsBody = z.object({
     // taken as its digits, as String() did before.
     afasMemberNumber: z.preprocess((v) => (typeof v === 'number' ? String(v) : v),
         shaped(/^\d{1,10}$/, AFAS_NUMBER_TEXT)),
-    afasToken: z.string({ invalid_type_error: AFAS_TOKEN_TEXT }).nullable().transform((v, ctx) => {
+    afasToken: z.string({ error: typeError({ invalid: AFAS_TOKEN_TEXT }) }).nullable().transform((v, ctx) => {
         if (!v) return '';
         const value = normalizeAfasToken(v);
         if (!value) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: AFAS_TOKEN_TEXT });
+            ctx.addIssue({ code: 'custom', message: AFAS_TOKEN_TEXT });
             return z.NEVER;
         }
         return value;
@@ -123,16 +123,16 @@ const UserSettingsBody = z.object({
     // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the string is a validation message, not a key
     scalewayBillingSecretKey: shaped(SCALEWAY_SECRET_KEY_RE, 'Scaleway secret key is invalid. Paste the secret key of the IAM API key, with no spaces.'),
     scalewayBillingOrgId: shaped(SCALEWAY_ORG_ID_RE, 'Scaleway Organization ID is invalid. Paste the ID from Organization settings, a UUID like 11111111-2222-3333-4444-555555555555.'),
-    enabledApps: z.array(z.string({ invalid_type_error: APPS_TEXT }).trim().min(1, APPS_TEXT).max(100, APPS_TEXT),
-        { invalid_type_error: APPS_TEXT }).max(500, APPS_TEXT).nullable(),
+    enabledApps: z.array(z.string({ error: typeError({ invalid: APPS_TEXT }) }).trim().min(1, APPS_TEXT).max(100, APPS_TEXT),
+        { error: typeError({ invalid: APPS_TEXT }) }).max(500, APPS_TEXT).nullable(),
     simpleMode: flag('simpleMode'),
     memoryEnabled: flag('memoryEnabled'),
     memorySensitiveOptIn: flag('memorySensitiveOptIn'),
     hasSeenIntroTour: flag('hasSeenIntroTour'),
-    learningProgress: z.record(z.unknown(), { invalid_type_error: 'learningProgress is a map of lesson ids.' }).nullable(),
+    learningProgress: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'learningProgress is a map of lesson ids.' }) }).nullable(),
     learningProgressReset: flag('learningProgressReset'),
-    learningPath: z.enum(LEARNING_PATHS, { errorMap: () => ({ message: "learningPath is 'everyday', 'builder', 'admin', 'skipped' or ''." }) }),
-    userEuModeEnabled: z.never({ errorMap: () => ({ message: 'EU mode is set in Settings → Privacy Shield; this endpoint no longer changes it.' }) }),
+    learningPath: z.enum(LEARNING_PATHS, { error: () => "learningPath is 'everyday', 'builder', 'admin', 'skipped' or ''." }),
+    userEuModeEnabled: z.never({ error: () => 'EU mode is set in Settings → Privacy Shield; this endpoint no longer changes it.' }),
 }).partial().strict();
 
 // ─── Per-User Settings (Fireflies key etc.) ──────────────────────

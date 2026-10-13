@@ -19,7 +19,7 @@
  * whether a `kind` is movable is the membership registry's answer.
  */
 
-const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber, closedObject } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber, closedObject, typeError } = require('../../core/http/schemaParts');
 
 const NAME_MAX = 120;
 const DESCRIPTION_MAX = 1000;
@@ -40,7 +40,7 @@ const name = worded(NAME_TEXT)
 const KB_TEXT = 'knowledgeBaseIds is a list of knowledge base ids.';
 const knowledgeBaseIds = z.preprocess(
     (v) => (v === null ? [] : v),
-    z.array(worded(KB_TEXT).min(1, KB_TEXT).max(ID_MAX, KB_TEXT), { invalid_type_error: KB_TEXT }),
+    z.array(worded(KB_TEXT).min(1, KB_TEXT).max(ID_MAX, KB_TEXT), { error: typeError({ invalid: KB_TEXT }) }),
 );
 
 const settings = {
@@ -146,7 +146,7 @@ const RelatedBody = bodyOf({
     items: z.array(closedObject({
         kind: text(64, 'Every item needs a kind.').min(1, 'Every item needs a kind.'),
         id: anId('Every item needs an id.'),
-    }, 'An item'), { invalid_type_error: RELATED_TEXT, required_error: RELATED_TEXT })
+    }, 'An item'), { error: RELATED_TEXT })
         .min(1, RELATED_TEXT).max(MAX_RELATED_ITEMS, `At most ${MAX_RELATED_ITEMS} items at a time.`),
 }, 'Looking up related parts');
 
@@ -156,8 +156,8 @@ const conversationRef = closedObject({
     type: conversationType.optional(),
 }, 'A conversation');
 const ConversationsBody = bodyOf({
-    assign: z.array(conversationRef, { invalid_type_error: CONVERSATIONS_TEXT }).optional(),
-    unassign: z.array(conversationRef, { invalid_type_error: CONVERSATIONS_TEXT }).optional(),
+    assign: z.array(conversationRef, { error: typeError({ invalid: CONVERSATIONS_TEXT }) }).optional(),
+    unassign: z.array(conversationRef, { error: typeError({ invalid: CONVERSATIONS_TEXT }) }).optional(),
 }, 'Assigning conversations');
 
 // ── Blueprint packaging ──────────────────────────────────────────────
@@ -168,7 +168,7 @@ const ExportBody = bodyOf({ save: flag('save is true or false.').optional() }, '
 // so when neither is there; the manifest's own shape is the installer's.
 const source = {
     blueprintId: text(ID_MAX, 'blueprintId is the id of a saved Blueprint.').optional(),
-    manifest: z.record(z.unknown(), { invalid_type_error: 'manifest is a Blueprint file, a JSON object.' }).optional(),
+    manifest: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'manifest is a Blueprint file, a JSON object.' }) }).optional(),
 };
 const UpgradeBody = bodyOf(source, 'Upgrading from a Blueprint');
 // GET /:id/package/releases/:releaseId — `download=1` sends the manifest as a file.
@@ -179,7 +179,7 @@ const InstallBody = bodyOf({
     ...source,
     name: text(NAME_MAX, `name is the new Solution's name, at most ${NAME_MAX} characters.`).optional(),
     // projects/packaging/resolutions.js rebuilds every row from a fixed key set.
-    resolutions: z.unknown(),
+    resolutions: z.unknown().optional(),
 }, 'Installing a Blueprint');
 
 module.exports = {

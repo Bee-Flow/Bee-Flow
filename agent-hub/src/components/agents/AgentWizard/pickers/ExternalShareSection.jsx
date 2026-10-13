@@ -14,6 +14,7 @@
 
 import { ExternalLink, Globe, Lock, Mail, Copy, Check, Trash2, Plus, RefreshCw } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { copyText } from '../../../../utils/copyText';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import useConfirm from '../../../shared/useConfirm';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -176,23 +177,8 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
         // actual success, so the button never lies about having copied (BFSF-188).
         const markCopied = () => { setCopiedId(id); setTimeout(() => setCopiedId(c => (c === id ? null : c)), 1500); };
         try {
-            if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(text);
-                markCopied();
-                return;
-            }
-        } catch { /* fall through to legacy copy */ }
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.focus();
-            ta.select();
-            const ok = document.execCommand('copy');
-            document.body.removeChild(ta);
-            if (ok) markCopied();
+            await copyText(text, { fallbackOnReject: true, focus: true });
+            markCopied();
         } catch { /* clipboard genuinely unavailable */ }
     };
 

@@ -27,7 +27,7 @@ const pieces = [
   },
 ];
 
-export default function Pieces(): JSX.Element {
+export default function Pieces(): React.JSX.Element {
   return (
     <section className={styles.section}>
       <div className={styles.heading}>

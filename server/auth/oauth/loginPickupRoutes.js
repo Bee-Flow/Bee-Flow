@@ -8,11 +8,11 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const ID_TEXT = 'invalid id';
 const PickupQuery = z.object({
-    id: z.string({ required_error: ID_TEXT, invalid_type_error: ID_TEXT }).min(1, ID_TEXT).max(128, ID_TEXT),
+    id: z.string({ error: ID_TEXT }).min(1, ID_TEXT).max(128, ID_TEXT),
 }).strict();
 
 // Pickup claim — used by embedded iframes that can't see the popup's session

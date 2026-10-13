@@ -1,7 +1,7 @@
 /**
  * Boot Initializer — First-boot setup from INIT_* environment variables
  * 
- * When the install wizard deploys BeeFlow, it passes secrets as INIT_* env vars
+ * When an installer or deployment (install-local.py, compose env, Kubernetes) deploys BeeFlow, it passes secrets as INIT_* env vars
  * in docker-compose. On first boot, this module reads them and configures the
  * server directly using internal APIs — no HTTP calls, no auth, no timing issues.
  * 
@@ -23,7 +23,7 @@
  *   INIT_OFFICE_APPS_ENABLED  — 'true' | 'false' — enables Office 365 integration
  */
 
-const bcrypt = require('bcryptjs');
+const passwords = require('./auth/passwordHash');
 const log = require('./telemetry/log');
 
 async function runBootInit() {
@@ -77,7 +77,7 @@ async function runBootInit() {
             await retry(async () => {
                 const config = await loadConfig();
                 if (!config.admin.passwordHash) {
-                    config.admin.passwordHash = await bcrypt.hash(adminPassword, 12);
+                    config.admin.passwordHash = await passwords.hash(adminPassword, { bcryptRounds: 12 });
                     if (await saveConfig({ admin: config.admin })) {
                         log.info('[boot-init] ✅ Admin password set');
 

@@ -280,3 +280,16 @@ test('line-ref counts comments that point at a line number, and not names that l
     assert.strictEqual(run(dir, 'line-ref').code, 0);
     assert.strictEqual(budgetOf(dir, 'line-ref'), 5);
 });
+
+test('status-5xx counts literal 5xx statuses in source, and leaves 4xx, computed statuses and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'a.js': "res.status(500).json({ error: 'x' });\nreturn res.status( 502 ).json(r);\nres.status(404).json({});\n",
+            'b.js': 'res.status(code).json({});\nres.status(200).end();\n',
+            'a.test.js': 'res.status(500).json({});\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'status-5xx').code, 0);
+    assert.strictEqual(budgetOf(dir, 'status-5xx'), 2);
+});

@@ -15,9 +15,9 @@
     "smoke": "node runner/smoke.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.125.0",
-    "@playwright/test": "1.59.1",
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@playwright/test": "1.64.0",
     "gray-matter": "^4.0.3",
-    "playwright": "1.59.1"
+    "playwright": "1.64.0"
   }
 }

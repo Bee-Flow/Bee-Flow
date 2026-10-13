@@ -13,17 +13,18 @@
  *
  * Schema messages are what the client reads, so write them for a person —
  * including the one for a field that is simply absent, which zod otherwise
- * answers with the bare word "Required":
+ * answers with the bare word "Required" (utils/zod.js keeps zod 3's wording
+ * for every refusal a schema leaves unworded):
  *
- *   z.string({ required_error: 'A folder needs a name.' }).min(1, 'A folder needs a name.')
+ *   z.string({ error: 'A folder needs a name.' }).min(1, 'A folder needs a name.')
  *
- * An enum has a SECOND trap of the same shape, and `invalid_type_error` does
- * not close it: in zod 3 that option covers a wrong type only, never a wrong
- * VALUE. `z.enum(['off','on'], { invalid_type_error: 'mine' })` still answers
- * 'of' with "Invalid enum value. Expected 'off' | 'on', received 'of'" —
- * internals leaking to whoever typed the value. Only an errorMap covers both:
+ * An enum has a SECOND trap of the same shape: `typeError({ invalid: 'mine' })`
+ * covers a wrong type only, never a wrong VALUE. `z.enum(['off','on'], { error:
+ * typeError({ invalid: 'mine' }) })` still answers 'of' with "Invalid enum
+ * value. Expected 'off' | 'on', received 'of'" — internals leaking to whoever
+ * typed the value. Only an error function that answers every issue covers both:
  *
- *   z.enum(['off', 'on'], { errorMap: () => ({ message: 'Choose off or on.' }) })
+ *   z.enum(['off', 'on'], { error: () => 'Choose off or on.' })
  */
 
 const { badRequest } = require('./errors');

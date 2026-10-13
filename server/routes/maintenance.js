@@ -18,7 +18,7 @@ const router = express.Router();
 const maintenanceWindow = require('../core/entitlements/maintenanceWindow');
 const { APP_BUILD_SHA } = require('../utils/buildInfo');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ── What the pipeline may send ──────────────────────────────────────
 //
@@ -38,12 +38,12 @@ const { z } = require('zod');
 // generic 500 through the terminal handler, instead of echoing its message.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the announcement as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the announcement as a JSON object.' }) }).strict(),
 );
 
 const ETA_TEXT = 'etaSeconds is the expected outage in seconds, as a number.';
@@ -54,7 +54,7 @@ const AnnounceBody = bodyOf({
     etaSeconds: z.union([
         z.number(),
         z.string().refine((v) => v.trim() !== '' && Number.isFinite(Number(v)), ETA_TEXT),
-    ], { errorMap: () => ({ message: ETA_TEXT }) }),
+    ], { error: () => ETA_TEXT }),
     reason: worded('reason is the text the banner shows.').optional(),
     ref: worded('ref is the build the rollout brings, as text.').optional(),
 });

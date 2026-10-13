@@ -16,10 +16,10 @@ const {
     resendVerificationIpLimiter, resendVerificationTargetLimiter,
 } = require('../authRateLimits');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const EMAIL_TEXT = 'Enter the e-mail address you signed up with.';
 // Same reasoning as /forgot-password: the constant-200 contract survives, and

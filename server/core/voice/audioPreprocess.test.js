@@ -21,9 +21,8 @@ const { preprocessForStt, SAMPLE_RATE } = require('./audioPreprocess');
 
 let ffmpeg = null;
 try {
-    const installer = require('@ffmpeg-installer/ffmpeg');
-    ffmpeg = require('fluent-ffmpeg');
-    ffmpeg.setFfmpegPath(installer.path);
+    require('@ffmpeg-installer/ffmpeg');
+    ffmpeg = require('../media/ffmpeg');
 } catch (_) { /* covered by the skip below */ }
 
 /** Seconds of 16-bit PCM in a WAV, from the `data` chunk size. */
@@ -40,13 +39,7 @@ function wavSeconds(file, sampleRate = SAMPLE_RATE, channels = 1) {
 }
 
 async function makeTone(seconds, out) {
-    await new Promise((resolve, reject) => {
-        ffmpeg()
-            .input(`sine=frequency=200:duration=${seconds}`).inputFormat('lavfi')
-            .audioCodec('libopus').format('webm')
-            .on('end', resolve).on('error', reject)
-            .save(out);
-    });
+    await ffmpeg.runFfmpeg(['-f', 'lavfi', '-i', `sine=frequency=200:duration=${seconds}`, '-y', '-acodec', 'libopus', '-f', 'webm', out]);
     return out;
 }
 
@@ -108,13 +101,7 @@ test('an undecodable input degrades to the original rather than throwing', async
 // ── asM4aIfAdts: the phone's crash-safe .aac, repacked for Voxtral ──────────
 
 async function makeAdts(seconds, out) {
-    await new Promise((resolve, reject) => {
-        ffmpeg()
-            .input(`sine=frequency=300:duration=${seconds}`).inputFormat('lavfi')
-            .audioCodec('aac').format('adts')
-            .on('end', resolve).on('error', reject)
-            .save(out);
-    });
+    await ffmpeg.runFfmpeg(['-f', 'lavfi', '-i', `sine=frequency=300:duration=${seconds}`, '-y', '-acodec', 'aac', '-f', 'adts', out]);
     return out;
 }
 

@@ -18,16 +18,9 @@ top-level directories and explains how paid features are gated by license keys.
 | `mobile/` | Expo SDK 57 / React Native 0.86 | Native Android client, shipped as an APK. Not a wrapper around `agent-hub/` — it renders native views and has its own phone-shaped information architecture. See [`mobile/README.md`](mobile/README.md). |
 | `nextcloud-connector/` | Node | Nextcloud ExApp wrapper (reverse proxy + AppAPI lifecycle). |
 | `guard-service/` | Python / FastAPI | PII detection (GLiNER, CPU). |
-| `pii-service/` | Python | Additional PII service. |
-| `search-service/` | Python / FastAPI | Web/document extraction + knowledge-base chunking. |
-| `whisperx-service/` | Python / FastAPI | Audio transcription + speaker diarization (WhisperX). |
-| `reranker/` | Python / FastAPI | Cross-encoder search reranking. |
 | `components/` | Node | n8n-compatible component nodes shipped by Bee Flow. |
 | `hub-module-sdk/` | Node | Build, pack and sign Bee Flow Hub modules (`.bfmod` packages). |
-| `install-wizard/` | Node | First-run visual setup wizard. |
-| `nc-login-mini/` | Node | Minimal Nextcloud ExApp proving AppAPI auto-login. |
 | `e2e/` | Playwright / TS | CI smoke harness — specs generated from Markdown scenarios. Runs on demand (`workflow_dispatch`) or as a reusable workflow; it does not gate releases yet. |
-| `playwright-tests/` | Playwright / TS | Hand-written UI regression tests against the running local stack. |
 | `docs/` | Docusaurus / TS | Documentation site (published from `docs/docs/`; `docs/design/` holds design notes). |
 | `scripts/` | Bash / PowerShell / Node | Image builds, secret scans, ops helpers, and the CI plumbing checks (`*.mjs`, tested by `npm run test:scripts`). |
 | `docker/` | — | Container init files (e.g. `init-db.sh`). |

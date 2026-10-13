@@ -14,7 +14,7 @@ const {
     getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory,
     getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken,
     createUser, updateUser, deleteUser, getUserByNcUid, findOrgMemberIdByEmail,
-    createUserWithSeatCheck, SeatCapExceededError, touchLastSeen,
+    createUserWithSeatCheck, SeatCapExceededError, touchLastSeen, replacePasswordHash,
 } = require('./user/users');
 const {
     getAllOrganizations, getSingleOrgId, hasAnyOrganization, getOrganization, getOrganizationByNcInstanceId,
@@ -86,7 +86,7 @@ const {
 
 module.exports = {
     getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory, getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken, createUser, updateUser, deleteUser,
-    createUserWithSeatCheck, SeatCapExceededError, PlanInUseError, touchLastSeen,
+    createUserWithSeatCheck, SeatCapExceededError, PlanInUseError, touchLastSeen, replacePasswordHash,
     getAllOrganizations, getSingleOrgId, hasAnyOrganization, getOrganization, getOrganizationByNcInstanceId, createOrganization, updateOrganization, deleteOrganization,
     findUnboundOrgByEmailDomain,
     getOrgEnabledIntegrations, setOrgEnabledIntegrations, getOrgEnabledBetaFeatures, setOrgEnabledBetaFeatures,

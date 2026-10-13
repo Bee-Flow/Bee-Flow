@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import { isEntryPoint } from './entry-point.mjs';
 
-export const SERVICE_IMAGES = Object.freeze({ server: 'server', 'agent-hub': 'agent-hub', 'search-api': 'search-api', 'search-gpu': 'search-inference-gpu',
-    guard: 'guard', pii: 'pii', classify: 'classify', whisperx: 'whisperx', wizard: 'install-wizard', reranker: 'reranker', 'pwt-runner': 'pwt-runner', connector: 'connector' });
+export const SERVICE_IMAGES = Object.freeze({ server: 'server', 'agent-hub': 'agent-hub',
+    guard: 'guard', classify: 'classify', 'pwt-runner': 'pwt-runner', connector: 'connector' });
 export const STAGING_CHECKS = Object.freeze(['existingInstallationUpgrade','cleanInstallation','microsoftLogin','administratorLink','unauthorizedLinkRefused',
     'organizationSyncIsolation','explicitMultiOrganizationMembership','secretRotation','migrationRepeatability','backupRestore','dockerHostPatched','nextcloudHarpCompatibility','applicationAzureModelCalls','azureLiveRequests']);
 // Character checks rather than regexes: these read workflow input, and a loop has nothing to backtrack.

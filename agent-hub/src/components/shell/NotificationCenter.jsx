@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Bell, Check, CheckCheck, Info, AlertTriangle, AlertCircle, X, BellOff, Bot, Handshake, MessageSquare, GraduationCap } from 'lucide-react';
 import { settingsPathForTab } from '../../authedApp/settingsRoutes';
+import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useViewport } from '../../hooks/useViewport';
 import useTranslation from '../../hooks/useTranslation';
@@ -215,15 +216,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
         }
     }, [open, fetchNotifications]);
 
-    useEffect(() => {
-        const handler = (e) => {
-            if (panelRef.current && !panelRef.current.contains(e.target)) {
-                setOpen(false);
-            }
-        };
-        if (open) document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
+    useOutsideDismiss(panelRef, () => setOpen(false), { enabled: open, escape: false, defer: false });
 
     const markRead = async (id) => {
         await authFetch(`${API_BASE}/api/notifications/${id}/read`, { method: 'POST' });

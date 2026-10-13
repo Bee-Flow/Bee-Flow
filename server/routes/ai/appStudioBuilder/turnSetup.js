@@ -32,7 +32,7 @@
  * global default model and a custom tier is refused (model_unavailable).
  */
 
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const studioAppStore = require('../../../stores/studioAppStore');
 const studioAppDataStore = require('../../../stores/studioAppDataStore');
 const { canonicalizeAppDefinition } = require('../../../appStudio/canonicalize');
@@ -49,23 +49,23 @@ const PLAN_MODES = ['auto', 'always', 'never'];
 
 const TurnBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     // Optional: approval, continuation and image-only turns may carry none.
-    message: z.string({ invalid_type_error: 'message is the text of your turn.' }).nullish(),
-    appId: z.string({ invalid_type_error: 'appId is the id of the app being built.' }).nullish(),
-    builderSessionId: z.string({ invalid_type_error: 'builderSessionId must be text.' }).nullish(),
-    modelTier: z.string({ invalid_type_error: 'modelTier is the name of a model tier.' }).optional(),
+    message: z.string({ error: typeError({ invalid: 'message is the text of your turn.' }) }).nullish(),
+    appId: z.string({ error: typeError({ invalid: 'appId is the id of the app being built.' }) }).nullish(),
+    builderSessionId: z.string({ error: typeError({ invalid: 'builderSessionId must be text.' }) }).nullish(),
+    modelTier: z.string({ error: typeError({ invalid: 'modelTier is the name of a model tier.' }) }).optional(),
     // Accepted for parity with the other builders; apps carry no time semantics yet.
-    timezone: z.string({ invalid_type_error: 'timezone is a zone name, like Europe/Amsterdam.' }).optional(),
-    context: z.record(z.unknown(), { invalid_type_error: "context is the editor's focus, an object." }).nullish(),
-    planMode: z.enum(PLAN_MODES, { errorMap: () => ({ message: "planMode is 'auto', 'always' or 'never'." }) }).optional(),
+    timezone: z.string({ error: typeError({ invalid: 'timezone is a zone name, like Europe/Amsterdam.' }) }).optional(),
+    context: z.record(z.string(), z.unknown(), { error: typeError({ invalid: "context is the editor's focus, an object." }) }).nullish(),
+    planMode: z.enum(PLAN_MODES, { error: () => "planMode is 'auto', 'always' or 'never'." }).optional(),
     // An APPROVAL turn: inject + persist the approved plan, checkpoint, build.
     plan: z.object({
-        planId: z.string({ invalid_type_error: 'plan.planId must be text.' }).optional(),
-        action: z.enum(['approve'], { errorMap: () => ({ message: "plan.action is 'approve' — the one thing a turn does with a plan." }) }),
-        plan: z.unknown(),
-    }, { invalid_type_error: "plan is { planId, action: 'approve', plan }." }).strict().nullish(),
+        planId: z.string({ error: typeError({ invalid: 'plan.planId must be text.' }) }).optional(),
+        action: z.enum(['approve'], { error: () => "plan.action is 'approve' — the one thing a turn does with a plan." }),
+        plan: z.unknown().optional(),
+    }, { error: typeError({ invalid: "plan is { planId, action: 'approve', plan }." }) }).strict().nullish(),
     // Resumes a budget-exhausted plan on the SAME tier (skips the classifier).
-    continueToken: z.string({ invalid_type_error: 'continueToken is the token the previous turn handed back.' }).nullish(),
-    images: z.unknown(),
+    continueToken: z.string({ error: typeError({ invalid: 'continueToken is the token the previous turn handed back.' }) }).nullish(),
+    images: z.unknown().optional(),
 }).strict());
 
 /**

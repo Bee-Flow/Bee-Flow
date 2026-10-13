@@ -18,7 +18,7 @@ const webpageUsageSync = require('../../core/webpages/webpageUsageSync');
 const versionFacts = require('../../core/webpages/versionFacts');
 const { versionActorNames, versionCoverage, decorateVersionRow } = require('./versionListing');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { worded, bodyOf, whole, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 

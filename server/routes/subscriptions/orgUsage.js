@@ -20,7 +20,7 @@ const userStore = require('../../stores/userStore');
 const usageStore = require('../../stores/usageStore');
 const { getAdminId, requireAuthOrOrgMember } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const router = express.Router();
 
@@ -33,11 +33,9 @@ const WHY = 'removing a subscription is immediate and takes nothing but the orga
 const NoBody = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({}, {
-        errorMap: (issue) => ({
-            message: issue.code === 'unrecognized_keys'
-                ? `This request takes no body, so ${issue.keys.map((k) => `'${k}'`).join(', ')} would change nothing: ${WHY}`
-                : `This request takes no body: ${WHY}`,
-        }),
+        error: (iss) => (iss.code === 'unrecognized_keys'
+            ? `This request takes no body, so ${iss.keys.map((k) => `'${k}'`).join(', ')} would change nothing: ${WHY}`
+            : `This request takes no body: ${WHY}`),
     }).strict(),
 );
 

@@ -22,7 +22,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { closedObject } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
@@ -31,8 +31,8 @@ const { makeAutomationAccess } = require('../../automation/access');
 const AGENT_IDS_TEXT = 'agentIds is the list of agents that may call this automation, [] for none.';
 const BindingsBody = closedObject({
     agentIds: z.array(
-        z.string({ required_error: AGENT_IDS_TEXT, invalid_type_error: AGENT_IDS_TEXT }).trim().min(1, AGENT_IDS_TEXT).max(200, AGENT_IDS_TEXT),
-        { required_error: AGENT_IDS_TEXT, invalid_type_error: AGENT_IDS_TEXT },
+        z.string({ error: AGENT_IDS_TEXT }).trim().min(1, AGENT_IDS_TEXT).max(200, AGENT_IDS_TEXT),
+        { error: AGENT_IDS_TEXT },
     ).max(50, 'At most 50 agents can call one automation.'),
 }, 'Linking agents');
 

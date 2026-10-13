@@ -13,7 +13,7 @@ const userStore = require('../../stores/userStore');
 const { isNcOrg, filterNcOnlyPlans } = require('../../auth/ncAudience');
 const { requireCloud, requireAuth, resolveOrgIdForUser } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 const router = express.Router();
@@ -28,7 +28,7 @@ const router = express.Router();
 // to 'organization' and showed the wrong catalogue altogether.
 const TYPE_TEXT = 'type is organization or consumer.';
 const PlansQuery = z.object({
-    type: z.enum(['organization', 'consumer'], { errorMap: () => ({ message: TYPE_TEXT }) }).optional(),
+    type: z.enum(['organization', 'consumer'], { error: () => TYPE_TEXT }).optional(),
 }).strict();
 
 // ── GET /status — Check if Stripe is configured and enabled ──────────────────

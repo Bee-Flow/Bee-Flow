@@ -24,7 +24,7 @@ const { hasPermission } = require('../../auth/permissions');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth, getUserPermissions } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -46,7 +46,7 @@ const { z } = require('zod');
 // exported in.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -54,7 +54,7 @@ const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {
 /** A key -> string map. `z.record` refuses an array, which `typeof` did not. */
 const stringMap = (name, value) => {
     const text = `${name} is a map of keys to strings.`;
-    return z.record(worded(text), value(text), { required_error: text, invalid_type_error: text });
+    return z.record(worded(text), value(text), { error: typeError({ required: text, invalid: text }) });
 };
 
 const CODE_TEXT = 'A locale needs a code, like "nl" or "pt-BR".';
@@ -70,7 +70,7 @@ const GuiBody = bodyOf({ translations: stringMap('translations', (t) => worded(t
 const GuiPatchBody = bodyOf({ updates: stringMap('updates', (t) => worded(t).nullable()) });
 
 const TEMPLATE_TEXT = `templateId is one of: ${EMAIL_TEMPLATE_IDS.join(', ')}.`;
-const TemplateId = z.enum(EMAIL_TEMPLATE_IDS, { errorMap: () => ({ message: TEMPLATE_TEXT }) });
+const TemplateId = z.enum(EMAIL_TEMPLATE_IDS, { error: () => TEMPLATE_TEXT });
 /**
  * The template's own fields, and only those. A misspelled field name used to
  * be dropped by the store's own allow-list and answered with the saved row,
@@ -94,8 +94,8 @@ const PROMPTS_TEXT = `promptIds names prompts this install has: ${PROMPT_IDS.sli
 const TranslatePromptsBody = bodyOf({
     modelTier: modelTier(),
     promptIds: z.array(
-        worded(PROMPTS_TEXT).refine((v) => PROMPT_IDS.includes(v), (v) => ({ message: `"${v}" is not a prompt this install has.` })),
-        { invalid_type_error: PROMPTS_TEXT },
+        worded(PROMPTS_TEXT).refine((v) => PROMPT_IDS.includes(v), { error: (iss) => `"${iss.input}" is not a prompt this install has.` }),
+        { error: typeError({ invalid: PROMPTS_TEXT }) },
     ).optional(),
 });
 

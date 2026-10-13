@@ -54,7 +54,7 @@ const MOCKS = {
     '../authRateLimits': { signupIpLimiter: pass, signupTargetLimiter: pass },
     '../../utils/htmlSanitizer': { sanitizePlainText: (v) => (v === undefined || v === null ? '' : String(v).replace(/<[^>]*>/g, '').trim()) },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
-    'bcryptjs': { hash: async () => 'hash' },
+    '../passwordHash': { hash: async () => 'hash' },
 };
 
 const MOCK_IDS = {};

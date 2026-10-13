@@ -83,7 +83,7 @@ const DOM_PKGS = [
 ];
 // Bare packages considered node-safe.
 const SAFE_PKGS = new Set([
-    'vitest', 'react', 'react/jsx-runtime', 'uuid', '@tanstack/react-query',
+    'vitest', 'react', 'react/jsx-runtime', '@tanstack/react-query',
     'd3-geo', 'topojson-client', '@emoji-mart/data', 'remark-gfm', 'remark-math', 'rehype-katex',
 ]);
 

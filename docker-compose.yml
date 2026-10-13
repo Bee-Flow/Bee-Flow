@@ -2,23 +2,15 @@
 # BeeFlow — Build-From-Source Docker Compose (default file)
 # ══════════════════════════════════════════════════════════════════
 #
-# Builds the server, agent-hub, guard-service and reranker images from this
+# Builds the server, agent-hub, guard-service and browser images from this
 # checkout and runs them next to PostgreSQL (pgvector), RustFS and Redis.
 #
 #   cp .env.example .env       # sets CLIENT_PORT=5176, SERVER_PUBLIC_HOST, …
-#   docker network create search-network
 #   docker compose up -d
 #
-# Knowledge search and the Redis session cache are NOT in this file: the server
-# points at search-api:8000 (SEARCH_SERVICE_URL) and search-redis (REDIS_URL),
-# which are provided by the separate search stack:
-#
-#   docker compose -f search-service/docker-compose.yml up -d
-#
-# That stack joins the same search-network — which is why it is declared
-# `external: true` below and must exist before `up`. Without the search stack
-# this stack still runs: sessions fall back to PostgreSQL (with reconnect
-# warnings in the server log) and knowledge search is unavailable.
+# Knowledge search and web search run inside the server itself
+# (SEARCH_SERVICE_URL points at the server's own /api/search); the Redis
+# session cache is the guard-redis container below (database 0).
 #
 # NOTE: agent-hub is a static build — VITE_API_URL is baked in at image build
 # time from SERVER_PROTOCOL/SERVER_PUBLIC_HOST, so set those in .env BEFORE
@@ -66,7 +58,7 @@ services:
 
   # RustFS — S3-compatible Object Storage
   rustfs:
-    image: rustfs/rustfs:latest
+    image: rustfs/rustfs:1.0.0
     container_name: beeflow-rustfs
     environment:
       - RUSTFS_ROOT_USER=${RUSTFS_ACCESS_KEY:-beeflow}
@@ -151,8 +143,9 @@ services:
       # CLASSIFY_SERVICE_URL=http://classify-service:8300 with that profile.
       - CLASSIFY_SERVICE_URL=${CLASSIFY_SERVICE_URL:-}
       - CLASSIFY_SERVICE_API_KEY=${CLASSIFY_SERVICE_API_KEY:-}
-      # Search service (knowledge bases)
-      - SEARCH_SERVICE_URL=http://search-api:8000
+      # Search service is self-hosted INSIDE this server at /api/search
+      # (routes/search.js); no separate container needed.
+      - SEARCH_SERVICE_URL=http://localhost:${SERVER_PORT:-3001}/api/search
       # Website-analytics sidecar — server→Umami API base. Empty by default so
       # the operator-set URL (Admin ▸ Website Analytics ▸ Settings) drives both
       # server calls and the public script. ONLY set this to the internal
@@ -160,13 +153,13 @@ services:
       # profile and the public stats domain isn't routable from inside the
       # network — then it overrides the configured URL for server→API calls only.
       - UMAMI_URL=${UMAMI_URL:-}
-      # Redis cache — uses search-redis on db 1 (search-api uses db 0)
-      - REDIS_URL=redis://search-redis:6379/1
+      # Redis session cache — shares guard-redis (the guard uses db 1)
+      - REDIS_URL=redis://guard-redis:6379/0
       # RustFS object storage
       - RUSTFS_ENDPOINT=http://rustfs:9000
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-beeflow}
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:?Set RUSTFS_SECRET_KEY in .env}
-      # Local CPU reranker for KB search quality (optional)
+      # Optional external cross-encoder reranker for KB search quality
       - RERANKER_URL=${RERANKER_URL:-}
       # Shared headless browser: the `browser` sidecar below (PDF export,
       # thumbnails, SPA ingestion, browse_web). Point it elsewhere to use an
@@ -178,18 +171,17 @@ services:
       # Persist components - mount to /components to match code expectation (path.resolve(__dirname, '../components'))
       # In Docker, server is in /app, so ../components is /components
       - ./components:/components
-      # Persist workflows - workflows are stored in root/workflows by default in index.js
-      - ./workflows:/workflows
       # Docker socket — lets the server spawn terminal-agent and Tests Studio
       # runner containers. The shared browser is the `browser` sidecar, not this.
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - beeflow-network
-      - search-network
       - beeflow-browser-network
     restart: unless-stopped
     depends_on:
       postgres:
+        condition: service_healthy
+      guard-redis:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT:-3001}/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
@@ -288,7 +280,8 @@ services:
       start_period: 60s
       retries: 3
 
-  # Redis for Guard Service decision caching
+  # Redis for Guard Service decision caching (db 1) and the server's session
+  # cache (db 0)
   guard-redis:
     image: redis:7-alpine
     container_name: beeflow-guard-redis
@@ -316,7 +309,7 @@ services:
   # the database once with: docker compose exec postgres \
   #   psql -U $DB_USER -d $DB_NAME -c 'CREATE DATABASE umami;'
   umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
+    image: ghcr.io/umami-software/umami:3.4.0
     container_name: beeflow-umami
     profiles: [analytics]
     ports:
@@ -336,22 +329,6 @@ services:
       interval: 30s
       timeout: 10s
       start_period: 40s
-      retries: 3
-
-  # Reranker — lightweight CPU cross-encoder for KB search reranking (optional)
-  reranker:
-    build:
-      context: ./reranker
-      dockerfile: Dockerfile
-    container_name: beeflow-reranker
-    restart: unless-stopped
-    networks:
-      - beeflow-network
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 10s
-      start_period: 30s
       retries: 3
 
   # Classify service — zero-shot topic classifier for the Condition node's
@@ -408,10 +385,3 @@ networks:
   # Only the server and the browser sidecar. See the `browser` service.
   beeflow-browser-network:
     name: beeflow-browser-network
-  search-network:
-    name: search-network
-    # Created by `docker network create search-network` (see the header) or by
-    # the separate search stack in search-service/docker-compose.yml. External
-    # because that stack shares it — a non-external declaration here would
-    # collide with the search stack's own when both are up.
-    external: true

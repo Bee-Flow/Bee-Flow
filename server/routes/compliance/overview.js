@@ -8,12 +8,12 @@
 
 const express = require('express');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const DAYS_TEXT = 'days must be a whole number of days.';
 /** `?dais=30` used to fall back to 90 days without saying so. */
 const HistoryQuery = z.object({
-    days: z.coerce.number({ invalid_type_error: DAYS_TEXT })
+    days: z.coerce.number({ error: typeError({ invalid: DAYS_TEXT }) })
         .int(DAYS_TEXT).min(1, DAYS_TEXT).max(365, 'days is at most 365.').optional(),
 }).strict();
 const log = require('../../telemetry/log');

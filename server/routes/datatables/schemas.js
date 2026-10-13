@@ -22,11 +22,11 @@
 
 'use strict';
 
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const dataModel = require('../../core/dataEngine/dataModel/vocabulary');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
@@ -35,7 +35,7 @@ const bodyOf = (shape) => z.preprocess(
 );
 
 /** An enum whose refusal is one sentence, for a wrong value as much as a wrong type. */
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const choice = (values, message) => z.enum(values, { error: () => message });
 
 /**
  * A "yes" on the query string.

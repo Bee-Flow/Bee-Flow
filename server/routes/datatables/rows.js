@@ -28,7 +28,7 @@ const { assertQuota, answerDatatableError } = require('./refusals');
 const { readListDescriptor } = require('./rowDescriptor');
 const { mirrorCtx, mirrorWrites } = require('./source');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, idText } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -57,12 +57,12 @@ const ListQuery = z.object({
     // re-derived here — a route that derived its own let `?limit=-5` through
     // and then sliced by it. What the schema adds is that `?limit=veel` is
     // named rather than silently becoming the default page.
-    limit: z.coerce.number({ invalid_type_error: NUM_TEXT }).int(NUM_TEXT).positive(NUM_TEXT).optional(),
+    limit: z.coerce.number({ error: typeError({ invalid: NUM_TEXT }) }).int(NUM_TEXT).positive(NUM_TEXT).optional(),
     cursor: one('cursor', 'the value a previous page returned as nextCursor'),
 }).strict();
 
 const VALUES_TEXT = 'Say which columns to set — { values: { … } }';
-const values = () => z.record(z.unknown(), { required_error: VALUES_TEXT, invalid_type_error: VALUES_TEXT });
+const values = () => z.record(z.string(), z.unknown(), { error: typeError({ required: VALUES_TEXT, invalid: VALUES_TEXT }) });
 
 const UPDATED_AT_TEXT = 'Send the updated_at you read, so a colleague\'s edit is not silently overwritten';
 
@@ -80,12 +80,12 @@ const ROWS_TEXT = 'Send { rows: [...] }';
 const BulkBody = bodyOf({
     // Per-ROW shape is reported by LINE from inside the handler: a 400-row
     // paste with two bad dates in it is a fixable import, not one refusal.
-    rows: z.array(z.unknown(), { required_error: ROWS_TEXT, invalid_type_error: ROWS_TEXT }),
+    rows: z.array(z.unknown(), { error: ROWS_TEXT }),
 });
 
 const IDS_TEXT = 'Send { ids: ["rec_…", …] }';
 const BulkDeleteBody = bodyOf({
-    ids: z.array(idText(IDS_TEXT), { required_error: IDS_TEXT, invalid_type_error: IDS_TEXT }),
+    ids: z.array(idText(IDS_TEXT), { error: IDS_TEXT }),
 });
 
 // The routes that read nothing at all from the request but the path.

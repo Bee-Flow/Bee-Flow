@@ -13,10 +13,10 @@
  * without the two routes drifting from each other.
  */
 
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const kbStore = require('../../stores/knowledgeBases');
 
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 // Read at request time, not captured once at require-time: the store owns
 // these lists, and a test that stands in for the store need not repeat them.
@@ -29,9 +29,9 @@ const piiFilters = () => [...(kbStore.PII_STATUSES || []), 'found'];
  */
 const statusFilter = () => worded('status must be text.').trim()
     .refine((v) => v.split(',').every((s) => docStatuses().includes(s.trim())),
-        () => ({ message: `status is one or more of: ${docStatuses().join(', ')} (comma-separated).` }));
+        { error: () => `status is one or more of: ${docStatuses().join(', ')} (comma-separated).` });
 
 const piiFilter = () => worded('pii must be text.').trim()
-    .refine((v) => piiFilters().includes(v), () => ({ message: `pii is one of: ${piiFilters().join(', ')}.` }));
+    .refine((v) => piiFilters().includes(v), { error: () => `pii is one of: ${piiFilters().join(', ')}.` });
 
 module.exports = { docStatuses, piiFilters, statusFilter, piiFilter };

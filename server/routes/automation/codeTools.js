@@ -18,7 +18,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 
 const MAX_CODE = 200 * 1024;

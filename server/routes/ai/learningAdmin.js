@@ -36,7 +36,7 @@
 const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const { requirePrimaryOrgAdmin } = require('../../auth/permissions');
 const store = require('../../stores/learningContentStore');
@@ -63,18 +63,17 @@ function stepPrefix(path) {
 }
 
 /** Every refusal of one step field — wrong type, too long, out of range — as the one sentence that field has. */
-const said = (sentence) => ({ errorMap: (issue) => ({ message: stepPrefix(issue.path) + sentence }) });
-const stepText = (sentence, max) => z.string(said(sentence)).trim().max(max).optional();
-const stepNumber = (sentence, min, max) => z.number(said(sentence)).min(min).max(max).optional();
+const said = (sentence) => ({ error: (iss) => stepPrefix(iss.path) + sentence });
+// zod 4 words a check by the check's own option, not the schema's: say it on both.
+const stepText = (sentence, max) => z.string(said(sentence)).trim().max(max, said(sentence)).optional();
+const stepNumber = (sentence, min, max) => z.number(said(sentence)).min(min, said(sentence)).max(max, said(sentence)).optional();
 
 /** A step object that names the key it does not know, and the step it is in. */
 function stepObject(kind, shape) {
     return z.object({ type: z.literal(kind), ...shape }, {
-        errorMap: (issue, ctx) => ({
-            message: issue.code === z.ZodIssueCode.unrecognized_keys
-                ? `${stepPrefix(issue.path)}a ${kind} step has no field ${issue.keys.map((k) => `'${k}'`).join(', ')}.`
-                : ctx.defaultError,
-        }),
+        error: (iss) => (iss.code === 'unrecognized_keys'
+            ? `${stepPrefix(iss.path)}a ${kind} step has no field ${iss.keys.map((k) => `'${k}'`).join(', ')}.`
+            : undefined),
     }).strict();
 }
 
@@ -91,11 +90,10 @@ const Choice = z.object({
     // mark a wrong answer correct.
     correct: z.boolean(said('a choice is correct (true) or not (false).')).optional(),
 }, {
-    errorMap: (issue, ctx) => ({
-        message: issue.code === z.ZodIssueCode.unrecognized_keys
-            ? `${stepPrefix(issue.path)}a choice has only an id, a label and whether it is correct.`
-            : stepPrefix(issue.path) + (issue.code === z.ZodIssueCode.invalid_type ? 'a choice is an object with a label.' : ctx.defaultError),
-    }),
+    error: (iss) => {
+        if (iss.code === 'unrecognized_keys') return `${stepPrefix(iss.path)}a choice has only an id, a label and whether it is correct.`;
+        return iss.code === 'invalid_type' ? `${stepPrefix(iss.path)}a choice is an object with a label.` : undefined;
+    },
 }).strict();
 
 const Step = z.discriminatedUnion('type', [
@@ -108,7 +106,7 @@ const Step = z.discriminatedUnion('type', [
         question: stepText(`the question is text of at most ${L.maxDescChars} characters.`, L.maxDescChars),
         multi: z.boolean(said('whether more than one answer is correct is true or false.')).optional(),
         choices: z.array(Choice, said(`a quiz has a list of at most ${L.maxChoices} choices.`))
-            .max(L.maxChoices).optional(),
+            .max(L.maxChoices, said(`a quiz has a list of at most ${L.maxChoices} choices.`)).optional(),
         explanation: stepText(`the explanation is text of at most ${L.maxDescChars} characters.`, L.maxDescChars),
     }),
     stepObject('exercise', {
@@ -118,8 +116,9 @@ const Step = z.discriminatedUnion('type', [
         task: stepText(`the task is text of at most ${L.maxDescChars} characters.`, L.maxDescChars),
         // Blank criteria are the editor's empty rows; the store drops them.
         criteria: z.array(z.string(said(`a grading criterion is text of at most ${L.maxCriterionChars} characters.`))
-            .trim().max(L.maxCriterionChars), said(`an exercise has a list of at most ${L.maxCriteria} grading criteria.`))
-            .max(L.maxCriteria).optional(),
+            .trim().max(L.maxCriterionChars, said(`a grading criterion is text of at most ${L.maxCriterionChars} characters.`)),
+        said(`an exercise has a list of at most ${L.maxCriteria} grading criteria.`))
+            .max(L.maxCriteria, said(`an exercise has a list of at most ${L.maxCriteria} grading criteria.`)).optional(),
         guidance: stepText(`the grading guidance is text of at most ${L.maxDescChars} characters.`, L.maxDescChars),
         // A cleared number input arrives as ''. `+''` is 0, which the store
         // clamped to 1: a pass score of 1, one attempt — saved.
@@ -127,26 +126,24 @@ const Step = z.discriminatedUnion('type', [
         maxAttempts: stepNumber('the number of attempts is a number from 1 to 10.', 1, 10),
     }),
 ], {
-    errorMap: (issue, ctx) => ({
-        message: issue.code === z.ZodIssueCode.invalid_union_discriminator || issue.code === z.ZodIssueCode.invalid_type
-            ? `${stepPrefix(issue.path)}a step is a slide, a quiz or an exercise.`
-            : ctx.defaultError,
-    }),
+    error: (iss) => (iss.code === 'invalid_type' || (iss.code === 'invalid_union' && iss.note === 'No matching discriminator')
+        ? `${stepPrefix(iss.path)}a step is a slide, a quiz or an exercise.`
+        : undefined),
 });
 
 /** The whole lesson: a save REPLACES the draft, so a field left out would silently reset. */
 const LessonBody = bodyOf(z.object({
     // The URL is authoritative for the id; the editor echoes it back.
-    id: z.string({ invalid_type_error: 'A lesson id is text.' }).optional(),
-    title: z.string({ required_error: 'Lesson title is required', invalid_type_error: 'A lesson title is text.' })
+    id: z.string({ error: typeError({ invalid: 'A lesson id is text.' }) }).optional(),
+    title: z.string({ error: typeError({ required: 'Lesson title is required', invalid: 'A lesson title is text.' }) })
         .trim().min(1, 'Lesson title is required').max(L.maxTitleChars, `A lesson title is at most ${L.maxTitleChars} characters.`),
-    desc: z.string({ required_error: 'A save sends the whole lesson; desc is missing.', invalid_type_error: 'A lesson description is text.' })
+    desc: z.string({ error: typeError({ required: 'A save sends the whole lesson; desc is missing.', invalid: 'A lesson description is text.' }) })
         .trim().max(L.maxDescChars, `A lesson description is at most ${L.maxDescChars} characters.`),
-    icon: z.string({ required_error: 'A save sends the whole lesson; icon is missing.', invalid_type_error: `A lesson icon ${ICON_TEXT}` })
+    icon: z.string({ error: typeError({ required: 'A save sends the whole lesson; icon is missing.', invalid: `A lesson icon ${ICON_TEXT}` }) })
         .trim().max(ICON_CHARS, `A lesson icon ${ICON_TEXT}`),
-    estMinutes: z.number({ required_error: 'A save sends the whole lesson; estMinutes is missing.', invalid_type_error: 'Estimated minutes is a number from 1 to 120.' })
+    estMinutes: z.number({ error: typeError({ required: 'A save sends the whole lesson; estMinutes is missing.', invalid: 'Estimated minutes is a number from 1 to 120.' }) })
         .min(1, 'Estimated minutes is a number from 1 to 120.').max(120, 'Estimated minutes is a number from 1 to 120.'),
-    steps: z.array(Step, { required_error: 'A lesson needs at least one step', invalid_type_error: 'steps is a list of slide, quiz and exercise steps.' })
+    steps: z.array(Step, { error: typeError({ required: 'A lesson needs at least one step', invalid: 'steps is a list of slide, quiz and exercise steps.' }) })
         .min(1, 'A lesson needs at least one step')
         .max(L.maxStepsPerLesson, `A lesson can have at most ${L.maxStepsPerLesson} steps`),
 }).strict());
@@ -163,25 +160,23 @@ function courseBody(whole) {
     const missing = (key) => `A save sends the whole course; ${key} is missing.`;
     const maybe = (schema) => (whole ? schema : schema.optional());
     return bodyOf(z.object({
-        title: z.string({ required_error: 'Course title is required', invalid_type_error: 'A course title is text.' })
+        title: z.string({ error: typeError({ required: 'Course title is required', invalid: 'A course title is text.' }) })
             .trim().min(1, 'Course title is required').max(L.maxTitleChars, `A course title is at most ${L.maxTitleChars} characters.`),
-        desc: maybe(z.string({ required_error: missing('desc'), invalid_type_error: 'A course description is text.' })
+        desc: maybe(z.string({ error: typeError({ required: missing('desc'), invalid: 'A course description is text.' }) })
             .trim().max(L.maxDescChars, `A course description is at most ${L.maxDescChars} characters.`)),
-        icon: maybe(z.string({ required_error: missing('icon'), invalid_type_error: `A course icon ${ICON_TEXT}` })
+        icon: maybe(z.string({ error: typeError({ required: missing('icon'), invalid: `A course icon ${ICON_TEXT}` }) })
             .trim().max(ICON_CHARS, `A course icon ${ICON_TEXT}`)),
         level: maybe(z.enum(LEVELS, {
-            errorMap: (issue) => ({
-                message: issue.code === z.ZodIssueCode.invalid_type && issue.received === 'undefined'
-                    ? missing('level')
-                    : 'A course level is beginner, intermediate or advanced.',
-            }),
+            error: (iss) => (iss.input === undefined
+                ? missing('level')
+                : 'A course level is beginner, intermediate or advanced.'),
         })),
-        lessonIds: maybe(z.array(z.string({ invalid_type_error: LESSON_ID_TEXT }).refine(store.isOrgLessonId, LESSON_ID_TEXT),
-            { required_error: missing('lessonIds'), invalid_type_error: LESSON_ID_TEXT })
+        lessonIds: maybe(z.array(z.string({ error: typeError({ invalid: LESSON_ID_TEXT }) }).refine(store.isOrgLessonId, LESSON_ID_TEXT),
+            { error: typeError({ required: missing('lessonIds'), invalid: LESSON_ID_TEXT }) })
             .max(L.maxLessonsPerCourse, `A course can have at most ${L.maxLessonsPerCourse} lessons.`)),
-        badgeTitle: maybe(z.string({ required_error: missing('badgeTitle'), invalid_type_error: 'A badge title is text.' })
+        badgeTitle: maybe(z.string({ error: typeError({ required: missing('badgeTitle'), invalid: 'A badge title is text.' }) })
             .trim().max(L.maxTitleChars, `A badge title is at most ${L.maxTitleChars} characters.`)),
-        badgeIcon: maybe(z.string({ required_error: missing('badgeIcon'), invalid_type_error: `A badge icon ${ICON_TEXT}` })
+        badgeIcon: maybe(z.string({ error: typeError({ required: missing('badgeIcon'), invalid: `A badge icon ${ICON_TEXT}` }) })
             .trim().max(ICON_CHARS, `A badge icon ${ICON_TEXT}`)),
     }).strict());
 }

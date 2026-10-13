@@ -10,7 +10,7 @@
  * Rolling back is safe: old code still reads messages_json which stays in sync.
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./initSchema');
 const { encryptMessages, decryptMessages } = require('./messageEncryption');
@@ -259,7 +259,7 @@ async function getConversationMeta(conversationId, options) {
 async function getOrCreateConversation(agentId, userId, encryptionKey = null) {
     let conv = await getConversation(agentId, userId, encryptionKey);
     if (!conv) {
-        const id = uuidv4();
+        const id = randomUUID();
         await run("INSERT INTO agent_conversations (id, agent_id, user_id, messages_json, created_at, updated_at) VALUES ($1,$2,$3,'[]',NOW(),NOW())", [id, agentId, userId]);
         conv = { id, agent_id: agentId, user_id: userId, messages: [] };
     }
@@ -268,7 +268,7 @@ async function getOrCreateConversation(agentId, userId, encryptionKey = null) {
 
 async function createNewConversation(agentId, userId) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     await run("INSERT INTO agent_conversations (id, agent_id, user_id, messages_json, created_at, updated_at) VALUES ($1,$2,$3,'[]',NOW(),NOW())", [id, agentId, userId]);
     return { id, agent_id: agentId, user_id: userId, messages: [] };
 }
@@ -570,7 +570,7 @@ async function getConversationById(conversationId, encryptionKey = null, options
 
 async function createConversation(agentId, userId, title = 'New Chat') {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     const ctx = await resolveCrypto({ userId });
     await run("INSERT INTO agent_conversations (id, agent_id, user_id, title, messages_json, created_at, updated_at) VALUES ($1,$2,$3,$4,'[]',NOW(),NOW())",
         [id, agentId, userId, sealTitle(title, id, 'agent', ctx)]);

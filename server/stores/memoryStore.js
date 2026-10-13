@@ -17,7 +17,7 @@
 
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { resolveEmbedTarget } = require('../core/embed/resolveTarget');
 const { toV1BaseUrl } = require('../utils/azureUrl');
 const log = require('../telemetry/log');
@@ -389,7 +389,7 @@ async function createMemory(userId, agentId, type, content, summary = null, impo
             }
 
             log.info(`[MemoryStore] ${meta.status === 'active' ? 'Superseding' : 'Proposing a replacement for'} memory ${existing.id} (${type})`);
-            const newId = uuidv4();
+            const newId = randomUUID();
             await _insertMemory(newId, wctx, {
                 userId, agentId, type, content, summary, importance, subject, attribute, value,
                 evidenceQuote, projectId, confidence, ...meta,
@@ -405,7 +405,7 @@ async function createMemory(userId, agentId, type, content, summary = null, impo
     }
 
     // 2. Create new memory
-    const id = uuidv4();
+    const id = randomUUID();
     await _insertMemory(id, wctx, {
         userId, agentId, type, content, summary, importance, subject, attribute, value,
         evidenceQuote, projectId, confidence, ...meta,
@@ -851,7 +851,7 @@ async function countOrgMemoryStats(orgId) {
 // `message_content` column stays in the schema but is never written.
 async function addMemorySource(memoryId, conversationId) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     await run(`
         INSERT INTO memory_sources (id, memory_id, conversation_id)
         VALUES ($1, $2, $3)
@@ -1331,7 +1331,7 @@ async function upsertScheduleCoverage({ userId, agentId, scheduleId, subject, ti
         );
         return existing.id;
     }
-    const id = uuidv4();
+    const id = randomUUID();
     await run(
         `INSERT INTO user_memories
             (id, user_id, agent_id, type, content, subject, value, summary, importance,

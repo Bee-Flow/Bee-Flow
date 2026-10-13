@@ -1,6 +1,8 @@
 import {
-    flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel,
-    getSortedRowModel, useReactTable,
+    columnFilteringFeature, columnVisibilityFeature, createFilteredRowModel, createPaginatedRowModel,
+    createSortedRowModel, flexRender, globalFilteringFeature, rowPaginationFeature,
+    rowSelectionFeature, rowSortingFeature, sortFn_alphanumeric, sortFn_basic,
+    sortFn_datetime, sortFn_text, tableFeatures, useTable,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Plus, Search, Table2, X } from 'lucide-react';
@@ -23,6 +25,26 @@ import { EM_DASH, EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '
  * The cell switch moved to the shared `cellValue` module, which AppTable also
  * imports — the two used to keep private copies that had already drifted apart.
  */
+
+// The table features this grid uses, registered once (v9 is opt-in per feature).
+// sortFns holds exactly what v8's 'auto' sort picks from (datetime, alphanumeric,
+// text) plus the 'basic' fallback. Column filters are per-column functions
+// (makeFilterFn) and the global search uses the built-in includesString.
+const TABLE_FEATURES = tableFeatures({
+    columnFilteringFeature,
+    columnVisibilityFeature,
+    globalFilteringFeature,
+    rowSortingFeature,
+    rowPaginationFeature,
+    rowSelectionFeature,
+    filteredRowModel: createFilteredRowModel(),
+    sortedRowModel: createSortedRowModel(),
+    paginatedRowModel: createPaginatedRowModel(),
+    sortFns: {
+        alphanumeric: sortFn_alphanumeric, basic: sortFn_basic,
+        datetime: sortFn_datetime, text: sortFn_text,
+    },
+});
 
 const VIRTUALIZE_THRESHOLD = 50;
 // Page sizes a viewer can pick in the footer. The author's pageSize seeds the
@@ -613,7 +635,8 @@ export default function AppDataGrid({ node }) {
         return list;
     }, [cols, filterMeta, isRun, node.onRowSelect, runAction, now]);
 
-    const table = useReactTable({
+    const table = useTable({
+        features: TABLE_FEATURES,
         data,
         columns,
         state: { sorting, globalFilter, columnFilters, rowSelection, pagination: { pageIndex, pageSize } },
@@ -628,10 +651,6 @@ export default function AppDataGrid({ node }) {
             const next = typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
             setPageIndex(next.pageIndex);
         },
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
     });
 
     // Notify onRowSelect when the selection changes (skip the initial empty state).
@@ -718,7 +737,7 @@ export default function AppDataGrid({ node }) {
                             type="checkbox"
                             aria-label={t('studio_apps_runtime.grid.select_all', 'Select all rows')}
                             checked={table.getIsAllRowsSelected()}
-                            ref={(el) => { if (el) el.indeterminate = table.getIsSomeRowsSelected(); }}
+                            ref={(el) => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
                             onChange={table.getToggleAllRowsSelectedHandler()}
                             className="accent-[var(--app-primary)]"
                         />

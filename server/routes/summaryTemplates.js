@@ -40,7 +40,7 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 const store = require('../stores/summaryTemplateStore');
 const userStore = require('../stores/userStore');
@@ -57,8 +57,8 @@ const MAX_PROMPT_LEN = 20000;
 const MAX_NAME_LEN = 120;
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
-const isDefault = z.boolean({ invalid_type_error: 'isDefault is true or false.' });
+const worded = (message) => z.string({ error: message });
+const isDefault = z.boolean({ error: typeError({ invalid: 'isDefault is true or false.' }) });
 
 const SCOPE_TEXT = 'scope is "user" (just me), "org" (the whole organisation) or "group".';
 const NAME_TEXT = 'A template needs a name.';
@@ -72,7 +72,7 @@ const prompt = worded(PROMPT_TEXT).trim().min(1, PROMPT_TEXT)
 
 const CreateBody = z.object({
     // Omitted is "just me", as the API always said; misspelled is a 400.
-    scope: z.enum(['user', 'org', 'group'], { errorMap: () => ({ message: SCOPE_TEXT }) }).default('user'),
+    scope: z.enum(['user', 'org', 'group'], { error: () => SCOPE_TEXT }).default('user'),
     name,
     prompt,
     groupId: worded(GROUP_TEXT).trim().min(1, GROUP_TEXT).optional(),

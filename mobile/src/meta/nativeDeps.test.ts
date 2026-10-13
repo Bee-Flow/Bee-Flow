@@ -163,6 +163,54 @@ describe('dependencies that are installed but unused', () => {
      */
     const sourceRoots = [path.join(MOBILE, 'src'), path.join(MOBILE, 'app'), path.join(MOBILE, 'modules')];
 
+    /**
+     * Source text with comments removed. A guard that searched the raw text let
+     * `expo-blur` through for months: nothing imported it, but a comment in
+     * theme/tokens.ts mentioned the name, and a substring match is satisfied by
+     * a comment. Only code (an import, a require, a plugin string) counts.
+     * `//` after a `:` is left alone so URLs inside strings survive.
+     */
+    function stripComments(text: string): string {
+        return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    }
+
+    /**
+     * Is the package named as a real module specifier: `from 'name'`, a bare
+     * `import 'name'`, `import('name')`, `require('name')`, `jest.mock('name')`
+     * or `jest.requireActual('name')`, optionally with a subpath ('name/sub')?
+     * A string that merely equals the name (a label, a map key) does not count.
+     */
+    function isImported(source: string, name: string): boolean {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(
+            `(?:\\bfrom\\s*|\\bimport\\s*\\(?\\s*|\\brequire\\s*\\(\\s*|\\bjest\\s*\\.\\s*(?:mock|requireActual|requireMock|doMock)\\s*\\(\\s*)['"\`]${escaped}(?:/[^'"\`]*)?['"\`]`,
+        ).test(source);
+    }
+
+    /** The text of app.config's top-level `plugins: [ ... ]`, brackets balanced, nested entries included. */
+    function pluginsBlock(config: string): string {
+        const open = /\bplugins\s*:\s*\[/.exec(config);
+        if (!open) return '';
+        const start = open.index + open[0].length;
+        let depth = 1;
+        for (let i = start; i < config.length; i++) {
+            if (config[i] === '[') depth++;
+            else if (config[i] === ']' && --depth === 0) return config.slice(start, i);
+        }
+        return config.slice(start);
+    }
+
+    /** Is the package named in app.config's `plugins` list, bare or as ['name', {...}]? */
+    function isConfigPlugin(config: string, name: string): boolean {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`['"\`]${escaped}(?:/[^'"\`]*)?['"\`]`).test(pluginsBlock(config));
+    }
+
+    function read(full: string): string {
+        return fs.existsSync(full) ? stripComments(fs.readFileSync(full, 'utf8')) : '';
+    }
+
+    /** Shipping code (tests excluded) and the build configs that import. */
     function allSource(): string {
         const parts: string[] = [];
         const walk = (dir: string) => {
@@ -170,53 +218,60 @@ describe('dependencies that are installed but unused', () => {
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
                 const full = path.join(dir, entry.name);
                 if (entry.isDirectory()) walk(full);
-                else if (/\.(ts|tsx|js|jsx)$/.test(entry.name)) parts.push(fs.readFileSync(full, 'utf8'));
+                // Tests (and their mocks) do not ship in the APK: a package only a test
+                // names is still dead weight in the build.
+                else if (/\.(ts|tsx|js|jsx)$/.test(entry.name) && !/\.test\.[jt]sx?$/.test(entry.name))
+                    parts.push(read(full));
             }
         };
         sourceRoots.forEach(walk);
-        for (const name of ['app.config.ts', 'metro.config.js', 'babel.config.js', 'jest.setup.js']) {
-            const full = path.join(MOBILE, name);
-            if (fs.existsSync(full)) parts.push(fs.readFileSync(full, 'utf8'));
-        }
+        for (const name of ['app.config.ts', 'metro.config.js', 'babel.config.js']) parts.push(read(path.join(MOBILE, name)));
         return parts.join('\n');
     }
 
+    const appConfig = () => read(path.join(MOBILE, 'app.config.ts'));
+
     /**
-     * Packages that are legitimately never imported by name: config plugins
-     * referenced from app.config.ts as strings, transitive peers React Native
-     * requires, and tooling.
+     * Native packages that are legitimately never imported by name or listed in
+     * app.config's plugins. Keep this to the ones the test would flag without
+     * them: an entry that is already imported or a plugin only hides a future
+     * unused dependency.
+     *
+     * Both are declared dependencies of expo-router itself: the router imports
+     * them, this app does not, and removing them breaks navigation.
      */
-    const NOT_IMPORTED_BY_NAME = new Set([
-        'expo',
-        'react',
-        'react-dom',
-        'react-native',
-        'expo-router',
-        'expo-build-properties',
-        'expo-system-ui',
-        'expo-splash-screen',
-        'react-native-worklets',
-        'react-native-screens',
-        'react-native-safe-area-context',
-        'expo-status-bar',
-        'expo-font',
-        'expo-share-intent',
-        'expo-notifications',
-        'expo-task-manager',
-        'expo-dev-client',
-        'expo-updates',
-        // Declared dependencies of expo-router itself — the router imports
-        // them, this app does not, and removing them breaks navigation.
-        'expo-linking',
-        'react-native-reanimated',
-    ]);
+    const NOT_IMPORTED_BY_NAME = new Set(['expo-linking', 'react-native-screens']);
+
+    it('the guard sees code, not comments (expo-blur regression)', () => {
+        const source = stripComments("// uses 'expo-blur' here\n/* import 'expo-blur' */\nimport x from 'expo-image';");
+        expect(isImported(source, 'expo-blur')).toBe(false);
+        expect(isImported(source, 'expo-image')).toBe(true);
+        expect(isImported("require(\"expo-image/build/x\")", 'expo-image')).toBe(true);
+    });
+
+    it('a string that is not a specifier does not count as an import', () => {
+        const source = "const label = 'expo-blur';\nconst map = { 'expo-blur': 1 };\nimport a from 'expo-blur-extra';";
+        expect(isImported(source, 'expo-blur')).toBe(false);
+        expect(isImported("jest.mock('expo-blur', () => ({}))", 'expo-blur')).toBe(true);
+        expect(isImported("await import('expo-blur')", 'expo-blur')).toBe(true);
+        expect(isImported("import 'expo-blur';", 'expo-blur')).toBe(true);
+    });
+
+    it('finds a config plugin in the plugins list, bare or nested, and nowhere else', () => {
+        const config = "name: 'expo-x',\nplugins: [\n 'expo-a',\n ['expo-b', { k: 1 }],\n],\nother: ['expo-c']";
+        expect(isConfigPlugin(config, 'expo-a')).toBe(true);
+        expect(isConfigPlugin(config, 'expo-b')).toBe(true);
+        expect(isConfigPlugin(config, 'expo-c')).toBe(false);
+        expect(isConfigPlugin(config, 'expo-x')).toBe(false);
+    });
 
     it('imports every dependency that ships native code', () => {
         const source = allSource();
+        const config = appConfig();
         const unused = Object.keys(pkg.dependencies ?? {})
             .filter((name) => !NOT_IMPORTED_BY_NAME.has(name))
             .filter(shipsNativeCode)
-            .filter((name) => !source.includes(name));
+            .filter((name) => !isImported(source, name) && !isConfigPlugin(config, name));
         // A native dependency nothing imports still gets compiled into the APK.
         // If one is genuinely needed without being imported, add it to
         // NOT_IMPORTED_BY_NAME with a reason rather than deleting this test.

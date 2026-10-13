@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const { validate } = require('./validate');
 const { HttpError } = require('./errors');

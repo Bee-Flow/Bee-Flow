@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 import AppIcon from '../../icons/AppIcon';
 import { useTranslation } from '../../../hooks/useTranslation';
 
@@ -35,18 +36,11 @@ export default function SiteSwitcher({
     const activeSite = sites.find(s => s.id === activeSiteId);
 
     // Click-outside to close.
-    useEffect(() => {
-        if (!open) return;
-        const onDoc = (e) => {
-            if (rootRef.current && !rootRef.current.contains(e.target)) {
-                setOpen(false);
-                setCreating(false);
-                setRenamingId(null);
-            }
-        };
-        document.addEventListener('mousedown', onDoc);
-        return () => document.removeEventListener('mousedown', onDoc);
-    }, [open]);
+    useOutsideDismiss(rootRef, () => {
+        setOpen(false);
+        setCreating(false);
+        setRenamingId(null);
+    }, { enabled: open, escape: false, defer: false });
 
     const handlePick = (siteId) => {
         if (siteId !== activeSiteId) onSelect(siteId);

@@ -28,7 +28,7 @@ const express = require('express');
 const cmsStore = require('../stores/cmsStore');
 const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf, choice, closedObject } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, choice, closedObject, typeError } = require('../core/http/schemaParts');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { POST_LIMITS: LIMITS, POST_STATUSES } = require('../stores/cms/postLimits');
 // Lazy: the store's aggregates are only needed when a request arrives.
@@ -42,7 +42,7 @@ const seoShape = closedObject({
     metaTitle: text('seo.metaTitle', LIMITS.metaTitle).optional(),
     metaDescription: text('seo.metaDescription', LIMITS.metaDescription).optional(),
     ogImage: text('seo.ogImage', 2048).optional(),
-    noIndex: z.boolean({ invalid_type_error: 'seo.noIndex is true or false.' }).optional(),
+    noIndex: z.boolean({ error: typeError({ invalid: 'seo.noIndex is true or false.' }) }).optional(),
 }, 'seo');
 const postFields = {
     title: text('title', LIMITS.title),
@@ -52,7 +52,7 @@ const postFields = {
     coverImage: text('coverImage', 2048),
     coverAlt: text('coverAlt', LIMITS.coverAlt),
     authorName: text('authorName', LIMITS.authorName),
-    tags: z.array(text('A tag', LIMITS.tagLength), { invalid_type_error: 'tags is a list of words.' })
+    tags: z.array(text('A tag', LIMITS.tagLength), { error: typeError({ invalid: 'tags is a list of words.' }) })
         .max(LIMITS.tags, `At most ${LIMITS.tags} tags.`),
     status: choice(POST_STATUSES, `status is one of ${POST_STATUSES.join(', ')}.`),
     publishedAt: worded('publishedAt is an ISO date.').max(40).nullable(),

@@ -41,8 +41,6 @@ const CONDITIONAL_CANCEL = {
         'dev builds supersede, prod builds never do — a signed release build that is cancelled halfway produces no artefact and a tag that points at nothing',
     'ci.yml':
         'PR runs supersede; every other run (a push to main through build-push-ghcr.yml, a manual run) keeps its verdict, because that verdict is what you bisect with',
-    'desktop-checks.yml':
-        'PR runs supersede; push-to-main runs must keep their verdict, same reason as ci.yml',
     'desktop-release.yml':
         'PR builds supersede; a publishing run never does — cancelled between `gh release delete` and the upload, it leaves desktop-dev with no release at all',
 };

@@ -15,7 +15,7 @@ const deadlines = require('../../compliance/deadlines');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { requireOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** This route reads nothing from the query; a parameter there is a typo. */
 const NoQuery = z.object({}).strict();

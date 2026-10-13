@@ -5,7 +5,7 @@
  */
 
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const passwords = require('../passwordHash');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -17,10 +17,10 @@ const {
     forgotPasswordIpLimiter, resetPasswordIpLimiter, forgotPasswordTargetLimiter,
 } = require('../authRateLimits');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const EMAIL_TEXT = 'Enter the e-mail address of the account you want to reset.';
 // The constant-200 contract below is unchanged: this only refuses a request
@@ -108,7 +108,7 @@ router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBod
             orgRole: user.orgRole || user.org_role,
         });
         if (!policy.ok) return res.status(400).json({ error: policy.error, code: policy.code });
-        const passwordHash = await bcrypt.hash(newPassword, 10);
+        const passwordHash = await passwords.hash(newPassword);
         await userStore.updateUser(user.id, {
             passwordHash,
             passwordResetTokenHash: null,

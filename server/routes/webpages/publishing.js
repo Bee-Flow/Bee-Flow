@@ -13,7 +13,7 @@ const { requireAuth } = require('../../auth/permissions');
 const webpageUsageSync = require('../../core/webpages/webpageUsageSync');
 const { liveMatchesPin, pinPublishedVersion } = require('./publishedSnapshot');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const { bodyOf, idList, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -35,21 +35,21 @@ const log = require('../../telemetry/log');
 const PUBLISHED_TEXT = 'Zeg of de pagina gepubliceerd moet zijn: isPublished is true of false.';
 const GROUP_TEXT = 'sharedGroups is een lijst met groep-id\'s.';
 const PublishBody = bodyOf({
-    isPublished: z.boolean({ required_error: PUBLISHED_TEXT, invalid_type_error: PUBLISHED_TEXT }),
+    isPublished: z.boolean({ error: PUBLISHED_TEXT }),
     // Weggelaten betekent "laat staan" — dat onderscheid moet blijven, dus
     // `.optional()` en niet een lege lijst als standaard.
     sharedGroups: idList(GROUP_TEXT).optional(),
     // De expliciete actie uit de kop: bevries wat er NU staat. Een groepje
     // aanvinken is dat niet, en mag de nieuwste onuitgegeven staat van de
     // eigenaar niet live duwen.
-    republish: z.boolean({ invalid_type_error: 'republish is true of false.' }).optional(),
+    republish: z.boolean({ error: typeError({ invalid: 'republish is true of false.' }) }).optional(),
 });
 
 // The card asks for `?v=<thumbnailSha>` so a new screenshot gets a new URL
 // past the browser cache. The route answers by ETag and never reads it.
 const ThumbnailQuery = z.object({
     v: z.string().optional(),
-}).strict('Dit accepteert alleen ?v als queryparameter.');
+}, { error: onUnknownKeys('Dit accepteert alleen ?v als queryparameter.') }).strict();
 
 function register(router) {
     // ── Thumbnail (rendered preview) ────────────────────────────────────

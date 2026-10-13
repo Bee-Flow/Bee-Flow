@@ -14,7 +14,7 @@ const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { CHAT_MONITORING_DPIA_KEY } = require('../../stores/lib/chatMonitoringVocab');
 
 /**
@@ -43,13 +43,11 @@ function chatMonitoringDpiaHook(req, res, next) {
 // answers a questionnaire cannot do without are checked (REQUIRED_ANSWERS).
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const MODES = ['attestation', 'questionnaire'];
 const RISKS = ['low', 'medium', 'high'];
-const oneOf = (name, values) => z.enum(values, {
-    errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }),
-});
+const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 // A questionnaire is the assessment itself, so it cannot be blank. Every
 // answer used to be optional: one click on "Save assessment" with an empty
@@ -69,7 +67,7 @@ function requireQuestionnaireAnswers(body, ctx) {
     if (body.mode !== 'questionnaire') return;
     const answers = body.answers || {};
     for (const [key, message] of REQUIRED_ANSWERS) {
-        if (!filled(answers[key])) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['answers', key], message });
+        if (!filled(answers[key])) ctx.addIssue({ code: 'custom', path: ['answers', key], message });
     }
 }
 
@@ -80,10 +78,8 @@ const DpiaBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z
         .refine((v) => !Number.isNaN(new Date(v).getTime()), 'expires_at must be a date.')
         .nullish(),
     // The questionnaire's own shape; the store keeps it whole.
-    answers: z.record(z.unknown(), { invalid_type_error: 'answers is a JSON object.' }).optional(),
-    mitigations: z.array(worded('mitigations is a list of measures.'), {
-        invalid_type_error: 'mitigations is a list of measures.',
-    }).max(100, 'At most 100 measures.').optional(),
+    answers: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'answers is a JSON object.' }) }).optional(),
+    mitigations: z.array(worded('mitigations is a list of measures.'), { error: typeError({ invalid: 'mitigations is a list of measures.' }) }).max(100, 'At most 100 measures.').optional(),
 }).strict().superRefine(requireQuestionnaireAnswers));
 
 // ───────────────── DPIA ─────────────────

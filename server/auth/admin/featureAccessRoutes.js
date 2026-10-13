@@ -18,10 +18,10 @@ const { requireOrgAdmin } = require('./orgAdminGuards');
 const configStore = require('../../stores/configStore');
 const { ALL_INTEGRATIONS } = require('./integrationCatalog');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /**
  * Each of these routes is a list of ids the caller wants switched on, and every
@@ -38,7 +38,7 @@ const worded = (message) => z.string({ required_error: message, invalid_type_err
  */
 const idList = (field, message) => z.array(
     worded(message),
-    { required_error: message, invalid_type_error: message },
+    { error: message },
 );
 
 const FEATURES_TEXT = 'features must be an array of feature IDs';
@@ -61,7 +61,7 @@ const GrantedBody = z.object({ granted: idList('granted', GRANTED_TEXT) }).stric
 const AVAILABLE_TEXT = 'available must be an array of capability ids (or pass unrestricted:true)';
 const OrgAvailabilityBody = z.object({
     available: idList('available', AVAILABLE_TEXT).optional(),
-    unrestricted: z.boolean({ invalid_type_error: 'unrestricted must be true or false.' }).optional(),
+    unrestricted: z.boolean({ error: typeError({ invalid: 'unrestricted must be true or false.' }) }).optional(),
 }).strict();
 
 // `orgId` null or '' is how the picker CLEARS the selection, so both stay.

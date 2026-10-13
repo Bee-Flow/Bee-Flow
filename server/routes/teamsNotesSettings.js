@@ -10,7 +10,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { resolveUserOrgIds } = require('../auth');
 const { requireAuth, isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
@@ -19,17 +19,17 @@ const teamsNotes = require('../core/meetingNotes/teamsNotesSettings');
 
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the settings as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
-const onOff = (name) => z.boolean({ invalid_type_error: `${name} is true, false, or null for no opinion.` })
+const onOff = (name) => z.boolean({ error: typeError({ invalid: `${name} is true, false, or null for no opinion.` }) })
     .nullable().optional();
 const LANGUAGE_TEXT = 'language is a language code, like nl or en.';
 
 const SettingsBody = bodyOf({
     autoImport: onOff('autoImport'),
     autoRecordConfig: onOff('autoRecordConfig'),
-    language: z.string({ invalid_type_error: LANGUAGE_TEXT }).trim().min(1, LANGUAGE_TEXT).max(35, LANGUAGE_TEXT).nullable().optional(),
-    lookbackHours: z.number({ invalid_type_error: 'lookbackHours is a number of hours.' }).nullable().optional(),
+    language: z.string({ error: typeError({ invalid: LANGUAGE_TEXT }) }).trim().min(1, LANGUAGE_TEXT).max(35, LANGUAGE_TEXT).nullable().optional(),
+    lookbackHours: z.number({ error: typeError({ invalid: 'lookbackHours is a number of hours.' }) }).nullable().optional(),
     // The settings screens send back the GET they loaded; the stamp is rewritten on save.
     updatedAt: z.string().nullish(),
     updatedBy: z.string().nullish(),

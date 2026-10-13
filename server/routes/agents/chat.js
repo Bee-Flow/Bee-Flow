@@ -29,7 +29,7 @@ const { storedFlag, FLAG_DEFAULTS } = require('./storedFlag');
 
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -55,14 +55,14 @@ const { z } = require('zod');
 // from the Android app.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const text = (name) => worded(`${name} must be text.`).optional();
 const id = (name) => worded(`${name} must be an id.`).trim().min(1, `${name} must be an id.`).nullish();
-const flag = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` }).optional();
+const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
 
 const MESSAGE_TEXT = 'Message is required';
 
@@ -75,23 +75,23 @@ const MESSAGE_TEXT = 'Message is required';
  */
 const HISTORY_TURN_TEXT = 'Each history turn is an object whose content is text, a list of content blocks or empty.';
 const HistoryTurn = z.object({
-    content: z.union([z.string(), z.array(z.unknown()), z.null()], { errorMap: () => ({ message: HISTORY_TURN_TEXT }) }).optional(),
-}, { invalid_type_error: HISTORY_TURN_TEXT }).passthrough();
+    content: z.union([z.string(), z.array(z.unknown()), z.null()], { error: () => HISTORY_TURN_TEXT }).optional(),
+}, { error: typeError({ invalid: HISTORY_TURN_TEXT }) }).passthrough();
 
 const TurnBody = bodyOf({
     message: worded(MESSAGE_TEXT).min(1, MESSAGE_TEXT),
     // Read by the runtime, not here: their shape belongs to the turn, and
     // `attachments` carries inline data URLs the uploader already bounds.
     // Only a history turn's `content` is checked (see HistoryTurn).
-    history: z.array(HistoryTurn, { invalid_type_error: 'history is a list of turns.' }).optional(),
-    attachments: z.array(z.unknown(), { invalid_type_error: 'attachments is a list.' }).optional(),
+    history: z.array(HistoryTurn, { error: typeError({ invalid: 'history is a list of turns.' }) }).optional(),
+    attachments: z.array(z.unknown(), { error: typeError({ invalid: 'attachments is a list.' }) }).optional(),
     messageId: id('messageId'),
     parentId: id('parentId'),
     conversationId: id('conversationId'),
     projectId: id('projectId'),
     ephemeral: flag('ephemeral'),
     modelTier: worded('modelTier is the name of a model tier.').trim().min(1, 'modelTier is the name of a model tier.').optional(),
-    activeSkillIds: z.array(worded('activeSkillIds is a list of skill ids.'), { invalid_type_error: 'activeSkillIds is a list of skill ids.' }).optional(),
+    activeSkillIds: z.array(worded('activeSkillIds is a list of skill ids.'), { error: typeError({ invalid: 'activeSkillIds is a list of skill ids.' }) }).optional(),
     reasoningEffort: worded('reasoningEffort is the name of a thinking effort.').trim().min(1, 'reasoningEffort is the name of a thinking effort.').optional(),
     timezone: text('timezone'),
     memoryWriteEnabled: flag('memoryWriteEnabled'),
@@ -103,18 +103,18 @@ const TurnBody = bodyOf({
     notebookspaceAvailable: flag('notebookspaceAvailable'),
     notebookspaceContent: text('notebookspaceContent'),
     notebookspaceSelection: text('notebookspaceSelection'),
-    sidePanelWebpage: z.record(z.unknown()).nullish(),
+    sidePanelWebpage: z.record(z.string(), z.unknown()).nullish(),
     // The Studio document open next to the chat; shape-checked in core/documents/aiDocumentScope.js.
     sidePanelDocument: z.unknown().optional(),
     // Test chat (A4) + "Test as, group X" (A1c).
-    test: z.boolean({ invalid_type_error: 'test is true or false.' }).optional(),
+    test: z.boolean({ error: typeError({ invalid: 'test is true or false.' }) }).optional(),
     testSessionId: text('testSessionId'),
     // LEFT OPEN one level down, on purpose: `normaliseToolDecisions` keeps
     // only an entry whose key is hex and whose decision is approve/decline,
     // and drops the rest. Dropping is the SAFE direction here -- a malformed
     // entry is an approval NOT granted -- and refusing the whole turn over
     // one bad card would cost the person the message they were writing.
-    toolDecisions: z.array(z.record(z.unknown()), { invalid_type_error: 'toolDecisions is a list of decisions.' }).optional(),
+    toolDecisions: z.array(z.record(z.string(), z.unknown()), { error: typeError({ invalid: 'toolDecisions is a list of decisions.' }) }).optional(),
     // LEFT OPEN, like `toolDecisions`: `gateTestAsRequest` refuses a group
     // that is not a usable id with its own codes (`test_as_invalid_group`,
     // `test_as_group_not_found`), which the composer reads. A shape check
