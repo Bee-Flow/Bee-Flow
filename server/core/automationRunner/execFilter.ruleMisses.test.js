@@ -10,7 +10,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { withBindingLog } = require('../../automation/bind');
+const { withBindingLog } = require('../automationModel/bind');
 const { execFilter } = require('./execCollections');
 const { execSwitch, execCondition } = require('./execControl');
 

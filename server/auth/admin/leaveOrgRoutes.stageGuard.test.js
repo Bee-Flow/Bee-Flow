@@ -9,7 +9,7 @@
  * after it would leave the agents moved and the account still in place.
  *
  * No module mocking: the database is recorded through `db.pool`
- * (core/http/routeHarness.js recordDb) and answers the stage read; the gates
+ * (testUtils/routeHarness.js recordDb) and answers the stage read; the gates
  * are opened with openGates; the user lookups are swapped on the shared
  * userStore object (testUtils/swaps.js). The reassignment statement the route
  * sends is then run for real against pglite, so its stage exclusion is proven
@@ -26,7 +26,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { PGlite } = require('@electric-sql/pglite');
 
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const { makeSwaps } = require('../../testUtils/swaps');
 
 // The stage rows the database answers for the leaver, per test.

@@ -13,7 +13,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const XLSX = require('@e965/xlsx');
 const JSZip = require('jszip');
-const officegen = require('../officegen');
+const officegen = require('../../core/documents/office/officegen');
 const { executeOfficeDocumentTool } = require('./officeDocuments');
 
 const ROOT = 'https://nc.example.test/remote.php/dav/files/alice';

@@ -24,7 +24,7 @@ const { newDatatableId, rowToDatatable: baseRowToDatatable, inTransaction } = re
 const { parseJSONObject } = require('../lib/json');
 const { buildUpdate } = require('../lib/sqlBuilder');
 const { notifyDatatableChanged } = require('./liveChanges');
-const managedParts = require('../lib/managedParts');
+const managedParts = require('../managedPartsDefault');
 const {
     tableFingerprint, stageTablesAmong, stageProject, requireCapability, changedTableIds,
     mirrorReconcileExemptIds, writeRowsLocked,

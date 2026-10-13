@@ -17,7 +17,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 
 const { db, api } = h.routeUnderTest(test, '/ai/learning', () => require('./learning'));
 const post = (path, body, user) => api.call('POST', `/ai/learning${path}`, { body, user });

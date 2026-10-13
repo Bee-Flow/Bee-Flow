@@ -47,14 +47,23 @@ require.cache[userStorePath] = {
     exports: { getUser: async () => ({ orgRole: 'member' }) },
 };
 
-const authPath = require.resolve('../auth');
-require.cache[authPath] = {
-    id: authPath,
-    filename: authPath,
+// kbAccess imports its auth helpers from auth/permissions and auth/audience.
+const permissionsPath = require.resolve('../auth/permissions');
+require.cache[permissionsPath] = {
+    id: permissionsPath,
+    filename: permissionsPath,
     loaded: true,
     exports: {
         resolveUserOrgIds: async () => new Set(['org-1']),
         isOrgAdminRole: () => false,
+    },
+};
+const audiencePath = require.resolve('../auth/audience');
+require.cache[audiencePath] = {
+    id: audiencePath,
+    filename: audiencePath,
+    loaded: true,
+    exports: {
         resolveUserGroups: async () => [],
     },
 };

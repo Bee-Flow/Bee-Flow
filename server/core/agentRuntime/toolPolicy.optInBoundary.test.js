@@ -79,7 +79,7 @@ require.cache[crPath] = {
 };
 
 const P = require('./toolPolicy');
-const { effectOf } = require('../../automation/sideEffectMap');
+const { effectOf } = require('../automationModel/sideEffectMap');
 
 // ── The stack a pre-A1b agent is handed ─────────────────────────────
 // Deliberately mixed: a read, a SEND (the one tool the confirm layer would

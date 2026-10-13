@@ -11,7 +11,7 @@
 
 'use strict';
 
-const { effectOf } = require('../../../automation/sideEffectMap');
+const { effectOf } = require('../../automationModel/sideEffectMap');
 const { toolsConfigOf, CONFIRM_MODES } = require('./configShape');
 const { hasCuratedGrants } = require('./grantResolution');
 const { confirmForTool } = require('./confirmation');

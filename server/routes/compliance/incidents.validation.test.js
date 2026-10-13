@@ -94,7 +94,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./incidents');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-const { dispatcher } = require('../../core/http/routeHarness');
+const { dispatcher } = require('../../testUtils/routeHarness');
 
 const dispatch = dispatcher(router);
 

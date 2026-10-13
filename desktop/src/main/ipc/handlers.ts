@@ -22,7 +22,9 @@
  * in, so the bridge existing is not the permission; the sender's URL is.
  *
  * `senderTrust` (security/policy.ts) draws those lines, on the sender frame's
- * URL rather than on a flag the renderer supplies.
+ * URL rather than on a flag the renderer supplies. Which line each channel
+ * needs is the table `CHANNEL_TRUST` (ipc/trust.ts), enforced before a
+ * handler runs.
  */
 
 import { BrowserWindow, app, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron';
@@ -33,42 +35,30 @@ import type { AppDiagnostics, NextcloudFileRef } from '../../shared/types.ts';
 import type { DesktopApp } from '../app.ts';
 import { settingsForServerPage } from '../config/schema.ts';
 import { classifyWindowOpen, senderTrust, type SenderTrust } from '../security/policy.ts';
-
-class RefusedError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = 'RefusedError';
-    }
-}
+import { RefusedError, gatedHandle, refusalMessage } from './trust.ts';
 
 export function registerIpcHandlers(desktop: DesktopApp): void {
     const trustOf = (event: { senderFrame?: { url?: string } | null }): SenderTrust => senderTrust(event.senderFrame?.url ?? '', desktop.policy());
     const isShellSender = (event: IpcMainInvokeEvent) => trustOf(event) === 'shell';
 
-    const handle = (channel: string, handler: (event: IpcMainInvokeEvent, ...args: never[]) => unknown) => {
-        ipcMain.handle(channel, async (event, ...args) => {
-            try {
-                return await handler(event, ...(args as never[]));
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                desktop.log.warn('IPC', `${channel} failed: ${message}`);
-                throw error;
-            }
-        });
-    };
+    // Every invoke channel is registered behind its entry in CHANNEL_TRUST
+    // (ipc/trust.ts): an untrusted sender is refused before the body runs. The
+    // bodies below still start with requireShell/requireTrusted, as a second
+    // line that says in place which level each one needs.
+    const handle = gatedHandle<IpcMainInvokeEvent>({ ipcMain, trustOf, log: desktop.log });
 
     /** Refuse a privileged call that did not come from one of our own pages. */
     const requireShell = (event: IpcMainInvokeEvent, what: string) => {
         if (isShellSender(event)) return;
         desktop.log.warn('IPC', `refused ${what} from ${event.senderFrame?.url ?? 'an unknown frame'}`);
-        throw new RefusedError(`${what} can only be done from Bee Flow's own settings window.`);
+        throw new RefusedError(refusalMessage('shell', what));
     };
 
     /** Refuse a call from anything that is neither our own page nor the workspace. */
     const requireTrusted = (event: IpcMainInvokeEvent, what: string) => {
         if (trustOf(event) !== 'other') return;
         desktop.log.warn('IPC', `refused ${what} from ${event.senderFrame?.url ?? 'an unknown frame'}`);
-        throw new RefusedError(`${what} is only available to your Bee Flow workspace.`);
+        throw new RefusedError(refusalMessage('trusted', what));
     };
 
     // ── App ──────────────────────────────────────────────────────────────────

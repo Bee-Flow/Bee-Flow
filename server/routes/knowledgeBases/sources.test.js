@@ -220,6 +220,10 @@ const MOCKS = {
         validateSharedGroupsForOrg: async () => {},
         resolveUserGroups: async (id) => (fx.users[id]?.groups || []),
     },
+    // core/kb/askerContext reads group membership from auth/audience directly.
+    '../auth/audience': {
+        resolveUserGroups: async (id) => (fx.users[id]?.groups || []),
+    },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => false },
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
     '../support/kbAccess': {

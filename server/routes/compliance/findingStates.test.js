@@ -19,7 +19,7 @@
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
-const { serve, assertRefused } = require('../../core/http/routeHarness');
+const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const { makeFindingStateRouter } = require('./findingStates');
 const findingState = require('../../compliance/findingState');
 

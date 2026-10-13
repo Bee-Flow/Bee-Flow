@@ -110,8 +110,15 @@ and `npm run lint:secrets`.
   `--update` only lowers, `--list` shows where they are): `lint:style-ratchet` (`style={{…}}`
   objects; use a Tailwind class on the theme variable, `text-[var(--x)]`),
   `lint:fire-event-ratchet` (`fireEvent` calls that `userEvent` can replace),
-  `lint:module-mock-ratchet`, `lint:authfetch-effect-ratchet`, `lint:big-file-ratchet` and
-  `lint:dutch-comment-ratchet`.
+  `lint:module-mock-ratchet`, `lint:authfetch-effect-ratchet`, `lint:big-file-ratchet`,
+  `lint:dutch-comment-ratchet` and `lint:import-zones-ratchet` (agent-hub layer direction:
+  `api/` and `hooks/` never import from `components/` or `pages/`, `components/` never from
+  `pages/`; tests excluded).
+- `npm run lint:scc-ratchet`: the largest import cycle (strongly connected component of the
+  internal import graph, lazy `require`s included, `import type` excluded) in `server`,
+  `agent-hub/src` and `mobile/src` may only shrink (`scripts/scc-ratchet.mjs`, budget in
+  `<package>/.scc-ratchet.json`, `--update` only lowers, `--list` prints the files of the
+  largest cycle). A red gate means a new import closed a loop: move the shared piece down.
 - `npm run lint:source-text`: tests that read a source file and run a regex over it may only
   go down (`scripts/source-text-tests.mjs`).
 - `cd agent-hub && npm run lint:dead`: `knip`, no source file that nothing imports.

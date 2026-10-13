@@ -10,7 +10,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const presence = require('../../core/documents/sectionPresence');
 const { makeDocumentPresenceRouter } = require('./presence');
 

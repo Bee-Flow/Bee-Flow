@@ -9,7 +9,7 @@
  * every org-installed MCP server for "All members" (writeOrgAccessGrants) or
  * for a group (PUT /groups/:id/access).
  *
- * No module mocking. The router is served by core/http/routeHarness with its
+ * No module mocking. The router is served by testUtils/routeHarness with its
  * database seam (db.pool records instead of connecting), and the stores and
  * the entitlement resolver it calls through their module objects are swapped
  * per file with testUtils/swaps. requireAuth is replaced on auth/permissions
@@ -27,7 +27,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const { makeSwaps } = require('../../testUtils/swaps');
 
 const db = h.recordDb();

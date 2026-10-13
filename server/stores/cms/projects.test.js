@@ -8,7 +8,7 @@
  * They now go through configStore.mutateConfig (advisory lock + fresh read).
  *
  * The REAL config store runs here, over an in-memory config table served
- * through the database pool seam of core/http/routeHarness (no module-system
+ * through the database pool seam of testUtils/routeHarness (no module-system
  * mocking), so getConfig serves this replica's real 60s cache (the SAME object
  * on every hit) and mutateConfig takes its real advisory lock + fresh read.
  * "Another replica" writes straight to the table, which that cache never hears
@@ -23,7 +23,7 @@ const assert = require('node:assert');
 process.env.NODE_ENV = 'test';
 process.env.CONFIG_INVALIDATION_LISTENER = '0'; // no LISTEN socket in tests
 
-const { recordDb } = require('../../core/http/routeHarness');
+const { recordDb } = require('../../testUtils/routeHarness');
 
 function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
 

@@ -984,7 +984,7 @@ router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, async (re
  * GET /form/:token/s/:sid/export/:format — the closing page's text as a Word
  * or PDF file.
  *
- * The same renderer generate_document uses (services/documentRenderer), so a
+ * The same renderer generate_document uses (core/documents/render/documentRenderer), so a
  * result downloaded here looks like a document an automation produced on purpose,
  * and the PDF falls back to pdfkit when no browser is reachable instead of
  * failing. Nothing is stored: the file is rendered for this response only.
@@ -995,7 +995,7 @@ router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, async (re
 router.get('/form/:token/s/:sid/export/:format', ipLimiter, sessionLimiter, exportLimiter, async (req, res) => {
     try {
         privateHeaders(res);
-        const { renderDocument, FORMATS } = require('../../services/documentRenderer');
+        const { renderDocument, FORMATS } = require('../../core/documents/render/documentRenderer');
         if (!FORMATS.includes(req.params.format)) return res.status(404).json({ error: 'Not found' });
 
         const loaded = await loadResult(req, res);

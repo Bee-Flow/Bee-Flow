@@ -16,7 +16,7 @@
 
 const automationStore = require('../../stores/automationStore');
 require('../../stores/notificationStore');
-const { firstStageKey, stageByKey, collectParticipants } = require('../../automation/approvalStages');
+const { firstStageKey, stageByKey, collectParticipants } = require('../automationModel/approvalStages');
 const { approvalPath } = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
 

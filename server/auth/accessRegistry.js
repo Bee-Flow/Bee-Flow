@@ -16,7 +16,7 @@
  * a mount-path key could not tell those apart.
  *
  * APP-WIDE COMPANION: auth/accessRegistry.sweep.test.js statically sweeps every
- * route OUTSIDE triagedPrefixes (via auth/routeSurfaceSweep.js) and demands that
+ * route OUTSIDE triagedPrefixes (via testUtils/routeSurfaceSweep.js) and demands that
  * each one is gated, declared here, or explicitly exempted there with a
  * checkable reason. Growing triagedPrefixes hands a prefix over from that broad
  * net to this registry's deep, walker-backed drift test.

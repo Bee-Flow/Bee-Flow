@@ -2,7 +2,7 @@
 
 const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const { HttpError } = require('../../core/http/errors');
 const { makeDocumentSharingRouter } = require('./sharing');
 const calls = [];

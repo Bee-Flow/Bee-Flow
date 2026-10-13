@@ -13,7 +13,7 @@ const componentManager = require('./core/cms/componentManager');
 require('./core/executionEngine');
 
 // Route modules
-const { router: authRouter } = require('./auth');
+const authRouter = require('./auth/router');
 const componentsRouter = require('./routes/components');
 const aiRouter = require('./routes/ai');
 const executeRouter = require('./routes/execute');

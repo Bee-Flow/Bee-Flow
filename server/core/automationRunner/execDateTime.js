@@ -101,7 +101,7 @@ function execDateTimeList(step, runState) {
  */
 function datetimeResult(step, runState) {
     const op = step.op;
-    const bind = require('../../automation/bind');
+    const bind = require('../automationModel/bind');
     // A resolvable path takes precedence; when walkPath misses, fall back to
     // treating the config value as a LITERAL date string ("2026-07-01") so
     // fixed dates work without a ref. An unresolvable non-date string still

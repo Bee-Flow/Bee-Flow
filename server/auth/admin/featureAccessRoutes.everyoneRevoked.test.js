@@ -20,7 +20,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const { makeSwaps } = require('../../testUtils/swaps');
 
 const db = h.recordDb();

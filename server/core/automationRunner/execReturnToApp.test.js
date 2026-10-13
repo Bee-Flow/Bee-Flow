@@ -18,7 +18,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 const { execReturnToApp } = require('./execControl');
-const { TERMINAL_STEP_TYPES } = require('../../automation/validate/constants');
+const { TERMINAL_STEP_TYPES } = require('../automationModel/constants');
 
 const stateWith = (steps = {}, trigger = {}) => ({
     trigger: { output: trigger },
@@ -131,7 +131,7 @@ test('a toast whose template resolves to nothing is dropped rather than shown bl
 });
 
 test('a long toast is cut to the same ceiling the validator enforces', async () => {
-    const { RETURN_TO_APP_MAX_TOAST_CHARS } = require('../../automation/validate/constants');
+    const { RETURN_TO_APP_MAX_TOAST_CHARS } = require('../automationModel/constants');
     const state = stateWith({ s: { output: { text: 'x'.repeat(1000) } } });
     const { output } = await execReturnToApp({
         id: 'r1', type: 'return_to_app', toast: { message: '{{steps.s.output.text}}' },

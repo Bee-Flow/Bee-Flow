@@ -51,6 +51,16 @@
  *                     distinct Dutch function words on one comment line). The
  *                     comment policy is English in code; Dutch belongs in the
  *                     i18n dictionaries, which are not scanned.
+ *   import-zones      non-test files that import against the agent-hub layer
+ *                     direction: src/api/** or src/hooks/** importing from
+ *                     src/components/** or src/pages/**, and src/components/**
+ *                     importing from src/pages/**. Relative and `@/` imports
+ *                     are resolved against src/; a file counts once however
+ *                     many of its imports point the wrong way. Tests are not
+ *                     counted: rendering a page from a test is not a
+ *                     dependency of the product. The target is moving the
+ *                     shared piece down (into api/, hooks/ or components/),
+ *                     then an eslint no-restricted-paths rule once at zero.
  *
  * Usage:
  *   node scripts/count-ratchet.mjs <metric> <package>            gate
@@ -80,6 +90,26 @@ const COMMENT_LINE = /^\s*(?:\/\/|\/?\*)/;
 const DUTCH_WORD = /\b(?:het|een|niet|wordt|worden|zijn|maar|ook|deze|dit|naar|wanneer|omdat|zodat|alleen|nog|geen|hier|daar|dan|moet)\b/gi;
 
 const countMatches = (pattern) => (text) => (text.match(pattern) || []).length;
+
+// Import direction in agent-hub: each zone may import from the zones listed
+// after it, never from those before it.
+const ZONE_OF = (rel) => rel.split('/')[0];
+const FORBIDDEN_ZONES = {
+    api: new Set(['components', 'pages']),
+    hooks: new Set(['components', 'pages']),
+    components: new Set(['pages']),
+};
+// `from '…'` (import and re-export), `import '…'`, `import('…')`, `require('…')`.
+const IMPORT_SPEC = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*)(['"])([^'"\n]+)\1/g;
+
+/** The src-relative path an import points at, or null for a package or a path outside src. */
+function resolveImport(spec, fromRel) {
+    let target;
+    if (spec.startsWith('@/')) target = spec.slice(2);
+    else if (spec.startsWith('./') || spec.startsWith('../')) target = path.posix.normalize(path.posix.join(path.posix.dirname(fromRel), spec));
+    else return null;
+    return target.startsWith('../') ? null : target;
+}
 
 const METRICS = {
     'inline-style': {
@@ -140,6 +170,19 @@ const METRICS = {
         what: 'files with Dutch comments',
         advice: 'write the comment in English (Dutch belongs in the i18n dictionaries)',
     },
+    'import-zones': {
+        include: (rel) => !TEST_FILE.test(rel) && ZONE_OF(rel) in FORBIDDEN_ZONES,
+        measure: (text, pkg, rel) => {
+            const forbidden = FORBIDDEN_ZONES[ZONE_OF(rel)];
+            for (const [, , spec] of text.matchAll(IMPORT_SPEC)) {
+                const target = resolveImport(spec, rel);
+                if (target && forbidden.has(ZONE_OF(target))) return 1;
+            }
+            return 0;
+        },
+        what: 'files importing against the layer direction (api/hooks -> components/pages, components -> pages)',
+        advice: 'move the shared piece down into api/, hooks/ or components/ and import it from there',
+    },
 };
 
 const args = process.argv.slice(2);
@@ -183,8 +226,9 @@ const rows = [];
 let count = 0;
 for (const file of collect(srcDir, [])) {
     const rel = path.relative(dir, file).split(path.sep).join('/');
-    if (metric.include && !metric.include(path.relative(srcDir, file).split(path.sep).join('/'))) continue;
-    const n = metric.measure(fs.readFileSync(file, 'utf8'), pkg);
+    const srcRel = path.relative(srcDir, file).split(path.sep).join('/');
+    if (metric.include && !metric.include(srcRel)) continue;
+    const n = metric.measure(fs.readFileSync(file, 'utf8'), pkg, srcRel);
     if (n === 0) continue;
     count += n;
     rows.push([n, rel]);

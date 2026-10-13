@@ -19,7 +19,7 @@ async function askerContext(userId) {
     let orgIds = new Set();
     let userGroups = [];
     try {
-        const { resolveUserGroups } = require('../../auth');
+        const { resolveUserGroups } = require('../../auth/audience');
         const g = await resolveUserGroups(userId);
         userGroups = Array.isArray(g) ? g : [];
     } catch (_) {

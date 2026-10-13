@@ -255,7 +255,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
     // builder turn on it would be billed and then refused at every write. Said
     // up front, before the stream opens: a clean 409 managed_part.
     if (automationId) {
-        const managedParts = require('../../../stores/lib/managedParts');
+        const managedParts = require('../../../stores/managedPartsDefault');
         const target = await automationStore.getAutomation(automationId);
         if (target && target.userId === userId && target.projectId) {
             const info = await managedParts.managedInfo(target.projectId);

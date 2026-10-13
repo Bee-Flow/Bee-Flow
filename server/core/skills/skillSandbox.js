@@ -43,7 +43,7 @@
 
 'use strict';
 
-const { effectOf } = require('../../automation/sideEffectMap');
+const { effectOf } = require('../automationModel/sideEffectMap');
 const log = require('../../telemetry/log');
 
 /** A test question is a question; a query for the search is shorter still. */

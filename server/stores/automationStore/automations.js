@@ -20,7 +20,7 @@ const { AUTOMATION_SELECT, LIVE_INVARIANT_SQL, stripLiveFollowingFields } = requ
  * not load at require time. `override` is a test's own instance.
  */
 function guardOf(override) {
-    return override || require('../lib/managedParts');
+    return override || require('../managedPartsDefault');
 }
 
 /** `updates` without the keys whose value is `undefined` (nothing to write). */

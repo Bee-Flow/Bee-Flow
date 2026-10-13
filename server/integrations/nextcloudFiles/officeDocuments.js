@@ -13,7 +13,7 @@
 
 const XLSX = require('@e965/xlsx');
 const JSZip = require('jszip');
-const officegen = require('../officegen');
+const officegen = require('../../core/documents/office/officegen');
 const { joinDavPath, uploadBinaryFile } = require('./webdav');
 const log = require('../../telemetry/log');
 

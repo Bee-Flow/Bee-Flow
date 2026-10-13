@@ -949,7 +949,7 @@ router.get('/_trash', (req, res) => trashHandlers.listTrash(req, res));
 async function managedOf(a) {
     if (!a || !a.projectId) return null;
     try {
-        if (!await require('../../stores/lib/managedParts').managedInfo(a.projectId)) return null;
+        if (!await require('../../stores/managedPartsDefault').managedInfo(a.projectId)) return null;
         return await require('../../stores/solutionStageStore')
             .managedPayloadFor({ projectId: a.projectId, kind: 'automation', entityId: a.id });
     } catch (e) {

@@ -80,7 +80,7 @@ async function requestApprovalStep(app, model, step, ctx) {
     // approver must see the supplier the stage is about), and each stage's
     // `when` is evaluated ONCE here, at request time, so the chain shown to
     // the first approver is the chain that will actually run.
-    const { desugarApprovalStages, firstStageKey, stageByKey, collectParticipants } = require('../../automation/approvalStages');
+    const { desugarApprovalStages, firstStageKey, stageByKey, collectParticipants } = require('../../core/automationModel/approvalStages');
     // App Studio has no `{{…}}` templating — every dynamic value is an explicit
     // binding object — so a stage's name and description are resolved through
     // resolveBinding first and reach the rulebook as the plain strings it

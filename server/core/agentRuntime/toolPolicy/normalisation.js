@@ -11,7 +11,7 @@
 
 'use strict';
 
-const { effectOf } = require('../../../automation/sideEffectMap');
+const { effectOf } = require('../../automationModel/sideEffectMap');
 const {
     _plainObject, toolsConfigOf, RESERVED_TOOL_KEYS, CONFIRM_MODES, ACT_AS_MODES,
     DATATABLE_SCOPES, UNSAFE_OBJECT_KEYS,

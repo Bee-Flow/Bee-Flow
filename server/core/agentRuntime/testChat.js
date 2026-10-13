@@ -79,7 +79,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const { effectOf } = require('../../automation/sideEffectMap');
+const { effectOf } = require('../automationModel/sideEffectMap');
 
 /** De bron waaronder een testbeurt in `ai_usage_log` terechtkomt. */
 const TEST_CHAT_USAGE_SOURCE = 'agent_test_chat';

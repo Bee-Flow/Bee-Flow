@@ -1,5 +1,5 @@
 /**
- * routes/projects/comments.js over a real Express app (core/http/routeHarness
+ * routes/projects/comments.js over a real Express app (testUtils/routeHarness
  * serve()), with every dependency handed in through makeProjectCommentsRouter:
  * the real store over PGlite, the real sealing with an injected project key,
  * and a fake role gate, assistant, participation notice and feed. No module
@@ -34,7 +34,7 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { makeProjectCommentStore, DDL } = require('../../stores/projectCommentStore');
 const { makeCommentCrypto } = require('../../projects/comments/commentCrypto');

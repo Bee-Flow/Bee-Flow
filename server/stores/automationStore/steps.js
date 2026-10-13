@@ -15,7 +15,7 @@ const { getAutomation } = require('./automations');
  * guard in automations.js; `override` is a test's own instance.
  */
 async function assertStepWrite({ projectId, changedKeys, managedWrite = null, client = null, managedParts = null }) {
-    const guard = managedParts || require('../lib/managedParts');
+    const guard = managedParts || require('../managedPartsDefault');
     await guard.assertManagedWrite({ kind: 'automation', projectId: projectId ?? null, changedKeys, managedWrite, client });
 }
 

@@ -17,7 +17,7 @@
 
 const supportInboxStore = require('../stores/supportInboxStore');
 const userStore = require('../stores/userStore');
-const { resolveUserOrgIds, isOrgAdminRole } = require('../auth');
+const { resolveUserOrgIds, isOrgAdminRole } = require('../auth/permissions');
 
 function getUserId(req) { return req.session?.user?.id || null; }
 

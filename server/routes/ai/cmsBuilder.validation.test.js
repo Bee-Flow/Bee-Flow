@@ -21,7 +21,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 
 const db = h.recordDb();
 const api = h.serve('/api/cms/builder', require('./cmsBuilder'), { session: { isAdmin: true } });

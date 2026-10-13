@@ -24,7 +24,7 @@ installResolveStub({
         getConfig: async (key) => styles.get(key) ?? null,
         setConfig: async (key, value) => { styles.set(key, value); },
     },
-    './browserProvider': {
+    '../../../services/browserProvider': {
         withContext: async () => { throw new Error('no browser in this test'); },
     },
 });

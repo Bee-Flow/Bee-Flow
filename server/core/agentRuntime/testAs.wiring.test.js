@@ -60,9 +60,9 @@ const MOCKS = {
         getKB: async (id) => KBS[id] || null,
         canUserAccessKB: realStore.canUserAccessKB,
     },
-    // askerContext resolves group membership through the auth barrel; the real
+    // askerContext resolves group membership through auth/audience; the real
     // one reads the database.
-    '../../auth': {
+    '../../auth/audience': {
         resolveUserGroups: async (id) => (id === USER.id && Array.isArray(USER.groups) ? USER.groups : []),
     },
 };
@@ -79,7 +79,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
     if (parent && /(kbVisibility|askerContext)\.js$/.test(parent.filename)) {
         if (request === '../../stores/knowledgeBases') return IDS['../../stores/knowledgeBases'];
         if (request === '../../stores/userStore') return IDS['../../stores/userStore'];
-        if (request === '../../auth') return IDS['../../auth'];
+        if (request === '../../auth/audience') return IDS['../../auth/audience'];
     }
     return originalResolve.call(this, request, parent, ...rest);
 };

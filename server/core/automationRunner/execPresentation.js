@@ -18,7 +18,7 @@
  * file; it never decides what a slide is.
  */
 
-const { interpolateTemplate, walkPath, resolveValue } = require('../../automation/bind');
+const { interpolateTemplate, walkPath, resolveValue } = require('../automationModel/bind');
 const { normalizeDeck, normalizeSlide } = require('../documents/deckModel');
 const { collectDeck } = require('../documents/deckCollect');
 // A string that is exactly one `{{path}}`: the rule fill_document applies, shared.

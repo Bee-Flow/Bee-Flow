@@ -2,7 +2,7 @@
 
 /**
  * The project compliance hint API — factory router with injected fakes behind
- * a real express app (core/http/routeHarness serve()).
+ * a real express app (testUtils/routeHarness serve()).
  *
  * Pinned: 401 without a session, 404 for a non-member, a viewer gets
  * `{hint:null}` and 403 on writes; one allow-listed hint for an owner, the
@@ -16,7 +16,7 @@
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
-const { serve, assertRefused } = require('../../core/http/routeHarness');
+const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const { makeComplianceHintsRouter } = require('./complianceHints');
 
 const NOW = Date.parse('2026-09-29T12:00:00Z');

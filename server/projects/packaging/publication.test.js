@@ -225,7 +225,7 @@ test('a manifest that declares the pipeline channel is recognised', () => {
 });
 
 test('a manifest a pipeline capture builds is recognised by its sections', () => {
-    const { buildManifest } = require('./manifest');
+    const { buildManifest } = require('../../core/packaging/manifest');
     const project = { id: 'p1', name: 'Desk' };
     assert.strictEqual(isPipelineManifest(buildManifest({ project, slots: [] })), true);
     assert.strictEqual(isPipelineManifest(buildManifest({ project, variables: [] })), true);

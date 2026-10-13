@@ -19,7 +19,7 @@ process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'validation-test-sess
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 
 /** @type {null | ((sql: string) => Error | null)} */
 let failWith = null;

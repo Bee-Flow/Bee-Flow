@@ -123,7 +123,7 @@ function buildDocxStylingFromHouseStyle(style) {
     };
 
     // Header / footer best-effort text injection. html-to-docx takes these as
-    // HTML fragments (positional arguments, see services/documentRenderer.js).
+    // HTML fragments (positional arguments, see render/documentRenderer.js).
     if (meta.header?.text) {
         opts.header = true;
         opts.headerType = 'default';

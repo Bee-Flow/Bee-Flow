@@ -87,11 +87,11 @@ let defaultInstance = null;
 function defaultAgentAccess() {
     if (!defaultInstance) {
         defaultInstance = makeAgentAccess({
-            hasPermission: (...a) => require('../auth').hasPermission(...a),
-            resolveUserOrgIds: (req) => require('../auth').resolveUserOrgIds(req),
+            hasPermission: (...a) => require('../auth/permissions').hasPermission(...a),
+            resolveUserOrgIds: (req) => require('../auth/permissions').resolveUserOrgIds(req),
             getUser: (id) => require('../stores/userStore').getUser(id),
             roles: () => {
-                const { SystemRoles, OrgRoles } = require('../auth');
+                const { SystemRoles, OrgRoles } = require('../auth/permissions');
                 return { SystemRoles, OrgRoles };
             },
         });

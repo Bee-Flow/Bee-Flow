@@ -29,7 +29,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
-const { storesOf, makeJournal } = require('./prepare');
+const { storesOf, makeJournal } = require('./journal');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -164,7 +164,7 @@ const UNDO = {
  * Undo a deployment's prepare, newest write first.
  *
  * @param {{ deployment: object, stage: object }} input  the row is `compensating`
- * @param {object} [deps]  stores (prepare.storesOf), `goLive`, `goLiveDeps`, `aiActState`, `documentStore`
+ * @param {object} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`, `aiActState`, `documentStore`
  * @returns {Promise<{ undone: number, failed: number, skipped: number }>}
  */
 async function compensate({ deployment, stage }, deps = {}) {

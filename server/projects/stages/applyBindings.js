@@ -35,8 +35,8 @@
 'use strict';
 
 const { HttpError } = require('../../core/http/errors');
-const { walkAppObjects } = require('../packaging/pointers');
-const { APP_SEAT_FIELDS, APP_SEAT_LISTS, AUTOMATION_SEAT_FIELDS, SEAT_SHAPE_EXTRA } = require('../packaging/scrub');
+const { walkAppObjects } = require('../../core/packaging/pointers');
+const { APP_SEAT_FIELDS, APP_SEAT_LISTS, AUTOMATION_SEAT_FIELDS, SEAT_SHAPE_EXTRA } = require('../../core/packaging/scrub');
 const { KIND_OF_SECTION } = require('./stagePayload');
 
 const walkAllSteps = (definition, fn) => require('../../automation/portability').walkAllSteps(definition, fn);

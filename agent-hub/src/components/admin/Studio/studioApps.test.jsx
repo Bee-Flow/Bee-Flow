@@ -5,7 +5,8 @@ import {
     createFormAutomation, firstOpenStudioSection, studioPermissionHeld, STUDIO_ICONS,
 } from './studioApps';
 import { STUDIO_GLYPH_ICONS } from '../../../utils/integrationLogos';
-import studioAppsSource from './studioApps.jsx?raw';
+import studioGatesSource from './studioGates.ts?raw';
+import studioRegistrySource from './studioRegistry.tsx?raw';
 import EN_DEFAULTS from '../../../i18n/en-defaults';
 import { KIND_KEYS } from '../../shared/kindColors';
 
@@ -632,9 +633,10 @@ describe('icons borrowed by the automation builder', () => {
 
 describe('import discipline', () => {
     it('top-level imports stay limited to react, lazyWithReload and lucide-react', () => {
-        const src = studioAppsSource;
+        const src = studioRegistrySource;
         const specifiers = [
-            ...src.matchAll(/^import\s[^;]*?from\s+['"]([^'"]+)['"]/gm),
+            // `import type` is erased at build time, so it pulls nothing in.
+            ...src.matchAll(/^import\s(?!type\s)[^;]*?from\s+['"]([^'"]+)['"]/gm),
             ...src.matchAll(/^import\s+['"]([^'"]+)['"]/gm),
         ].map((m) => m[1]);
         expect(specifiers.length).toBeGreaterThan(0);
@@ -652,6 +654,15 @@ describe('import discipline', () => {
         expect(/^(?:const|let|var)\s[^\n]*\bimport\(/m.test(src)).toBe(false);
         expect(/^await\s+import\(/m.test(src)).toBe(false);
         // …and there ARE call-time imports, so the check is not vacuous.
+        expect(/^\s+const \{[^}]*\} = await import\(/m.test(src)).toBe(true);
+    });
+
+    it('studioGates.ts has no runtime import at all, and import()s only at call time', () => {
+        // It sits in the main chunk next to the registry and is what a
+        // section's own files import, so it may not drag anything in.
+        const src = studioGatesSource;
+        expect([...src.matchAll(/^import\s(?!type\s)/gm)]).toEqual([]);
+        expect(/^(?:const|let|var|export)\s[^\n]*\bimport\(/m.test(src)).toBe(false);
         expect(/^\s+const \{[^}]*\} = await import\(/m.test(src)).toBe(true);
     });
 });

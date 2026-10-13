@@ -48,7 +48,7 @@ function deps() {
         webdav: require('../../../../../integrations/nextcloudFiles/webdav'),
         ncClient: require('../../../../../integrations/nextcloudClient'),
         guard: require('../../../../integrations/ncScopeGuard'),
-        officegen: require('../../../../../integrations/officegen'),
+        officegen: require('../../../../documents/office/officegen'),
     };
 }
 

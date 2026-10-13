@@ -2,7 +2,7 @@ import { Check, Lock, Pause, X } from 'lucide-react';
 import React from 'react';
 import { phaseFact } from './playbookView';
 import { phaseLabel } from './recipes';
-import { studioLockHint } from '../studioApps';
+import { studioLockHint } from '../studioGates';
 
 /**
  * The five phases as a vertical rail: a 28 px circle per phase, 2 px

@@ -24,7 +24,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { makeAgentBindingsRouter } = require('./agentBindings');
 const { makeAgentAccess } = require('../../agents/agentAccess');
-const { serve, assertRefused } = require('../../core/http/routeHarness');
+const { serve, assertRefused } = require('../../testUtils/routeHarness');
 
 const USERS = {
     owner: { id: 'owner', organizationId: 'org1', groups: [] },

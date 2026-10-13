@@ -158,12 +158,12 @@ function buildExport(template, { exportedAt = null, source = null } = {}) {
 
     // The two key classes no packaging format in this product carries, applied
     // by manifest.js's own function so there is one list and not two.
-    const { stripNeverInstallable } = require('../projects/packaging/manifest');
+    const { stripNeverInstallable } = require('../core/packaging/manifest');
     const stripped = stripNeverInstallable(out);
 
     // The shared scrub, on the definition only — the model and the seed carry
     // no cross-entity pointers (a relation is an in-file `$ref` by then).
-    const { scrubAppDefinition, RULES } = require('../projects/packaging/scrub');
+    const { scrubAppDefinition, RULES } = require('../core/packaging/scrub');
     if (isObject(stripped.definition)) {
         const report = scrubAppDefinition(stripped.definition);
         const automations = report.filter((r) => r.rule === RULES.APP_AUTOMATION_REFERENCE).length;
@@ -230,7 +230,7 @@ function sanitizeImport(envelope) {
         return { template: null, report: null, warnings: [], errors: ['The file carries no template.'] };
     }
 
-    const { stripNeverInstallable } = require('../projects/packaging/manifest');
+    const { stripNeverInstallable } = require('../core/packaging/manifest');
     const incoming = stripNeverInstallable(deepClone(raw));
 
     const { captureTemplate } = require('./templateCapture');

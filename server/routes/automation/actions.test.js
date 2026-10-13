@@ -23,7 +23,7 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { makeActionsRouter, copyTitle, sanitiseSuggestion } = require('./actions');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 const { accessByRole } = require('./testing/accessByRole');
 
 const DEF = {

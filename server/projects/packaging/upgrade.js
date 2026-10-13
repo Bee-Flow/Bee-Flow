@@ -29,7 +29,15 @@
 
 'use strict';
 
-const { sanitizeManifest } = require('./manifest');
+const { sanitizeManifest } = require('../../core/packaging/manifest');
+const { currentPayload } = require('./install/payload');
+const { resolveRefs, applyResolutionsTo } = require('./install/refs');
+// Creating an entity during an upgrade is the same act as during an install.
+// One-way: install.js no longer requires this module (see install/payload.js).
+const {
+    makeInstallCtx, installAutomations, installApps, installWebpages,
+    installDatatables, installAgents, installKnowledgeBases, patchReferences, stampAll, tablesForRebind,
+} = require('./install');
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 
@@ -54,30 +62,9 @@ function hashOf(payload) {
  */
 const REPLACEABLE_KINDS = new Set(['automation', 'app', 'webpage', 'agent']);
 
-/** What an entity looks like NOW, in the same shape install hashed on arrival. */
-async function currentPayload(kind, entityId) {
-    if (kind === 'automation') {
-        const row = await require('../../stores/automationStore').getAutomation(entityId);
-        return row ? row.definition : null;
-    }
-    if (kind === 'app') {
-        const row = await require('../../stores/studioAppStore').getStudioApp(entityId);
-        return row ? row.definition : null;
-    }
-    if (kind === 'webpage') {
-        const store = require('../../stores/webpageStore');
-        const row = await store.getWebpageRaw(entityId);
-        if (!row) return null;
-        return await store.readAllSlots(row.userId, entityId);
-    }
-    if (kind === 'agent') {
-        // `config` is what install hashed, and it is the whole of what a
-        // Blueprint can change about an agent.
-        const row = await require('../../stores/agentStore').getAgent(entityId);
-        return row ? (row.config || {}) : null;
-    }
-    return null;
-}
+// currentPayload lives in install/payload.js: install's stamp pass reads it
+// too, and a leaf both can require is what keeps install.js from requiring
+// this module back. Re-exported below unchanged.
 
 /** The entity lists a plan walks, paired with the kind each one carries. */
 const PLAN_LISTS = (entities) => [
@@ -311,7 +298,6 @@ function wiringFromBindings(rows) {
 // went live stays a draft; on/off, audience and sharing are never touched.
 
 async function replaceAutomation(entityId, entity, stamp, ctx, report, unresolved) {
-    const { resolveRefs, applyResolutionsTo } = require('./install');
     const store = require('../../stores/automationStore');
     const row = await store.getAutomation(entityId);
     if (!row) throw new Error('that automation is gone');
@@ -360,7 +346,6 @@ async function replaceAutomation(entityId, entity, stamp, ctx, report, unresolve
 }
 
 async function replaceApp(entityId, entity, ctx, unresolved) {
-    const { resolveRefs } = require('./install');
     const store = require('../../stores/studioAppStore');
     const { definition } = resolveRefs('app', { definition: clone(entity.definition) }, ctx.refMap, unresolved);
     await store.saveDefinition(entityId, ctx.ownerId, definition);
@@ -404,7 +389,6 @@ async function replaceWebpage(entityId, entity, ctx) {
 }
 
 async function replaceAgent(entityId, entity, ctx, report, unresolved) {
-    const { resolveRefs } = require('./install');
     // Through the store's own save path, and with the authority rule
     // re-applied on the way in: an UPDATE is as much a way to widen a
     // grant as a create is, so `actAs` is written to 'viewer' here too
@@ -537,11 +521,6 @@ async function applyUpgrade({
         added: { automations: [], apps: [], webpages: [], datatables: [], agents: [], knowledgeBases: [] },
         failed: [], warnings: [], resolved: [],
     };
-
-    const {
-        makeInstallCtx, installAutomations, installApps, installWebpages,
-        installDatatables, installAgents, installKnowledgeBases, patchReferences, stampAll, tablesForRebind,
-    } = require('./install');
 
     // Existing entities keep their real ids, so a reference to one of them
     // resolves to what is already installed rather than to a fresh copy.

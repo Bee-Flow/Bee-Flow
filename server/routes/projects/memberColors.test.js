@@ -1,5 +1,5 @@
 /**
- * routes/projects/memberColors.js over a real Express app (core/http/routeHarness) with the real
+ * routes/projects/memberColors.js over a real Express app (testUtils/routeHarness) with the real
  * store over PGlite and a fake role gate and feed.
  *
  * Run: cd server && node --test routes/projects/memberColors.test.js
@@ -9,7 +9,7 @@
 
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { fakeRequireProjectRole } = require('../../testUtils/projectRoleGate');
 const storeModule = require('../../stores/projectMemberColorStore');

@@ -39,7 +39,7 @@
 
 const { HttpError } = require('../../core/http/errors');
 const { stageLockSql } = require('../../stores/solutionStage/stages');
-const { storesOf, makeJournal, WRITE_ACTIONS } = require('./prepare');
+const { storesOf, makeJournal, WRITE_ACTIONS } = require('./journal');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -287,7 +287,7 @@ async function toConverging(client, s, deployment) {
 
 /**
  * @param {{ deployment: object, stage: object, prepared: object }} input  `prepared` is prepare's result
- * @param {object} [deps]  stores (prepare.storesOf), `applyKnowledge`, `referenceRowsModule`, `goLive`,
+ * @param {object} [deps]  stores (journal.storesOf), `applyKnowledge`, `referenceRowsModule`, `goLive`,
  *   `lifecycleFor(client)`, `beforeTables(client)` (a test's hook into the transaction)
  * @returns {Promise<object>} the deployment row, now `converging`
  */

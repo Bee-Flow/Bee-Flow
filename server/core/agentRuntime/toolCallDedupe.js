@@ -12,7 +12,7 @@
  * one batch is virtually always a duplication bug, never a real intent.
  */
 
-const { isSideEffect } = require('../../automation/sideEffectMap');
+const { isSideEffect } = require('../automationModel/sideEffectMap');
 
 function _defaultStableStringify(value) {
     if (value === null || typeof value !== 'object') return JSON.stringify(value);

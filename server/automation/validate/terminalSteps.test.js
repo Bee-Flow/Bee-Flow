@@ -160,7 +160,7 @@ test('the runner ends its walk on the shared set — the only thing that makes a
 
 test('the runner re-exports the list instead of keeping a second copy', () => {
     const src = read('core/automationRunner/shared.js');
-    assert.match(src, /const \{ TERMINAL_STEP_TYPES \} = require\('\.\.\/\.\.\/automation\/validate\/constants'\)/,
+    assert.match(src, /const \{ TERMINAL_STEP_TYPES \} = require\('\.\.\/automationModel\/constants'\)/,
         'core/automationRunner/shared.js must import the terminal list, not restate it');
     assert.ok(!/TERMINAL_STEP_TYPES = new Set/.test(src),
         'a second hand-kept copy in the runner is exactly the drift this file exists to prevent');

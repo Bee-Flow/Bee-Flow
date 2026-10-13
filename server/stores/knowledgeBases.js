@@ -12,7 +12,7 @@ const { runDdl, CODES } = require('./lib/_ddl');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const crypto = require('crypto');
 const log = require('../telemetry/log');
-const managedParts = require('./lib/managedParts');
+const managedParts = require('./managedPartsDefault');
 
 // `knowledge_bases.id` and `documents.id` are both `UUID PRIMARY KEY DEFAULT
 // gen_random_uuid()` — no insert anywhere supplies an explicit id — so a

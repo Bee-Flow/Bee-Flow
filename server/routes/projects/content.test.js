@@ -5,7 +5,7 @@
  * notebook made inside a project.
  *
  * The factory router is served with injected fakes behind a real express app
- * and the real terminal error handler (core/http/routeHarness.js `serve`): no
+ * and the real terminal error handler (testUtils/routeHarness.js `serve`): no
  * module mocking and no database. The role fake answers like
  * auth/projectAccess.requireProjectRole: 401 without a session, 404 for
  * somebody who is not a member, 403 for a role that is too low.
@@ -23,7 +23,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { HttpError } = require('../../core/http/errors');
-const { serve, assertRefused } = require('../../core/http/routeHarness');
+const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const membership = require('../../projects/membership');
 const { makeContentRouter } = require('./content');
 const { makeChangeFeed } = require('../../projects/changeFeed');

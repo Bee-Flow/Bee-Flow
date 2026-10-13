@@ -76,7 +76,7 @@ const { kindOfCategory, orderKinds } = require('./personalColumns');
 // building" and the agent confirm policy already hangs on it; a second list
 // here would be a second list to drift. The module is a leaf (no requires of
 // its own), which is why it can be pulled in from core at all.
-const { effectOf } = require('../../automation/sideEffectMap');
+const { effectOf } = require('../automationModel/sideEffectMap');
 // The product's own answer to "which step types call a model", stated once in
 // automation/automationGraph.js and read here rather than restated. See
 // MODEL_TYPES below for what restating it cost.

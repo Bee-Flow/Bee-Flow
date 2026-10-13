@@ -105,7 +105,7 @@ async function renderFilledDocument({ document: doc, values = {}, orgId = null, 
     }
 
     const { composeDocument } = require('../../services/documentCompose');
-    const { renderStyledHtmlToPdf } = require('../../services/documentRenderer');
+    const { renderStyledHtmlToPdf } = require('./render/documentRenderer');
 
     // A page has no stylesheet of its own; it prints with the page sheet
     // (core/documents/pageDocument.js) under the same house style.

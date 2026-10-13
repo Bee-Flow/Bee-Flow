@@ -298,7 +298,7 @@ require.cache[studioAppDataStorePath] = {
 };
 
 const { installBlueprint, collectGrantRequires, safeInstallGrants } = require('./install');
-const { buildManifest } = require('./manifest');
+const { buildManifest } = require('../../core/packaging/manifest');
 // The REAL normalizer and the REAL default. What install hands the store is
 // only half the proof — these two turn a patch into the row that would actually
 // be written, so the assertions below are about what a page ENDS UP with.
@@ -881,7 +881,7 @@ test('the requires are read off the RAW manifest, before the public keys are str
             webpages: [{ ref: 'web_1', name: 'Status', bridgeGrants: { ai: { publicEnabled: true } } }],
         },
     });
-    const { sanitizeManifest } = require('./manifest');
+    const { sanitizeManifest } = require('../../core/packaging/manifest');
     assert.strictEqual(collectGrantRequires(manifest).length, 1, 'the raw file asked for it');
     assert.strictEqual(collectGrantRequires(sanitizeManifest(manifest).manifest).length, 0,
         'and the checked copy no longer carries the evidence — so install must not read from it');

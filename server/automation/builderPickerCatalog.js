@@ -39,10 +39,10 @@ function defaultDeps() {
         resolvePrincipal: (userId) => require('../auth/datatableAccess').resolveDatatablePrincipalForUser(userId),
         kbStore: () => require('../stores/knowledgeBases'),
         askerContext: (userId) => require('../core/kb/askerContext').askerContext(userId),
-        hasPermission: (userId, perm) => require('../auth').hasPermission(userId, perm),
+        hasPermission: (userId, perm) => require('../auth/permissions').hasPermission(userId, perm),
         isOrgAdmin: async (userId) => {
             const user = await require('../stores/userStore').getUser(userId);
-            return !!(user && require('../auth').isOrgAdminRole(user.orgRole));
+            return !!(user && require('../auth/permissions').isOrgAdminRole(user.orgRole));
         },
         hasFeature: (userId, feature, session) => require('../core/entitlements/betaFeatures').userHasBetaFeature(userId, feature, session),
         listInboxes: (orgId) => require('../stores/supportInboxStore').listInboxes(orgId),

@@ -1,5 +1,5 @@
 /**
- * routes/projects/tasks.js over a real Express app (core/http/routeHarness),
+ * routes/projects/tasks.js over a real Express app (testUtils/routeHarness),
  * with the real task and chat stores over PGlite, real sealing with an
  * injected project key, and a fake role gate and feed.
  *
@@ -18,7 +18,7 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { fakeRequireProjectRole, projectUser } = require('../../testUtils/projectRoleGate');
 const taskStoreModule = require('../../stores/projectTaskStore');

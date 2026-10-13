@@ -23,7 +23,7 @@ installResolveStub({
         createDocument: async (input) => { created.push(input); return { id: `doc-${created.length}`, name: input.name, versionId: 'v1' }; },
     },
     '../../stores/configStore': { getConfig: async () => null, setConfig: async () => {} },
-    './browserProvider': { withContext: async () => { throw new Error('no browser in this test'); } },
+    '../../../services/browserProvider': { withContext: async () => { throw new Error('no browser in this test'); } },
 });
 
 const dd = require('./deckDocument');

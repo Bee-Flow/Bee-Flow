@@ -6,7 +6,7 @@ import Modal from '../../../shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import ChoiceCard from '../Datatables/ChoiceCard';
 import { parkSeed } from '../studioAi/handoff';
-import { createFormAutomation } from '../studioApps';
+import { createFormAutomation } from '../studioGates';
 
 /**
  * "New form" — a name and ONE choice: what happens with the answers.

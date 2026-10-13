@@ -40,12 +40,12 @@
 
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
-const { resolveValue, interpolateTemplate } = require('../../automation/bind');
+const { resolveValue, interpolateTemplate } = require('../automationModel/bind');
 const { hasPlaceholder, isBareRefString } = require('../../automation/validate/refPaths');
 const { parseJsonish, stripFence } = require('../../automation/jsonRepair');
 const {
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE, DATA_EXTRACTION_MAX_SOURCE_CHARS,
-} = require('../../automation/validate/constants');
+} = require('../automationModel/constants');
 // Safety/monitoring backbone — the source text reaches a model, so it is
 // guarded on the way out and the reply on the way back, exactly like an
 // ai_step's prompt (egressCoverage.test.js is the table of these routes).

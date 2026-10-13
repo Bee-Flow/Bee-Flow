@@ -2,7 +2,7 @@
  * routes/privacyChatSignals.js: the caller's own "Don't count my chat turns".
  *
  * Pinned, through a real express app, the real route and the real objection
- * store (its queries answered by a recorded database, core/http/routeHarness):
+ * store (its queries answered by a recorded database, testUtils/routeHarness):
  *
  *   - no session, no answer (401) and no query;
  *   - GET and PUT round-trip, for the caller only: the user id is the
@@ -22,7 +22,7 @@ process.env.NODE_ENV = 'test';
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 
 /** The chat_signal_objections table, as the recorded database keeps it. */
 const objecting = new Set();

@@ -261,7 +261,7 @@ const BRANCHER_TYPES = new Set(['condition', 'guard', 'switch']);
  * TERMINAL_STEP_TYPES in automation/validate/constants.js for the full list of
  * places that have to agree.
  */
-const { TERMINAL_STEP_TYPES } = require('../../automation/validate/constants');
+const { TERMINAL_STEP_TYPES } = require('../automationModel/constants');
 
 // Synthetic root ids for the sub-DAGs a loop body / parallel branch is run as.
 // Named constants because the id has to agree in TWO places per caller (the

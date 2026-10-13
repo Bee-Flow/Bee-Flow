@@ -6,7 +6,7 @@
 
 const crypto = require('crypto');
 const automationStore = require('../../stores/automationStore');
-const { interpolateTemplate } = require('../../automation/bind');
+const { interpolateTemplate } = require('../automationModel/bind');
 const automationGraph = require('../../automation/automationGraph');
 const { deckThemeFor } = require('../documents/documentHouseStyle');
 const log = require('../../telemetry/log');
@@ -189,7 +189,7 @@ function safeDocumentName(raw, fallback = 'document') {
  * moment the visitor's session changed.
  */
 async function execGenerateDocument(step, ctx, runState, mode) {
-    const { renderDocument, FORMATS, CONTENT_TYPES } = require('../../services/documentRenderer');
+    const { renderDocument, FORMATS, CONTENT_TYPES } = require('../documents/render/documentRenderer');
 
     const content = interpolateTemplate(step.content || '', runState);
     const title = interpolateTemplate(step.title || '', runState).trim();

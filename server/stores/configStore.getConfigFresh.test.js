@@ -4,7 +4,7 @@
  * caller that edited the result in place (getProject's lazy migration, an edit
  * whose save then failed) changed what every later getConfig on this replica
  * served for up to the 60s TTL. No Postgres: the config rows are answered
- * through the database pool seam of core/http/routeHarness (no module-system
+ * through the database pool seam of testUtils/routeHarness (no module-system
  * mocking).
  *
  * Run: node --test server/stores/configStore.getConfigFresh.test.js
@@ -16,7 +16,7 @@ const assert = require('node:assert/strict');
 process.env.NODE_ENV = 'test';
 process.env.CONFIG_INVALIDATION_LISTENER = '0'; // no LISTEN socket in tests
 
-const { recordDb } = require('../core/http/routeHarness');
+const { recordDb } = require('../testUtils/routeHarness');
 
 const rows = {};
 const db = recordDb((sql, params = []) => {

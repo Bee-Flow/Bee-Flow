@@ -9,7 +9,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 h.recordDb(); // keep any store that starts its schema on load off a real database
 const orgPolicy = require('../auth/mcpAccess/orgPolicy');
 

@@ -4,7 +4,7 @@
  * pool's `query` and `connect`. The store runs its own schema init and its own
  * SQL, `withTransaction` and `runDdl` included, with no module mocking
  * (`count-ratchet.mjs module-mock`): the pool object is the seam, exactly the
- * one core/http/routeHarness.js `recordDb()` uses to RECORD queries; this one
+ * one testUtils/routeHarness.js `recordDb()` uses to RECORD queries; this one
  * ANSWERS them.
  *
  *   const { pg, close } = usePglitePool();

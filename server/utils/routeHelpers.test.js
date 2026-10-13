@@ -25,7 +25,7 @@ const SERVER = path.join(__dirname, '..');
 const fx = { orgIds: new Set(['orgA']), orgThrows: false, strictCalls: [] };
 
 const MOCKS = {
-    '../auth': {
+    '../auth/permissions': {
         resolveUserOrgIds: async (req, opts) => {
             fx.strictCalls.push(opts || null);
             if (fx.orgThrows) throw new Error('user store unreachable');

@@ -9,7 +9,7 @@
 
 const crypto = require('node:crypto');
 const { parseJSONObject } = require('../lib/json');
-const managedParts = require('../lib/managedParts');
+const managedParts = require('../managedPartsDefault');
 // ── The managed-part guard (Solution stages, design 5.3) ────────────────
 //
 // A table whose `project_id` is a UAT or PRD stage project is MANAGED: its

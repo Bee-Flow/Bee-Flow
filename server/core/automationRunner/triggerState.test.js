@@ -14,7 +14,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { buildTriggerState, TRIGGER_META_KEYS } = require('./triggerState');
-const { walkPath, interpolateTemplate } = require('../../automation/bind');
+const { walkPath, interpolateTemplate } = require('../automationModel/bind');
 const { evaluate } = require('../../automation/expr');
 
 const GMAIL = { id: 'trg', type: 'trigger', kind: 'app_event', label: 'New mail', appEvent: { provider: 'gmail', event: 'mail.new', filter: {} } };

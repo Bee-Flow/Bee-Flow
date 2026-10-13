@@ -182,7 +182,7 @@ Every automation has two run modes:
 - **Dry-run** — invoked from the builder's `Dry-run` button. Steps that have side-effects (tools that send / create / update / delete) are not actually invoked; instead the runner synthesises a sample output from each tool's declared output schema ([`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/beeflow)) so the variable tree stays connected. Read-only tools and pure utility nodes execute for real.
 - **Live** — the trigger fires the automation and every step runs end-to-end. The first live run from a draft is gated behind a one-time confirmation dialog so authors don't accidentally email customers while testing.
 
-The side-effect map ([`server/automation/sideEffectMap.js`](https://github.com/Bee-Flow/beeflow)) is **fail-closed**: any tool that isn't on the read-only allow-list is treated as a write. New write integrations get conservative handling automatically.
+The side-effect map ([`server/core/automationModel/sideEffectMap.js`](https://github.com/Bee-Flow/beeflow)) is **fail-closed**: any tool that isn't on the read-only allow-list is treated as a write. New write integrations get conservative handling automatically.
 
 ## Validation flow
 

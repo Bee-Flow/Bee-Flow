@@ -4,8 +4,8 @@
  * A deck comes in as either a MARKDOWN outline (what an ai_step or a chat
  * model writes most naturally) or a JSON deck (what a tool call or an automation
  * binding produces), and leaves as one normalised structure that both the
- * .pptx builder (integrations/officegen.js) and the PDF deck renderer
- * (services/documentRenderer.js deckToSlidesHtml) consume. The renderers never
+ * .pptx builder (core/documents/office/officegen.js) and the PDF deck renderer
+ * (core/documents/render/documentRenderer.js deckToSlidesHtml) consume. The renderers never
  * parse text; this module never renders. That split is what keeps the chat
  * tool, the Nextcloud tool, the automation step and the App Studio step producing
  * the same deck from the same input.

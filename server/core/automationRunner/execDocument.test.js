@@ -49,7 +49,7 @@ const automationStore = {
 };
 
 const restore = installResolveStub({
-    '../../services/documentRenderer': renderer,
+    '../documents/render/documentRenderer': renderer,
     '../../stores/storageStore': storage,
     '../../stores/automationStore': automationStore,
 });

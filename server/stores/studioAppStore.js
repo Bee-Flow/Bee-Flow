@@ -43,7 +43,7 @@ const initDB = makeStoreInit('StudioAppStore', _initDB);
  * because it reaches projectStore.
  */
 function guardOf(io) {
-    return io.managedParts || require('./lib/managedParts');
+    return io.managedParts || require('./managedPartsDefault');
 }
 
 /** Run `fn` on one client of `io.db` inside BEGIN/COMMIT (ROLLBACK on a throw). */

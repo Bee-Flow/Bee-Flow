@@ -702,13 +702,13 @@ test('both public verify routes carry a token gate the route-surface sweep can r
     // as middleware, not one call deeper inside the handler where the sweep
     // cannot see it. Same reason the admin routes below spell out
     // requireAuth/requirePermission instead of spreading a const.
-    const { parseFile } = require('../auth/routeSurfaceSweep');
+    const { parseFile } = require('../testUtils/routeSurfaceSweep');
     const src = require('node:fs').readFileSync(require('node:path').join(__dirname, 'dsr.js'), 'utf8');
     const { registrations } = parseFile(src);
     for (const p of ['/requests/verify', '/requests/:id/verify']) {
         const reg = registrations.find((r) => r.method === 'POST' && (r.paths || []).includes(p));
         assert.ok(reg, `POST ${p} is no longer statically readable — the sweep cannot account for it`);
-        assert.ok(reg.gate, `POST ${p} reads as an ungated public route to auth/routeSurfaceSweep.js: put the signed-token gate back on the registration as middleware`);
+        assert.ok(reg.gate, `POST ${p} reads as an ungated public route to testUtils/routeSurfaceSweep.js: put the signed-token gate back on the registration as middleware`);
     }
     // ...and it stays ONE implementation: two copies of the checks is how the
     // id-less route drifts into weaker ones.

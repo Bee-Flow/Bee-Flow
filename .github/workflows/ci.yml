@@ -180,6 +180,7 @@ jobs:
               - 'server/auth/login/{currentUserRoutes.js,myPermissionsRoutes.js}'
               - 'server/automation/{deliverableEvents.js,formPickSources.js}'
               - 'server/automation/validate/constants.js'
+              - 'server/core/automationModel/constants.js'
               - 'server/compliance/aiAct/{annexIii.js,signals.js}'
               - 'server/compliance/dsr/mask.js'
               - 'server/config/orgRoles.json'
@@ -276,6 +277,7 @@ jobs:
               - 'server/auth/{audience,datatableAccess,gateMeta,orgMembership,orgScope,permissions,projectAccess}.js'
               - 'server/automation/{approvalStages,expr}.js'
               - 'server/automation/validate/{constants,helpers}.js'
+              - 'server/core/automationModel/**'
               - 'server/core/cms/themeSpec.js'
               - 'server/core/documents/{deckThemeOptions,documentContract,documentDiscovery,documentTemplate}.js'
               - 'server/core/llm/{leakedToolCalls,partialJsonScan,screenConstraints,toolCallHygiene}.js'
@@ -352,6 +354,7 @@ jobs:
               - 'server/automation/triggerBus*'
               - 'server/automation/deliverableEvents.js'
               - 'server/automation/sideEffectMap.js'
+              - 'server/core/automationModel/sideEffectMap*'
               - 'server/automation/builderTools/trigger*'
               - 'server/auth/connectorJwt*'
               - 'server/utils/ncIntegrationCatalog.js'
@@ -1206,9 +1209,9 @@ jobs:
           directory: server
       # An explicit file list, not a glob: this job's contract is that it
       # stays infra-free and fast. No --test-force-exit: the module-level
-      # timers that once kept automation/sideEffectMap.test.js alive are
-      # unref'd now, and the flag drops whatever has not been reported yet —
-      # a hang here should fail the job, not shorten the tally.
+      # timers that once kept core/automationModel/sideEffectMap.test.js
+      # alive are unref'd now, and the flag drops whatever has not been
+      # reported yet — a hang here should fail the job, not shorten the tally.
       - name: Unit tests
         run: |
           node --test \
@@ -1217,7 +1220,7 @@ jobs:
             integrations/nextcloudTablesTools.test.js \
             integrations/nextcloudFormsTools.test.js \
             integrations/nextcloudTeamsTools.test.js \
-            automation/sideEffectMap.test.js \
+            core/automationModel/sideEffectMap.test.js \
             automation/templates.test.js \
             automation/builderTools/promptCatalogSync.test.js \
             automation/triggerSources/registry.test.js \

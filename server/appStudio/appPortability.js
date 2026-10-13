@@ -321,7 +321,7 @@ function sanitizeAppImport(envelope) {
     const { files, refs, bytes } = readFiles(rawContent.files, dropped);
 
     // ── 3. The gate, on the design half ───────────────────────────────
-    const { stripNeverInstallable } = require('../projects/packaging/manifest');
+    const { stripNeverInstallable } = require('../core/packaging/manifest');
     const incoming = stripNeverInstallable(deepClone(
         Object.fromEntries(TEMPLATE_FIELDS
             .filter((f) => rawTemplate[f] !== undefined)

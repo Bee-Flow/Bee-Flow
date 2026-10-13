@@ -9,7 +9,7 @@
 
 'use strict';
 
-const { effectOf } = require('../../../automation/sideEffectMap');
+const { effectOf } = require('../../automationModel/sideEffectMap');
 const { _plainObject } = require('./configShape');
 
 /**

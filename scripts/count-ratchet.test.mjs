@@ -293,3 +293,43 @@ test('status-5xx counts literal 5xx statuses in source, and leaves 4xx, computed
     assert.strictEqual(run(dir, 'status-5xx').code, 0);
     assert.strictEqual(budgetOf(dir, 'status-5xx'), 2);
 });
+
+test('import-zones counts files importing against the layer direction, once each, and leaves the allowed direction alone', () => {
+    const dir = sandbox({
+        pkg: 'agent-hub',
+        files: {
+            // Upward: each counts once, however many wrong imports it has.
+            'api/queries/a.ts': "import { X } from '../../components/x/X';\nimport { P } from '../../pages/P';\n",
+            'hooks/useB.ts': "import { Ctx } from '@/components/licensing/Ctx';\n",
+            'hooks/deep/c.ts': "export { fmt } from '../../pages/settings/format';\n",
+            'components/admin/d.tsx': "const Page = lazy(() => import('../../pages/DocumentsPage'));\n",
+            'components/e.js': "const p = require('../pages/p');\n",
+            // Allowed: downward, sideways, packages, and names that only look like a zone.
+            'components/ok.tsx': "import { q } from '../api/queries/q';\nimport { useX } from '@/hooks/useX';\nimport { C } from './other/C';\nimport { Q } from '@tanstack/react-query';\n",
+            'hooks/ok.ts': "import { api } from '../api/client';\nimport { pagesOf } from '../utils/pages';\nimport x from 'components';\n",
+            'pages/P.jsx': "import { X } from '../components/x/X';\n",
+            'utils/u.js': "import { P } from '../pages/P';\n",
+            'api/comment.ts': "// see components/x/X for the shape; not an import\n",
+            // Tests may render a page: not a dependency of the product.
+            'hooks/useB.test.ts': "import P from '../pages/P';\n",
+            'components/f.test.tsx': "import P from '@/pages/P';\n",
+        },
+    });
+    const r = run(dir, 'import-zones', ['--list'], 'agent-hub');
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.strictEqual(budgetOf(dir, 'import-zones', 'agent-hub'), 5);
+    assert.doesNotMatch(r.stdout, /ok\.tsx?|pages\/P|utils\/u|comment|\.test\./);
+});
+
+test('import-zones fails a new upward import over the budget', () => {
+    const dir = sandbox({
+        pkg: 'agent-hub',
+        metric: 'import-zones',
+        budget: 0,
+        files: { 'hooks/useNew.ts': "import { Panel } from '../components/Panel';\n" },
+    });
+    const r = run(dir, 'import-zones', [], 'agent-hub');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /1 files importing against the layer direction .* budget is 0/);
+    assert.match(r.stderr, /move the shared piece down/);
+});

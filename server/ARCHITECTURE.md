@@ -65,11 +65,13 @@ for the cost.
 | `core/providers/` | One adapter per LLM vendor (`claude`, `openai`, `google`, `azure`, `mistral`, `scaleway`, `local`) behind the factory in `providers/index.js`. **Add a provider here, never ad hoc elsewhere.** |
 | `core/agentRuntime/` | The streaming chat turn: context building, history hydration, tool dispatch, SSE lifecycle, attachment processing. |
 | `core/automationRunner/` | Execution engine for automations — steps, loops, approvals, pause/resume. |
-| `core/documents/` | Turning an uploaded file into text: extraction, PDF/OCR, chunking, image inlining. |
+| `core/automationModel/` | The automation definition model, pure (no stores, db or network): `bind.js` (the binding resolver), `codeOutput.js` (the Code step's envelope), `sideEffectMap.js` (which tools read, write or send), `approvalStages.js` (the stage chain's rulebook) and `constants.js` (the validator's vocabulary and ceilings). The runner, agentRuntime, App Studio and the builder all read it, so it lives below them; `automation/{bind,codeOutput,sideEffectMap,approvalStages}.js` and `automation/validate/constants.js` are re-export shims. |
+| `core/documents/` | Turning an uploaded file into text: extraction, PDF/OCR, chunking, image inlining. And back: `render/` turns text into a PDF or Word file (`documentRenderer.js`), `office/` builds real office files (`officegen.js`: xlsx, ods, docx, odt, pptx). |
 | `core/dataEngine/sources/` | A datatable whose ROWS come from somewhere else. `index.js` is the REGISTRY — the only module routes, jobs and runners require (`isSourceMirror`, `writeThrough`, `kickStale`, `syncRows`, `sourceLabel`, `builderKindOf`), with one LAZY adapter per `managed_kind`; no consumer compares a kind string (`sources/index.test.js` greps for it). `mirror/` is the shared engine every kind runs on: the eleven-step refresh pass (`syncPipeline.makeSync(adapter)`, with the adapter's `open()` able to answer "unchanged" so a probe never moves `data_version`), the probe-then-source-then-rewrite write-through and its batch forms (`writeThrough.makeWriteThrough(adapter)`), staleness/kicks, schema reconciliation, relation indexes, row derivation, linking choreography, the one `SourceError`. |
 | `core/dataEngine/sources/nextcloudTable/` | The Nextcloud Tables ADAPTER (`managed_kind = 'nextcloud_table'`): `adapter.js` answers the engine's questions in Nextcloud's terms (the linker's API, columns → fields, a row's cells, the `nc` relation label), plus what only this source has — the REST client, the cell codec, push-event patching, the linking dialog's linkable/describe. `sync.js` / `writeThrough.js` are `makeSync` / `makeWriteThrough` over it, keeping every export their callers and tests knew. |
 | `core/dataEngine/sources/spreadsheetFile/` | The spreadsheet-file ADAPTER (`managed_kind = 'spreadsheet_file'`): one worksheet of an xlsx/csv/ods/Google Sheet in Google Drive, OneDrive or Nextcloud Files, same engine, same routes (`/:id/source/*`, `routes/datatablesSpreadsheets.js`). Row identity from a key column or the row number; a cheap version-marker probe before any download; write-through edits the file in place. `providers/` (Drive+Sheets, Graph incl. the Excel workbook API, WebDAV) behind one FileApi, `formats/` (SheetJS read, exceljs in-place edit, a byte-faithful csv rewriter), `infer.js`/`columns.js`/`identity.js` for the header row, and `events.js` for the connector's `file.*` push and the OneDrive drive-wide hint. |
 | `core/dataEngine/` | The user-defined-table engine: field/filter/aggregate vocabulary, per-dialect DDL, stable-id migration planning, and `queryCompiler.js` — **the only place SQL is generated** from a validated table descriptor plus a closed-vocabulary request. Shared by App Studio apps and automation datatables; it lives in core precisely because two features need it and neither may require the other. `appStudio/queryCompiler.js` and `appStudio/dataModel/*` are re-export shims over it. |
+| `core/packaging/` | The Blueprint format's leaves: `manifest.js` (the format), `scrub.js` (what never leaves an installation), `pointers.js` (every place a part points at another), `walkers.js` (`walkObjects`, `walkAllSteps`). App Studio capture, automation export and `projects/packaging/` all use them, so they live below all three; `projects/packaging/{manifest,scrub,pointers}.js` are re-export shims, and `appStudio/templateCapture.js` / `automation/portability.js` re-export the walkers. |
 | `core/dlp/` | Data-loss prevention: scanning, decision queue, ledger. |
 | `core/kb/`, `core/rerank/`, `core/embed/` | Retrieval: ingestion, embedding, reranking. |
 | `core/memory/`, `core/conversation/` | Long-term memory and conversation shaping. |
@@ -94,7 +96,8 @@ files belong together. They were grouped into the folders above, a domain at a t
   `core/cms/` · `core/cad/` · `core/webpages/` · `core/cowork/` · `core/seo/`
   `core/swarms/` · `core/meetingNotes/` · `core/voice/` · `core/markdown/`
   `core/customIntegrations/` · `core/dataEngine/` · `core/datasets/`
-  `core/findings/` · `core/scheduling/` · `core/skills/`
+  `core/findings/` · `core/scheduling/` · `core/skills/` · `core/packaging/`
+  `core/automationModel/`
 
 New code goes in the folder for its domain. Do not add to the flat level.
 
@@ -140,7 +143,7 @@ Infrastructure that knows nothing about AI or about any product feature.
 | Folder | What lives there |
 |---|---|
 | `db.js`, `migrations/` | Postgres access; `migrations/` holds the loose data migrations and NL catalogues that `boot/bootMigrations.js` runs and records in `schema_migrations`. Store DDL lives in the store itself. |
-| `boot/` | Start-up: the migration ladder and its ledger, feature gates, security headers, request timing, background start-up tasks. |
+| `boot/` | Start-up: the migration ladder and its ledger, feature gates, security headers, request timing, background start-up tasks. Listed here for what it holds, but `layering.test.js` classifies it as an **entry** (composition root) beside `index.js`: it wires features together at start-up. |
 | `stores/` | Persistence per aggregate. A store owns its table(s) and its encryption. `stores/lib/sqlBuilder.js` is the only sanctioned way to build a dynamic `UPDATE`. |
 | `auth/` | Sessions, permissions, org membership, OAuth/SSO, MFA, signed tokens. `auth/lib/` holds the shared signing-secret ladder and HMAC envelope used by the token modules. |
 | `utils/` | Small dependency-free helpers. If it needs a store, it is not a util. |
@@ -172,9 +175,10 @@ different subject that happens to share the word.
 
 One product surface each, independent of one another.
 
-`automation/` · `cmsBuilder/` · `compliance/` · `learning/` · `support/` ·
-`integrations/` · `mcpServers/` · `appStudio/` · `services/` · `jobs/` ·
-`workers/` · `playbooks/` (phased AI builds — the recipe DOCUMENT
+`automation/` · `cms/` · `cmsBuilder/` · `compliance/` · `learning/` ·
+`support/` · `integrations/` · `mcpServers/` · `appStudio/` · `projects/` ·
+`agents/` · `services/` · `jobs/` · `workers/` · `legal/` · `eval/` ·
+`pipeline/` · `playbooks/` (phased AI builds — the recipe DOCUMENT
 (`recipeDoc.js`: what an AI or a person writes, `composeRecipe.js`: the
 Fast-tier call that writes one), the built-in recipes, the lifecycle and the
 three server-run phases (table, fill, and `design` — the app as a designer sees
@@ -211,37 +215,68 @@ license server.
 
 ## The rule is enforced, not just written down
 
-`layering.test.js` walks every `require` in the package and asserts the arrows
-point downward. Two of its checks assert zero (core never requires a feature;
-no feature requires another). Three pin a **baseline** instead, because the debt
-is real and fixing it is its own piece of work — they fail when the number
-grows, never when it shrinks:
+`layering.test.js` puts every top-level entry of `server/` in one layer —
+`tooling` (`scripts/`, `testUtils/`, the CLIs) above `entry` (`index.js`,
+`auth/router.js`, `boot/`, `boot-init.js`, `migrations/`) above `api`
+(`routes/`, the routers in `auth/`) above `feature` above `core` above
+`platform` (`stores/`, `auth/`, `utils/`, `db.js`, `telemetry/`, `license/`,
+`modules/`, `core/entitlements/`, …), plus `data` (no code) — and fails on a new
+folder that is not in its `LAYERS` table. It then counts every require that
+points UP a layer, or sideways from one feature to another, per pair of units
+(`stores -> core`, `core -> automation`, …), lazy requires inside function
+bodies included, and compares each pair with `server/.layering-ratchet.json`:
+a pair may shrink, never grow, and a pair that is not listed has budget 0. It
+runs with the server suite and in `npm run check:fast` (`npm run
+lint:layering-ratchet`); `node server/layering.test.js --list` shows each pair's
+count against its budget, and `node server/layering.test.js --update` lowers
+the budget after you remove edges (it never raises one). The baseline was
+measured when every folder got its layer (66 pairs, 599 requires; the biggest
+are `core -> integrations` and `core -> automation`), so the debt is visible per
+pair instead of hidden in one total.
+
+Cycles are budgeted separately: `npm run lint:scc-ratchet` (`scripts/scc-ratchet.mjs`)
+measures the largest strongly connected component of the import graph, lazy
+requires included, against `server/.scc-ratchet.json`, and fails when a new
+require makes it bigger; `node scripts/scc-ratchet.mjs server --list` prints its
+files.
+
+Two checks stay hard rather than budgeted:
 
 - **0 upward edges into `routes/`**, and the baseline is pinned there. The six
   were the support feature reaching into `routes/support` for helpers that were
   never HTTP, and the MCP token CLI loading `routes/mcpServer` for its signer;
   both sets of functions now live below the route that used to hold them.
-  `index.js` is exempt — mounting routers is its job.
+  The `entry` and `tooling` layers sit above `api` and are exempt — mounting
+  routers is a composition root's job.
 - **9 edges in a `license/` ↔ `modules/` cycle.** Legal within one layer, still
   a smell.
-- **56 platform → core/feature edges**, capped at that count. Down from 200:
-  the HTML sanitizer, the field envelope, `appPaths`, `buildInfo`, the request
-  client context, the HTTP metrics, the at-rest encryption policy, the
-  unattended-OAuth resolver and the geo resolver were platform modules filed
-  under `core/`, and moving each one down removed every edge into it.
 
-  The last step from 85 to 56 moved no code at all — it corrected two labels,
-  the same way `license/` and `modules/` were corrected before. `core/
-  entitlements/` answers the tier-and-capability question those two answer and
-  is classified with them; and the 35 Express routers inside `auth/` are API
-  surface, so `layering.test.js` now classifies a path rather than just its top
-  directory (see `layerOf()` there). `auth/index.js` joins the root `index.js`
-  as a composition root, because wiring routers together is its whole job.
+How the platform → core/feature edges came down, before they were budgeted per
+pair (they were one total, 56, against a narrower list of features). Down from
+200: the HTML sanitizer, the field envelope, `appPaths`, `buildInfo`, the request
+client context, the HTTP metrics, the at-rest encryption policy, the
+unattended-OAuth resolver and the geo resolver were platform modules filed
+under `core/`, and moving each one down removed every edge into it.
 
-  That second label had a concrete cost. `core/http/validate` lives under
-  `core/`, so a single zod schema in an auth router read as a platform → core
-  violation — and with the guard sitting exactly at its baseline, that put all
-  29 unvalidated auth routes out of reach until the label was fixed.
+The last step from 85 to 56 moved no code at all — it corrected two labels,
+the same way `license/` and `modules/` were corrected before. `core/
+entitlements/` answers the tier-and-capability question those two answer and
+is classified with them; and the 35 Express routers inside `auth/` are API
+surface, so `layering.test.js` now classifies a path rather than just its top
+directory (see `unitOf()` there). `auth/router.js` joins the root `index.js`
+as a composition root, because wiring routers together is its whole job.
+(`auth/index.js` used to compose them; it is now only the facade that
+re-exports the gates from `auth/permissions.js` and `auth/audience.js`, loads
+no route file, and keeps `router` as a lazy getter, the one `auth ->
+auth/router.js` edge in the budget. Only `server/index.js` requires
+`auth/router.js`: `auth/router.test.js`.) The routers inside `auth/` include
+`auth/securityKeys/index.js`, which builds and exports the two security-key
+routers.
+
+That second label had a concrete cost. `core/http/validate` lives under
+`core/`, so a single zod schema in an auth router read as a platform → core
+violation — and with the guard sitting exactly at its baseline, that put all
+29 unvalidated auth routes out of reach until the label was fixed.
 
 ## Conventions
 

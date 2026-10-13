@@ -15,7 +15,7 @@ const JSZip = require('jszip');
 
 const { extractPptxText, isPptxBuffer, _test } = require('./pptxExtractor');
 const { normalizeDeck } = require('./deckModel');
-const officegen = require('../../integrations/officegen');
+const officegen = require('./office/officegen');
 
 async function build(slides, title = 'Round trip') {
     const deck = normalizeDeck({ title, slides });

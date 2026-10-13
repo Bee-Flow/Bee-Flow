@@ -33,7 +33,7 @@ const {
     isSandboxTool,
     isReadOnlyTool,
 } = require('./skillSandbox');
-const { effectOf } = require('../../automation/sideEffectMap');
+const { effectOf } = require('../automationModel/sideEffectMap');
 
 const names = (defs) => defs.map(d => d.function.name);
 
@@ -111,7 +111,7 @@ describe('the second gate: sideEffectMap', () => {
     test('a name that stops being read-only stops being offered', () => {
         // The gate is checked at BUILD time, so a reclassification in
         // sideEffectMap.js drops the tool without anyone editing this file.
-        const map = require('../../automation/sideEffectMap');
+        const map = require('../automationModel/sideEffectMap');
         const realEffectOf = map.effectOf;
         // Re-require the module under a stubbed classification.
         delete require.cache[require.resolve('./skillSandbox')];

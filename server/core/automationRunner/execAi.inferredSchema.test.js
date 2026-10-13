@@ -35,7 +35,7 @@ const restore = installResolveStub({
             },
         }),
     },
-    '../../automation/bind': {
+    '../automationModel/bind': {
         resolveInputs: (inputs) => JSON.parse(JSON.stringify(inputs || {})),
         interpolateTemplate: (s) => s,
     },

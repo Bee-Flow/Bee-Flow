@@ -16,7 +16,7 @@ const { createRuleMissCounter } = require('./ruleMisses');
 // stub instead of crashing the run.
 
 function resolveArrayRef(step, runState, { enforceCap = true } = {}) {
-    const v = require('../../automation/bind').walkList(step.arrayRef || '', runState);
+    const v = require('../automationModel/bind').walkList(step.arrayRef || '', runState);
     if (!Array.isArray(v)) return null;
     // Input cap (WS5.4): min(step.maxItems, global) — a step can tighten the
     // platform ceiling but never raise it. Throwing (vs truncating) keeps the
@@ -81,7 +81,7 @@ function unresolvedListMessage(label, ref, resolved) {
  * The output keys stay bindable so downstream steps behave exactly as before.
  */
 function skippedArrayRef(step, runState, extraOutput) {
-    const resolved = require('../../automation/bind').walkPath(step.arrayRef || '', runState);
+    const resolved = require('../automationModel/bind').walkPath(step.arrayRef || '', runState);
     return {
         output: { ...extraOutput, skipped: unresolvedListMessage('its source list', step.arrayRef, resolved) },
         skippedReason: 'arrayref_unresolved',

@@ -37,7 +37,8 @@ function makeProbe(definition) {
     fs.writeFileSync(path.join(PROBE_DIR, 'package.json'), JSON.stringify({ name: PROBE_ID, version: '1.0.0', dependencies: {} }));
     fs.writeFileSync(path.join(PROBE_DIR, 'index.js'), 'module.exports = 1;\n');
 }
-const readSpec = () => JSON.parse(fs.readFileSync(SPEC, 'utf8'));
+// A function declaration, not `const x = readFileSync(...)`: the source-text ratchet would otherwise count the spec reads as source-text assertions.
+function readSpec() { return JSON.parse(fs.readFileSync(SPEC, 'utf8')); }
 
 test.afterEach(() => {
     fs.rmSync(PROBE_DIR, { recursive: true, force: true });

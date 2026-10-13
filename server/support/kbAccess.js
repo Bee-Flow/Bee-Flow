@@ -18,7 +18,8 @@
 
 const kbStore = require('../stores/knowledgeBases');
 const userStore = require('../stores/userStore');
-const { resolveUserOrgIds, isOrgAdminRole, resolveUserGroups: resolveUserGroupsById } = require('../auth');
+const { resolveUserOrgIds, isOrgAdminRole } = require('../auth/permissions');
+const { resolveUserGroups: resolveUserGroupsById } = require('../auth/audience');
 const log = require('../telemetry/log');
 
 const getUserId = (req) => req.session?.user?.id || null;

@@ -38,7 +38,7 @@ const os = require('os');
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 const { RELEASE_KINDS, needsApproval } = require('./model');
-const { storesOf } = require('./prepare');
+const { storesOf } = require('./journal');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -80,7 +80,7 @@ function errorOf(err) {
 
 /**
  * @param {object} [deps]
- *   stores (prepare.storesOf: solutionStageStore, blueprintStore, ...), `plan(input, planDeps)`,
+ *   stores (journal.storesOf: solutionStageStore, blueprintStore, ...), `plan(input, planDeps)`,
  *   `planDeps`, `approvalGate` ({ request }), `approvalDeps`, `getApproval(id)`, `solutionOwnerOf(solutionId)`,
  *   `prepare`, `commit`, `commitSettings`, `converge`, `compensate`, `removeStage` ({ prepareRemove,
  *   commitRemove, finishRemove }), `workerId`, `leaseMs`, `heartbeatMs`, `now()`, `setInterval`,

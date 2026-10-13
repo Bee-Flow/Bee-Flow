@@ -401,7 +401,7 @@ function idFromUnverifiedToken(token) {
  *
  * The credential here is the signed link from the acknowledgement mail rather
  * than a session, but it is a gate in every sense that matters: it decides who
- * may flip `identity_status`. auth/routeSurfaceSweep.js accounts for a route by
+ * may flip `identity_status`. testUtils/routeSurfaceSweep.js accounts for a route by
  * READING this file, so a gate that lives one call deeper than the registration
  * reads there as an ungated public POST — the same reason the admin routes
  * below spell out `requireAuth, requirePermission(...)` instead of spreading a
@@ -474,7 +474,7 @@ router.post('/requests/:id/verify', publicReadLimiter, requireVerifyToken, stamp
 // ───────────────── Admin ─────────────────
 
 // Written out on every admin route below rather than spread from a const:
-// auth/routeSurfaceSweep.js accounts for a route by READING the file, and a
+// testUtils/routeSurfaceSweep.js accounts for a route by READING the file, and a
 // `...admin` spread hides the gate from that scan — an ungated-looking DSR
 // route is exactly what that sweep exists to catch. (The /api/dsr mount is
 // deliberately ungated: the intake must reach a data subject without an

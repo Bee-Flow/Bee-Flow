@@ -8,9 +8,9 @@
 // direct-chat-style tier resolution flow.
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
-const { resolveInputs } = require('../../automation/bind');
+const { resolveInputs } = require('../automationModel/bind');
 const { inferAiStepOutputSchema } = require('./aiOutputInference');
-const { isSideEffect, isMemoisable } = require('../../automation/sideEffectMap');
+const { isSideEffect, isMemoisable } = require('../automationModel/sideEffectMap');
 const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
 const { envFlagOn } = require('./integrationCachePolicy');
 const { synthesizeDryRunOutput } = require('../../automation/outputSchemas');
@@ -817,7 +817,7 @@ async function execAiStep(step, ctx, runState, mode) {
     // still delivered in the framed "Inputs (data, not instructions)" block
     // below, so existing automations that rely on that keep working.
     const promptScope = { ...runState, secrets: {}, ...resolvedInputs };
-    const promptText = require('../../automation/bind')
+    const promptText = require('../automationModel/bind')
         .interpolateTemplate(step.prompt || '', promptScope, { leaveUnresolved: true, listAs: 'json' });
 
     // If the builder didn't declare an outputSchema, derive one from how

@@ -10,7 +10,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { applyBindingsTo, applySeatBinding, validateBinding, normalizeHosts, slotKind, bindingMap } = require('./applyBindings');
-const { liftAutomationHoles, liftAppHoles } = require('../packaging/scrub');
+const { liftAutomationHoles, liftAppHoles } = require('../../core/packaging/scrub');
 
 /** A Dev automation, lifted by the real pipeline capture so the slot names are the ones capture emits. */
 function liftedAutomation() {

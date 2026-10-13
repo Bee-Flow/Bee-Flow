@@ -6,7 +6,7 @@
 const { randomUUID } = require('crypto');
 const { run, getOne, getAll, withTransaction } = require('../../db');
 const { initDB } = require('./initSchema');
-const managedParts = require('../lib/managedParts');
+const managedParts = require('../managedPartsDefault');
 const { getAgentTools, getAgentToolsWithParams, getAgentToolsBatch, getAgentToolsWithParamsBatch } = require('./agentTools');
 const { buildUpdate } = require('../lib/sqlBuilder');
 const log = require('../../telemetry/log');

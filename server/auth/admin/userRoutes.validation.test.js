@@ -86,7 +86,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./userRoutes');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-const { dispatcher } = require('../../core/http/routeHarness');
+const { dispatcher } = require('../../testUtils/routeHarness');
 
 const dispatch = dispatcher(router, { session: () => ({ user: { id: 'root' }, isAdmin: true, save(cb) { cb(); } }) });
 

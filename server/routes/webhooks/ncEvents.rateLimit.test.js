@@ -9,7 +9,7 @@
  * even JSON gets that 429 too: the limiter runs before the parser.
  *
  * The org lookup is the one auth/connectorSig.js makes, replaced through its
- * _setDepsForTests seam; the database is core/http/routeHarness.js's recorder,
+ * _setDepsForTests seam; the database is testUtils/routeHarness.js's recorder,
  * so the stores the router pulls in at load time never reach Postgres.
  *
  * Run: cd server && node --test routes/webhooks/ncEvents.rateLimit.test.js
@@ -23,7 +23,7 @@ process.env.AUTOMATION_EVENTS_RPM_PER_IP = '2';
 const test = require('node:test');
 const assert = require('node:assert');
 const express = require('express');
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const connectorSig = require('../../auth/connectorSig');
 
 const lookups = [];

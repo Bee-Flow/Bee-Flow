@@ -18,15 +18,19 @@
  * (`stageOfProjectFresh`), so a `detachStage` on another replica takes effect
  * at the next write instead of up to 10 s later.
  *
- * Platform: requires only stores/ (lazily, through the default deps) and
- * telemetry. Never core/: a store may not require core/http/errors.js, so the
- * error carries its own `{status, code, errorClass, expose, details}`, which the
- * terminal handler passes through.
+ * This module is the guard's logic only (`makeManagedParts`, ALLOWED,
+ * changedKeysOf): a leaf that requires nothing but telemetry and
+ * ./storeError. The instance the app uses, over projectStore and
+ * solutionStageStore, is stores/managedPartsDefault.js. Never core/: a store
+ * may not require core/http/errors.js, so the error is stores/lib/storeError.js
+ * (re-exported here for older importers).
  */
 
 'use strict';
 
 const log = require('../../telemetry/log');
+// Re-exported below: older importers take storeError from here.
+const { storeError } = require('./storeError');
 
 /**
  * Per kind: the fields editable on a managed part without a deploy (design 5.2).
@@ -70,23 +74,6 @@ const ALLOWED = Object.freeze({
     // (projectStore.updateProject), and it is not editable without a deploy.
     project: Object.freeze([]),
 });
-
-/**
- * An error a store throws for the client to see: status, code and details
- * pass through the terminal handler because `expose` is true. `errorClass`
- * repeats the code for routes that answer `code: err.errorClass`.
- *
- * @param {number} status
- * @param {string} code
- * @param {string} message
- * @param {Record<string, any>} [details]
- */
-function storeError(status, code, message, details) {
-    return Object.assign(new Error(message), {
-        status, code, errorClass: code, expose: true,
-        ...(details ? { details } : {}),
-    });
-}
 
 /** The refusal of a write to a managed part (409 managed_part). */
 function managedPartError(info) {
@@ -249,14 +236,10 @@ function makeManagedParts(deps) {
     return { ALLOWED, managedInfo, managedInfoForKb, hasCapability, assertManagedWrite, changedKeysOf, managedPartError };
 }
 
-// The instance the app uses: the stores' default instances, required lazily
-// (projectStore requires this module at load).
-const defaultParts = makeManagedParts({
-    stageOfProject: (id) => require('../projectStore').stageOfProject(id),
-    stageOfProjectFresh: (id) => require('../projectStore').stageOfProjectFresh(id),
-    isActiveDeployment: (d, p, c) => require('../solutionStageStore').isActiveDeployment(d, p, c),
-    kbStageInfo: (kbId) => require('../solutionStageStore').kbStageInfo(kbId),
-});
+// The instance the app uses (the stores' default instances behind the guard)
+// is stores/managedPartsDefault.js: this module stays a leaf, so a store that
+// needs only the factory or storeError does not reach projectStore and
+// solutionStageStore through it.
 
 module.exports = {
     ALLOWED,
@@ -264,8 +247,4 @@ module.exports = {
     storeError,
     managedPartError,
     changedKeysOf,
-    managedInfo: defaultParts.managedInfo,
-    managedInfoForKb: defaultParts.managedInfoForKb,
-    hasCapability: defaultParts.hasCapability,
-    assertManagedWrite: defaultParts.assertManagedWrite,
 };

@@ -147,7 +147,7 @@ async function setBuilderSessionWith(client, automationId, userId, snapshot, {
     );
     if (cur.rows.length === 0) return { ok: false, notFound: true };
     if (userId && cur.rows[0].user_id !== userId) return { ok: false, forbidden: true };
-    await (managedParts || require('../lib/managedParts')).assertManagedWrite({
+    await (managedParts || require('../managedPartsDefault')).assertManagedWrite({
         kind: 'automation', projectId: cur.rows[0].project_id ?? null, changedKeys: ['builderSession'],
         managedWrite, client,
     });

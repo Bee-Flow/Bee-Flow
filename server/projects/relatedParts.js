@@ -58,7 +58,7 @@
 
 'use strict';
 
-const { visitPointers } = require('./packaging/pointers');
+const { visitPointers } = require('../core/packaging/pointers');
 const { collectDatatableUsage } = require('../automation/datatableUsage');
 const membership = require('./membership');
 

@@ -32,7 +32,7 @@
  */
 async function execGuard(step, ctx, runState, mode) {
     const safety = require('./safety');
-    const bind = require('../../automation/bind');
+    const bind = require('../automationModel/bind');
 
     const sourceRef = typeof step.sourceRef === 'string' ? step.sourceRef.trim() : '';
     // An unbound guard must FAIL, never pass. Saving one is allowed (the
@@ -179,7 +179,7 @@ async function execGuard(step, ctx, runState, mode) {
  */
 async function execTokenize(step, ctx, runState, mode) {
     const safety = require('./safety');
-    const bind = require('../../automation/bind');
+    const bind = require('../automationModel/bind');
 
     const sourceRef = typeof step.sourceRef === 'string' ? step.sourceRef.trim() : '';
     // Same rule as the guard: an unbound step must fail rather than hand the
@@ -262,7 +262,7 @@ async function execTokenize(step, ctx, runState, mode) {
  */
 async function execUntokenize(step, ctx, runState) {
     const safety = require('./safety');
-    const bind = require('../../automation/bind');
+    const bind = require('../automationModel/bind');
 
     const sourceRef = typeof step.sourceRef === 'string' ? step.sourceRef.trim() : '';
     if (!sourceRef) {

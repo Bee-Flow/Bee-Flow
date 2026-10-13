@@ -1,13 +1,16 @@
 // @typecheck
 /**
  * Auth Module — Entry Point
- * 
- * Composes all auth sub-routers and re-exports middleware
- * for backward compatibility with existing imports.
+ *
+ * Re-exports the auth middleware and helpers (auth/permissions.js,
+ * auth/audience.js) for the modules that import them as `require('../auth')`.
+ *
+ * The /auth router itself lives in auth/router.js and is mounted by
+ * server/index.js only. Requiring this file loads NO route file: `router`
+ * below is a lazy getter kept for backward compatibility, and touching it is
+ * what loads the routers (auth/router.test.js guards both). New code needing
+ * a gate imports auth/permissions.js or auth/audience.js directly.
  */
-
-const express = require('express');
-const router = express.Router();
 
 const {
     requireAuth,
@@ -40,17 +43,7 @@ const {
     resolveAudienceContext,
 } = require('./audience');
 
-// Mount sub-routers
-router.use('/', require('./loginRoutes'));
-router.use('/', require('./oauthRoutes'));
-router.use('/', require('./adminRoutes'));
-router.use('/', require('./connectorAdminRoutes'));
-router.use('/', require('./connectorBootstrap'));
-router.use('/', require('./ncBindingRoutes'));
-router.use('/opaque', require('./opaqueRoutes'));
-
 module.exports = {
-    router,
     requireAuth,
     requireAdmin,
     requireSuperAdmin,
@@ -78,3 +71,13 @@ module.exports = {
     requireActiveOrg,
     requireActiveOrgForMutations,
 };
+
+// Lazy, so requiring this facade never loads the auth route files. Defined
+// after the object literal so every other key stays a plain, writable data
+// property (the route harness openGates, testUtils/routeHarness.js, and tests
+// patch them).
+Object.defineProperty(module.exports, 'router', {
+    enumerable: true,
+    configurable: true,
+    get: () => require('./router'),
+});

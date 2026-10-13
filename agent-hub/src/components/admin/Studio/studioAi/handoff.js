@@ -1,4 +1,5 @@
-import { createAutomationDraft, createFormAutomation, studioLockHint } from '../studioApps';
+import { createAutomationDraft } from '../../../../api/queries/automation/createDraft';
+import { createFormAutomation, studioLockHint } from '../studioGates';
 import { studioAppForKind } from '../studioNav';
 
 /**

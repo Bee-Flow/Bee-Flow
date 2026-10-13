@@ -38,7 +38,7 @@ const restore = installResolveStub({
     },
     // The deck viewer is rendered by the real deck engine (no org → the
     // neutral theme); the browser is absent, which the html format never needs.
-    './browserProvider': { withContext: async () => { throw new Error('no browser in this test'); } },
+    '../../../services/browserProvider': { withContext: async () => { throw new Error('no browser in this test'); } },
     '../../stores/configStore': { getConfig: async () => null, setConfig: async () => {} },
     '../compliance/marking': {resolveMarking:async()=>null},
 });

@@ -23,7 +23,7 @@
 
 'use strict';
 
-const { interpolateTemplate, interpolateJsonBody, resolveValue } = require('../../automation/bind');
+const { interpolateTemplate, interpolateJsonBody, resolveValue } = require('../automationModel/bind');
 
 const ARRAY_FORMATS = Object.freeze(['indices', 'brackets', 'repeat', 'comma']);
 const QUERY_MODES = Object.freeze(['fields', 'json']);

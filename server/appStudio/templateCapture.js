@@ -96,21 +96,10 @@ function isObject(v) { return v !== null && typeof v === 'object' && !Array.isAr
 
 function deepClone(v) { return v === undefined ? undefined : JSON.parse(JSON.stringify(v)); }
 
-/**
- * Walk every object in a definition, depth-first, calling `fn` on each. Used
- * for the scrub + reference sweeps: the same id can appear on an action, on a
- * sequence step, or on a component prop, and a walker means adding a rule does
- * not mean finding all three places again.
- */
-function walkObjects(node, fn) {
-    if (Array.isArray(node)) {
-        for (const item of node) walkObjects(item, fn);
-        return;
-    }
-    if (!isObject(node)) return;
-    fn(node);
-    for (const value of Object.values(node)) walkObjects(value, fn);
-}
+// Walk every object in a definition, depth-first (the scrub + reference
+// sweeps). It lives in core/packaging/walkers.js, a leaf the packaging scrub can
+// require without a cycle back into this module; re-exported below unchanged.
+const { walkObjects } = require('../core/packaging/walkers');
 
 /**
  * Null out every automation reference, and report how many were cut so the
@@ -475,7 +464,7 @@ function captureTemplate({
     // removes the approver seats and knowledge-base references that NEITHER
     // export path used to remove — one organisation's user, group and KB ids
     // were travelling to another's install.
-    const { scrubAppDefinition, RULES } = require('../projects/packaging/scrub');
+    const { scrubAppDefinition, RULES } = require('../core/packaging/scrub');
     const scrubbed = scrubAppDefinition(def);
     const automationIds = scrubbed
         .filter(r => r.rule === RULES.APP_AUTOMATION_REFERENCE)

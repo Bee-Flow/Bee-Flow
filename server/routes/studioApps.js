@@ -156,7 +156,7 @@ const nextcloudMenuSync = require('../appStudio/nextcloudMenuSync');
 // Publish / unpublish / groups, shared with a Solution stage's on/off.
 const appAudience = require('../appStudio/appAudience');
 // `managed` on GET /:id: which Solution stage, if any, owns this app.
-const managedParts = require('../stores/lib/managedParts');
+const managedParts = require('../stores/managedPartsDefault');
 const solutionStageStore = require('../stores/solutionStageStore');
 const { publicAppUrlForToken } = require('../automation/publicUrl');
 

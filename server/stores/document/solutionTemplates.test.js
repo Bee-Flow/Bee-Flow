@@ -257,7 +257,7 @@ test('writeManagedTemplate creates and updates a stage template with the capabil
 
 test('PATCH /api/studio-documents/:id answers 409 with code managed_part, and GET says managed', async () => {
     const { doc, v3 } = await managedTemplate();
-    const h = require('../../core/http/routeHarness');
+    const h = require('../../testUtils/routeHarness');
     h.openGates({ hasPermission: async () => false });
     const api = h.serve('/api/studio-documents', require('../../routes/studioDocuments'));
     try {

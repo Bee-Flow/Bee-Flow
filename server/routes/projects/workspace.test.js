@@ -21,7 +21,7 @@ const assert = require('node:assert');
 const http = require('node:http');
 const express = require('express');
 const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
-const { assertRefused } = require('../../core/http/routeHarness');
+const { assertRefused } = require('../../testUtils/routeHarness');
 const { makeWorkspaceRouter } = require('./workspace');
 
 const OWNER = { id: 'u_owner', organizationId: 'org1' };

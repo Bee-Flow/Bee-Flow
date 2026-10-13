@@ -5,7 +5,7 @@
  * read-only on a SHARED thread, everybody else 404
  * (routes/agents/sharedThreadRead.js, mounted by routes/agents/conversations.js).
  *
- * Served with injected fakes through core/http/routeHarness `serve()` — no
+ * Served with injected fakes through testUtils/routeHarness `serve()` — no
  * module mocking. The access fake follows the real rule in
  * stores/agent/conversationAccess.js: the owner; a member of the project a
  * thread is SHARED into; nobody for a private thread.
@@ -27,7 +27,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const express = require('express');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 const { makeReadAgentConversation } = require('./sharedThreadRead');
 
 const OWNER = { id: 'u_owner', organizationId: 'org1' };

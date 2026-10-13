@@ -16,7 +16,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-require('../../http/routeHarness').recordDb();
+require('../../../testUtils/routeHarness').recordDb();
 
 const { scanCustomTerms } = require('../../dlp/customTerms');
 const { detectPii } = require('../piiDetection');

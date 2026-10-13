@@ -70,9 +70,9 @@ function servedAuthPaths() {
     const AUTH = __dirname;
     const out = new Set();
 
-    // router.use('<prefix>', require('./x')) in auth/index.js — the prefix a
+    // router.use('<prefix>', require('./x')) in auth/router.js — the prefix a
     // sub-router's own paths hang under.
-    const index = fs.readFileSync(path.join(AUTH, 'index.js'), 'utf8');
+    const index = fs.readFileSync(path.join(AUTH, 'router.js'), 'utf8');
     const prefixOf = new Map();
     for (const m of index.matchAll(/router\.use\(\s*'([^']*)'\s*,\s*require\('\.\/([\w./-]+)'\)/g)) {
         prefixOf.set(m[2].replace(/\.js$/, ''), m[1] === '/' ? '' : m[1]);

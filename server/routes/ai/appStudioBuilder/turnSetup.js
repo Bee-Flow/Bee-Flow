@@ -142,7 +142,7 @@ async function loadDraftWrap(req, { userId, requestedAppId, clientSession }) {
         // An app a Solution stage manages is changed in Dev and deployed: refuse
         // before any billed turn runs (pre-SSE, so a clean 409 managed_part).
         if (app.projectId) {
-            const managedParts = require('../../../stores/lib/managedParts');
+            const managedParts = require('../../../stores/managedPartsDefault');
             const info = await managedParts.managedInfo(app.projectId);
             if (info) throw managedParts.managedPartError(info);
         }

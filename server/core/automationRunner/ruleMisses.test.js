@@ -9,7 +9,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { parseExpr } = require('../../automation/expr');
-const { withBindingLog, describeBindingMiss } = require('../../automation/bind');
+const { withBindingLog, describeBindingMiss } = require('../automationModel/bind');
 const { rulePaths, createRuleMissCounter } = require('./ruleMisses');
 
 const MAILS = [

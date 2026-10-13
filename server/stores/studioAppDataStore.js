@@ -417,7 +417,7 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
 
         // The app's stage, if any: only a deploy changes a stage's model.
         const app = await client.query(`SELECT project_id FROM studio_apps WHERE id = $1`, [appId]);
-        const lock = await (io.managedParts || require('./lib/managedParts')).assertManagedWrite({
+        const lock = await (io.managedParts || require('./managedPartsDefault')).assertManagedWrite({
             kind: 'app', projectId: app.rows[0] ? app.rows[0].project_id ?? null : null,
             changedKeys: ['dataModel'], managedWrite, client,
         });

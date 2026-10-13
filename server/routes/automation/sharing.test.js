@@ -23,7 +23,7 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { makeSharingRouter } = require('./sharing');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 
 const USERS = {
     owner: { id: 'owner', displayName: 'Olga', organizationId: 'org1', groups: [] },

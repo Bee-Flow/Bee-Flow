@@ -33,7 +33,7 @@
 'use strict';
 
 const { formatPath, walkTokens } = require('../../automation/expr');
-const { noteRuleMiss } = require('../../automation/bind');
+const { noteRuleMiss } = require('../automationModel/bind');
 
 const RULE_ROOTS = new Set(['item', 'loop', 'steps', 'trigger']);
 

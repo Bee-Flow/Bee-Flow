@@ -38,7 +38,7 @@ const { buildUpdate } = require('./lib/sqlBuilder');
 const log = require('../telemetry/log');
 const { parseJSONObject: parseJSON } = require('./lib/json');
 const { makeProjectChangeFns, mapActivityRow } = require('./projectChanges');
-const { storeError } = require('./lib/managedParts');
+const { storeError } = require('./lib/storeError');
 
 /** The two kinds a project can be. NULL (legacy) is the absence of one. */
 const PROJECT_KINDS = Object.freeze(['workspace', 'solution']);
@@ -490,12 +490,13 @@ const STAGE_LABEL = Object.freeze({ uat: 'UAT', prd: 'Production' });
  * }} db  db.js, or a facade of the same shape (pglite in the store test)
  * @param {{ ready?: () => Promise<unknown>, managedParts?: { assertManagedWrite: Function } }} [opts]
  *        `ready`: the schema init every function awaits first; `managedParts`:
- *        the stage write guard (stores/lib/managedParts.js), default its own instance
+ *        the stage write guard (stores/lib/managedParts.js), default the app's
+ *        instance (stores/managedPartsDefault.js)
  */
 function makeProjectStore(db, { ready = async () => {}, managedParts = null } = {}) {
     const initDB = ready;
     // Required lazily: the default guard reads this module's default store.
-    const guard = () => managedParts || require('./lib/managedParts');
+    const guard = () => managedParts || require('./managedPartsDefault');
     const run = (sql, params) => db.run(sql, params);
     const getOne = (sql, params) => db.getOne(sql, params);
     const getAll = (sql, params) => db.getAll(sql, params);
