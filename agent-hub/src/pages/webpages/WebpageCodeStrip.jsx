@@ -1,8 +1,7 @@
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { BF_FAMILIES, buildBfDecorations, familyClass, familyOf, publishedFate, survivesPublishing } from './bfDecorations';
 import { buildCodeFiles, formatBytes, markFileKey } from './webpageCodeFiles';
-import { api } from './webpagesApi';
 import useTranslation from '../../hooks/useTranslation';
 
 /**
@@ -24,7 +23,7 @@ import useTranslation from '../../hooks/useTranslation';
  *
  * ── ÉÉN LEZING, TWEE GEBRUIKERS ─────────────────────────────────────
  *
- * `useBfMarks` haalt de markeringen op bij `GET /api/webpages/:id/bindings` —
+ * `useBfMarks` (useBfMarks.ts) haalt de markeringen op bij `GET /api/webpages/:id/bindings` —
  * dezelfde parser als de rest van W4 (`core/webpages/webpageBindings.js`), die
  * het vocabulaire uit `core/webpages/bfElements.js` haalt. De IDE geeft die
  * uitslag aan twee kanten door: aan deze strip (de legenda) en aan Monaco (de
@@ -41,65 +40,6 @@ import useTranslation from '../../hooks/useTranslation';
 
 /** Hoeveel bestanden de strip hoogstens uitschrijft voordat hij gaat tellen. */
 const MAX_CHIPS = 24;
-
-/**
- * De markeringen van één pagina.
- *
- * Vier standen, en ze moeten verschillend blijven: aan het laden, mislukt
- * (`error`), gelezen-maar-onleesbaar (`scanned:false` van de server) en gelezen.
- * De eerste drie leveren allemaal GEEN markeringen op, en alleen de laatste
- * betekent "deze pagina heeft er geen".
- *
- * @param {string} webpageId
- * @param {object} [opts]
- * @param {boolean} [opts.enabled]   niet ophalen als de Code-tab dicht is
- * @param {*} [opts.reloadKey]       verandert → opnieuw ophalen (de IDE geeft
- *                                   hier het tijdstip van de laatste opslag)
- */
-export function useBfMarks(webpageId, { enabled = true, reloadKey = null } = {}) {
-    // Begint op `loading`, niet op "niets": tussen de eerste render en het
-    // effect eronder zou de legenda anders één frame lang de waarschuwing
-    // tonen dat de markering niet kon worden berekend, terwijl er nog niet eens
-    // is gekeken. Dat is precies de bewering die dit scherm niet mag doen.
-    const [state, setState] = useState({ loading: true, error: null, data: null });
-
-    const load = useCallback(async () => {
-        if (!webpageId) return;
-        setState(s => ({ ...s, loading: true, error: null }));
-        try {
-            const body = await api(`/${encodeURIComponent(webpageId)}/bindings`);
-            setState({ loading: false, error: null, data: body && body.elements ? body.elements : null });
-        } catch (e) {
-            setState({ loading: false, error: e?.message || 'failed', data: null });
-        }
-    }, [webpageId]);
-
-    useEffect(() => {
-        // Niet ophalen is iets anders dan aan het ophalen zijn: dan uit de
-        // laadstand, zodat de legenda niet blijft hangen op "aan het uitzoeken".
-        if (!enabled || !webpageId) {
-            setState(s => (s.loading ? { ...s, loading: false } : s));
-            return;
-        }
-        load();
-    }, [enabled, webpageId, reloadKey, load]);
-
-    const data = state.data;
-    return {
-        loading: state.loading,
-        error: state.error,
-        // `scanned:false` is iets anders dan een mislukte aanroep, maar voor de
-        // lezer komt het op hetzelfde neer: er is niets berekend. Beide standen
-        // blijven apart leesbaar (`error`), en `available` vat samen of er
-        // markeringen zijn om te tonen.
-        available: !!(data && data.scanned),
-        marks: data && Array.isArray(data.marks) ? data.marks : [],
-        counts: (data && data.counts) || { total: 0, known: 0, unknown: 0 },
-        unknownTags: (data && data.unknownTags) || [],
-        truncated: (data && data.truncated) || 0,
-        reload: load,
-    };
-}
 
 /** De naam van een familie, zoals de auteur ze in Studio kent. */
 export function familyLabel(t, family) {

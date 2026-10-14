@@ -3,6 +3,7 @@ import {
     FilePlus, FolderPlus, Upload, Pencil, Trash2, Copy, Check,
 } from 'lucide-react';
 import React, { useState, useMemo, useRef } from 'react';
+import { buildTree } from './fileExplorerTree';
 import { PRIMARY_SLOTS, PRIMARY_SLOT_NAMES } from './webpageCodeFiles';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
@@ -72,58 +73,6 @@ function validatePath(path, t) {
     }
     if (RESERVED.has(path)) return t('webpages.explorer.err_primary_slot', '"{path}" is a primary slot', { path });
     return null;
-}
-
-/**
- * Build a nested folder tree from a flat list of {path, ...meta} entries plus
- * any client-only pending (empty) folder paths. Folders sort first, then files.
- */
-function buildTree(entries, pendingFolders) {
-    const root = { type: 'folder', name: '', path: '', children: [] };
-    const folderIndex = new Map();
-    folderIndex.set('', root);
-
-    const ensureFolder = (acc, name, parent) => {
-        let folder = folderIndex.get(acc);
-        if (!folder) {
-            folder = { type: 'folder', name, path: acc, children: [] };
-            parent.children.push(folder);
-            folderIndex.set(acc, folder);
-        }
-        return folder;
-    };
-
-    for (const entry of entries) {
-        const segs = entry.path.split('/').filter(Boolean);
-        let parent = root;
-        let acc = '';
-        for (let i = 0; i < segs.length - 1; i++) {
-            acc = acc ? `${acc}/${segs[i]}` : segs[i];
-            parent = ensureFolder(acc, segs[i], parent);
-        }
-        parent.children.push({ type: 'file', name: segs[segs.length - 1], path: entry.path, meta: entry });
-    }
-
-    // Materialise pending (empty) folders so the user can target them.
-    for (const fp of pendingFolders) {
-        const segs = fp.split('/').filter(Boolean);
-        let parent = root;
-        let acc = '';
-        for (let i = 0; i < segs.length; i++) {
-            acc = acc ? `${acc}/${segs[i]}` : segs[i];
-            parent = ensureFolder(acc, segs[i], parent);
-        }
-    }
-
-    const sortChildren = (node) => {
-        node.children.sort((a, b) => {
-            if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
-            return a.name.localeCompare(b.name);
-        });
-        for (const c of node.children) if (c.type === 'folder') sortChildren(c);
-    };
-    sortChildren(root);
-    return root.children;
 }
 
 /** Inline text input used for new-file / new-folder / rename. */

@@ -10,7 +10,7 @@ import IdeTopBar from './ide/IdeTopBar';
 import { useDevMode, useOpenFiles, useResponsiveChat } from './ide/useIdeState';
 import { useDragResize } from './ide/resizeHooks';
 import StatusBar from './StatusBar';
-import { useBfMarks } from './WebpageCodeStrip';
+import { useBfMarks } from './useBfMarks';
 import type { ExtraContents, ExtraFileMeta } from './webpageEditorTypes';
 
 export type { WebpageIDEProps } from './ide/ideProps';
