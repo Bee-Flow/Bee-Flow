@@ -34,7 +34,6 @@
 // rather than a silently different lesson.
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const router = express.Router();
 const { z, typeError } = require('../../utils/zod');
 const { orEmpty: bodyOf } = require('../../core/http/schemaParts');
@@ -183,45 +182,30 @@ const CourseBody = courseBody(true);
 
 // GET /courses → the org's course index: [{ courseId, title, status, updatedAt }]
 router.get('/courses', async (req, res) => {
-    try {
-        const courses = await store.listCourses(req.primaryOrgId);
-        res.json({ courses });
-    } catch (e) {
-        log.error('[learning/admin] list courses failed:', e.message);
-        res.status(500).json({ error: 'Failed to list courses' });
-    }
+    const courses = await store.listCourses(req.primaryOrgId);
+    res.json({ courses });
 });
 
 // GET /courses/:courseId → draft CourseDoc + the draft LessonDocs it references.
 router.get('/courses/:courseId', async (req, res) => {
-    try {
-        const course = await store.getCourse(req.primaryOrgId, req.params.courseId);
-        if (!course) return res.status(404).json({ error: 'Course not found' });
-        const lessons = [];
-        for (const lessonId of course.lessonIds || []) {
-            const lesson = await store.getLesson(req.primaryOrgId, lessonId);
-            if (lesson) lessons.push(lesson);
-        }
-        res.json({ course, lessons });
-    } catch (e) {
-        log.error('[learning/admin] get course failed:', e.message);
-        res.status(500).json({ error: 'Failed to load course' });
+    const course = await store.getCourse(req.primaryOrgId, req.params.courseId);
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    const lessons = [];
+    for (const lessonId of course.lessonIds || []) {
+        const lesson = await store.getLesson(req.primaryOrgId, lessonId);
+        if (lesson) lessons.push(lesson);
     }
+    res.json({ course, lessons });
 });
 
 // POST /courses → create. The id is always minted by the validator (a client
 // can never choose its own course id — the schema has no `id` to send).
 router.post('/courses', validate({ body: NewCourseBody }), async (req, res) => {
-    try {
-        const { doc, error } = store.validateCourseDoc({ ...req.body, id: undefined });
-        if (error) return res.status(400).json({ error });
-        const saved = await store.saveCourse(req.primaryOrgId, doc);
-        if (saved.error) return res.status(400).json({ error: saved.error });
-        res.json({ course: saved.doc });
-    } catch (e) {
-        log.error('[learning/admin] create course failed:', e.message);
-        res.status(500).json({ error: 'Failed to create course' });
-    }
+    const { doc, error } = store.validateCourseDoc({ ...req.body, id: undefined });
+    if (error) return res.status(400).json({ error });
+    const saved = await store.saveCourse(req.primaryOrgId, doc);
+    if (saved.error) return res.status(400).json({ error: saved.error });
+    res.json({ course: saved.doc });
 });
 
 // PUT /courses/:courseId → upsert. The URL param is authoritative for the id:
@@ -229,29 +213,19 @@ router.post('/courses', validate({ body: NewCourseBody }), async (req, res) => {
 // non-org param (e.g. 'new') makes the validator mint a fresh id — an
 // effective create.
 router.put('/courses/:courseId', validate({ body: CourseBody }), async (req, res) => {
-    try {
-        const id = store.isOrgCourseId(req.params.courseId) ? req.params.courseId : undefined;
-        const { doc, error } = store.validateCourseDoc({ ...req.body, id });
-        if (error) return res.status(400).json({ error });
-        const saved = await store.saveCourse(req.primaryOrgId, doc);
-        if (saved.error) return res.status(400).json({ error: saved.error });
-        res.json({ course: saved.doc });
-    } catch (e) {
-        log.error('[learning/admin] save course failed:', e.message);
-        res.status(500).json({ error: 'Failed to save course' });
-    }
+    const id = store.isOrgCourseId(req.params.courseId) ? req.params.courseId : undefined;
+    const { doc, error } = store.validateCourseDoc({ ...req.body, id });
+    if (error) return res.status(400).json({ error });
+    const saved = await store.saveCourse(req.primaryOrgId, doc);
+    if (saved.error) return res.status(400).json({ error: saved.error });
+    res.json({ course: saved.doc });
 });
 
 // DELETE /courses/:courseId → removes the course and ALL its lessons, both
 // draft and published snapshots (see learningContentStore.deleteCourse).
 router.delete('/courses/:courseId', async (req, res) => {
-    try {
-        await store.deleteCourse(req.primaryOrgId, req.params.courseId);
-        res.json({ success: true });
-    } catch (e) {
-        log.error('[learning/admin] delete course failed:', e.message);
-        res.status(500).json({ error: 'Failed to delete course' });
-    }
+    await store.deleteCourse(req.primaryOrgId, req.params.courseId);
+    res.json({ success: true });
 });
 
 // PUT /lessons/:lessonId → upsert a draft lesson. The URL param is preserved
@@ -264,41 +238,26 @@ router.delete('/courses/:courseId', async (req, res) => {
 // lesson.id (in the desired position), otherwise the lesson is orphaned and
 // will never publish.
 router.put('/lessons/:lessonId', validate({ body: LessonBody }), async (req, res) => {
-    try {
-        const id = store.isOrgLessonId(req.params.lessonId) ? req.params.lessonId : undefined;
-        const { doc, error } = store.validateLessonDoc({ ...req.body, id });
-        if (error) return res.status(400).json({ error });
-        const saved = await store.saveLesson(req.primaryOrgId, doc);
-        res.json({ lesson: saved.doc });
-    } catch (e) {
-        log.error('[learning/admin] save lesson failed:', e.message);
-        res.status(500).json({ error: 'Failed to save lesson' });
-    }
+    const id = store.isOrgLessonId(req.params.lessonId) ? req.params.lessonId : undefined;
+    const { doc, error } = store.validateLessonDoc({ ...req.body, id });
+    if (error) return res.status(400).json({ error });
+    const saved = await store.saveLesson(req.primaryOrgId, doc);
+    res.json({ lesson: saved.doc });
 });
 
 // POST /courses/:courseId/publish → copy the draft course + all its lessons to
 // the published snapshot keys members read from.
 router.post('/courses/:courseId/publish', async (req, res) => {
-    try {
-        const result = await store.publishCourse(req.primaryOrgId, req.params.courseId);
-        if (result.error) return res.status(400).json({ error: result.error });
-        res.json({ success: true, course: result.course });
-    } catch (e) {
-        log.error('[learning/admin] publish failed:', e.message);
-        res.status(500).json({ error: 'Failed to publish course' });
-    }
+    const result = await store.publishCourse(req.primaryOrgId, req.params.courseId);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json({ success: true, course: result.course });
 });
 
 // POST /courses/:courseId/unpublish → remove the published snapshots; the
 // drafts are untouched.
 router.post('/courses/:courseId/unpublish', async (req, res) => {
-    try {
-        await store.unpublishCourse(req.primaryOrgId, req.params.courseId);
-        res.json({ success: true });
-    } catch (e) {
-        log.error('[learning/admin] unpublish failed:', e.message);
-        res.status(500).json({ error: 'Failed to unpublish course' });
-    }
+    await store.unpublishCourse(req.primaryOrgId, req.params.courseId);
+    res.json({ success: true });
 });
 
 module.exports = router;

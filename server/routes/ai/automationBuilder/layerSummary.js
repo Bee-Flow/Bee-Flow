@@ -11,6 +11,7 @@
 
 const express = require('express');
 const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 const router = express.Router();
 const { z } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
@@ -98,7 +99,7 @@ router.post('/summarise-layer', requireAuth, summariseLayerRateLimit, validate({
         ], { maxTokens: 80, temperature: 0.3, reasoningEffort: 'none', budgetTokens: 0 });
     } catch (e) {
         log.error('[automationBuilder/summarise-layer] inference failed:', e.message);
-        return res.status(502).json({ error: 'Could not generate a summary right now. Please try again.' });
+        throw new HttpError(502, 'summarise_layer_unavailable', 'Could not generate a summary right now. Please try again.');
     }
 
     const summary = sanitiseLayerSummary(result?.content);

@@ -95,9 +95,10 @@ test('store validation errors map to 400 and 413, not a blanket 500', () => {
     assert.ok(tooLarge, 'handler does not handle WORKSPACE_CONTENT_TOO_LARGE');
     assert.strictEqual(tooLarge[1], '413', 'WORKSPACE_CONTENT_TOO_LARGE must answer 413');
 
-    // Both must be answered BEFORE the catch-all 500, or they never fire.
-    assert.ok(body.indexOf('INVALID_WORKSPACE_CONTENT') < body.indexOf('Failed to update workspace'),
-        'the validation branches must precede the catch-all 500');
+    // Both must be answered BEFORE the rest is rethrown (a 500), or they never fire.
+    assert.ok(body.indexOf('throw e') !== -1, 'any other error is rethrown to the terminal handler');
+    assert.ok(body.indexOf('INVALID_WORKSPACE_CONTENT') < body.indexOf('throw e'),
+        'the validation branches must precede the rethrow');
 });
 
 test('the store still refuses a call with no caller id', () => {

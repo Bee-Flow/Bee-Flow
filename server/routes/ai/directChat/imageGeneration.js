@@ -17,6 +17,7 @@ const configStore = require('../../../stores/configStore');
 const { googleAdapter } = require('../../../core/providers');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
+const { HttpError } = require('../../../core/http/errors');
 const { z, typeError } = require('../../../utils/zod');
 
 const PROMPT_TEXT = 'Prompt is required';
@@ -48,7 +49,7 @@ router.post('/chat/generate-image', requireAuth, validate({ body: GenerateImageB
     });
 
     if (!result.imageBase64) {
-        return res.status(500).json({ error: 'No image was generated. Try a different prompt.' });
+        throw new HttpError(500, 'no_image_generated', 'No image was generated. Try a different prompt.');
     }
 
     // Log usage

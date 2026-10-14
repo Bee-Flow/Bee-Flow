@@ -135,55 +135,47 @@ router.get('/n8n/config', requireAuth, async (req, res) => {
 // ─── Agent Search Defaults ─────────────────────────────────────
 
 router.get('/agent-search/defaults', requireAuth, async (req, res) => {
-    try {
-        const stored = await configStore.getConfig('agent_search_defaults');
-        // Support new per-mode format OR migrate old flat format
-        const defaults = stored && stored.web ? stored : {
-            mode: stored?.mode || 'web',
-            include_citations: stored?.include_citations !== false,
-            web: {
-                max_results: stored?.max_results || 5,
-                fetch_top_n: stored?.fetch_top_n || 3,
-                max_tokens_markdown: stored?.max_tokens_markdown || 2000,
-                detail_level: 'detailed',
-            },
-            web_fast: {
-                max_results: 10,
-                max_tokens_markdown: 1500,
-                detail_level: 'detailed',
-            },
-        };
-        res.json(defaults);
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to fetch Agent Search defaults' });
-    }
+    const stored = await configStore.getConfig('agent_search_defaults');
+    // Support new per-mode format OR migrate old flat format
+    const defaults = stored && stored.web ? stored : {
+        mode: stored?.mode || 'web',
+        include_citations: stored?.include_citations !== false,
+        web: {
+            max_results: stored?.max_results || 5,
+            fetch_top_n: stored?.fetch_top_n || 3,
+            max_tokens_markdown: stored?.max_tokens_markdown || 2000,
+            detail_level: 'detailed',
+        },
+        web_fast: {
+            max_results: 10,
+            max_tokens_markdown: 1500,
+            detail_level: 'detailed',
+        },
+    };
+    res.json(defaults);
 });
 
 // Installation-wide: every agent's search reads these. It used to take
 // requireAuth only, so any signed-in user could rewrite them for everyone.
 router.put('/agent-search/defaults', requireAuth, validate({ body: SearchDefaultsBody }), async (req, res) => {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { mode, include_citations, web, web_fast } = req.body;
-        await configStore.setConfig('agent_search_defaults', {
-            mode: ['web', 'web_fast', 'kb', 'auto'].includes(mode) ? mode : 'web',
-            include_citations: include_citations !== false,
-            web: {
-                max_results: Math.min(Math.max(parseInt(web?.max_results) || 5, 1), 10),
-                fetch_top_n: Math.min(Math.max(parseInt(web?.fetch_top_n) || 3, 1), 5),
-                max_tokens_markdown: Math.min(Math.max(parseInt(web?.max_tokens_markdown) || 2000, 500), 5000),
-                detail_level: ['basic', 'detailed', 'highly_detailed'].includes(web?.detail_level) ? web.detail_level : 'detailed',
-            },
-            web_fast: {
-                max_results: Math.min(Math.max(parseInt(web_fast?.max_results) || 10, 1), 20),
-                max_tokens_markdown: Math.min(Math.max(parseInt(web_fast?.max_tokens_markdown) || 1500, 500), 5000),
-                detail_level: ['basic', 'detailed', 'highly_detailed'].includes(web_fast?.detail_level) ? web_fast.detail_level : 'detailed',
-            },
-        });
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to save Agent Search defaults' });
-    }
+    const { mode, include_citations, web, web_fast } = req.body;
+    await configStore.setConfig('agent_search_defaults', {
+        mode: ['web', 'web_fast', 'kb', 'auto'].includes(mode) ? mode : 'web',
+        include_citations: include_citations !== false,
+        web: {
+            max_results: Math.min(Math.max(parseInt(web?.max_results) || 5, 1), 10),
+            fetch_top_n: Math.min(Math.max(parseInt(web?.fetch_top_n) || 3, 1), 5),
+            max_tokens_markdown: Math.min(Math.max(parseInt(web?.max_tokens_markdown) || 2000, 500), 5000),
+            detail_level: ['basic', 'detailed', 'highly_detailed'].includes(web?.detail_level) ? web.detail_level : 'detailed',
+        },
+        web_fast: {
+            max_results: Math.min(Math.max(parseInt(web_fast?.max_results) || 10, 1), 20),
+            max_tokens_markdown: Math.min(Math.max(parseInt(web_fast?.max_tokens_markdown) || 1500, 500), 5000),
+            detail_level: ['basic', 'detailed', 'highly_detailed'].includes(web_fast?.detail_level) ? web_fast.detail_level : 'detailed',
+        },
+    });
+    res.json({ success: true });
 });
 
 // PUT /ai/n8n/config — save org's n8n URL + API key (org admin only)

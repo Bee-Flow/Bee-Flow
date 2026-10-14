@@ -491,22 +491,17 @@ ABSOLUTE RULES:
 // ── Get available meeting notes for template context ──────────────
 
 router.get('/chat/template/meeting-notes', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const notes = await transcriptionStore.getTranscriptions(userId, { limit: 50 });
-        res.json({
-            notes: notes.map(n => ({
-                id: n.id,
-                title: n.title,
-                createdAt: n.createdAt,
-                durationSeconds: n.durationSeconds,
-                speakerCount: n.speakerCount,
-            }))
-        });
-    } catch (err) {
-        log.error('[TemplateChat] Meeting notes fetch failed:', err);
-        res.status(500).json({ error: 'Failed to fetch meeting notes' });
-    }
+    const userId = req.session.user.id;
+    const notes = await transcriptionStore.getTranscriptions(userId, { limit: 50 });
+    res.json({
+        notes: notes.map(n => ({
+            id: n.id,
+            title: n.title,
+            createdAt: n.createdAt,
+            durationSeconds: n.durationSeconds,
+            speakerCount: n.speakerCount,
+        }))
+    });
 });
 
 module.exports = router;

@@ -643,22 +643,17 @@ router.post('/quiz/grade', requireAuth, quizLimiter, validate({ body: QuizGradeB
     if (!learningContentStore.isOrgLessonId(lessonId) || !stepId) {
         return res.status(404).json({ error: 'Unknown quiz' });
     }
-    try {
-        const lesson = userOrgId ? await learningContentStore.getLesson(userOrgId, lessonId, { published: true }) : null;
-        const step = (lesson?.steps || []).find((s) => s.type === 'quiz' && s.id === stepId);
-        if (!step) return res.status(404).json({ error: 'Unknown quiz' });
-        const correctIds = (step.choices || []).filter((c) => c.correct).map((c) => c.id);
-        const picked = new Set(choiceIds);
-        const correct = correctIds.length === picked.size && correctIds.every((id) => picked.has(id));
-        res.json({
-            correct,
-            explanation: step.explanationFallback || '',
-            ...(correct ? { correctChoiceIds: correctIds } : {}),
-        });
-    } catch (e) {
-        log.error('[learning/quiz] grade failed:', e.message);
-        res.status(500).json({ error: 'Failed to grade quiz' });
-    }
+    const lesson = userOrgId ? await learningContentStore.getLesson(userOrgId, lessonId, { published: true }) : null;
+    const step = (lesson?.steps || []).find((s) => s.type === 'quiz' && s.id === stepId);
+    if (!step) return res.status(404).json({ error: 'Unknown quiz' });
+    const correctIds = (step.choices || []).filter((c) => c.correct).map((c) => c.id);
+    const picked = new Set(choiceIds);
+    const correct = correctIds.length === picked.size && correctIds.every((id) => picked.has(id));
+    res.json({
+        correct,
+        explanation: step.explanationFallback || '',
+        ...(correct ? { correctChoiceIds: correctIds } : {}),
+    });
 });
 
 // ── Achievements + certificates ───────────────────────────────────────────────
@@ -685,44 +680,39 @@ async function orgName(user) {
 router.get('/achievements', requireAuth, async (req, res) => {
     const userId = req.session.user.id;
     const userOrgId = req.session.user.organizationId || null;
-    try {
-        const [progress, { visibleByCourse }, orgPublished] = await Promise.all([
-            readServerProgress(userId),
-            resolveVisibleByCourse({ userId, orgId: userOrgId, session: req.session, req }),
-            orgCoursesFor(req),
-        ]);
-        // Org courses earn badges like built-ins; they never count toward
-        // certificates (see completion.js certificateEligible note).
-        const extraCourses = orgPublished.map(({ course }) => ({
-            id: course.id, lessonIds: course.lessonIds, badge: course.badge,
-        }));
-        const badges = computeEarnedBadges(progress, visibleByCourse, '2026.1', extraCourses);
+    const [progress, { visibleByCourse }, orgPublished] = await Promise.all([
+        readServerProgress(userId),
+        resolveVisibleByCourse({ userId, orgId: userOrgId, session: req.session, req }),
+        orgCoursesFor(req),
+    ]);
+    // Org courses earn badges like built-ins; they never count toward
+    // certificates (see completion.js certificateEligible note).
+    const extraCourses = orgPublished.map(({ course }) => ({
+        id: course.id, lessonIds: course.lessonIds, badge: course.badge,
+    }));
+    const badges = computeEarnedBadges(progress, visibleByCourse, '2026.1', extraCourses);
 
-        const certificates = [];
-        for (const cert of CERTIFICATES) {
-            const eligible = certificateEligible(cert.id, progress, visibleByCourse);
-            const prog = certificateProgress(cert.id, progress, visibleByCourse);
-            const issued = await certStore.getCertificate(userId, cert.id);
-            const entry = {
-                certificateId: cert.id,
-                title: cert.title,
-                level: cert.level || null,
-                eligible,
-                issued: !!issued,
-                isPublic: !!issued?.isPublic,
-                progress: prog,
-            };
-            if (issued) {
-                const verifyToken = makeVerifyToken(cert.id, userId);
-                Object.assign(entry, buildUrls(issued, verifyToken), { issuedAt: issued.issuedAt });
-            }
-            certificates.push(entry);
+    const certificates = [];
+    for (const cert of CERTIFICATES) {
+        const eligible = certificateEligible(cert.id, progress, visibleByCourse);
+        const prog = certificateProgress(cert.id, progress, visibleByCourse);
+        const issued = await certStore.getCertificate(userId, cert.id);
+        const entry = {
+            certificateId: cert.id,
+            title: cert.title,
+            level: cert.level || null,
+            eligible,
+            issued: !!issued,
+            isPublic: !!issued?.isPublic,
+            progress: prog,
+        };
+        if (issued) {
+            const verifyToken = makeVerifyToken(cert.id, userId);
+            Object.assign(entry, buildUrls(issued, verifyToken), { issuedAt: issued.issuedAt });
         }
-        res.json({ badges, certificates, version: '2026.1' });
-    } catch (e) {
-        log.error('[learning/achievements] failed:', e.message);
-        res.status(500).json({ error: 'Failed to load achievements' });
+        certificates.push(entry);
     }
+    res.json({ badges, certificates, version: '2026.1' });
 });
 
 // Issue (or update visibility of) a certificate. Server recomputes eligibility.
@@ -735,37 +725,32 @@ router.post('/certificate', requireAuth, validate({ body: CertificateBody }), as
     if (makePublic && !hasDurableSecret()) {
         return res.status(400).json({ error: 'public_verify_unavailable' });
     }
-    try {
-        const { visibleByCourse } = await resolveVisibleByCourse({
-            userId: user.id, orgId: user.organizationId || null, session: req.session, req,
-        });
-        const result = await issueCertificate(user.id, certificateId, {
-            recipientName: recipientName(user),
-            orgName: await orgName(user),
-            makePublic: !!makePublic,
-            visibleByCourse,
-        });
-        if (result.error === 'not_eligible') return res.status(403).json({ error: 'Not eligible yet — complete the required courses first.' });
-        if (result.error) return res.status(400).json({ error: result.error });
+    const { visibleByCourse } = await resolveVisibleByCourse({
+        userId: user.id, orgId: user.organizationId || null, session: req.session, req,
+    });
+    const result = await issueCertificate(user.id, certificateId, {
+        recipientName: recipientName(user),
+        orgName: await orgName(user),
+        makePublic: !!makePublic,
+        visibleByCourse,
+    });
+    if (result.error === 'not_eligible') return res.status(403).json({ error: 'Not eligible yet — complete the required courses first.' });
+    if (result.error) return res.status(400).json({ error: result.error });
 
-        const { record, verifyToken } = result;
-        const urls = buildUrls(record, verifyToken);
-        res.json({
-            certificateId: record.certificateId,
-            title: record.title,
-            level: record.level,
-            serial: record.serial,
-            issuedAt: record.issuedAt,
-            isPublic: record.isPublic,
-            recipientName: record.recipientName,
-            orgName: record.orgName,
-            courses: record.courses,
-            ...urls,
-        });
-    } catch (e) {
-        log.error('[learning/certificate] issue failed:', e.message);
-        res.status(500).json({ error: 'Failed to issue certificate' });
-    }
+    const { record, verifyToken } = result;
+    const urls = buildUrls(record, verifyToken);
+    res.json({
+        certificateId: record.certificateId,
+        title: record.title,
+        level: record.level,
+        serial: record.serial,
+        issuedAt: record.issuedAt,
+        isPublic: record.isPublic,
+        recipientName: record.recipientName,
+        orgName: record.orgName,
+        courses: record.courses,
+        ...urls,
+    });
 });
 
 // Owner-only render of their own certificate (private or public) for in-app preview
@@ -777,21 +762,16 @@ async function ownerRender(req, res, kind) {
     if (!record) return res.status(404).json({ error: 'Certificate not issued' });
     const verifyToken = makeVerifyToken(certId, userId);
     const { verifyUrl } = buildUrls(record, verifyToken);
-    try {
-        if (kind === 'pdf') {
-            const pdf = await renderCertificatePdf(record, { verifyUrl });
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename="beeflow-certificate-${record.serial}.pdf"`);
-            return res.send(pdf);
-        }
-        const png = await renderCertificatePng(record, { verifyUrl });
-        res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Cache-Control', 'private, max-age=300');
-        return res.send(png);
-    } catch (e) {
-        log.error('[learning/certificate render] failed:', e.message);
-        return res.status(500).json({ error: 'Failed to render certificate' });
+    if (kind === 'pdf') {
+        const pdf = await renderCertificatePdf(record, { verifyUrl });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="beeflow-certificate-${record.serial}.pdf"`);
+        return res.send(pdf);
     }
+    const png = await renderCertificatePng(record, { verifyUrl });
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    return res.send(png);
 }
 
 router.get('/certificate/:certId/image.png', requireAuth, (req, res) => ownerRender(req, res, 'png'));
@@ -804,13 +784,8 @@ router.get('/certificate/:certId/certificate.pdf', requireAuth, (req, res) => ow
 // last activity. Org-admin gated; 60s-cached aggregation over two batched
 // configStore reads, so safe to refresh freely from the panel.
 router.get('/org-overview', requireAuth, requirePrimaryOrgAdmin(), async (req, res) => {
-    try {
-        const overview = await getOrgOverview(req.primaryOrgId);
-        res.json(overview);
-    } catch (e) {
-        log.error('[learning/org-overview] failed:', e.message);
-        res.status(500).json({ error: 'Failed to load learning overview' });
-    }
+    const overview = await getOrgOverview(req.primaryOrgId);
+    res.json(overview);
 });
 
 // ── Required training ────────────────────────────────────────────────────
@@ -841,22 +816,17 @@ router.get('/training-gates', requireAuth, async (req, res) => {
 // GET /training-rules → what the org has configured, plus the courses an admin
 // may point an area at (built-ins + the org's own published courses).
 router.get('/training-rules', requireAuth, requirePrimaryOrgAdmin(), async (req, res) => {
-    try {
-        const [settings, orgPublished] = await Promise.all([
-            getTrainingSettings(req.primaryOrgId),
-            orgCoursesFor(req),
-        ]);
-        const courses = [
-            ...COURSES.map((c) => ({ id: c.id, title: c.title, lessons: (c.lessonIds || []).length, own: false })),
-            ...orgPublished.map(({ course }) => ({
-                id: course.id, title: course.title, lessons: (course.lessonIds || []).length, own: true,
-            })),
-        ];
-        res.json({ areas: settings.areas, updatedAt: settings.updatedAt, catalog: TRAINING_AREAS, courses });
-    } catch (e) {
-        log.error('[learning/training-rules] read failed:', e.message);
-        res.status(500).json({ error: 'Failed to load training rules' });
-    }
+    const [settings, orgPublished] = await Promise.all([
+        getTrainingSettings(req.primaryOrgId),
+        orgCoursesFor(req),
+    ]);
+    const courses = [
+        ...COURSES.map((c) => ({ id: c.id, title: c.title, lessons: (c.lessonIds || []).length, own: false })),
+        ...orgPublished.map(({ course }) => ({
+            id: course.id, title: course.title, lessons: (course.lessonIds || []).length, own: true,
+        })),
+    ];
+    res.json({ areas: settings.areas, updatedAt: settings.updatedAt, catalog: TRAINING_AREAS, courses });
 });
 
 // PUT /training-rules { areas: { [areaId]: courseId } } — replaces the whole
@@ -866,28 +836,23 @@ router.get('/training-rules', requireAuth, requirePrimaryOrgAdmin(), async (req,
 // good (courseSatisfied would answer null and fail open, but an admin who
 // thinks they gated something and did not is worse than a loud 400).
 router.put('/training-rules', requireAuth, requirePrimaryOrgAdmin(), validate({ body: TrainingRulesBody }), async (req, res) => {
-    try {
-        const incoming = req.body?.areas;
-        if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
-            return res.status(400).json({ error: 'areas must be an object of { areaId: courseId }' });
-        }
-        const orgPublished = await orgCoursesFor(req);
-        const knownCourseIds = new Set([
-            ...COURSES.map((c) => c.id),
-            ...orgPublished.map(({ course }) => course.id),
-        ]);
-        const unknown = Object.entries(incoming)
-            .filter(([, courseId]) => !knownCourseIds.has(courseId))
-            .map(([areaId, courseId]) => `${areaId} → ${courseId}`);
-        if (unknown.length) {
-            return res.status(400).json({ error: 'unknown_course', detail: unknown });
-        }
-        const saved = await setTrainingSettings(req.primaryOrgId, incoming, req.session.user.id);
-        res.json({ areas: saved.areas, updatedAt: saved.updatedAt });
-    } catch (e) {
-        log.error('[learning/training-rules] write failed:', e.message);
-        res.status(500).json({ error: 'Failed to save training rules' });
+    const incoming = req.body?.areas;
+    if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+        return res.status(400).json({ error: 'areas must be an object of { areaId: courseId }' });
     }
+    const orgPublished = await orgCoursesFor(req);
+    const knownCourseIds = new Set([
+        ...COURSES.map((c) => c.id),
+        ...orgPublished.map(({ course }) => course.id),
+    ]);
+    const unknown = Object.entries(incoming)
+        .filter(([, courseId]) => !knownCourseIds.has(courseId))
+        .map(([areaId, courseId]) => `${areaId} → ${courseId}`);
+    if (unknown.length) {
+        return res.status(400).json({ error: 'unknown_course', detail: unknown });
+    }
+    const saved = await setTrainingSettings(req.primaryOrgId, incoming, req.session.user.id);
+    res.json({ areas: saved.areas, updatedAt: saved.updatedAt });
 });
 
 module.exports = router;

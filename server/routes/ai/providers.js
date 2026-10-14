@@ -100,62 +100,47 @@ const ModelsQuery = z.object({
 
 // GET /ai/providers
 router.get('/providers', requireAuth, async (req, res) => {
-    try {
-        const providerData = await getProviders();
-        const maskedProviders = providerData.providers.map(p => ({
-            ...p,
-            apiKey: p.apiKey ? '••••' + p.apiKey.slice(-4) : '',
-            serviceAccountKey: p.serviceAccountKey ? '••••(configured)' : '',
-        }));
-        res.json({
-            providers: maskedProviders,
-            defaultProvider: providerData.defaultProvider
-        });
-    } catch (e) {
-        log.error('Failed to get providers:', e);
-        res.status(500).json({ error: 'Failed to fetch providers' });
-    }
+    const providerData = await getProviders();
+    const maskedProviders = providerData.providers.map(p => ({
+        ...p,
+        apiKey: p.apiKey ? '••••' + p.apiKey.slice(-4) : '',
+        serviceAccountKey: p.serviceAccountKey ? '••••(configured)' : '',
+    }));
+    res.json({
+        providers: maskedProviders,
+        defaultProvider: providerData.defaultProvider
+    });
 });
 
 // POST /ai/providers
 router.post('/providers', requireAuth, requireAdmin, validate({ body: CreateProviderBody }), async (req, res) => {
-    try {
-        const { name, type, url, model, apiKey, project, location, serviceAccountKey } = req.body;
-        if (!url && type !== 'google-vertex' && type !== 'azure') {
-            return res.status(400).json({ error: NAME_TEXT });
-        }
-        const provider = await addProvider({ name, type, url: url || (type === 'azure' ? '' : 'vertex-ai'), model, apiKey, project, location, serviceAccountKey });
-        if (provider) {
-            invalidateModelCache(); // Clear all cache since new provider added
-            res.status(201).json({
-                ...provider,
-                apiKey: provider.apiKey ? '••••' + provider.apiKey.slice(-4) : '',
-                serviceAccountKey: provider.serviceAccountKey ? '••••(configured)' : '',
-            });
-        } else {
-            res.status(500).json({ error: 'Failed to add provider' });
-        }
-    } catch (e) {
-        log.error('Failed to add provider:', e);
-        res.status(500).json({ error: 'Failed to add provider' });
+    const { name, type, url, model, apiKey, project, location, serviceAccountKey } = req.body;
+    if (!url && type !== 'google-vertex' && type !== 'azure') {
+        return res.status(400).json({ error: NAME_TEXT });
+    }
+    const provider = await addProvider({ name, type, url: url || (type === 'azure' ? '' : 'vertex-ai'), model, apiKey, project, location, serviceAccountKey });
+    if (provider) {
+        invalidateModelCache(); // Clear all cache since new provider added
+        res.status(201).json({
+            ...provider,
+            apiKey: provider.apiKey ? '••••' + provider.apiKey.slice(-4) : '',
+            serviceAccountKey: provider.serviceAccountKey ? '••••(configured)' : '',
+        });
+    } else {
+        throw new Error('Failed to add provider');
     }
 });
 
 // PUT /ai/providers/:id — a partial update: a field left out keeps its value
 // (updateProvider merges), which is why a misspelled one must not pass.
 router.put('/providers/:id', requireAuth, requireAdmin, validate({ body: UpdateProviderBody }), async (req, res) => {
-    try {
-        const { name, type, url, model, apiKey, project, location, serviceAccountKey } = req.body;
-        const success = await updateProvider(req.params.id, { name, type, url, model, apiKey, project, location, serviceAccountKey });
-        if (success) {
-            invalidateModelCache(req.params.id); // Invalidate this provider's cache
-            res.json({ success: true });
-        } else {
-            res.status(404).json({ error: 'Provider not found' });
-        }
-    } catch (e) {
-        log.error('Failed to update provider:', e);
-        res.status(500).json({ error: 'Failed to update provider' });
+    const { name, type, url, model, apiKey, project, location, serviceAccountKey } = req.body;
+    const success = await updateProvider(req.params.id, { name, type, url, model, apiKey, project, location, serviceAccountKey });
+    if (success) {
+        invalidateModelCache(req.params.id); // Invalidate this provider's cache
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Provider not found' });
     }
 });
 
@@ -168,28 +153,23 @@ router.put('/providers/:id', requireAuth, requireAdmin, validate({ body: UpdateP
 // knowing OpenAI's domain scheme. It also keeps the two legal values closed —
 // a typo in a free-text URL would fail open, back to US processing.
 router.put('/providers/:id/region', requireAuth, requireAdmin, validate({ body: RegionBody }), async (req, res) => {
-    try {
-        const { region } = req.body;
+    const { region } = req.body;
 
-        const providerData = await getProviders();
-        const provider = (providerData.providers || []).find(p => p.id === req.params.id);
-        if (!provider) return res.status(404).json({ error: 'Provider not found' });
-        if (provider.type !== 'openai') {
-            return res.status(400).json({ error: 'Regional processing is an OpenAI setting' });
-        }
-
-        const { OPENAI_BASE_URL, OPENAI_EU_BASE_URL } = require('../../core/providers/openaiModels');
-        const url = region === 'eu' ? OPENAI_EU_BASE_URL : OPENAI_BASE_URL;
-        const success = await updateProvider(req.params.id, { ...provider, url });
-        if (!success) return res.status(404).json({ error: 'Provider not found' });
-
-        invalidateModelCache(req.params.id);
-        log.info(`[Providers] ${provider.name} now uses ${region === 'eu' ? 'EU regional processing' : 'the default endpoint'}`);
-        res.json({ success: true, region, url });
-    } catch (e) {
-        log.error('Failed to set provider region:', e);
-        res.status(500).json({ error: 'Failed to update provider' });
+    const providerData = await getProviders();
+    const provider = (providerData.providers || []).find(p => p.id === req.params.id);
+    if (!provider) return res.status(404).json({ error: 'Provider not found' });
+    if (provider.type !== 'openai') {
+        return res.status(400).json({ error: 'Regional processing is an OpenAI setting' });
     }
+
+    const { OPENAI_BASE_URL, OPENAI_EU_BASE_URL } = require('../../core/providers/openaiModels');
+    const url = region === 'eu' ? OPENAI_EU_BASE_URL : OPENAI_BASE_URL;
+    const success = await updateProvider(req.params.id, { ...provider, url });
+    if (!success) return res.status(404).json({ error: 'Provider not found' });
+
+    invalidateModelCache(req.params.id);
+    log.info(`[Providers] ${provider.name} now uses ${region === 'eu' ? 'EU regional processing' : 'the default endpoint'}`);
+    res.json({ success: true, region, url });
 });
 
 // DELETE /ai/providers/:id
@@ -198,36 +178,26 @@ router.put('/providers/:id/region', requireAuth, requireAdmin, validate({ body: 
 // whether or not the id was in it: a mistyped id was "deleted" with a 200,
 // and the provider that was meant — with its key — stayed.
 router.delete('/providers/:id', requireAuth, requireAdmin, async (req, res) => {
-    try {
-        const { providers } = await getProviders();
-        if (!(providers || []).some((p) => p.id === req.params.id)) {
-            return res.status(404).json({ error: 'Provider not found' });
-        }
-        const success = await deleteProvider(req.params.id);
-        if (success) {
-            invalidateModelCache(req.params.id); // Remove from cache
-            res.json({ success: true });
-        } else {
-            res.status(404).json({ error: 'Provider not found' });
-        }
-    } catch (e) {
-        log.error('Failed to delete provider:', e);
-        res.status(500).json({ error: 'Failed to delete provider' });
+    const { providers } = await getProviders();
+    if (!(providers || []).some((p) => p.id === req.params.id)) {
+        return res.status(404).json({ error: 'Provider not found' });
+    }
+    const success = await deleteProvider(req.params.id);
+    if (success) {
+        invalidateModelCache(req.params.id); // Remove from cache
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Provider not found' });
     }
 });
 
 // PUT /ai/providers/:id/default
 router.put('/providers/:id/default', requireAuth, requireAdmin, async (req, res) => {
-    try {
-        const success = await setDefaultProvider(req.params.id);
-        if (success) {
-            res.json({ success: true });
-        } else {
-            res.status(404).json({ error: 'Provider not found' });
-        }
-    } catch (e) {
-        log.error('Failed to set default provider:', e);
-        res.status(500).json({ error: 'Failed to set default provider' });
+    const success = await setDefaultProvider(req.params.id);
+    if (success) {
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Provider not found' });
     }
 });
 

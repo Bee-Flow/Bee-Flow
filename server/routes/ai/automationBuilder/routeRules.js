@@ -79,6 +79,7 @@ const express = require('express');
 const { z, typeError } = require('../../../utils/zod');
 const { worded } = require('../../../core/http/schemaParts');
 const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 const router = express.Router();
 
 const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
@@ -458,7 +459,7 @@ router.post('/route-rules', requireAuth, routeRulesRateLimit, requireAutomations
         ], ROUTE_RULES_TOOL, { maxTokens: 1024, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 }));
     } catch (e) {
         log.error('[automationBuilder/route-rules] inference failed:', e.message);
-        return res.status(502).json({ error: 'Could not suggest outputs right now. Please try again.' });
+        throw new HttpError(502, 'route_rules_unavailable', 'Could not suggest outputs right now. Please try again.');
     }
 
     const rules = verifyRouteRules(structured?.rules, { fields, itemVar, topics });
