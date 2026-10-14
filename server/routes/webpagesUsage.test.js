@@ -46,6 +46,7 @@ perms.requireAuth = (req, res, next) => next();
 const webpageStore = require('../stores/webpageStore');
 const webpageUsage = require('../core/webpages/webpageUsage');
 const usageRouter = require('./webpagesUsage');
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 const OWNER = { id: 'u1' };
 const PAGE = { id: 'wp1', name: 'Prijslijst', userId: OWNER.id, projectId: 'proj-1' };
@@ -63,6 +64,7 @@ async function withServer(t, fn) {
     app.use(express.json());
     app.use((req, res, next) => { req.session = { user: { ...OWNER } }; next(); });
     app.use(usageRouter);
+    app.use(terminalErrorHandler);
     const server = await new Promise((resolve) => {
         const s = app.listen(0, '127.0.0.1', () => resolve(s));
     });
@@ -144,6 +146,7 @@ test('GET /:id/usage: een omgevallen opzoeking is een 500, nooit een lege lijst'
         const body = await res.json();
         assert.strictEqual(body.usage, undefined,
             'een leeg `usage` bij een storing leest als "niets gebruikt deze pagina"');
+        assert.strictEqual(body.error, 'Internal server error');
     }));
 });
 
@@ -156,6 +159,7 @@ test('GET /:id/usage: een scan die zelf omvalt is óók een 500', async () => {
         assert.strictEqual(res.status, 500);
         const body = await res.json();
         assert.strictEqual(body.usage, undefined);
+        assert.strictEqual(body.error, 'Internal server error');
     }));
 });
 
@@ -190,6 +194,7 @@ async function withComposedServer(t, fn) {
     app.use(express.json());
     app.use((req, res, next) => { req.session = { user: { ...OWNER } }; next(); });
     app.use(webpagesRouter);
+    app.use(terminalErrorHandler);
     const server = await new Promise((resolve) => {
         const s = app.listen(0, '127.0.0.1', () => resolve(s));
     });

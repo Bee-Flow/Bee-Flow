@@ -53,7 +53,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 
 const webpageStore = require('../stores/webpageStore');
@@ -69,26 +68,20 @@ const { z, onUnknownKeys } = require('../utils/zod');
 const NO_QUERY = z.object({}, { error: onUnknownKeys('This usage list takes no parameters; it always covers every kind.') }).strict();
 
 router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const wp = await webpageStore.getWebpage(req.params.id, userId);
-        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+    // `usageForWebpage` vangt elke deelvraag apart op; valt de opzoeking zelf
+    // om, dan een 500 (de terminal handler) — nooit een leeg `usage`, want dat
+    // is de ene zin die deze route niet per ongeluk mag uitspreken.
+    const userId = req.session.user.id;
+    const wp = await webpageStore.getWebpage(req.params.id, userId);
+    if (!wp) return res.status(404).json({ error: 'Webpage not found' });
 
-        const { rows, partial, sources, complete } = await webpageUsage.usageForWebpage(wp);
-        res.json({
-            usage: webpageUsage.redactForeign(rows, userId),
-            unchecked: partial,
-            sources,
-            complete,
-        });
-    } catch (err) {
-        // `usageForWebpage` vangt elke deelvraag apart op, dus hier belanden
-        // betekent dat de opzoeking zelf omviel. Dan een 500 — nooit een leeg
-        // `usage`, want dat is de ene zin die deze route niet per ongeluk mag
-        // uitspreken.
-        log.error('[Webpages] Usage error:', err.message);
-        res.status(500).json({ error: 'Failed to load usage' });
-    }
+    const { rows, partial, sources, complete } = await webpageUsage.usageForWebpage(wp);
+    res.json({
+        usage: webpageUsage.redactForeign(rows, userId),
+        unchecked: partial,
+        sources,
+        complete,
+    });
 });
 
 module.exports = router;

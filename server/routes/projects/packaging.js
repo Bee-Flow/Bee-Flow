@@ -463,23 +463,17 @@ router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owne
  * Versies-tab houdt die twee uit elkaar.
  */
 router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owner'), requireSolutionProject, async (req, res) => {
-    try {
-        const releases = await require('../../stores/blueprintStore').listReleases(req.params.id);
-        res.json({
-            releases: (releases || []).map(r => ({
-                id: r.id,
-                version: r.version,
-                notes: r.notes,
-                publishedAt: r.publishedAt,
-            })),
-        });
-    } catch (err) {
-        // Een 500 — nooit `{ releases: [] }`. Een lege lijst leest als "deze
-        // Oplossing is nooit gepubliceerd", en dat is precies het antwoord dat
-        // een mislukte lees niet mag geven.
-        log.error('[Projects] Blueprint release history failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    // A failed read rejects to a 500, never `{ releases: [] }`: an empty list
+    // reads as "this Solution was never published".
+    const releases = await require('../../stores/blueprintStore').listReleases(req.params.id);
+    res.json({
+        releases: (releases || []).map(r => ({
+            id: r.id,
+            version: r.version,
+            notes: r.notes,
+            publishedAt: r.publishedAt,
+        })),
+    });
 });
 
 /**
