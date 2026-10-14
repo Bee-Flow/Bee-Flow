@@ -12,6 +12,14 @@ const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
 const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
+const { requireAdminUser } = require('../requireAdminUser');
+
+const requireAdmin = requireAdminUser(isAdminUser);
+
+/** The auto-tier classifier caches its model; a changed tier or classifier model must reach it. */
+function clearClassifierCache() {
+    try { require('../../../core/llm/promptClassifier').clearClassifierCache(); } catch (_) { /* non-fatal */ }
+}
 
 // ── What a caller may send ────────────────────────────────────────────────
 // Six of these routes set one model id, and each had its own copy of
@@ -43,45 +51,71 @@ const ClaudeSettingsBody = z.object({
 // ─── Model Tier Config ───────────────────────────────────────────
 
 router.get('/config/chat-models', requireAuth, async (req, res) => {
-    try {
-        const tiers = await configStore.getConfig('chat_model_tiers') || {
-            fast: { modelId: '', label: 'Fast' },
-            standard: { modelId: '', label: 'Flow (Direct)' },
-            swarm: { modelId: '', label: 'Swarm (Direct)' },
-            thinking: { modelId: '', label: 'Thinking' },
-            writer: { modelId: '', label: 'Writer' },
-            pro: { modelId: '', label: 'Pro' }
-        };
-        if (!tiers.writer) tiers.writer = { modelId: '', label: 'Writer' };
-        if (!tiers.standard) tiers.standard = { modelId: '', label: 'Flow (Direct)' };
-        if (!tiers.swarm) tiers.swarm = { modelId: '', label: 'Swarm (Direct)' };
-        res.json(tiers);
-    } catch (e) {
-        log.error('Failed to get chat model tiers:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+    const tiers = await configStore.getConfig('chat_model_tiers') || {
+        fast: { modelId: '', label: 'Fast' },
+        standard: { modelId: '', label: 'Flow (Direct)' },
+        swarm: { modelId: '', label: 'Swarm (Direct)' },
+        thinking: { modelId: '', label: 'Thinking' },
+        writer: { modelId: '', label: 'Writer' },
+        pro: { modelId: '', label: 'Pro' }
+    };
+    if (!tiers.writer) tiers.writer = { modelId: '', label: 'Writer' };
+    if (!tiers.standard) tiers.standard = { modelId: '', label: 'Flow (Direct)' };
+    if (!tiers.swarm) tiers.swarm = { modelId: '', label: 'Swarm (Direct)' };
+    res.json(tiers);
 });
 
-router.post('/config/chat-models', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { fast, standard, swarm, thinking, writer, pro } = req.body;
-        const tiers = {
-            fast: fast || { modelId: '', label: 'Fast' },
-            standard: standard || { modelId: '', label: 'Flow (Direct)' },
-            swarm: swarm || { modelId: '', label: 'Swarm (Direct)' },
-            thinking: thinking || { modelId: '', label: 'Thinking' },
-            writer: writer || { modelId: '', label: 'Writer' },
-            pro: pro || { modelId: '', label: 'Pro' }
-        };
-        await configStore.setConfig('chat_model_tiers', tiers);
-        try { require('../../../core/llm/promptClassifier').clearClassifierCache(); } catch (_) { /* non-fatal */ }
-        res.json({ success: true });
-    } catch (e) {
-        log.error('Failed to save chat model tiers:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
+router.post('/config/chat-models', requireAuth, requireAdmin, async (req, res) => {
+    const { fast, standard, swarm, thinking, writer, pro } = req.body;
+    const tiers = {
+        fast: fast || { modelId: '', label: 'Fast' },
+        standard: standard || { modelId: '', label: 'Flow (Direct)' },
+        swarm: swarm || { modelId: '', label: 'Swarm (Direct)' },
+        thinking: thinking || { modelId: '', label: 'Thinking' },
+        writer: writer || { modelId: '', label: 'Writer' },
+        pro: pro || { modelId: '', label: 'Pro' }
+    };
+    await configStore.setConfig('chat_model_tiers', tiers);
+    clearClassifierCache();
+    res.json({ success: true });
 });
+
+// ─── Single-model settings ───────────────────────────────────────
+// Each of these is one admin-only config key holding a model id (or null for
+// "unset"): GET reads it, POST checks the id against the configured providers
+// and stores it. The routes differ only in their path and config key.
+
+/**
+ * Registers GET and POST `path` for the model id stored under `configKey`.
+ * The POST runs the schema before the admin gate, as these routes always did.
+ *
+ * @param {string} path
+ * @param {string} configKey
+ * @param {{ afterSave?: () => void }} [options]
+ */
+function modelIdSetting(path, configKey, { afterSave } = {}) {
+    router.get(path, requireAuth, requireAdmin, async (req, res) => {
+        const modelId = await configStore.getConfig(configKey);
+        res.json({ modelId: typeof modelId === 'string' ? modelId : null });
+    });
+
+    router.post(path, requireAuth, validate({ body: ModelIdBody }), requireAdmin, async (req, res) => {
+        const { modelId } = req.body;
+
+        if (modelId) {
+            const { getProviderForModel } = require('../../../core/aiAgent');
+            try {
+                await getProviderForModel(modelId);
+            } catch (_) {
+                return res.status(400).json({ error: `Model "${modelId}" not found in any configured provider` });
+            }
+        }
+
+        await configStore.setConfig(configKey, modelId);
+        if (afterSave) afterSave();
+        res.json({ success: true, modelId });
+    });
+}
 
 // ─── Auto-tier Classifier Model ──────────────────────────────────
 // The classifier picks a tier for Auto-mode prompts. It runs an LLM
@@ -89,40 +123,7 @@ router.post('/config/chat-models', requireAuth, async (req, res) => {
 // easy 60–70%). Admins can pin the cheapest/fastest model here so the
 // classification call is as snappy as possible. When unset, falls back
 // to the Fast tier model.
-
-router.get('/config/auto-classifier', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const modelId = await configStore.getConfig('auto_classifier_model');
-        res.json({ modelId: typeof modelId === 'string' ? modelId : null });
-    } catch (e) {
-        log.error('Failed to get auto-classifier model:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
-});
-
-router.post('/config/auto-classifier', requireAuth, validate({ body: ModelIdBody }), async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { modelId } = req.body;
-
-        if (modelId) {
-            const { getProviderForModel } = require('../../../core/aiAgent');
-            try {
-                await getProviderForModel(modelId);
-            } catch (_) {
-                return res.status(400).json({ error: `Model "${modelId}" not found in any configured provider` });
-            }
-        }
-
-        await configStore.setConfig('auto_classifier_model', modelId);
-        try { require('../../../core/llm/promptClassifier').clearClassifierCache(); } catch (_) { /* non-fatal */ }
-        res.json({ success: true, modelId });
-    } catch (e) {
-        log.error('Failed to save auto-classifier model:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
-});
+modelIdSetting('/config/auto-classifier', 'auto_classifier_model', { afterSave: clearClassifierCache });
 
 // ─── Title-generation Model ──────────────────────────────────────
 // Conversation titles are a tiny, tool-free LLM call. By default the
@@ -130,39 +131,7 @@ router.post('/config/auto-classifier', requireAuth, validate({ body: ModelIdBody
 // the very cheapest model here (a heavy Fast tier shouldn't make titling
 // expensive). When unset, falls back to the title system-agent config and
 // then the Fast tier.
-
-router.get('/config/title-model', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const modelId = await configStore.getConfig('title_generation_model');
-        res.json({ modelId: typeof modelId === 'string' ? modelId : null });
-    } catch (e) {
-        log.error('Failed to get title-generation model:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
-});
-
-router.post('/config/title-model', requireAuth, validate({ body: ModelIdBody }), async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { modelId } = req.body;
-
-        if (modelId) {
-            const { getProviderForModel } = require('../../../core/aiAgent');
-            try {
-                await getProviderForModel(modelId);
-            } catch (_) {
-                return res.status(400).json({ error: `Model "${modelId}" not found in any configured provider` });
-            }
-        }
-
-        await configStore.setConfig('title_generation_model', modelId);
-        res.json({ success: true, modelId });
-    } catch (e) {
-        log.error('Failed to save title-generation model:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
-});
+modelIdSetting('/config/title-model', 'title_generation_model');
 
 // ─── Memory-extraction Model ─────────────────────────────────────
 // After every reply two background extractors read the exchange for
@@ -172,39 +141,7 @@ router.post('/config/title-model', requireAuth, validate({ body: ModelIdBody }),
 // extraction is another full prompt evaluation queued behind the next
 // turn — a tiny dedicated model (or a hosted one) keeps the slot free.
 // Unset = Fast tier, exactly as before. Same shape as the title model.
-
-router.get('/config/memory-extraction-model', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const modelId = await configStore.getConfig('memory_extraction_model');
-        res.json({ modelId: typeof modelId === 'string' ? modelId : null });
-    } catch (e) {
-        log.error('Failed to get memory-extraction model:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
-});
-
-router.post('/config/memory-extraction-model', requireAuth, validate({ body: ModelIdBody }), async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { modelId } = req.body;
-
-        if (modelId) {
-            const { getProviderForModel } = require('../../../core/aiAgent');
-            try {
-                await getProviderForModel(modelId);
-            } catch (_) {
-                return res.status(400).json({ error: `Model "${modelId}" not found in any configured provider` });
-            }
-        }
-
-        await configStore.setConfig('memory_extraction_model', modelId);
-        res.json({ success: true, modelId });
-    } catch (e) {
-        log.error('Failed to save memory-extraction model:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
-});
+modelIdSetting('/config/memory-extraction-model', 'memory_extraction_model');
 
 // ─── Data-extraction Model ───────────────────────────────────────
 // The model every automation `data_extraction` step runs on, whatever tier the
@@ -214,39 +151,7 @@ router.post('/config/memory-extraction-model', requireAuth, validate({ body: Mod
 // tier's model is the one the builder itself runs on, so extracting through
 // it evicts the builder's prompt cache. Unset = the Fast tier's model, then
 // the global default. Same shape as the memory-extraction model above.
-
-router.get('/config/data-extraction-model', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const modelId = await configStore.getConfig('data_extraction_model');
-        res.json({ modelId: typeof modelId === 'string' ? modelId : null });
-    } catch (e) {
-        log.error('Failed to get data-extraction model:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
-});
-
-router.post('/config/data-extraction-model', requireAuth, validate({ body: ModelIdBody }), async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { modelId } = req.body;
-
-        if (modelId) {
-            const { getProviderForModel } = require('../../../core/aiAgent');
-            try {
-                await getProviderForModel(modelId);
-            } catch (_) {
-                return res.status(400).json({ error: `Model "${modelId}" not found in any configured provider` });
-            }
-        }
-
-        await configStore.setConfig('data_extraction_model', modelId);
-        res.json({ success: true, modelId });
-    } catch (e) {
-        log.error('Failed to save data-extraction model:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
-});
+modelIdSetting('/config/data-extraction-model', 'data_extraction_model');
 
 // ─── AI step model (TEMPORARY override) ─────────────────────────
 // An automation's ai_step inherits the tier the builder wrote for it — `auto` or
@@ -256,39 +161,7 @@ router.post('/config/data-extraction-model', requireAuth, validate({ body: Model
 // every ai_step on the default tier runs on the named model; steps that
 // explicitly picked a heavier tier keep it (core/automationRunner/aiStepModel.js).
 // Unset = the step's own tier, exactly as before. Same shape as the title model.
-
-router.get('/config/ai-step-model', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const modelId = await configStore.getConfig('ai_step_model');
-        res.json({ modelId: typeof modelId === 'string' ? modelId : null });
-    } catch (e) {
-        log.error('Failed to get AI step model:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
-});
-
-router.post('/config/ai-step-model', requireAuth, validate({ body: ModelIdBody }), async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { modelId } = req.body;
-
-        if (modelId) {
-            const { getProviderForModel } = require('../../../core/aiAgent');
-            try {
-                await getProviderForModel(modelId);
-            } catch (_) {
-                return res.status(400).json({ error: `Model "${modelId}" not found in any configured provider` });
-            }
-        }
-
-        await configStore.setConfig('ai_step_model', modelId);
-        res.json({ success: true, modelId });
-    } catch (e) {
-        log.error('Failed to save AI step model:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
-});
+modelIdSetting('/config/ai-step-model', 'ai_step_model');
 
 // ─── Builder narration Model ─────────────────────────────────────
 // While the Automation Builder reasons, a tiny side model rewrites a window
@@ -299,39 +172,7 @@ router.post('/config/ai-step-model', requireAuth, validate({ body: ModelIdBody }
 // is off and the client falls back to its own heuristics. Validated against
 // the configured providers so a typo is a 400 here, not a silent no-op that
 // only shows as a build with no narration.
-
-router.get('/config/builder-narration-model', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const modelId = await configStore.getConfig('builder_narration_model');
-        res.json({ modelId: typeof modelId === 'string' ? modelId : null });
-    } catch (e) {
-        log.error('Failed to get builder-narration model:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
-});
-
-router.post('/config/builder-narration-model', requireAuth, validate({ body: ModelIdBody }), async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { modelId } = req.body;
-
-        if (modelId) {
-            const { getProviderForModel } = require('../../../core/aiAgent');
-            try {
-                await getProviderForModel(modelId);
-            } catch (_) {
-                return res.status(400).json({ error: `Model "${modelId}" not found in any configured provider` });
-            }
-        }
-
-        await configStore.setConfig('builder_narration_model', modelId);
-        res.json({ success: true, modelId });
-    } catch (e) {
-        log.error('Failed to save builder-narration model:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
-});
+modelIdSetting('/config/builder-narration-model', 'builder_narration_model');
 
 // ─── Claude-specific settings ────────────────────────────────────
 // Global knobs that only apply to Anthropic Claude models. Per-tier
@@ -346,27 +187,16 @@ router.post('/config/builder-narration-model', requireAuth, validate({ body: Mod
 // true; flip off if you'd rather see the raw "no response" symptom.
 
 router.get('/config/claude-settings', requireAuth, async (req, res) => {
-    try {
-        const settings = (await configStore.getConfig('claude_settings')) || {};
-        res.json({
-            autoRetryOnEmpty: settings.autoRetryOnEmpty !== false, // default true
-        });
-    } catch (e) {
-        log.error('Failed to get Claude settings:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+    const settings = (await configStore.getConfig('claude_settings')) || {};
+    res.json({
+        autoRetryOnEmpty: settings.autoRetryOnEmpty !== false, // default true
+    });
 });
 
-router.post('/config/claude-settings', requireAuth, validate({ body: ClaudeSettingsBody }), async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const settings = { autoRetryOnEmpty: req.body.autoRetryOnEmpty };
-        await configStore.setConfig('claude_settings', settings);
-        res.json({ success: true, ...settings });
-    } catch (e) {
-        log.error('Failed to save Claude settings:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
+router.post('/config/claude-settings', requireAuth, validate({ body: ClaudeSettingsBody }), requireAdmin, async (req, res) => {
+    const settings = { autoRetryOnEmpty: req.body.autoRetryOnEmpty };
+    await configStore.setConfig('claude_settings', settings);
+    res.json({ success: true, ...settings });
 });
 
 // ─── Hidden Models (global blocklist) ────────────────────────────
@@ -376,105 +206,84 @@ router.post('/config/claude-settings', requireAuth, validate({ body: ClaudeSetti
 // model from the provider catalog, just from the picker UI.
 
 router.get('/config/hidden-models', requireAuth, async (req, res) => {
-    try {
-        const raw = await configStore.getConfig('hidden_model_ids');
-        const ids = Array.isArray(raw) ? raw.filter(id => typeof id === 'string') : [];
-        res.json({ modelIds: ids });
-    } catch (e) {
-        log.error('Failed to get hidden models:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+    const raw = await configStore.getConfig('hidden_model_ids');
+    const ids = Array.isArray(raw) ? raw.filter(id => typeof id === 'string') : [];
+    res.json({ modelIds: ids });
 });
 
-router.post('/config/hidden-models', requireAuth, validate({ body: HiddenModelsBody }), async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const ids = req.body.modelIds;
-        await configStore.setConfig('hidden_model_ids', ids);
-        res.json({ success: true, modelIds: ids });
-    } catch (e) {
-        log.error('Failed to save hidden models:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
+router.post('/config/hidden-models', requireAuth, validate({ body: HiddenModelsBody }), requireAdmin, async (req, res) => {
+    const ids = req.body.modelIds;
+    await configStore.setConfig('hidden_model_ids', ids);
+    res.json({ success: true, modelIds: ids });
 });
+
 
 // ─── EU Model Tier Config ────────────────────────────────────────
 
 router.get('/config/chat-models-eu', requireAuth, async (req, res) => {
-    try {
-        const tiers = await configStore.getConfig('chat_model_tiers_eu') || {
-            fast: { modelId: '', label: 'Fast' },
-            standard: { modelId: '', label: 'Flow (Direct)' },
-            swarm: { modelId: '', label: 'Swarm (Direct)' },
-            thinking: { modelId: '', label: 'Thinking' },
-            writer: { modelId: '', label: 'Writer' },
-            pro: { modelId: '', label: 'Pro' }
-        };
-        if (!tiers.standard) tiers.standard = { modelId: '', label: 'Flow (Direct)' };
-        if (!tiers.swarm) tiers.swarm = { modelId: '', label: 'Swarm (Direct)' };
-        res.json(tiers);
-    } catch (e) {
-        log.error('Failed to get EU chat model tiers:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+    const tiers = await configStore.getConfig('chat_model_tiers_eu') || {
+        fast: { modelId: '', label: 'Fast' },
+        standard: { modelId: '', label: 'Flow (Direct)' },
+        swarm: { modelId: '', label: 'Swarm (Direct)' },
+        thinking: { modelId: '', label: 'Thinking' },
+        writer: { modelId: '', label: 'Writer' },
+        pro: { modelId: '', label: 'Pro' }
+    };
+    if (!tiers.standard) tiers.standard = { modelId: '', label: 'Flow (Direct)' };
+    if (!tiers.swarm) tiers.swarm = { modelId: '', label: 'Swarm (Direct)' };
+    res.json(tiers);
 });
 
-router.post('/config/chat-models-eu', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { fast, standard, swarm, thinking, writer, pro } = req.body;
-        const tiers = {
-            fast: fast || { modelId: '', label: 'Fast' },
-            standard: standard || { modelId: '', label: 'Flow (Direct)' },
-            swarm: swarm || { modelId: '', label: 'Swarm (Direct)' },
-            thinking: thinking || { modelId: '', label: 'Thinking' },
-            writer: writer || { modelId: '', label: 'Writer' },
-            pro: pro || { modelId: '', label: 'Pro' }
-        };
+router.post('/config/chat-models-eu', requireAuth, requireAdmin, async (req, res) => {
+    const { fast, standard, swarm, thinking, writer, pro } = req.body;
+    const tiers = {
+        fast: fast || { modelId: '', label: 'Fast' },
+        standard: standard || { modelId: '', label: 'Flow (Direct)' },
+        swarm: swarm || { modelId: '', label: 'Swarm (Direct)' },
+        thinking: thinking || { modelId: '', label: 'Thinking' },
+        writer: writer || { modelId: '', label: 'Writer' },
+        pro: pro || { modelId: '', label: 'Pro' }
+    };
 
-        // Validate that specified model IDs exist in configured providers
-        const warnings = [];
-        const notInEu = [];
-        const { getProviderForModel } = require('../../../core/aiAgent');
-        const { isEuResidencyUrl } = require('../../../core/providers/openaiModels');
-        for (const [tierName, tierConfig] of Object.entries(tiers)) {
-            if (!tierConfig.modelId) continue;
-            let cfg = null;
-            try {
-                cfg = await getProviderForModel(tierConfig.modelId);
-            } catch (_) {
-                warnings.push(`EU tier "${tierName}": model "${tierConfig.modelId}" not found in any configured provider`);
-                continue;
-            }
-            // These are the models EU mode routes to. OpenAI can serve them from
-            // inside the EU, but only through its regional-processing endpoint —
-            // the default domain processes in the US. Refuse rather than warn:
-            // a tier saved here is what an org with "EU only" switched on will
-            // actually be sent to, and a warning nobody reads is not a control.
-            const isOpenAILike = cfg?.providerType === 'openai' || cfg?.providerType === 'azure';
-            if (isOpenAILike && cfg?.providerType === 'openai' && !isEuResidencyUrl(cfg.url)) {
-                notInEu.push(`"${tierConfig.modelId}" (tier ${tierName}) — provider "${cfg.providerName}" points at ${cfg.url || 'the default US endpoint'}`);
-            }
+    // Validate that specified model IDs exist in configured providers
+    const warnings = [];
+    const notInEu = [];
+    const { getProviderForModel } = require('../../../core/aiAgent');
+    const { isEuResidencyUrl } = require('../../../core/providers/openaiModels');
+    for (const [tierName, tierConfig] of Object.entries(tiers)) {
+        if (!tierConfig.modelId) continue;
+        let cfg = null;
+        try {
+            cfg = await getProviderForModel(tierConfig.modelId);
+        } catch (_) {
+            warnings.push(`EU tier "${tierName}": model "${tierConfig.modelId}" not found in any configured provider`);
+            continue;
         }
-
-        if (notInEu.length > 0) {
-            return res.status(400).json({
-                error: 'EU tiers may only use models that are actually served from the EU.',
-                detail: notInEu,
-                hint: 'Switch the OpenAI provider to EU regional processing (https://eu.api.openai.com/v1) in AI Settings → Providers, or pick a model from an EU-hosted provider.',
-            });
+        // These are the models EU mode routes to. OpenAI can serve them from
+        // inside the EU, but only through its regional-processing endpoint —
+        // the default domain processes in the US. Refuse rather than warn:
+        // a tier saved here is what an org with "EU only" switched on will
+        // actually be sent to, and a warning nobody reads is not a control.
+        const isOpenAILike = cfg?.providerType === 'openai' || cfg?.providerType === 'azure';
+        if (isOpenAILike && cfg?.providerType === 'openai' && !isEuResidencyUrl(cfg.url)) {
+            notInEu.push(`"${tierConfig.modelId}" (tier ${tierName}) — provider "${cfg.providerName}" points at ${cfg.url || 'the default US endpoint'}`);
         }
-
-        await configStore.setConfig('chat_model_tiers_eu', tiers);
-        try { require('../../../core/llm/promptClassifier').clearClassifierCache(); } catch (_) { /* non-fatal */ }
-        if (warnings.length > 0) {
-            log.warn('[Config] EU tier validation warnings:', warnings);
-        }
-        res.json({ success: true, warnings });
-    } catch (e) {
-        log.error('Failed to save EU chat model tiers:', e);
-        res.status(500).json({ error: 'Failed to save config' });
     }
+
+    if (notInEu.length > 0) {
+        return res.status(400).json({
+            error: 'EU tiers may only use models that are actually served from the EU.',
+            detail: notInEu,
+            hint: 'Switch the OpenAI provider to EU regional processing (https://eu.api.openai.com/v1) in AI Settings → Providers, or pick a model from an EU-hosted provider.',
+        });
+    }
+
+    await configStore.setConfig('chat_model_tiers_eu', tiers);
+    clearClassifierCache();
+    if (warnings.length > 0) {
+        log.warn('[Config] EU tier validation warnings:', warnings);
+    }
+    res.json({ success: true, warnings });
 });
 
 // ─── Custom Chat Model Tiers ─────────────────────────────────────
@@ -557,62 +366,46 @@ function normalizeCustomTier(t) {
     };
 }
 
-router.get('/config/custom-chat-models', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const tiers = await configStore.getConfig('custom_chat_model_tiers') || [];
-        res.json({ tiers: Array.isArray(tiers) ? tiers : [] });
-    } catch (e) {
-        log.error('Failed to get custom chat model tiers:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+router.get('/config/custom-chat-models', requireAuth, requireAdmin, async (req, res) => {
+    const tiers = await configStore.getConfig('custom_chat_model_tiers') || [];
+    res.json({ tiers: Array.isArray(tiers) ? tiers : [] });
 });
 
-router.post('/config/custom-chat-models', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    try {
-        const { tiers } = req.body;
-        if (!Array.isArray(tiers)) {
-            return res.status(400).json({ error: '`tiers` must be an array' });
-        }
-        const normalized = tiers.map(normalizeCustomTier).filter(Boolean);
-        // Dedupe by id — last occurrence wins
-        const seen = new Map();
-        for (const t of normalized) seen.set(t.id, t);
-        const finalTiers = Array.from(seen.values());
-
-        const warnings = [];
-        const { getProviderForModel } = require('../../../core/aiAgent');
-        for (const t of finalTiers) {
-            if (t.modelId) {
-                try { await getProviderForModel(t.modelId); }
-                catch (_) { warnings.push(`Custom tier "${t.id}": model "${t.modelId}" not found in any configured provider`); }
-            }
-        }
-        await configStore.setConfig('custom_chat_model_tiers', finalTiers);
-        if (warnings.length > 0) log.warn('[Config] Custom tier validation warnings:', warnings);
-        res.json({ success: true, warnings, tiers: finalTiers });
-    } catch (e) {
-        log.error('Failed to save custom chat model tiers:', e);
-        res.status(500).json({ error: 'Failed to save config' });
+router.post('/config/custom-chat-models', requireAuth, requireAdmin, async (req, res) => {
+    const { tiers } = req.body;
+    if (!Array.isArray(tiers)) {
+        return res.status(400).json({ error: '`tiers` must be an array' });
     }
+    const normalized = tiers.map(normalizeCustomTier).filter(Boolean);
+    // Dedupe by id — last occurrence wins
+    const seen = new Map();
+    for (const t of normalized) seen.set(t.id, t);
+    const finalTiers = Array.from(seen.values());
+
+    const warnings = [];
+    const { getProviderForModel } = require('../../../core/aiAgent');
+    for (const t of finalTiers) {
+        if (t.modelId) {
+            try { await getProviderForModel(t.modelId); }
+            catch (_) { warnings.push(`Custom tier "${t.id}": model "${t.modelId}" not found in any configured provider`); }
+        }
+    }
+    await configStore.setConfig('custom_chat_model_tiers', finalTiers);
+    if (warnings.length > 0) log.warn('[Config] Custom tier validation warnings:', warnings);
+    res.json({ success: true, warnings, tiers: finalTiers });
 });
 
 // Lightweight tier list for org-admin group editor — metadata only (id, label, icon, scope)
 // Returns global + the caller's org tiers merged.
 router.get('/config/custom-tiers-list', requireAuth, async (req, res) => {
-    try {
-        const orgId = await resolveSessionOrgId(req);
-        const tiers = await loadMergedCustomTiers(orgId);
-        const list = tiers.map(t => ({
-            id: t.id, label: t.label, icon: t.icon, description: t.description,
-            allowedTaskTypes: t.allowedTaskTypes || [],
-            scope: t._scope || 'global',
-        }));
-        res.json({ tiers: list });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to fetch tiers list' });
-    }
+    const orgId = await resolveSessionOrgId(req);
+    const tiers = await loadMergedCustomTiers(orgId);
+    const list = tiers.map(t => ({
+        id: t.id, label: t.label, icon: t.icon, description: t.description,
+        allowedTaskTypes: t.allowedTaskTypes || [],
+        scope: t._scope || 'global',
+    }));
+    res.json({ tiers: list });
 });
 
 // ─── Org-scoped Custom Tiers (org admin) ─────────────────────────
@@ -621,169 +414,154 @@ router.get('/config/custom-tiers-list', requireAuth, async (req, res) => {
 // any org by passing ?orgId=xxx; org admins implicitly target their own org.
 router.get('/config/org-custom-chat-models', requireAuth, async (req, res) => {
     if (!(await isOrgAdmin(req))) return res.status(403).json({ error: 'Org admin access required' });
-    try {
-        let orgId = await isAdminUser(req) && typeof req.query.orgId === 'string' && req.query.orgId
-            ? req.query.orgId
-            : await resolveSessionOrgId(req);
-        if (!orgId) return res.status(400).json({ error: 'No organisation resolved for this user' });
-        const globalTiers = await loadGlobalCustomTiers();
-        const orgTiers = await loadOrgCustomTiers(orgId);
-        res.json({
-            orgId,
-            orgTiers,
-            // Returned for reference (read-only in this editor) so the org admin
-            // can see which tiers are already provided globally.
-            globalTiers: globalTiers.map(t => ({
-                id: t.id, label: t.label, icon: t.icon, description: t.description,
-                allowedTaskTypes: t.allowedTaskTypes || [],
-            })),
-        });
-    } catch (e) {
-        log.error('Failed to get org custom chat model tiers:', e);
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+    let orgId = await isAdminUser(req) && typeof req.query.orgId === 'string' && req.query.orgId
+        ? req.query.orgId
+        : await resolveSessionOrgId(req);
+    if (!orgId) return res.status(400).json({ error: 'No organisation resolved for this user' });
+    const globalTiers = await loadGlobalCustomTiers();
+    const orgTiers = await loadOrgCustomTiers(orgId);
+    res.json({
+        orgId,
+        orgTiers,
+        // Returned for reference (read-only in this editor) so the org admin
+        // can see which tiers are already provided globally.
+        globalTiers: globalTiers.map(t => ({
+            id: t.id, label: t.label, icon: t.icon, description: t.description,
+            allowedTaskTypes: t.allowedTaskTypes || [],
+        })),
+    });
 });
 
 router.post('/config/org-custom-chat-models', requireAuth, async (req, res) => {
     if (!(await isOrgAdmin(req))) return res.status(403).json({ error: 'Org admin access required' });
-    try {
-        let orgId = await isAdminUser(req) && typeof req.body.orgId === 'string' && req.body.orgId
-            ? req.body.orgId
-            : await resolveSessionOrgId(req);
-        if (!orgId) return res.status(400).json({ error: 'No organisation resolved for this user' });
+    let orgId = await isAdminUser(req) && typeof req.body.orgId === 'string' && req.body.orgId
+        ? req.body.orgId
+        : await resolveSessionOrgId(req);
+    if (!orgId) return res.status(400).json({ error: 'No organisation resolved for this user' });
 
-        const { tiers } = req.body;
-        if (!Array.isArray(tiers)) {
-            return res.status(400).json({ error: '`tiers` must be an array' });
-        }
-        const normalized = tiers.map(normalizeCustomTier).filter(Boolean);
-        const seen = new Map();
-        for (const t of normalized) seen.set(t.id, t);
-        const finalTiers = Array.from(seen.values());
-
-        const warnings = [];
-        const { getProviderForModel } = require('../../../core/aiAgent');
-        for (const t of finalTiers) {
-            if (t.modelId) {
-                try { await getProviderForModel(t.modelId); }
-                catch (_) { warnings.push(`Custom tier "${t.id}": model "${t.modelId}" not found in any configured provider`); }
-            }
-            if (t.euModelId) {
-                try { await getProviderForModel(t.euModelId); }
-                catch (_) { warnings.push(`Custom tier "${t.id}": EU model "${t.euModelId}" not found in any configured provider`); }
-            }
-        }
-        await configStore.setConfig(`custom_chat_model_tiers_org_${orgId}`, finalTiers);
-        if (warnings.length > 0) log.warn(`[Config] Org ${orgId} custom tier warnings:`, warnings);
-        res.json({ success: true, orgId, warnings, tiers: finalTiers });
-    } catch (e) {
-        log.error('Failed to save org custom chat model tiers:', e);
-        res.status(500).json({ error: 'Failed to save config' });
+    const { tiers } = req.body;
+    if (!Array.isArray(tiers)) {
+        return res.status(400).json({ error: '`tiers` must be an array' });
     }
+    const normalized = tiers.map(normalizeCustomTier).filter(Boolean);
+    const seen = new Map();
+    for (const t of normalized) seen.set(t.id, t);
+    const finalTiers = Array.from(seen.values());
+
+    const warnings = [];
+    const { getProviderForModel } = require('../../../core/aiAgent');
+    for (const t of finalTiers) {
+        if (t.modelId) {
+            try { await getProviderForModel(t.modelId); }
+            catch (_) { warnings.push(`Custom tier "${t.id}": model "${t.modelId}" not found in any configured provider`); }
+        }
+        if (t.euModelId) {
+            try { await getProviderForModel(t.euModelId); }
+            catch (_) { warnings.push(`Custom tier "${t.id}": EU model "${t.euModelId}" not found in any configured provider`); }
+        }
+    }
+    await configStore.setConfig(`custom_chat_model_tiers_org_${orgId}`, finalTiers);
+    if (warnings.length > 0) log.warn(`[Config] Org ${orgId} custom tier warnings:`, warnings);
+    res.json({ success: true, orgId, warnings, tiers: finalTiers });
 });
 
 // Returns tiers a given user may use, optionally filtered by taskType.
 // Shape matches the existing /config/chat-models consumer: { fast: {...}, thinking: {...}, ..., 'custom:xyz': {...} }
 router.get('/config/tiers-for-user', requireAuth, async (req, res) => {
-    try {
-        const taskType = typeof req.query.taskType === 'string' ? req.query.taskType : null;
-        const userId = req.session.user?.id;
-        const userOrgId = req.session.user?.organizationId;
+    const taskType = typeof req.query.taskType === 'string' ? req.query.taskType : null;
+    const userId = req.session.user?.id;
+    const userOrgId = req.session.user?.organizationId;
 
-        const userStore = require('../../../stores/userStore');
-        const { getEUAwareTiers } = require('../../../core/llm/modelResolver');
+    const userStore = require('../../../stores/userStore');
+    const { getEUAwareTiers } = require('../../../core/llm/modelResolver');
 
-        // Standard tiers (already EU-aware) — always included, unrestricted by the plan's permission model
-        const standardTiers = await getEUAwareTiers({ userOrgId, userId });
+    // Standard tiers (already EU-aware) — always included, unrestricted by the plan's permission model
+    const standardTiers = await getEUAwareTiers({ userOrgId, userId });
 
-        // Custom tiers (global + org-scoped, with org taking precedence on id collision)
-        const customTiers = await loadMergedCustomTiers(userOrgId);
-        // EU override: when EU mode is active, swap modelId for euModelId (if set).
-        const { isEUModeActive } = require('../../../core/llm/modelResolver');
-        const { isEU } = await isEUModeActive({ userOrgId, userId });
-        if (isEU) {
-            for (const t of customTiers) {
-                if (t.euModelId) t.modelId = t.euModelId;
-            }
+    // Custom tiers (global + org-scoped, with org taking precedence on id collision)
+    const customTiers = await loadMergedCustomTiers(userOrgId);
+    // EU override: when EU mode is active, swap modelId for euModelId (if set).
+    const { isEUModeActive } = require('../../../core/llm/modelResolver');
+    const { isEU } = await isEUModeActive({ userOrgId, userId });
+    if (isEU) {
+        for (const t of customTiers) {
+            if (t.euModelId) t.modelId = t.euModelId;
         }
-
-        // Resolve user's group ids
-        const user = userId ? await userStore.getUser(userId) : null;
-        const userGroupIds = Array.isArray(user?.groups) ? user.groups : [];
-        const allGroups = await userStore.getAllGroups();
-        const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
-
-        // A tier is permitted if ANY of the user's groups:
-        //   (a) has allowedTiers empty/unset (no restriction), OR
-        //   (b) lists the tier id in allowedTiers.
-        // If the user has NO groups, treat as unrestricted (matches getUser default behaviour).
-        function tierPermittedByGroups(tierId) {
-            if (userGroups.length === 0) return true;
-            return userGroups.some(g => {
-                const list = Array.isArray(g.allowedTiers) ? g.allowedTiers : [];
-                return list.length === 0 || list.includes(tierId);
-            });
-        }
-
-        // The Flow tier (key 'standard') requires BOTH the `flow` beta (the
-        // tier opt-in) and the `skills` beta (its runtime dependency: Flow
-        // bootstraps chat-local session skills). The Swarm tier depends on
-        // the `swarm` beta. Hide either tier when the caller's org/user
-        // doesn't have the required feature(s).
-        const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
-        const hasSkillsFeature = userId
-            ? await userHasBetaFeature(userId, 'skills', req.session).catch(() => false)
-            : false;
-        const hasFlowFeature = userId
-            ? await userHasBetaFeature(userId, 'flow', req.session).catch(() => false)
-            : false;
-        const hasSwarmFeature = userId
-            ? await userHasBetaFeature(userId, 'swarm', req.session).catch(() => false)
-            : false;
-        const hasFlowTier = hasFlowFeature && hasSkillsFeature;
-
-        const result = {};
-        // Auto is a meta/routing tier (no concrete modelId) — always include it
-        // when permitted by groups so the client's persisted 'auto' selection
-        // survives the post-fetch reconciliation in AgentHub.
-        if (tierPermittedByGroups('auto')) {
-            result.auto = { auto: true };
-        }
-        // Standard
-        for (const key of STANDARD_TIER_KEYS) {
-            // Direct-chat-only tiers: never expose for non-direct tasks.
-            if ((key === 'standard' || key === 'swarm') && taskType !== 'direct_chat') continue;
-            // Beta gates: Flow uses `skills`, Swarm uses `swarm`.
-            if (key === 'standard' && !hasFlowTier) continue;
-            if (key === 'swarm' && !hasSwarmFeature) continue;
-            if (!tierPermittedByGroups(key)) continue;
-            if (standardTiers && standardTiers[key]) result[key] = standardTiers[key];
-        }
-        // Custom
-        for (const t of (Array.isArray(customTiers) ? customTiers : [])) {
-            // v1 carve-out (C27): taskType 'automation' does not filter custom
-            // tiers by allowedTaskTypes — existing custom tiers pre-date any
-            // "Automations" checkbox, filtering would strip them from live
-            // automations. Mirrors core/userTiers.getPermittedTierKeys.
-            if (taskType && taskType !== 'automation' && !(t.allowedTaskTypes || []).includes(taskType)) continue;
-            if (!tierPermittedByGroups(t.id)) continue;
-            result[t.id] = {
-                modelId: t.modelId,
-                label: t.label,
-                icon: t.icon,
-                description: t.description,
-                maxTokens: t.maxTokens,
-                temperature: t.temperature,
-                reasoningEffort: t.reasoningEffort,
-                reasoningSummary: t.reasoningSummary,
-                custom: true,
-            };
-        }
-        res.json(result);
-    } catch (e) {
-        log.error('Failed to compute tiers-for-user:', e);
-        res.status(500).json({ error: 'Failed to compute tiers' });
     }
+
+    // Resolve user's group ids
+    const user = userId ? await userStore.getUser(userId) : null;
+    const userGroupIds = Array.isArray(user?.groups) ? user.groups : [];
+    const allGroups = await userStore.getAllGroups();
+    const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
+
+    // A tier is permitted if ANY of the user's groups:
+    //   (a) has allowedTiers empty/unset (no restriction), OR
+    //   (b) lists the tier id in allowedTiers.
+    // If the user has NO groups, treat as unrestricted (matches getUser default behaviour).
+    function tierPermittedByGroups(tierId) {
+        if (userGroups.length === 0) return true;
+        return userGroups.some(g => {
+            const list = Array.isArray(g.allowedTiers) ? g.allowedTiers : [];
+            return list.length === 0 || list.includes(tierId);
+        });
+    }
+
+    // The Flow tier (key 'standard') requires BOTH the `flow` beta (the
+    // tier opt-in) and the `skills` beta (its runtime dependency: Flow
+    // bootstraps chat-local session skills). The Swarm tier depends on
+    // the `swarm` beta. Hide either tier when the caller's org/user
+    // doesn't have the required feature(s).
+    const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
+    const hasSkillsFeature = userId
+        ? await userHasBetaFeature(userId, 'skills', req.session).catch(() => false)
+        : false;
+    const hasFlowFeature = userId
+        ? await userHasBetaFeature(userId, 'flow', req.session).catch(() => false)
+        : false;
+    const hasSwarmFeature = userId
+        ? await userHasBetaFeature(userId, 'swarm', req.session).catch(() => false)
+        : false;
+    const hasFlowTier = hasFlowFeature && hasSkillsFeature;
+
+    const result = {};
+    // Auto is a meta/routing tier (no concrete modelId) — always include it
+    // when permitted by groups so the client's persisted 'auto' selection
+    // survives the post-fetch reconciliation in AgentHub.
+    if (tierPermittedByGroups('auto')) {
+        result.auto = { auto: true };
+    }
+    // Standard
+    for (const key of STANDARD_TIER_KEYS) {
+        // Direct-chat-only tiers: never expose for non-direct tasks.
+        if ((key === 'standard' || key === 'swarm') && taskType !== 'direct_chat') continue;
+        // Beta gates: Flow uses `skills`, Swarm uses `swarm`.
+        if (key === 'standard' && !hasFlowTier) continue;
+        if (key === 'swarm' && !hasSwarmFeature) continue;
+        if (!tierPermittedByGroups(key)) continue;
+        if (standardTiers && standardTiers[key]) result[key] = standardTiers[key];
+    }
+    // Custom
+    for (const t of (Array.isArray(customTiers) ? customTiers : [])) {
+        // v1 carve-out (C27): taskType 'automation' does not filter custom
+        // tiers by allowedTaskTypes — existing custom tiers pre-date any
+        // "Automations" checkbox, filtering would strip them from live
+        // automations. Mirrors core/userTiers.getPermittedTierKeys.
+        if (taskType && taskType !== 'automation' && !(t.allowedTaskTypes || []).includes(taskType)) continue;
+        if (!tierPermittedByGroups(t.id)) continue;
+        result[t.id] = {
+            modelId: t.modelId,
+            label: t.label,
+            icon: t.icon,
+            description: t.description,
+            maxTokens: t.maxTokens,
+            temperature: t.temperature,
+            reasoningEffort: t.reasoningEffort,
+            reasoningSummary: t.reasoningSummary,
+            custom: true,
+        };
+    }
+    res.json(result);
 });
 
 module.exports = router;
