@@ -445,8 +445,12 @@ describe('BuilderChatPane', () => {
         // 2026-09-16): it is published on the build cue and the shell hangs it
         // on the canvas, where the build is.
         expect(screen.queryByText('Koppel de tabel')).toBeNull();
-        const published = chrome.publishBuildCue.mock.calls.map((c) => c[0]).filter((c) => c && c.todos && c.todos.length);
-        expect(published.at(-1).todos).toEqual([{ text: 'Koppel de tabel', done: true }, { text: 'Tegels', done: false }]);
+        // The cue is published after the plan event is applied; on a slow
+        // runner that lands after the activity row, so wait for it.
+        await waitFor(() => {
+            const published = chrome.publishBuildCue.mock.calls.map((c) => c[0]).filter((c) => c && c.todos && c.todos.length);
+            expect(published.at(-1)?.todos).toEqual([{ text: 'Koppel de tabel', done: true }, { text: 'Tegels', done: false }]);
+        });
         await waitFor(() => expect(ctxRef.current.streamLock).toBe(false));
     });
 
