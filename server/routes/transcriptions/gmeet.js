@@ -405,12 +405,8 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
         }
         res.json(out.transcription);
     } catch (err) {
-        // A classified failure (a known `code`, or a 4xx the pipeline set) is
-        // the caller's to read. Anything else is internal: the terminal
-        // handler answers it with a generic message and a correlation id.
         const status = err.status || GMEET_ERROR_STATUS[err.code];
-        if (!status || status >= 500) throw err;
-        log.warn('[Transcriptions] from-gmeet failed:', err.message);
+        if (!status || status >= 500) throw err; // unclassified: the terminal handler logs it and answers generically
         res.status(status).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
     }
 });

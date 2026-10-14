@@ -43,7 +43,7 @@ router.use('/', require('./transcriptions/teams'));
 
 // ── Upload error handling ────────────────────────────────
 // Answers only multer's and the format filter's refusals; the rest goes on to
-// the terminal handler. See ./transcriptions/uploadErrors.js.
-router.use(require('./transcriptions/uploadErrors').uploadErrorHandler);
+// the terminal handler. See ./transcriptions/audioUpload.js.
+router.use(require('./transcriptions/audioUpload').uploadErrorHandler);
 
 module.exports = router;

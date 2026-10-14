@@ -10,8 +10,8 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
-const multer = require('multer');
-const { UNSUPPORTED_AUDIO_FORMAT } = require('./uploadErrors');
+// The multer instance (scratch dir, size cap, audio-only filter): ./audioUpload.js.
+const { upload } = require('./audioUpload');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -27,28 +27,6 @@ const {
 } = require('./shared');
 const { stampForTemplate } = require('../../core/meetingNotes/summaryStamp');
 const meetingFiling = require('../../projects/meetingFiling');
-
-// Multer for audio file upload. Scratch in /tmp; the kept copies are
-// saved-recordings and RustFS, made further down.
-const { AUDIO_SCRATCH_DIR: uploadsDir } = require('../../core/meetingNotes/savedAudioStore');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const upload = multer({
-    dest: uploadsDir,
-    limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
-    fileFilter: (req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase();
-        const allowed = ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.flac', '.mp4', '.mpeg', '.aac'];
-        if (allowed.includes(ext) || file.mimetype?.startsWith('audio/')) {
-            cb(null, true);
-        } else {
-            // The code lets ./uploadErrors.js answer this one 400 itself.
-            const err = new Error('Unsupported audio format. Supported: MP3, WAV, M4A, OGG, WEBM, FLAC, MP4, AAC');
-            err.code = UNSUPPORTED_AUDIO_FORMAT;
-            cb(err);
-        }
-    },
-});
 
 // Every engine the pipeline knows how to drive. A request may name one of
 // these; anything else is rejected rather than silently falling through to the

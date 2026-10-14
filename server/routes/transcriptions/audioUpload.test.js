@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const multer = require('multer');
 const { HttpError } = require('../../core/http/errors');
-const { uploadErrorHandler, UNSUPPORTED_AUDIO_FORMAT } = require('./uploadErrors');
+const { uploadErrorHandler, UNSUPPORTED_AUDIO_FORMAT } = require('./audioUpload');
 
 function run(err) {
     const res = {
