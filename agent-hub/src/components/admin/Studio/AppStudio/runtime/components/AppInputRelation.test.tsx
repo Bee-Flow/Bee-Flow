@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import AppForm from './AppForm';
 import AppInputRelation from './AppInputRelation';
 import { dataCacheKey } from '../resolveBinding';
-import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
+import { RuntimeProvider, DEFAULT_RUNTIME, buildScope } from '../RuntimeContext';
 import { CANDIDATE_LIMIT } from './comboBox';
 
 /**
@@ -43,7 +43,7 @@ function renderRelation(props = {}, scope = {}) {
     const dataState = { [key]: { status: 'success', result: LINES } };
 
     const view = render(
-        <RuntimeProvider value={{ ...DEFAULT_RUNTIME, mode: 'run', dataState, scope }}>
+        <RuntimeProvider value={{ ...DEFAULT_RUNTIME, mode: 'run', dataState, scope: buildScope(scope) }}>
             <AppForm node={formNode}><AppInputRelation node={node} /></AppForm>
         </RuntimeProvider>,
     );
@@ -99,7 +99,7 @@ describe('AppInputRelation filter', () => {
         expect(key).not.toContain('item.thread_key');
         seen.push(key);
         render(
-            <RuntimeProvider value={{ ...DEFAULT_RUNTIME, mode: 'run', dataState: { [key]: { status: 'success', result: LINES } }, scope: { vars: { thread: 'demo-thread-001' } } }}>
+            <RuntimeProvider value={{ ...DEFAULT_RUNTIME, mode: 'run', dataState: { [key]: { status: 'success', result: LINES } }, scope: buildScope({ vars: { thread: 'demo-thread-001' } }) }}>
                 <AppForm node={{ id: 'f', type: 'form', visible: true, props: { name: 'fileops', showSubmit: false }, style: { span: 12 }, children: [node] }}>
                     <AppInputRelation node={node} />
                 </AppForm>
