@@ -22,6 +22,8 @@ const fs = require('fs');
 const path = require('path');
 
 const RUNNER = fs.readFileSync(path.join(__dirname, 'aiTaskRunner.js'), 'utf8');
+// A schedule run as its agent lives in cowork/agentScheduleRun.js.
+const AGENT_RUN = fs.readFileSync(path.join(__dirname, 'cowork', 'agentScheduleRun.js'), 'utf8');
 // The custom-integration family (and its unattended rule) is registered here.
 const DISPATCHER = fs.readFileSync(path.join(__dirname, '..', 'integrations', 'toolFamilies.js'), 'utf8');
 // The agent runtime's tool dispatch moved with the tool round into
@@ -77,16 +79,16 @@ test('the dispatcher lets unattended be set independently of autoSend', () => {
 test('the agent path passes autoSend through its metadata', () => {
     // The metadata literal, delimited by braces — `chatWithAgentStream` is
     // required further up the function, so it is not a usable end marker.
-    const at = RUNNER.indexOf('const messageMetadata');
+    const at = AGENT_RUN.indexOf('const messageMetadata');
     assert.notStrictEqual(at, -1, 'executeAgentAutomation no longer builds messageMetadata');
-    const open = RUNNER.indexOf('{', at);
+    const open = AGENT_RUN.indexOf('{', at);
     let depth = 0;
     let meta = '';
-    for (let i = open; i < RUNNER.length; i += 1) {
-        if (RUNNER[i] === '{') depth += 1;
-        else if (RUNNER[i] === '}') {
+    for (let i = open; i < AGENT_RUN.length; i += 1) {
+        if (AGENT_RUN[i] === '{') depth += 1;
+        else if (AGENT_RUN[i] === '}') {
             depth -= 1;
-            if (depth === 0) { meta = RUNNER.slice(open, i + 1); break; }
+            if (depth === 0) { meta = AGENT_RUN.slice(open, i + 1); break; }
         }
     }
     assert.match(meta, /autoSend:\s*true/, 'executeAgentAutomation must mark the run unattended-sending');
