@@ -35,11 +35,9 @@ const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { z, typeError } = require('../../../utils/zod');
 const { orEmpty: bodyOf } = require('../../../core/http/schemaParts');
+const { requireAdminUser } = require('../requireAdminUser');
 
-async function requireAdmin(req, res, next) {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    next();
-}
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What an admin may send ────────────────────────────────────────────────
 

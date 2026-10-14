@@ -21,13 +21,11 @@ const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const { z, typeError } = require('../../../utils/zod');
+const { requireAdminUser } = require('../requireAdminUser');
 
 // Only admins can generate regex rules — and only an admin learns what the
 // schema below refuses.
-async function requireAdmin(req, res, next) {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    next();
-}
+const requireAdmin = requireAdminUser(isAdminUser);
 
 const PROMPT_TEXT = 'Prompt is required';
 const GenerateRegexBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({

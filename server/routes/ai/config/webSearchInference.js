@@ -23,6 +23,7 @@ const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { z, typeError } = require('../../../utils/zod');
+const { requireAdminUser } = require('../requireAdminUser');
 
 // ─── Web-Search Inference Routing ────────────────────────────────
 // Controls how the search-service handles its 3 inference tasks:
@@ -37,10 +38,7 @@ const {
     DEFAULTS: WEB_SEARCH_INFERENCE_DEFAULTS,
 } = require('../../../core/llm/webSearchInferenceResolver');
 
-async function requireAdmin(req, res, next) {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    next();
-}
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What an admin may send ────────────────────────────────────────────────
 

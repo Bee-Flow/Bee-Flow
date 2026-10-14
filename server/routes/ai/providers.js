@@ -12,6 +12,7 @@ const { validate } = require('../../core/http/validate');
 const { requireAuth } = require('../../auth/permissions');
 const { isAdminUser } = require('./config/shared');
 const log = require('../../telemetry/log');
+const { requireAdminUser } = require('./requireAdminUser');
 
 // Providers are INSTANCE-WIDE config (one shared `ai` config row) and each
 // entry carries a real API key. Mutating them is therefore admin work, exactly
@@ -20,10 +21,7 @@ const log = require('../../telemetry/log');
 // provider URL at their own host — and updateProvider keeps the stored key
 // when none is supplied, so the instance would then send its real key there.
 // Same middleware shape as localRuntimes.js, same gate as config/shared.
-async function requireAdmin(req, res, next) {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    next();
-}
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What a caller may send ────────────────────────────────────────────────
 // Every schema runs AFTER requireAdmin: only an admin learns what it refuses.

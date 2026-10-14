@@ -25,11 +25,9 @@ const { requireAuth } = require('../../../auth/permissions');
 const { isAdminUser } = require('./shared');
 const { validate } = require('../../../core/http/validate');
 const { z, typeError } = require('../../../utils/zod');
+const { requireAdminUser } = require('../requireAdminUser');
 
-async function requireAdmin(req, res, next) {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    next();
-}
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What an admin may send ────────────────────────────────────────────────
 // Each entry either prices a model or resets it. The loop below used to skip
