@@ -72,7 +72,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /knowledgeBases[\\/]sources\.js$/.test(parent.filename)
+    if (parent && /knowledgeBases[\\/](sources|sourcePolicy|sourceSchemas|sourceCreate|sourceUploads)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
