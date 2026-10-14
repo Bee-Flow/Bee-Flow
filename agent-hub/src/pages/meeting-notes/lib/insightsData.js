@@ -218,8 +218,8 @@ function normalizeName(value) {
  * Computed per viewer at render time and never persisted or shared — keep it
  * that way; a persisted variant becomes a colleague-mention index.
  *
- * @param {Array} segments
- * @param {string} viewerName
+ * @param {Array | undefined} segments
+ * @param {string | undefined} viewerName
  * @returns {Array<{seconds: number, speakerId: string, text: string}>}
  */
 export function findNameMentions(segments, viewerName) {

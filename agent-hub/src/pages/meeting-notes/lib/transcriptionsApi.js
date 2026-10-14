@@ -373,6 +373,9 @@ export async function deleteSummaryTemplate(id) {
  * Payload mirrors the backend route shape:
  *   { renames: { "Old name": "New name" }, merges: [{ from: ["A","B"], into: "A" }] }
  * Returns the full updated transcription.
+ *
+ * @param {string} id
+ * @param {{ renames?: Record<string, string>, merges?: Array<{ from: string[], into: string }> }} [patch]
  */
 export async function updateSpeakers(id, { renames = {}, merges = [] } = {}) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}/speakers`, {

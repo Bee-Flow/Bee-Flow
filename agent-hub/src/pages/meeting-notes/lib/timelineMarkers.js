@@ -42,7 +42,7 @@ export function toSeconds(stamp) {
 
 /**
  * @param {Array<{id?: string, text?: string, assignee?: string, timestamp?: string, done?: boolean}>} actionItems
- * @param {number} durationSeconds
+ * @param {number | undefined} durationSeconds
  * @returns {Array<{id: string, seconds: number, fraction: number, label: string, assignee: string, done: boolean, count: number}>}
  *          Chronological, de-clustered markers. Empty when nothing is placeable.
  */
@@ -89,7 +89,7 @@ function toMarker(item, duration) {
  * into an action-item pin. Computed per viewer at render time; never persisted.
  *
  * @param {Array<{seconds: number, speakerId: string, text: string}>} mentions
- * @param {number} durationSeconds
+ * @param {number | undefined} durationSeconds
  */
 export function buildMentionMarkers(mentions, durationSeconds) {
     const duration = Number(durationSeconds) || 0;
