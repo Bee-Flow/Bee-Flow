@@ -88,6 +88,10 @@ Module._resolveFilename = function (request, parent, ...rest) {
 };
 
 const router = require('./mfaRoutes');
+const { createTerminalErrorHandler } = require('../core/http/terminalErrorHandler');
+
+const quietLog = { error() {}, warn() {}, info() {}, debug() {} };
+const terminalErrorHandler = createTerminalErrorHandler({ log: quietLog });
 
 test.after(() => { Module._resolveFilename = originalResolve; });
 
@@ -126,7 +130,11 @@ function dispatch({ method = 'POST', url, body = {}, session }) {
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
         };
-        router(request, res, (err) => reject(err || new Error(`fell through router: ${method} ${url}`)));
+        // A thrown error goes where the app sends it: the terminal handler.
+        router(request, res, (err) => {
+            if (!err) return reject(new Error(`fell through router: ${method} ${url}`));
+            terminalErrorHandler(err, request, res, reject);
+        });
     });
 }
 
@@ -286,12 +294,10 @@ test('a key-only account that types a wrong code hears "invalid", not "unreadabl
 
 test('/disable without any proof is refused in words', async () => {
     resetFx();
-    // This harness has no error handler: a validation refusal arrives as the
-    // HttpError the terminal handler would have turned into a 400.
-    await assert.rejects(
-        dispatch({ url: '/disable', body: {}, session: makeSession() }),
-        (err) => err.status === 400 && err.code === 'invalid_request',
-    );
+    // The validation refusal goes through the terminal handler as a 400.
+    const res = await dispatch({ url: '/disable', body: {}, session: makeSession() });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.code, 'invalid_request');
     assert.deepStrictEqual(fx.keysRemovedFor, []);
 });
 

@@ -17,6 +17,7 @@ const { createSecondFactorProof } = require('./securityKeys/proof');
 const { credentialJson } = require('./securityKeys/schemas');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 
 const router = express.Router();
 
@@ -113,27 +114,23 @@ const AssistBody = z.object({
 }).strict();
 
 router.get('/status', requireAuth, async (req, res) => {
-    try {
-        const row = await userStore.getUser(req.session.user.id);
-        const keys = row?.mfa_enabled ? await userStore.listSecurityKeys(req.session.user.id) : [];
-        res.json({
-            enabled: !!row?.mfa_enabled,
-            recoveryCodesRemaining: mfa.remainingRecoveryCodes(row?.mfa_recovery_codes),
-            // Which factors make up that second step. Either may be absent: an
-            // account can use an authenticator app, security keys
-            // (auth/securityKeys/), or both.
-            totpEnabled: !!(row?.mfa_enabled && row.mfa_secret),
-            securityKeys: keys.length,
-            // The relying parties those keys answer for, so the client can
-            // tell whether one works on the address it is on.
-            securityKeyRpIds: [...new Set(keys.map((k) => k.rpId))],
-            // Whether the account has a password (false for OAuth/SSO-only
-            // accounts) — gates the "Change password" card in settings.
-            hasPassword: !!row?.passwordHash,
-        });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to load MFA status' });
-    }
+    const row = await userStore.getUser(req.session.user.id);
+    const keys = row?.mfa_enabled ? await userStore.listSecurityKeys(req.session.user.id) : [];
+    res.json({
+        enabled: !!row?.mfa_enabled,
+        recoveryCodesRemaining: mfa.remainingRecoveryCodes(row?.mfa_recovery_codes),
+        // Which factors make up that second step. Either may be absent: an
+        // account can use an authenticator app, security keys
+        // (auth/securityKeys/), or both.
+        totpEnabled: !!(row?.mfa_enabled && row.mfa_secret),
+        securityKeys: keys.length,
+        // The relying parties those keys answer for, so the client can
+        // tell whether one works on the address it is on.
+        securityKeyRpIds: [...new Set(keys.map((k) => k.rpId))],
+        // Whether the account has a password (false for OAuth/SSO-only
+        // accounts) — gates the "Change password" card in settings.
+        hasPassword: !!row?.passwordHash,
+    });
 });
 
 // The pending setup secret lives in the session as { secret, mintedAt }.
@@ -152,26 +149,21 @@ function readSetupSecret(session) {
 // explicitly mints a fresh secret ("start over"). Returns serverTime so the
 // client can warn about device clock drift (a ±30s-window TOTP rejects
 // otherwise-valid codes when the phone clock is off).
-router.post('/setup', requireAuth, validate({ body: SetupBody }), async (req, res) => {
-    try {
-        const existing = readSetupSecret(req.session);
-        const fresh = req.body.force !== true
-            && existing
-            && existing.mintedAt
-            && (Date.now() - existing.mintedAt) < SETUP_SECRET_TTL_MS;
-        const secret = fresh ? existing.secret : mfa.generateSecret();
-        req.session.mfaSetupSecret = { secret, mintedAt: fresh ? existing.mintedAt : Date.now() };
-        const label = req.session.user.displayName || req.session.user.id;
-        const otpauthUrl = mfa.otpauthUrl(secret, label);
-        const qr = await mfa.qrDataUrl(otpauthUrl);
-        req.session.save((err) => {
-            if (err) return res.status(500).json({ error: 'Failed to start setup' });
-            res.json({ otpauthUrl, qr, secret, serverTime: Date.now() });
-        });
-    } catch (e) {
-        log.error('[MFA] setup error:', e.message);
-        res.status(500).json({ error: 'Failed to start MFA setup' });
-    }
+router.post('/setup', requireAuth, validate({ body: SetupBody }), async (req, res, next) => {
+    const existing = readSetupSecret(req.session);
+    const fresh = req.body.force !== true
+        && existing
+        && existing.mintedAt
+        && (Date.now() - existing.mintedAt) < SETUP_SECRET_TTL_MS;
+    const secret = fresh ? existing.secret : mfa.generateSecret();
+    req.session.mfaSetupSecret = { secret, mintedAt: fresh ? existing.mintedAt : Date.now() };
+    const label = req.session.user.displayName || req.session.user.id;
+    const otpauthUrl = mfa.otpauthUrl(secret, label);
+    const qr = await mfa.qrDataUrl(otpauthUrl);
+    req.session.save((err) => {
+        if (err) return next(err);
+        res.json({ otpauthUrl, qr, secret, serverTime: Date.now() });
+    });
 });
 
 // Confirm enrollment — verify a code against the pending secret, then persist.
@@ -179,39 +171,34 @@ router.post('/setup', requireAuth, validate({ body: SetupBody }), async (req, re
 // with security keys adding an app, or replacing its app), the caller must
 // also prove a factor it already has; see auth/securityKeys/proof.js.
 router.post('/enable', requireAuth, mfaCodeLimiter, validate({ body: EnableBody }), async (req, res) => {
-    try {
-        const pendingSetup = readSetupSecret(req.session);
-        const pending = pendingSetup?.secret;
-        if (!pending) return res.status(400).json({ error: 'Start MFA setup first', code: 'setup_required' });
-        if (!mfa.verifyTotp(pending, req.body.code)) {
-            return res.status(400).json({ error: 'Invalid code. Check your authenticator app and try again.', code: 'invalid_code' });
-        }
-        const userId = req.session.user.id;
-        const row = await ensureUserRow(userId);
-        if (!row) return res.status(400).json({ error: 'User not found' });
-        if (row.mfa_enabled) {
-            const proven = await proof.verify(req.session, row, req.body.proof || {});
-            if (!proven.ok) return refuseProof(res, proven.code, userId);
-        }
-
-        const { plain, stored } = await mfa.generateRecoveryCodes();
-        const now = new Date().toISOString();
-        await userStore.updateUser(userId, {
-            mfaEnabled: true,
-            mfaSecret: mfa.encryptSecret(pending),
-            mfaEnrolledAt: now,
-            mfaRecoveryCodes: JSON.stringify(stored),
-            mfaRecoveryCodesGeneratedAt: now,
-        });
-        delete req.session.mfaSetupSecret;
-        req.session.save((err) => {
-            if (err) log.error('[MFA] session save:', err.message);
-            res.json({ success: true, recoveryCodes: plain });
-        });
-    } catch (e) {
-        log.error('[MFA] enable error:', e.message);
-        res.status(500).json({ error: 'Failed to enable MFA' });
+    const pendingSetup = readSetupSecret(req.session);
+    const pending = pendingSetup?.secret;
+    if (!pending) return res.status(400).json({ error: 'Start MFA setup first', code: 'setup_required' });
+    if (!mfa.verifyTotp(pending, req.body.code)) {
+        return res.status(400).json({ error: 'Invalid code. Check your authenticator app and try again.', code: 'invalid_code' });
     }
+    const userId = req.session.user.id;
+    const row = await ensureUserRow(userId);
+    if (!row) return res.status(400).json({ error: 'User not found' });
+    if (row.mfa_enabled) {
+        const proven = await proof.verify(req.session, row, req.body.proof || {});
+        if (!proven.ok) return refuseProof(res, proven.code, userId);
+    }
+
+    const { plain, stored } = await mfa.generateRecoveryCodes();
+    const now = new Date().toISOString();
+    await userStore.updateUser(userId, {
+        mfaEnabled: true,
+        mfaSecret: mfa.encryptSecret(pending),
+        mfaEnrolledAt: now,
+        mfaRecoveryCodes: JSON.stringify(stored),
+        mfaRecoveryCodesGeneratedAt: now,
+    });
+    delete req.session.mfaSetupSecret;
+    req.session.save((err) => {
+        if (err) log.error('[MFA] session save:', err.message);
+        res.json({ success: true, recoveryCodes: plain });
+    });
 });
 
 // An enrolled user whose stored secret no longer decrypts (MASTER_ENCRYPTION_KEY
@@ -247,25 +234,20 @@ const proof = createSecondFactorProof({ userStore, mfa, ceremony });
 // Turn off MFA — requires proof of a current factor: an authenticator code, an
 // unused recovery code, or a security key. Takes the security keys with it.
 router.post('/disable', requireAuth, mfaCodeLimiter, validate({ body: ProofBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const row = await userStore.getUser(userId);
-        if (!row?.mfa_enabled) return res.json({ success: true });
+    const userId = req.session.user.id;
+    const row = await userStore.getUser(userId);
+    if (!row?.mfa_enabled) return res.json({ success: true });
 
-        // A recovery code spent here needs no write: the whole set goes below.
-        const proven = await proof.verify(req.session, row, req.body);
-        if (!proven.ok) return refuseProof(res, proven.code, userId);
+    // A recovery code spent here needs no write: the whole set goes below.
+    const proven = await proof.verify(req.session, row, req.body);
+    if (!proven.ok) return refuseProof(res, proven.code, userId);
 
-        await userStore.updateUser(userId, {
-            mfaEnabled: false, mfaSecret: null, mfaEnrolledAt: null,
-            mfaRecoveryCodes: null, mfaRecoveryCodesGeneratedAt: null,
-        });
-        await userStore.deleteAllSecurityKeys(userId);
-        res.json({ success: true });
-    } catch (e) {
-        log.error('[MFA] disable error:', e.message);
-        res.status(500).json({ error: 'Failed to disable MFA' });
-    }
+    await userStore.updateUser(userId, {
+        mfaEnabled: false, mfaSecret: null, mfaEnrolledAt: null,
+        mfaRecoveryCodes: null, mfaRecoveryCodesGeneratedAt: null,
+    });
+    await userStore.deleteAllSecurityKeys(userId);
+    res.json({ success: true });
 });
 
 // Re-issue recovery codes (invalidates the old set). Accepts the same proof as
@@ -275,24 +257,19 @@ router.post('/disable', requireAuth, mfaCodeLimiter, validate({ body: ProofBody 
 // the same write, so a failure midway never costs the user a code without
 // giving new ones.
 router.post('/recovery-codes/regenerate', requireAuth, mfaCodeLimiter, validate({ body: ProofBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const row = await userStore.getUser(userId);
-        if (!row?.mfa_enabled) return res.status(400).json({ error: 'MFA not enabled', code: 'mfa_not_enabled' });
+    const userId = req.session.user.id;
+    const row = await userStore.getUser(userId);
+    if (!row?.mfa_enabled) return res.status(400).json({ error: 'MFA not enabled', code: 'mfa_not_enabled' });
 
-        const proven = await proof.verify(req.session, row, req.body);
-        if (!proven.ok) return refuseProof(res, proven.code, userId);
+    const proven = await proof.verify(req.session, row, req.body);
+    if (!proven.ok) return refuseProof(res, proven.code, userId);
 
-        const { plain, stored } = await mfa.generateRecoveryCodes();
-        await userStore.updateUser(userId, {
-            mfaRecoveryCodes: JSON.stringify(stored),
-            mfaRecoveryCodesGeneratedAt: new Date().toISOString(),
-        });
-        res.json({ success: true, recoveryCodes: plain });
-    } catch (e) {
-        log.error('[MFA] regenerate error:', e.message);
-        res.status(500).json({ error: 'Failed to regenerate recovery codes' });
-    }
+    const { plain, stored } = await mfa.generateRecoveryCodes();
+    await userStore.updateUser(userId, {
+        mfaRecoveryCodes: JSON.stringify(stored),
+        mfaRecoveryCodesGeneratedAt: new Date().toISOString(),
+    });
+    res.json({ success: true, recoveryCodes: plain });
 });
 
 // ── AI setup assistant (BFSF-274 follow-up) ─────────────────────────────────
@@ -330,38 +307,43 @@ function redactMfaMaterial(text) {
         .slice(0, 1000);
 }
 
-router.post('/assist', requireAuth, MFA_ASSIST_LIMITER, validate({ body: AssistBody }), async (req, res) => {
+// One-shot, TOOL-LESS completion via llmClient.chat. Deliberately NOT an agent
+// chat loop: that path attaches component tools, which a help assistant on the
+// 2FA screen must never be able to invoke. Lazy requires: don't pull the LLM stack into every auth
+// boot. Returns the answer, or null when no model is configured, the model
+// returned nothing or the call failed; the route then answers 503.
+async function askAssistant(conversationHistory) {
     try {
-        const question = redactMfaMaterial(req.body.question);
-        if (!question.trim()) return res.status(400).json({ error: QUESTION_TEXT });
-
-        // Short rolling context so follow-ups work. Client history is untrusted
-        // input — same redaction, hard caps on turns and length.
-        const history = (req.body.history || []).slice(-6);
-        const conversationHistory = history
-            .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-            .map(m => ({ role: m.role, content: redactMfaMaterial(m.content) }));
-        conversationHistory.push({ role: 'user', content: question });
-
-        // One-shot, TOOL-LESS completion via llmClient.chat. Deliberately NOT
-        // an agent chat loop: that path attaches component tools, which a
-        // help assistant on the 2FA screen must never be able to invoke. Lazy requires: don't pull
-        // the LLM stack into every auth boot.
         const { getAIConfig } = require('../core/aiAgent');
         const llmClient = require('../core/llm/llmClient');
         const config = await getAIConfig();
-        if (!config?.model) return res.status(503).json({ error: 'Assistant unavailable', code: 'assist_unavailable' });
+        if (!config?.model) return null;
         const result = await llmClient.chat(config.model, [
             { role: 'system', content: MFA_ASSIST_SYSTEM_PROMPT },
             ...conversationHistory,
         ], { maxTokens: 700, temperature: 0.3 });
-
-        if (!result?.content) return res.status(503).json({ error: 'Assistant unavailable', code: 'assist_unavailable' });
-        res.json({ answer: result.content });
+        return result?.content || null;
     } catch (e) {
         log.error('[MFA] assist error:', e.message);
-        res.status(503).json({ error: 'Assistant unavailable', code: 'assist_unavailable' });
+        return null;
     }
+}
+
+router.post('/assist', requireAuth, MFA_ASSIST_LIMITER, validate({ body: AssistBody }), async (req, res) => {
+    const question = redactMfaMaterial(req.body.question);
+    if (!question.trim()) return res.status(400).json({ error: QUESTION_TEXT });
+
+    // Short rolling context so follow-ups work. Client history is untrusted
+    // input — same redaction, hard caps on turns and length.
+    const history = (req.body.history || []).slice(-6);
+    const conversationHistory = history
+        .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .map(m => ({ role: m.role, content: redactMfaMaterial(m.content) }));
+    conversationHistory.push({ role: 'user', content: question });
+
+    const answer = await askAssistant(conversationHistory);
+    if (!answer) throw new HttpError(503, 'assist_unavailable', 'Assistant unavailable');
+    res.json({ answer });
 });
 
 module.exports = router;
