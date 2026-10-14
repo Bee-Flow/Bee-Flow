@@ -167,24 +167,24 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
     // ── Step renderers ────────────────────────────────────────────────────
     const renderOrg = () => (
         <div className="space-y-3">
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm text-[var(--text-secondary)]">
                 {t('nc_onboarding.nc_onboarding_wizard_tell_us_a_bit_about_your_organisation', 'Tell us a bit about your organisation. We pre-filled what Nextcloud already knows; the rest is optional and can be edited later.')}
             </p>
             <div>
-                <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_organisation_name', 'Organisation name *')}</label>
+                <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_organisation_name', 'Organisation name *')}</label>
                 <input value={org.name} onChange={e => setOrg({ ...org, name: e.target.value })}
                     className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
             </div>
             <div>
-                <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_billing_email', 'Billing email')}</label>
+                <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_billing_email', 'Billing email')}</label>
                 <input type="email" value={org.email} onChange={e => setOrg({ ...org, email: e.target.value })}
                     placeholder="finance@example.com"
                     className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
             </div>
             <div>
-                <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_tagline', 'Tagline')}</label>
+                <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_tagline', 'Tagline')}</label>
                 <input value={org.tagline} onChange={e => setOrg({ ...org, tagline: e.target.value })}
                     placeholder={t('nc_onboarding.nc_onboarding_wizard_one_line_that_describes_your_team', 'One line that describes your team')}
                     className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
@@ -192,13 +192,13 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_phone', 'Phone')}</label>
+                    <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_phone', 'Phone')}</label>
                     <input value={org.phone} onChange={e => setOrg({ ...org, phone: e.target.value })}
                         className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
                 </div>
                 <div>
-                    <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_website', 'Website')}</label>
+                    <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_website', 'Website')}</label>
                     <input value={org.website} onChange={e => setOrg({ ...org, website: e.target.value })}
                         placeholder="https://"
                         className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
@@ -206,20 +206,20 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                 </div>
             </div>
             <div>
-                <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_address', 'Address')}</label>
+                <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_address', 'Address')}</label>
                 <input value={org.address} onChange={e => setOrg({ ...org, address: e.target.value })}
                     className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_chamber_of_commerce_kvk', 'Chamber of Commerce (KVK)')}</label>
+                    <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_chamber_of_commerce_kvk', 'Chamber of Commerce (KVK)')}</label>
                     <input value={org.kvk} onChange={e => setOrg({ ...org, kvk: e.target.value })}
                         className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
                 </div>
                 <div>
-                    <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_vat', 'VAT')}</label>
+                    <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_vat', 'VAT')}</label>
                     <input value={org.vat} onChange={e => setOrg({ ...org, vat: e.target.value })}
                         className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
@@ -231,21 +231,21 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
     return (
         <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
             <div className="w-full max-w-2xl">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-[var(--border-subtle)]">
                             <img src={beeFlowLogo} alt={t('nc_onboarding.nc_onboarding_wizard_bee_flow', 'Bee Flow')} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1">
-                            <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <h1 className="text-lg font-semibold text-[var(--text-primary)]">
                                 {step === 'welcome' && `Welcome to Bee Flow${orgName ? ` for ${orgName}` : ''}`}
                                 {step === 'org' && 'Organisation details'}
                                 {step === 'sync' && 'Nextcloud user sync'}
                                 {step === 'shield' && 'Privacy Shield'}
                                 {step === 'done' && 'You\'re ready'}
                             </h1>
-                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_step_of', 'Step {current} of {total}', { current: stepIdx + 1, total: STEPS.length })}</p>
+                            <p className="text-xs text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_step_of', 'Step {current} of {total}', { current: stepIdx + 1, total: STEPS.length })}</p>
                         </div>
                     </div>
 
@@ -259,13 +259,13 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                     {/* Step content */}
                     {step === 'welcome' && (
                         <div className="space-y-4">
-                            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                            <p className="text-sm text-[var(--text-primary)]">
                                 {t('nc_onboarding.nc_onboarding_wizard_bee_flow_is_now_connected_to_your', 'Bee Flow is now connected to your Nextcloud instance. We\'ll walk you through a few quick decisions about how Bee Flow runs and how it handles your team and their data.')}
                             </p>
-                            <div className="rounded-xl border p-4 space-y-2 text-sm" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}>
+                            <div className="rounded-xl border p-4 space-y-2 text-sm border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                                 <div><span className="font-medium">Organisation:</span> {orgName || 'Nextcloud'}</div>
                                 <div><span className="font-medium">Administrator:</span> {user?.email}</div>
-                                <div className="text-xs pt-2" style={{ color: 'var(--text-secondary)' }}>
+                                <div className="text-xs pt-2 text-[var(--text-secondary)]">
                                     {t('nc_onboarding.nc_onboarding_wizard_no_credentials_app_passwords_or_oauth', 'No credentials, app passwords, or OAuth clients required — Nextcloud handles authentication, and Bee Flow uses the AppAPI shared secret to act on each user\'s behalf.')}
                                 </div>
                             </div>
@@ -277,7 +277,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                     {step === 'sync' && (
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('nc_onboarding.nc_onboarding_wizard_who_gets_a_bee_flow_account', 'Who gets a Bee Flow account?')}</h3>
+                                <h3 className="text-sm font-medium text-[var(--text-primary)]">{t('nc_onboarding.nc_onboarding_wizard_who_gets_a_bee_flow_account', 'Who gets a Bee Flow account?')}</h3>
                                 {[
                                     { v: 'mirror_all', t: 'Everyone in Nextcloud', d: 'All NC users automatically get a Bee Flow account when they first click the icon.' },
                                     { v: 'selective_groups', t: 'Only specific groups', d: 'Only members of the groups you pick are mirrored.' },
@@ -287,14 +287,14 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                                         <input type="radio" name="sm" value={opt.v} checked={syncMode === opt.v} onChange={() => setSyncMode(opt.v)} className="mt-1" />
                                         <div>
                                             <div className="text-sm font-medium">{opt.t}</div>
-                                            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{opt.d}</div>
+                                            <div className="text-xs text-[var(--text-secondary)]">{opt.d}</div>
                                         </div>
                                     </label>
                                 ))}
                             </div>
 
                             {syncMode === 'selective_groups' && (
-                                <div className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                                <div className="rounded-xl border p-3 border-[var(--border-subtle)]">
                                     <div className="text-xs font-medium mb-2">{t('nc_onboarding.nc_onboarding_wizard_groups_to_sync_1_required', 'Groups to sync (≥1 required)')}</div>
                                     {groupsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                                         <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
@@ -308,7 +308,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                                 </div>
                             )}
 
-                            <div className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <div className="rounded-xl border p-3 border-[var(--border-subtle)]">
                                 <div className="text-xs font-medium mb-2">{t('nc_onboarding.nc_onboarding_wizard_excluded_groups_members_never_mirrored', 'Excluded groups (members never mirrored)')}</div>
                                 {groupsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                                     <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
@@ -322,7 +322,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                             </div>
 
                             <div>
-                                <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('nc_onboarding.nc_onboarding_wizard_new_user_default_status', 'New user default status')}</h3>
+                                <h3 className="text-sm font-medium mb-2 text-[var(--text-primary)]">{t('nc_onboarding.nc_onboarding_wizard_new_user_default_status', 'New user default status')}</h3>
                                 <div className="flex gap-2">
                                     {[
                                         { v: 'active', t: 'Active immediately', d: 'Recommended for most teams' },
@@ -332,7 +332,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                                             className="flex-1 p-3 rounded-xl border text-left text-sm"
                                             style={{ borderColor: newUserDefaultStatus === opt.v ? 'var(--accent-primary)' : 'var(--border-subtle)', background: newUserDefaultStatus === opt.v ? 'var(--bg-tertiary)' : 'transparent' }}>
                                             <div className="font-medium">{opt.t}</div>
-                                            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{opt.d}</div>
+                                            <div className="text-xs text-[var(--text-secondary)]">{opt.d}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -346,7 +346,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                                 <input type="checkbox" checked={shieldEnabled} onChange={e => setShieldEnabled(e.target.checked)} className="mt-1" />
                                 <div>
                                     <div className="text-sm font-medium">{t('nc_onboarding.nc_onboarding_wizard_enable_privacy_shield', 'Enable Privacy Shield')}</div>
-                                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('nc_onboarding.nc_onboarding_wizard_detects_pii_emails_phone_numbers_ibans', 'Detects PII (emails, phone numbers, IBANs, etc.) before messages reach the AI. Runs locally, in-process — no third-party services.')}</div>
+                                    <div className="text-xs text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_detects_pii_emails_phone_numbers_ibans', 'Detects PII (emails, phone numbers, IBANs, etc.) before messages reach the AI. Runs locally, in-process — no third-party services.')}</div>
                                 </div>
                             </label>
 
@@ -363,7 +363,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                                                     className="flex-1 p-3 rounded-xl border text-left text-sm"
                                                     style={{ borderColor: shieldAction === opt.v ? 'var(--accent-primary)' : 'var(--border-subtle)', background: shieldAction === opt.v ? 'var(--bg-tertiary)' : 'transparent' }}>
                                                     <div className="font-medium">{opt.t}</div>
-                                                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{opt.d}</div>
+                                                    <div className="text-xs text-[var(--text-secondary)]">{opt.d}</div>
                                                 </button>
                                             ))}
                                         </div>
@@ -371,7 +371,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
 
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">{t('nc_onboarding.nc_onboarding_wizard_categories_to_detect_count_count_2', 'Categories to detect ({count}/{count_2})', { count: shieldCategories.length, count_2: PII_CATEGORIES.length })}</h3>
-                                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 rounded-xl border" style={{ borderColor: 'var(--border-subtle)' }}>
+                                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 rounded-xl border border-[var(--border-subtle)]">
                                             {PII_CATEGORIES.map(c => (
                                                 <label key={c.id} className="flex items-center gap-2 text-xs">
                                                     <input type="checkbox" checked={shieldCategories.includes(c.id)} onChange={() => toggle(shieldCategories, setShieldCategories, c.id)} />
@@ -387,14 +387,14 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
 
                     {step === 'done' && (
                         <div className="space-y-4">
-                            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('nc_onboarding.nc_onboarding_wizard_review_your_choices_and_finish_setup', 'Review your choices and finish setup. You can change any of this later under Settings → Organisation.')}</p>
-                            <div className="rounded-xl border p-4 space-y-2 text-sm" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}>
+                            <p className="text-sm text-[var(--text-primary)]">{t('nc_onboarding.nc_onboarding_wizard_review_your_choices_and_finish_setup', 'Review your choices and finish setup. You can change any of this later under Settings → Organisation.')}</p>
+                            <div className="rounded-xl border p-4 space-y-2 text-sm border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                                 <div><span className="font-medium">Organisation:</span> {org.name || '—'}</div>
                                 <div><span className="font-medium">Deployment:</span> {deploymentMode === 'cloud' ? 'Bee Flow Cloud' : 'Self-hosted'}</div>
                                 <div><span className="font-medium">{t('nc_onboarding.nc_onboarding_wizard_sync_mode', 'Sync mode:')}</span> {syncMode}{syncMode === 'selective_groups' ? ` (${syncGroups.length} groups)` : ''}</div>
                                 <div><span className="font-medium">{t('nc_onboarding.nc_onboarding_wizard_privacy_shield', 'Privacy Shield:')}</span> {shieldEnabled ? `${shieldAction} • ${shieldCategories.length} categories` : 'disabled'}</div>
                             </div>
-                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-xs text-[var(--text-secondary)]">
                                 {t('nc_onboarding.nc_onboarding_wizard_your_subscription_is_managed', 'Your subscription is managed separately under')} <span className="font-medium">{t('nc_onboarding.nc_onboarding_wizard_settings_organisation_license_usage', 'Settings → Organisation → License & Usage')}</span>.
                             </p>
                             {error && (
@@ -406,8 +406,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                     {/* Footer */}
                     <div className="flex items-center justify-between mt-8">
                         <button type="button" onClick={prev} disabled={stepIdx === 0 || submitting}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-30"
-                            style={{ color: 'var(--text-secondary)' }}>
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-30 text-[var(--text-secondary)]">
                             <ChevronLeft className="w-4 h-4" /> {t('nc_onboarding.nc_onboarding_wizard_back', 'Back')}
                         </button>
                         {step !== 'done' ? (

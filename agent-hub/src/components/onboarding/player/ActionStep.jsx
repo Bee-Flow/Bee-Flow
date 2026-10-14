@@ -99,7 +99,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }) {
     if (!check) {
         // Unknown check id — never trap the learner behind a config mistake.
         return (
-            <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-[13px] text-[var(--text-muted)]">
                 {t('learn.action.unavailable', 'This challenge isn’t available right now — you can continue.')}
             </div>
         );
@@ -112,7 +112,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }) {
 
     return (
         <div className="flex flex-col gap-3">
-            <div className="text-[15px] font-semibold leading-5" style={{ color: 'var(--text-primary)' }}>
+            <div className="text-[15px] font-semibold leading-5 text-[var(--text-primary)]">
                 {t(step.titleKey, step.titleFallback)}
             </div>
             <div className="leading-[18px]" style={{ color: 'var(--text-secondary)', textWrap: 'pretty' }}>
@@ -155,7 +155,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }) {
                                     </div>
                                 )}
                             </div>
-                            <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-[11px] whitespace-nowrap text-[var(--text-tertiary)]">
                                 {ok ? (passedAt[c.id] || '') : (current && !checkError ? t('learn.action.waiting', 'waiting…') : '')}
                             </span>
                         </div>
@@ -164,7 +164,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }) {
                 <div className="flex items-center gap-1.5 text-[11px] flex-wrap" style={{ padding: '8px 12px', borderTop: '1px solid var(--border-default)', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>
                     {finished ? (
                         <><ShieldCheck style={{ width: 11, height: 11, color: 'var(--learn-complete)' }} aria-hidden="true" />
-                            <span style={{ color: 'var(--learn-complete-ink)' }}>
+                            <span className="text-[var(--learn-complete-ink)]">
                                 {status === 'passed'
                                     ? t('learn.action.verified', 'Verified — you built the real thing. That’s the whole point.')
                                     : t('learn.action.honor_done', 'Marked as done — continue below.')}
@@ -178,14 +178,13 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }) {
                     {!finished && (
                         <span className="ml-auto inline-flex items-center gap-2.5">
                             <button type="button" onClick={() => doCheck(true)} disabled={checking}
-                                className="inline-flex items-center gap-1 underline decoration-[var(--border-default)] hover:decoration-current disabled:opacity-60"
-                                style={{ color: 'var(--text-secondary)' }}>
+                                className="inline-flex items-center gap-1 underline decoration-[var(--border-default)] hover:decoration-current disabled:opacity-60 text-[var(--text-secondary)]">
                                 {checking ? <Loader2 className="animate-spin" style={{ width: 11, height: 11 }} /> : <RefreshCw style={{ width: 11, height: 11 }} aria-hidden="true" />}
                                 {t('learn.action.check', 'Check my work')}
                             </button>
                             {offerHonor && (
                                 <button type="button" onClick={() => finish('done', passes)}
-                                    className="underline decoration-[var(--border-default)] hover:decoration-current" style={{ color: 'var(--text-secondary)' }}>
+                                    className="underline decoration-[var(--border-default)] hover:decoration-current text-[var(--text-secondary)]">
                                     {t('learn.action.honor_link', 'Can’t run the check? I’ve done this')}
                                 </button>
                             )}
@@ -195,7 +194,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }) {
             </div>
 
             {!finished && !checkError && (
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                     {t('learn.action.watching', 'The checklist updates by itself while you work — anything you’ve already done counts.')}
                 </p>
             )}

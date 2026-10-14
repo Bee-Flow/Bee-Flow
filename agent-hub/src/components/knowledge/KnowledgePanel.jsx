@@ -52,8 +52,8 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                         <div className="flex items-center gap-3">
                             <span className="text-lg">🔒</span>
                             <div>
-                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('knowledge.knowledge_strict_knowledge_mode', 'Strict Knowledge Mode')}</div>
-                                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('knowledge.knowledge_only_answer_from_the_knowledge_base', 'Only answer from the knowledge base.')}</div>
+                                <div className="text-sm font-medium text-[var(--text-primary)]">{t('knowledge.knowledge_strict_knowledge_mode', 'Strict Knowledge Mode')}</div>
+                                <div className="text-xs text-[var(--text-muted)]">{t('knowledge.knowledge_only_answer_from_the_knowledge_base', 'Only answer from the knowledge base.')}</div>
                             </div>
                         </div>
                         <button onClick={() => onStrictKnowledgeChange(!strictKnowledge)}
@@ -67,8 +67,8 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                         <div className="flex items-center gap-3">
                             <span className="text-lg">🔗</span>
                             <div>
-                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('knowledge.knowledge_include_source_references', 'Include Source References')}</div>
-                                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('knowledge.knowledge_cite_source_urls_when_answering_from', 'Cite source URLs when answering from knowledge.')}</div>
+                                <div className="text-sm font-medium text-[var(--text-primary)]">{t('knowledge.knowledge_include_source_references', 'Include Source References')}</div>
+                                <div className="text-xs text-[var(--text-muted)]">{t('knowledge.knowledge_cite_source_urls_when_answering_from', 'Cite source URLs when answering from knowledge.')}</div>
                             </div>
                         </div>
                         <button onClick={() => onIncludeSourceReferencesChange(!includeSourceReferences)}
@@ -83,12 +83,11 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                     <div className="space-y-4">
                         {/* KB List */}
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                            <h3 className="text-sm font-medium text-[var(--text-primary)]">
                                 {t('knowledge.knowledge_knowledge_bases_count', 'Knowledge Bases ({count})', { count: kb.kbs.length })}
                             </h3>
                             <button onClick={kb.openCreateKB}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
-                                style={{ background: 'var(--accent-primary)' }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[var(--accent-primary)]"
                                 data-testid="kb-create-btn">
                                 {t('knowledge.knowledge_create_kb', '+ Create KB')}
                             </button>
@@ -105,10 +104,9 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                         )}
 
                         {kb.loadingKbs ? (
-                            <div className="text-center py-6 text-xs" style={{ color: 'var(--text-muted)' }}>Loading...</div>
+                            <div className="text-center py-6 text-xs text-[var(--text-muted)]">Loading...</div>
                         ) : kb.kbs.length === 0 ? (
-                            <div className="text-center py-8 text-xs rounded-xl border border-dashed"
-                                style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
+                            <div className="text-center py-8 text-xs rounded-xl border border-dashed text-[var(--text-muted)] border-[var(--border-subtle)]">
                                 {t('knowledge.knowledge_no_knowledge_bases_yet_create_one_to', 'No knowledge bases yet. Create one to get started with')} {kb.useAzureKB ? 'Azure OpenAI' : 'bge-m3'} {t('knowledge.knowledge_embeddings_hybrid_search', 'embeddings + hybrid search.')}
                             </div>
                         ) : (
@@ -129,7 +127,7 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                                         📚
                                                     </div>
                                                     <div>
-                                                        <div className="text-sm font-medium flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                                                        <div className="text-sm font-medium flex items-center gap-1.5 text-[var(--text-primary)]">
                                                             {item.name}
                                                             {item.organization_id ? (
                                                                 <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-blue-500/10 text-blue-400" title={t('knowledge.knowledge_shared_with_organization', 'Shared with organization')}>{t('knowledge.knowledge_org', '🏢 Org')}</span>
@@ -137,7 +135,7 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                                                 <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-white/5 text-[var(--text-muted)]" title={t('knowledge.knowledge_personal_kb', 'Personal KB')}>👤</span>
                                                             )}
                                                         </div>
-                                                        <div className="text-[10px] flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+                                                        <div className="text-[10px] flex items-center gap-2 text-[var(--text-muted)]">
                                                             {item.document_count || 0} {t('knowledge.knowledge_docs', 'docs ·')} {item.total_chunks || 0} {t('knowledge.knowledge_chunks', 'chunks')}
                                                             {item.description && <span>· {item.description}</span>}
                                                         </div>
@@ -165,7 +163,7 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                         {selectedKB && (
                             <div className="p-4 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)] space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                    <h4 className="text-sm font-semibold text-[var(--text-primary)]">
                                         📚 {selectedKB.name}
                                     </h4>
                                     <div className="flex items-center gap-2">
@@ -195,24 +193,24 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                 {/* Documents List */}
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <h5 className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                                        <h5 className="text-xs font-medium text-[var(--text-muted)]">
                                             {kb.kbDocsTotal > kb.kbDocs.length ? t('knowledge.knowledge_documents_of', 'Documents ({count} of {total})', { count: kb.kbDocs.length, total: kb.kbDocsTotal }) : t('knowledge.knowledge_documents', 'Documents ({count})', { count: kb.kbDocs.length })}
                                         </h5>
                                         {kb.kbSelectedIds.size > 0 && (
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('knowledge.knowledge_selected', '{count} selected', { count: kb.kbSelectedIds.size })}</span>
+                                                <span className="text-[10px] text-[var(--text-muted)]">{t('knowledge.knowledge_selected', '{count} selected', { count: kb.kbSelectedIds.size })}</span>
                                                 <button onClick={kb.bulkDeleteSelected} disabled={kb.kbBulkBusy}
                                                     className="px-2 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-600 hover:bg-red-500/20 disabled:opacity-50">
                                                     {kb.kbBulkBusy ? 'Deleting…' : 'Delete selected'}
                                                 </button>
-                                                <button onClick={() => kb.setKbSelectedIds(new Set())} className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('knowledge.knowledge_clear', 'Clear')}</button>
+                                                <button onClick={() => kb.setKbSelectedIds(new Set())} className="text-[10px] text-[var(--text-muted)]">{t('knowledge.knowledge_clear', 'Clear')}</button>
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Email-specific filter bar: shown when any doc in list is sourced from email. */}
                                     {kb.kbDocs.some(d => d.source_type === 'email') && (
-                                        <div className="mb-2 p-2 rounded-lg border flex flex-wrap gap-1.5 items-center" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                                        <div className="mb-2 p-2 rounded-lg border flex flex-wrap gap-1.5 items-center border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                                             <input type="text" placeholder={t('knowledge.knowledge_sender', 'Sender')} value={kb.kbDocsFilters.sender}
                                                 onChange={e => kb.setKbDocsFilters(f => ({ ...f, sender: e.target.value }))}
                                                 className="px-2 py-1 rounded text-[11px] border" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
@@ -222,7 +220,7 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                             <input type="date" value={kb.kbDocsFilters.dateTo}
                                                 onChange={e => kb.setKbDocsFilters(f => ({ ...f, dateTo: e.target.value }))}
                                                 className="px-2 py-1 rounded text-[11px] border" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
-                                            <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-primary)' }}>
+                                            <label className="flex items-center gap-1 text-[11px] text-[var(--text-primary)]">
                                                 <input type="checkbox" checked={kb.kbDocsFilters.hasAttachment}
                                                     onChange={e => kb.setKbDocsFilters(f => ({ ...f, hasAttachment: e.target.checked }))} />
                                                 {t('knowledge.knowledge_has_attachment', 'Has attachment')}
@@ -232,18 +230,17 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                                 {t('knowledge.knowledge_apply', 'Apply')}
                                             </button>
                                             <button onClick={() => { const cleared = { sender: '', threadId: '', hasAttachment: false, dateFrom: '', dateTo: '' }; kb.setKbDocsFilters(cleared); kb.fetchKBDocs(selectedKB.id, { offset: 0, filters: cleared }); }}
-                                                className="px-2 py-1 rounded text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('knowledge.knowledge_clear', 'Clear')}</button>
+                                                className="px-2 py-1 rounded text-[11px] text-[var(--text-muted)]">{t('knowledge.knowledge_clear', 'Clear')}</button>
                                         </div>
                                     )}
 
                                     {kb.kbDocs.length === 0 ? (
-                                        <div className="text-center py-4 text-xs rounded-lg border border-dashed"
-                                            style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
+                                        <div className="text-center py-4 text-xs rounded-lg border border-dashed text-[var(--text-muted)] border-[var(--border-subtle)]">
                                             {t('knowledge.knowledge_no_documents_yet_ingest_text_files_or', 'No documents yet. Ingest text, files, or URLs above.')}
                                         </div>
                                     ) : (
                                         <>
-                                            <div className="flex items-center gap-2 mb-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                            <div className="flex items-center gap-2 mb-1.5 text-[10px] text-[var(--text-muted)]">
                                                 <input type="checkbox"
                                                     checked={kb.kbDocs.length > 0 && kb.kbDocs.every(d => kb.kbSelectedIds.has(d.id))}
                                                     onChange={kb.toggleSelectAllOnPage} />
@@ -251,8 +248,7 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                             </div>
                                             <div className="space-y-1.5">
                                                 {kb.kbDocs.map(doc => (
-                                                    <div key={doc.id} className="flex items-center justify-between p-2.5 rounded-lg group"
-                                                        style={{ background: 'var(--bg-tertiary)' }}
+                                                    <div key={doc.id} className="flex items-center justify-between p-2.5 rounded-lg group bg-[var(--bg-tertiary)]"
                                                         data-testid={`kb-doc-${doc.id}`}>
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             <input type="checkbox" checked={kb.kbSelectedIds.has(doc.id)}
@@ -265,8 +261,8 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                                                     : '📝'}
                                                             </span>
                                                             <div className="min-w-0">
-                                                                <div className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{doc.title || 'Untitled'}</div>
-                                                                <div className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>
+                                                                <div className="text-xs font-medium truncate text-[var(--text-primary)]">{doc.title || 'Untitled'}</div>
+                                                                <div className="text-[10px] truncate text-[var(--text-muted)]">
                                                                     {t('knowledge.knowledge_chunks_2', '{count} chunks · {date}', { count: doc.chunk_count || 0, date: new Date(doc.created_at).toLocaleDateString() })}
                                                                     {doc.metadata?.from ? ` · ${String(doc.metadata.from).replace(/<[^>]+>/, '').trim().slice(0, 30)}` : ''}
                                                                     {doc.metadata?.hasAttachments ? ' · 📎' : ''}
@@ -286,8 +282,7 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                             {kb.kbDocsTotal > kb.kbDocs.length && (
                                                 <div className="flex justify-center mt-2">
                                                     <button onClick={kb.loadMoreKBDocs}
-                                                        className="px-3 py-1 rounded text-[11px] font-medium border"
-                                                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
+                                                        className="px-3 py-1 rounded text-[11px] font-medium border border-[var(--border-subtle)] text-[var(--text-primary)]">
                                                         {t('knowledge.knowledge_load_more', 'Load more (')}{kb.kbDocsTotal - kb.kbDocs.length} {t('knowledge.knowledge_left', 'left)')}
                                                     </button>
                                                 </div>

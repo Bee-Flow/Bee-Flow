@@ -169,13 +169,13 @@ export default function QuizStep({ step, lessonId, saved, onState }) {
                 >
                     {step.icon || '❓'}
                 </div>
-                <h2 className="text-base font-bold leading-snug pt-1.5" style={{ color: 'var(--text-primary)' }}>
+                <h2 className="text-base font-bold leading-snug pt-1.5 text-[var(--text-primary)]">
                     {t(step.questionKey, step.questionFallback)}
                 </h2>
             </div>
 
             {multi && (
-                <p className="text-[12px] mb-2" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[12px] mb-2 text-[var(--text-tertiary)]">
                     {t('learn.quiz.select_all', 'Select all that apply.')}
                 </p>
             )}
@@ -207,7 +207,7 @@ export default function QuizStep({ step, lessonId, saved, onState }) {
                                 {showCorrect && <Check className="w-3 h-3" style={{ color: '#15803d' }} />}
                                 {showWrong && <X className="w-3 h-3" style={{ color: '#b91c1c' }} />}
                                 {!showCorrect && !showWrong && isSelected && (
-                                    <span className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-primary)' }} />
+                                    <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
                                 )}
                             </span>
                             <span>{t(c.labelKey, c.labelFallback)}</span>
@@ -226,7 +226,7 @@ export default function QuizStep({ step, lessonId, saved, onState }) {
                         color: 'var(--text-secondary)',
                     }}
                 >
-                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <span className="font-semibold text-[var(--text-primary)]">
                         {result === 'correct' ? t('learn.quiz.correct', 'Correct! ') : t('learn.quiz.not_quite', 'Not quite. ')}
                     </span>
                     {result === 'wrong' ? (wrongChoiceFeedback || explanation) : explanation}
@@ -234,7 +234,7 @@ export default function QuizStep({ step, lessonId, saved, onState }) {
             )}
 
             {practiceNote && (
-                <p className="mt-2 text-[12px]" style={{ color: 'var(--text-tertiary)' }} role="status">
+                <p className="mt-2 text-[12px] text-[var(--text-tertiary)]" role="status">
                     {practiceNote}
                 </p>
             )}

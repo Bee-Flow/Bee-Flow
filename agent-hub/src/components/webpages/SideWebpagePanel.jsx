@@ -80,11 +80,10 @@ export default function SideWebpagePanel({
     const isOwner = wp && user?.id && wp.userId === user.id;
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
-            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
-                 style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-primary)]">
+            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--border-subtle)]">
                 <Globe className="w-4 h-4 shrink-0" style={{ color: 'var(--accent-primary)' }} />
-                <span className="text-sm font-semibold truncate flex-1" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-semibold truncate flex-1 text-[var(--text-primary)]">
                     {wp?.name || (state.loading ? 'Loading…' : 'Webpage')}
                 </span>
                 {isOwner && (
@@ -114,10 +113,10 @@ export default function SideWebpagePanel({
                 {state.error && (
                     <div className="h-full flex flex-col items-center justify-center text-center px-6">
                         <Globe className="w-8 h-8 mb-3" style={{ color: 'var(--text-tertiary)' }} />
-                        <div className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                        <div className="text-sm font-semibold mb-1 text-[var(--text-primary)]">
                             {t('webpages.side_panel.unavailable', 'Webpage unavailable')}
                         </div>
-                        <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{state.error}</div>
+                        <div className="text-xs text-[var(--text-tertiary)]">{state.error}</div>
                     </div>
                 )}
                 {!state.loading && !state.error && wp && (

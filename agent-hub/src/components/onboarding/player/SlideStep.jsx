@@ -25,7 +25,7 @@ export default function SlideStep({ step }) {
                     {title}
                 </h2>
             </div>
-            <div className="text-[14px] leading-relaxed learning-slide-body" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[14px] leading-relaxed learning-slide-body text-[var(--text-secondary)]">
                 <MarkdownRenderer content={body} />
             </div>
         </div>

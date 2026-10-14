@@ -106,11 +106,11 @@ const OrgNcPairingPanel = () => {
                     <ServerCog className="w-5 h-5 text-[var(--warning-ink)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="text-[14px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-[14px] font-semibold mb-1 text-[var(--text-primary)]">
                         {t('integ.org_nc_pairing_pair_a_new_nextcloud', 'Pair a new Nextcloud')}
                     </h3>
-                    <p className="text-[12px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                        {t('integ.org_nc_pairing_generate_a_one_shot_code_then_set_it', 'Generate a one-shot code, then set it as the')} <code className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: 'var(--bg-tertiary)' }}>BEEFLOW_PAIRING_CODE</code> {t('integ.org_nc_pairing_environment_variable_on_the_connector', 'environment variable on the connector running on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.')}
+                    <p className="text-[12px] leading-snug text-[var(--text-muted)]">
+                        {t('integ.org_nc_pairing_generate_a_one_shot_code_then_set_it', 'Generate a one-shot code, then set it as the')} <code className="px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-tertiary)]">BEEFLOW_PAIRING_CODE</code> {t('integ.org_nc_pairing_environment_variable_on_the_connector', 'environment variable on the connector running on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.')}
                     </p>
                 </div>
             </div>
@@ -125,16 +125,14 @@ const OrgNcPairingPanel = () => {
                 <button
                     onClick={generate}
                     disabled={generating}
-                    className="px-3.5 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="px-3.5 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]"
                 >
                     {generating ? 'Generating…' : 'Generate pairing code'}
                 </button>
                 <button
                     onClick={reload}
                     disabled={loading}
-                    className="px-2.5 py-2 rounded-lg text-[12px] flex items-center gap-1.5 disabled:opacity-40"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                    className="px-2.5 py-2 rounded-lg text-[12px] flex items-center gap-1.5 disabled:opacity-40 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                     title={t('integ.org_nc_pairing_refresh', 'Refresh')}
                 >
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -142,17 +140,17 @@ const OrgNcPairingPanel = () => {
             </div>
 
             {codes.length === 0 ? (
-                <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[12px] text-[var(--text-tertiary)]">
                     {t('integ.org_nc_pairing_no_active_pairing_codes_generated', 'No active pairing codes. Generated codes live for 15 minutes and disappear after use.')}
                 </p>
             ) : (
                 <ul className="space-y-2">
                     {codes.map(c => (
                         <li key={c.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                            <code className="text-[15px] font-mono font-semibold tracking-wider" style={{ color: 'var(--text-primary)' }}>
+                            <code className="text-[15px] font-mono font-semibold tracking-wider text-[var(--text-primary)]">
                                 {c.code}
                             </code>
-                            <span className="text-[11px] flex-1" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-[11px] flex-1 text-[var(--text-tertiary)]">
                                 {fmtCountdown(c.expiresAt)}
                             </span>
                             <button
@@ -165,8 +163,7 @@ const OrgNcPairingPanel = () => {
                             </button>
                             <button
                                 onClick={() => revoke(c.id)}
-                                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ color: 'var(--text-muted)' }}
+                                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
                                 title={t('integ.org_nc_pairing_revoke', 'Revoke')}
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -177,12 +174,12 @@ const OrgNcPairingPanel = () => {
             )}
 
             <details className="mt-4 text-[12px]">
-                <summary className="cursor-pointer font-medium" style={{ color: 'var(--text-secondary)' }}>
+                <summary className="cursor-pointer font-medium text-[var(--text-secondary)]">
                     {t('integ.org_nc_pairing_how_to_use_this_code_on_the_new', 'How to use this code on the new Nextcloud')}
                 </summary>
-                <div className="mt-2 pl-3 space-y-1.5" style={{ color: 'var(--text-muted)' }}>
+                <div className="mt-2 pl-3 space-y-1.5 text-[var(--text-muted)]">
                     <p>{t('integ.org_nc_pairing_on_the_new_nextcloud_server_run', 'On the new Nextcloud server, run:')}</p>
-                    <pre className="px-3 py-2 rounded-lg overflow-x-auto text-[11px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                    <pre className="px-3 py-2 rounded-lg overflow-x-auto text-[11px] bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
 {`occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>
 occ app_api:app:disable bee_flow
 occ app_api:app:enable bee_flow`}

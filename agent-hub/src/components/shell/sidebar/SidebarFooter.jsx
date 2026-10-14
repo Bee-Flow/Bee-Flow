@@ -109,7 +109,7 @@ const SidebarFooter = ({
 
                         {/* Danger section — visually distinct so Sign Out is never
                             mistaken for an automation navigation action. */}
-                        <div className="border-t p-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
+                        <div className="border-t p-1.5 border-[var(--border-subtle)]">
                             <button
                                 onClick={onLogout}
                                 className="w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-all duration-150 text-left group/so hover:bg-red-500/10"

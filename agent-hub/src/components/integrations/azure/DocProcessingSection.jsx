@@ -42,7 +42,7 @@ export default function DocProcessingSection({
             {/* Document Intelligence */}
             <div className="space-y-1">
                 <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-[12px] font-semibold text-[var(--text-secondary)]">
                         {t('azure.doc_intelligence_label')}
                     </span>
                     {hasAzureDocEndpoint && hasAzureDocKey && (
@@ -71,7 +71,7 @@ export default function DocProcessingSection({
             {/* Azure OpenAI Embeddings */}
             <div className="space-y-1">
                 <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-[12px] font-semibold text-[var(--text-secondary)]">
                         {t('azure.embed_label')}
                     </span>
                     {hasAzureEmbedEndpoint && hasAzureEmbedKey && (
@@ -97,7 +97,7 @@ export default function DocProcessingSection({
 
             {/* Embedding Model Selector */}
             <div className="space-y-1.5">
-                <label className="block text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)]">
                     {t('azure.embed_model')}
                 </label>
                 <select
@@ -110,7 +110,7 @@ export default function DocProcessingSection({
                     <option value="text-embedding-3-large">{t('azure.doc_processing_text_embedding_3_large_3072_dims', 'text-embedding-3-large (3072 dims)')}</option>
                     <option value="text-embedding-ada-002">{t('azure.doc_processing_text_embedding_ada_002_1536_dims', 'text-embedding-ada-002 (1536 dims)')}</option>
                 </select>
-                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] text-[var(--text-muted)]">
                     {t('azure.embed_model_help')}
                 </p>
             </div>

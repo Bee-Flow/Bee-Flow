@@ -66,8 +66,8 @@ export default function MeetingPicker({
     };
 
     return (
-        <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-            <div className="relative px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
+            <div className="relative px-3 py-2 border-b border-[var(--border-subtle)]">
                 <Search className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
                 <input
                     value={query}
@@ -87,7 +87,7 @@ export default function MeetingPicker({
                     <div className="px-4 py-6 text-xs text-rose-500">{error}</div>
                 )}
                 {!loading && !error && filtered.length === 0 && (
-                    <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <div className="px-4 py-6 text-center text-xs text-[var(--text-muted)]">
                         {meetings.length === 0 ? 'No meeting notes yet.' : 'No meetings match your search.'}
                         {emptyAction && (
                             <div className="mt-3">{emptyAction}</div>
@@ -122,8 +122,8 @@ export default function MeetingPicker({
                                 )}
                                 {mode === 'single' && <FileAudio className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>{m.title || 'Untitled meeting'}</div>
-                                    <div className="flex items-center gap-3 text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                                    <div className="text-sm truncate text-[var(--text-primary)]">{m.title || 'Untitled meeting'}</div>
+                                    <div className="flex items-center gap-3 text-[11px] mt-0.5 text-[var(--text-muted)]">
                                         <span>{formatRelativeDate(m.createdAt)}</span>
                                         <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{formatDuration(m.durationSeconds)}</span>
                                         {m.speakerCount > 0 && (
@@ -134,10 +134,9 @@ export default function MeetingPicker({
                             </button>
                             {hoveredId === m.id && preview && preview.summary && (
                                 <div
-                                    className="absolute left-full top-0 ml-2 z-20 w-72 p-3 rounded-xl border shadow-lg text-[11px] leading-relaxed pointer-events-none hidden xl:block"
-                                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                    className="absolute left-full top-0 ml-2 z-20 w-72 p-3 rounded-xl border shadow-lg text-[11px] leading-relaxed pointer-events-none hidden xl:block bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                                 >
-                                    <div className="font-semibold text-[12px] mb-1" style={{ color: 'var(--text-primary)' }}>{preview.title}</div>
+                                    <div className="font-semibold text-[12px] mb-1 text-[var(--text-primary)]">{preview.title}</div>
                                     <div className="line-clamp-6">{stripMd(preview.summary).slice(0, 220)}{preview.summary.length > 220 ? '…' : ''}</div>
                                 </div>
                             )}

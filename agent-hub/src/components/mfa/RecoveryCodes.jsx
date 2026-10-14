@@ -32,7 +32,7 @@ export default function RecoveryCodes({ codes, onDone }) {
                 <button onClick={copy} className="flex-1 py-2 rounded-lg border border-[var(--border-default)] text-sm font-medium text-[var(--text-primary)] flex items-center justify-center gap-2">
                     {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />} {copied ? t('common.copied', 'Copied') : t('common.copy', 'Copy')}
                 </button>
-                <button onClick={onDone} className="flex-1 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: 'var(--accent-primary)' }}>
+                <button onClick={onDone} className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-[var(--accent-primary)]">
                     {t('mfa.ive_saved_them', 'I’ve saved them')}
                 </button>
             </div>

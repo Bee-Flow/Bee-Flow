@@ -46,9 +46,9 @@ export default function SkillsGrid({
     }, [skills, search, filter, user?.id, attachedCountBySkillId]);
 
     return (
-        <div className="h-full flex flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]">
             {showHeader && (
-                <div className="flex-shrink-0 px-7 pt-5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex-shrink-0 px-7 pt-5 border-b border-[var(--border-subtle)]">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -62,9 +62,9 @@ export default function SkillsGrid({
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h2 className="m-0 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('skills.title', 'Skills')}</h2>
+                                    <h2 className="m-0 text-lg font-bold text-[var(--text-primary)]">{t('skills.title', 'Skills')}</h2>
                                 </div>
-                                <p className="m-0 mt-0.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                                <p className="m-0 mt-0.5 text-[13px] text-[var(--text-secondary)]">
                                     {t('skills.subtitle', 'Reusable instruction packs for consistent AI task execution')}
                                 </p>
                             </div>
@@ -73,8 +73,7 @@ export default function SkillsGrid({
                             <button
                                 onClick={onCreate}
                                 data-tour="skill-create"
-                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold text-white shadow-md transition-opacity hover:opacity-90"
-                                style={{ background: 'var(--accent-primary)' }}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold text-white shadow-md transition-opacity hover:opacity-90 bg-[var(--accent-primary)]"
                             >
                                 <Plus size={15} /> {t('agent_skills.new', 'New skill')}
                             </button>
@@ -114,7 +113,7 @@ export default function SkillsGrid({
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
                             />
                         </div>
-                        <div className="flex gap-1 p-1 rounded-xl border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                        <div className="flex gap-1 p-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                             {FILTERS.map(f => (
                                 <button
                                     key={f.id}
@@ -148,12 +147,12 @@ export default function SkillsGrid({
                 {!loading && !error && filtered.length === 0 && (
                     <div className="text-center py-12">
                         <div className="text-5xl mb-3">⚡</div>
-                        <h3 className="m-0 mb-2 font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+                        <h3 className="m-0 mb-2 font-bold text-base text-[var(--text-primary)]">
                             {search
                                 ? t('agent_skills.no_match', 'No skills match your search')
                                 : t('agent_skills.none', 'No skills yet')}
                         </h3>
-                        <p className="m-0 mb-5 text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="m-0 mb-5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
                             {search
                                 ? t('agent_skills.no_match_help', 'Try a different search term.')
                                 : t('skills.none_help', 'Create your first skill to teach the AI how to handle specific tasks consistently.')}
@@ -161,8 +160,7 @@ export default function SkillsGrid({
                         {!search && (
                             <button
                                 onClick={onCreate}
-                                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-[13px] font-semibold text-white"
-                                style={{ background: 'var(--accent-primary)' }}
+                                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-[13px] font-semibold text-white bg-[var(--accent-primary)]"
                             >
                                 <Plus size={14} /> {t('skills.create_first', 'Create your first skill')}
                             </button>

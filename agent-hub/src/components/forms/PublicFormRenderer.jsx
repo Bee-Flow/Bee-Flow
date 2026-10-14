@@ -262,21 +262,19 @@ export function FormWaitingView({ theme = null, progress = null, note = null, la
                     <div className="min-w-0 flex flex-col gap-1">
                         {context.length ? (
                             <span
-                                className="text-[11px] font-medium uppercase tracking-wide truncate"
-                                style={{ color: 'var(--app-primary)' }}
+                                className="text-[11px] font-medium uppercase tracking-wide truncate text-[var(--app-primary)]"
                                 title={context.join(' › ')}
                             >
                                 {context.join(' › ')}
                             </span>
                         ) : null}
-                        <span className="text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-base font-semibold leading-snug text-[var(--text-primary)]">
                             {current || `${label}…`}
                         </span>
                         {summary ? (
                             <span
-                                className="text-xs leading-relaxed"
+                                className="text-xs leading-relaxed text-[var(--text-secondary)]"
                                 data-testid="form-waiting-note"
-                                style={{ color: 'var(--text-secondary)' }}
                             >
                                 {summary}
                             </span>
@@ -570,7 +568,7 @@ function FormDownload({ field, href }) {
     return (
         <div className="flex flex-col gap-1 text-left" data-testid={`form-download-${field.name}`}>
             {field.label ? (
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{field.label}</span>
+                <span className="text-sm font-medium text-[var(--text-primary)]">{field.label}</span>
             ) : null}
             <a
                 href={href}
@@ -593,7 +591,7 @@ function FormDownload({ field, href }) {
                 </span>
                 <span className="min-w-0 flex flex-col">
                     <span className="text-sm font-medium truncate">{field.filename || 'Download'}</span>
-                    {meta ? <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{meta}</span> : null}
+                    {meta ? <span className="text-xs text-[var(--text-secondary)]">{meta}</span> : null}
                 </span>
             </a>
             {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
@@ -635,7 +633,7 @@ function FormOpenInNotebooks({ field, onOpen }) {
     return (
         <div className="flex flex-col gap-1 text-left" data-testid={`form-notebook-${field.name}`}>
             {field.label ? (
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{field.label}</span>
+                <span className="text-sm font-medium text-[var(--text-primary)]">{field.label}</span>
             ) : null}
             <button
                 type="button"
@@ -661,7 +659,7 @@ function FormOpenInNotebooks({ field, onOpen }) {
                     <span className="text-sm font-medium truncate">
                         {busy ? 'Opening in Notebooks…' : (field.filename || 'Open in Notebooks')}
                     </span>
-                    {meta ? <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{meta}</span> : null}
+                    {meta ? <span className="text-xs text-[var(--text-secondary)]">{meta}</span> : null}
                 </span>
             </button>
             {error ? <p className="text-xs" role="alert" style={{ color: '#ef4444' }}>{error}</p> : null}
@@ -675,7 +673,7 @@ function FormDownloadUnavailable({ field, meta }) {
     return (
         <div className="flex flex-col gap-1 text-left" data-testid={`form-download-${field.name}`}>
             {field.label ? (
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{field.label}</span>
+                <span className="text-sm font-medium text-[var(--text-primary)]">{field.label}</span>
             ) : null}
             <div
                 className="flex items-center gap-3 px-3 py-2.5 border"
@@ -718,7 +716,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
     if (field.type === 'checkbox') {
         return (
             <div className="flex flex-col gap-1 text-left">
-                <label htmlFor={id} className="flex items-start gap-2 text-sm cursor-pointer" style={{ color: 'var(--text-primary)' }}>
+                <label htmlFor={id} className="flex items-start gap-2 text-sm cursor-pointer text-[var(--text-primary)]">
                     <input
                         id={id}
                         name={field.name}
@@ -897,7 +895,7 @@ function AppPickField({ field, value, disabled, onChange, onSearch }) {
                         aria-label={`Search ${field.app || 'the app'}`}
                     />
                     {searching && (
-                        <span className="flex items-center gap-1.5 px-1 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <span className="flex items-center gap-1.5 px-1 py-1 text-xs text-[var(--text-muted)]">
                             <Loader2 size={12} className="animate-spin" /> {t('forms.searching', 'Searching…')}
                         </span>
                     )}
@@ -920,7 +918,7 @@ function AppPickField({ field, value, disabled, onChange, onSearch }) {
                         >
                             <span className="w-full truncate font-medium">{row.title}</span>
                             {row.subtitle ? (
-                                <span className="w-full truncate text-xs" style={{ color: 'var(--text-muted)' }}>{row.subtitle}</span>
+                                <span className="w-full truncate text-xs text-[var(--text-muted)]">{row.subtitle}</span>
                             ) : null}
                         </button>
                     ))}
@@ -971,7 +969,7 @@ function FileField({ field, value, disabled, onChange, onUpload, onError }) {
                     onClick={() => onChange(null)}
                     disabled={disabled}
                     aria-label={`Remove ${value.filename}`}
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="text-[var(--text-secondary)]"
                 >
                     <X size={14} />
                 </button>

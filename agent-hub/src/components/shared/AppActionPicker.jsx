@@ -407,8 +407,7 @@ export default function AppActionPicker({
                                     </div>
                                 )}
                                 {focused.available === false && (
-                                    <p className="mt-2 text-xs rounded-md border px-2 py-1.5"
-                                        style={{ borderColor: 'var(--warning)', color: 'var(--warning)' }}
+                                    <p className="mt-2 text-xs rounded-md border px-2 py-1.5 border-[var(--warning)] text-[var(--warning)]"
                                         role="alert"
                                     >
                                         {/* Per-app first: "this server has no browser" is not the
@@ -420,7 +419,7 @@ export default function AppActionPicker({
                             </div>
                             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
                                 {focusedUnknown && (
-                                    <div data-testid="app-actions-unknown" className="text-xs text-center py-6" style={{ color: 'var(--warning)' }}>
+                                    <div data-testid="app-actions-unknown" className="text-xs text-center py-6 text-[var(--warning)]">
                                         {txt.actionsUnknown}
                                     </div>
                                 )}

@@ -86,10 +86,10 @@ export function NewThreadForm({ onCreated, onCancel }) {
                 className="w-full px-3 py-2 rounded-md border text-sm resize-y"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', maxHeight: 360 }}
             />
-            <div className="text-[10px] text-right" style={{ color: 'var(--text-muted)' }}>{message.length} / 10000</div>
+            <div className="text-[10px] text-right text-[var(--text-muted)]">{message.length} / 10000</div>
             {err && <div className="text-xs" style={{ color: '#dc2626' }}>{err}</div>}
             <div className="flex justify-end gap-2">
-                <button onClick={onCancel} className="px-3 py-1.5 rounded-md text-sm border" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('support.support_drawer_cancel', 'Cancel')}</button>
+                <button onClick={onCancel} className="px-3 py-1.5 rounded-md text-sm border border-[var(--border-default)] text-[var(--text-primary)]">{t('support.support_drawer_cancel', 'Cancel')}</button>
                 <button onClick={submit} disabled={submitting} className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50" style={{ background: 'var(--accent-primary)', color: 'white' }}>
                     <Send className="w-3.5 h-3.5" /> {submitting ? 'Sending…' : 'Send to Bee Flow'}
                 </button>
@@ -140,15 +140,15 @@ export function ThreadDetail({ threadId, onBack, onChanged }) {
         }
     };
 
-    if (!thread) return <div className="p-4 text-sm" style={{ color: 'var(--text-muted)' }}>{t('support.support_drawer_loading', 'Loading…')}</div>;
+    if (!thread) return <div className="p-4 text-sm text-[var(--text-muted)]">{t('support.support_drawer_loading', 'Loading…')}</div>;
 
     return (
         <div className="flex flex-col h-full">
-            <div className="px-3 py-2 border-b flex items-center gap-2" style={{ borderColor: 'var(--border-default)' }}>
-                <button onClick={onBack} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}><ArrowLeft className="w-4 h-4" /></button>
+            <div className="px-3 py-2 border-b flex items-center gap-2 border-[var(--border-default)]">
+                <button onClick={onBack} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"><ArrowLeft className="w-4 h-4" /></button>
                 <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{thread.subject}</div>
-                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{STATUS_LABELS[thread.status] || thread.status}</div>
+                    <div className="text-sm font-medium truncate text-[var(--text-primary)]">{thread.subject}</div>
+                    <div className="text-xs text-[var(--text-muted)]">{STATUS_LABELS[thread.status] || thread.status}</div>
                 </div>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -162,7 +162,7 @@ export function ThreadDetail({ threadId, onBack, onChanged }) {
                             border: '1px solid var(--border-default)',
                             color: 'var(--text-primary)',
                         }}>
-                            <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+                            <div className="flex items-center gap-1.5 text-xs mb-1 text-[var(--text-muted)]">
                                 {isAI ? <Bot className="w-3 h-3" /> : isSystem ? <AlertTriangle className="w-3 h-3" /> : <User className="w-3 h-3" />}
                                 <span>{m.author_display || (isMe ? 'You' : m.author_kind)}</span>
                                 <span className="ml-auto">{formatRelative(m.created_at)}</span>
@@ -173,7 +173,7 @@ export function ThreadDetail({ threadId, onBack, onChanged }) {
                 })}
             </div>
             {thread.status !== 'resolved' && thread.status !== 'closed' && (
-                <div className="border-t p-2" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="border-t p-2 border-[var(--border-default)]">
                     <textarea
                         rows={4}
                         value={reply}
@@ -186,7 +186,7 @@ export function ThreadDetail({ threadId, onBack, onChanged }) {
                         className="w-full px-2 py-1.5 rounded-md border text-sm resize-y"
                         style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', maxHeight: 240 }}
                     />
-                    {reply.length > 0 && <div className="text-[10px] text-right mt-0.5" style={{ color: 'var(--text-muted)' }}>{reply.length} / 10000</div>}
+                    {reply.length > 0 && <div className="text-[10px] text-right mt-0.5 text-[var(--text-muted)]">{reply.length} / 10000</div>}
                     <div className="mt-1.5 flex justify-end">
                         <button onClick={send} disabled={sending || !reply.trim()} className="px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 disabled:opacity-50" style={{ background: 'var(--accent-primary)', color: 'white' }}>
                             <Send className="w-3 h-3" /> {sending ? 'Sending…' : 'Send'}

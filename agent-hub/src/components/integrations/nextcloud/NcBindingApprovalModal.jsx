@@ -81,14 +81,14 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
     return (
         <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
             <div className="w-full max-w-lg">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(245, 158, 11, 0.12)' }}>
                             <ShieldCheck className="w-6 h-6" style={{ color: '#f59e0b' }} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.nc_binding_approval_modal_confirm_nextcloud_connection', 'Confirm Nextcloud connection')}</h2>
-                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('integ.nc_binding_approval_modal_confirm_nextcloud_connection', 'Confirm Nextcloud connection')}</h2>
+                            <p className="text-xs text-[var(--text-secondary)]">
                                 {t('integ.nc_binding_approval_modal_a_nextcloud_is_requesting_to_connect', 'A Nextcloud is requesting to connect to')} {organizationName || 'your organisation'}.
                             </p>
                         </div>
@@ -106,38 +106,37 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
 
                     <dl className="space-y-3 mb-4 text-sm">
                         <div>
-                            <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_nextcloud_url', 'Nextcloud URL')}</dt>
-                            <dd className="font-mono text-sm break-all" style={{ color: 'var(--text-primary)' }}>{pending.ncBaseUrl}</dd>
+                            <dt className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">{t('integ.nc_binding_approval_modal_nextcloud_url', 'Nextcloud URL')}</dt>
+                            <dd className="font-mono text-sm break-all text-[var(--text-primary)]">{pending.ncBaseUrl}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_instance_id', 'Instance ID')}</dt>
-                            <dd className="flex items-center gap-2 font-mono text-sm" style={{ color: 'var(--text-primary)' }}>
+                            <dt className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">{t('integ.nc_binding_approval_modal_instance_id', 'Instance ID')}</dt>
+                            <dd className="flex items-center gap-2 font-mono text-sm text-[var(--text-primary)]">
                                 <span title={pending.ncInstanceId}>{maskInstanceId(pending.ncInstanceId)}</span>
                                 <button
                                     type="button"
                                     onClick={copyInstanceId}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs"
-                                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                                 >
                                     {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                                     {copied ? 'Copied' : 'Copy'}
                                 </button>
                             </dd>
-                            <p className="text-[11px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-[11px] mt-1 text-[var(--text-secondary)]">
                                 {t('integ.nc_binding_approval_modal_verify_this_matches', 'Verify this matches')} <code>occ config:system:get instanceid</code> {t('integ.nc_binding_approval_modal_on_your_nextcloud', 'on your Nextcloud.')}
                             </p>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_nc_admin', 'NC admin')}</dt>
-                                <dd className="text-sm" style={{ color: 'var(--text-primary)' }}>{pending.ncAdminUid}</dd>
-                                <dd className="text-xs" style={{ color: 'var(--text-secondary)' }}>{pending.ncAdminEmail}</dd>
+                                <dt className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">{t('integ.nc_binding_approval_modal_nc_admin', 'NC admin')}</dt>
+                                <dd className="text-sm text-[var(--text-primary)]">{pending.ncAdminUid}</dd>
+                                <dd className="text-xs text-[var(--text-secondary)]">{pending.ncAdminEmail}</dd>
                             </div>
                             <div>
-                                <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_nc_version', 'NC version')}</dt>
-                                <dd className="text-sm" style={{ color: 'var(--text-primary)' }}>{pending.ncVersion || 'unknown'}</dd>
+                                <dt className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">{t('integ.nc_binding_approval_modal_nc_version', 'NC version')}</dt>
+                                <dd className="text-sm text-[var(--text-primary)]">{pending.ncVersion || 'unknown'}</dd>
                                 {expiresIn && (
-                                    <dd className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('integ.nc_binding_approval_modal_expires_in', 'Expires in {when}', { when: expiresIn })}</dd>
+                                    <dd className="text-xs text-[var(--text-secondary)]">{t('integ.nc_binding_approval_modal_expires_in', 'Expires in {when}', { when: expiresIn })}</dd>
                                 )}
                             </div>
                         </div>
@@ -150,7 +149,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
                             onChange={e => setConfirmed(e.target.checked)}
                             className="mt-0.5"
                         />
-                        <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-sm text-[var(--text-primary)]">
                             {t('integ.nc_binding_approval_modal_i_recognise_this_nextcloud_and_want_to', 'I recognise this Nextcloud and want to connect it to')} {organizationName || 'this organisation'}.
                         </span>
                     </label>
@@ -166,8 +165,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
                             type="button"
                             disabled={submitting}
                             onClick={() => submit('deny')}
-                            className="flex-1 py-2.5 rounded-xl font-medium text-sm border transition-colors disabled:opacity-50"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="flex-1 py-2.5 rounded-xl font-medium text-sm border transition-colors disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                         >
                             <X className="inline w-4 h-4 mr-1" /> {t('integ.nc_binding_approval_modal_deny', 'Deny')}
                         </button>
@@ -175,8 +173,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }) => {
                             type="button"
                             disabled={!confirmed || submitting}
                             onClick={() => submit('approve')}
-                            className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-                            style={{ background: 'var(--accent-primary)' }}
+                            className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-50 bg-[var(--accent-primary)]"
                         >
                             {submitting ? 'Working…' : 'Approve and connect'}
                         </button>

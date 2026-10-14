@@ -386,8 +386,7 @@ const GitHubSyncPanel = ({ user }) => {
                             <button
                                 onClick={handlePushPending}
                                 disabled={syncing}
-                                className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border transition-all hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border transition-all hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                             >
                                 {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                                 {t('integ.git_hub_sync_push_pending_pending', 'Push {pending} Pending', { pending: status.overview.pending })}

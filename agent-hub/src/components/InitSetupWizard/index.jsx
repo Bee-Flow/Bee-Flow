@@ -267,11 +267,11 @@ const InitSetupWizard = ({ onComplete }) => {
                     className="w-full max-w-md"
                     data-testid="recovery-key-modal"
                 >
-                    <div className="w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-5" style={{ background: 'var(--bg-secondary)' }}>
+                    <div className="w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-5 bg-[var(--bg-secondary)]">
                         <div className="text-center">
                             <div className="text-3xl mb-2">🔐</div>
-                            <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('init_setup.init_setup_wizard_save_your_recovery_key', 'Save Your Recovery Key')}</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{t('init_setup.init_setup_wizard_store_this_securely_it_s_your_only', 'Store this securely — it\'s your only recovery option.')}</p>
+                            <h3 className="text-lg font-bold text-[var(--text-primary)]">{t('init_setup.init_setup_wizard_save_your_recovery_key', 'Save Your Recovery Key')}</h3>
+                            <p className="text-sm mt-1 text-[var(--text-muted)]">{t('init_setup.init_setup_wizard_store_this_securely_it_s_your_only', 'Store this securely — it\'s your only recovery option.')}</p>
                         </div>
                         <div className="p-4 rounded-xl font-mono text-sm text-center break-all select-all cursor-text"
                             style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-default)', color: 'var(--text-primary)' }}>
@@ -279,19 +279,16 @@ const InitSetupWizard = ({ onComplete }) => {
                         </div>
                         <div className="flex gap-3">
                             <button onClick={() => navigator.clipboard.writeText(recoveryKey)}
-                                className="flex-1 py-2.5 rounded-xl font-medium text-sm border transition-colors"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('init_setup.init_setup_wizard_copy', '📋 Copy')}</button>
+                                className="flex-1 py-2.5 rounded-xl font-medium text-sm border transition-colors border-[var(--border-default)] text-[var(--text-primary)]">{t('init_setup.init_setup_wizard_copy', '📋 Copy')}</button>
                             <button onClick={() => { setRecoveryKey(null); onComplete(); }}
-                                className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white"
-                                style={{ background: 'var(--accent-primary)' }}>{t('init_setup.init_setup_wizard_i_ve_saved_it', 'I\'ve Saved It')}</button>
+                                className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white bg-[var(--accent-primary)]">{t('init_setup.init_setup_wizard_i_ve_saved_it', 'I\'ve Saved It')}</button>
                         </div>
                     </div>
                 </Modal>
             )}
 
             <div className="w-full max-w-xl relative z-10">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
 
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
@@ -300,10 +297,10 @@ const InitSetupWizard = ({ onComplete }) => {
                         <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)]">
                             <img src={beeFlowLogo} alt={t('init_setup.init_setup_wizard_bee_flow', 'Bee Flow')} className="w-full h-full object-cover" />
                         </div>
-                        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
                             {step === 0 ? 'Welcome to Bee Flow' : step === 1 ? 'Choose Your Setup' : 'Setup Wizard'}
                         </h1>
-                        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-sm mt-1 text-[var(--text-muted)]">
                             {step === 0
                                 ? 'Create your admin password to get started'
                                 : step === 1
@@ -395,32 +392,29 @@ const InitSetupWizard = ({ onComplete }) => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-[var(--border-subtle)]">
                         <div>
                             {step > 0 && (
                                 <button onClick={() => { setStep(step - 1); clearMessages(); }}
-                                    className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-80"
-                                    style={{ color: 'var(--text-muted)' }}>{t('init_setup.init_setup_wizard_back', '← Back')}</button>
+                                    className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-80 text-[var(--text-muted)]">{t('init_setup.init_setup_wizard_back', '← Back')}</button>
                             )}
                         </div>
                         <div className="flex items-center gap-3">
                             {step > 1 && currentStepKey !== 'type' && (
                                 <button onClick={handleSkip}
-                                    className="px-4 py-2.5 rounded-xl text-sm font-medium border transition-all hover:opacity-80"
-                                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                                    className="px-4 py-2.5 rounded-xl text-sm font-medium border transition-all hover:opacity-80 border-[var(--border-default)] text-[var(--text-secondary)]">
                                     {isLastStep ? 'Skip & Finish' : 'Skip'}
                                 </button>
                             )}
                             <button onClick={handleNext} disabled={saving}
-                                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                                style={{ background: 'var(--accent-primary)' }}>
+                                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]">
                                 {saving ? '...' : getNextLabel()}
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <p className="text-center text-xs mt-6" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-center text-xs mt-6 text-[var(--text-tertiary)]">
                     {t('init_setup.init_setup_wizard_bee_flow_ai_agent_platform_initial', 'Bee Flow AI Agent Platform — Initial Setup')}
                 </p>
             </div>

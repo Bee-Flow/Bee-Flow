@@ -37,7 +37,7 @@ export default function PresetSection({ form, setForm, saving }) {
             aria-labelledby={`${SECTION_IDS.preset}-heading`}
         >
             <SectionHeading id={`${SECTION_IDS.preset}-heading`}>{t('appearance.preset_preset', 'Preset')}</SectionHeading>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('appearance.preset_pick_the_base_look_everything_below', 'Pick the base look. Everything below adjusts within it.')}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -62,8 +62,7 @@ function SectionHeading({ id, children }) {
     return (
         <h3
             id={id}
-            className="text-base font-semibold mb-1"
-            style={{ color: 'var(--text-primary)' }}
+            className="text-base font-semibold mb-1 text-[var(--text-primary)]"
         >
             {children}
         </h3>

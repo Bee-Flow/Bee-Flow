@@ -13,12 +13,11 @@ export default function RadiusSection({ form, setForm, saving }) {
         >
             <h3
                 id={`${SECTION_IDS.radius}-heading`}
-                className="text-base font-semibold mb-1"
-                style={{ color: 'var(--text-primary)' }}
+                className="text-base font-semibold mb-1 text-[var(--text-primary)]"
             >
                 {t('appearance.radius_corner_roundness', 'Corner roundness')}
             </h3>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('appearance.radius_a_multiplier_applied_to_every_rounded', 'A multiplier applied to every rounded corner in the app.')}
             </p>
             <Slider

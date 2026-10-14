@@ -54,7 +54,7 @@ export default function CanvasLegend() {
                 <span>{t('automations.canvas.legend_wrap', 'the line back to the start of the next row')}</span>
             </div>
             <div className={row}>
-                <span className="w-5 shrink-0 border-t-2" style={{ borderColor: 'var(--error)' }} aria-hidden="true" />
+                <span className="w-5 shrink-0 border-t-2 border-[var(--error)]" aria-hidden="true" />
                 <span>{t('automations.canvas.legend_pii', 'a line carrying personal data')}</span>
             </div>
             <div className={row}>

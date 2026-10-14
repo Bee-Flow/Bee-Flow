@@ -91,8 +91,7 @@ export default function LookEditor() {
     if (loading || !form) {
         return (
             <div
-                className="h-full flex items-center justify-center"
-                style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)' }}
+                className="h-full flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-muted)]"
             >
                 <Loader2 className="w-5 h-5 animate-spin" />
             </div>
@@ -102,10 +101,10 @@ export default function LookEditor() {
     const sectionPanel = (
         <div className="max-w-3xl mx-auto px-6 py-6 space-y-10">
             <header>
-                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <h2 className="text-xl font-semibold text-[var(--text-primary)]">
                     {t('appearance.look_editor_look', 'Look')}
                 </h2>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-sm mt-1 text-[var(--text-muted)]">
                     {t('appearance.look_editor_set_the_look_that_everyone_in_your', 'Set the look that everyone in your organisation sees by default. Changes preview live in the pane on the right.')}
                 </p>
             </header>
@@ -122,7 +121,7 @@ export default function LookEditor() {
     );
 
     return (
-        <div className="h-full flex" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex bg-[var(--bg-primary)]">
             {wide && (
                 <LookSectionNav
                     sections={NAV_SECTIONS.filter(
@@ -134,7 +133,7 @@ export default function LookEditor() {
                 />
             )}
 
-            <div className="flex-1 flex flex-col min-w-0 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--border-subtle)]">
                 {!wide && (
                     <LookSectionNav
                         sections={NAV_SECTIONS.filter(
@@ -147,8 +146,7 @@ export default function LookEditor() {
                 )}
                 <div
                     ref={scrollRef}
-                    className="flex-1 overflow-y-auto"
-                    style={{ background: 'var(--bg-primary)' }}
+                    className="flex-1 overflow-y-auto bg-[var(--bg-primary)]"
                 >
                     {sectionPanel}
                 </div>

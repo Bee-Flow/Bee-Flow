@@ -186,7 +186,7 @@ function OrderSim({ step, sim, t, onState }) {
             <div className="rounded-xl border p-3 min-h-[54px] flex flex-col gap-1.5"
                 style={{ borderColor: passed ? '#15803d' : 'var(--border-default)', background: 'var(--bg-card)' }}>
                 {placed.length === 0 && (
-                    <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-[12px] text-[var(--text-tertiary)]">
                         {t('learn.sim.order_empty', 'Tap the pieces below in the order you think is right.')}
                     </span>
                 )}
@@ -338,7 +338,7 @@ function FlowBuildSim({ sim, t, onState }) {
             {/* Scenario brief */}
             <div className="rounded-xl border p-3.5 mb-3"
                 style={{ borderColor: 'var(--border-default)', background: 'color-mix(in srgb, var(--accent-primary) 5%, transparent)' }}>
-                <div className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--accent-primary)' }}>
+                <div className="text-[11px] font-semibold uppercase tracking-wide mb-1 text-[var(--accent-primary)]">
                     {t('learn.sim.flow_task', 'Build it: task {n} of {total}')
                         .replace('{n}', String(scenarioIdx + 1)).replace('{total}', String(scenarios.length))}
                 </div>
@@ -358,12 +358,12 @@ function FlowBuildSim({ sim, t, onState }) {
                                 </button>
                             )}</>)
                         : (<><Zap className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                            <span style={{ color: 'var(--text-tertiary)' }}>{t('learn.sim.flow_pick_trigger', 'Start with a trigger — pick one below')}</span></>),
+                            <span className="text-[var(--text-tertiary)]">{t('learn.sim.flow_pick_trigger', 'Start with a trigger — pick one below')}</span></>),
                     'trigger',
                 )}
                 {stepIds.map((id, i) => (
                     <React.Fragment key={id}>
-                        <div className="pl-4 text-[11px] leading-none" style={{ color: 'var(--text-tertiary)' }}>↓</div>
+                        <div className="pl-4 text-[11px] leading-none text-[var(--text-tertiary)]">↓</div>
                         {node(
                             (<><span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
                                 style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)', color: 'var(--accent-primary)' }}>{i + 1}</span>
@@ -377,7 +377,7 @@ function FlowBuildSim({ sim, t, onState }) {
                         )}
                     </React.Fragment>
                 ))}
-                <div className="pl-4 text-[11px] leading-none" style={{ color: 'var(--text-tertiary)' }}>↓</div>
+                <div className="pl-4 text-[11px] leading-none text-[var(--text-tertiary)]">↓</div>
                 {node(
                     (<><Flag className="w-3.5 h-3.5 flex-shrink-0" style={{ color: solvedCurrent ? '#15803d' : 'var(--text-tertiary)' }} />
                         <span style={{ color: solvedCurrent ? '#15803d' : 'var(--text-tertiary)' }}>
@@ -390,7 +390,7 @@ function FlowBuildSim({ sim, t, onState }) {
             {/* Trigger options */}
             {!solvedCurrent && (
                 <>
-                    <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                         {t('learn.sim.flow_triggers', 'Triggers')}
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-2">
@@ -409,7 +409,7 @@ function FlowBuildSim({ sim, t, onState }) {
                     </div>
 
                     {/* Steps palette */}
-                    <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                         {t('learn.sim.flow_steps', 'Steps — tap to add, in order')}
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-2">

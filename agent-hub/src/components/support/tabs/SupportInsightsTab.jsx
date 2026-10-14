@@ -11,10 +11,10 @@ function fmtDuration(secs) {
 
 function Stat({ label, value, sub }) {
     return (
-        <div className="rounded-lg border p-4" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
-            <div className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</div>
-            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
-            {sub && <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</div>}
+        <div className="rounded-lg border p-4 border-[var(--border-default)] bg-[var(--bg-card)]">
+            <div className="text-2xl font-semibold text-[var(--text-primary)]">{value}</div>
+            <div className="text-xs mt-1 text-[var(--text-muted)]">{label}</div>
+            {sub && <div className="text-xs mt-0.5 text-[var(--text-muted)]">{sub}</div>}
         </div>
     );
 }
@@ -35,12 +35,12 @@ export default function SupportInsightsTab() {
     }, []);
 
     if (error) return <div className="p-6 text-sm" style={{ color: '#dc2626' }}>{error}</div>;
-    if (!data) return <div className="p-6 text-sm" style={{ color: 'var(--text-muted)' }}>{t('support.support_insights_loading_insights', 'Loading insights…')}</div>;
+    if (!data) return <div className="p-6 text-sm text-[var(--text-muted)]">{t('support.support_insights_loading_insights', 'Loading insights…')}</div>;
 
     const { csat, handling } = data;
     return (
         <div className="max-w-3xl mx-auto p-4">
-            <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>{t('support.support_insights_insights', 'Insights')}</h3>
+            <h3 className="text-sm font-semibold mb-3 text-[var(--text-primary)]">{t('support.support_insights_insights', 'Insights')}</h3>
             <div className="grid grid-cols-3 gap-3 mb-3">
                 <Stat label="CSAT (7d avg)" value={csat.avg7d != null ? `${csat.avg7d}/5` : '—'} />
                 <Stat label="CSAT (30d avg)" value={csat.avg30d != null ? `${csat.avg30d}/5` : '—'} />

@@ -11,7 +11,7 @@ export const Input = ({ label, value, onChange, placeholder, helpText, type = 't
     return (
         <div className="space-y-1.5">
             {label && (
-                <label className="block text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</label>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)]">{label}</label>
             )}
             <div className="flex items-center gap-2">
                 <div className="relative flex-1">
@@ -28,8 +28,7 @@ export const Input = ({ label, value, onChange, placeholder, helpText, type = 't
                         <button
                             type="button"
                             onClick={() => setVisible(v => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--text-muted)]"
                             tabIndex={-1}
                         >
                             {visible ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -38,7 +37,7 @@ export const Input = ({ label, value, onChange, placeholder, helpText, type = 't
                 </div>
                 {trailing}
             </div>
-            {helpText && <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{helpText}</p>}
+            {helpText && <p className="text-[11px] text-[var(--text-muted)]">{helpText}</p>}
         </div>
     );
 };
@@ -57,8 +56,8 @@ export const Toggle = ({ checked, onChange, label, description }) => (
             />
         </button>
         <div>
-            <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}</p>
-            {description && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</p>}
+            <p className="text-[13px] font-medium text-[var(--text-primary)]">{label}</p>
+            {description && <p className="text-[11px] mt-0.5 text-[var(--text-muted)]">{description}</p>}
         </div>
     </div>
 );
@@ -86,8 +85,8 @@ export const SectionCard = ({ title, description, children, onSave, saving, save
     return (
         <div className="space-y-5">
             <div>
-                <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-                {description && <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>{description}</p>}
+                <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">{title}</h3>
+                {description && <p className="text-[12px] mt-1 text-[var(--text-muted)]">{description}</p>}
             </div>
             <div className="space-y-4">
                 {children}
@@ -175,8 +174,8 @@ export const SearchableModelSelect = ({ value, label, models, onChange }) => {
                 >
                     <div className="flex items-center justify-between px-5 pt-5 pb-3">
                         <div>
-                            <h3 id={titleId} className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('azure.select_model')}</h3>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            <h3 id={titleId} className="text-lg font-semibold text-[var(--text-primary)]">{t('azure.select_model')}</h3>
+                            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                                 {totalResults === 1 ? t('azure.components_model_one', '{count} model', { count: 1 }) : t('azure.components_model_other', '{count} models', { count: totalResults })}{search ? ` matching "${search}"` : ' available'}
                             </p>
                         </div>
@@ -217,7 +216,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }) => {
 
                         {Object.entries(filteredGroups).map(([provName, provModels]) => (
                             <div key={provName} className="mt-2">
-                                <p className="text-[10px] uppercase font-semibold px-3 py-1 tracking-wider" style={{ color: 'var(--text-muted)' }}>{provName}</p>
+                                <p className="text-[10px] uppercase font-semibold px-3 py-1 tracking-wider text-[var(--text-muted)]">{provName}</p>
                                 {provModels.map(m => {
                                     const id = m.id || m;
                                     const display = getDisplayName(m);
@@ -236,7 +235,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }) => {
                                         >
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium truncate" style={{ color: isSelected ? '#0078D4' : 'var(--text-primary)' }}>{display}</p>
-                                                {display !== id && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{id}</p>}
+                                                {display !== id && <p className="text-xs truncate text-[var(--text-muted)]">{id}</p>}
                                             </div>
                                             {isSelected && <Check size={16} style={{ color: '#0078D4', flexShrink: 0 }} />}
                                         </button>
@@ -246,7 +245,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }) => {
                         ))}
 
                         {totalResults === 0 && (
-                            <div className="px-4 py-12 text-center" style={{ color: 'var(--text-muted)' }}>
+                            <div className="px-4 py-12 text-center text-[var(--text-muted)]">
                                 <p className="text-lg mb-1">{t('azure.no_models_found')}</p>
                                 <p className="text-sm">{t('azure.try_different_search')}</p>
                             </div>

@@ -15,8 +15,8 @@ export default function DashCard({ title, meta = null, action = null, children, 
             {(title || action) && (
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                        {title && <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{title}</h3>}
-                        {meta && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{meta}</p>}
+                        {title && <h3 className="text-sm font-semibold truncate text-[var(--text-primary)]">{title}</h3>}
+                        {meta && <p className="text-[11px] mt-0.5 text-[var(--text-tertiary)]">{meta}</p>}
                     </div>
                     {action && <div className="shrink-0 flex items-center gap-2">{action}</div>}
                 </div>

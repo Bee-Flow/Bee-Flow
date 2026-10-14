@@ -79,22 +79,20 @@ export default function WallpaperSection({ form, setForm, saving }) {
             <header>
                 <h3
                     id={`${SECTION_IDS.wallpaper}-heading`}
-                    className="text-base font-semibold mb-1"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="text-base font-semibold mb-1 text-[var(--text-primary)]"
                 >
                     {t('appearance.wallpaper_wallpaper', 'Wallpaper')}
                 </h3>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs text-[var(--text-muted)]">
                     {t('appearance.wallpaper_optional_photo_background_plus_a', 'Optional photo background, plus a curated mood palette. The image renders behind every preset, not just Glass.')}
                 </p>
             </header>
 
             {wallpaperFullUrl ? (
                 <div
-                    className="rounded-xl border overflow-hidden"
-                    style={{ borderColor: 'var(--border-default)' }}
+                    className="rounded-xl border overflow-hidden border-[var(--border-default)]"
                 >
-                    <div className="relative aspect-[16/9]" style={{ background: 'var(--bg-secondary)' }}>
+                    <div className="relative aspect-[16/9] bg-[var(--bg-secondary)]">
                         <img
                             src={wallpaperFullUrl}
                             alt={t('appearance.wallpaper_current_wallpaper', 'Current wallpaper')}
@@ -102,10 +100,9 @@ export default function WallpaperSection({ form, setForm, saving }) {
                         />
                     </div>
                     <div
-                        className="p-3 flex items-center justify-between gap-3"
-                        style={{ background: 'var(--bg-card)' }}
+                        className="p-3 flex items-center justify-between gap-3 bg-[var(--bg-card)]"
                     >
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-xs text-[var(--text-muted)]">
                             {t('appearance.wallpaper_active_across_every_theme', 'Active across every theme.')}
                         </span>
                         <div className="flex items-center gap-2">
@@ -113,8 +110,7 @@ export default function WallpaperSection({ form, setForm, saving }) {
                                 type="button"
                                 onClick={() => fileRef.current?.click()}
                                 disabled={uploading || saving}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium border inline-flex items-center gap-1.5 disabled:opacity-50 hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium border inline-flex items-center gap-1.5 disabled:opacity-50 hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                             >
                                 <Upload className="w-3.5 h-3.5" /> {t('appearance.wallpaper_replace', 'Replace')}
                             </button>
@@ -122,8 +118,7 @@ export default function WallpaperSection({ form, setForm, saving }) {
                                 type="button"
                                 onClick={handleDelete}
                                 disabled={uploading || saving}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium border inline-flex items-center gap-1.5 disabled:opacity-50"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium border inline-flex items-center gap-1.5 disabled:opacity-50 border-[var(--border-default)] text-[var(--text-muted)]"
                             >
                                 <Trash2 className="w-3.5 h-3.5" /> {t('appearance.wallpaper_remove', 'Remove')}
                             </button>
@@ -147,7 +142,7 @@ export default function WallpaperSection({ form, setForm, saving }) {
                     }}
                 >
                     {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <ImageIcon className="w-7 h-7" />}
-                    <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="text-sm font-medium text-[var(--text-secondary)]">
                         {t('appearance.wallpaper_drop_an_image_or_click_to_choose', 'Drop an image, or click to choose')}
                     </div>
                     <div className="text-[11px]">{t('appearance.wallpaper_jpg_png_or_webp_up_to_5_mb', 'JPG, PNG, or WebP — up to 5 MB')}</div>
@@ -175,10 +170,10 @@ export default function WallpaperSection({ form, setForm, saving }) {
 
             <div>
                 <div className="flex items-center gap-2 mb-3">
-                    <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <h4 className="text-sm font-medium text-[var(--text-primary)]">
                         {t('appearance.wallpaper_mood', 'Mood')}
                     </h4>
-                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-[11px] text-[var(--text-muted)]">
                         {t('appearance.wallpaper_curated_colour_backdrop_for_glass', '— curated colour backdrop for Glass surfaces')}
                     </span>
                 </div>

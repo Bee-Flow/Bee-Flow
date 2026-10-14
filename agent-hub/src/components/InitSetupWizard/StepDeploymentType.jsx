@@ -6,7 +6,7 @@ const StepDeploymentType = ({ deploymentType, setDeploymentType }) => {
     const { t } = useTranslation();
     return (
     <div className="space-y-4">
-        <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-sm text-center text-[var(--text-secondary)]">
             {t('init_setup.step_deployment_type_choose_how_you_want_to_set_up_your_ai', 'Choose how you want to set up your AI infrastructure')}
         </p>
 
@@ -61,7 +61,7 @@ const StepDeploymentType = ({ deploymentType, setDeploymentType }) => {
                         : '0 1px 3px rgba(0,0,0,0.06)',
                 }}>
                 {deploymentType === 'standard' && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: 'var(--accent-primary)' }}>✓</div>
+                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white bg-[var(--accent-primary)]">✓</div>
                 )}
                 <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.1)' }}>

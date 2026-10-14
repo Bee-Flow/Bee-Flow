@@ -21,8 +21,8 @@ function gradientFor(id) {
 function FieldPreview({ label, value }) {
     return (
         <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
-            <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap m-0" style={{ color: 'var(--text-secondary)' }}>{value}</p>
+            <div className="text-[11px] font-bold uppercase tracking-wider mb-1 text-[var(--text-tertiary)]">{label}</div>
+            <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap m-0 text-[var(--text-secondary)]">{value}</p>
         </div>
     );
 }
@@ -60,7 +60,7 @@ export default function SkillCard({
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-[14px] leading-tight" style={{ color: 'var(--text-primary)' }}>
+                        <span className="font-semibold text-[14px] leading-tight text-[var(--text-primary)]">
                             {skill.name}
                         </span>
                         {skill.isShared ? (
@@ -68,7 +68,7 @@ export default function SkillCard({
                                 <Users size={9} /> {t('skills.badge_shared', 'shared')}
                             </span>
                         ) : (
-                            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>
+                            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
                                 <Lock size={9} /> {t('skills.badge_private', 'private')}
                             </span>
                         )}
@@ -79,7 +79,7 @@ export default function SkillCard({
                         )}
                     </div>
                     {skill.description && (
-                        <p className="m-0 mt-0.5 text-[12px] leading-snug truncate" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="m-0 mt-0.5 text-[12px] leading-snug truncate text-[var(--text-secondary)]">
                             {skill.description}
                         </p>
                     )}
@@ -90,8 +90,7 @@ export default function SkillCard({
                         <button
                             onClick={() => setExpanded(v => !v)}
                             title={t('skills.show_details', 'Show details')}
-                            className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)]"
-                            style={{ color: 'var(--text-tertiary)' }}
+                            className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                         >
                             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </button>
@@ -102,8 +101,7 @@ export default function SkillCard({
                             <button
                                 onClick={() => onEdit?.(skill)}
                                 title={t('skills.edit_skill', 'Edit skill')}
-                                className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                             >
                                 <Edit2 size={13} />
                             </button>
@@ -117,8 +115,7 @@ export default function SkillCard({
                                     </button>
                                     <button
                                         onClick={() => setConfirmDelete(false)}
-                                        className="text-[11px] px-1.5 py-1 rounded-md"
-                                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                                        className="text-[11px] px-1.5 py-1 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                                     >
                                         {t('common.cancel', 'Cancel')}
                                     </button>
@@ -127,8 +124,7 @@ export default function SkillCard({
                                 <button
                                     onClick={() => setConfirmDelete(true)}
                                     title={t('skills.delete_skill', 'Delete skill')}
-                                    className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)]"
-                                    style={{ color: 'var(--text-tertiary)' }}
+                                    className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                                 >
                                     <Trash2 size={13} />
                                 </button>
@@ -159,7 +155,7 @@ export default function SkillCard({
             </div>
 
             {expanded && !compact && (
-                <div className="border-t px-4 py-3 flex flex-col gap-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="border-t px-4 py-3 flex flex-col gap-2.5 border-[var(--border-subtle)]">
                     {/* FieldPreview renders `label` verbatim, so the translation happens
                         HERE, at the call site — a component that takes a plain string
                         must never be handed a key. */}

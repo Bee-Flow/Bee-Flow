@@ -104,10 +104,9 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
             className="max-w-xl"
         >
             <div
-                className="w-full rounded-2xl border shadow-2xl overflow-hidden"
-                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="w-full rounded-2xl border shadow-2xl overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-primary)]"
             >
-                <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]">
                     <Search className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                     <input
                         ref={inputRef}
@@ -118,7 +117,7 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
                         className="flex-1 bg-transparent outline-none text-sm"
                         style={{ color: 'var(--text-primary)' }}
                     />
-                    <span className="text-[10px] px-1.5 py-0.5 rounded border" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-default)' }}>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded border text-[var(--text-muted)] border-[var(--border-default)]">
                         ESC
                     </span>
                 </div>
@@ -147,19 +146,19 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
                                     <Row key={r.id} active={active} onMouseEnter={() => setActiveIdx(idx)} onClick={() => runItem({ kind: 'recent', payload: r })}>
                                         <FileAudio className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                                         <span className="text-sm flex-1 truncate">{r.title || 'Untitled'}</span>
-                                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatRelativeDate(r.createdAt)}</span>
+                                        <span className="text-[11px] text-[var(--text-muted)]">{formatRelativeDate(r.createdAt)}</span>
                                     </Row>
                                 );
                             })}
                         </Section>
                     )}
                     {flat.length === 0 && (
-                        <div className="px-4 py-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>
+                        <div className="px-4 py-8 text-sm text-center text-[var(--text-muted)]">
                             {t('meetings.palette_no_matches', 'No matches.')}
                         </div>
                     )}
                 </div>
-                <div className="px-4 py-2 border-t text-[11px] flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+                <div className="px-4 py-2 border-t text-[11px] flex items-center justify-between border-[var(--border-subtle)] text-[var(--text-muted)]">
                     <span>{t('meetings.palette_hint', '↑↓ navigate · ↵ open')}</span>
                     <span>Ctrl/Cmd + Shift + M</span>
                 </div>
@@ -171,7 +170,7 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
 function Section({ label, children }) {
     return (
         <div className="py-1.5">
-            <div className="px-4 pt-1 pb-1 text-[10px] uppercase tracking-wide font-semibold" style={{ color: 'var(--text-muted)' }}>
+            <div className="px-4 pt-1 pb-1 text-[10px] uppercase tracking-wide font-semibold text-[var(--text-muted)]">
                 {label}
             </div>
             {children}

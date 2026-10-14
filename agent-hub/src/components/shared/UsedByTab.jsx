@@ -222,7 +222,7 @@ export default function UsedByTab({
     return (
         <div className={`flex flex-col gap-3 ${className}`} data-testid="used-by">
             {error && (
-                <p className="text-xs" role="status" style={{ color: 'var(--warning)' }}>
+                <p className="text-xs text-[var(--warning)]" role="status">
                     {t('usage.error', 'Could not load who uses this — the list may be incomplete.')}
                 </p>
             )}
@@ -232,7 +232,7 @@ export default function UsedByTab({
             )}
 
             {incomplete && (
-                <p className="text-xs" role="status" style={{ color: 'var(--warning)' }} data-testid="usage-unchecked">
+                <p className="text-xs text-[var(--warning)]" role="status" data-testid="usage-unchecked">
                     {t('usage.unchecked_kinds',
                         'Could not be checked: {kinds}. This list is incomplete.',
                         { kinds: unknownKinds.map(k => kindLabel(k, 2)).join(', ') })}
@@ -240,7 +240,7 @@ export default function UsedByTab({
             )}
 
             {list.length === 0 ? (
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }} data-testid="usage-empty">
+                <p className="text-sm text-[var(--text-secondary)]" data-testid="usage-empty">
                     {emptyText || (incomplete
                         ? t('usage.empty_incomplete', 'Nothing was found — but not everything could be checked.')
                         : t('usage.empty', 'Nothing uses this yet.'))}
@@ -350,19 +350,19 @@ function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }) {
                         {title}
                     </button>
                 ) : (
-                    <span className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{title}</span>
+                    <span className="font-medium truncate text-[var(--text-primary)]">{title}</span>
                 )}
                 {row.siteLabel && (
-                    <span className="truncate" style={{ color: 'var(--text-tertiary)' }}>· {row.siteLabel}</span>
+                    <span className="truncate text-[var(--text-tertiary)]">· {row.siteLabel}</span>
                 )}
                 {foreign && row.title && (
-                    <span className="shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="shrink-0 text-[var(--text-tertiary)]">
                         · {t('usage.someone_elses', 'someone else’s')}
                     </span>
                 )}
             </div>
-            <span role="cell" style={{ color: 'var(--text-secondary)' }}>{roleLabelFor(t, row.role)}</span>
-            <span role="cell" style={{ color: 'var(--text-secondary)' }}>{when}</span>
+            <span role="cell" className="text-[var(--text-secondary)]">{roleLabelFor(t, row.role)}</span>
+            <span role="cell" className="text-[var(--text-secondary)]">{when}</span>
             <span role="cell" className="inline-flex justify-end">
                 {navigable && (
                     <ArrowUpRight style={{ width: 13, height: 13, color: 'var(--text-tertiary)' }} aria-hidden="true" />

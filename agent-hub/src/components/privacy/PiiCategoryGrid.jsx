@@ -41,8 +41,7 @@ export function PiiCategoryGrid({ value, onChange, categories, label = 'Kinds of
                         type="button"
                         disabled={disabled}
                         onClick={() => onChange(categories.map(c => c.id))}
-                        className="text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors font-medium disabled:opacity-50"
-                        style={{ color: 'var(--accent-primary)' }}
+                        className="text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors font-medium disabled:opacity-50 text-[var(--accent-primary)]"
                     >{allLabel}</button>
                     <button
                         type="button"
@@ -53,8 +52,7 @@ export function PiiCategoryGrid({ value, onChange, categories, label = 'Kinds of
                 </div>
             </div>
             <div
-                className="grid grid-cols-2 gap-2 p-4 rounded-xl border"
-                style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}
+                className="grid grid-cols-2 gap-2 p-4 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-subtle)]"
             >
                 {categories.map(cat => {
                     // Callers may still pass a bespoke list without `Icon`; fall

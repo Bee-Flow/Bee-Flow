@@ -46,8 +46,8 @@ export default function SupportSlaPoliciesTab() {
 
     return (
         <div className="max-w-2xl mx-auto p-4">
-            <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t('support.support_sla_policies_sla_policies', 'SLA policies')}</h3>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <h3 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">{t('support.support_sla_policies_sla_policies', 'SLA policies')}</h3>
+            <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('support.support_sla_policies_first_response_and_resolution_targets', 'First-response and resolution targets per priority (in minutes). Threads that breach are flagged and the assignee is notified. The clock pauses while a thread is waiting on the customer.')}
             </p>
             {error && <div className="text-xs mb-3 px-3 py-2 rounded" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>{error}</div>}
@@ -75,15 +75,15 @@ function SlaRow({ priority, row, busy, defaults, onSave }) {
     }, [row, defaults]);
 
     return (
-        <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
-            <span className="w-20 text-sm font-medium capitalize" style={{ color: 'var(--text-primary)' }}>{priority}</span>
-            <label className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)]">
+            <span className="w-20 text-sm font-medium capitalize text-[var(--text-primary)]">{priority}</span>
+            <label className="text-xs flex items-center gap-1 text-[var(--text-muted)]">
                 {t('support.support_sla_policies_first', 'First')} <input type="number" min="1" value={first} onChange={e => setFirst(parseInt(e.target.value, 10) || 0)} className="w-20 px-2 py-1 rounded border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} /> {t('support.support_sla_policies_min', 'min')}
             </label>
-            <label className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+            <label className="text-xs flex items-center gap-1 text-[var(--text-muted)]">
                 {t('support.support_sla_policies_resolve', 'Resolve')} <input type="number" min="1" value={res} onChange={e => setRes(parseInt(e.target.value, 10) || 0)} className="w-20 px-2 py-1 rounded border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} /> {t('support.support_sla_policies_min', 'min')}
             </label>
-            <label className="text-xs flex items-center gap-1 ml-auto" style={{ color: 'var(--text-secondary)' }}>
+            <label className="text-xs flex items-center gap-1 ml-auto text-[var(--text-secondary)]">
                 <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} /> {t('support.support_sla_policies_on', 'on')}
             </label>
             <button onClick={() => onSave(priority, first, res, enabled)} disabled={busy}

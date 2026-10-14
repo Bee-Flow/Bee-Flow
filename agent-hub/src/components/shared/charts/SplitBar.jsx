@@ -13,7 +13,7 @@ export default function SplitBar({ segments, ariaLabel, testId }) {
     const pctOf = (n) => (total ? Math.round((n / total) * 1000) / 10 : 0);
     return (
         <div data-testid={testId}>
-            <div className="flex h-3 w-full overflow-hidden rounded-full gap-0.5" style={{ background: 'var(--bg-secondary)' }} aria-hidden="true">
+            <div className="flex h-3 w-full overflow-hidden rounded-full gap-0.5 bg-[var(--bg-secondary)]" aria-hidden="true">
                 {total > 0 && list.map((s) => (
                     <span key={s.label} className="block h-full" style={{ width: `${(s.n / total) * 100}%`, background: s.color }} />
                 ))}
@@ -22,9 +22,9 @@ export default function SplitBar({ segments, ariaLabel, testId }) {
                 {list.map((s) => (
                     <li key={s.label} className="inline-flex items-center gap-1.5">
                         <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} aria-hidden="true" />
-                        <span style={{ color: 'var(--text-primary)' }}>{s.label}</span>
-                        <span className="tabular-nums" style={{ color: 'var(--text-secondary)' }}>{fmt.format(s.n)}</span>
-                        <span className="tabular-nums" style={{ color: 'var(--text-tertiary)' }}>{`(${pctOf(s.n)}%)`}</span>
+                        <span className="text-[var(--text-primary)]">{s.label}</span>
+                        <span className="tabular-nums text-[var(--text-secondary)]">{fmt.format(s.n)}</span>
+                        <span className="tabular-nums text-[var(--text-tertiary)]">{`(${pctOf(s.n)}%)`}</span>
                     </li>
                 ))}
             </ul>

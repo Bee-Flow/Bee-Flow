@@ -21,8 +21,8 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
                     🔷
                 </div>
                 <div className="flex-1">
-                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{t('azure.openai_status')}</p>
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[13px] font-medium text-[var(--text-primary)]">{t('azure.openai_status')}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">
                         {isConfigured ? `✅ ${t('azure.openai_fully_configured')}` : t('azure.openai_title')}
                     </p>
                 </div>
@@ -56,7 +56,7 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
                 helpText={t('azure.deployed_models_help')}
             />
 
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] text-[var(--text-muted)]">
                 {t('azure.get_from_portal')} <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#0078D4' }}>portal.azure.com</a>
             </p>
         </SectionCard>

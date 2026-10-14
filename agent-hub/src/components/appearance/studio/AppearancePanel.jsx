@@ -22,12 +22,10 @@ export default function AppearancePanel() {
 
     return (
         <div
-            className="h-full flex flex-col overflow-hidden"
-            style={{ background: 'var(--bg-primary)' }}
+            className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]"
         >
             <div
-                className="px-4 pt-3 shrink-0"
-                style={{ background: 'var(--bg-primary)' }}
+                className="px-4 pt-3 shrink-0 bg-[var(--bg-primary)]"
             >
                 <Tabs
                     value={active}

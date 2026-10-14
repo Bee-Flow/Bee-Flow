@@ -23,16 +23,15 @@ export default function LookPreview({ draftPayload }) {
 
     return (
         <aside
-            className="h-full flex flex-col p-4 gap-3"
-            style={{ background: 'var(--bg-primary)' }}
+            className="h-full flex flex-col p-4 gap-3 bg-[var(--bg-primary)]"
             aria-label={t('appearance.look_preview_live_theme_preview', 'Live theme preview')}
         >
             <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                         {t('appearance.look_preview_live_preview', 'Live preview')}
                     </h3>
-                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] mt-0.5 text-[var(--text-muted)]">
                         {t('appearance.look_preview_real_app_signed_in_as_you_clicks_hit', 'Real app, signed in as you. Clicks hit the backend.')}
                     </p>
                 </div>
@@ -44,8 +43,7 @@ export default function LookPreview({ draftPayload }) {
                     }}
                 >
                     <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]"
                     />
                     {t('appearance.look_preview_live', 'Live')}
                 </span>

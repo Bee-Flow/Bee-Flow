@@ -74,10 +74,10 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
         <div className="flex flex-col gap-2 rounded-[10px] flex-shrink-0" style={{ background: 'var(--bg-secondary)', padding: '10px 12px' }} data-testid="tutor-panel">
             <div className="flex items-center gap-1.5">
                 <MessageCircleQuestionMark className="w-[13px] h-[13px] text-[var(--accent-primary)]" aria-hidden="true" />
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('learn.tutor.name', 'AI tutor')}</span>
-                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.tutor.ladder', 'gives a hint first, the answer only after')}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{t('learn.tutor.name', 'AI tutor')}</span>
+                <span className="text-[11px] text-[var(--text-tertiary)]">{t('learn.tutor.ladder', 'gives a hint first, the answer only after')}</span>
                 <button type="button" onClick={onClose} aria-label={t('common.close', 'Close')}
-                    className="ml-auto grid place-items-center w-6 h-6 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-tertiary)' }}>
+                    className="ml-auto grid place-items-center w-6 h-6 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
                     <X style={{ width: 12, height: 12 }} />
                 </button>
             </div>
@@ -103,7 +103,7 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
                         </div>
                     ))}
                     {busy && (
-                        <div className="self-start inline-flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="self-start inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
                             <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> {t('learn.tutor.thinking', 'Thinking…')}
                         </div>
                     )}
@@ -121,7 +121,7 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
                     style={{ color: 'var(--text-primary)' }}
                 />
                 <button type="submit" disabled={busy || !input.trim()} aria-label={t('learn.tutor.send', 'Send')}
-                    className="grid place-items-center transition-opacity disabled:opacity-40" style={{ color: 'var(--text-tertiary)' }}>
+                    className="grid place-items-center transition-opacity disabled:opacity-40 text-[var(--text-tertiary)]">
                     <CornerDownLeft style={{ width: 12, height: 12 }} />
                 </button>
             </form>

@@ -52,44 +52,43 @@ export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }) {
     };
 
     if (loading && threads.length === 0) {
-        return <div className="text-xs text-center py-3" style={{ color: 'var(--text-muted)' }}>{t('knowledge.email_thread_explorer_loading_threads', 'Loading threads…')}</div>;
+        return <div className="text-xs text-center py-3 text-[var(--text-muted)]">{t('knowledge.email_thread_explorer_loading_threads', 'Loading threads…')}</div>;
     }
     if (threads.length === 0) {
         return null;
     }
 
     return (
-        <div className="mt-4 rounded-lg border" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+        <div className="mt-4 rounded-lg border border-[var(--border-subtle)]">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                 <Mail className="w-3.5 h-3.5 text-blue-500" />
-                <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{t('knowledge.email_thread_explorer_email_threads_count', 'Email threads ({count})', { count: threads.length })}</h5>
+                <h5 className="text-xs font-medium text-[var(--text-primary)]">{t('knowledge.email_thread_explorer_email_threads_count', 'Email threads ({count})', { count: threads.length })}</h5>
             </div>
-            <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+            <ul className="divide-y border-[var(--border-subtle)]">
                 {threads.map(th => {
                     const isOpen = expandedThreadId === th.thread_id;
                     const docs = threadDocs[th.thread_id] || [];
                     return (
                         <li key={th.thread_id}>
                             <button onClick={() => expandThread(th.thread_id)}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[var(--bg-tertiary)]"
-                                style={{ color: 'var(--text-primary)' }}>
+                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
                                 {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                                 <span className="flex-1 truncate font-mono text-[10px]">{th.thread_id}</span>
-                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{th.message_count} {t('knowledge.email_thread_explorer_msgs', 'msgs')}</span>
-                                {th.latest && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{new Date(th.latest).toLocaleDateString()}</span>}
+                                <span className="text-[10px] text-[var(--text-muted)]">{th.message_count} {t('knowledge.email_thread_explorer_msgs', 'msgs')}</span>
+                                {th.latest && <span className="text-[10px] text-[var(--text-muted)]">{new Date(th.latest).toLocaleDateString()}</span>}
                             </button>
                             {isOpen && (
                                 <div className="px-3 pb-3">
                                     {docs.length === 0 ? (
-                                        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('knowledge.email_thread_explorer_loading', 'Loading…')}</div>
+                                        <div className="text-[10px] text-[var(--text-muted)]">{t('knowledge.email_thread_explorer_loading', 'Loading…')}</div>
                                     ) : (
                                         <ol className="space-y-1">
                                             {docs.map((d, idx) => (
                                                 <li key={d.id} className="flex items-center gap-2 py-1 px-2 rounded text-[11px] hover:bg-[var(--bg-tertiary)]">
-                                                    <span className="inline-block w-4 text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
+                                                    <span className="inline-block w-4 text-center text-[10px] text-[var(--text-muted)]">{idx + 1}</span>
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="truncate" style={{ color: 'var(--text-primary)' }}>{d.title || 'Untitled'}</div>
-                                                        <div className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>
+                                                        <div className="truncate text-[var(--text-primary)]">{d.title || 'Untitled'}</div>
+                                                        <div className="text-[10px] truncate text-[var(--text-muted)]">
                                                             {d.metadata?.from ? String(d.metadata.from).replace(/<[^>]+>/, '').trim() : ''}
                                                             {d.metadata?.date ? ` · ${new Date(d.metadata.date).toLocaleDateString()}` : ''}
                                                             {d.metadata?.hasAttachments ? ' · 📎' : ''}

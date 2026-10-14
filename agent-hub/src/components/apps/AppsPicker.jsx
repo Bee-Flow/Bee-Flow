@@ -114,14 +114,14 @@ export default function AppsPicker({
                     style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', animation: 'appsOverlayIn .15s ease-out' }}
                 >
                     {/* Header */}
-                    <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                         <div className="flex items-center justify-between mb-1">
-                            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Apps</h3>
-                            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Apps</h3>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                 {t('apps.picker_active', '{active}/{total} active', { active: activeCount, total: apps.length })}
                             </span>
                         </div>
-                        <p className="text-[11px] mb-2.5" style={{ color: 'var(--text-tertiary)' }}>{t('apps.picker_hint', 'Click to use · Toggle to enable/disable')}</p>
+                        <p className="text-[11px] mb-2.5 text-[var(--text-tertiary)]">{t('apps.picker_hint', 'Click to use · Toggle to enable/disable')}</p>
                         <input
                             type="text"
                             value={search}
@@ -137,7 +137,7 @@ export default function AppsPicker({
                     {/* App list */}
                     <div className="p-1.5 max-h-72 overflow-y-auto">
                         {filtered.length === 0 ? (
-                            <div className="text-center py-6 text-sm" style={{ color: 'var(--text-tertiary)' }}>{t('apps.picker_none', 'No apps found')}</div>
+                            <div className="text-center py-6 text-sm text-[var(--text-tertiary)]">{t('apps.picker_none', 'No apps found')}</div>
                         ) : orderedCats.map(cat => {
                             // Search auto-expands; otherwise honour the collapsed state.
                             const isCollapsed = !q && !!collapsed[cat];
@@ -146,8 +146,7 @@ export default function AppsPicker({
                                     <button
                                         type="button"
                                         onClick={() => setCollapsed(prev => ({ ...prev, [cat]: !prev[cat] }))}
-                                        className="w-full flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide hover:opacity-80"
-                                        style={{ color: 'var(--text-tertiary)' }}
+                                        className="w-full flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide hover:opacity-80 text-[var(--text-tertiary)]"
                                     >
                                         {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                         <span className="truncate">{cat}</span>
@@ -169,11 +168,11 @@ export default function AppsPicker({
                                                     {app.iconSvg('w-5 h-5')}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{app.label}</div>
-                                                    <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>{app.description}</div>
+                                                    <div className="text-sm font-medium truncate text-[var(--text-primary)]">{app.label}</div>
+                                                    <div className="text-[11px] truncate text-[var(--text-tertiary)]">{app.description}</div>
                                                 </div>
                                                 {app.isStep ? (
-                                                    <span className="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{t('apps.picker_step', 'Step')}</span>
+                                                    <span className="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{t('apps.picker_step', 'Step')}</span>
                                                 ) : (
                                                     <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
                                                         <input

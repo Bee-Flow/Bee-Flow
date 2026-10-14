@@ -16,15 +16,15 @@ const NcOnboardingPending = ({ orgName, onRefresh }) => {
     return (
         <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
             <div className="w-full max-w-md">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border text-center" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border text-center bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="w-20 h-20 mx-auto mb-5 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)]">
                         <img src={beeFlowLogo} alt={t('integ.nc_onboarding_pending_bee_flow', 'Bee Flow')} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex items-center justify-center gap-2 mb-2">
                         <Clock className="w-5 h-5 text-amber-500" />
-                        <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.nc_onboarding_pending_setup_in_progress', 'Setup in progress')}</h2>
+                        <h2 className="text-xl font-semibold text-[var(--text-primary)]">{t('integ.nc_onboarding_pending_setup_in_progress', 'Setup in progress')}</h2>
                     </div>
-                    <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-sm mb-6 text-[var(--text-secondary)]">
                         {t('integ.nc_onboarding_pending_your_administrator_is_finalising_the', 'Your administrator is finalising the Bee Flow configuration')}{orgName ? ` for ${orgName}` : ''}{t('integ.nc_onboarding_pending_this_usually_takes_a_couple_of_minutes', '. This usually takes a couple of minutes — your account will be ready as soon as they\'re done.')}
                     </p>
                     <button

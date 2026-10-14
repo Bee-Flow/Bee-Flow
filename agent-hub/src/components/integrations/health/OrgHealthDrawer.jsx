@@ -34,7 +34,7 @@ export default function OrgHealthDrawer({ org, onClose, onNavigate }) {
         >
             <div className="flex-1 min-h-0 overflow-y-auto border-l border-[var(--border-default)] shadow-2xl bg-[var(--bg-primary)]">
                 {/* Header */}
-                <div className="sticky top-0 z-10 px-5 py-4 border-b border-[var(--border-subtle)]" style={{ background: 'var(--bg-primary)' }}>
+                <div className="sticky top-0 z-10 px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                     <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">

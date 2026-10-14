@@ -27,8 +27,7 @@ export default function PlanGrid({
     if (!plans.length) {
         return (
             <div
-                className="rounded-2xl border border-dashed p-8 text-center text-sm"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                className="rounded-2xl border border-dashed p-8 text-center text-sm border-[var(--border-subtle)] text-[var(--text-secondary)]"
             >
                 {emptyMessage || t('billing.no_plans', 'No plans are available right now.')}
             </div>

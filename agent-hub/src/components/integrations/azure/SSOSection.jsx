@@ -104,8 +104,8 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                     🪟
                 </div>
                 <div className="flex-1">
-                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{t('azure.sso_status')}</p>
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[13px] font-medium text-[var(--text-primary)]">{t('azure.sso_status')}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">
                         {ssoConfigured ? t('azure.sso_configured_desc') : t('azure.sso_not_configured_desc')}
                     </p>
                 </div>
@@ -117,7 +117,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 <AlertTriangle size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
                 <div style={{ color: '#b91c1c' }}>
                     <p className="font-semibold mb-1">{t('azure.sso_warning_title')}</p>
-                    <ul className="space-y-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <ul className="space-y-0.5 text-[11px] text-[var(--text-secondary)]">
                         <li>• {t('azure.sso_warning_client')}</li>
                         <li>• {t('azure.sso_warning_tenant')}</li>
                         <li>• {t('azure.sso_warning_remove')}</li>
@@ -144,7 +144,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
 
             {/* Tenant ID */}
             <div className="space-y-1.5">
-                <label className="block text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)]">
                     {t('azure.sso_tenant_id')}
                 </label>
                 <input
@@ -155,7 +155,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                     className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] transition-colors focus:ring-2 focus:ring-blue-500/20"
                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
-                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] text-[var(--text-muted)]">
                     {t('azure.sso_tenant_help').replace('{code}', '')}
                     <code style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: '3px' }}>common</code>
                     {' '}{t('azure.sso_tenant_help').split('{code}')[1] || ''}
@@ -168,14 +168,14 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                     <AlertTriangle size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#f59e0b' }} />
                     <div style={{ color: '#92400e' }}>
                         <p className="font-semibold mb-0.5">{t('azure.sso_tenant_common_title')}</p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-[11px] text-[var(--text-secondary)]">
                             {t('azure.sso_tenant_common_desc')}
                         </p>
                     </div>
                 </div>
             )}
 
-            <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
+            <div className="h-px my-1 bg-[var(--border-subtle)]" />
 
             {/* Auto-approve toggle */}
             <div className="space-y-2">
@@ -193,15 +193,15 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 )}
             </div>
 
-            <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
+            <div className="h-px my-1 bg-[var(--border-subtle)]" />
 
             {/* ═══════════════ AZURE AD GROUP SYNC ═══════════════ */}
             <div className="space-y-4">
                 <div>
-                    <h4 className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <h4 className="text-[13px] font-semibold text-[var(--text-primary)]">
                         {t('azure.sync_groups_title', 'Azure AD Group Sync')}
                     </h4>
-                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] mt-0.5 text-[var(--text-muted)]">
                         {t('azure.sync_groups_desc', 'Automatically sync groups and users assigned to your Azure AD enterprise app to BeeFlow.')}
                     </p>
                 </div>
@@ -219,13 +219,13 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                                     <Clock size={18} style={{ color: 'var(--text-muted)' }} />}
                     </div>
                     <div className="flex-1">
-                        <p className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-[12px] font-medium text-[var(--text-primary)]">
                             {status.lastSyncAt
                                 ? `${t('azure.sync_last_synced', 'Last synced')}: ${formatTimeAgo(status.lastSyncAt)}`
                                 : t('azure.sync_never', 'Never synced')}
                         </p>
                         {status.lastSyncAt && (
-                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[11px] text-[var(--text-muted)]">
                                 {status.syncedGroups || 0} {t('azure.sso_group_s', 'group(s),')} {status.syncedUsers || 0} {t('azure.sso_user_s_synced', 'user(s) synced')}
                                 {settings.periodicSync && ` • Auto-sync every ${settings.syncIntervalHours}h`}
                             </p>
@@ -303,7 +303,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                         <XCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
                         <div>
                             <p className="font-medium" style={{ color: '#b91c1c' }}>{t('azure.sync_groups_error', 'Sync failed')}</p>
-                            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{syncError}</p>
+                            <p className="text-[11px] mt-0.5 text-[var(--text-secondary)]">{syncError}</p>
                         </div>
                     </div>
                 )}
@@ -312,7 +312,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 {!ssoConfigured && (
                     <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-lg text-[12px]" style={{ background: 'rgba(100,116,139,0.06)', border: '1px solid rgba(100,116,139,0.15)' }}>
                         <Info size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                        <p style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-[var(--text-secondary)]">
                             {t('azure.sync_requires_sso', 'Configure Microsoft SSO credentials above before using group sync.')}
                         </p>
                     </div>
@@ -321,7 +321,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 {/* ── Sync Settings Toggles ── */}
                 {ssoConfigured && (
                     <div className="space-y-3 rounded-lg px-4 py-3" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                        <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                             {t('azure.sync_settings', 'Sync Settings')}
                         </p>
 
@@ -358,7 +358,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                         />
                         {settings.periodicSync && (
                             <div className="flex items-center gap-2 ml-[48px]">
-                                <label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                                <label className="text-[11px] text-[var(--text-secondary)]">
                                     {t('azure.sync_interval', 'Sync every')}
                                 </label>
                                 <select
@@ -383,10 +383,10 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 {/* Azure permissions info */}
                 {ssoConfigured && (
                     <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                        <p className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-[12px] font-medium text-[var(--text-primary)]">
                             {t('azure.sync_permissions_title', 'Required Azure Permissions')}
                         </p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[11px] text-[var(--text-muted)]">
                             {t('azure.sync_permissions_desc', 'The following Application permissions must be granted in Azure Portal → App registrations → API permissions, with admin consent:')}
                         </p>
                         <div className="flex flex-wrap gap-1.5 mt-1">
@@ -400,12 +400,12 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 )}
             </div>
 
-            <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
+            <div className="h-px my-1 bg-[var(--border-subtle)]" />
 
             {/* Setup guide */}
             <div className="rounded-lg px-4 py-3 space-y-1.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                <p className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{t('azure.sso_setup_guide')}</p>
-                <ol className="text-[11px] space-y-1 list-decimal list-inside" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[12px] font-medium text-[var(--text-primary)]">{t('azure.sso_setup_guide')}</p>
+                <ol className="text-[11px] space-y-1 list-decimal list-inside text-[var(--text-muted)]">
                     <li>{t('azure.sso_step_1')} <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#0078D4' }}>{t('azure.sso_azure_portal_app_registrations', 'Azure Portal → App registrations')}</a></li>
                     <li>{t('azure.sso_step_2')}</li>
                     <li>{t('azure.sso_under', 'Under')} <strong>{t('azure.sso_authentication', 'Authentication')}</strong>{t('azure.sso_add_a_redirect_uri', ', add a redirect URI:')} <code style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>https://your-domain/auth/callback/microsoft</code></li>

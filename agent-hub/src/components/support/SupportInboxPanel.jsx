@@ -104,7 +104,7 @@ function TagChips({ tags, onRemove }) {
                     style={{ background: 'rgba(99,102,241,0.0)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
                     #{t}
                     {onRemove && (
-                        <button onClick={() => onRemove(t)} className="opacity-60 hover:opacity-100" style={{ color: 'var(--text-muted)' }}>×</button>
+                        <button onClick={() => onRemove(t)} className="opacity-60 hover:opacity-100 text-[var(--text-muted)]">×</button>
                     )}
                 </span>
             ))}
@@ -116,7 +116,7 @@ function CsatStars({ score }) {
     if (!score) return null;
     return (
         <span className="text-xs inline-flex items-center" title={`Customer rated ${score}/5`} style={{ color: '#f59e0b' }}>
-            {'★'.repeat(score)}<span style={{ color: 'var(--text-muted)' }}>{'★'.repeat(5 - score)}</span>
+            {'★'.repeat(score)}<span className="text-[var(--text-muted)]">{'★'.repeat(5 - score)}</span>
         </span>
     );
 }
@@ -404,19 +404,19 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
     const activeTotal = counter('open') + counter('ai_responding') + counter('awaiting_user') + counter('awaiting_agent');
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex flex-col bg-[var(--bg-primary)]">
             {/* Header */}
-            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+            <div className="px-6 py-4 border-b flex items-center justify-between border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 <div className="flex items-center gap-3">
                     <Inbox className="w-5 h-5" style={{ color: 'var(--text-primary)' }} />
-                    <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('support.support_inbox_customer_support', 'Customer Support')}</h2>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                    <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('support.support_inbox_customer_support', 'Customer Support')}</h2>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                         {t('support.support_inbox_active_counter_resolved', '{active} active · {resolved} resolved', { active: activeTotal, resolved: counter('resolved') })}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
                     {/* View tabs — Inbox / AI configuration */}
-                    <div className="flex gap-1 p-1 rounded-md" style={{ background: 'var(--bg-tertiary)' }}>
+                    <div className="flex gap-1 p-1 rounded-md bg-[var(--bg-tertiary)]">
                         <button
                             onClick={() => setView('inbox')}
                             className="px-3 py-1 rounded text-sm font-medium flex items-center gap-1.5"
@@ -449,7 +449,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                         </button>
                     </div>
                     {view === 'inbox' && (
-                        <button onClick={fetchThreads} title={t('support.support_inbox_refresh', 'Refresh')} className="p-2 rounded-md hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>
+                        <button onClick={fetchThreads} title={t('support.support_inbox_refresh', 'Refresh')} className="p-2 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         </button>
                     )}
@@ -465,10 +465,10 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                     <div className="flex items-start gap-3 min-w-0">
                         <Mail className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#b45309' }} />
                         <div className="min-w-0">
-                            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                            <div className="text-sm font-medium text-[var(--text-primary)]">
                                 {t('support.support_inbox_an_email_box_is_feeding_this_inbox', 'An email box is feeding this inbox')}
                             </div>
-                            <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                            <div className="text-xs mt-0.5 text-[var(--text-secondary)]">
                                 {mailbox.count === 1 ? t('support.support_inbox_ticket_one', '{count} ticket here came in over a connected mailbox', { count: 1 }) : t('support.support_inbox_ticket_other', '{count} tickets here came in over a connected mailbox', { count: mailbox.count })}
                                 {mailbox.activeCount ? ` (${mailbox.activeCount} still active)` : ''}
                                 {mailbox.lastAt ? ` · last message ${formatRelative(mailbox.lastAt)}` : ''}{t('support.support_inbox_disconnecting_removes_them_marketing', '. Disconnecting removes them; marketing-form and in-app tickets stay.')}
@@ -501,8 +501,8 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
 
             <div className="flex-1 min-h-0 grid grid-cols-12">
                 {/* Left: thread list */}
-                <div className="col-span-4 border-r flex flex-col min-h-0" style={{ borderColor: 'var(--border-default)' }}>
-                    <div className="p-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="col-span-4 border-r flex flex-col min-h-0 border-[var(--border-default)]">
+                    <div className="p-3 border-b flex items-center gap-2 border-[var(--border-default)]">
                         <input
                             value={search}
                             onChange={e => setSearch(e.target.value)}
@@ -512,7 +512,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         />
                     </div>
-                    <div className="px-3 py-2 border-b flex gap-1 overflow-x-auto" style={{ borderColor: 'var(--border-default)' }}>
+                    <div className="px-3 py-2 border-b flex gap-1 overflow-x-auto border-[var(--border-default)]">
                         {[
                             { id: 'active', label: `Active (${activeTotal})` },
                             ...(counter('followup') || statusFilter === 'followup'
@@ -536,9 +536,9 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                         ))}
                     </div>
                     {selectedIds.size > 0 && (
-                        <div className="px-3 py-2 border-b flex items-center gap-2 flex-wrap text-xs" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>{t('support.support_inbox_selected', '{count} selected', { count: selectedIds.size })}</span>
-                            <button disabled={bulkBusy} onClick={() => runBulk('resolve')} className="px-2 py-1 rounded border disabled:opacity-50" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>{t('support.support_inbox_resolve', 'Resolve')}</button>
+                        <div className="px-3 py-2 border-b flex items-center gap-2 flex-wrap text-xs border-[var(--border-default)] bg-[var(--bg-tertiary)]">
+                            <span className="text-[var(--text-secondary)]">{t('support.support_inbox_selected', '{count} selected', { count: selectedIds.size })}</span>
+                            <button disabled={bulkBusy} onClick={() => runBulk('resolve')} className="px-2 py-1 rounded border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]">{t('support.support_inbox_resolve', 'Resolve')}</button>
                             <select disabled={bulkBusy} onChange={e => { if (e.target.value) { runBulk('priority', { priority: e.target.value }); e.target.value = ''; } }} className="px-1.5 py-1 rounded border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }} defaultValue="">
                                 <option value="">{t('support.support_inbox_set_priority', 'Set priority…')}</option>
                                 {Object.entries(PRIORITY_BADGES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -549,12 +549,12 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                 onKeyDown={e => { if (e.key === 'Enter' && e.target.value.trim()) { runBulk('tag', { tag: e.target.value.trim() }); e.target.value = ''; } }}
                                 className="px-2 py-1 rounded border w-28" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             />
-                            <button onClick={() => setSelectedIds(new Set())} className="px-2 py-1 rounded" style={{ color: 'var(--text-muted)' }}>{t('support.support_inbox_clear', 'Clear')}</button>
+                            <button onClick={() => setSelectedIds(new Set())} className="px-2 py-1 rounded text-[var(--text-muted)]">{t('support.support_inbox_clear', 'Clear')}</button>
                         </div>
                     )}
                     <div className="flex-1 overflow-y-auto">
                         {threads.length === 0 && !loading && (
-                            <div className="p-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>{t('support.support_inbox_no_threads', 'No threads')}</div>
+                            <div className="p-8 text-center text-sm text-[var(--text-muted)]">{t('support.support_inbox_no_threads', 'No threads')}</div>
                         )}
                         {threads.map(th => (
                             <div
@@ -576,7 +576,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                 <div className="min-w-0 flex-1 text-left">
                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <span className="w-2 h-2 rounded-full" style={{ background: STATUS_DOT[th.status] }} />
-                                    <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                                    <span className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
                                         {STATUS_LABELS[th.status] || th.status}
                                     </span>
                                     {th.source === 'marketing' && (
@@ -590,8 +590,8 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                     <SlaBadge thread={th} />
                                     <CsatStars score={th.csat_score} />
                                 </div>
-                                <div className="text-sm font-medium line-clamp-1" style={{ color: 'var(--text-primary)' }}>{th.subject}</div>
-                                <div className="text-xs mt-0.5 flex items-center justify-between" style={{ color: 'var(--text-muted)' }}>
+                                <div className="text-sm font-medium line-clamp-1 text-[var(--text-primary)]">{th.subject}</div>
+                                <div className="text-xs mt-0.5 flex items-center justify-between text-[var(--text-muted)]">
                                     <span className="truncate">{th.requester_email}</span>
                                     <span className="shrink-0 ml-2">{formatRelative(th.last_message_at)}</span>
                                 </div>
@@ -599,9 +599,8 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                     <div className="mt-1"><TagChips tags={th.tags} /></div>
                                 )}
                                 {(th.requester_org_role || th.requester_org_name) && (
-                                    <div className="text-xs mt-1 flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-muted)' }}>
-                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded"
-                                            style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                                    <div className="text-xs mt-1 flex items-center gap-1.5 flex-wrap text-[var(--text-muted)]">
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                             <Shield className="w-3 h-3" /> {roleLabel(th.requester_org_role)}
                                         </span>
                                         {th.requester_org_name && (
@@ -616,32 +615,31 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                 </div>
 
                 {/* Right: thread detail */}
-                <div className="col-span-8 flex flex-col min-h-0" style={{ background: 'var(--bg-card)' }}>
+                <div className="col-span-8 flex flex-col min-h-0 bg-[var(--bg-card)]">
                     {!thread ? (
-                        <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                        <div className="flex-1 flex items-center justify-center text-sm text-[var(--text-muted)]">
                             {t('support.support_inbox_select_a_thread_to_view_the', 'Select a thread to view the conversation')}
                         </div>
                     ) : (
                         <>
-                            <div className="p-4 border-b" style={{ borderColor: 'var(--border-default)' }}>
+                            <div className="p-4 border-b border-[var(--border-default)]">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="min-w-0">
-                                        <div className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{thread.subject}</div>
-                                        <div className="text-xs flex flex-wrap items-center gap-3" style={{ color: 'var(--text-muted)' }}>
+                                        <div className="text-sm font-semibold mb-1 text-[var(--text-primary)]">{thread.subject}</div>
+                                        <div className="text-xs flex flex-wrap items-center gap-3 text-[var(--text-muted)]">
                                             <span>From: {thread.requester_name ? `${thread.requester_name} <${thread.requester_email}>` : thread.requester_email}</span>
-                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded"
-                                                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                                 <Shield className="w-3 h-3" /> {roleLabel(thread.requester_org_role)}
                                             </span>
                                             {thread.requester_org_name && (
-                                                <span>{t('support.support_inbox_at', 'at')} <strong style={{ color: 'var(--text-primary)' }}>{thread.requester_org_name}</strong></span>
+                                                <span>{t('support.support_inbox_at', 'at')} <strong className="text-[var(--text-primary)]">{thread.requester_org_name}</strong></span>
                                             )}
                                             <span>Source: {thread.source}</span>
                                             {thread.ai_handled && <span style={{ color: '#0ea5e9' }}>{t('support.support_inbox_ai_handled', 'AI handled')}</span>}
                                             {thread.ai_escalated_reason && <span style={{ color: '#b45309' }}>Escalated: {thread.ai_escalated_reason}</span>}
                                             <SlaBadge thread={thread} />
                                             {thread.csat_score && <CsatStars score={thread.csat_score} />}
-                                            {thread.category && <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{thread.category}</span>}
+                                            {thread.category && <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{thread.category}</span>}
                                         </div>
                                         <div className="mt-2 flex items-center gap-2 flex-wrap">
                                             <TagChips tags={thread.tags} onRemove={removeTag} />
@@ -690,14 +688,13 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                     style={{ borderColor: 'var(--border-default)', background: 'rgba(245,158,11,0.10)' }}>
                                     <div className="flex items-start gap-2 min-w-0 text-xs">
                                         <BellRing className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: '#b45309' }} />
-                                        <span style={{ color: 'var(--text-primary)' }}>
+                                        <span className="text-[var(--text-primary)]">
                                             <strong>{t('support.support_inbox_needs_a_follow_up', 'Needs a follow-up.')}</strong> {thread.followup_reason}
-                                            <span style={{ color: 'var(--text-muted)' }}> {t('support.support_inbox_the_customer_has_not_been_told', '— the customer has not been told.')}</span>
+                                            <span className="text-[var(--text-muted)]"> {t('support.support_inbox_the_customer_has_not_been_told', '— the customer has not been told.')}</span>
                                         </span>
                                     </div>
                                     <button onClick={clearFollowup}
-                                        className="px-2 py-1 rounded text-xs border shrink-0"
-                                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                                        className="px-2 py-1 rounded text-xs border shrink-0 border-[var(--border-default)] text-[var(--text-secondary)]">
                                         {t('support.support_inbox_mark_followed_up', 'Mark followed up')}
                                     </button>
                                 </div>
@@ -722,20 +719,19 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                 );
                             })()}
 
-                            <div className="px-4 py-1.5 border-b" style={{ borderColor: 'var(--border-default)' }}>
+                            <div className="px-4 py-1.5 border-b border-[var(--border-default)]">
                                 <button
                                     onClick={() => setShowActivity(v => !v)}
-                                    className="text-xs flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
-                                    style={{ color: 'var(--text-muted)' }}
+                                    className="text-xs flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
                                 >
                                     {showActivity ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                                     <History className="w-3 h-3" /> {t('support.support_inbox_activity_log', 'Activity log')}
                                     {activity.length > 0 && (
-                                        <span className="ml-1 px-1.5 py-0 rounded" style={{ background: 'var(--bg-tertiary)' }}>{activity.length}</span>
+                                        <span className="ml-1 px-1.5 py-0 rounded bg-[var(--bg-tertiary)]">{activity.length}</span>
                                     )}
                                 </button>
                                 {showActivity && (
-                                    <div className="mt-2 max-h-40 overflow-y-auto text-xs space-y-1 pl-4 pb-2" style={{ color: 'var(--text-muted)' }}>
+                                    <div className="mt-2 max-h-40 overflow-y-auto text-xs space-y-1 pl-4 pb-2 text-[var(--text-muted)]">
                                         {activity.length === 0 && <div className="opacity-60">{t('support.support_inbox_no_events_recorded_yet', 'No events recorded yet.')}</div>}
                                         {activity.map(ev => (
                                             <div key={ev.id} className="flex items-baseline gap-2">
@@ -761,23 +757,23 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                             border: '1px solid var(--border-default)',
                                             color: 'var(--text-primary)',
                                         }}>
-                                            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+                                            <div className="flex items-center gap-2 text-xs mb-1 text-[var(--text-muted)]">
                                                 {isAI ? <Bot className="w-3.5 h-3.5" /> : isStaff ? <User className="w-3.5 h-3.5" /> : isSystem ? <AlertTriangle className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
-                                                <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>
+                                                <span className="font-medium text-[var(--text-secondary)]">
                                                     {m.author_display || m.author_kind}
                                                 </span>
                                                 {m.internal_note && <span className="px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.2)', color: '#b45309' }}>{t('support.support_inbox_internal_note', 'internal note')}</span>}
                                                 <span className="ml-auto">{formatRelative(m.created_at)}</span>
                                             </div>
                                             {m.body_html ? (
-                                                <div className="rounded-md overflow-hidden border bg-white" style={{ borderColor: 'var(--border-default)' }}>
+                                                <div className="rounded-md overflow-hidden border bg-white border-[var(--border-default)]">
                                                     <EmailHtmlBody html={m.body_html} />
                                                 </div>
                                             ) : (
                                                 <div className="whitespace-pre-wrap">{m.body}</div>
                                             )}
                                             {Array.isArray(m.kb_citations) && m.kb_citations.length > 0 && (
-                                                <div className="mt-2 pt-2 border-t text-xs" style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}>
+                                                <div className="mt-2 pt-2 border-t text-xs border-[var(--border-default)] text-[var(--text-muted)]">
                                                     Cited: {m.kb_citations.map(c => c.title).filter(Boolean).join(' · ')}
                                                 </div>
                                             )}
@@ -785,16 +781,14 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                     );
                                 })}
                             </div>
-                            <div className="border-t p-3 relative" style={{ borderColor: 'var(--border-default)' }}>
+                            <div className="border-t p-3 relative border-[var(--border-default)]">
                                 {showCanned && cannedResponses.length > 0 && (
-                                    <div className="absolute bottom-full left-3 right-3 mb-1 max-h-56 overflow-y-auto rounded-md border shadow-lg z-10"
-                                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+                                    <div className="absolute bottom-full left-3 right-3 mb-1 max-h-56 overflow-y-auto rounded-md border shadow-lg z-10 bg-[var(--bg-card)] border-[var(--border-default)]">
                                         {cannedResponses.map(c => (
                                             <button key={c.id} onClick={() => insertCanned(c)}
-                                                className="w-full text-left px-3 py-2 border-b hover:bg-[var(--bg-tertiary)] text-sm"
-                                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
-                                                <div className="font-medium flex items-center gap-2">{c.title}{c.shortcut && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{c.shortcut}</span>}</div>
-                                                <div className="text-xs line-clamp-1" style={{ color: 'var(--text-muted)' }}>{c.body}</div>
+                                                className="w-full text-left px-3 py-2 border-b hover:bg-[var(--bg-tertiary)] text-sm border-[var(--border-default)] text-[var(--text-primary)]">
+                                                <div className="font-medium flex items-center gap-2">{c.title}{c.shortcut && <span className="text-xs text-[var(--text-muted)]">{c.shortcut}</span>}</div>
+                                                <div className="text-xs line-clamp-1 text-[var(--text-muted)]">{c.body}</div>
                                             </button>
                                         ))}
                                     </div>
@@ -814,12 +808,12 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                 />
                                 <div className="mt-2 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                    <label className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                                    <label className="text-xs flex items-center gap-1.5 text-[var(--text-secondary)]">
                                         <input type="checkbox" checked={internalNote} onChange={e => setInternalNote(e.target.checked)} />
                                         {t('support.support_inbox_internal_note_2', 'Internal note')}
                                     </label>
                                     {cannedResponses.length > 0 && (
-                                        <button onClick={() => setShowCanned(v => !v)} className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('support.support_inbox_templates', 'Templates')}</button>
+                                        <button onClick={() => setShowCanned(v => !v)} className="text-xs text-[var(--text-muted)]">{t('support.support_inbox_templates', 'Templates')}</button>
                                     )}
                                     </div>
                                     <button

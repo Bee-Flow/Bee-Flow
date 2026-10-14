@@ -138,7 +138,7 @@ export default function OrgAzureConfigPanel({ user }) {
     if (!orgId) {
         return (
             <div className="rounded-xl px-5 py-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[13px] text-[var(--text-muted)]">
                     {t('azure.no_org_message')}
                 </p>
             </div>
@@ -199,10 +199,10 @@ export default function OrgAzureConfigPanel({ user }) {
         <div className="space-y-4">
             {/* Header */}
             <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-widest mb-2 text-[var(--text-muted)]">
                     {t('azure.panel_header')}
                 </p>
-                <p className="text-[12px] mb-4" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[12px] mb-4 text-[var(--text-muted)]">
                     {t('azure.panel_subheader')}
                 </p>
             </div>
@@ -238,7 +238,7 @@ export default function OrgAzureConfigPanel({ user }) {
                             <Icon style={{ width: '16px', height: '16px', color: isActive ? section.color : 'var(--text-muted)', flexShrink: 0 }} />
                             <div className="flex-1 min-w-0">
                                 <p className="text-[13px] font-medium" style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{t(section.labelKey)}</p>
-                                <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{t(section.descKey)}</p>
+                                <p className="text-[11px] truncate text-[var(--text-muted)]">{t(section.descKey)}</p>
                             </div>
                             {/* Status indicators */}
                             {section.id === 'openai' && (azureEndpoint || hasAzureApiKey) && (

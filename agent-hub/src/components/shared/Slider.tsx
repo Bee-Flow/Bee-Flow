@@ -71,11 +71,7 @@ export default function Slider({
                     style={{ accentColor: 'var(--accent-primary)' }}
                 />
                 <span
-                    className="text-xs font-mono tabular-nums px-2 py-1 rounded-md min-w-[3.5rem] text-center"
-                    style={{
-                        background: 'var(--bg-tertiary)',
-                        color: 'var(--text-secondary)',
-                    }}
+                    className="text-xs font-mono tabular-nums px-2 py-1 rounded-md min-w-[3.5rem] text-center bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                 >
                     {display}
                 </span>

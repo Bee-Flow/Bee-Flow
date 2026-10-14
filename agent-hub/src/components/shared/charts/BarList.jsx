@@ -25,19 +25,19 @@ export default function BarList({ rows, maxRows = 8, ariaLabel, moreLabel, showA
                     const pct = Number.isFinite(Number(r.pct)) ? Number(r.pct) : null;
                     return (
                         <li key={`${r.label}-${i}`} className="grid items-center gap-3 text-xs" style={{ gridTemplateColumns: 'minmax(0, 11rem) 1fr auto' }}>
-                            <span className="truncate" style={{ color: 'var(--text-primary)' }} title={r.label}>{r.label}</span>
-                            <span className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }} aria-hidden="true">
+                            <span className="truncate text-[var(--text-primary)]" title={r.label}>{r.label}</span>
+                            <span className="h-2.5 rounded-full overflow-hidden bg-[var(--bg-secondary)]" aria-hidden="true">
                                 <span className="block h-full rounded-full" style={{ width: `${Math.max(2, (n / max) * 100)}%`, background: chartSeriesVar(seriesIndex) }} />
                             </span>
-                            <span className="tabular-nums whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
-                                {fmt.format(n)}{pct !== null ? <span className="ml-1.5" style={{ color: 'var(--text-tertiary)' }}>{`${pct}%`}</span> : null}
+                            <span className="tabular-nums whitespace-nowrap text-[var(--text-secondary)]">
+                                {fmt.format(n)}{pct !== null ? <span className="ml-1.5 text-[var(--text-tertiary)]">{`${pct}%`}</span> : null}
                             </span>
                         </li>
                     );
                 })}
             </ul>
             {hidden > 0 && (
-                <button type="button" onClick={() => setExpanded(true)} className="mt-2 text-xs underline-offset-2 hover:underline" style={{ color: 'var(--text-secondary)' }}>
+                <button type="button" onClick={() => setExpanded(true)} className="mt-2 text-xs underline-offset-2 hover:underline text-[var(--text-secondary)]">
                     {typeof moreLabel === 'function' ? moreLabel(hidden) : `${showAllLabel} (${hidden})`}
                 </button>
             )}

@@ -12,8 +12,7 @@ export default function LookPreviewToolbar({ activeId, onChange, onReload, surfa
     const { t } = useTranslation();
     return (
         <div
-            className="flex items-center gap-2 px-3 py-2 border-b"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
+            className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-card)]"
         >
             <nav
                 aria-label={t('appearance.look_preview_toolbar_preview_surface', 'Preview surface')}
@@ -49,8 +48,7 @@ export default function LookPreviewToolbar({ activeId, onChange, onReload, surfa
                     onClick={onReload}
                     aria-label={t('appearance.look_preview_toolbar_refresh_preview', 'Refresh preview')}
                     title={t('appearance.look_preview_toolbar_refresh_preview', 'Refresh preview')}
-                    className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                 >
                     <RotateCw className="w-3.5 h-3.5" />
                 </button>
@@ -61,8 +59,7 @@ export default function LookPreviewToolbar({ activeId, onChange, onReload, surfa
                         rel="noreferrer"
                         aria-label={t('appearance.look_preview_toolbar_open_preview_in_new_tab', 'Open preview in new tab')}
                         title={t('appearance.look_preview_toolbar_open_preview_in_new_tab', 'Open preview in new tab')}
-                        className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ color: 'var(--text-tertiary)' }}
+                        className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                     >
                         <ExternalLink className="w-3.5 h-3.5" />
                     </a>

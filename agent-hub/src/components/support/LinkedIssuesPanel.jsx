@@ -35,7 +35,7 @@ function ConnectionNotice({ status }) {
     if (!status) return null;
     if (!status.configured) {
         return (
-            <div className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-xs mb-2 text-[var(--text-muted)]">
                 {t('support.linked_issues_youtrack_is_not_connected_yet_an_admin', 'YouTrack is not connected yet. An admin can set it up in the Connections tab.')}
             </div>
         );
@@ -66,34 +66,32 @@ function SyncNote({ issue }) {
 function IssueRow({ issue, threadId, onDetach, onShowReverse, reverseOpen, reverseThreads }) {
     const { t } = useTranslation();
     return (
-        <div className="rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+        <div className="rounded border px-2 py-1.5 border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <div className="flex items-start gap-2">
                 <a
                     href={issue.url || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-medium shrink-0 inline-flex items-center gap-1"
-                    style={{ color: 'var(--accent-primary)' }}
+                    className="text-xs font-medium shrink-0 inline-flex items-center gap-1 text-[var(--accent-primary)]"
                 >
                     {issue.issueId} <ExternalLink className="w-3 h-3" />
                 </a>
-                <span className="text-xs flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-xs flex-1 min-w-0 truncate text-[var(--text-primary)]">
                     {issue.summary || '—'}
                 </span>
                 <StateChip state={issue.state} resolved={issue.resolved} />
                 <button
                     onClick={() => onDetach(issue.issueId)}
                     title={t('support.linked_issues_detach_from_this_ticket', 'Detach from this ticket')}
-                    className="opacity-50 hover:opacity-100 shrink-0"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="opacity-50 hover:opacity-100 shrink-0 text-[var(--text-muted)]"
                 >
                     <X className="w-3.5 h-3.5" />
                 </button>
             </div>
 
             {issue.lastComment && (
-                <div className="text-xs mt-1 pl-1 border-l-2" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>
+                <div className="text-xs mt-1 pl-1 border-l-2 border-[var(--border-default)] text-[var(--text-secondary)]">
+                    <span className="text-[var(--text-muted)]">
                         {issue.lastComment.author || 'Someone'} · {relative(issue.lastComment.at)}:
                     </span>{' '}
                     {String(issue.lastComment.text).slice(0, 220)}
@@ -101,14 +99,13 @@ function IssueRow({ issue, threadId, onDetach, onShowReverse, reverseOpen, rever
                 </div>
             )}
 
-            <div className="flex items-center gap-2 mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-muted)]">
                 {issue.kind !== 'linked' && <span>{issue.kind === 'created' ? 'created here' : 'escalated'}</span>}
                 {issue.reason && <span className="truncate">· {issue.reason}</span>}
                 {issue.otherTicketCount > 0 && (
                     <button
                         onClick={() => onShowReverse(issue.issueId)}
-                        className="inline-flex items-center gap-1 hover:underline"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="inline-flex items-center gap-1 hover:underline text-[var(--text-secondary)]"
                     >
                         <Users className="w-3 h-3" />
                         {issue.otherTicketCount === 1 ? t('support.linked_issues_other_ticket_one', '{count} other ticket', { count: 1 }) : t('support.linked_issues_other_ticket_other', '{count} other tickets', { count: issue.otherTicketCount })}
@@ -118,19 +115,18 @@ function IssueRow({ issue, threadId, onDetach, onShowReverse, reverseOpen, rever
             </div>
 
             {reverseOpen && (
-                <div className="mt-1.5 pl-1 border-l-2 flex flex-col gap-0.5" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="mt-1.5 pl-1 border-l-2 flex flex-col gap-0.5 border-[var(--border-default)]">
                     {reverseThreads.length === 0 && (
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('support.linked_issues_loading', 'Loading…')}</span>
+                        <span className="text-xs text-[var(--text-muted)]">{t('support.linked_issues_loading', 'Loading…')}</span>
                     )}
                     {reverseThreads.filter(t => t.id !== threadId).map(t => (
                         <a
                             key={t.id}
                             href={`/app/admin/support/${t.id}`}
-                            className="text-xs truncate hover:underline"
-                            style={{ color: 'var(--text-secondary)' }}
+                            className="text-xs truncate hover:underline text-[var(--text-secondary)]"
                         >
                             {t.ref || t.id.slice(0, 8)} · {t.subject}{' '}
-                            <span style={{ color: 'var(--text-muted)' }}>({t.status})</span>
+                            <span className="text-[var(--text-muted)]">({t.status})</span>
                         </a>
                     ))}
                 </div>
@@ -231,15 +227,15 @@ export default function LinkedIssuesPanel({ thread, onChanged }) {
     if (!threadId) return null;
 
     return (
-        <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-default)' }}>
+        <div className="px-4 py-3 border-b border-[var(--border-default)]">
             <div className="flex items-center justify-between gap-3 mb-2">
-                <div className="flex items-center gap-2 text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
                     <Link2 className="w-3.5 h-3.5" />
                     {t('support.linked_issues_development_issues', 'Development issues')}
                     {issues.length > 0 && (
-                        <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)' }}>{issues.length}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)]">{issues.length}</span>
                     )}
-                    {oldestSync && <span style={{ color: 'var(--text-muted)' }}>{t('support.linked_issues_updated', '· updated {when}', { when: relative(oldestSync) })}</span>}
+                    {oldestSync && <span className="text-[var(--text-muted)]">{t('support.linked_issues_updated', '· updated {when}', { when: relative(oldestSync) })}</span>}
                 </div>
                 <div className="flex items-center gap-1.5">
                     {issues.length > 0 && (
@@ -247,8 +243,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }) {
                             onClick={refresh}
                             disabled={refreshing}
                             title={t('support.linked_issues_pull_the_latest_state_from_youtrack', 'Pull the latest state from YouTrack')}
-                            className="p-1 rounded hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="p-1 rounded hover:bg-[var(--bg-tertiary)] disabled:opacity-50 text-[var(--text-muted)]"
                         >
                             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
                         </button>
@@ -257,8 +252,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }) {
                         onClick={() => setOpen(o => !o)}
                         disabled={!connected}
                         title={connected ? 'Attach an existing issue' : 'YouTrack is not connected'}
-                        className="px-2 py-1 rounded text-xs flex items-center gap-1 border disabled:opacity-50"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="px-2 py-1 rounded text-xs flex items-center gap-1 border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         <Plus className="w-3 h-3" /> {t('support.linked_issues_attach_issue', 'Attach issue')}
                     </button>
@@ -274,7 +268,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }) {
             )}
 
             {issues.length === 0 && !loading && !open && (
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-xs text-[var(--text-muted)]">
                     {t('support.linked_issues_no_issues_attached_search_before', 'No issues attached. Search before creating one — the bug may already be filed.')}
                 </div>
             )}

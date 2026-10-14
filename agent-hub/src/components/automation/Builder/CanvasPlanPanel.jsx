@@ -49,7 +49,7 @@ export default function CanvasPlanPanel({ todos, running = false, t, idPrefix = 
             >
                 <ListTodo className="h-3 w-3" aria-hidden="true" />
                 {label}
-                <span className="tabular-nums" style={{ color: 'var(--text-tertiary)' }}>{done}/{list.length}</span>
+                <span className="tabular-nums text-[var(--text-tertiary)]">{done}/{list.length}</span>
             </button>
         );
     }
@@ -63,8 +63,7 @@ export default function CanvasPlanPanel({ todos, running = false, t, idPrefix = 
             <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex w-full items-center justify-end px-2 pt-1.5"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="flex w-full items-center justify-end px-2 pt-1.5 text-[var(--text-tertiary)]"
                 aria-label={t ? t('app_studio.shell.ai_plan_hide', 'Hide the plan') : 'Hide the plan'}
                 data-testid={`${idPrefix}-plan-hide`}
             >

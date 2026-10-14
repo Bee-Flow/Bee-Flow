@@ -146,9 +146,9 @@ export default function ServerLicensePanel() {
 
     if (loading) {
         return (
-            <div className="rounded-2xl border p-5 animate-pulse" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
-                <div className="h-5 w-48 rounded mb-3" style={{ background: 'var(--bg-tertiary)' }} />
-                <div className="h-10 rounded" style={{ background: 'var(--bg-tertiary)' }} />
+            <div className="rounded-2xl border p-5 animate-pulse bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
+                <div className="h-5 w-48 rounded mb-3 bg-[var(--bg-tertiary)]" />
+                <div className="h-10 rounded bg-[var(--bg-tertiary)]" />
             </div>
         );
     }
@@ -161,35 +161,35 @@ export default function ServerLicensePanel() {
                     <Globe className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                    <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-lg font-bold text-[var(--text-primary)]">
                         {t('admin.server_license.title', 'Server licence')}
                     </h2>
-                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm mt-1 text-[var(--text-muted)]">
                         {t('admin.server_license.intro', 'One licence key applied install-wide. Every organisation on this server runs at the tier this licence carries; per-organisation licences are ignored while this is active.')}
                     </p>
                 </div>
             </div>
 
             {/* Active state card */}
-            <div className="rounded-2xl border p-5" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+            <div className="rounded-2xl border p-5 bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                 <div className="flex items-center gap-3 mb-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${badge.bg} ${badge.fg} ${badge.border}`}>
                         {badge.label}
                     </span>
                     {isServerScope ? (
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-xs font-medium text-[var(--text-secondary)]">
                             <ShieldCheck className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />
                             {t('admin.server_license.active_badge', 'Server-wide licence active')}
                         </span>
                     ) : (
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-xs text-[var(--text-muted)]">
                             {t('admin.server_license.inactive_badge', 'No server-wide licence applied')}
                         </span>
                     )}
                 </div>
 
                 {isServerScope && serverLicense && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-[var(--text-secondary)]">
                         <div>
                             <div className="opacity-60 mb-0.5">{t('admin.server_license.issuer', 'Issuer')}</div>
                             <div className="font-mono truncate">{serverLicense.issuer || '—'}</div>
@@ -228,8 +228,7 @@ export default function ServerLicensePanel() {
                         <>
                             <button
                                 onClick={() => setShowInput((v) => !v)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
-                                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--border-subtle)] text-[var(--text-primary)]"
                                 disabled={!!busy}
                             >
                                 <Key className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />
@@ -259,7 +258,7 @@ export default function ServerLicensePanel() {
                 </div>
 
                 {showInput && (
-                    <div className="mt-4 p-3 rounded-lg border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
+                    <div className="mt-4 p-3 rounded-lg border bg-[var(--bg-tertiary)] border-[var(--border-subtle)]">
                         <textarea
                             value={tokenInput}
                             onChange={(e) => setTokenInput(e.target.value)}
@@ -270,8 +269,7 @@ export default function ServerLicensePanel() {
                         <div className="flex items-center justify-end gap-2 mt-2">
                             <button
                                 onClick={() => { setShowInput(false); setTokenInput(''); setActionError(null); }}
-                                className="px-3 py-1 rounded-md text-xs font-medium"
-                                style={{ color: 'var(--text-secondary)' }}
+                                className="px-3 py-1 rounded-md text-xs font-medium text-[var(--text-secondary)]"
                                 disabled={!!busy}
                             >
                                 {t('common.cancel', 'Cancel')}
@@ -295,7 +293,7 @@ export default function ServerLicensePanel() {
                 <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#f59e0b' }} />
                     <div>
-                        <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                        <div className="font-semibold mb-1 text-[var(--text-primary)]">
                             {t('admin.server_license.warn_title', 'Override semantics')}
                         </div>
                         <ul className="list-disc pl-4 space-y-0.5 opacity-90">

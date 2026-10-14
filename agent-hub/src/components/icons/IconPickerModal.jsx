@@ -88,15 +88,15 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
     // not.
     return (
         <Modal open onClose={onClose} disableBackdropClose variant="bare" size="md" zIndex={100} labelledBy={titleId}>
-            <div className="w-full rounded-xl shadow-2xl border overflow-hidden flex flex-col" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="w-full rounded-xl shadow-2xl border overflow-hidden flex flex-col bg-[var(--bg-secondary)] border-[var(--border-default)]">
+                <div className="p-4 border-b flex items-center justify-between border-[var(--border-subtle)]">
                     <div>
-                        <h2 id={titleId} className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <h2 id={titleId} className="text-lg font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                             <span>{t('common.icon_picker.title', 'Change emoji:')}</span>
                             {defaultEmoji && <span className="text-xl leading-none" aria-hidden>{defaultEmoji}</span>}
                             <span>{iconLabel || iconKey}</span>
                         </h2>
-                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mt-1 text-[var(--text-muted)]">
                             {t('common.icon_picker.subtitle', 'Pick an emoji, upload an image, or generate one with AI. Default: {default}', { default: defaultEmoji || iconKey })}
                         </p>
                     </div>
@@ -105,7 +105,7 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                     </button>
                 </div>
 
-                <div className="flex border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex border-b border-[var(--border-subtle)]">
                     <button onClick={() => setTab('emoji')} className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2`} style={{ borderColor: tab === 'emoji' ? 'var(--accent-primary)' : 'transparent', color: tab === 'emoji' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
                         <span className="flex items-center justify-center gap-2"><Smile className="w-4 h-4"/> {t('common.icon_picker.tab_emoji', 'Emoji')}</span>
                     </button>
@@ -129,12 +129,11 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                             <div 
                                 onClick={handleUploadClick}
-                                className="w-full max-w-xs aspect-square border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                                style={{ borderColor: 'var(--border-subtle)' }}
+                                className="w-full max-w-xs aspect-square border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 border-[var(--border-subtle)]"
                             >
                                 {uploading ? <Loader2 className="w-8 h-8 animate-spin mb-3" style={{ color: 'var(--accent-primary)' }} /> : <ImageIcon className="w-8 h-8 mb-3" style={{ color: 'var(--text-muted)' }} />}
-                                <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('common.icon_picker.click_upload', 'Click to upload')}</h3>
-                                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('common.icon_picker.upload_hint', 'PNG, JPG, WEBP (Max 2MB)')}</p>
+                                <h3 className="font-semibold text-[var(--text-primary)]">{t('common.icon_picker.click_upload', 'Click to upload')}</h3>
+                                <p className="text-xs mt-1 text-[var(--text-muted)]">{t('common.icon_picker.upload_hint', 'PNG, JPG, WEBP (Max 2MB)')}</p>
                             </div>
                         </div>
                     )}
@@ -165,7 +164,7 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                     )}
                 </div>
 
-                <div className="p-4 border-t flex justify-between items-center" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+                <div className="p-4 border-t flex justify-between items-center border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                     <button 
                         onClick={handleClear}
                         disabled={!currentCustom}
@@ -174,8 +173,8 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                         {t('common.icon_picker.reset', 'Reset to Default')}
                     </button>
                     {currentCustom && (
-                        <div className="flex items-center gap-3 text-sm font-medium px-4 py-2 rounded-lg shadow-sm border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
-                            <span style={{ color: 'var(--text-muted)' }}>Current:</span>
+                        <div className="flex items-center gap-3 text-sm font-medium px-4 py-2 rounded-lg shadow-sm border bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-primary)]">
+                            <span className="text-[var(--text-muted)]">Current:</span>
                             {currentCustom.type === 'emoji' ? (
                                 <span className="text-xl">{currentCustom.value}</span>
                             ) : (

@@ -15,11 +15,11 @@ export default function GlobalDefaultsSection({
             <div className="max-w-4xl mx-auto space-y-8">
 
                 {/* Global Defaults */}
-                <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                    <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
+                    <div className="px-6 py-4 border-b flex items-center justify-between border-[var(--border-subtle)]">
                         <div>
-                            <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.global_defaults_global_defaults', 'Global Defaults')}</h3>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            <h3 className="font-semibold text-[var(--text-primary)]">{t('integ.global_defaults_global_defaults', 'Global Defaults')}</h3>
+                            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                                 {t('integ.global_defaults_default_integrations_for_new', 'Default integrations for new organizations. Changes here don\'t affect existing orgs.')}
                             </p>
                         </div>
@@ -35,7 +35,7 @@ export default function GlobalDefaultsSection({
                     <div className="p-4">
                         {categories.map(cat => (
                             <div key={cat} className="mb-4 last:mb-0">
-                                <div className="text-xs font-semibold uppercase tracking-wider mb-2 px-2" style={{ color: 'var(--text-muted)' }}>{cat}</div>
+                                <div className="text-xs font-semibold uppercase tracking-wider mb-2 px-2 text-[var(--text-muted)]">{cat}</div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                     {allIntegrations.filter(i => i.category === cat).map(integ => {
                                         const enabled = isDefaultEnabled(integ.id);
@@ -50,7 +50,7 @@ export default function GlobalDefaultsSection({
                                                 {integ.icon && <span className="text-base shrink-0">{integ.icon}</span>}
                                                 <div className="min-w-0">
                                                     <div className="text-sm font-medium truncate" style={{ color: enabled ? 'var(--text-primary)' : 'var(--text-muted)' }}>{integ.label}</div>
-                                                    <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{integ.description}</div>
+                                                    <div className="text-xs truncate text-[var(--text-muted)]">{integ.description}</div>
                                                 </div>
                                             </button>
                                         );
@@ -63,9 +63,9 @@ export default function GlobalDefaultsSection({
 
                 {/* Per-organisation & per-group integration access moved to the
                     unified Access & Permissions hub (Admin → Access). */}
-                <div className="rounded-2xl border p-4 flex items-start gap-3" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                <div className="rounded-2xl border p-4 flex items-start gap-3 bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <Settings className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs text-[var(--text-muted)]">
                         {t('integ.global_defaults_who_may_use_each_integration_per', 'Who may use each integration — per organisation, per group, or for all members — is now managed in')}
                         <strong> {t('integ.global_defaults_admin_access_permissions', 'Admin → Access & Permissions')}</strong>{t('integ.global_defaults_the_defaults_above_only_seed', '. The defaults above only seed integrations for newly created organisations.')}
                     </p>

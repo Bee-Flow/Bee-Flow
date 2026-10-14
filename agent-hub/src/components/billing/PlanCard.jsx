@@ -79,11 +79,11 @@ export default function PlanCard({
                 </span>
             )}
 
-            <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-sm font-semibold truncate text-[var(--text-primary)]">
                 {plan.name}
             </h3>
             {plan.description && variant !== 'compact' && (
-                <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
                     {plan.description}
                 </p>
             )}
@@ -93,22 +93,22 @@ export default function PlanCard({
                     {price.amount}
                 </span>
                 {price.period && (
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{price.period}</span>
+                    <span className="text-xs text-[var(--text-secondary)]">{price.period}</span>
                 )}
             </div>
 
             {price.metered && (
-                <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">
                     {t('billing.metered_note', 'Billed on actual usage')}
                 </p>
             )}
             {plan.perSeat && seats > 0 && (
-                <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">
                     {t('billing.seats_summary', '{seats} seats currently in use').replace('{seats}', String(seats))}
                 </p>
             )}
             {plan.trialDays > 0 && !current && (
-                <p className="mt-1 text-xs font-medium" style={{ color: 'var(--accent-primary)' }}>
+                <p className="mt-1 text-xs font-medium text-[var(--accent-primary)]">
                     {t('billing.trial_days', '{days}-day free trial').replace('{days}', String(plan.trialDays))}
                 </p>
             )}
@@ -116,7 +116,7 @@ export default function PlanCard({
             {plan.features.length > 0 && variant !== 'compact' && (
                 <ul className="mt-3 space-y-1.5 flex-1">
                     {plan.features.map((f, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <li key={i} className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
                             <Check className="w-3.5 h-3.5 mt-px shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden />
                             <span className="min-w-0">{typeof f === 'string' ? f : f?.label}</span>
                         </li>
@@ -125,7 +125,7 @@ export default function PlanCard({
             )}
 
             {footnote && (
-                <p className="mt-3 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{footnote}</p>
+                <p className="mt-3 text-[11px] text-[var(--text-tertiary)]">{footnote}</p>
             )}
 
             {onSelect && (

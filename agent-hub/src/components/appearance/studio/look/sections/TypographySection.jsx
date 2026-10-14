@@ -23,12 +23,11 @@ export default function TypographySection({ form, setForm, saving }) {
         >
             <h3
                 id={`${SECTION_IDS.typography}-heading`}
-                className="text-base font-semibold mb-1"
-                style={{ color: 'var(--text-primary)' }}
+                className="text-base font-semibold mb-1 text-[var(--text-primary)]"
             >
                 {t('appearance.typography_typography', 'Typography')}
             </h3>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('appearance.typography_applied_app_wide_the_first_option_uses', 'Applied app-wide. The first option uses the operating system\'s native UI font.')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

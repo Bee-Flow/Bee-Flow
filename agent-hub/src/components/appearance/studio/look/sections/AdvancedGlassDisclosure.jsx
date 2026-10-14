@@ -95,10 +95,10 @@ export default function AdvancedGlassDisclosure({ form, setForm, saving }) {
                         data-surface="default"
                     >
                         <div>
-                            <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                            <h4 className="text-sm font-medium text-[var(--text-primary)]">
                                 {t('appearance.advanced_glass_disclosure_per_tier_overrides', 'Per-tier overrides')}
                             </h4>
-                            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[11px] mt-0.5 text-[var(--text-muted)]">
                                 {t('appearance.advanced_glass_disclosure_override_the_intensity_derived_blur', 'Override the intensity-derived blur / saturate / brightness for each tier individually. Leave a tier off to keep the default.')}
                             </p>
                         </div>
@@ -131,7 +131,7 @@ function TierEditor({ tierKey, value, onChange, disabled }) {
                     style={{ accentColor: 'var(--accent-primary)' }}
                     disabled={disabled}
                 />
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-medium text-[var(--text-primary)]">
                     {TIER_LABELS[tierKey]}
                 </span>
             </label>

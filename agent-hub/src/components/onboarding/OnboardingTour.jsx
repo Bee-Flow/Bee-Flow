@@ -508,7 +508,7 @@ export default function OnboardingTour({ user, onNavigate, currentPage }) {
                 </div>
 
                 {/* Footer: step count + skip */}
-                <div className="mt-3 pt-3 border-t flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="mt-3 pt-3 border-t flex items-center justify-between border-[var(--border-subtle)]">
                     <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">
                         {t('tour.step_counter', 'Step {n} of {total}').replace('{n}', String(stepIndex + 1)).replace('{total}', String(total))}
                     </span>

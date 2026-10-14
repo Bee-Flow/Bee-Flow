@@ -40,9 +40,9 @@ import DocumentLinkCard from '../documents/DocumentLinkCard';
  * that differed only by their label text.
  */
 const BlockLoading = ({ label }) => (
-    <div className="my-2 flex items-center gap-3 p-4 rounded-xl" style={{ background: 'var(--bg-tertiary)' }}>
+    <div className="my-2 flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-tertiary)]">
         <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
-        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{label}</span>
+        <span className="text-sm text-[var(--text-muted)]">{label}</span>
     </div>
 );
 

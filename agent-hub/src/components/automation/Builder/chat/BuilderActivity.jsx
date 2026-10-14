@@ -70,7 +70,7 @@ export default function BuilderActivity({ toolCalls, running = false, liveRun = 
                 </span>
                 <span className="text-[10px] text-[var(--text-tertiary)]">{rows.length}</span>
                 {failed > 0 && (
-                    <span className="text-[10px] ml-auto flex items-center gap-1" style={{ color: 'var(--warning)' }}>
+                    <span className="text-[10px] ml-auto flex items-center gap-1 text-[var(--warning)]">
                         <TriangleAlert size={11} />
                         {failed}
                     </span>

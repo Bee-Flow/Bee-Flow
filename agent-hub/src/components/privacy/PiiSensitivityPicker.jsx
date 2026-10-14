@@ -114,7 +114,7 @@ export function PiiSensitivityPicker({ value, onChange, disabled = false, t, var
                     {tr('privacy.sensitivity_title', 'How strict should we be?')}
                 </label>
                 {active === null && (
-                    <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--bg-primary)', color: 'var(--accent-primary)' }}>
+                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-[var(--bg-primary)] text-[var(--accent-primary)]">
                         {tr('privacy.sensitivity_custom', 'Custom')} · {Math.round(v * 100)}%
                     </span>
                 )}
@@ -126,8 +126,7 @@ export function PiiSensitivityPicker({ value, onChange, disabled = false, t, var
                         type="button"
                         onClick={() => setShowAdvanced(s => !s)}
                         aria-expanded={showAdvanced}
-                        className="ml-auto text-[11px] hover:underline"
-                        style={{ color: 'var(--text-tertiary)' }}
+                        className="ml-auto text-[11px] hover:underline text-[var(--text-tertiary)]"
                     >
                         {showAdvanced
                             ? tr('privacy.sensitivity_advanced_hide', 'Hide the advanced setting')
@@ -165,8 +164,7 @@ export function PiiSensitivityPicker({ value, onChange, disabled = false, t, var
                     type="button"
                     onClick={() => setShowAdvanced(s => !s)}
                     aria-expanded={showAdvanced}
-                    className="text-[10px] mt-3 underline decoration-dotted"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="text-[10px] mt-3 underline decoration-dotted text-[var(--text-muted)]"
                 >
                     {showAdvanced
                         ? tr('privacy.sensitivity_advanced_hide', 'Hide the advanced setting')
@@ -218,10 +216,10 @@ export function AdvancedThresholdSlider({ value, onChange, disabled, tr, inline 
     if (inline) {
         return (
             <div className="flex items-center gap-2.5 mt-1 flex-wrap">
-                <span className="text-[11px] font-semibold whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{more}</span>
+                <span className="text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)]">{more}</span>
                 {slider}
-                <span className="text-[11px] font-semibold whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{less}</span>
-                <span className="text-[11px] whitespace-nowrap tabular-nums" style={{ color: 'var(--text-tertiary)' }}>{pct}%</span>
+                <span className="text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)]">{less}</span>
+                <span className="text-[11px] whitespace-nowrap tabular-nums text-[var(--text-tertiary)]">{pct}%</span>
             </div>
         );
     }
@@ -232,14 +230,14 @@ export function AdvancedThresholdSlider({ value, onChange, disabled, tr, inline 
                 <span className="text-[10px] text-muted">
                     {tr('privacy.sensitivity_advanced_note', 'Every kind of data has its own tuned level; this moves them all together. Lower = find more.')}
                 </span>
-                <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--bg-primary)', color: 'var(--accent-primary)' }}>
+                <span className="text-xs font-mono px-2 py-0.5 rounded bg-[var(--bg-primary)] text-[var(--accent-primary)]">
                     {pct}%
                 </span>
             </div>
             {slider}
             <div className="flex justify-between text-[10px] mt-1">
-                <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{more}</span>
-                <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{less}</span>
+                <span className="font-semibold text-[var(--text-secondary)]">{more}</span>
+                <span className="font-semibold text-[var(--text-secondary)]">{less}</span>
             </div>
         </div>
     );

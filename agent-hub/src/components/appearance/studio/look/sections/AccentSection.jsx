@@ -22,12 +22,11 @@ export default function AccentSection({ form, setForm, saving }) {
         >
             <h3
                 id={`${SECTION_IDS.accent}-heading`}
-                className="text-base font-semibold mb-1"
-                style={{ color: 'var(--text-primary)' }}
+                className="text-base font-semibold mb-1 text-[var(--text-primary)]"
             >
                 {t('appearance.accent_accent_colour', 'Accent colour')}
             </h3>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('appearance.accent_used_for_primary_buttons_selected', 'Used for primary buttons, selected items, focus rings, and active states.')}
             </p>
             <ColorPicker

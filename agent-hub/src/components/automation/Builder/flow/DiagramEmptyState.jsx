@@ -60,7 +60,7 @@ function BuildingLine({ caption, startedAt }) {
             {/* The south banner's pulsing dot: `--accent` marks the live thing
                 on the canvas, and before the first card exists the build is it. */}
             <span className="relative flex h-2 w-2 shrink-0">
-                <span className="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping motion-reduce:animate-none" style={{ background: 'var(--accent)' }} />
+                <span className="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping motion-reduce:animate-none bg-[var(--accent)]" />
                 <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: 'var(--accent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent)' }} />
             </span>
             <span className="min-w-0 truncate">
@@ -140,8 +140,7 @@ export default function DiagramEmptyState({
                         <button
                             type="button"
                             onClick={onOpenAssistant}
-                            className="ml-auto shrink-0 px-2.5 py-[5px] rounded-lg text-[12px] font-semibold"
-                            style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                            className="ml-auto shrink-0 px-2.5 py-[5px] rounded-lg text-[12px] font-semibold bg-[var(--text-primary)] text-[var(--bg-primary)]"
                         >
                             {t('automations.canvas.empty_assistant', 'Assistant')}
                         </button>

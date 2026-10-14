@@ -94,10 +94,10 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                     {step.icon || '🎯'}
                 </div>
                 <div className="pt-0.5">
-                    <h2 className="text-base font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-base font-bold leading-snug text-[var(--text-primary)]">
                         {t(step.titleKey, step.titleFallback)}
                     </h2>
-                    <p className="text-[13px] mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-[13px] mt-1 leading-relaxed text-[var(--text-secondary)]">
                         {t(step.instructionKey, step.instructionFallback)}
                     </p>
                 </div>
@@ -121,7 +121,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                 <div className="mt-2 px-3.5 py-2.5 rounded-lg text-[13px] flex items-start gap-2"
                     style={{ background: 'color-mix(in srgb, var(--accent-primary) 10%, transparent)', color: 'var(--text-secondary)' }}>
                     <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
-                    <span><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('learn.exercise.hint', 'Hint: ')}</span>{hint}</span>
+                    <span><span className="font-semibold text-[var(--text-primary)]">{t('learn.exercise.hint', 'Hint: ')}</span>{hint}</span>
                 </div>
             )}
 
@@ -164,7 +164,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
             </div>
 
             {result && (
-                <div className="mt-4 p-4 rounded-xl border" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                <div className="mt-4 p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)]">
                     <div className="flex items-start gap-4">
                         <ScoreRing score={result.score} passed={result.passed} />
                         <div className="flex-1 min-w-0">
@@ -174,7 +174,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                                     : (result.error ? t('learn.exercise.coach_issue', 'Coach unavailable') : t('learn.exercise.keep_going', 'Close — tighten it up and resubmit'))}
                             </div>
                             {result.feedback && (
-                                <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{result.feedback}</p>
+                                <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">{result.feedback}</p>
                             )}
                         </div>
                     </div>
@@ -183,12 +183,12 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                         <div className="mt-3 grid sm:grid-cols-2 gap-3">
                             {result.strengths?.length > 0 && (
                                 <div>
-                                    <div className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-tertiary)' }}>
+                                    <div className="text-[11px] font-semibold uppercase tracking-wide mb-1.5 text-[var(--text-tertiary)]">
                                         {t('learn.exercise.strengths', 'What worked')}
                                     </div>
                                     <ul className="flex flex-col gap-1.5">
                                         {result.strengths.map((s, i) => (
-                                            <li key={i} className="text-[12.5px] flex items-start gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                                            <li key={i} className="text-[12.5px] flex items-start gap-1.5 text-[var(--text-secondary)]">
                                                 <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: '#15803d' }} /> {s}
                                             </li>
                                         ))}
@@ -197,12 +197,12 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                             )}
                             {result.improvements?.length > 0 && (
                                 <div>
-                                    <div className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-tertiary)' }}>
+                                    <div className="text-[11px] font-semibold uppercase tracking-wide mb-1.5 text-[var(--text-tertiary)]">
                                         {t('learn.exercise.improvements', 'To improve')}
                                     </div>
                                     <ul className="flex flex-col gap-1.5">
                                         {result.improvements.map((s, i) => (
-                                            <li key={i} className="text-[12.5px] flex items-start gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                                            <li key={i} className="text-[12.5px] flex items-start gap-1.5 text-[var(--text-secondary)]">
                                                 <ArrowUpRight className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} /> {s}
                                             </li>
                                         ))}

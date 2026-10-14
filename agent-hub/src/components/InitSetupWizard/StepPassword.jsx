@@ -6,7 +6,7 @@ const StepPassword = ({ password, setPassword, confirmPassword, setConfirmPasswo
     return (
     <>
         <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_password_admin_password', 'Admin Password')}</label>
+            <label className="block text-sm font-medium mb-1.5 text-[var(--text-secondary)]">{t('init_setup.step_password_admin_password', 'Admin Password')}</label>
             <input
                 type="password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder={t('init_setup.step_password_min_8_chars_upper_lower_number', 'Min 8 chars, upper + lower + number')}
@@ -15,7 +15,7 @@ const StepPassword = ({ password, setPassword, confirmPassword, setConfirmPasswo
             />
         </div>
         <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('init_setup.step_password_confirm_password', 'Confirm Password')}</label>
+            <label className="block text-sm font-medium mb-1.5 text-[var(--text-secondary)]">{t('init_setup.step_password_confirm_password', 'Confirm Password')}</label>
             <input
                 type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                 placeholder={t('init_setup.step_password_re_enter_password', 'Re-enter password')}

@@ -131,8 +131,7 @@ export default function MfaHelpAssistant() {
                 <button
                     type="submit"
                     disabled={busy || !input.trim()}
-                    className="p-1.5 rounded-lg text-white disabled:opacity-40"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="p-1.5 rounded-lg text-white disabled:opacity-40 bg-[var(--accent-primary)]"
                     aria-label={t('mfa.help_send', 'Send')}
                 >
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}

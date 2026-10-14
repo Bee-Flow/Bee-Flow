@@ -20,12 +20,11 @@ export default function GlassSection({ form, setForm, saving }) {
             <header>
                 <h3
                     id={`${SECTION_IDS.glass}-heading`}
-                    className="text-base font-semibold mb-1"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="text-base font-semibold mb-1 text-[var(--text-primary)]"
                 >
                     {t('appearance.glass_glass', 'Glass')}
                 </h3>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs text-[var(--text-muted)]">
                     {t('appearance.glass_tune_how_the_translucent_surfaces_feel', 'Tune how the translucent surfaces feel — strength, warmth, and the iOS lens refraction.')}
                 </p>
             </header>

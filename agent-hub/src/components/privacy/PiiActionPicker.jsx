@@ -29,7 +29,7 @@ export function PiiActionPicker({ value, onChange, tokenizeLabel, tokenizeHelp, 
     ];
 
     return (
-        <div className="p-4 rounded-xl border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
+        <div className="p-4 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-subtle)]">
             <label className="text-xs font-medium text-muted block mb-2">{t('privacy.pii_action_picker_label', 'Action on detection')}</label>
             <div className="flex gap-2 flex-wrap">
                 {options.map(opt => (
@@ -46,12 +46,12 @@ export function PiiActionPicker({ value, onChange, tokenizeLabel, tokenizeHelp, 
                             <opt.Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
                             <span>{opt.label}</span>
                         </p>
-                        <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                        <p className="text-[10px] mt-0.5 leading-relaxed text-[var(--text-muted)]">{opt.desc}</p>
                     </button>
                 ))}
             </div>
             {footnote && (
-                <p className="text-[10px] mt-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{footnote}</p>
+                <p className="text-[10px] mt-2 leading-relaxed text-[var(--text-muted)]">{footnote}</p>
             )}
         </div>
     );

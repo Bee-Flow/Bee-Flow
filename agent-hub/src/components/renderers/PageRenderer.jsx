@@ -20,9 +20,9 @@ const PageRenderer = ({ code, onAction }) => {
 
     if (!pageDef) {
         return (
-            <div className="my-4 p-4 rounded-xl border" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)' }}>
+            <div className="my-4 p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)]">
                 <div className="text-red-400 text-sm">{t('chat.renderers.page_invalid', 'Invalid page definition. Expected JSON format.')}</div>
-                <pre className="mt-2 text-xs overflow-auto" style={{ color: 'var(--text-muted)' }}>{code}</pre>
+                <pre className="mt-2 text-xs overflow-auto text-[var(--text-muted)]">{code}</pre>
             </div>
         );
     }
@@ -380,7 +380,7 @@ const PageRenderer = ({ code, onAction }) => {
                         boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                     }}>
                         <table style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
-                            <thead style={{ background: 'var(--bg-tertiary)' }}>
+                            <thead className="bg-[var(--bg-tertiary)]">
                                 <tr>
                                     {(element.columns || []).map((col, i) => (
                                         <th key={i} style={{

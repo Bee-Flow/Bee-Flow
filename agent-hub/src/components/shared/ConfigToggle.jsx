@@ -25,12 +25,12 @@ export default function ConfigToggle({ id, label, description, icon, checked, on
                 className="accent-[var(--accent-primary)] mt-1 flex-shrink-0"
             />
             <div className="flex-1">
-                <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
                     {icon && <span>{icon}</span>}
                     {label}
                 </div>
                 {description && (
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+                    <p className="text-xs mt-0.5 text-[var(--text-muted)]">{description}</p>
                 )}
             </div>
         </label>

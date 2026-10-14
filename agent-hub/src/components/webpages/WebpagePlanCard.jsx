@@ -57,10 +57,10 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                 className="w-full flex items-center gap-2 px-3 py-2 text-left"
             >
                 <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-[12px] font-semibold truncate text-[var(--text-primary)]">
                         {plan.title || 'Plan'}
                     </div>
-                    <div className="text-[10px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="text-[10px] truncate text-[var(--text-tertiary)]">
                         {stepCount === 1 ? t('webpages.plan.step_one', '1 step') : t('webpages.plan.steps', '{count} steps', { count: stepCount })}
                         {status === 'approved' && ' · ' + t('webpages.plan.building', 'Building…')}
                         {status === 'executed' && ' · ' + t('webpages.plan.built', 'Built')}
@@ -83,7 +83,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
             {expanded && (
                 <div className="px-3 pb-2 pt-0">
                     {plan.summary && (
-                        <p className="text-[11px] mb-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-[11px] mb-2 leading-relaxed text-[var(--text-secondary)]">
                             {plan.summary}
                         </p>
                     )}
@@ -101,15 +101,14 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                                         style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}
                                     >
                                         <span
-                                            className="shrink-0 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded"
-                                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}
+                                            className="shrink-0 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
                                         >
                                             {i + 1}
                                         </span>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5">
                                                 <Icon size={12} style={{ color: 'var(--text-secondary)' }} />
-                                                <span className="text-[11px] font-mono" style={{ color: 'var(--text-primary)' }}>
+                                                <span className="text-[11px] font-mono text-[var(--text-primary)]">
                                                     {FILE_LABEL[s.file] || s.file}
                                                 </span>
                                                 <span
@@ -120,7 +119,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                                                 </span>
                                             </div>
                                             {s.why && (
-                                                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                                                <p className="text-[11px] mt-0.5 leading-snug text-[var(--text-secondary)]">
                                                     {s.why}
                                                 </p>
                                             )}
@@ -151,8 +150,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                             </button>
                             <button
                                 onClick={() => onReject?.(planId)}
-                                className="px-2 py-1 rounded-md text-[11px] flex items-center gap-1 hover:bg-[var(--bg-secondary)]"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="px-2 py-1 rounded-md text-[11px] flex items-center gap-1 hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
                             >
                                 <X size={12} /> {t('webpages.plan.reject', 'Reject')}
                             </button>

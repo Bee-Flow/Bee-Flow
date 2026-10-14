@@ -41,7 +41,7 @@ export default function PresetCard({
                         style={{ color: selected ? 'var(--accent-primary)' : 'var(--text-muted)' }}
                     />
                 )}
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-medium text-[var(--text-primary)]">
                     {label}
                 </span>
                 {selected && (
@@ -52,7 +52,7 @@ export default function PresetCard({
                 )}
             </div>
             {hint && (
-                <p className="text-[11px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] mt-1 leading-snug text-[var(--text-muted)]">
                     {hint}
                 </p>
             )}

@@ -84,8 +84,7 @@ export default function UpgradePrompt({
         <button
             type="button"
             onClick={onNavigateToLicense}
-            className="px-4 py-2 rounded-xl text-xs font-semibold border"
-            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+            className="px-4 py-2 rounded-xl text-xs font-semibold border border-[var(--border-subtle)] text-[var(--text-primary)]"
         >
             {t('license.enter_key', 'Enter license key')}
         </button>
@@ -94,11 +93,10 @@ export default function UpgradePrompt({
     if (variant === 'inline') {
         return (
             <div
-                className="flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}
+                className="flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
             >
                 <Lock className="w-4 h-4 shrink-0" style={{ color: BILLING_ACTION }} aria-hidden />
-                <span className="text-xs flex-1 min-w-[12rem]" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-xs flex-1 min-w-[12rem] text-[var(--text-secondary)]">
                     {heading}
                 </span>
                 {primary}
@@ -117,8 +115,8 @@ export default function UpgradePrompt({
             >
                 <Lock className="w-6 h-6" style={{ color: BILLING_ACTION }} aria-hidden />
             </div>
-            <h2 className="text-base font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{heading}</h2>
-            <p className="text-sm max-w-md mb-4" style={{ color: 'var(--text-muted)' }}>{body}</p>
+            <h2 className="text-base font-bold mb-1 text-[var(--text-primary)]">{heading}</h2>
+            <p className="text-sm max-w-md mb-4 text-[var(--text-muted)]">{body}</p>
             <div className="flex flex-wrap items-center justify-center gap-2">
                 {primary}
                 {secondary}

@@ -41,8 +41,8 @@ export default function SupportTagsTab() {
 
     return (
         <div className="max-w-2xl mx-auto p-4">
-            <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t('support.support_tags_tag_taxonomy', 'Tag taxonomy')}</h3>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <h3 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">{t('support.support_tags_tag_taxonomy', 'Tag taxonomy')}</h3>
+            <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('support.support_tags_the_catalogue_of_tags_the_ai_may_auto', 'The catalogue of tags the AI may auto-assign and staff can apply to threads.')}
             </p>
             {error && <div className="text-xs mb-3 px-3 py-2 rounded" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>{error}</div>}
@@ -57,12 +57,12 @@ export default function SupportTagsTab() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-                {tags.length === 0 && <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('support.support_tags_no_tags_yet', 'No tags yet.')}</div>}
+                {tags.length === 0 && <div className="text-xs text-[var(--text-muted)]">{t('support.support_tags_no_tags_yet', 'No tags yet.')}</div>}
                 {tags.map(tag => (
-                    <span key={tag.id} className="text-sm px-2 py-1 rounded inline-flex items-center gap-1.5 border" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                    <span key={tag.id} className="text-sm px-2 py-1 rounded inline-flex items-center gap-1.5 border border-[var(--border-default)] text-[var(--text-secondary)]">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ background: tag.color || '#64748b' }} />
                         #{tag.name}
-                        {tag.organization_id == null && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('support.support_tags_system', '(system)')}</span>}
+                        {tag.organization_id == null && <span className="text-xs text-[var(--text-muted)]">{t('support.support_tags_system', '(system)')}</span>}
                         <button onClick={() => remove(tag.id)} className="opacity-60 hover:opacity-100" style={{ color: '#dc2626' }}><Trash2 className="w-3 h-3" /></button>
                     </span>
                 ))}

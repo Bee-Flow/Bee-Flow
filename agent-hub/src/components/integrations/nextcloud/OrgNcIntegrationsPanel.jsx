@@ -94,7 +94,7 @@ const OrgNcIntegrationsPanel = ({ user }) => {
         return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} /></div>;
     }
     if (!config) {
-        return <div className="p-6 text-sm" style={{ color: 'var(--text-muted)' }}>{t('integ.org_nc_integrations_nextcloud_integrations_are_only', 'Nextcloud integrations are only available for organisations bound to a Nextcloud instance.')}</div>;
+        return <div className="p-6 text-sm text-[var(--text-muted)]">{t('integ.org_nc_integrations_nextcloud_integrations_are_only', 'Nextcloud integrations are only available for organisations bound to a Nextcloud instance.')}</div>;
     }
 
     const catalog = config.ncCatalog || [];
@@ -103,9 +103,9 @@ const OrgNcIntegrationsPanel = ({ user }) => {
         <div className="space-y-5">
             <header className="flex items-center gap-2">
                 <Cloud className="w-5 h-5" style={{ color: '#0082C9' }} />
-                <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.org_nc_integrations_nextcloud_integrations', 'Nextcloud integrations')}</h2>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('integ.org_nc_integrations_nextcloud_integrations', 'Nextcloud integrations')}</h2>
             </header>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm text-[var(--text-muted)]">
                 {t('integ.org_nc_integrations_choose_which_nextcloud_tools_your', 'Choose which Nextcloud tools your agents may use, and exclude specific groups. A user keeps a tool as long as at least one of their groups still allows it.')}
             </p>
 
@@ -113,14 +113,13 @@ const OrgNcIntegrationsPanel = ({ user }) => {
             <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
                 <div className="flex items-center justify-between mb-3">
                     <div>
-                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.org_nc_integrations_org_wide', 'Org-wide')}</h3>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('integ.org_nc_integrations_default_for_every_member_of_this', 'Default for every member of this organisation.')}</p>
+                        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('integ.org_nc_integrations_org_wide', 'Org-wide')}</h3>
+                        <p className="text-xs text-[var(--text-muted)]">{t('integ.org_nc_integrations_default_for_every_member_of_this', 'Default for every member of this organisation.')}</p>
                     </div>
                     <button
                         onClick={handleSaveOrg}
                         disabled={saving}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium text-white transition-opacity disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                         {t('integ.org_nc_integrations_save', 'Save')}
@@ -142,8 +141,8 @@ const OrgNcIntegrationsPanel = ({ user }) => {
                                     className="mt-0.5 accent-[#0082C9]"
                                 />
                                 <div className="min-w-0">
-                                    <div className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{it.name}</div>
-                                    <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{it.description}</div>
+                                    <div className="text-[13px] font-medium text-[var(--text-primary)]">{it.name}</div>
+                                    <div className="text-[11px] text-[var(--text-muted)]">{it.description}</div>
                                 </div>
                             </label>
                         );
@@ -160,13 +159,13 @@ const OrgNcIntegrationsPanel = ({ user }) => {
             {/* Per-group exceptions */}
             <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
                 <div className="mb-3">
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.org_nc_integrations_per_group_exceptions', 'Per-group exceptions')}</h3>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('integ.org_nc_integrations_per_group_exceptions', 'Per-group exceptions')}</h3>
+                    <p className="text-xs text-[var(--text-muted)]">
                         {t('integ.org_nc_integrations_disable_specific_tools_for_a_nextcloud', 'Disable specific tools for a Nextcloud group. Groups inherit the org-wide settings unless something is checked below.')}
                     </p>
                 </div>
                 {groups.length === 0 ? (
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('integ.org_nc_integrations_no_nextcloud_groups_synced_yet_sync', 'No Nextcloud groups synced yet. Sync runs automatically every 6 hours, or use "Sync now" in Nextcloud Sync.')}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{t('integ.org_nc_integrations_no_nextcloud_groups_synced_yet_sync', 'No Nextcloud groups synced yet. Sync runs automatically every 6 hours, or use "Sync now" in Nextcloud Sync.')}</p>
                 ) : (
                     <div className="space-y-1.5">
                         {groups.map(g => {
@@ -180,8 +179,8 @@ const OrgNcIntegrationsPanel = ({ user }) => {
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left"
                                     >
                                         <ChevronRight className="w-3.5 h-3.5 transition-transform" style={{ color: 'var(--text-muted)', transform: isOpen ? 'rotate(90deg)' : 'none' }} />
-                                        <span className="text-[13px] font-medium flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</span>
-                                        <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                                        <span className="text-[13px] font-medium flex-1 truncate text-[var(--text-primary)]">{g.name}</span>
+                                        <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-muted)]">
                                             <Users className="w-3 h-3" /> {g.userCount}
                                         </span>
                                         {disabledCount > 0 && (
@@ -208,7 +207,7 @@ const OrgNcIntegrationsPanel = ({ user }) => {
                                                             onChange={() => orgOn && toggleGroupDisable(g.id, it.id)}
                                                             className="accent-amber-500"
                                                         />
-                                                        <span style={{ color: 'var(--text-primary)' }}>{t('integ.org_nc_integrations_disable_name', 'Disable {name}', { name: it.name })}</span>
+                                                        <span className="text-[var(--text-primary)]">{t('integ.org_nc_integrations_disable_name', 'Disable {name}', { name: it.name })}</span>
                                                     </label>
                                                 );
                                             })}

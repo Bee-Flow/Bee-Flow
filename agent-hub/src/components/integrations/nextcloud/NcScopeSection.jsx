@@ -79,8 +79,7 @@ const FolderNode = ({ path, label, depth, selected, onToggle, t }) => {
                     onClick={expand}
                     aria-expanded={expanded}
                     aria-label={expanded ? t('nc_scope.collapse', 'Collapse') : t('nc_scope.expand', 'Expand')}
-                    className="p-0.5 rounded flex-shrink-0"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="p-0.5 rounded flex-shrink-0 text-[var(--text-tertiary)]"
                 >
                     {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                 </button>
@@ -95,7 +94,7 @@ const FolderNode = ({ path, label, depth, selected, onToggle, t }) => {
                     {expanded
                         ? <FolderOpen size={14} style={{ color: 'var(--text-tertiary)' }} className="flex-shrink-0" />
                         : <Folder size={14} style={{ color: 'var(--text-tertiary)' }} className="flex-shrink-0" />}
-                    <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                    <span className="text-[13px] truncate text-[var(--text-primary)]">{label}</span>
                 </label>
             </div>
             {expanded && (
@@ -151,10 +150,10 @@ const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t })
         return () => { alive = false; };
     }, [integrationId]);
 
-    if (error) return <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{error}</p>;
+    if (error) return <p className="text-[11px] text-[var(--text-muted)]">{error}</p>;
     if (resources === null) {
         return (
-            <p className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
                 <Loader2 size={12} className="animate-spin" /> {t('nc_scope.loading', 'Loading…')}
             </p>
         );
@@ -183,7 +182,7 @@ const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t })
             )}
             <div className="max-h-72 overflow-auto space-y-0.5">
                 {visible.length === 0 && (
-                    <p className="text-[11px] italic py-1" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-[11px] italic py-1 text-[var(--text-tertiary)]">
                         {t('nc_scope.no_matches', 'Nothing found')}
                     </p>
                 )}
@@ -203,20 +202,20 @@ const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t })
                                 onChange={() => onToggle(r.id)}
                             />
                             {r.color && <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: r.color }} aria-hidden="true" />}
-                            <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{r.label}</span>
+                            <span className="text-[13px] truncate text-[var(--text-primary)]">{r.label}</span>
                         </label>
                     );
                 })}
                 {orphaned.map(id => (
                     <label key={id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer" data-testid={`nc-scope-resource-${id}`}>
                         <input type="checkbox" className="w-4 h-4 accent-[var(--accent-primary)] flex-shrink-0" checked onChange={() => onToggle(id)} />
-                        <span className="text-[13px] italic truncate" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-[13px] italic truncate text-[var(--text-muted)]">
                             {id} · {t('nc_scope.orphaned', 'no longer found')}
                         </span>
                     </label>
                 ))}
             </div>
-            <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-[11px] mt-2 text-[var(--text-tertiary)]">
                 {selected.length === 0
                     ? t('nc_scope.none_hint', 'Nothing selected yet — Bee Flow can reach none of your {items} until you tick some.')
                         .replace('{items}', resourceLabel)
@@ -254,18 +253,17 @@ const ScopeRow = ({ id, entry, last, onModeChange, onSelectionSave, t }) => {
                 aria-expanded={open}
                 data-testid={`nc-scope-row-${id}`}
             >
-                <span className="flex-1 min-w-0 text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                <span className="flex-1 min-w-0 text-[13px] font-medium truncate text-[var(--text-primary)]">
                     {entry.name}
                 </span>
                 {narrowed && (
                     <span
-                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ background: 'var(--warning)' }}
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[var(--warning)]"
                         aria-hidden="true"
                         data-testid={`nc-scope-dot-${id}`}
                     />
                 )}
-                <span className="text-[13px] flex-shrink-0" style={{ color: 'var(--text-secondary)' }} data-testid={`nc-scope-words-${id}`}>
+                <span className="text-[13px] flex-shrink-0 text-[var(--text-secondary)]" data-testid={`nc-scope-words-${id}`}>
                     {scopeWords(t, entry)}
                 </span>
                 <ChevronRight
@@ -302,8 +300,7 @@ const ScopeRow = ({ id, entry, last, onModeChange, onSelectionSave, t }) => {
                                     type="button"
                                     disabled={draft.length === 0}
                                     onClick={() => setDraft([])}
-                                    className="text-[12px] disabled:opacity-40"
-                                    style={{ color: 'var(--text-muted)' }}
+                                    className="text-[12px] disabled:opacity-40 text-[var(--text-muted)]"
                                     data-testid={`nc-scope-clear-${id}`}
                                 >
                                     {t('nc_scope.clear', 'Clear')}
@@ -402,10 +399,10 @@ const NcScopeSection = () => {
         } catch (_) { setSaveState('error'); }
     };
 
-    if (loadError) return <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{loadError}</p>;
+    if (loadError) return <p className="text-[11px] text-[var(--text-muted)]">{loadError}</p>;
     if (!integrations) {
         return (
-            <p className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="nc-scope-loading">
+            <p className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]" data-testid="nc-scope-loading">
                 <Loader2 size={12} className="animate-spin" /> {t('nc_scope.loading', 'Loading…')}
             </p>
         );
@@ -417,7 +414,7 @@ const NcScopeSection = () => {
     return (
         <div data-testid="nc-scope-section">
             <div className="flex items-baseline justify-between mb-2">
-                <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
                     {t('nc_scope.title', 'What Bee Flow may access')}
                 </p>
                 <span className="text-[11px]" style={{ color: saveState === 'error' ? 'var(--text-primary)' : 'var(--text-tertiary)' }} data-testid="nc-scope-savestate">
@@ -427,7 +424,7 @@ const NcScopeSection = () => {
                         : ''}
                 </span>
             </div>
-            <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[12px] mb-3 text-[var(--text-muted)]">
                 {t('nc_scope.intro', 'Share parts of your Nextcloud with Bee Flow the way you would with a colleague — and take them back any time. Enforced on the server for chats, automations and apps alike.')}
             </p>
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
@@ -448,19 +445,18 @@ const NcScopeSection = () => {
                     type="button"
                     onClick={anyNarrowed ? reset : undefined}
                     disabled={!anyNarrowed}
-                    className="text-[12px] disabled:opacity-40"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="text-[12px] disabled:opacity-40 text-[var(--text-muted)]"
                     data-testid="nc-scope-reset"
                 >
                     {t('nc_scope.reset', 'Reset to default')}
                 </button>
                 {confirmRevoke ? (
-                    <span className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--text-primary)' }}>
+                    <span className="flex items-center gap-2 text-[12px] text-[var(--text-primary)]">
                         {t('nc_scope.revoke_confirm', 'Turn off all Nextcloud access?')}
-                        <button type="button" onClick={revokeAll} className="font-medium" style={{ color: 'var(--text-primary)' }} data-testid="nc-scope-revoke-yes">
+                        <button type="button" onClick={revokeAll} className="font-medium text-[var(--text-primary)]" data-testid="nc-scope-revoke-yes">
                             {t('nc_scope.revoke_yes', 'Yes, revoke')}
                         </button>
-                        <button type="button" onClick={() => setConfirmRevoke(false)} style={{ color: 'var(--text-muted)' }}>
+                        <button type="button" onClick={() => setConfirmRevoke(false)} className="text-[var(--text-muted)]">
                             {t('nc_scope.revoke_no', 'Keep')}
                         </button>
                     </span>
@@ -469,8 +465,7 @@ const NcScopeSection = () => {
                         type="button"
                         onClick={() => setConfirmRevoke(true)}
                         disabled={allOff}
-                        className="text-[12px] font-medium disabled:opacity-40"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="text-[12px] font-medium disabled:opacity-40 text-[var(--text-primary)]"
                         data-testid="nc-scope-revoke"
                     >
                         {t('nc_scope.revoke', 'Revoke all Nextcloud access')}

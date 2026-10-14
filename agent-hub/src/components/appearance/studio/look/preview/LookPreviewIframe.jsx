@@ -95,21 +95,20 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }) {
     };
 
     return (
-        <div className="relative w-full h-full" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="relative w-full h-full bg-[var(--bg-secondary)]">
             <iframe
                 key={`${surface.id}:${reloadKey}`}
                 ref={iframeRef}
                 src={initialUrl}
                 title={`Preview: ${surface.label}`}
                 onLoad={handleLoad}
-                className="w-full h-full border-0"
-                style={{ background: 'var(--bg-primary)' }}
+                className="w-full h-full border-0 bg-[var(--bg-primary)]"
             />
 
             {status === 'loading' && (
                 <Overlay>
                     <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
-                    <p className="text-sm mt-3" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm mt-3 text-[var(--text-muted)]">
                         {t('appearance.look_preview_iframe_loading_value_preview', 'Loading {value} preview…', { value: surface.label.toLowerCase() })}
                     </p>
                 </Overlay>
@@ -118,7 +117,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }) {
             {status === 'timeout' && (
                 <Overlay>
                     <AlertTriangle className="w-7 h-7" style={{ color: 'var(--warning, #f59e0b)' }} />
-                    <p className="text-sm mt-3 max-w-xs text-center" style={{ color: 'var(--text-primary)' }}>
+                    <p className="text-sm mt-3 max-w-xs text-center text-[var(--text-primary)]">
                         {t('appearance.look_preview_iframe_preview_took_longer_than_8_seconds_to', 'Preview took longer than 8 seconds to load.')}
                     </p>
                     <RetryButton onClick={retry} />
@@ -128,7 +127,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }) {
             {status === 'session-expired' && (
                 <Overlay>
                     <LogIn className="w-7 h-7" style={{ color: 'var(--text-muted)' }} />
-                    <p className="text-sm mt-3 max-w-xs text-center" style={{ color: 'var(--text-primary)' }}>
+                    <p className="text-sm mt-3 max-w-xs text-center text-[var(--text-primary)]">
                         {t('appearance.look_preview_iframe_sign_in_expired_inside_the_preview', 'Sign-in expired inside the preview. Sign back in and reload.')}
                     </p>
                     <RetryButton onClick={retry} />
@@ -151,8 +150,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }) {
 function Overlay({ children }) {
     return (
         <div
-            className="absolute inset-0 flex flex-col items-center justify-center"
-            style={{ background: 'var(--bg-primary)' }}
+            className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-primary)]"
         >
             {children}
         </div>
@@ -165,12 +163,7 @@ function RetryButton({ onClick }) {
         <button
             type="button"
             onClick={onClick}
-            className="mt-4 px-4 py-2 rounded-lg text-sm font-medium border inline-flex items-center gap-2"
-            style={{
-                borderColor: 'var(--border-default)',
-                color: 'var(--text-primary)',
-                background: 'var(--bg-card)',
-            }}
+            className="mt-4 px-4 py-2 rounded-lg text-sm font-medium border inline-flex items-center gap-2 border-[var(--border-default)] text-[var(--text-primary)] bg-[var(--bg-card)]"
         >
             <RotateCw className="w-4 h-4" /> {t('appearance.look_preview_iframe_reload_preview', 'Reload preview')}
         </button>

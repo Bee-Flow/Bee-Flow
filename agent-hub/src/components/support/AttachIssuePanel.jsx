@@ -113,7 +113,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
     };
 
     return (
-        <div className="mt-2 rounded border p-2" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+        <div className="mt-2 rounded border p-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <div className="flex items-center gap-1.5">
                 <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} />
                 <input
@@ -128,8 +128,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
                 <button
                     onClick={search}
                     disabled={searching}
-                    className="px-2 py-1 rounded text-xs border disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="px-2 py-1 rounded text-xs border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     {searching ? 'Searching…' : 'Search'}
                 </button>
@@ -155,15 +154,15 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
                                 checked={picked.has(r.id)}
                                 onChange={() => togglePick(r.id)}
                             />
-                            <span className="font-medium shrink-0" style={{ color: 'var(--accent-primary)' }}>{r.id}</span>
-                            <span className="flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>{r.summary}</span>
+                            <span className="font-medium shrink-0 text-[var(--accent-primary)]">{r.id}</span>
+                            <span className="flex-1 min-w-0 truncate text-[var(--text-primary)]">{r.summary}</span>
                             <StateChip state={r.state} resolved={r.resolved} />
-                            {r.linkedHere && <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>{t('support.attach_issue_attached', 'attached')}</span>}
+                            {r.linkedHere && <span className="shrink-0 text-[var(--text-muted)]">{t('support.attach_issue_attached', 'attached')}</span>}
                             {/* The count is the duplicate-stopper: seeing that four
                                 tickets already report this is what makes an agent
                                 attach instead of file. */}
                             {!r.linkedHere && r.linkedTicketCount > 0 && (
-                                <span className="shrink-0" title={t('support.attach_issue_other_tickets_already_report_this', 'Other tickets already report this')} style={{ color: 'var(--text-muted)' }}>
+                                <span className="shrink-0 text-[var(--text-muted)]" title={t('support.attach_issue_other_tickets_already_report_this', 'Other tickets already report this')}>
                                     {r.linkedTicketCount === 1 ? t('support.attach_issue_ticket_one', '{count} ticket', { count: 1 }) : t('support.attach_issue_ticket_other', '{count} tickets', { count: r.linkedTicketCount })}
                                 </span>
                             )}
@@ -175,8 +174,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
             <div className="flex items-center justify-between gap-2 mt-2">
                 <button
                     onClick={() => { setCreating(c => !c); setBlocked(null); }}
-                    className="text-xs hover:underline"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="text-xs hover:underline text-[var(--text-secondary)]"
                 >
                     {creating ? 'Back to search' : 'Nothing matches — create a new issue'}
                 </button>
@@ -193,7 +191,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
             </div>
 
             {creating && (
-                <div className="mt-2 pt-2 border-t flex flex-col gap-1.5" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="mt-2 pt-2 border-t flex flex-col gap-1.5 border-[var(--border-default)]">
                     <input
                         value={summary}
                         onChange={e => setSummary(e.target.value)}
@@ -209,7 +207,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
                         className="px-2 py-1 rounded border text-xs resize-y"
                         style={inputStyle}
                     />
-                    <div className="text-xs flex items-start gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-xs flex items-start gap-1.5 text-[var(--text-muted)]">
                         <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                         <span>
                             {t('support.attach_issue_the_customer_s_name_address_and', 'The customer\'s name, address and organisation never reach YouTrack. The issue carries ticket')} <strong>{ticketRef || '—'}</strong> {t('support.attach_issue_and_a_link_only_bee_flow_staff_can', 'and a link only Bee Flow staff can open.')}

@@ -38,7 +38,7 @@ export default function CreateKBModal({
     return (
         <div className={className}>
             {title && (
-                <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</h4>
+                <h4 className="text-sm font-medium text-[var(--text-primary)]">{title}</h4>
             )}
             <input value={name} onChange={e => onNameChange(e.target.value)}
                 placeholder={namePlaceholder} autoFocus
@@ -50,13 +50,11 @@ export default function CreateKBModal({
                 style={fieldStyle} />
             <div className="flex gap-2 justify-end">
                 <button onClick={onCancel}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)]">
                     {t('knowledge.create_kbmodal_cancel', 'Cancel')}
                 </button>
                 <button onClick={onCreate} disabled={creating || !name.trim()}
-                    className="px-4 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}>
+                    className="px-4 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50 bg-[var(--accent-primary)]">
                     {creating ? 'Creating...' : 'Create'}
                 </button>
             </div>

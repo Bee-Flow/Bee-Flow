@@ -215,7 +215,7 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }) 
                         <div className="rounded-xl border border-[var(--border-default)] overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="text-left text-[var(--text-tertiary)]" style={{ background: 'var(--bg-tertiary)' }}>
+                                    <tr className="text-left text-[var(--text-tertiary)] bg-[var(--bg-tertiary)]">
                                         <th className="font-medium px-4 py-2">{t('admin.ch_col_org', 'Organisation')}</th>
                                         <th className="font-medium px-4 py-2">{t('admin.ch_col_status', 'Status')}</th>
                                         <th className="font-medium px-4 py-2">{t('admin.ch_col_problem', 'Top problem')}</th>

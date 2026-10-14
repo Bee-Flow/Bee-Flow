@@ -33,8 +33,7 @@ export default function SaveBar({
                     type="button"
                     onClick={onDiscard}
                     disabled={!dirty || saving}
-                    className="px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     {t('appearance.save_bar_discard', 'Discard')}
                 </button>
@@ -42,8 +41,7 @@ export default function SaveBar({
                     type="button"
                     onClick={onReload}
                     disabled={saving}
-                    className="px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
                     title={t('appearance.save_bar_re_fetch_the_saved_theme_from_the', 'Re-fetch the saved theme from the server')}
                 >
                     {t('appearance.save_bar_reload', 'Reload')}
@@ -81,8 +79,7 @@ function StatusPill({ dirty, saving, error }) {
     if (saving) {
         return (
             <span
-                className="text-xs inline-flex items-center gap-1.5"
-                style={{ color: 'var(--text-muted)' }}
+                className="text-xs inline-flex items-center gap-1.5 text-[var(--text-muted)]"
             >
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('appearance.save_bar_saving', 'Saving…')}
             </span>
@@ -104,8 +101,7 @@ function StatusPill({ dirty, saving, error }) {
     }
     return (
         <span
-            className="text-xs inline-flex items-center gap-1.5"
-            style={{ color: 'var(--text-muted)' }}
+            className="text-xs inline-flex items-center gap-1.5 text-[var(--text-muted)]"
         >
             <Check className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> {t('appearance.save_bar_all_changes_saved', 'All changes saved')}
         </span>

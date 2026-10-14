@@ -80,11 +80,11 @@ export default function FeatureKillSwitches() {
     };
 
     return (
-        <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
+            <div className="px-6 py-4 border-b flex items-center justify-between border-[var(--border-subtle)]">
                 <div>
-                    <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.feature_kill_switches_feature_flags', 'Feature Flags')}</h3>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <h3 className="font-semibold text-[var(--text-primary)]">{t('integ.feature_kill_switches_feature_flags', 'Feature Flags')}</h3>
+                    <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                         {t('integ.feature_kill_switches_enable_or_disable_platform_features', 'Enable or disable platform features globally. Changes take effect on next page load for all users.')}
                     </p>
                 </div>
@@ -108,7 +108,7 @@ export default function FeatureKillSwitches() {
                                     <Icon className="w-5 h-5 shrink-0" style={{ color: on ? '#10b981' : 'var(--text-muted)' }} />
                                     <div className="flex-1 min-w-0">
                                         <div className="text-sm font-medium" style={{ color: on ? 'var(--text-primary)' : 'var(--text-muted)' }}>{label}</div>
-                                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{desc}</div>
+                                        <div className="text-xs text-[var(--text-muted)]">{desc}</div>
                                     </div>
                                     <button
                                         onClick={() => toggle(key, label)}

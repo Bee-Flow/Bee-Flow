@@ -13,11 +13,11 @@ export { TIERS };
 const TierRow = ({ tier, value, onChange, modelOptions, inputStyle }) => {
     const { t } = useTranslation();
     return (
-    <div className="flex items-center gap-3 p-3 rounded-xl border" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}>
+    <div className="flex items-center gap-3 p-3 rounded-xl border bg-[var(--bg-primary)] border-[var(--border-default)]">
         <span className="text-lg">{tier.icon}</span>
         <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{tier.label}</div>
-            {tier.desc && <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{tier.desc}</div>}
+            <div className="text-sm font-medium text-[var(--text-primary)]">{tier.label}</div>
+            {tier.desc && <div className="text-xs text-[var(--text-muted)]">{tier.desc}</div>}
         </div>
         {modelOptions.length > 0 ? (
             <select value={value} onChange={e => onChange(e.target.value)}
@@ -40,7 +40,7 @@ const StepTiers = ({ tierConfig, updateTier, euTierConfig, updateEuTier, isAzure
         <div className="space-y-3">
             <div className="flex items-center gap-2 mb-1">
                 <span className="text-lg">💬</span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('init_setup.step_tiers_chat_model_tiers', 'Chat Model Tiers')}</span>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">{t('init_setup.step_tiers_chat_model_tiers', 'Chat Model Tiers')}</span>
             </div>
             {TIERS.map(t => (
                 <TierRow key={t.key} tier={t} value={tierConfig[t.key]?.modelId || ''}
@@ -49,13 +49,13 @@ const StepTiers = ({ tierConfig, updateTier, euTierConfig, updateEuTier, isAzure
         </div>
 
         {!isAzure && (
-            <div className="space-y-3 pt-4 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
                 <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🇪🇺</span>
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('init_setup.step_tiers_eu_chat_model_tiers', 'EU Chat Model Tiers')}</span>
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">{t('init_setup.step_tiers_eu_chat_model_tiers', 'EU Chat Model Tiers')}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,51,153,0.1)', color: '#003399' }}>{t('init_setup.step_tiers_optional', 'Optional')}</span>
                 </div>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs text-[var(--text-muted)]">
                     {t('init_setup.step_tiers_eu_hosted_models_for_organizations', 'EU-hosted models for organizations with EU privacy mode enabled.')}
                 </p>
                 {TIERS.map(t => (
@@ -66,7 +66,7 @@ const StepTiers = ({ tierConfig, updateTier, euTierConfig, updateEuTier, isAzure
         )}
 
         {isAzure && (
-            <p className="text-xs pt-2" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs pt-2 text-[var(--text-muted)]">
                 {t('init_setup.step_tiers_eu_tiers_are_hidden_azure_endpoints', '💡 EU tiers are hidden — Azure endpoints are region-specific. Configure regions in your Azure portal.')}
             </p>
         )}

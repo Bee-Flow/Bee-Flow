@@ -145,7 +145,7 @@ const FlyoutRow = ({
                                     </span>
                                 </button>
                             ))}
-                            <div className="my-1 mx-2.5 border-t" style={{ borderColor: 'var(--border-subtle)' }} />
+                            <div className="my-1 mx-2.5 border-t border-[var(--border-subtle)]" />
                             <button
                                 onClick={() => { closeFlyout(); onNavigate && onNavigate(`studio/${subSegment}`); }}
                                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150 ${ROW_IDLE}`}

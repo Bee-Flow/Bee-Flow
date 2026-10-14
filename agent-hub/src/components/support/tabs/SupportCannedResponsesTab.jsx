@@ -42,13 +42,13 @@ export default function SupportCannedResponsesTab() {
 
     return (
         <div className="max-w-2xl mx-auto p-4">
-            <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t('support.support_canned_responses_canned_responses', 'Canned responses')}</h3>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <h3 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">{t('support.support_canned_responses_canned_responses', 'Canned responses')}</h3>
+            <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('support.support_canned_responses_reusable_reply_templates_staff_insert', 'Reusable reply templates. Staff insert them with the')} <code>/</code> {t('support.support_canned_responses_picker_in_the_composer_variables_are', 'picker in the composer. Variables are substituted on send: {value}.', { value: VARS.join(' ') })}
             </p>
             {error && <div className="text-xs mb-3 px-3 py-2 rounded" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>{error}</div>}
 
-            <div className="rounded-lg border p-3 mb-4 space-y-2" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+            <div className="rounded-lg border p-3 mb-4 space-y-2 border-[var(--border-default)] bg-[var(--bg-card)]">
                 <div className="flex gap-2">
                     <input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder={t('support.support_canned_responses_title', 'Title')}
                         className="flex-1 px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
@@ -67,20 +67,20 @@ export default function SupportCannedResponsesTab() {
             </div>
 
             <div className="space-y-2">
-                {items.length === 0 && <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('support.support_canned_responses_no_templates_yet', 'No templates yet.')}</div>}
+                {items.length === 0 && <div className="text-xs text-[var(--text-muted)]">{t('support.support_canned_responses_no_templates_yet', 'No templates yet.')}</div>}
                 {items.map(c => (
-                    <div key={c.id} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                    <div key={c.id} className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                         <div className="flex items-center justify-between">
-                            <div className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                            <div className="text-sm font-medium flex items-center gap-2 text-[var(--text-primary)]">
                                 {c.title}
-                                {c.shortcut && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{c.shortcut}</span>}
-                                {c.organization_id == null && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('support.support_canned_responses_system', 'system')}</span>}
+                                {c.shortcut && <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">{c.shortcut}</span>}
+                                {c.organization_id == null && <span className="text-xs text-[var(--text-muted)]">{t('support.support_canned_responses_system', 'system')}</span>}
                             </div>
                             <button onClick={() => remove(c.id)} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" style={{ color: '#dc2626' }}>
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </div>
-                        <div className="text-xs mt-1 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{c.body}</div>
+                        <div className="text-xs mt-1 whitespace-pre-wrap text-[var(--text-secondary)]">{c.body}</div>
                     </div>
                 ))}
             </div>
