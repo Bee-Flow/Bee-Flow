@@ -801,11 +801,14 @@ test('webpages: its egress is filed under its own source, not as an automation',
 });
 
 test('KNOWN GAP: the webpages AI bridge is still unguarded, and stays written down', () => {
-    // routes/webpagesPreview.js sends page content to a model. It records spend
+    // routes/webpagesPreview.js (handlers in webpagesPreviewAi.js and
+    // webpagesPreviewAsk.js) sends page content to a model. It records spend
     // (`source: 'webpage_bridge_ai'`) but no egress guard and no ledger row.
     // This test does not demand a fix — it fails if someone fixes it and
     // forgets the register, or deletes the route and leaves the note.
-    const src = read('routes/webpagesPreview.js');
+    // The router registers the routes; the handlers live in its AI siblings.
+    const src = ['routes/webpagesPreview.js', 'routes/webpagesPreviewAi.js', 'routes/webpagesPreviewAsk.js']
+        .map(read).join('\n');
     assert.match(src, /webpage_bridge_ai/, 'the AI bridge moved — update the register in this file');
     const guarded = /guardToolInput|guardAiInput|prepareForEgress/.test(src);
     assert.strictEqual(guarded, false,
