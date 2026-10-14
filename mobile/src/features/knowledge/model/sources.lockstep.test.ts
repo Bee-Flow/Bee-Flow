@@ -1,7 +1,7 @@
 /**
  * The source vocabulary against the web's own files: the schedule presets
  * (KnowledgeStudio/ScheduleMenu.jsx), the kinds the server creates
- * (sourceKinds.js and server sources.js) and the kind labels. Textual, like
+ * (sourceKinds.js and server sourcePolicy.js) and the kind labels. Textual, like
  * the other lockstep tests: when this fails the web or the server changed.
  */
 
@@ -22,7 +22,7 @@ describe('sources ↔ the web and the server', () => {
     });
 
     it('knows the kinds the server creates', () => {
-        const server = read(path.join(REPO, 'server/routes/knowledgeBases/sources.js')).match(/const CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
+        const server = read(path.join(REPO, 'server/routes/knowledgeBases/sourcePolicy.js')).match(/const CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
         const web = read(path.join(STUDIO, 'sourceKinds.js')).match(/CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
         const parse = (m: RegExpMatchArray | null) => (m?.[1] ?? '').split(',').map((s) => s.trim().replace(/'/g, '')).filter(Boolean);
         expect([...CREATABLE_KINDS]).toEqual(parse(server));
