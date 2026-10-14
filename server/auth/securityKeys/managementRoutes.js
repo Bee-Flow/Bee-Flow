@@ -31,6 +31,7 @@ const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { credentialJson } = require('./schemas');
+const { saveChallenge } = require('./saveChallenge');
 
 const MAX_KEYS_PER_USER = 10;
 const NAME_MAX = 60;
@@ -98,15 +99,6 @@ function createSecurityKeyManagementRouter(deps) {
         req.session.user.organizationId || null,
     );
 
-    /** Save the session, then answer; a lost challenge would only fail later. */
-    const saveThen = (req, res, body) => req.session.save((err) => {
-        if (err) {
-            log.warn('[SecurityKeys] session save failed:', err.message);
-            return res.status(503).json({ error: 'Could not start the security key check. Try again.', code: 'session_unavailable' });
-        }
-        res.json(body);
-    });
-
     router.get('/security-keys', requireAuth, async (req, res) => {
         const keys = await userStore.listSecurityKeys(req.session.user.id);
         res.json({ keys: keys.map(publicView) });
@@ -119,7 +111,8 @@ function createSecurityKeyManagementRouter(deps) {
         if (!options) {
             throw new HttpError(409, 'no_security_key_here', 'None of your security keys is registered for this address.');
         }
-        saveThen(req, res, { options });
+        await saveChallenge(req, log);
+        res.json({ options });
     });
 
     router.post('/security-keys/registration/options', requireAuth, codeLimiter, validate({ body: OptionsBody }), async (req, res) => {
@@ -153,7 +146,8 @@ function createSecurityKeyManagementRouter(deps) {
             name: req.body.name || DEFAULT_NAME,
             proven,
         };
-        saveThen(req, res, { options });
+        await saveChallenge(req, log);
+        res.json({ options });
     });
 
     router.post('/security-keys/registration/verify', requireAuth, codeLimiter, validate({ body: VerifyBody }), async (req, res) => {

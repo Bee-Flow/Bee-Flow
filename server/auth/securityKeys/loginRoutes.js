@@ -23,6 +23,7 @@ const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { credentialJson } = require('./schemas');
+const { saveChallenge } = require('./saveChallenge');
 
 const VerifyBody = z.object({ response: credentialJson }).strict();
 const OptionsBody = z.object({}).strict();
@@ -76,13 +77,8 @@ function createSecurityKeyLoginRouter(deps) {
         }
         const options = await ceremony.authenticationOptions({ rp, keys });
         pending[CHALLENGE_FIELD] = ceremony.challengeRecord(options, rp);
-        req.session.save((err) => {
-            if (err) {
-                log.warn('[SecurityKeys] session save failed:', err.message);
-                return res.status(503).json({ error: 'Could not start the security key check. Try again.', code: 'session_unavailable' });
-            }
-            res.json({ options });
-        });
+        await saveChallenge(req, log);
+        res.json({ options });
     });
 
     router.post('/mfa/security-key/verify-login', limiter, validate({ body: VerifyBody }), async (req, res) => {
