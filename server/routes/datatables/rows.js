@@ -30,7 +30,6 @@ const { mirrorCtx, mirrorWrites } = require('./source');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, idText } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -146,8 +145,7 @@ function register(router) {
             }
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row read failed:', e.message);
-            res.status(500).json({ error: 'Could not read the rows' });
+            throw e;
         }
     });
 
@@ -166,8 +164,7 @@ function register(router) {
             res.json({ row });
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row read failed:', e.message);
-            res.status(500).json({ error: 'Could not read the row' });
+            throw e;
         }
     });
 
@@ -202,8 +199,7 @@ function register(router) {
             res.json({ ok: true, id });
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row write failed:', e.message);
-            res.status(500).json({ error: 'Could not add the row' });
+            throw e;
         }
     });
 
@@ -269,8 +265,7 @@ function register(router) {
             res.json({ row });
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row edit failed:', e.message);
-            res.status(500).json({ error: 'Could not save the row' });
+            throw e;
         }
     });
 
@@ -393,8 +388,7 @@ function register(router) {
             res.json({ inserted, errors });
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] bulk import failed:', e.message);
-            res.status(500).json({ error: 'Could not import the rows' });
+            throw e;
         }
     });
 
@@ -458,8 +452,7 @@ function register(router) {
             // error, so the only honest end is to stop the stream.
             if (res.headersSent) { try { res.end(); } catch { /* client gone */ } return; }
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] export failed:', e.message);
-            res.status(500).json({ error: 'Could not export the rows' });
+            throw e;
         }
     });
 
@@ -488,8 +481,7 @@ function register(router) {
             res.json({ ok: true });
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row delete failed:', e.message);
-            res.status(500).json({ error: 'Could not delete the row' });
+            throw e;
         }
     });
 
@@ -550,8 +542,7 @@ function register(router) {
             res.json({ deleted, requested: ids.length });
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] bulk delete failed:', e.message);
-            res.status(500).json({ error: 'Could not delete the rows' });
+            throw e;
         }
     });
 }

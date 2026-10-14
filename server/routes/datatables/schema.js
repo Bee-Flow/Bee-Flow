@@ -24,7 +24,6 @@ const { quota, answerDatatableError, confirmedBreaking, breakingColumnUsage } = 
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { bodyOf, flag, CONFIRM_TEXT } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // ── What a save may carry ───────────────────────────────────────────
 //
@@ -182,8 +181,7 @@ function register(router) {
                 res.json({ fields: norm.fields, modelVersion: saved.modelVersion });
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
-                log.error('[datatables] schema write failed:', e.message);
-                res.status(500).json({ error: 'Could not save the columns' });
+                throw e;
             }
         });
 }

@@ -231,8 +231,7 @@ function register(router) {
                 res.json({ datatable: { ...publicTable(t, req.datatableGrade), managed: await managedOf(t) } });
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
-                log.error('[datatables] meta write failed:', e.message);
-                res.status(500).json({ error: 'Could not save the table settings' });
+                throw e;
             }
         });
 }

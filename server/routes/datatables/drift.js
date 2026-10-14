@@ -19,7 +19,6 @@ const { answerDatatableError } = require('./refusals');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { bodyOf } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // Neither route takes anything. Said out loud rather than left implicit: the
 // repair below is add-only BECAUSE the plan is scoped to this one table from
@@ -67,8 +66,7 @@ function register(router) {
             res.json(await describeDrift(req.datatableScope, req.datatable));
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] health read failed:', e.message);
-            res.status(500).json({ error: 'Could not check this datatable' });
+            throw e;
         }
     });
 
@@ -108,8 +106,7 @@ function register(router) {
                 res.json({ repaired: true, ...(await describeDrift(scope, req.datatable)) });
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
-                log.error('[datatables] repair failed:', e.message);
-                res.status(500).json({ error: 'Could not repair this datatable' });
+                throw e;
             }
         });
 }

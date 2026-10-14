@@ -20,7 +20,6 @@ const { publicTable } = require('./projection');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { bodyOf, choice, idText, worded } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // The three audiences a person can pick. The route below is the ONLY place one
 // becomes columns.
@@ -153,8 +152,7 @@ function register(router) {
                 // e.code carries the machine-readable half (groups_required) so the
                 // surface can say "pick a group" instead of a generic failure.
                 if (e.status) return res.status(e.status).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
-                log.error('[datatables] sharing failed:', e.message);
-                res.status(500).json({ error: 'Could not update sharing' });
+                throw e;
             }
         });
 
@@ -173,8 +171,7 @@ function register(router) {
                 res.json({ grants });
             } catch (e) {
                 if (e.status) return res.status(e.status).json({ error: e.message });
-                log.error('[datatables] grant failed:', e.message);
-                res.status(500).json({ error: 'Could not share the datatable' });
+                throw e;
             }
         });
 

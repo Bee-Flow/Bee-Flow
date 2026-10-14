@@ -130,7 +130,13 @@ async function call(method, routePath, req) {
     for (const handle of routeStack(method, routePath)) {
         let advanced = false;
         let failed = null;
-        await handle(full, res, (err) => { advanced = true; failed = err || null; });
+        // Express 5 hands a rejected async handler to the error chain, so a
+        // throw here ends at the terminal handler just like next(err).
+        try {
+            await handle(full, res, (err) => { advanced = true; failed = err || null; });
+        } catch (err) {
+            failed = err;
+        }
         if (failed) { terminalErrorHandler(failed, full, res, () => {}); break; }
         if (res.sent || !advanced) break;
     }

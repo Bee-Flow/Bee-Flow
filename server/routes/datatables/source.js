@@ -116,8 +116,7 @@ async function saveSettings(req, res) {
         res.json({ datatable: publicTable(t, req.datatableGrade) });
     } catch (e) {
         if (answerDatatableError(res, e, req.datatableScope)) return;
-        log.error('[datatables] mirror settings failed:', e.message);
-        res.status(500).json({ error: 'Could not save the settings of this table' });
+        throw e;
     }
 }
 
@@ -129,8 +128,7 @@ async function saveRelations(req, res) {
         res.json({ datatable: publicTable(t, req.datatableGrade) });
     } catch (e) {
         if (answerDatatableError(res, e, req.datatableScope)) return;
-        log.error('[datatables] mirror relations failed:', e.message);
-        res.status(500).json({ error: 'Could not save the relations' });
+        throw e;
     }
 }
 
@@ -143,8 +141,7 @@ async function relinkNow(req, res) {
         res.json({ datatable: publicTable(t, req.datatableGrade) });
     } catch (e) {
         if (answerDatatableError(res, e, req.datatableScope)) return;
-        log.error('[datatables] relink failed:', e.message);
-        res.status(500).json({ error: 'Could not re-link this table' });
+        throw e;
     }
 }
 

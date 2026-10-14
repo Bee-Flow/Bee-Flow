@@ -30,7 +30,6 @@ const { z, typeError } = require('../../utils/zod');
 const {
     bodyOf, worded, tableKey, tableName, tablePurpose, scopeWord, SCOPE_WORDS, rowScopeWord,
 } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -236,8 +235,7 @@ function register(router) {
             // that does not exist.
             if (scope) datatableDbStore.invalidate(keyOf(scope));
             if (answerDatatableError(res, e, scope)) return;
-            log.error('[datatables] create failed:', e.message);
-            res.status(500).json({ error: 'Could not create the datatable' });
+            throw e;
         }
     });
 
@@ -347,8 +345,7 @@ function register(router) {
         } catch (e) {
             if (scope) datatableDbStore.invalidate(keyOf(scope));
             if (answerDatatableError(res, e, scope)) return;
-            log.error('[datatables] managed create failed:', e.message);
-            res.status(500).json({ error: 'Could not create the datatable' });
+            throw e;
         }
     });
 }
