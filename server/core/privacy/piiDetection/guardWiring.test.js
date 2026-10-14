@@ -221,7 +221,8 @@ test('the boot sequence says out loud when detection is off', () => {
     // every other test in the tree stays green while a privacy feature is
     // simply off. A grep over the one file that carries it is the cheapest
     // true statement of that.
-    const boot = read('server/boot/startupTasks.js');
+    // runStartupTasks()'s startBootProbes phase.
+    const boot = read('server/boot/startupProbes.js');
     assert.match(
         boot,
         /getGuardEndpoint/,

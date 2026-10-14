@@ -140,9 +140,10 @@ test('boot wires the compliance resolver into the port', () => {
     // Genuinely textual — see the file header: no seam exists to call
     // runStartupTasks() for real without starting a dozen other background
     // jobs and opening the DB.
-    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'startupTasks.js'), 'utf8');
+    // The compliance block is runStartupTasks()'s startRetentionAndComplianceJobs phase.
+    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'startupJobs.js'), 'utf8');
     assert.ok(/documentMarking'\)\s*\n?\s*\.setMarkingResolver/.test(src),
-        'boot/startupTasks.js must call setMarkingResolver — without it every generated document is unmarked');
+        'boot/startupJobs.js must call setMarkingResolver — without it every generated document is unmarked');
     assert.ok(/compliance\/marking'\)\.resolveMarking/.test(src),
         'the resolver boot registers must be compliance/marking.resolveMarking');
 });
