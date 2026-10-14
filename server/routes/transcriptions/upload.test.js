@@ -139,7 +139,12 @@ function dispatch({ body = {}, file = true, user = 'owner-1' } = {}) {
             setTimeout() {},
             headersSent: false,
         };
-        router(req, res, (err) => reject(err || new Error('viel door de router heen')));
+        router(req, res, (err) => {
+            if (!err) return reject(new Error('viel door de router heen'));
+            // As the terminal handler answers: an HttpError keeps its status, message and code.
+            if (err.expose) return res.status(err.status).json({ error: err.message, code: err.code });
+            return reject(err);
+        });
     });
 }
 

@@ -7,7 +7,6 @@
  */
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const router = express.Router();
 const transcriptionStore = require('../../stores/transcriptionStore');
 const { resolveAccessContext, withInsightsPolicy } = require('./shared');
@@ -29,20 +28,15 @@ const ListQuery = z.object({ limit: whole('limit'), offset: whole('offset') }).s
 // ── List transcriptions ──────────────────────────────────
 
 router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const limit = Math.min(req.query.limit ?? 50, 100);
-        const offset = Math.max(req.query.offset ?? 0, 0);
-        // Reap async jobs stuck in 'processing' (e.g. server restarted mid-run) so
-        // the list stops spinning on them. Best-effort; never block the listing.
-        transcriptionStore.timeoutStuckTranscriptions().catch(() => {});
-        const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
-        const transcriptions = await transcriptionStore.getTranscriptions(userId, { limit, offset, orgIds, userGroupIds, isSuperAdmin });
-        res.json({ transcriptions });
-    } catch (err) {
-        log.error('[Transcriptions] List error:', err.message);
-        res.status(500).json({ error: 'Failed to list transcriptions' });
-    }
+    const userId = req.session.user.id;
+    const limit = Math.min(req.query.limit ?? 50, 100);
+    const offset = Math.max(req.query.offset ?? 0, 0);
+    // Reap async jobs stuck in 'processing' (e.g. server restarted mid-run) so
+    // the list stops spinning on them. Best-effort; never block the listing.
+    transcriptionStore.timeoutStuckTranscriptions().catch(() => {});
+    const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
+    const transcriptions = await transcriptionStore.getTranscriptions(userId, { limit, offset, orgIds, userGroupIds, isSuperAdmin });
+    res.json({ transcriptions });
 });
 
 // ── Get single transcription ─────────────────────────────
@@ -62,16 +56,11 @@ router.get('/:id', requireAuth,
     (req, res, next) => (RESERVED_GET_PATHS.has(req.params.id) ? next('route') : next()),
     validate({ query: NO_QUERY }),
     async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
-        const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
-        if (!transcription) return res.status(404).json({ error: 'Transcription not found' });
-        res.json(await withInsightsPolicy(transcription));
-    } catch (err) {
-        log.error('[Transcriptions] Get error:', err.message);
-        res.status(500).json({ error: 'Failed to get transcription' });
-    }
+    const userId = req.session.user.id;
+    const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
+    const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
+    if (!transcription) return res.status(404).json({ error: 'Transcription not found' });
+    res.json(await withInsightsPolicy(transcription));
 });
 
 // ── Previous note in the same recurring series ───────────
@@ -80,32 +69,27 @@ router.get('/:id', requireAuth,
 // same Google Meet code / Talk room, ACL-checked twice (this note + the
 // previous one). Notes without a series link answer { previous: null }.
 router.get('/:id/series-previous', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const ctx = await resolveAccessContext(req);
-        const transcription = await transcriptionStore.getTranscription(req.params.id, userId, ctx);
-        if (!transcription) return res.status(404).json({ error: 'Not found' });
-        if (!transcription.meetMeetingCode && !transcription.talkRoomToken) {
-            return res.json({ previous: null });
-        }
-        const previous = await transcriptionStore.getSeriesPrevious({
-            meetMeetingCode: transcription.meetMeetingCode || null,
-            talkRoomToken: transcription.meetMeetingCode ? null : transcription.talkRoomToken,
-            beforeCreatedAt: transcription.createdAt,
-            excludeId: transcription.id,
-            userId,
-            ...ctx,
-        });
-        // The card needs a preview, not the whole summary.
-        res.json({
-            previous: previous
-                ? { ...previous, summary: (previous.summary || '').slice(0, 1200) }
-                : null,
-        });
-    } catch (err) {
-        log.error('[Transcriptions] Series-previous error:', err.message);
-        res.status(500).json({ error: 'Failed to load series context' });
+    const userId = req.session.user.id;
+    const ctx = await resolveAccessContext(req);
+    const transcription = await transcriptionStore.getTranscription(req.params.id, userId, ctx);
+    if (!transcription) return res.status(404).json({ error: 'Not found' });
+    if (!transcription.meetMeetingCode && !transcription.talkRoomToken) {
+        return res.json({ previous: null });
     }
+    const previous = await transcriptionStore.getSeriesPrevious({
+        meetMeetingCode: transcription.meetMeetingCode || null,
+        talkRoomToken: transcription.meetMeetingCode ? null : transcription.talkRoomToken,
+        beforeCreatedAt: transcription.createdAt,
+        excludeId: transcription.id,
+        userId,
+        ...ctx,
+    });
+    // The card needs a preview, not the whole summary.
+    res.json({
+        previous: previous
+            ? { ...previous, summary: (previous.summary || '').slice(0, 1200) }
+            : null,
+    });
 });
 
 module.exports = router;

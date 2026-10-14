@@ -8,8 +8,10 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const multer = require('multer');
+const { UNSUPPORTED_AUDIO_FORMAT } = require('./uploadErrors');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -40,7 +42,10 @@ const upload = multer({
         if (allowed.includes(ext) || file.mimetype?.startsWith('audio/')) {
             cb(null, true);
         } else {
-            cb(new Error('Unsupported audio format. Supported: MP3, WAV, M4A, OGG, WEBM, FLAC, MP4, AAC'));
+            // The code lets ./uploadErrors.js answer this one 400 itself.
+            const err = new Error('Unsupported audio format. Supported: MP3, WAV, M4A, OGG, WEBM, FLAC, MP4, AAC');
+            err.code = UNSUPPORTED_AUDIO_FORMAT;
+            cb(err);
         }
     },
 });
@@ -157,7 +162,7 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
             // The access check could not be answered: refuse, never file blind.
             dropUpload();
             log.error('[Transcriptions] project access check failed:', err.message);
-            return res.status(503).json({ error: 'Could not check access to that project. Try again in a moment.', code: 'project_check_unavailable' });
+            throw new HttpError(503, 'project_check_unavailable', 'Could not check access to that project. Try again in a moment.');
         }
         if (!target.ok) {
             dropUpload();

@@ -107,6 +107,10 @@ stub('../core/kb/kbIngestionHelpers', {
 
 const router = require('./transcriptions');
 
+// Errors are answered the way index.js answers them: by the terminal handler.
+const answerError = require('../core/http/terminalErrorHandler')
+    .createTerminalErrorHandler({ log: { error() {}, warn() {} } });
+
 function dispatch({ method = 'GET', url, user = 'owner-1' }) {
     return new Promise((resolve, reject) => {
         const [pathname, search] = String(url).split('?');
@@ -128,7 +132,9 @@ function dispatch({ method = 'GET', url, user = 'owner-1' }) {
             end() { resolve(this); return this; },
             setTimeout() {},
         };
-        router(req, res, (err) => reject(err || new Error(`fell through: ${method} ${url}`)));
+        router(req, res, (err) => (err
+            ? answerError(err, req, res, reject)
+            : reject(new Error(`fell through: ${method} ${url}`))));
     });
 }
 

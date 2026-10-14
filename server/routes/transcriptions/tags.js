@@ -21,7 +21,6 @@
  */
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const router = express.Router();
 const { getAll } = require('../../db');
 const { requireAuth } = require('../../auth/permissions');
@@ -79,35 +78,30 @@ const TAG_COUNT = `COUNT(DISTINCT transcriptions.id)::int AS count`;
 const TAG_FILTER = `jsonb_typeof(tag_of.value) = 'string' AND ${TAG_TEXT} <> ''`;
 
 router.get('/tags', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
-        let sql;
-        let params;
-        if (isSuperAdmin) {
-            sql = `SELECT ${TAG_TEXT} AS tag, ${TAG_COUNT}
+    const userId = req.session.user.id;
+    const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
+    let sql;
+    let params;
+    if (isSuperAdmin) {
+        sql = `SELECT ${TAG_TEXT} AS tag, ${TAG_COUNT}
                      FROM transcriptions, ${TAG_SOURCE}
                     WHERE ${TAG_FILTER}
                     GROUP BY ${TAG_TEXT}
                     ORDER BY count DESC, tag ASC
                     LIMIT ${TAG_LIMIT}`;
-            params = [];
-        } else {
-            const acl = buildListAcl(userId, { orgIds, userGroupIds });
-            sql = `SELECT ${TAG_TEXT} AS tag, ${TAG_COUNT}
+        params = [];
+    } else {
+        const acl = buildListAcl(userId, { orgIds, userGroupIds });
+        sql = `SELECT ${TAG_TEXT} AS tag, ${TAG_COUNT}
                      FROM transcriptions, ${TAG_SOURCE}
                     WHERE (${acl.where}) AND ${TAG_FILTER}
                     GROUP BY ${TAG_TEXT}
                     ORDER BY count DESC, tag ASC
                     LIMIT ${TAG_LIMIT}`;
-            params = acl.params;
-        }
-        const rows = await getAll(sql, params);
-        res.json((rows || []).map((r) => ({ tag: String(r.tag), count: Number(r.count) || 0 })));
-    } catch (err) {
-        log.error('[Transcriptions] Tags error:', err.message);
-        res.status(500).json({ error: 'Failed to list tags' });
+        params = acl.params;
     }
+    const rows = await getAll(sql, params);
+    res.json((rows || []).map((r) => ({ tag: String(r.tag), count: Number(r.count) || 0 })));
 });
 
 module.exports = router;

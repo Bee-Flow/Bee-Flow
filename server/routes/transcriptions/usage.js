@@ -43,31 +43,26 @@ const { validate } = require('../../core/http/validate');
 const { NOTHING, NO_QUERY } = require('./schemas');
 
 router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const transcriptionStore = require('../../stores/transcriptionStore');
-        const { usageForMeeting, redactForeign } = require('../../core/meetingNotes/meetingUsage');
+    const userId = req.session.user.id;
+    const transcriptionStore = require('../../stores/transcriptionStore');
+    const { usageForMeeting, redactForeign } = require('../../core/meetingNotes/meetingUsage');
 
-        const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
-        const note = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
-        // 404 rather than 403 for a note outside the caller's reach: the same
-        // answer every other route on this id gives, so this one cannot be
-        // used to probe which ids exist.
-        if (!note) return res.status(404).json({ error: 'Not found' });
+    const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
+    const note = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
+    // 404 rather than 403 for a note outside the caller's reach: the same
+    // answer every other route on this id gives, so this one cannot be
+    // used to probe which ids exist.
+    if (!note) return res.status(404).json({ error: 'Not found' });
 
-        const { rows, partial } = await usageForMeeting(note);
-        res.json({
-            usage: redactForeign(rows, userId),
-            // "I could not check notebooks" is a different sentence from "no
-            // notebook uses this", and only one of them is safe to delete on.
-            // The client says the first out loud; the delete guard treats it
-            // as in-use.
-            unchecked: partial,
-        });
-    } catch (err) {
-        log.error('[Transcriptions] Usage error:', err.message);
-        res.status(500).json({ error: 'Failed to load usage' });
-    }
+    const { rows, partial } = await usageForMeeting(note);
+    res.json({
+        usage: redactForeign(rows, userId),
+        // "I could not check notebooks" is a different sentence from "no
+        // notebook uses this", and only one of them is safe to delete on.
+        // The client says the first out loud; the delete guard treats it
+        // as in-use.
+        unchecked: partial,
+    });
 });
 
 /**
@@ -119,65 +114,60 @@ router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req,
  * mag de eigenaar niet denken dat hij schoon is.
  */
 router.delete('/:id/filed-lines', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const transcriptionStore = require('../../stores/transcriptionStore');
-        const { filedTranscriptSources } = require('../../core/meetingNotes/meetingUsage');
+    const userId = req.session.user.id;
+    const transcriptionStore = require('../../stores/transcriptionStore');
+    const { filedTranscriptSources } = require('../../core/meetingNotes/meetingUsage');
 
-        const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
-        const note = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
-        // Zelfde 404 als elke andere route op dit id, zodat ook deze niet te
-        // gebruiken is om te achterhalen welke ids bestaan.
-        if (!note) return res.status(404).json({ error: 'Not found' });
-        if (!note.isOwner) return res.status(403).json({ error: 'Only the owner can remove filed lines', code: 'not_owner' });
+    const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
+    const note = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
+    // Zelfde 404 als elke andere route op dit id, zodat ook deze niet te
+    // gebruiken is om te achterhalen welke ids bestaan.
+    if (!note) return res.status(404).json({ error: 'Not found' });
+    if (!note.isOwner) return res.status(403).json({ error: 'Only the owner can remove filed lines', code: 'not_owner' });
 
-        const filed = await filedTranscriptSources(note.id);
+    const filed = await filedTranscriptSources(note.id);
 
-        const kbStore = require('../../stores/knowledgeBases');
-        const kbSourcesStore = require('../../stores/kbSources');
-        const { deleteDocumentChunks } = require('../../core/kb/kbIngestionHelpers');
-        const { purgeSourceDocuments } = require('../../core/kb/purgeSourceDocuments');
+    const kbStore = require('../../stores/knowledgeBases');
+    const kbSourcesStore = require('../../stores/kbSources');
+    const { deleteDocumentChunks } = require('../../core/kb/kbIngestionHelpers');
+    const { purgeSourceDocuments } = require('../../core/kb/purgeSourceDocuments');
 
-        let removedLines = 0;
-        let removedDocuments = 0;
-        const errors = [];
-        for (const row of filed) {
-            try {
-                const purge = await purgeSourceDocuments({
-                    kbStore, deleteDocumentChunks,
-                    kbId: row.kbId, sourceId: row.sourceId, tenantId: row.tenantId,
-                });
-                // Wat er wél af is telt mee, ook als de rest bleef staan: dat is
-                // geen schone melding, het is een eerlijk aantal.
-                removedDocuments += purge.deleted;
-                if (!purge.complete) {
-                    // Bron NIET weghalen — de FK zou de overgebleven documentrijen
-                    // meesleuren en hun embeddings voorgoed doorzoekbaar laten. Een
-                    // half opgeruimde bron die als verwijderd wordt gemeld is
-                    // dezelfde fout in een ander jasje.
-                    const why = purge.errors.length > 0
-                        ? purge.errors[0].error
-                        : 'documents remained after cleanup';
-                    log.warn('[Transcriptions] filed line kept, documents remain:', row.sourceId, why);
-                    errors.push({ sourceId: row.sourceId, error: why, documents: purge.errors });
-                    continue;
-                }
-                await kbSourcesStore.remove(row.sourceId);
-                removedLines += 1;
-            } catch (e) {
-                log.warn('[Transcriptions] filed line not removed:', e.message);
-                // Dezelfde VORM als de tak hierboven: een client die straks
-                // "deze documenten wilden niet" toont leest `e.documents` en
-                // mag daar geen `undefined` vinden. Leeg is hier het eerlijke
-                // antwoord — de opruiming is niet eens aan documenten toegekomen.
-                errors.push({ sourceId: row.sourceId, error: e.message, documents: [] });
+    let removedLines = 0;
+    let removedDocuments = 0;
+    const errors = [];
+    for (const row of filed) {
+        try {
+            const purge = await purgeSourceDocuments({
+                kbStore, deleteDocumentChunks,
+                kbId: row.kbId, sourceId: row.sourceId, tenantId: row.tenantId,
+            });
+            // Wat er wél af is telt mee, ook als de rest bleef staan: dat is
+            // geen schone melding, het is een eerlijk aantal.
+            removedDocuments += purge.deleted;
+            if (!purge.complete) {
+                // Bron NIET weghalen — de FK zou de overgebleven documentrijen
+                // meesleuren en hun embeddings voorgoed doorzoekbaar laten. Een
+                // half opgeruimde bron die als verwijderd wordt gemeld is
+                // dezelfde fout in een ander jasje.
+                const why = purge.errors.length > 0
+                    ? purge.errors[0].error
+                    : 'documents remained after cleanup';
+                log.warn('[Transcriptions] filed line kept, documents remain:', row.sourceId, why);
+                errors.push({ sourceId: row.sourceId, error: why, documents: purge.errors });
+                continue;
             }
+            await kbSourcesStore.remove(row.sourceId);
+            removedLines += 1;
+        } catch (e) {
+            log.warn('[Transcriptions] filed line not removed:', e.message);
+            // Dezelfde VORM als de tak hierboven: een client die straks
+            // "deze documenten wilden niet" toont leest `e.documents` en
+            // mag daar geen `undefined` vinden. Leeg is hier het eerlijke
+            // antwoord — de opruiming is niet eens aan documenten toegekomen.
+            errors.push({ sourceId: row.sourceId, error: e.message, documents: [] });
         }
-        res.json({ removedLines, removedDocuments, errors });
-    } catch (err) {
-        log.error('[Transcriptions] Unfile error:', err.message);
-        res.status(500).json({ error: 'Failed to remove filed lines' });
     }
+    res.json({ removedLines, removedDocuments, errors });
 });
 
 module.exports = router;
