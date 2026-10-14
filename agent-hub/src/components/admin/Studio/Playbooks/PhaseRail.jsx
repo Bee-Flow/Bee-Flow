@@ -97,10 +97,10 @@ export default function PhaseRail({ phases = [], activeKey = null, t, presenter 
                             </div>
                             {fact && <div className="text-[11px] truncate" style={{ color: 'var(--text-secondary)', maxWidth: presenter ? 230 : 190 }}>{fact}</div>}
                             {p.status === 'locked' && (
-                                <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{studioLockHint('upgrade', t)}</div>
+                                <div className="text-[11px] text-[var(--text-secondary)]">{studioLockHint('upgrade', t)}</div>
                             )}
                             {p.status === 'skipped' && p.error === 'no_status_column' && (
-                                <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.skip.no_status_column', 'The table has no status column')}</div>
+                                <div className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.skip.no_status_column', 'The table has no status column')}</div>
                             )}
                             </Body>
                         </div>

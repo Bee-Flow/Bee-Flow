@@ -123,7 +123,7 @@ export default function AnswersDashboard({ datatableId, grade = null, mine = fal
                                 xTickFormatter={(x) => bucketLabel(x, data.range?.bucket)}
                             />
                         ) : (
-                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('forms.answers.q_none', 'No answers in this period.')}</p>
+                            <p className="text-xs text-[var(--text-tertiary)]">{t('forms.answers.q_none', 'No answers in this period.')}</p>
                         )}
                     </DashCard>
 
@@ -138,7 +138,7 @@ export default function AnswersDashboard({ datatableId, grade = null, mine = fal
                     )}
 
                     <DashCard title={t('forms.answers.recent_title', 'Recent responses')} testId="answers-recent">
-                        <ul role="list" className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+                        <ul role="list" className="divide-y border-[var(--border-subtle)]">
                             {(data.recent || []).map((r) => {
                                 const when = r.submittedAt ? rel(r.submittedAt) : '';
                                 const who = r.by?.name || (r.by ? r.by.id : t('forms.answers.anonymous', 'Anonymous'));
@@ -146,10 +146,10 @@ export default function AnswersDashboard({ datatableId, grade = null, mine = fal
                                 return (
                                     <li key={r.rowId}>
                                         <button type="button" onClick={() => setOpen(r)} className="w-full text-left flex items-center gap-3 py-2 text-xs hover:bg-[var(--bg-secondary)] rounded-lg px-1" aria-label={t('forms.answers.recent_open', 'Open the response from {when}', { when })} data-testid="recent-row">
-                                            <span className="shrink-0 w-20 tabular-nums" style={{ color: 'var(--text-tertiary)' }}>{when}</span>
-                                            <span className="shrink-0 w-32 truncate" style={{ color: 'var(--text-primary)' }}>{who}</span>
-                                            <span className="flex-1 min-w-0 truncate" style={{ color: 'var(--text-secondary)' }}>{preview}</span>
-                                            <span aria-hidden="true" style={{ color: 'var(--text-tertiary)' }}>›</span>
+                                            <span className="shrink-0 w-20 tabular-nums text-[var(--text-tertiary)]">{when}</span>
+                                            <span className="shrink-0 w-32 truncate text-[var(--text-primary)]">{who}</span>
+                                            <span className="flex-1 min-w-0 truncate text-[var(--text-secondary)]">{preview}</span>
+                                            <span aria-hidden="true" className="text-[var(--text-tertiary)]">›</span>
                                         </button>
                                     </li>
                                 );
@@ -174,7 +174,7 @@ export default function AnswersDashboard({ datatableId, grade = null, mine = fal
                 testId="answers-all"
             >
                 {focus && (
-                    <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs mb-2 text-[var(--text-secondary)]">
                         {t('forms.answers.all_filtered', 'Showing the responses that answered “{label}”.', { label: questions.find(q => q.key === focus[0].field)?.label || focus[0].field })}{' '}
                         <button type="button" onClick={() => setFocus(null)} className="underline">{t('forms.answers.all_clear', 'Show every response')}</button>
                     </p>

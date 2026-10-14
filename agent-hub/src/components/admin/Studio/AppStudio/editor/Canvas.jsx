@@ -86,8 +86,7 @@ function SectionDropZone({ sectionId, container, onAddStarter, disabled }) {
                         type="button"
                         disabled={disabled}
                         onClick={() => onAddStarter(sectionId, type)}
-                        className="rounded-full border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="rounded-full border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         {t('studio_apps_edit.canvas.add_type', 'Add {type}', { type: APP_COMPONENT_TYPES[type].label.toLowerCase() })}
                     </button>
@@ -233,8 +232,7 @@ function CanvasBody({
             {mode === 'edit' ? (
                 <div
                     ref={surfaceRef}
-                    className="h-full overflow-y-auto px-6 py-6"
-                    style={{ background: 'var(--bg-secondary)' }}
+                    className="h-full overflow-y-auto px-6 py-6 bg-[var(--bg-secondary)]"
                     // Node cells no longer stop pointer propagation (that also
                     // stopped document-level menu-closing handlers), so filter
                     // out anything that started on a cell — same

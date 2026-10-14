@@ -99,8 +99,7 @@ export default function SkillsList({
                         aria-label={t('skills_studio.create', 'Create skill')}
                         title={t('skills_studio.create', 'Create skill')}
                         data-testid="skills-list-new"
-                        className="ml-auto w-7 h-7 rounded-lg grid place-items-center"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                        className="ml-auto w-7 h-7 rounded-lg grid place-items-center bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                     >
                         <Plus size={14} aria-hidden="true" />
                     </button>

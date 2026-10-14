@@ -65,7 +65,7 @@ export default function DatatableCard({ t, table, onOpen }) {
 
                 <span className="min-w-0">
                     <span className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{table.name}</span>
+                        <span className="font-semibold truncate text-[var(--text-primary)]">{table.name}</span>
                         <Chip>
                             {table.managedKind === 'http_cache'
                                 ? t('datatables.kindchip_http_cache', 'answers from a web service')
@@ -84,14 +84,13 @@ export default function DatatableCard({ t, table, onOpen }) {
                             </Chip>
                         )}
                     </span>
-                    <span className="block text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="block text-xs mt-0.5 truncate text-[var(--text-secondary)]">
                         {table.description || t('datatables.no_description', 'No description')}
-                        <span style={{ color: 'var(--text-tertiary)' }}>{' · '}{gradeText(t, table.grade)}</span>
+                        <span className="text-[var(--text-tertiary)]">{' · '}{gradeText(t, table.grade)}</span>
                     </span>
                 </span>
 
-                <span className="flex items-center gap-3.5 text-xs whitespace-nowrap"
-                    style={{ color: 'var(--text-secondary)' }}>
+                <span className="flex items-center gap-3.5 text-xs whitespace-nowrap text-[var(--text-secondary)]">
                     <span>{rowsText(t, table.rowCount)}</span>
                     <UsagePill t={t} count={table.usageCount} />
                     <span className="inline-flex items-center gap-1.5">
@@ -179,7 +178,7 @@ function UsagePill({ t, count }) {
     const n = Number(count) || 0;
     if (!n) {
         return (
-            <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-tertiary)' }}>
+            <span className="inline-flex items-center gap-1.5 text-[var(--text-tertiary)]">
                 <Workflow className="w-3 h-3" aria-hidden="true" />
                 {t('datatables.usage_none_short', 'not used yet')}
             </span>

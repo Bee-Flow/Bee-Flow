@@ -223,8 +223,7 @@ function ParamsEditor({ params, onChange, disabled }) {
                         onClick={() => remove(i)}
                         disabled={disabled}
                         aria-label={t('studio_apps_bi.connectors.remove_param', 'Remove param {n}', { n: i + 1 })}
-                        className="p-1 rounded hover:bg-[var(--bg-card-hover)]"
-                        style={{ color: 'var(--error)' }}
+                        className="p-1 rounded hover:bg-[var(--bg-card-hover)] text-[var(--error)]"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -234,8 +233,7 @@ function ParamsEditor({ params, onChange, disabled }) {
                 type="button"
                 onClick={add}
                 disabled={disabled}
-                className="self-start inline-flex items-center gap-1 rounded-md border border-dashed px-2 py-1 text-xs"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                className="self-start inline-flex items-center gap-1 rounded-md border border-dashed px-2 py-1 text-xs border-[var(--border-default)] text-[var(--text-secondary)]"
             >
                 <Plus className="h-3 w-3" aria-hidden="true" /> {t('studio_apps_bi.connectors.add_param', 'Add param')}
             </button>
@@ -274,8 +272,8 @@ function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
     return (
         <div className="flex flex-col gap-3">
             <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('studio_apps_bi.connectors.where_data', 'Where should this get its data?')}</p>
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_bi.connectors.change_later', 'You can change this later.')}</p>
+                <p className="text-sm font-medium text-[var(--text-primary)]">{t('studio_apps_bi.connectors.where_data', 'Where should this get its data?')}</p>
+                <p className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_bi.connectors.change_later', 'You can change this later.')}</p>
             </div>
             <ChoiceCards
                 value={kind}
@@ -290,8 +288,7 @@ function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
                     type="button"
                     onClick={() => (pickingApps ? onPickApps?.() : onCreate(kind))}
                     disabled={disabled}
-                    className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {pickingApps ? <AppWindow className="h-3.5 w-3.5" aria-hidden="true" /> : null}
                     {pickingApps ? t('studio_apps_bi.connectors.choose_apps', 'Choose apps & actions') : t('studio_apps_bi.connectors.add_it', 'Add it')}
@@ -300,8 +297,7 @@ function KindChooser({ onCreate, onCancel, onPickApps, disabled }) {
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="rounded-md px-3 py-1.5 text-sm"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="rounded-md px-3 py-1.5 text-sm text-[var(--text-secondary)]"
                     >
                         {t('studio_apps_bi.common.cancel', 'Cancel')}
                     </button>
@@ -347,8 +343,7 @@ function AutomationField({ connector, onChangeId, disabled }) {
                     type="button"
                     onClick={() => setOpen(true)}
                     disabled={disabled}
-                    className="shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                 >
                     {automationId ? t('studio_apps_bi.connectors.choose_another', 'Choose another') : t('studio_apps_bi.connectors.choose_automation', 'Choose an automation')}
                 </button>
@@ -434,7 +429,7 @@ function TestPanel({ connector, appId, disabled, problem }) {
     const grid = result?.status === 'done' && result.rows.length ? previewGrid(result.rows) : null;
 
     return (
-        <div className="flex flex-col gap-2 border-t pt-3" style={{ borderColor: 'var(--border-default)' }}>
+        <div className="flex flex-col gap-2 border-t pt-3 border-[var(--border-default)]">
             {params.length ? (
                 <div className="flex flex-wrap items-end gap-2">
                     <span className={LABEL}>{t('studio_apps_bi.connectors.try_with', 'Try it with')}</span>
@@ -457,15 +452,14 @@ function TestPanel({ connector, appId, disabled, problem }) {
                     type="button"
                     onClick={run}
                     disabled={disabled || !appId || !!problem || result?.status === 'running'}
-                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                 >
                     {result?.status === 'running'
                         ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                         : <Plug className="h-3.5 w-3.5" aria-hidden="true" />}
                     {t('studio_apps_bi.connectors.test_it', 'Test it')}
                 </button>
-                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-xs text-[var(--text-tertiary)]">
                     {!appId
                         ? t('studio_apps_bi.connectors.test_open_app', 'Open the app to test this.')
                         : problem
@@ -498,12 +492,12 @@ function TestPanel({ connector, appId, disabled, problem }) {
                         </span>
                     </p>
                     {grid ? (
-                        <div className="overflow-x-auto rounded-md border" style={{ borderColor: 'var(--border-default)' }}>
+                        <div className="overflow-x-auto rounded-md border border-[var(--border-default)]">
                             <table className="w-full text-left text-xs">
                                 <thead>
                                     <tr>
                                         {grid.columns.map((c) => (
-                                            <th key={c} className="px-2 py-1 font-medium" style={{ color: 'var(--text-secondary)' }}>{c}</th>
+                                            <th key={c} className="px-2 py-1 font-medium text-[var(--text-secondary)]">{c}</th>
                                         ))}
                                     </tr>
                                 </thead>
@@ -511,7 +505,7 @@ function TestPanel({ connector, appId, disabled, problem }) {
                                     {grid.cells.map((row, i) => (
                                         <tr key={i}>
                                             {grid.columns.map((c) => (
-                                                <td key={c} className="px-2 py-1" style={{ color: 'var(--text-primary)' }}>{row[c]}</td>
+                                                <td key={c} className="px-2 py-1 text-[var(--text-primary)]">{row[c]}</td>
                                             ))}
                                         </tr>
                                     ))}
@@ -772,11 +766,11 @@ function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreat
 
             {connector.kind === 'integration_tool' ? (
                 <>
-                    <div className="flex items-center gap-2 rounded-md border px-2.5 py-2" style={{ borderColor: 'var(--border-default)' }}>
+                    <div className="flex items-center gap-2 rounded-md border px-2.5 py-2 border-[var(--border-default)]">
                         <div className="w-5 h-5 flex items-center justify-center shrink-0">
                             {getIntegrationIcon(connector.integrationId || '')}
                         </div>
-                        <span className="min-w-0 flex-1 truncate text-sm" style={{ color: 'var(--text-primary)' }}>
+                        <span className="min-w-0 flex-1 truncate text-sm text-[var(--text-primary)]">
                             {action?.label || connector.tool || t('studio_apps_bi.connectors.no_action', 'No action chosen yet')}
                         </span>
                         {hit?.app?.available === false ? (
@@ -998,9 +992,9 @@ export default function ConnectorsManager({
     return (
         <div className="flex gap-4 min-h-[22rem]">
             {/* Connector list, grouped by app */}
-            <div className="w-60 shrink-0 border-r pr-3 flex flex-col gap-1 overflow-y-auto max-h-[26rem]" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="w-60 shrink-0 border-r pr-3 flex flex-col gap-1 overflow-y-auto max-h-[26rem] border-[var(--border-default)]">
                 {list.length === 0 ? (
-                    <p className="px-1 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="px-1 py-2 text-xs text-[var(--text-tertiary)]">
                         {t('studio_apps_bi.connectors.none_yet', 'No connectors yet. Pick the apps and actions this app should pull data from.')}
                     </p>
                 ) : grouped.map((group) => (
@@ -1009,10 +1003,10 @@ export default function ConnectorsManager({
                             <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
                                 {group.appId !== 'other' ? getIntegrationIcon(group.appId) : <Workflow className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} />}
                             </div>
-                            <span className="truncate text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                                 {group.label}
                             </span>
-                            <span className="ml-auto text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{group.items.length}</span>
+                            <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{group.items.length}</span>
                         </div>
                         {group.items.map((c) => (
                             <div key={c.id} className="group flex items-center gap-1">
@@ -1029,7 +1023,7 @@ export default function ConnectorsManager({
                                     ) : c.sync ? (
                                         <Database className="ml-auto h-3 w-3 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-label={t('studio_apps_bi.connectors.fills_table', 'Fills a table')} />
                                     ) : (
-                                        <span className="ml-auto text-[9px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{labelForKind(c.kind, t)}</span>
+                                        <span className="ml-auto text-[9px] uppercase tracking-wide text-[var(--text-tertiary)]">{labelForKind(c.kind, t)}</span>
                                     )}
                                 </button>
                                 <button
@@ -1041,8 +1035,7 @@ export default function ConnectorsManager({
                                     // unreachable by keyboard and by touch, and it is only ever
                                     // FOUND by hovering something you were not trying to delete.
                                     // Muted until hover instead — discoverable, not shouty.
-                                    className="p-1 rounded opacity-60 hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--bg-card-hover)] transition-opacity"
-                                    style={{ color: 'var(--error)' }}
+                                    className="p-1 rounded opacity-60 hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--bg-card-hover)] transition-opacity text-[var(--error)]"
                                 >
                                     <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -1058,8 +1051,7 @@ export default function ConnectorsManager({
                             type="button"
                             onClick={() => setPicking(true)}
                             disabled={disabled}
-                            className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-white"
-                            style={{ background: 'var(--accent-primary)' }}
+                            className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-white bg-[var(--accent-primary)]"
                         >
                             <AppWindow className="h-3.5 w-3.5" aria-hidden="true" />
                             {t('studio_apps_bi.connectors.choose_apps', 'Choose apps & actions')}
@@ -1068,8 +1060,7 @@ export default function ConnectorsManager({
                             type="button"
                             onClick={() => setAdding(true)}
                             disabled={disabled}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-dashed px-2 py-1.5 text-xs"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-dashed px-2 py-1.5 text-xs border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
                             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                             {t('studio_apps_bi.connectors.automation_or_web', 'Automation or web address')}
@@ -1101,14 +1092,13 @@ export default function ConnectorsManager({
                         catalog={catalog}
                     />
                 ) : (
-                    <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-sm text-[var(--text-tertiary)]">
                         {t('studio_apps_bi.connectors.pick_connector', 'Pick a connector on the left, or add one to get started.')}
                         <button
                             type="button"
                             onClick={() => setPicking(true)}
                             disabled={disabled}
-                            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)]"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)]"
                         >
                             <AppWindow className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                             {t('studio_apps_bi.connectors.choose_apps', 'Choose apps & actions')}

@@ -218,8 +218,7 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
                     onClick={run}
                     disabled={!canRun}
                     data-testid="skill-test-run"
-                    className="ml-auto h-8 px-3 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                    className="ml-auto h-8 px-3 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                 >
                     <Play size={11} aria-hidden="true" />
                     {running ? t('skills_studio.test.running', 'Running…') : t('skills_studio.test.run', 'Run')}
@@ -227,7 +226,7 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
             </div>
 
             {locked && (
-                <p className="text-xs m-0" data-testid="skill-test-readonly" style={{ color: 'var(--warning-ink)' }}>
+                <p className="text-xs m-0 text-[var(--warning-ink)]" data-testid="skill-test-readonly">
                     {t(
                         'skills_studio.test.read_only',
                         'You can see this skill but not change it, so you cannot run a test on it.',
@@ -253,7 +252,7 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
                     ))}
                 </select>
                 {agents === false && (
-                    <span className="text-xs" data-testid="skill-test-agents-failed" style={{ color: 'var(--warning-ink)' }}>
+                    <span className="text-xs text-[var(--warning-ink)]" data-testid="skill-test-agents-failed">
                         {t('skills_studio.test.agents_failed', 'Could not load your agents, so a test cannot run as one.')}
                     </span>
                 )}
@@ -275,16 +274,15 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
 
             {error && (
                 <p
-                    className="text-xs m-0 px-3 py-2 rounded-lg"
+                    className="text-xs m-0 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning-ink)]"
                     data-testid="skill-test-error"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--warning-ink)' }}
                 >
                     {error}
                 </p>
             )}
 
             {kbNotice && (
-                <p className="text-xs m-0" data-testid="skill-test-kb-dropped" style={{ color: 'var(--warning-ink)' }}>
+                <p className="text-xs m-0 text-[var(--warning-ink)]" data-testid="skill-test-kb-dropped">
                     {t(
                         'skills_studio.test.kb_dropped',
                         'Not every knowledge base this skill links is available to you: {used} of {declared} were searched.',
@@ -326,8 +324,7 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
                                 type="button"
                                 data-testid="skill-test-advice-link"
                                 onClick={() => onNavigate(adviceHref)}
-                                className="text-xs underline"
-                                style={{ color: 'var(--accent-primary)' }}
+                                className="text-xs underline text-[var(--accent-primary)]"
                             >
                                 {t('skills_studio.test.open_ref', 'Open what this step uses')}
                             </button>
@@ -343,7 +340,7 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
                 <p className="text-xs text-[var(--text-tertiary)] m-0">{t('skills_studio.examples.loading', 'Loading…')}</p>
             )}
             {runs === false && !forbidden && (
-                <p className="text-xs m-0" data-testid="skill-test-history-failed" style={{ color: 'var(--warning-ink)' }}>
+                <p className="text-xs m-0 text-[var(--warning-ink)]" data-testid="skill-test-history-failed">
                     {t('skills_studio.test.history_failed', 'Could not load earlier runs, so the test history is unknown.')}
                 </p>
             )}

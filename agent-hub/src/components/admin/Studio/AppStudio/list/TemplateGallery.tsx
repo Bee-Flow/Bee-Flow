@@ -34,12 +34,11 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
     if (error) {
         return (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
-                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{error}</div>
+                <div className="text-sm text-[var(--text-secondary)]">{error}</div>
                 <button
                     type="button"
                     onClick={onRetry}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/5 hover:bg-[var(--bg-card-hover)]"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/5 hover:bg-[var(--bg-card-hover)] text-[var(--text-primary)]"
                 >
                     {t('studio_apps_bi.list.try_again', 'Try again')}
                 </button>
@@ -48,7 +47,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
     }
     if (!templates || templates.length === 0) {
         return (
-            <div className="py-8 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="py-8 text-center text-sm text-[var(--text-tertiary)]">
                 {t('studio_apps_bi.list.no_templates', 'No templates available yet.')}
             </div>
         );
@@ -85,13 +84,12 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                 </span>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
-                                        <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                                        <span className="text-sm font-semibold truncate text-[var(--text-primary)]">
                                             {tpl.title}
                                         </span>
                                         {tpl.category ? (
                                             <span
-                                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0 bg-white/5"
-                                                style={{ color: 'var(--text-secondary)' }}
+                                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0 bg-white/5 text-[var(--text-secondary)]"
                                             >
                                                 {tpl.category}
                                             </span>
@@ -114,7 +112,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                             </span>
                                         ) : null}
                                     </div>
-                                    <div className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                                    <div className="text-xs line-clamp-2 text-[var(--text-secondary)]">
                                         {tpl.description}
                                     </div>
                                 </div>
@@ -123,8 +121,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                         {/* Secondary action: create from the template, then open the
                             editor with the AI builder ready to adapt it (remix). */}
                         <div
-                            className="flex items-center justify-between gap-2 px-3 pb-2.5 -mt-1 border-t pt-2"
-                            style={{ borderColor: 'var(--border-subtle)' }}
+                            className="flex items-center justify-between gap-2 px-3 pb-2.5 -mt-1 border-t pt-2 border-[var(--border-subtle)]"
                         >
                             <div className="flex items-center gap-1">
                                 {/* Only a captured template can be removed — the
@@ -136,8 +133,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                         disabled={anyBusy || deletingId === tpl.id}
                                         aria-busy={deletingId === tpl.id}
                                         title={t('studio_apps_bi.list.delete_template_title', 'Delete this custom template')}
-                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-60 disabled:cursor-not-allowed"
-                                        style={{ color: 'var(--text-tertiary)' }}
+                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-60 disabled:cursor-not-allowed text-[var(--text-tertiary)]"
                                     >
                                         {deletingId === tpl.id
                                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -171,8 +167,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                 onClick={() => onRemix(tpl)}
                                 disabled={anyBusy}
                                 aria-busy={remixing}
-                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-60 disabled:cursor-not-allowed"
-                                style={{ color: 'var(--accent-primary)' }}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-60 disabled:cursor-not-allowed text-[var(--accent-primary)]"
                             >
                                 {remixing
                                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

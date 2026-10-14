@@ -44,7 +44,7 @@ export function DataView({ app, definition, screenId, onCommit, dispatch, disabl
     const variableCount = listVariables(definition).length;
     return (
         <div className="flex min-h-0 flex-1 flex-col" data-editor-view="data">
-            <div className="border-b px-3" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="border-b px-3 border-[var(--border-default)]">
                 <Tabs
                     size="sm"
                     value={tab}
@@ -58,14 +58,13 @@ export function DataView({ app, definition, screenId, onCommit, dispatch, disabl
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
                 <div hidden={tab !== 'tables'} className="p-4">
-                    <p className="mb-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="mb-3 text-xs text-[var(--text-tertiary)]">
                         {t('app_studio.views.tables_desc', 'The tables this app stores its rows in — fields, relationships and the rows themselves.')}
                     </p>
                     <button
                         type="button"
                         onClick={() => setDesignerOpen(true)}
-                        className="rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-90"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                        className="rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-90 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                     >
                         {t('app_studio.views.open_table_designer', 'Open the table designer')}
                     </button>
@@ -91,7 +90,7 @@ export function DataView({ app, definition, screenId, onCommit, dispatch, disabl
                     ) : null}
                 </div>
                 <div hidden={tab !== 'variables'} className="p-4">
-                    <p className="mb-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="mb-3 text-xs text-[var(--text-tertiary)]">
                         {t('app_studio.views.variables_desc', 'Named values your screens and actions share — formulas read them as vars.<name>.')}
                     </p>
                     <VariablesManager
@@ -115,7 +114,7 @@ export function RolesView({ app, definition, onCommit, onDirtyChange }) {
     const [tab, setTab] = useState('roles');
     return (
         <div className="flex min-h-0 flex-1 flex-col" data-editor-view="roles">
-            <div className="border-b px-3" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="border-b px-3 border-[var(--border-default)]">
                 <Tabs
                     size="sm"
                     value={tab}
@@ -129,7 +128,7 @@ export function RolesView({ app, definition, onCommit, onDirtyChange }) {
                 />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-                <p className="mb-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="mb-3 text-xs text-[var(--text-tertiary)]">
                     {t('app_studio.views.roles_desc', 'Decide who gets which role, what each role sees, and which rows they can touch.')}
                 </p>
                 <div hidden={tab !== 'roles'}>

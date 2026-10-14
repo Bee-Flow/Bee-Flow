@@ -129,7 +129,7 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
 
             <div className="grid gap-3 md:grid-cols-2">
                 <section style={CARD} className="p-4 flex flex-col gap-2.5">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                         <Timer className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
                         {t('datatables.retention_title', 'Rows are deleted after')}
                     </h3>
@@ -150,7 +150,7 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                     </div>
 
                     {custom && (
-                        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                             <span>{t('datatables.retention_custom_label', 'Days')}</span>
                             <input
                                 type="number"
@@ -174,7 +174,7 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                         </label>
                     )}
 
-                    <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                         <span className="shrink-0">{t('datatables.retention_counted_from', 'Counted from')}</span>
                         <span className="relative inline-flex items-center gap-1.5">
                             <ColumnKindIcon kind={columnTypeKind('datetime')} size={13}
@@ -196,12 +196,12 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                     </label>
 
                     {!managed && dateColumns.length === 0 && (
-                        <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="text-[11px] text-[var(--text-tertiary)]">
                             {t('datatables.retention_no_date_column', 'This table has no date column yet, so there is nothing to count an age from. Add one on the Columns tab first.')}
                         </p>
                     )}
 
-                    <p className="text-xs leading-[18px]" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs leading-[18px] text-[var(--text-secondary)]">
                         {table.retentionDays
                             ? t('datatables.retention_on', 'Rows are deleted {n} days after their {field}.', { n: table.retentionDays, field: fieldLabel })
                             : t('datatables.retention_off', 'Rows stay until something deletes them — an automation step, or you.')}
@@ -212,14 +212,14 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                     </p>
 
                     {table.lastRetentionAt && (
-                        <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="text-[11px] text-[var(--text-tertiary)]">
                             {t('datatables.retention_last_run', 'Last swept {when}.', { when: String(table.lastRetentionAt).slice(0, 16).replace('T', ' ') })}
                         </p>
                     )}
 
                     <p aria-live="polite" className="text-[11px]">
-                        {error && <span style={{ color: 'var(--warning)' }}>{error}</span>}
-                        {!error && note && <span style={{ color: 'var(--text-secondary)' }}>{note}</span>}
+                        {error && <span className="text-[var(--warning)]">{error}</span>}
+                        {!error && note && <span className="text-[var(--text-secondary)]">{note}</span>}
                     </p>
                 </section>
 
@@ -286,7 +286,7 @@ function ExpiringSoon({ t, table, columns }) {
 
     return (
         <section style={CARD} className="p-4 flex flex-col gap-2.5">
-            <h3 className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                 <History className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
                 {t('datatables.expiring_title', 'About to expire')}
             </h3>
@@ -297,28 +297,28 @@ function ExpiringSoon({ t, table, columns }) {
                     // nothing expires on its own" (2c), not a sentence where a
                     // number is expected.
                     <p className="flex items-baseline gap-2 m-0">
-                        <span className="text-[24px] font-semibold" style={{ color: 'var(--text-tertiary)' }}>0</span>
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-[24px] font-semibold text-[var(--text-tertiary)]">0</span>
+                        <span className="text-xs text-[var(--text-secondary)]">
                             {t('datatables.expiring_none_set', 'rows — nothing expires on its own')}
                         </span>
                     </p>
                 ) : state.loading ? (
-                    <p className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                         {t('datatables.loading', 'Loading…')}
                     </p>
                 ) : state.failed ? (
-                    <p className="text-xs" style={{ color: 'var(--warning)' }}>
+                    <p className="text-xs text-[var(--warning)]">
                         {t('datatables.expiring_failed', 'Could not work out what is about to expire.')}
                     </p>
                 ) : (
                     <p className="flex items-baseline gap-2">
-                        <span className="text-[24px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-[24px] font-semibold text-[var(--text-primary)]">
                             {state.more
                                 ? t('datatables.expiring_at_least', '{n}+', { n: state.count })
                                 : new Intl.NumberFormat().format(state.count)}
                         </span>
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-xs text-[var(--text-secondary)]">
                             {t('datatables.expiring_body', 'rows expire in the next {n} days', { n: SOON_DAYS })}
                         </span>
                     </p>
@@ -327,11 +327,11 @@ function ExpiringSoon({ t, table, columns }) {
 
             {/* Named here rather than left for a support ticket: erasing a row
                 does not reach the copy a run made of it. */}
-            <p className="text-[11px] leading-[18px]" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-[11px] leading-[18px] text-[var(--text-tertiary)]">
                 {t('datatables.retention_runs', 'A run that read these rows keeps its own copy in its run history, which ages out on the run-history window instead.')}
             </p>
             {!off && (
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                     {t('datatables.expiring_counted_from', 'Counted from {field}.', { field: labelOf(t, columns, retentionField) })}
                 </p>
             )}

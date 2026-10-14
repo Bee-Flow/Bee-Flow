@@ -197,7 +197,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
 
     if (fields === null) {
         return (
-            <div className="py-8 flex justify-center" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="py-8 flex justify-center text-[var(--text-tertiary)]">
                 <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                 <span className="sr-only">{t('datatables.loading', 'Loading…')}</span>
             </div>
@@ -220,7 +220,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
                     <span>{t('datatables.src_columns_locked', 'These columns come from {source} and cannot be added to, removed, renamed or retyped here. Change them in {source} — the next refresh brings them here.', { source: sourceName })}</span>
                 </p>
             ) : !canEdit && (
-                <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                     {/* Two different reasons land here — not the owner, or no
                         manage permission — and neither is the person's mistake,
                         so the sentence names the fix rather than the refusal. */}
@@ -263,7 +263,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
             )}
 
             {fields.length === 0 ? (
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm text-[var(--text-secondary)]">
                     {t('datatables.columns_empty', 'No columns yet. Every table already has id, created_at, updated_at and created_by — add the ones your automation needs on top.')}
                 </p>
             ) : (
@@ -340,30 +340,27 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
                 nothing at all, whether it worked or not. */}
             <div aria-live="polite" className="space-y-2">
                 {problems.length > 0 && (
-                    <ul className="text-xs space-y-1 px-3 py-2 rounded-lg"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}>
+                    <ul className="text-xs space-y-1 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
                         {problems.map((p, i) => <li key={i}>{p}</li>)}
                     </ul>
                 )}
                 {managedProblem && (
-                    <p className="text-xs px-3 py-2 rounded-lg"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}>
+                    <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
                         {managedProblemText(t, managedProblem)}
                     </p>
                 )}
                 {error && (
-                    <p className="text-xs px-3 py-2 rounded-lg"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}>
+                    <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
                         {error}
                     </p>
                 )}
-                {note && <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{note}</p>}
+                {note && <p className="text-xs text-[var(--text-secondary)]">{note}</p>}
             </div>
 
             {canEdit && dirty && (
                 <div className="sticky bottom-0 flex items-center gap-2 py-3 -mx-1 px-1"
                     style={{ background: 'var(--bg-primary)', borderTop: '1px solid var(--border-default)' }}>
-                    <span className="text-xs mr-auto" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-xs mr-auto text-[var(--text-tertiary)]">
                         {t('datatables.columns_unsaved', 'Unsaved column changes')}
                     </span>
                     <button type="button" onClick={() => setFields(saved)} className={`${BTN} border`}
@@ -614,7 +611,7 @@ function ColumnRow({
                                 {o}
                             </span>
                         ))}
-                        {options.length > 6 && <span className="text-[11px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>+{options.length - 6}</span>}
+                        {options.length > 6 && <span className="text-[11px] shrink-0 text-[var(--text-tertiary)]">+{options.length - 6}</span>}
                         {editable && (
                             <button type="button" onClick={() => setOptionsOpen(o => !o)} aria-expanded={optionsOpen}
                                 className="grid place-items-center shrink-0 rounded-full focus-visible:outline focus-visible:outline-2"
@@ -624,7 +621,7 @@ function ColumnRow({
                                 {optionsOpen ? <X className="w-[11px] h-[11px]" aria-hidden="true" /> : <Plus className="w-[11px] h-[11px]" aria-hidden="true" />}
                             </button>
                         )}
-                        {!options.length && !editable && <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('datatables.column_no_example', 'still empty')}</span>}
+                        {!options.length && !editable && <span className="text-xs text-[var(--text-tertiary)]">{t('datatables.column_no_example', 'still empty')}</span>}
                     </span>
                 ) : (
                     <span className="text-xs truncate tabular-nums" style={{ color: example ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}
@@ -717,19 +714,19 @@ function DestructiveConfirm({ t, changes, rowCount, usage, busy, onCancel, onCon
         >
             <div className="space-y-3">
                 {changes.removed.length > 0 && (
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-sm text-[var(--text-secondary)]">
                         {rowCount === 1
                             ? t('datatables.destructive_removed_one', 'Removing {keys} deletes its value in the 1 row.', { keys: changes.removed.join(', ') })
                             : t('datatables.destructive_removed', 'Removing {keys} deletes its values in all {n} rows.', { keys: changes.removed.join(', '), n: rowCount })}
                     </p>
                 )}
                 {changes.retyped.length > 0 && (
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-sm text-[var(--text-secondary)]">
                         {t('datatables.destructive_retyped', 'Changing the type of {keys} rewrites every existing value, and anything that does not fit the new type is lost.', { keys: changes.retyped.map(r => r.key).join(', ') })}
                     </p>
                 )}
                 {affected.length > 0 && (
-                    <p className="text-xs px-3 py-2 rounded" style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+                    <p className="text-xs px-3 py-2 rounded bg-[var(--bg-primary)] text-[var(--text-secondary)]">
                         {affected.length === 1
                             ? t('datatables.destructive_readers_one', '1 automation reads one of these columns and will stop working: {names}.', { names: nameList(affected) })
                             : t('datatables.destructive_readers', '{n} automations read one of these columns and will stop working: {names}.', { n: affected.length, names: nameList(affected) })}

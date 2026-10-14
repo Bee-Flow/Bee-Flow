@@ -70,7 +70,7 @@ export default function SourcesTab({
                         style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
                     />
                 </label>
-                {summary && <span style={{ color: 'var(--text-tertiary)' }}>{summary}</span>}
+                {summary && <span className="text-[var(--text-tertiary)]">{summary}</span>}
             </div>
 
             <div
@@ -88,17 +88,17 @@ export default function SourcesTab({
                 </div>
 
                 {loading ? (
-                    <p className="px-3.5 py-6 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="px-3.5 py-6 text-center text-[var(--text-tertiary)]">
                         {t('knowledge.loading', 'Loading…')}
                     </p>
                 ) : error ? (
-                    <p className="px-3.5 py-4" style={{ color: 'var(--warning)' }}>{error}</p>
+                    <p className="px-3.5 py-4 text-[var(--warning)]">{error}</p>
                 ) : sources.length === 0 ? (
-                    <p className="px-3.5 py-6 text-center" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="px-3.5 py-6 text-center text-[var(--text-secondary)]">
                         {t('knowledge.sources.empty', 'No sources yet. Add one on the right — it keeps itself up to date from then on.')}
                     </p>
                 ) : shown.length === 0 ? (
-                    <p className="px-3.5 py-6 text-center" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="px-3.5 py-6 text-center text-[var(--text-secondary)]">
                         {t('knowledge.sources.search_empty', 'No source matches that.')}
                     </p>
                 ) : shown.map((s, i) => (
@@ -178,8 +178,8 @@ function SourceRow({ t, rel, source, last, canManage, onOpen, onRefresh, onRenam
                     <Icon className="w-3.5 h-3.5" />
                 </span>
                 <span className="min-w-0">
-                    <span className="block font-medium truncate" style={{ color: 'var(--text-primary)' }}>{source.name}</span>
-                    <span className="block truncate" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="block font-medium truncate text-[var(--text-primary)]">{source.name}</span>
+                    <span className="block truncate text-[var(--text-tertiary)]">
                         {t(subline.key, sublineFallback(subline.key), sublineParams)}
                     </span>
                 </span>
@@ -187,7 +187,7 @@ function SourceRow({ t, rel, source, last, canManage, onOpen, onRefresh, onRenam
 
             <RefreshCell t={t} source={source} />
 
-            <span style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-[var(--text-secondary)]">
                 {source.refreshMode === 'live'
                     ? t('knowledge.sources.always_current', 'always current')
                     : (rel(source.lastRefreshAt) || t('knowledge.sources.never_refreshed', 'never'))}
@@ -249,13 +249,13 @@ function SourceRow({ t, rel, source, last, canManage, onOpen, onRefresh, onRenam
 function RefreshCell({ t, source }) {
     const mode = source.refreshMode || 'manual';
     if (mode === 'manual') {
-        return <span style={{ color: 'var(--text-tertiary)' }}>{t('knowledge.refresh.manual', 'manual')}</span>;
+        return <span className="text-[var(--text-tertiary)]">{t('knowledge.refresh.manual', 'manual')}</span>;
     }
     const Icon = mode === 'live' ? Zap : (mode === 'schedule' ? CalendarClock : RefreshCw);
     const key = refreshModeKey(mode);
     const params = mode === 'schedule' ? cronParams(source) : {};
     return (
-        <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+        <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
             <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />
             {t(key, refreshFallback(key), params)}
         </span>

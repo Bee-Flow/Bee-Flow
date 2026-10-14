@@ -108,24 +108,24 @@ export default function PlaybooksStudio({ user = null, hasPermission = () => tru
             <div className="flex-1 overflow-y-auto">
                 <div className="mx-auto px-6 py-8 space-y-4" style={{ maxWidth: 760 }}>
                     <div>
-                        <h2 className="text-[18px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
                             {t('playbooks.heading', 'Playbooks')}
                             {!loading && !error && items.length > 0 && (
-                                <span className="ml-2 font-medium" style={{ color: 'var(--text-tertiary)' }}>{items.length}</span>
+                                <span className="ml-2 font-medium text-[var(--text-tertiary)]">{items.length}</span>
                             )}
                         </h2>
-                        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-sm mt-1 text-[var(--text-secondary)]">
                             {t('playbooks.intro', 'Watch the AI build a working set — a table, an automation that fills it, an app on top — and say yes after every phase.')}
                         </p>
                     </div>
 
                     {loading ? (
-                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                             <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
                             {t('playbooks.loading', 'Loading…')}
                         </div>
                     ) : error ? (
-                        <p className="flex items-start gap-2 text-sm" style={{ color: 'var(--warning)' }}>
+                        <p className="flex items-start gap-2 text-sm text-[var(--warning)]">
                             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />{error}
                         </p>
                     ) : items.length === 0 ? (

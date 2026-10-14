@@ -163,7 +163,7 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
 
     if (!appId) {
         return (
-            <div className="h-full flex items-center justify-center gap-2 text-sm" style={{ color: 'var(--warning)' }} data-testid="playbook-stage-access-missing">
+            <div className="h-full flex items-center justify-center gap-2 text-sm text-[var(--warning)]" data-testid="playbook-stage-access-missing">
                 <AlertTriangle className="w-4 h-4" aria-hidden="true" />{t('playbooks.access.no_app', 'There is no app to give access to.')}
             </div>
         );
@@ -268,7 +268,7 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                             ))}
                         </div>
                     )}
-                    {plan.note && <p className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }} data-testid="playbook-access-note">{plan.note}</p>}
+                    {plan.note && <p className="mt-2 text-xs text-[var(--text-secondary)]" data-testid="playbook-access-note">{plan.note}</p>}
                     {askError && <p role="alert" className="mt-1 text-[11px]" style={{ color: 'var(--error-ink, var(--error))' }}>{askError}</p>}
                     {plan.roles.length > 0 && (
                         <ul className="mt-2 space-y-1" data-testid="playbook-access-roles">
@@ -276,7 +276,7 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                                 <li key={r.key} className="flex items-start gap-1.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-secondary)' }}>
                                     <Check className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />
                                     <span>
-                                        <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{r.label}</span>
+                                        <span className="font-medium text-[var(--text-primary)]">{r.label}</span>
                                         {r.scope
                                             ? ` — ${t('playbooks.access.role_scope', 'sees only rows where {column} is {value}', { column: r.scope.column, value: r.scope.value })}`
                                             : ` — ${t('playbooks.access.role_all', 'sees every row')}`}
@@ -300,7 +300,7 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                 {/* Or set it */}
                 <section className="rounded-xl p-3 space-y-3" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}>
                     <div>
-                        <span className="block text-[11px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.access.audience', 'Who can open the app')}</span>
+                        <span className="block text-[11px] font-medium mb-1.5 text-[var(--text-secondary)]">{t('playbooks.access.audience', 'Who can open the app')}</span>
                         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t('playbooks.access.audience', 'Who can open the app')}>
                             {AUDIENCES.map((kind) => (
                                 <button
@@ -336,7 +336,7 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                                         {chosenGroups.includes(g.id) && <Check className="w-3 h-3" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />}
                                         {g.name}
                                     </button>
-                                )) : <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.access.no_groups', 'No groups you can see here — ask in a sentence above instead.')}</span>}
+                                )) : <span className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.access.no_groups', 'No groups you can see here — ask in a sentence above instead.')}</span>}
                             </div>
                         )}
                     </div>
@@ -356,11 +356,11 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                                 data-testid="playbook-access-nc-menu"
                             />
                             <span className="min-w-0">
-                                <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                                <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-primary)]">
                                     <LayoutGrid className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                                     {t('playbooks.access.nc_menu', 'Show in the Nextcloud app menu')}
                                 </span>
-                                <span className="mt-0.5 block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                <span className="mt-0.5 block text-[11px] text-[var(--text-tertiary)]">
                                     {t('playbooks.access.nc_menu_desc', 'Puts the app in the top bar of your organisation\u2019s Nextcloud, on its own page. Everyone there sees the icon; only the audience above can open it.')}
                                 </span>
                             </span>
@@ -377,14 +377,14 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                         if (!relevant.length) return null;
                         return (
                             <div>
-                                <span className="block text-[11px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.access.group_roles', 'What a group may do')}</span>
+                                <span className="block text-[11px] font-medium mb-1.5 text-[var(--text-secondary)]">{t('playbooks.access.group_roles', 'What a group may do')}</span>
                                 <ul className="space-y-1" data-testid="playbook-access-group-roles">
                                     {relevant.map((g) => (
                                         <li key={g.id} className="flex items-center gap-2 text-xs">
                                             <span className="flex-1 min-w-0">
-                                                <span className="block truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</span>
+                                                <span className="block truncate text-[var(--text-primary)]">{g.name}</span>
                                                 {plan.byGroup[g.id] && (
-                                                    <span className="block truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{meansOf(plan.byGroup[g.id])}</span>
+                                                    <span className="block truncate text-[11px] text-[var(--text-tertiary)]">{meansOf(plan.byGroup[g.id])}</span>
                                                 )}
                                             </span>
                                             <select
@@ -407,7 +407,7 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                     {available && users.length > 0 && (
                         <div>
                             <div className="flex items-center gap-2 mb-1.5">
-                                <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.access.people', 'A role for one person')}</span>
+                                <span className="text-[11px] font-medium text-[var(--text-secondary)]">{t('playbooks.access.people', 'A role for one person')}</span>
                                 {/* Every person in the organisation, each with
                                     an empty dropdown, is a wall — not a choice.
                                     Who already holds a role shows; the rest are
@@ -433,8 +433,8 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                                     return (
                                         <li key={u.id} className="flex items-center gap-2 text-xs">
                                             <span className="flex-1 min-w-0">
-                                                <span className="block truncate" style={{ color: 'var(--text-primary)' }}>{u.name || u.email}</span>
-                                                <span className="block truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                                <span className="block truncate text-[var(--text-primary)]">{u.name || u.email}</span>
+                                                <span className="block truncate text-[11px] text-[var(--text-tertiary)]">
                                                     {roleKey
                                                         ? meansOf(roleKey)
                                                         : already
@@ -456,12 +456,12 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                                     );
                                 })}
                                 {!shownPeople.length && (
-                                    <li className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('playbooks.access.people_none', 'Nobody by that name.')}</li>
+                                    <li className="text-[11px] text-[var(--text-tertiary)]">{t('playbooks.access.people_none', 'Nobody by that name.')}</li>
                                 )}
                             </ul>
                         </div>
                     )}
-                    {isLoading && <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.access.loading', 'Reading the app\'s roles…')}</p>}
+                    {isLoading && <p className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.access.loading', 'Reading the app\'s roles…')}</p>}
                 </section>
 
                 {/* The gate */}
@@ -522,19 +522,19 @@ export default function AccessStage({ playbook, phase, dispatch, t, presenter = 
                         >
                             <X className="w-3.5 h-3.5" aria-hidden="true" />{t('playbooks.access.discard', 'Discard')}
                         </button>
-                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.access.gate', 'Nothing is written before you press Approve.')}</span>
+                        <span className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.access.gate', 'Nothing is written before you press Approve.')}</span>
                     </div>
                     {ncResult && !applyError && (
-                        <p className="mt-2 flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }} data-testid="playbook-access-nc-result">
+                        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]" data-testid="playbook-access-nc-result">
                             <Globe className="w-3 h-3 shrink-0" aria-hidden="true" />{ncMenuWords(ncResult, t)}
                         </p>
                     )}
                     {applyError && <p role="alert" className="mt-1 text-[11px]" style={{ color: 'var(--error-ink, var(--error))' }}>{t('playbooks.access.apply_failed', 'Could not apply: {what}', { what: applyError })}</p>}
                     {blockers && blockers.length > 0 && (
                         <ul className="mt-1 space-y-0.5" data-testid="playbook-access-blockers">
-                            <li className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.access.blockers', 'The app itself is what stops the publish:')}</li>
+                            <li className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.access.blockers', 'The app itself is what stops the publish:')}</li>
                             {blockers.map((b, i) => (
-                                <li key={i} className="flex items-start gap-1.5 text-[11px]" style={{ color: 'var(--warning)' }}>
+                                <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--warning)]">
                                     <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" aria-hidden="true" />{b}
                                 </li>
                             ))}

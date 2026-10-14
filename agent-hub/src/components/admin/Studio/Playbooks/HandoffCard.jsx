@@ -105,7 +105,7 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
                         <p className="mt-1" style={{ fontSize: type.body, color: 'var(--text-secondary)' }}>{t('playbooks.handoff.needs_input_body', 'Answer in the chat on the left and the phase goes on. Or, when what is there is enough, mark it done.')}</p>
                     </div>
                     {onDismiss && (
-                        <button type="button" onClick={onDismiss} className="ml-auto shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label={t('playbooks.handoff.dismiss', 'Hide')} data-testid="playbook-dismiss">
+                        <button type="button" onClick={onDismiss} className="ml-auto shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-[var(--text-secondary)]" aria-label={t('playbooks.handoff.dismiss', 'Hide')} data-testid="playbook-dismiss">
                             <X className="w-4 h-4" aria-hidden="true" />
                         </button>
                     )}
@@ -133,7 +133,7 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
             {next && CLIENT_RUN.has(kindOf(next)) && typeof next.brief === 'string' && next.brief ? (
                 <div className="mt-3">
                     <div className="flex items-center gap-2 mb-1">
-                        <label className="block text-[11px] font-medium" htmlFor="pbk-next-brief" style={{ color: 'var(--text-secondary)' }}>
+                        <label className="block text-[11px] font-medium text-[var(--text-secondary)]" htmlFor="pbk-next-brief">
                             {t('playbooks.handoff.next_brief', 'Next: {phase} — the brief the AI gets (edit if you like)', { phase: label(next) })}
                         </label>
                         {!editing && (
@@ -161,7 +161,7 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
                                 spellCheck={false}
                                 autoFocus
                             />
-                            <div className="text-[11px] tabular-nums text-right" style={{ color: 'var(--text-tertiary)' }}>{brief.length}/3000</div>
+                            <div className="text-[11px] tabular-nums text-right text-[var(--text-tertiary)]">{brief.length}/3000</div>
                         </>
                     ) : (
                         <div

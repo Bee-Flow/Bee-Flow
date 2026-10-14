@@ -29,7 +29,7 @@ export default function GhostCell({ draft, container }) {
             aria-hidden="true"
         >
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)' }}>
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-[var(--bg-tertiary)]">
                     <Icon size={12} />
                 </span>
                 <span>{t('app_studio.builder.draft.component_of', 'Component {i} of {n}', { i: draft.index, n: draft.count })}</span>

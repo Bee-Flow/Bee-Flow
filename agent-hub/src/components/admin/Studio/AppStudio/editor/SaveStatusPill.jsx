@@ -36,8 +36,7 @@ export function SaveStatusChip({ status, version = null }) {
             role="status"
             data-testid="save-status-chip"
             data-save-status={status || 'idle'}
-            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-[3px] text-[11px] leading-none"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}
+            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-[3px] text-[11px] leading-none border-[var(--border-default)] text-[var(--text-tertiary)]"
         >
             {saving
                 ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
@@ -89,8 +88,7 @@ export function SaveNoticeCapsule({ status, error, onRetry, noticeCount = 0, not
                 type="button"
                 onClick={onToggleNotices}
                 aria-expanded={noticesOpen}
-                className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-[10px] border px-2.5 text-xs font-medium"
-                style={{ borderColor: 'var(--warning)', color: 'var(--warning-ink)', background: 'var(--bg-card)' }}
+                className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-[10px] border px-2.5 text-xs font-medium border-[var(--warning)] text-[var(--warning-ink)] bg-[var(--bg-card)]"
                 data-testid="save-notice-capsule"
                 data-tone="warning"
             >
@@ -125,15 +123,14 @@ export function SaveNoticesPanel({ open, anchorRef, notices, onShow, onClose }) 
             style={{ background: 'var(--bg-secondary)' }}
         >
             <div className="flex items-center justify-between gap-2 px-1 pb-1.5">
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] font-semibold text-[var(--text-tertiary)]">
                     {t('app_studio.header.notices_title', 'From the last save')}
                 </span>
                 <button
                     type="button"
                     onClick={onClose}
                     aria-label={t('app_studio.header.close', 'Close')}
-                    className="rounded p-0.5 hover:bg-[var(--bg-tertiary)]"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="rounded p-0.5 hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                 >
                     <X className="h-3 w-3" aria-hidden="true" />
                 </button>
@@ -142,19 +139,17 @@ export function SaveNoticesPanel({ open, anchorRef, notices, onShow, onClose }) 
                 {notices.map((entry, i) => (
                     <li
                         key={`${entry.kind}-${entry.path}-${i}`}
-                        className="rounded-md px-2 py-1.5"
-                        style={{ background: 'var(--bg-tertiary)' }}
+                        className="rounded-md px-2 py-1.5 bg-[var(--bg-tertiary)]"
                     >
-                        <div className="text-xs" style={{ color: 'var(--text-primary)' }}>{entry.message}</div>
+                        <div className="text-xs text-[var(--text-primary)]">{entry.message}</div>
                         {entry.hint ? (
-                            <div className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{entry.hint}</div>
+                            <div className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">{entry.hint}</div>
                         ) : null}
                         {entry.target ? (
                             <button
                                 type="button"
                                 onClick={() => onShow(entry)}
-                                className="mt-1 text-[11px] font-semibold underline underline-offset-2"
-                                style={{ color: 'var(--accent-primary)' }}
+                                className="mt-1 text-[11px] font-semibold underline underline-offset-2 text-[var(--accent-primary)]"
                             >
                                 {t('app_studio.header.show_me', 'Show me')}
                             </button>

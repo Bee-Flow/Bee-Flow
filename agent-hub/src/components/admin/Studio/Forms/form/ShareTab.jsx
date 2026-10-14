@@ -46,14 +46,14 @@ export default function ShareTab({ detail, canEdit, onNavigate, onChanged }) {
             >
                 {answers?.datatableId ? (
                     <>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-xs text-[var(--text-secondary)]">
                             {t('forms.share.answers_blurb', 'The answers live in a table. Sharing the table is what shares the dashboard: whoever can read the table can open Answers here and the Dashboard tab on the table.')}
                         </p>
                         {table && <DatatableSharing table={table} canEdit={canEdit && table.grade === 'owner'} onChanged={() => datatablesApi.get(answers.datatableId).then(b => setTable(b?.datatable || null)).catch(() => {})} />}
-                        {tableError && <p role="alert" className="text-xs" style={{ color: 'var(--error)' }}>{tableError.message}</p>}
+                        {tableError && <p role="alert" className="text-xs text-[var(--error)]">{tableError.message}</p>}
                     </>
                 ) : (
-                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-xs text-[var(--text-tertiary)]">
                         {t('forms.share.no_table', 'This form does not collect answers in a table. Switch it on under Settings to share a dashboard.')}
                     </p>
                 )}

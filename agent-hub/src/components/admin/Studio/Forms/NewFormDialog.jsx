@@ -96,7 +96,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }) {
         >
             <form onSubmit={submit} className="space-y-4" data-testid="new-form-dialog">
                 <label className="block">
-                    <span className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">
                         {t('forms.new.name_label', 'Name')}
                     </span>
                     <input
@@ -111,7 +111,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }) {
                     />
                 </label>
                 <fieldset>
-                    <legend className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    <legend className="block text-xs font-medium mb-2 text-[var(--text-secondary)]">
                         {t('forms.new.mode_legend', 'What happens with the answers?')}
                     </legend>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -123,7 +123,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }) {
                             title={(
                                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                                     <span>{t('forms.new.collect_title', 'Collect answers in a table')}</span>
-                                    <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full border" style={{ color: 'var(--success-ink)', borderColor: 'var(--success)' }}>
+                                    <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full border text-[var(--success-ink)] border-[var(--success)]">
                                         {t('forms.new.recommended', 'Recommended')}
                                     </span>
                                 </span>
@@ -142,7 +142,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }) {
                 </fieldset>
                 {mode === 'collect' && (
                     <label className="block">
-                        <span className="flex items-center gap-1.5 text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="flex items-center gap-1.5 text-xs font-medium mb-1 text-[var(--text-secondary)]">
                             <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                             {t('forms.new.brief_label', 'Describe it (optional)')}
                         </span>
@@ -156,13 +156,13 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }) {
                             style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             data-testid="new-form-brief"
                         />
-                        <span className="block text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="block text-[11px] mt-1 text-[var(--text-tertiary)]">
                             {t('forms.new.brief_hint', 'AI drafts the questions from this on the next screen. You review them before anything is saved.')}
                         </span>
                     </label>
                 )}
                 {error && (
-                    <p role="alert" className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>
+                    <p role="alert" className="text-xs text-[var(--error)]">{error}</p>
                 )}
             </form>
         </Modal>

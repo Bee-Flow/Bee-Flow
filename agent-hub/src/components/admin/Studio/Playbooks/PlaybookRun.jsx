@@ -180,15 +180,15 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
 
     if (loading && !playbook) {
         return (
-            <div className="h-full flex items-center justify-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <div className="h-full flex items-center justify-center gap-2 text-sm text-[var(--text-secondary)]">
                 <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />{t('playbooks.loading', 'Loading…')}
             </div>
         );
     }
     if (!playbook) {
         return (
-            <div className="h-full flex flex-col items-center justify-center gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                <span className="inline-flex items-center gap-2" style={{ color: 'var(--warning)' }}><AlertTriangle className="w-4 h-4" aria-hidden="true" />{error?.message || t('playbooks.err_load', 'Could not load this playbook')}</span>
+            <div className="h-full flex flex-col items-center justify-center gap-3 text-sm text-[var(--text-secondary)]">
+                <span className="inline-flex items-center gap-2 text-[var(--warning)]"><AlertTriangle className="w-4 h-4" aria-hidden="true" />{error?.message || t('playbooks.err_load', 'Could not load this playbook')}</span>
                 <button type="button" onClick={onBack} className="text-xs underline">{t('playbooks.done.back', 'Back to playbooks')}</button>
             </div>
         );
@@ -210,15 +210,15 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
     const stageProps = { playbook, phase: onStage, dispatch, t, user, onBack, forcedTier, reducedMotion, presenter, onNavigate };
 
     return (
-        <div className="h-full flex flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }} data-testid="playbook-run" data-presenter={presenter ? '1' : undefined}>
+        <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]" data-testid="playbook-run" data-presenter={presenter ? '1' : undefined}>
             <header className="flex items-center gap-3 px-4 shrink-0" style={{ height: 52, borderBottom: '1px solid var(--border-default)', background: 'var(--bg-card)' }}>
-                <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-xs font-medium h-8 px-2 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label={t('playbooks.bar.back', 'Back to playbooks')}>
+                <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-xs font-medium h-8 px-2 rounded-lg text-[var(--text-secondary)]" aria-label={t('playbooks.bar.back', 'Back to playbooks')}>
                     <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <span style={tile}><Clapperboard style={glyph} aria-hidden="true" /></span>
                 <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold" style={{ fontSize: presenter ? 18 : 14, color: 'var(--text-primary)' }}>{playbook.title}</div>
-                    <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
                         {complete
                             ? <span>{playbook.status === 'stopped' ? t('playbooks.status.stopped', 'Stopped') : t('playbooks.state.done', 'Done')}</span>
                             : (
@@ -306,7 +306,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                             <div className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--type-ai)', color: 'var(--text-primary)', boxShadow: 'var(--shadow-md)' }} role="status" data-testid="playbook-autopilot-countdown">
                                 <Zap className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
                                 {t('playbooks.bar.autopilot_in', 'Autopilot continues in {n} s', { n: autoCountdown })}
-                                <button type="button" onClick={() => continueNow(undefined)} className="font-semibold" style={{ color: 'var(--type-ai)' }} data-testid="playbook-autopilot-now">{t('playbooks.bar.autopilot_now', 'Continue now')}</button>
+                                <button type="button" onClick={() => continueNow(undefined)} className="font-semibold text-[var(--type-ai)]" data-testid="playbook-autopilot-now">{t('playbooks.bar.autopilot_now', 'Continue now')}</button>
                             </div>
                         )}
                     </div>

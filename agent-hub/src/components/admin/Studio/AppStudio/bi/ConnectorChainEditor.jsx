@@ -85,22 +85,22 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
     }, [action]);
 
     return (
-        <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-default)' }}>
+        <div className="rounded-lg border px-3 py-2.5 border-[var(--border-default)]">
             <div className="flex items-start gap-2">
-                <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                     {t('studio_apps_bi.chain.step_n', 'Step {n}', { n: index + 2 })}
                 </span>
                 <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
                         {action?.label || step.tool}
                     </p>
                     {action?.description ? (
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{action.description}</p>
+                        <p className="text-xs mt-0.5 text-[var(--text-tertiary)]">{action.description}</p>
                     ) : null}
                 </div>
                 <button type="button" onClick={onRemove} disabled={disabled}
                     aria-label={t('studio_apps_bi.chain.remove_step', 'Remove step {n}', { n: index + 2 })}
-                    className="p-1 rounded hover:bg-[var(--bg-card-hover)]" style={{ color: 'var(--error)' }}>
+                    className="p-1 rounded hover:bg-[var(--bg-card-hover)] text-[var(--error)]">
                     <Trash2 className="h-3.5 w-3.5" />
                 </button>
             </div>
@@ -109,7 +109,7 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
                 <div className="mt-2 flex flex-col gap-1.5">
                     {params.map(({ key, spec, required }) => (
                         <div key={key} className="flex items-center gap-2">
-                            <span className="w-32 shrink-0 truncate text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <span className="w-32 shrink-0 truncate text-xs text-[var(--text-secondary)]">
                                 {key}{required ? <span style={{ color: '#d97706' }}> *</span> : null}
                             </span>
                             <select
@@ -126,7 +126,7 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
                                 {fields.map((f) => <option key={f} value={f}>{t('studio_apps_bi.chain.each_rows_field', 'each row’s {field}', { field: f })}</option>)}
                             </select>
                             {spec?.description ? (
-                                <span className="hidden sm:block w-40 shrink-0 truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}
+                                <span className="hidden sm:block w-40 shrink-0 truncate text-[11px] text-[var(--text-tertiary)]"
                                     title={spec.description}>
                                     {spec.description}
                                 </span>
@@ -160,7 +160,7 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
                         <option key={f} value={f}>{t('studio_apps_bi.chain.one_row_per', 'One row per {field}', { field: f })}</option>
                     ))}
                 </select>
-                <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]">
                     {step.expand ? (
                         <>
                             <Split className="h-3 w-3" aria-hidden="true" />
@@ -213,14 +213,14 @@ export default function ConnectorChainEditor({
         <div className="flex flex-col gap-2">
             <div>
                 <span className={LABEL}>{t('studio_apps_bi.chain.combine_actions', 'Combine actions')}</span>
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs text-[var(--text-tertiary)]">
                     {t('studio_apps_bi.chain.combine_intro', 'Run another action for every row this one returns — that is how an action gets an id it can only learn from a different action.')}
                 </p>
             </div>
 
-            <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_bi.chain.step_n', 'Step {n}', { n: 1 })}</span>
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            <div className="rounded-lg border px-3 py-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{t('studio_apps_bi.chain.step_n', 'Step {n}', { n: 1 })}</span>
+                <p className="text-sm font-medium text-[var(--text-primary)]">
                     {baseAction?.label || connector.tool}
                 </p>
             </div>
@@ -243,11 +243,11 @@ export default function ConnectorChainEditor({
             ))}
 
             {chain.length >= maxSteps ? (
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs text-[var(--text-tertiary)]">
                     {t('studio_apps_bi.chain.max_steps', 'That’s the most steps one connector can chain ({max}).', { max: maxSteps })}
                 </p>
             ) : adding ? (
-                <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="rounded-lg border px-3 py-2.5 border-[var(--border-default)]">
                     <label className="flex flex-col gap-1">
                         <span className={LABEL}>{t('studio_apps_bi.chain.which_action', 'Which action should run for each row?')}</span>
                         <select
@@ -273,7 +273,7 @@ export default function ConnectorChainEditor({
                             ))}
                         </select>
                     </label>
-                    <button type="button" onClick={() => setAdding(false)} className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <button type="button" onClick={() => setAdding(false)} className="mt-2 text-xs text-[var(--text-secondary)]">
                         {t('studio_apps_bi.common.cancel', 'Cancel')}
                     </button>
                 </div>
@@ -285,13 +285,12 @@ export default function ConnectorChainEditor({
                             type="button"
                             disabled={disabled}
                             onClick={() => addStep({ tool: s.tool, argsFrom: s.field ? { [s.param]: s.field } : undefined })}
-                            className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-left text-xs"
-                            style={{ borderColor: 'var(--accent-primary)', color: 'var(--text-primary)' }}
+                            className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-left text-xs border-[var(--accent-primary)] text-[var(--text-primary)]"
                         >
                             <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                             <span>
                                 <span className="font-medium">{s.why}</span>
-                                <span className="block mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_bi.chain.add_as_step', 'Add it as a step.')}</span>
+                                <span className="block mt-0.5 text-[var(--text-tertiary)]">{t('studio_apps_bi.chain.add_as_step', 'Add it as a step.')}</span>
                             </span>
                         </button>
                     ))}
@@ -299,8 +298,7 @@ export default function ConnectorChainEditor({
                         type="button"
                         onClick={() => setAdding(true)}
                         disabled={disabled || !siblings.length}
-                        className="self-start inline-flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs disabled:opacity-50"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="self-start inline-flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" /> {t('studio_apps_bi.chain.add_followup', 'Add a follow-up step')}
                     </button>

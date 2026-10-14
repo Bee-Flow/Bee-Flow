@@ -39,12 +39,12 @@ export function FileCard({ t, rel, table, mirror, canEdit }) {
 
     return (
         <section className="p-4 space-y-2" style={CARD} aria-label={t('datatables.ss_file_title', 'The file')}>
-            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                 {Logo
                     ? <span className="shrink-0 inline-flex" aria-hidden="true">{React.createElement(Logo, { size: 16 })}</span>
                     : <FileSpreadsheet className="w-4 h-4" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
                 {source?.webUrl ? (
-                    <a href={source.webUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline-offset-2 hover:underline" style={{ color: 'var(--text-primary)' }}>
+                    <a href={source.webUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline-offset-2 hover:underline text-[var(--text-primary)]">
                         {source.fileName || source.fileId}
                         <ExternalLink className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                     </a>
@@ -53,16 +53,16 @@ export function FileCard({ t, rel, table, mirror, canEdit }) {
             <dl className="text-xs grid gap-x-4 gap-y-1" style={{ gridTemplateColumns: 'auto minmax(0,1fr)', color: 'var(--text-secondary)' }}>
                 {source?.path && (
                     <>
-                        <dt style={{ color: 'var(--text-tertiary)' }}>{t('datatables.ss_file_path', 'Path')}</dt>
+                        <dt className="text-[var(--text-tertiary)]">{t('datatables.ss_file_path', 'Path')}</dt>
                         <dd className="truncate font-mono">{source.path}</dd>
                     </>
                 )}
-                <dt style={{ color: 'var(--text-tertiary)' }}>{t('datatables.ss_file_format', 'Format')}</dt>
+                <dt className="text-[var(--text-tertiary)]">{t('datatables.ss_file_format', 'Format')}</dt>
                 <dd>{formatLabel(t, source?.format)}</dd>
-                <dt style={{ color: 'var(--text-tertiary)' }}>{t('datatables.ss_file_where', 'Stored in')}</dt>
+                <dt className="text-[var(--text-tertiary)]">{t('datatables.ss_file_where', 'Stored in')}</dt>
                 <dd>{sourceNameOf(table, source)}</dd>
             </dl>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {t('datatables.ss_file_sheet', 'Sheet: {sheet}', { sheet: source?.sheet || '' })}
                 {' · '}
                 {t('datatables.ss_file_header_row', 'Header row: {n}', { n: source?.headerRow || 1 })}
@@ -101,22 +101,22 @@ export function WriteCard({ t, table, mirror }) {
         : t('datatables.ss_readonly_title', 'Rows are read from the file');
     return (
         <section className="p-4 space-y-2" style={CARD} aria-label={title}>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {writeModeText(t, writable ? source?.writeMode : 'none', sourceName)}
             </p>
             {!writable && writeReasonText(t, source?.writeReason) && (
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{writeReasonText(t, source?.writeReason)}</p>
+                <p className="text-xs text-[var(--text-secondary)]">{writeReasonText(t, source?.writeReason)}</p>
             )}
             {writable && source?.owned === false && (
                 // The privacy rule made visible: rows typed by Bee Flow editors
                 // are landing in storage the linker does not own, because the
                 // linker said so per file. It is not the default, so say it.
-                <p className="text-xs" style={{ color: 'var(--warning)' }}>
+                <p className="text-xs text-[var(--warning)]">
                     {t('datatables.ss_shared_write_on', 'The file belongs to someone else. The account that linked this table chose to write rows into it anyway; rows changed here land in their storage.')}
                 </p>
             )}
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {t('datatables.ss_columns_body', 'The columns are the sheet’s header row. Change them in the file; “Re-read the columns” brings them here.')}{' '}
                 {t('datatables.ss_no_retention', 'Rows are not aged out here — they stay as long as they are in the file.')}
             </p>
@@ -150,13 +150,13 @@ export function IdentityCard({ t, mirror }) {
     const key = source?.keyColumn || null;
     return (
         <section className="p-4 space-y-2" style={CARD} aria-label={t('datatables.ss_identity_title', 'How rows are recognised')}>
-            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                 {key
                     ? <KeyRound className="w-4 h-4" style={{ color: 'var(--type-data)' }} aria-hidden="true" />
                     : <ListOrdered className="w-4 h-4" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
                 {t('datatables.ss_identity_title', 'How rows are recognised')}
             </h3>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {key
                     ? t('datatables.ss_identity_key', 'Each row is recognised by its {column}. A row keeps its place here when rows are inserted or sorted in the sheet; a changed {column} counts as a new row.', { column: key.header || key.fieldId })
                     : t('datatables.ss_identity_rownum', 'Each row is recognised by its row number in the sheet. Inserting or deleting a row above shifts the rows below it — an automation that keeps a row id should use a key column instead.')}

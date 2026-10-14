@@ -67,8 +67,8 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
             className="w-[560px] max-w-[90vw] rounded-lg border shadow-xl"
             data-testid="command-palette"
         >
-            <div className="flex flex-1 min-h-0 flex-col" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}>
-                <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="flex flex-1 min-h-0 flex-col bg-[var(--bg-primary)] border-[var(--border-default)]">
+                <div className="flex items-center gap-2 border-b px-3 py-2 border-[var(--border-default)]">
                     <Search size={14} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                     <input
                         autoFocus
@@ -84,14 +84,14 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                         className="flex-1 bg-transparent text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         style={{ color: 'var(--text-primary)' }}
                     />
-                    <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]">
                         <Command size={10} aria-hidden="true" /> K
                     </span>
                     <button
                         type="button"
                         onClick={onClose}
                         aria-label={t('studio_apps_edit.command_palette.close', 'Close command palette')}
-                        style={{ color: 'var(--text-tertiary)' }}
+                        className="text-[var(--text-tertiary)]"
                     >
                         <X size={14} />
                     </button>
@@ -99,7 +99,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
 
                 <div ref={listRef} className="max-h-[50vh] overflow-y-auto py-1 custom-scrollbar">
                     {filtered.length === 0 ? (
-                        <div className="px-3 py-4 text-[12px] italic" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="px-3 py-4 text-[12px] italic text-[var(--text-tertiary)]">
                             {t('studio_apps_edit.command_palette.empty', 'No matching commands.')}
                         </div>
                     ) : filtered.map((a, i) => {
@@ -109,8 +109,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                             <React.Fragment key={a.id}>
                                 {showGroup ? (
                                     <div
-                                        className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide"
-                                        style={{ color: 'var(--text-tertiary)' }}
+                                        className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
                                     >
                                         {a.group}
                                     </div>
@@ -128,7 +127,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                                 >
                                     <span>{a.label}</span>
                                     {a.hint ? (
-                                        <span className="ml-auto text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">
                                             {a.hint}
                                         </span>
                                     ) : null}

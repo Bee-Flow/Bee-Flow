@@ -33,9 +33,9 @@ function NavGlyph({ style }) {
             aria-hidden="true"
         >
             {style === 'sidebar' ? (
-                <span className="h-full w-1.5" style={{ background: 'var(--text-muted)' }} />
+                <span className="h-full w-1.5 bg-[var(--text-muted)]" />
             ) : (
-                <span className="w-full h-1.5" style={{ background: 'var(--text-muted)' }} />
+                <span className="w-full h-1.5 bg-[var(--text-muted)]" />
             )}
         </span>
     );
@@ -86,7 +86,7 @@ export default function DesignPresetGallery({ activePreset, onApply, disabled = 
                             </span>
                             <NavGlyph style={preset.navStyle} />
                         </span>
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{preset.name}</span>
+                        <span className="text-xs font-medium text-[var(--text-primary)]">{preset.name}</span>
                     </button>
                 );
             })}

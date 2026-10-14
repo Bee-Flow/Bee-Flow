@@ -88,7 +88,7 @@ export default function RepliesTab({ inbox, teammates = [], onChanged }) {
                                         ? 'border-[var(--accent-primary)] bg-[var(--bg-secondary)]'
                                         : 'border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'}`}>
                                     <span className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${active ? 'border-[var(--accent-primary)]' : 'border-[var(--text-tertiary)]'}`}>
-                                        {active && <span className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-primary)' }} />}
+                                        {active && <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />}
                                     </span>
                                     <span className="min-w-0">
                                         <span className="block text-sm text-[var(--text-primary)]">{m.label}</span>

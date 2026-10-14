@@ -90,17 +90,17 @@ function CardBody({ app, onUpgrade }: CardBodyProps) {
                     <AppIcon name={app.icon || 'LayoutGrid'} className="w-4.5 h-4.5" />
                 </span>
                 <div className="flex-1 min-w-0 pt-0.5">
-                    <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-sm font-semibold truncate text-[var(--text-primary)]">
                         {app.name}
                     </div>
                     {app.description ? (
-                        <div className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-xs mt-0.5 line-clamp-2 text-[var(--text-secondary)]">
                             {app.description}
                         </div>
                     ) : null}
                 </div>
             </div>
-            <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="flex items-center gap-2 text-[10px] text-[var(--text-tertiary)]">
                 {app.isPublished ? <PublishedBadge /> : null}
                 <StoragePill ratio={app.usage?.dbRatio} />
                 <TemplateUpdatePill app={app} onUpgrade={onUpgrade} />
@@ -121,13 +121,13 @@ function SkeletonGrid() {
             {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className={`${CARD_CLASSES} animate-pulse`} style={CARD_STYLE}>
                     <div className="flex items-start gap-2.5 mb-3">
-                        <div className="h-9 w-9 rounded-lg" style={{ background: 'var(--bg-secondary)' }} />
+                        <div className="h-9 w-9 rounded-lg bg-[var(--bg-secondary)]" />
                         <div className="flex-1 pt-0.5">
-                            <div className="h-3.5 w-2/3 rounded mb-2" style={{ background: 'var(--bg-secondary)' }} />
-                            <div className="h-2.5 w-full rounded" style={{ background: 'var(--bg-secondary)' }} />
+                            <div className="h-3.5 w-2/3 rounded mb-2 bg-[var(--bg-secondary)]" />
+                            <div className="h-2.5 w-full rounded bg-[var(--bg-secondary)]" />
                         </div>
                     </div>
-                    <div className="h-2.5 w-1/3 rounded" style={{ background: 'var(--bg-secondary)' }} />
+                    <div className="h-2.5 w-1/3 rounded bg-[var(--bg-secondary)]" />
                 </div>
             ))}
             <span className="sr-only">{t('studio_apps_bi.list.loading', 'Loading…')}</span>

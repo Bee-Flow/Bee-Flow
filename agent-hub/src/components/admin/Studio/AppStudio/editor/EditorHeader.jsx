@@ -469,8 +469,7 @@ export default function EditorHeader({
           * alone: the chat pane and the inspector squeeze this column.
           */}
         <header
-            className="@container/edhead relative flex flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-2 shrink-0"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}
+            className="@container/edhead relative flex flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-2 shrink-0 border-[var(--border-default)] bg-[var(--bg-secondary)]"
             data-testid="app-editor-header"
         >
             {/* Back — flushes pending saves first (handleClose). */}
@@ -513,8 +512,7 @@ export default function EditorHeader({
                     type="button"
                     onClick={() => !streamLock && !isManaged && setEditingName(true)}
                     title={isManaged ? t('managed_part.read_only_hint', 'Read-only: this part is managed by a Solution stage.') : t('app_studio.header.rename', 'Rename app')}
-                    className="group inline-flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-sm font-semibold hover:bg-[var(--bg-tertiary)]"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="group inline-flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-sm font-semibold hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                 >
                     <span className="truncate max-w-[14rem]">{app?.name || t('app_studio.header.untitled', 'Untitled app')}</span>
                     <Pencil
@@ -581,7 +579,7 @@ export default function EditorHeader({
                 }}
             >
                 <Eye className="h-3.5 w-3.5 shrink-0" style={{ color: previewRole ? 'var(--accent-primary)' : 'var(--text-tertiary)' }} aria-hidden="true" />
-                <span className="@max-6xl/edhead:hidden" style={{ color: 'var(--text-secondary)' }}>{t('app_studio.header.view_as', 'View as')}</span>
+                <span className="@max-6xl/edhead:hidden text-[var(--text-secondary)]">{t('app_studio.header.view_as', 'View as')}</span>
                 <span className="font-semibold">{previewRoleName || ownerLabel}</span>
                 <ChevronDown className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
             </button>
@@ -635,8 +633,7 @@ export default function EditorHeader({
                 title={t('app_studio.header.more', 'More')}
                 aria-haspopup="menu"
                 aria-expanded={moreOpen}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)]"
-                style={{ color: 'var(--text-secondary)' }}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
             >
                 <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -706,26 +703,26 @@ export default function EditorHeader({
                 size="lg"
             >
                 {versions === null ? (
-                    <div className="flex items-center gap-2 py-6 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="flex items-center gap-2 py-6 text-sm text-[var(--text-tertiary)]">
                         <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                         {t('app_studio.header.versions_loading', 'Loading versions…')}
                     </div>
                 ) : versions.length === 0 ? (
-                    <p className="py-6 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="py-6 text-center text-sm text-[var(--text-tertiary)]">
                         {t('app_studio.header.versions_empty', 'No saved versions yet — versions appear when the app is published or restored.')}
                     </p>
                 ) : (
-                    <ul className="divide-y" style={{ borderColor: 'var(--border-default)' }}>
+                    <ul className="divide-y border-[var(--border-default)]">
                         {versions.map((entry) => {
                             const versionId = entry.id ?? entry.versionId ?? entry.version;
                             const createdAt = entry.createdAt || entry.created_at;
                             return (
                                 <li key={versionId} className="flex items-center gap-3 py-2.5">
                                     <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                        <div className="text-sm font-medium text-[var(--text-primary)]">
                                             {entry.label || t('app_studio.header.version_n', 'Version {n}', { n: entry.version ?? versionId })}
                                         </div>
-                                        <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                        <div className="text-xs text-[var(--text-tertiary)]">
                                             {createdAt ? new Date(createdAt).toLocaleString() : ''}
                                             {entry.createdByName ? ` · ${entry.createdByName}` : ''}
                                         </div>
@@ -735,8 +732,7 @@ export default function EditorHeader({
                                         type="button"
                                         disabled={restoringId != null}
                                         onClick={() => doRestore(entry)}
-                                        className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                        className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                                     >
                                         {restoringId === versionId
                                             ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
@@ -774,15 +770,14 @@ export default function EditorHeader({
                         <button
                             type="button"
                             onClick={onConflictLoadLatest}
-                            className="rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
-                            style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                            className="rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                         >
                             {t('app_studio.header.conflict_load_latest', 'Load latest')}
                         </button>
                     </>
                 )}
             >
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm text-[var(--text-secondary)]">
                     <strong>{t('app_studio.header.conflict_load_latest', 'Load latest')}</strong>
                     {' '}
                     {t('app_studio.header.conflict_load_latest_desc', 'replaces your canvas with the newer version (your unsaved changes are kept in this tab’s undo history).')}
@@ -825,15 +820,14 @@ export default function EditorHeader({
                 <Eye className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                 <span>
                     {t('app_studio.header.previewing_as', 'Previewing as')}{' '}
-                    <strong style={{ color: 'var(--text-primary)' }}>{previewRoleName}</strong>
+                    <strong className="text-[var(--text-primary)]">{previewRoleName}</strong>
                     {' — '}
                     {t('app_studio.header.previewing_desc', 'screens and components hidden from this role are hidden here. Lists and tables still show everything you can see; each person only gets their own rows once they open the app themselves.')}
                 </span>
                 <button
                     type="button"
                     onClick={() => setPreviewRole(null)}
-                    className="font-semibold underline underline-offset-2"
-                    style={{ color: 'var(--accent-primary)' }}
+                    className="font-semibold underline underline-offset-2 text-[var(--accent-primary)]"
                 >
                     {t('app_studio.header.exit_preview', 'Exit preview')}
                 </button>
@@ -903,13 +897,12 @@ function MoreMenuItem({ icon, label, hint = null, disabled = false, onClick }) {
             role="menuitem"
             disabled={disabled}
             onClick={onClick}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ color: 'var(--text-primary)' }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50 text-[var(--text-primary)]"
         >
             <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
             <span className="flex-1">{label}</span>
             {hint ? (
-                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{hint}</span>
+                <span className="text-[11px] text-[var(--text-tertiary)]">{hint}</span>
             ) : null}
         </button>
     );
@@ -923,8 +916,7 @@ function RoleMenuItem({ label, checked, onClick }) {
             role="menuitemradio"
             aria-checked={checked}
             onClick={onClick}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)]"
-            style={{ color: 'var(--text-primary)' }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
         >
             <span
                 aria-hidden="true"

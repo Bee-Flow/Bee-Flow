@@ -24,8 +24,7 @@ export default function EditorToolRow({ onCommit, canUndo, canRedo, onUndo, onRe
     const { streamLock } = useAppEditor();
     return (
         <div
-            className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-1.5 text-xs"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)' }}
+            className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-1.5 text-xs border-[var(--border-default)] bg-[var(--bg-primary)]"
             data-testid="editor-tool-row"
         >
             <div className="flex shrink-0 items-center gap-0.5">
@@ -36,9 +35,9 @@ export default function EditorToolRow({ onCommit, canUndo, canRedo, onUndo, onRe
                     <Redo2 />
                 </IconButton>
             </div>
-            <span aria-hidden="true" className="h-5 w-px shrink-0" style={{ background: 'var(--border-default)' }} />
+            <span aria-hidden="true" className="h-5 w-px shrink-0 bg-[var(--border-default)]" />
             <ScreenTabs onCommit={onCommit} inline />
-            <span aria-hidden="true" className="h-5 w-px shrink-0" style={{ background: 'var(--border-default)' }} />
+            <span aria-hidden="true" className="h-5 w-px shrink-0 bg-[var(--border-default)]" />
             <CompactComponentBar onCommit={onCommit} />
         </div>
     );

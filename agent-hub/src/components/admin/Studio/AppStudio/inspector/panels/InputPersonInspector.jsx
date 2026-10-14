@@ -52,7 +52,7 @@ export default function InputPersonInspector({ node, definition, onCommit, disab
                 disabled={disabled}
                 size="sm"
             />
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {t('studio_apps_panels.input_person.directory_note', 'The list is your organisation’s members. It stays empty until this app is allowed to read the directory — turn that on in the app’s Data settings.')}
             </p>
         </div>

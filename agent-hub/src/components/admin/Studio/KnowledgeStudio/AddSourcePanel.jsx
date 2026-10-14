@@ -73,7 +73,7 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
             </div>
 
             {error && (
-                <p className="px-3.5 py-2" role="alert" style={{ color: 'var(--error)' }}>{error}</p>
+                <p className="px-3.5 py-2 text-[var(--error)]" role="alert">{error}</p>
             )}
 
             {!openKind ? (
@@ -125,12 +125,12 @@ export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources 
     const automationSources = (Array.isArray(sources) ? sources : []).filter(s => s.kind === 'automation');
     return (
         <div className="space-y-2.5" data-testid="kb-signpost-automation">
-            <p style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[var(--text-secondary)]">
                 {t('knowledge.automation_signpost.what',
                     'An automation adds itself here. Give any automation the “To knowledge base” step, point that step at {name}, and it appears in this list the moment the automation is saved.',
                     { name: kbName || t('knowledge.automation_signpost.this_base', 'this knowledge base') })}
             </p>
-            <p style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-[var(--text-tertiary)]">
                 {t('knowledge.automation_signpost.why',
                     'Whatever it writes becomes an answer your agents give, with a citation — so send it finished text, not working notes.')}
             </p>
@@ -150,8 +150,8 @@ export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources 
                             style={i ? { borderTop: '1px solid var(--border-default)' } : undefined}
                         >
                             <Workflow className="w-3.5 h-3.5 shrink-0" style={{ color: kindColorVar('automation') }} aria-hidden="true" />
-                            <span className="truncate" style={{ color: 'var(--text-primary)' }}>{src.name}</span>
-                            <span className="ml-auto shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="truncate text-[var(--text-primary)]">{src.name}</span>
+                            <span className="ml-auto shrink-0 text-[var(--text-tertiary)]">
                                 {t('knowledge.automation_signpost.feeds', 'passes data through')}
                                 {' · '}
                                 {rel(src.lastRefreshAt)
@@ -199,7 +199,7 @@ function KindButton({ t, kind, disabled, reason, onClick }) {
             <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: meta.tint ? kindColorVar(meta.tint) : 'var(--text-secondary)' }} aria-hidden="true" />
             {t(meta.labelKey, meta.labelFallback)}
             {wide && (
-                <span className="ml-auto" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="ml-auto text-[var(--text-tertiary)]">
                     {t('knowledge.kind.automation_hint', 'the “To knowledge base” step')}
                 </span>
             )}
@@ -292,7 +292,7 @@ export function DatatableForm({ t, busy, onSubmit }) {
 
     if (tables === null) {
         return (
-            <p className="flex items-center gap-2" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="flex items-center gap-2 text-[var(--text-tertiary)]">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                 {t('knowledge.datatable.loading', 'Loading your tables…')}
             </p>
@@ -312,7 +312,7 @@ export function DatatableForm({ t, busy, onSubmit }) {
             }}
         >
             <label className="flex flex-col gap-1">
-                <span style={{ color: 'var(--text-secondary)' }}>{t('knowledge.datatable.table_label', 'Which table?')}</span>
+                <span className="text-[var(--text-secondary)]">{t('knowledge.datatable.table_label', 'Which table?')}</span>
                 <select
                     value={datatableId}
                     onChange={(e) => pickTable(e.target.value)}
@@ -335,7 +335,7 @@ export function DatatableForm({ t, busy, onSubmit }) {
 
             {table && (
                 <fieldset className="flex flex-col gap-1">
-                    <legend style={{ color: 'var(--text-secondary)' }}>{t('knowledge.datatable.columns_label', 'Which columns')}</legend>
+                    <legend className="text-[var(--text-secondary)]">{t('knowledge.datatable.columns_label', 'Which columns')}</legend>
                     {fields === null && (
                         <p className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]" data-testid="kb-datatable-columns-loading">
                             <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
@@ -377,7 +377,7 @@ export function DatatableForm({ t, busy, onSubmit }) {
 
             {table && columns.length > 0 && (
                 <label className="flex flex-col gap-1">
-                    <span style={{ color: 'var(--text-secondary)' }}>{t('knowledge.datatable.title_label', 'Which column names the row')}</span>
+                    <span className="text-[var(--text-secondary)]">{t('knowledge.datatable.title_label', 'Which column names the row')}</span>
                     <select
                         value={titleColumn}
                         onChange={(e) => setTitleColumn(e.target.value)}
@@ -466,7 +466,7 @@ export function MeetingTagForm({ t, busy, onSubmit }) {
             onSubmit={(e) => { e.preventDefault(); onSubmit({ kind: 'meeting_tag', config: { tag: tag.trim(), fields } }); }}
         >
             <label className="flex flex-col gap-1">
-                <span style={{ color: 'var(--text-secondary)' }}>{t('knowledge.meeting.tag_label', 'Which tag?')}</span>
+                <span className="text-[var(--text-secondary)]">{t('knowledge.meeting.tag_label', 'Which tag?')}</span>
                 <input
                     value={tag}
                     onChange={(e) => setTag(e.target.value)}
@@ -482,7 +482,7 @@ export function MeetingTagForm({ t, busy, onSubmit }) {
             </label>
 
             <fieldset className="flex flex-col gap-1">
-                <legend style={{ color: 'var(--text-secondary)' }}>{t('knowledge.meeting.fields_label', 'What goes in')}</legend>
+                <legend className="text-[var(--text-secondary)]">{t('knowledge.meeting.fields_label', 'What goes in')}</legend>
                 <div className="flex flex-wrap gap-1.5">
                     {['summary', 'decisions', 'questions', 'actions'].map(field => (
                         <button
@@ -556,7 +556,7 @@ export function PasteTextForm({ t, busy, onSubmit }) {
                 />
             </Field>
             {tooLong && (
-                <p style={{ color: 'var(--error)' }}>
+                <p className="text-[var(--error)]">
                     {t('knowledge.form.text_too_long', 'That is longer than {max} characters — split it into a few sources.', { max: PASTE_MAX_CHARS.toLocaleString() })}
                 </p>
             )}
@@ -643,7 +643,7 @@ export function UploadFilesForm({ t, busy, onUpload }) {
             >
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <UploadIcon className="w-4 h-4" aria-hidden="true" />}
                 {t('knowledge.form.choose_files', 'Choose files')}
-                <span style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[var(--text-tertiary)]">
                     {t('knowledge.form.file_limit', 'Up to 20 files, 20 MB each')}
                 </span>
             </button>
@@ -656,7 +656,7 @@ export function UploadFilesForm({ t, busy, onUpload }) {
                 onChange={(e) => { pick(e.target.files); e.target.value = ''; }}
             />
             {rejected.length > 0 && (
-                <p style={{ color: 'var(--warning)' }}>
+                <p className="text-[var(--warning)]">
                     {t('knowledge.form.files_too_large', 'Too large, so not uploaded: {names}', { names: rejected.join(', ') })}
                 </p>
             )}
@@ -670,7 +670,7 @@ const INPUT_STYLE = { background: 'var(--bg-card)', borderColor: 'var(--border-d
 function Field({ label, children }) {
     return (
         <label className="flex flex-col gap-1">
-            <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+            <span className="text-[var(--text-secondary)]">{label}</span>
             {children}
         </label>
     );

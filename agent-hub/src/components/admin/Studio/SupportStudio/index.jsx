@@ -266,7 +266,7 @@ function EmptyState({ hasConnected, onSettings }) {
                     : t('support.empty.connect_hint', 'Connect a Gmail or Outlook support mailbox. Incoming emails become tickets you answer with an agent + knowledge base.')}
             </div>
             {!hasConnected && (
-                <button onClick={onSettings} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded text-white font-medium" style={{ background: 'var(--accent-primary)' }}>
+                <button onClick={onSettings} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded text-white font-medium bg-[var(--accent-primary)]">
                     <Plus size={12} /> {t('support.empty.connect_cta', 'Connect mailbox')}
                 </button>
             )}
@@ -512,8 +512,7 @@ function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }) {
                             {drafting ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} {t('support.composer.ai_draft', 'AI draft')}
                         </button>
                         <button onClick={send} disabled={busy || !reply.trim()}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded text-white font-medium disabled:opacity-60"
-                            style={{ background: 'var(--accent-primary)' }}>
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded text-white font-medium disabled:opacity-60 bg-[var(--accent-primary)]">
                             {busy ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {internal ? t('support.composer.save_note', 'Save note') : t('support.composer.send', 'Send')}
                         </button>
                     </div>

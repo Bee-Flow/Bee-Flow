@@ -187,7 +187,7 @@ function ImpactPanel({ tone = 'calm', icon, children }) {
             style={{ borderColor: style.borderColor, background: style.background }}
         >
             <span style={{ color: style.icon }}>{icon}</span>
-            <div className="space-y-1" style={{ color: 'var(--text-secondary)' }}>{children}</div>
+            <div className="space-y-1 text-[var(--text-secondary)]">{children}</div>
         </div>
     );
 }
@@ -195,14 +195,14 @@ function ImpactPanel({ tone = 'calm', icon, children }) {
 function GroupPicker({ directory, selectedGroups, onToggle, incomplete }) {
     const { t } = useTranslation();
     return (
-        <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="rounded-lg border p-3 border-[var(--border-subtle)]">
             {directory.isLoading ? (
-                <div className="flex items-center gap-2 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <div className="flex items-center gap-2 py-2 text-xs text-[var(--text-tertiary)]">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                     {t('studio_apps_edit.audience.loading_groups', 'Loading groups…')}
                 </div>
             ) : directory.groups.length === 0 ? (
-                <p className="text-xs italic" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs italic text-[var(--text-tertiary)]">
                     {directory.available
                         ? t('studio_apps_edit.audience.no_groups', 'Your organization has no groups yet — create them in Organisation settings, or publish to the entire organization.')
                         : t('studio_apps_edit.audience.groups_need_admin', 'Choosing groups needs organisation-admin access. Publish to the entire organization instead.')}
@@ -215,8 +215,7 @@ function GroupPicker({ directory, selectedGroups, onToggle, incomplete }) {
                         return (
                             <li key={id}>
                                 <label
-                                    className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-[var(--bg-tertiary)]"
-                                    style={{ color: 'var(--text-primary)' }}
+                                    className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                                 >
                                     <span
                                         className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border"
@@ -277,8 +276,8 @@ function AudienceOption({ icon, title, description, checked, onSelect }) {
                 {icon}
             </span>
             <span className="min-w-0">
-                <span className="block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
-                <span className="block text-xs" style={{ color: 'var(--text-tertiary)' }}>{description}</span>
+                <span className="block text-sm font-medium text-[var(--text-primary)]">{title}</span>
+                <span className="block text-xs text-[var(--text-tertiary)]">{description}</span>
             </span>
         </label>
     );

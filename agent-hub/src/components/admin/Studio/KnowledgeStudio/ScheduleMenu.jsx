@@ -81,7 +81,7 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
             className="py-1.5 text-xs"
             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
         >
-            <div className="px-3 pb-1.5 font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            <div className="px-3 pb-1.5 font-semibold text-[var(--text-secondary)]">
                 {t('knowledge.schedule.title', 'Refresh')}
             </div>
 
@@ -100,7 +100,7 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
 
             {modes.includes('schedule') && (
                 <>
-                    <div className="my-1 h-px" style={{ background: 'var(--border-default)' }} />
+                    <div className="my-1 h-px bg-[var(--border-default)]" />
                     {CRON_PRESETS.map(p => (
                         <Row
                             key={p.id}
@@ -112,11 +112,11 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
                         </Row>
                     ))}
                     {mode === 'schedule' && !preset && (
-                        <div className="px-3 py-1.5" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="px-3 py-1.5 text-[var(--text-tertiary)]">
                             {t('knowledge.schedule.custom', 'Custom schedule ({cron})', { cron: source?.refreshCron || '' })}
                         </div>
                     )}
-                    <div className="px-3 pt-1.5" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="px-3 pt-1.5 text-[var(--text-tertiary)]">
                         {t('knowledge.schedule.tz_note', 'Times are in {tz}.', { tz: source?.refreshTz || tz })}
                     </div>
                 </>
@@ -150,8 +150,7 @@ function Row({ children, selected, disabled, onClick }) {
             aria-checked={!!selected}
             disabled={disabled}
             onClick={onClick}
-            className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-[var(--bg-secondary)] disabled:opacity-50"
-            style={{ color: 'var(--text-primary)' }}
+            className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-[var(--bg-secondary)] disabled:opacity-50 text-[var(--text-primary)]"
         >
             <Check
                 className="w-3 h-3 shrink-0"

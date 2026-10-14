@@ -91,7 +91,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
 
     return (
         <div data-testid="access-matrix" className="flex flex-col gap-3">
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs text-[var(--text-tertiary)]">
                 {t('studio_apps_edit.access_matrix.help', 'A checked cell means that role can see the screen or component. Cleared cells hide it from that role, and clearing every role hides it from everyone. This is a preview aid — data access is always enforced by row-level security.')}
             </p>
             <div className="overflow-x-auto">
@@ -102,7 +102,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
                                 {t('studio_apps_edit.access_matrix.screen_component', 'Screen / component')}
                             </th>
                             {roles.map((r) => (
-                                <th key={r.key} className="px-3 py-2 text-center text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                                <th key={r.key} className="px-3 py-2 text-center text-xs font-semibold text-[var(--text-secondary)]">
                                     {r.label || r.key}
                                 </th>
                             ))}
@@ -110,7 +110,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
                     </thead>
                     <tbody>
                         {items.map((item) => (
-                            <tr key={item.id} className="border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <tr key={item.id} className="border-t border-[var(--border-subtle)]">
                                 <td
                                     className="sticky left-0 z-10 px-2 py-1.5"
                                     style={{ background: 'var(--bg-secondary)', paddingLeft: item.depth ? '1.25rem' : '0.5rem' }}
@@ -122,7 +122,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
                                         {item.label}
                                     </span>
                                     {hiddenFromAll(item.id) ? (
-                                        <span className="ml-2 text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="ml-2 text-[11px] italic text-[var(--text-tertiary)]">
                                             {t('studio_apps_edit.access_matrix.hidden_all', 'Hidden from everyone')}
                                         </span>
                                     ) : null}

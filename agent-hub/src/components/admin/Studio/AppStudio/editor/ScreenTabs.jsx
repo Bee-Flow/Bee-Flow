@@ -144,8 +144,7 @@ export default function ScreenTabs({ onCommit, inline = false }) {
          * matter where the overflow lived).
          */
         <div
-            className="flex min-w-0 items-center gap-[2px] rounded-lg p-[2px] text-xs font-medium"
-            style={{ background: 'var(--bg-tertiary)' }}
+            className="flex min-w-0 items-center gap-[2px] rounded-lg p-[2px] text-xs font-medium bg-[var(--bg-tertiary)]"
             data-testid="screen-tabs"
         >
             <div className="flex min-w-0 items-center gap-[2px] overflow-x-auto">
@@ -230,8 +229,7 @@ export default function ScreenTabs({ onCommit, inline = false }) {
                 disabled={streamLock}
                 aria-label={t('app_studio.screens.add', 'Add screen')}
                 title={t('app_studio.screens.add', 'Add screen')}
-                className="inline-flex shrink-0 items-center rounded-md px-2 py-1 hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="inline-flex shrink-0 items-center rounded-md px-2 py-1 hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-tertiary)]"
             >
                 <Plus className="h-3 w-3" />
             </button>
@@ -300,8 +298,7 @@ export default function ScreenTabs({ onCommit, inline = false }) {
     if (inline) return strip;
     return (
         <div
-            className="flex shrink-0 items-center border-b px-2 py-1.5"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)' }}
+            className="flex shrink-0 items-center border-b px-2 py-1.5 border-[var(--border-default)] bg-[var(--bg-primary)]"
         >
             {strip}
         </div>

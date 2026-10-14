@@ -43,7 +43,7 @@ export default function AppBuilderActivity({ toolCalls, running = false, t = nul
                 </span>
                 <span className="text-[11px] text-[var(--text-secondary)]">{tr('app_studio.builder.act.calls', '{n} calls', { n: rows.length })}</span>
                 {failed > 0 && (
-                    <span className="ml-auto flex items-center gap-1 text-[11px]" style={{ color: 'var(--warning)' }} title={tr('app_studio.builder.act.refused_title', 'Calls the builder refused — each row says why')}>
+                    <span className="ml-auto flex items-center gap-1 text-[11px] text-[var(--warning)]" title={tr('app_studio.builder.act.refused_title', 'Calls the builder refused — each row says why')}>
                         <TriangleAlert size={11} />
                         {tr('app_studio.builder.act.refused_count', '{n} refused', { n: failed })}
                     </span>

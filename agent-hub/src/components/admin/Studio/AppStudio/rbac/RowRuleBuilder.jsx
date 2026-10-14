@@ -55,8 +55,7 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     type="button"
                     onClick={() => emit({ conditions: [ownRowsCondition()] })}
                     disabled={disabled}
-                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                 >
                     <Wand2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                     {t('studio_apps_edit.rule_builder.own_rows', 'Only rows they added themselves')}
@@ -65,8 +64,7 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     type="button"
                     onClick={addCondition}
                     disabled={disabled || fields.length === 0}
-                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                 >
                     <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                     {t('studio_apps_edit.rule_builder.add_condition', 'Add a condition')}
@@ -78,7 +76,7 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
     return (
         <div data-testid="row-rule-builder" className="flex flex-col gap-2">
             {conditions.length > 1 ? (
-                <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
                     <span>{t('studio_apps_edit.rule_builder.they_see', 'They see a row when')}</span>
                     <select
                         value={join}
@@ -92,7 +90,7 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     </select>
                     <span>{t('studio_apps_edit.rule_builder.are_true', 'are true:')}</span>
                     {join === 'or' ? (
-                        <span style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[var(--text-tertiary)]">
                             {t('studio_apps_edit.rule_builder.or_hint', 'One match is enough, so each extra condition shows them more rows, not fewer.')}
                         </span>
                     ) : null}
@@ -117,14 +115,13 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     type="button"
                     onClick={addCondition}
                     disabled={disabled || fields.length === 0}
-                    className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs hover:bg-[var(--bg-tertiary)] disabled:opacity-50 text-[var(--text-secondary)]"
                 >
                     <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                     {t('studio_apps_edit.rule_builder.add_condition', 'Add a condition')}
                 </button>
                 {hasEmptyCheck({ conditions }) ? (
-                    <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-[11px] text-[var(--text-tertiary)]">
                         {t('studio_apps_edit.rule_builder.blank_hint', 'Blank means the column holds empty text. Rows where it was never filled in at all stay out either way.')}
                     </span>
                 ) : null}
@@ -198,8 +195,7 @@ function ConditionRow({ table, fields, condition, index, disabled, onPatch, onRe
                     onClick={onRemove}
                     disabled={disabled}
                     aria-label={t('studio_apps_edit.rule_builder.remove_aria', 'Remove condition {n}', { n: num })}
-                    className="rounded p-1 hover:bg-rose-500/10 disabled:opacity-50"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="rounded p-1 hover:bg-rose-500/10 disabled:opacity-50 text-[var(--text-tertiary)]"
                 >
                     <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>

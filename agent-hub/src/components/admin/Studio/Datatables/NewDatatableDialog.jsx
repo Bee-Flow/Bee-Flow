@@ -254,13 +254,12 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                 className="sm:max-w-[520px]"
             >
                 <div className="space-y-3">
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-sm text-[var(--text-secondary)]">
                         {spec.linkedBody(t, n)}
                     </p>
                     {/* VERBATIM, like the managed warning: the server owns these sentences. */}
                     {(linked.warnings || []).map((w, i) => (
-                        <p key={i} className="text-xs px-3 py-2 rounded-lg flex items-start gap-2"
-                            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+                        <p key={i} className="text-xs px-3 py-2 rounded-lg flex items-start gap-2 bg-[var(--bg-primary)] text-[var(--text-primary)]">
                             <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
                             <span>{w}</span>
                         </p>
@@ -287,7 +286,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                 className="sm:max-w-[520px]"
             >
                 <div className="space-y-3">
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-sm text-[var(--text-secondary)]">
                         {t('datatables.created_managed', 'Automations can now point their “remember answers in a table” tick at it.')}
                     </p>
                     {/* VERBATIM. The server owns this sentence so it stays true
@@ -295,8 +294,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                         warning about plaintext survives a change that made it
                         wrong. */}
                     {created.warning && (
-                        <p className="text-xs px-3 py-2 rounded-lg flex items-start gap-2"
-                            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+                        <p className="text-xs px-3 py-2 rounded-lg flex items-start gap-2 bg-[var(--bg-primary)] text-[var(--text-primary)]">
                             <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
                             <span>{created.warning}</span>
                         </p>
@@ -338,7 +336,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                         hidden: it is the identifier a Datatable step refers to,
                         and a person who never sees it cannot look their table
                         up later. */}
-                    <span className="mr-auto text-[11px] min-w-0 truncate" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="mr-auto text-[11px] min-w-0 truncate text-[var(--text-tertiary)]">
                         {nextcloud ? t('datatables.nc_footer', 'Names and technical names are chosen per table in the next step.')
                             : spreadsheet ? t('datatables.ss_footer', 'Names and technical names are chosen per sheet in the next step.') : (
                             <>
@@ -374,7 +372,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
         >
             <form onSubmit={submit} className="space-y-4">
                 <fieldset>
-                    <legend className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                    <legend className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
                         {t('datatables.new_kind', 'What kind of table?')}
                     </legend>
                     <div className="grid grid-cols-2 gap-2">
@@ -447,7 +445,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
 
                 {!linking && (
                 <label className="block">
-                    <span className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                    <span className="block text-sm font-medium mb-1.5 text-[var(--text-primary)]">
                         {t('datatables.field_name', 'Name')}
                     </span>
                     <input
@@ -463,7 +461,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
 
                 {!linking && mode === 'advanced' && (
                     <label className="block">
-                        <span className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                        <span className="block text-sm font-medium mb-1.5 text-[var(--text-primary)]">
                             {t('datatables.field_key', 'Technical name')}
                         </span>
                         <input
@@ -473,7 +471,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                             className={`${INPUT} font-mono`}
                             style={INPUT_STYLE}
                         />
-                        <span className="block text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="block text-[11px] mt-1 text-[var(--text-tertiary)]">
                             {t('datatables.field_key_help', 'Lowercase letters, numbers and underscores. Renaming it later means moving the data, so it is worth a moment now.')}
                         </span>
                     </label>
@@ -481,7 +479,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
 
                 {!linking && (
                 <label className="block">
-                    <span className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                    <span className="block text-sm font-medium mb-1.5 text-[var(--text-primary)]">
                         {t('datatables.field_purpose', 'What is it for?')}
                     </span>
                     <textarea
@@ -492,7 +490,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                         className={INPUT}
                         style={INPUT_STYLE}
                     />
-                    <span className="block text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="block text-[11px] mt-1 text-[var(--text-tertiary)]">
                         {managed
                             ? t('datatables.field_purpose_managed', 'Optional here — left empty, this kind of table brings its own sentence for the processing record.')
                             : t('datatables.field_purpose_help', 'Required — this sentence goes into your organisation’s processing record.')}
@@ -506,7 +504,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
 
                 {canChoose ? (
                     <fieldset className="block">
-                        <legend className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                        <legend className="block text-sm font-medium mb-2 text-[var(--text-primary)]">
                             {t('datatables.field_audience', 'Who is it for?')}
                         </legend>
                         <div className="grid grid-cols-2 gap-2">
@@ -529,8 +527,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                         </div>
                     </fieldset>
                 ) : (
-                    <p className="text-[11px] px-3 py-2 rounded-lg flex items-start gap-2"
-                        style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+                    <p className="text-[11px] px-3 py-2 rounded-lg flex items-start gap-2 bg-[var(--bg-primary)] text-[var(--text-secondary)]">
                         <User className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                         <span>
                             {t('datatables.scope_personal_blurb', 'Only this account can see the rows — not colleagues, not administrators. It cannot be shared later.')}
@@ -552,8 +549,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                 )}
 
                 {error && (
-                    <p role="alert" className="text-xs px-3 py-2 rounded-lg"
-                        style={{ background: 'var(--bg-primary)', color: 'var(--warning)' }}>
+                    <p role="alert" className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-primary)] text-[var(--warning)]">
                         {error}
                     </p>
                 )}
@@ -623,10 +619,10 @@ function FirstColumns({ t, fields, problems, onChange }) {
     return (
         <div className="space-y-2">
             <div className="flex items-baseline gap-2">
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-medium text-[var(--text-primary)]">
                     {t('datatables.first_columns', 'Columns')}
                 </span>
-                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] text-[var(--text-tertiary)]">
                     {t('datatables.first_columns_hint', 'optional · can also be added later')}
                 </span>
             </div>
@@ -658,8 +654,7 @@ function FirstColumns({ t, fields, problems, onChange }) {
                 <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.column_add', 'Add a column')}
             </button>
             {problems.length > 0 && (
-                <ul role="alert" className="text-xs space-y-1 px-3 py-2 rounded-lg"
-                    style={{ background: 'var(--bg-primary)', color: 'var(--warning)' }}>
+                <ul role="alert" className="text-xs space-y-1 px-3 py-2 rounded-lg bg-[var(--bg-primary)] text-[var(--warning)]">
                     {problems.map((p, i) => <li key={i}>{p}</li>)}
                 </ul>
             )}

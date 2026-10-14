@@ -103,7 +103,7 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
             {/* A storage that is off cannot be switched to, so its reason is
                 said here, under the strip, for every one that is off. */}
             {providers.filter(p => !p.connected).map(p => (
-                <p key={p.provider} className="text-xs" style={{ color: 'var(--text-secondary)' }}>{ssReasonText(t, p)}</p>
+                <p key={p.provider} className="text-xs text-[var(--text-secondary)]">{ssReasonText(t, p)}</p>
             ))}
             {current?.connected && (
                 <>
@@ -111,7 +111,7 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
                         <Breadcrumb t={t} shared={shared} searching={searching} folderId={folderId} folder={page.folder} onOpen={openFolder} />
                         <span className="ml-auto" />
                         {provider !== 'nextcloud_files' && (
-                            <label className="inline-flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                            <label className="inline-flex items-center gap-1.5 text-xs cursor-pointer text-[var(--text-secondary)]">
                                 <input type="checkbox" checked={shared} onChange={(e) => toggleShared(e.target.checked)} />
                                 {t('datatables.ss_shared_toggle', 'Shared with me')}
                             </label>
@@ -132,7 +132,7 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
             )}
             {selected.length > 0 && (
                 <div className="space-y-1.5">
-                    <span className="block text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="block text-xs text-[var(--text-secondary)]">
                         {selected.length === 1
                             ? t('datatables.ss_selected_one', '1 file selected')
                             : t('datatables.ss_selected_n', '{n} files selected', { n: selected.length })}
@@ -142,16 +142,16 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
                             <li key={fileKeyOf(f.provider, f.id)} className="inline-flex items-center gap-1 text-[11px] pl-2 pr-1 py-0.5 rounded-full"
                                 style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>
                                 <span className="truncate max-w-[220px]">{f.name}</span>
-                                <span style={{ color: 'var(--text-tertiary)' }}>· {providerName(f.provider)}</span>
+                                <span className="text-[var(--text-tertiary)]">· {providerName(f.provider)}</span>
                                 <button type="button" onClick={() => onToggle(f)} aria-label={t('datatables.ss_unselect', 'Unselect {name}', { name: f.name })}
-                                    className="p-0.5 rounded" style={{ color: 'var(--text-tertiary)' }}>
+                                    className="p-0.5 rounded text-[var(--text-tertiary)]">
                                     <X className="w-3 h-3" aria-hidden="true" />
                                 </button>
                             </li>
                         ))}
                     </ul>
                     {selected.filter(f => marks.get(fileKeyOf(f.provider, f.id))).map(f => (
-                        <p key={fileKeyOf(f.provider, f.id)} className="text-[11px]" style={{ color: 'var(--warning)' }}>{f.name}: {marks.get(fileKeyOf(f.provider, f.id))}</p>
+                        <p key={fileKeyOf(f.provider, f.id)} className="text-[11px] text-[var(--warning)]">{f.name}: {marks.get(fileKeyOf(f.provider, f.id))}</p>
                     ))}
                 </div>
             )}
@@ -173,7 +173,7 @@ function Breadcrumb({ t, shared, searching, folderId, folder, onOpen }) {
     const crumbs = searching ? [] : path;
     const atRoot = !searching && folderId === rootId;
     return (
-        <nav aria-label={t('datatables.ss_breadcrumb', 'Folder path')} className="flex items-center gap-1 text-xs min-w-0 flex-wrap" style={{ color: 'var(--text-secondary)' }}>
+        <nav aria-label={t('datatables.ss_breadcrumb', 'Folder path')} className="flex items-center gap-1 text-xs min-w-0 flex-wrap text-[var(--text-secondary)]">
             <button type="button" onClick={() => onOpen(rootId)} className="rounded underline-offset-2 hover:underline" aria-current={atRoot ? 'location' : undefined}
                 style={{ color: atRoot ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: atRoot ? 600 : 400 }}>
                 {rootLabel}
@@ -204,7 +204,7 @@ function Listing({ t, page, provider, searching, q, rel, files, marks, onOpen, o
     if (page.error) {
         const e = page.error;
         return (
-            <p role="alert" className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-primary)', color: 'var(--warning)' }}>
+            <p role="alert" className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-primary)] text-[var(--warning)]">
                 {ssErrorMessage(t, e, providerName(provider)) || e.message}
                 {isProviderError(e) && <> {t('datatables.ss_connect_hint', 'Connect it under Settings → Connections.')}</>}
             </p>
@@ -212,14 +212,14 @@ function Listing({ t, page, provider, searching, q, rel, files, marks, onOpen, o
     }
     if (page.loading) {
         return (
-            <p className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }} aria-busy="true">
+            <p className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]" aria-busy="true">
                 <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />{t('datatables.ss_loading', 'Reading the folder…')}
             </p>
         );
     }
     if (page.items.length === 0) {
         return (
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs text-[var(--text-tertiary)]">
                 {searching ? t('datatables.ss_empty_search', 'Nothing found for “{q}”.', { q }) : t('datatables.ss_empty_folder', 'No spreadsheets in this folder.')}
             </p>
         );
@@ -236,7 +236,7 @@ function Listing({ t, page, provider, searching, q, rel, files, marks, onOpen, o
                 ))}
             </ul>
             {page.nextPageToken && (
-                <button type="button" onClick={onMore} disabled={moreBusy} className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50" style={{ color: 'var(--text-secondary)' }}>
+                <button type="button" onClick={onMore} disabled={moreBusy} className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50 text-[var(--text-secondary)]">
                     {moreBusy && <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />}
                     {t('datatables.ss_more', 'Show more')}
                 </button>
@@ -249,8 +249,8 @@ function FolderRow({ item, rel, onOpen }) {
     return (
         <button type="button" onClick={() => onOpen(item.id)} className="w-full flex items-center gap-3 p-2.5 text-left focus-visible:outline focus-visible:outline-2" style={{ ...CARD, outlineColor: 'var(--accent-primary)' }}>
             <Folder className="w-4 h-4 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
-            <span className="text-sm font-medium truncate min-w-0" style={{ color: 'var(--text-primary)' }}>{item.name}</span>
-            {item.modifiedAt && <span className="ml-auto text-[11px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>{rel(item.modifiedAt)}</span>}
+            <span className="text-sm font-medium truncate min-w-0 text-[var(--text-primary)]">{item.name}</span>
+            {item.modifiedAt && <span className="ml-auto text-[11px] shrink-0 text-[var(--text-tertiary)]">{rel(item.modifiedAt)}</span>}
             <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)', marginLeft: item.modifiedAt ? 0 : 'auto' }} aria-hidden="true" />
         </button>
     );
@@ -283,21 +283,21 @@ function FileRow({ t, item, provider, rel, checked, mark, onToggle }) {
                 : <FileSpreadsheet className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
             <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{item.name}</span>
+                    <span className="text-sm font-medium truncate text-[var(--text-primary)]">{item.name}</span>
                     {item.format && (
-                        <span className="text-[10px] uppercase px-1.5 rounded" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>{item.format}</span>
+                        <span className="text-[10px] uppercase px-1.5 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)]">{item.format}</span>
                     )}
                     {linked > 0 && (
-                        <span className="text-[11px] inline-flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[11px] inline-flex items-center gap-1 text-[var(--text-tertiary)]">
                             <Link2 className="w-3 h-3" aria-hidden="true" />
                             {linked === 1 ? t('datatables.ss_linked_chip_one', '1 sheet linked') : t('datatables.ss_linked_chip', '{n} sheets linked', { n: linked })}
                         </span>
                     )}
                 </span>
-                <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="block text-[11px] text-[var(--text-tertiary)]">
                     {meta}{item.path && provider === 'nextcloud_files' ? ` · ${item.path}` : ''}
                 </span>
-                {mark && <span className="block text-[11px] mt-1" style={{ color: 'var(--warning)' }}>{mark}</span>}
+                {mark && <span className="block text-[11px] mt-1 text-[var(--warning)]">{mark}</span>}
             </span>
         </label>
     );

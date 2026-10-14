@@ -499,8 +499,7 @@ export default function EditorNodeWrapper({ node, className, style, children, on
                     data-multi-toolbar="true"
                 >
                     <span
-                        className="px-1.5 text-[10px] font-semibold uppercase tracking-wide select-none"
-                        style={{ color: 'var(--editor-accent)' }}
+                        className="px-1.5 text-[10px] font-semibold uppercase tracking-wide select-none text-[var(--editor-accent)]"
                     >
                         {t('app_studio.canvas.selected_n', '{n} selected', { n: selectionCount })}
                     </span>

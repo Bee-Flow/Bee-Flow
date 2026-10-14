@@ -100,18 +100,17 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
                     <div className="flex flex-col gap-1">
                         <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_tables.designer.column_name', 'Column name')}</span>
                         <div className="flex items-center gap-2">
-                            <code className="min-w-0 flex-1 truncate rounded-md px-3 py-2 text-sm" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{field.key}</code>
+                            <code className="min-w-0 flex-1 truncate rounded-md px-3 py-2 text-sm bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{field.key}</code>
                             <button
                                 type="button"
                                 onClick={() => setRenaming(true)}
                                 disabled={disabled}
-                                className="shrink-0 rounded-md border px-2 py-1 text-xs disabled:opacity-50"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                className="shrink-0 rounded-md border px-2 py-1 text-xs disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                             >
                                 {t('studio_apps_tables.designer.change', 'Change…')}
                             </button>
                         </div>
-                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_tables.designer.fixed', 'Fixed — the app already refers to this field by this name.')}</span>
+                        <span className="text-[11px] text-[var(--text-tertiary)]">{t('studio_apps_tables.designer.fixed', 'Fixed — the app already refers to this field by this name.')}</span>
                     </div>
                 ) : (
                     <TextField

@@ -45,8 +45,8 @@ export default function PlaybookCard({ t, playbook, onOpen }) {
             >
                 <span style={tile}><Clapperboard style={glyph} aria-hidden="true" /></span>
                 <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{playbook.title}</span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{playbook.title}</span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--text-secondary)]">
                         {/* An AI-written recipe's title IS the playbook's title,
                             so this printed the name twice; and `recipeId` is a
                             machine code, never a word for a person. */}

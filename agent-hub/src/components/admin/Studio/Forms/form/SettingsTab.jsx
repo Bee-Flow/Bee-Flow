@@ -73,7 +73,7 @@ export default function SettingsTab({ detail, save, reload, onNavigate, onBack }
                         : t('forms.settings.live_off_blurb', 'Switched off: the link answers “not available” and nothing is collected.')}
                     id="form-live"
                 />
-                {liveError && <p role="alert" className="text-xs mt-2" style={{ color: 'var(--error)' }}>{liveError}</p>}
+                {liveError && <p role="alert" className="text-xs mt-2 text-[var(--error)]">{liveError}</p>}
             </DashCard>
 
             <DashCard
@@ -96,7 +96,7 @@ export default function SettingsTab({ detail, save, reload, onNavigate, onBack }
                     id="form-collect"
                 />
                 {collecting && answers && !answers.datatableId && (
-                    <p className="text-xs mt-2" style={{ color: 'var(--warning-ink)' }} data-testid="form-collect-pending">
+                    <p className="text-xs mt-2 text-[var(--warning-ink)]" data-testid="form-collect-pending">
                         {answers.error?.message || t('forms.settings.collect_pending', 'The table is not there yet — save the form once more, or try again.')}{' '}
                         <button type="button" className="underline" onClick={async () => { try { await api.provisionAnswersTable(detail.automationId); await reload(); } catch (e) { setCollectError(e?.message || ''); } }}>
                             {t('forms.answers.retry', 'Try again')}
@@ -104,16 +104,16 @@ export default function SettingsTab({ detail, save, reload, onNavigate, onBack }
                     </p>
                 )}
                 {answers?.lastWriteError && (
-                    <p role="alert" className="text-xs mt-2" style={{ color: 'var(--error)' }} data-testid="form-write-error">
+                    <p role="alert" className="text-xs mt-2 text-[var(--error)]" data-testid="form-write-error">
                         {t('forms.settings.write_error', 'The last submission could not be written to the table: {message}', { message: answers.lastWriteError.message || answers.lastWriteError.code })}
                     </p>
                 )}
-                {collectError && <p role="alert" className="text-xs mt-2" style={{ color: 'var(--error)' }}>{collectError}</p>}
+                {collectError && <p role="alert" className="text-xs mt-2 text-[var(--error)]">{collectError}</p>}
             </DashCard>
 
             {answers?.datatableId && (
                 <DashCard title={t('forms.settings.retention_title', 'How long answers are kept')} testId="form-retention-card">
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {t('forms.settings.retention_blurb', 'Answers stay in the table until a retention window is set on it.')}
                     </p>
                     <button type="button" onClick={() => onNavigate && onNavigate(`studio/datatables/${answers.datatableId}/retention`)} className={LINK_BTN} style={{ color: 'var(--text-secondary)' }}>

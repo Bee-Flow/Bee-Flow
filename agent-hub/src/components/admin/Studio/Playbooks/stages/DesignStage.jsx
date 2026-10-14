@@ -125,7 +125,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                     <section className="mt-5 rounded-xl p-3" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }} data-testid="playbook-design-revise">
                         <div className="flex items-center gap-2 mb-1.5">
                             <Wand2 className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
-                            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{t('playbooks.design.revise_label', 'Ask for a change')}</span>
+                            <span className="text-xs font-semibold text-[var(--text-primary)]">{t('playbooks.design.revise_label', 'Ask for a change')}</span>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">
                             <textarea
@@ -154,10 +154,10 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                                     : t('playbooks.design.revise_send', 'Redraw')}
                             </button>
                         </div>
-                        <p className="mt-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.design.revise_hint', 'The design is redrawn with your change — the app is built from what stands here.')}</p>
+                        <p className="mt-1.5 text-[11px] text-[var(--text-secondary)]">{t('playbooks.design.revise_hint', 'The design is redrawn with your change — the app is built from what stands here.')}</p>
                         {reviseError && <p role="alert" className="mt-1" style={{ fontSize: type.meta, color: TONES.error.ink }}>{t('playbooks.design.revise_failed', 'The designer could not redraw it — try saying it in other words.')}</p>}
                         {Array.isArray(art.revisions) && art.revisions.length > 0 && (
-                            <p className="mt-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }} data-testid="playbook-design-revisions">
+                            <p className="mt-1.5 text-[11px] text-[var(--text-secondary)]" data-testid="playbook-design-revisions">
                                 {t('playbooks.design.revisions', 'You asked for: {list}', { list: art.revisions.join(' · ') })}
                             </p>
                         )}

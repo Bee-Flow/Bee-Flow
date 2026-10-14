@@ -18,7 +18,7 @@ export default function RangeBar({ range, onChange, updatedLabel = null }) {
     };
     return (
         <div className="flex flex-wrap items-center gap-3" data-testid="answers-range">
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('forms.answers.range_label', 'Period')}</span>
+            <span className="text-xs text-[var(--text-secondary)]">{t('forms.answers.range_label', 'Period')}</span>
             <SegmentedControl
                 size="sm"
                 ariaLabel={t('forms.answers.range_label', 'Period')}
@@ -27,7 +27,7 @@ export default function RangeBar({ range, onChange, updatedLabel = null }) {
                 options={PRESETS.map(p => ({ value: p, label: labels[p] }))}
             />
             {range.preset === 'custom' && (
-                <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                     <label className="inline-flex items-center gap-1">
                         {t('forms.answers.range_from', 'From')}
                         <input type="date" value={range.from || ''} onChange={(e) => onChange({ ...range, from: e.target.value })} className={INPUT} style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
@@ -38,7 +38,7 @@ export default function RangeBar({ range, onChange, updatedLabel = null }) {
                     </label>
                 </span>
             )}
-            {updatedLabel && <span className="ml-auto text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="answers-updated">{updatedLabel}</span>}
+            {updatedLabel && <span className="ml-auto text-[11px] text-[var(--text-tertiary)]" data-testid="answers-updated">{updatedLabel}</span>}
         </div>
     );
 }

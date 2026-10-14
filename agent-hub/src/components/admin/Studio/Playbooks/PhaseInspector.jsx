@@ -63,12 +63,12 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
 
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4 text-xs">
                 {took && (
-                    <div style={{ color: 'var(--text-secondary)' }}>{t('playbooks.inspect.took', 'Took {time}', { time: took })}</div>
+                    <div className="text-[var(--text-secondary)]">{t('playbooks.inspect.took', 'Took {time}', { time: took })}</div>
                 )}
 
                 {phase.summary && (
                     <Block title={t('playbooks.inspect.summary', 'What landed')}>
-                        <p style={{ color: 'var(--text-primary)' }}>{phase.summary}</p>
+                        <p className="text-[var(--text-primary)]">{phase.summary}</p>
                     </Block>
                 )}
 
@@ -86,7 +86,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
                             {facts.map((f, i) => (
                                 <div key={i} className="flex gap-2">
                                     <dt className="shrink-0" style={{ color: 'var(--text-secondary)', minWidth: 84 }}>{f.label}</dt>
-                                    <dd className="min-w-0 truncate" style={{ color: 'var(--text-primary)' }} title={f.value}>{f.value}</dd>
+                                    <dd className="min-w-0 truncate text-[var(--text-primary)]" title={f.value}>{f.value}</dd>
                                 </div>
                             ))}
                         </dl>
@@ -98,7 +98,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
                         <ul className="flex flex-wrap gap-1.5" data-testid="playbook-inspector-columns">
                             {columns.map((c) => (
                                 <li key={c.key} className="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-lg text-[11px]" style={{ border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>
-                                    {c.name || c.key}<span style={{ color: 'var(--text-tertiary)' }}>{c.type}</span>
+                                    {c.name || c.key}<span className="text-[var(--text-tertiary)]">{c.type}</span>
                                 </li>
                             ))}
                         </ul>
@@ -108,7 +108,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
                 {links.length > 0 && onNavigate && (
                     <div className="flex flex-wrap gap-2">
                         {links.map((l) => (
-                            <button key={l.kind} type="button" onClick={() => onNavigate(l.to)} className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--type-ai)' }} data-testid={`playbook-inspector-open-${l.kind}`}>
+                            <button key={l.kind} type="button" onClick={() => onNavigate(l.to)} className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--type-ai)]" data-testid={`playbook-inspector-open-${l.kind}`}>
                                 {t(LINK_TEXT[l.kind][0], LINK_TEXT[l.kind][1])}<ExternalLink className="w-3 h-3" aria-hidden="true" />
                             </button>
                         ))}
@@ -123,7 +123,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
                     </Block>
                 )}
 
-                {nothing && <p style={{ color: 'var(--text-secondary)' }}>{t('playbooks.inspect.empty', 'This phase has not run yet.')}</p>}
+                {nothing && <p className="text-[var(--text-secondary)]">{t('playbooks.inspect.empty', 'This phase has not run yet.')}</p>}
             </div>
 
             {/* A FOOT, because the handoff card renders nothing for a phase that
@@ -143,7 +143,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
                         </button>
                     )}
                     {phase.status === 'running' && (
-                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[11px] text-[var(--text-tertiary)]">
                             {t('playbooks.inspect.stuck', 'Taking too long? Skip it, or Stop and resume — resuming fails whatever is still running.')}
                         </span>
                     )}
@@ -156,7 +156,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
 function Block({ title, children }) {
     return (
         <section>
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>{title}</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide mb-1 text-[var(--text-tertiary)]">{title}</h3>
             {children}
         </section>
     );

@@ -306,8 +306,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                         type="button"
                         onClick={() => onClose?.()}
                         disabled={busy}
-                        className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-primary)]"
                     >
                         {t('app_studio.publish.cancel', 'Cancel')}
                     </button>
@@ -315,8 +314,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                         type="button"
                         onClick={doApply}
                         disabled={!canApply}
-                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
                         {t('app_studio.publish.apply', 'Apply')}
@@ -345,16 +343,14 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                   */}
                 {!managed && (
                 <div
-                    className="rounded-lg border px-3 py-2.5"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
+                    className="rounded-lg border px-3 py-2.5 border-[var(--border-subtle)] bg-[var(--bg-primary)]"
                 >
                     <div className="flex items-center gap-2">
                         <button
                             type="button"
                             onClick={doCheck}
                             disabled={checking || !app?.id}
-                            className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
-                            style={{ color: 'var(--text-primary)' }}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-primary)]"
                         >
                             {checking
                                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -363,14 +359,14 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                                 ? t('app_studio.publish.checking', 'Checking…')
                                 : t('app_studio.publish.check', 'Check this app')}
                         </button>
-                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-xs text-[var(--text-tertiary)]">
                             {t('app_studio.publish.check_hint', 'Tries the app’s screens and logic without changing anything.')}
                         </span>
                     </div>
 
                     {checkResult && !checking ? (
                         checkResult.errors.length === 0 && checkResult.warnings.length === 0 ? (
-                            <p className="mt-2 flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                                 <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                                 {t('app_studio.publish.check_all_good', 'Everything loaded and every step checks out.')}
                             </p>
@@ -391,26 +387,24 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
 
                 {/* Current status */}
                 <div
-                    className="rounded-lg border px-3 py-2.5 text-xs"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
+                    className="rounded-lg border px-3 py-2.5 text-xs border-[var(--border-subtle)] bg-[var(--bg-primary)]"
                 >
-                    <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                         <span>{t('app_studio.publish.currently', 'Currently:')}</span>
-                        <strong style={{ color: 'var(--text-primary)' }}>{audienceLabel(t, currentAudience)}</strong>
+                        <strong className="text-[var(--text-primary)]">{audienceLabel(t, currentAudience)}</strong>
                         {currentAudience === GROUPS ? (
-                            <span style={{ color: 'var(--text-tertiary)' }}>({currentGroups.length})</span>
+                            <span className="text-[var(--text-tertiary)]">({currentGroups.length})</span>
                         ) : null}
                     </div>
                     {isPublished && publishedAt ? (
-                        <div className="mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="mt-1 text-[var(--text-tertiary)]">
                             {t('app_studio.publish.last_published', 'Last published {when}', { when: publishedAt })}
                         </div>
                     ) : null}
                     {isPublished && liveHref ? (
                         <a
                             href={liveHref}
-                            className="mt-1.5 inline-flex items-center gap-1 font-medium hover:underline"
-                            style={{ color: 'var(--accent-primary)' }}
+                            className="mt-1.5 inline-flex items-center gap-1 font-medium hover:underline text-[var(--accent-primary)]"
                         >
                             {t('app_studio.publish.view_live', 'View live')} <ExternalLink className="h-3 w-3" aria-hidden="true" />
                         </a>
@@ -440,8 +434,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                   */}
                 {audience !== PRIVATE ? (
                     <label
-                        className="flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
+                        className="flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 border-[var(--border-subtle)] bg-[var(--bg-primary)]"
                     >
                         <input
                             type="checkbox"
@@ -450,11 +443,11 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                             className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-primary)]"
                         />
                         <span className="min-w-0">
-                            <span className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                            <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-primary)]">
                                 <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                                 {t('app_studio.publish.nc_menu', 'Show in the Nextcloud app menu')}
                             </span>
-                            <span className="mt-0.5 block text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="mt-0.5 block text-xs text-[var(--text-tertiary)]">
                                 {t('app_studio.publish.nc_menu_desc', 'Adds this app to the top bar of your organization’s connected Nextcloud, opening on its own page. The icon shows up after you reload Nextcloud. Everyone on that Nextcloud sees the icon; only the audience you chose above can use the app — others see a notice that it is shared with specific groups.')}
                             </span>
                         </span>
@@ -522,9 +515,9 @@ function IssuePanel({ issues, icon, title, note, panelStyle, revealTarget, onRev
         <div className="rounded-lg border p-3" style={panelStyle}>
             <div className="flex items-center gap-2">
                 {icon}
-                <strong className="text-sm" style={{ color: 'var(--text-primary)' }}>{title}</strong>
+                <strong className="text-sm text-[var(--text-primary)]">{title}</strong>
             </div>
-            <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{note}</p>
+            <p className="mt-1 text-xs text-[var(--text-tertiary)]">{note}</p>
             <ul className="mt-2.5 space-y-2">
                 {issues.map((issue, i) => (
                     <IssueRow
@@ -546,22 +539,21 @@ function IssueRow({ issue, target, onReveal }) {
     const showMe = t('app_studio.header.show_me', 'Show me');
     return (
         <li className="text-xs">
-            <span className="block" style={{ color: 'var(--text-primary)' }}>{issue.message}</span>
+            <span className="block text-[var(--text-primary)]">{issue.message}</span>
             {issue.hint ? (
-                <span className="mt-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{issue.hint}</span>
+                <span className="mt-0.5 block text-[var(--text-tertiary)]">{issue.hint}</span>
             ) : null}
             {target ? (
                 <span className="mt-1 flex items-center gap-2">
                     <button
                         type="button"
                         onClick={() => onReveal(target)}
-                        className="rounded-md bg-white/5 px-2 py-1 font-medium hover:bg-[var(--bg-card-hover)]"
-                        style={{ color: 'var(--accent-primary)' }}
+                        className="rounded-md bg-white/5 px-2 py-1 font-medium hover:bg-[var(--bg-card-hover)] text-[var(--accent-primary)]"
                     >
                         {showMe}
                     </button>
                     {target.screenName ? (
-                        <span style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[var(--text-tertiary)]">
                             {t('app_studio.publish.on_screen', 'on “{screen}”', { screen: target.screenName })}
                         </span>
                     ) : null}

@@ -376,8 +376,7 @@ export default function TablesManager({
                         type="button"
                         onClick={() => onClose?.()}
                         disabled={saving}
-                        className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-primary)]"
                     >
                         {t('studio_apps_tables.manager.close', 'Close')}
                     </button>
@@ -385,8 +384,7 @@ export default function TablesManager({
                         type="button"
                         onClick={save}
                         disabled={saving || !dirty}
-                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
                         {t('studio_apps_tables.manager.save_changes', 'Save changes')}
@@ -395,14 +393,14 @@ export default function TablesManager({
             )}
         >
             {loading || !model ? (
-                <div className="flex items-center gap-2 py-10 text-sm justify-center" style={{ color: 'var(--text-tertiary)' }}>
+                <div className="flex items-center gap-2 py-10 text-sm justify-center text-[var(--text-tertiary)]">
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     {t('studio_apps_tables.manager.loading', 'Loading tables…')}
                 </div>
             ) : (
               <>
                 {/* Tabs: Tables ↔ Rows ↔ Relationships ↔ Connectors — all over the one model. */}
-                <div className="mb-3 flex items-center gap-1 border-b" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="mb-3 flex items-center gap-1 border-b border-[var(--border-default)]">
                     {[
                         { id: 'tables', label: t('studio_apps_tables.manager.tab_tables', 'Tables'), Icon: Table2 },
                         {
@@ -437,11 +435,11 @@ export default function TablesManager({
                         </button>
                     ))}
                     {selectedSource ? (
-                        <span className="ml-auto pr-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="ml-auto pr-1 text-xs text-[var(--text-tertiary)]">
                             {t('app_studio.tables.rows_linked_hint', 'Rows come from a Studio table.')}
                         </span>
                     ) : selected && !selectedSaved ? (
-                        <span className="ml-auto pr-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="ml-auto pr-1 text-xs text-[var(--text-tertiary)]">
                             {t('studio_apps_tables.manager.rows_unsaved_hint', 'Save the table to start adding rows.')}
                         </span>
                     ) : null}
@@ -458,21 +456,21 @@ export default function TablesManager({
                                 className="mt-0.5 accent-[var(--accent-primary)]"
                             />
                             <span>
-                                <span className="block text-sm" style={{ color: 'var(--text-primary)' }}>
+                                <span className="block text-sm text-[var(--text-primary)]">
                                     {t('studio_apps_tables.manager.people_label', 'Let this app see who is in your organisation')}
                                 </span>
-                                <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                                <span className="block text-xs mt-0.5 text-[var(--text-tertiary)]">
                                     {t('studio_apps_tables.manager.people_desc', 'Person fields can then offer your real colleagues, and work assigned to someone is assigned to their account — so “only mine” means them, not a name that happens to match. Anyone who can open this app sees the list.')}
                                 </span>
                             </span>
                         </label>
-                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="text-xs text-[var(--text-tertiary)]">
                             {t('studio_apps_tables.manager.people_note', 'Only names are shared — never e-mail addresses, and never anyone outside your organisation.')}
                         </p>
                     </div>
                 ) : activeTab === 'relations' ? (
                     <Suspense fallback={(
-                        <div className="flex items-center gap-2 py-10 text-sm justify-center" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="flex items-center gap-2 py-10 text-sm justify-center text-[var(--text-tertiary)]">
                             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                             {t('studio_apps_tables.manager.loading_map', 'Loading the map…')}
                         </div>
@@ -503,9 +501,9 @@ export default function TablesManager({
                 ) : (
                 <div className="flex gap-4 min-h-[22rem]">
                     {/* Table list */}
-                    <div className="w-56 shrink-0 border-r pr-3 flex flex-col gap-1" style={{ borderColor: 'var(--border-default)' }}>
+                    <div className="w-56 shrink-0 border-r pr-3 flex flex-col gap-1 border-[var(--border-default)]">
                         {tables.length === 0 ? (
-                            <p className="px-1 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            <p className="px-1 py-2 text-xs text-[var(--text-tertiary)]">
                                 {t('studio_apps_tables.manager.no_tables', 'No tables yet. Add one to store records.')}
                             </p>
                         ) : tables.map((tbl) => {
@@ -537,11 +535,11 @@ export default function TablesManager({
                                     />
                                     <span className="truncate">{name}</span>
                                     {src ? (
-                                        <span className="ml-auto shrink-0 text-[9px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="ml-auto shrink-0 text-[9px] uppercase tracking-wide text-[var(--text-tertiary)]">
                                             {t('app_studio.tables.source_badge_linked', 'Linked')}
                                         </span>
                                     ) : !savedIds.has(tbl.id) ? (
-                                        <span className="ml-auto text-[9px] uppercase tracking-wide" style={{ color: 'var(--accent-primary)' }}>{t('studio_apps_tables.manager.new_badge', 'New')}</span>
+                                        <span className="ml-auto text-[9px] uppercase tracking-wide text-[var(--accent-primary)]">{t('studio_apps_tables.manager.new_badge', 'New')}</span>
                                     ) : null}
                                 </button>
                                 <button
@@ -552,8 +550,7 @@ export default function TablesManager({
                                     // unreachable by keyboard and by touch, and it is only ever
                                     // FOUND by hovering something you were not trying to delete.
                                     // Muted until hover instead — discoverable, not shouty.
-                                    className="p-1 rounded opacity-60 hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--bg-card-hover)] transition-opacity"
-                                    style={{ color: 'var(--error)' }}
+                                    className="p-1 rounded opacity-60 hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--bg-card-hover)] transition-opacity text-[var(--error)]"
                                 >
                                     <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -563,8 +560,7 @@ export default function TablesManager({
                         <button
                             type="button"
                             onClick={addTable}
-                            className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-dashed px-2 py-1.5 text-xs"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-dashed px-2 py-1.5 text-xs border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
                             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                             {t('studio_apps_tables.manager.new_table', 'New table')}
@@ -591,24 +587,23 @@ export default function TablesManager({
                                   * raden welke van de twee je voor je hebt.
                                   */}
                                 <div
-                                    className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border px-3 py-2 text-xs"
-                                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}
+                                    className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border px-3 py-2 text-xs border-[var(--border-default)] bg-[var(--bg-secondary)]"
                                     data-testid="table-source-strip"
                                 >
                                     {selectedSource
                                         ? <Link2 className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                                         : <Database className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />}
-                                    <span style={{ color: 'var(--text-primary)' }}>{sourceLabel(selectedSource)}</span>
+                                    <span className="text-[var(--text-primary)]">{sourceLabel(selectedSource)}</span>
                                     {selectedSource?.datatableId ? (
-                                        <code className="rounded px-1 py-0.5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                                        <code className="rounded px-1 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                             {selectedSource.datatableId}
                                         </code>
                                     ) : null}
                                     {modeLabel(selectedSource) ? (
-                                        <span style={{ color: 'var(--text-tertiary)' }}>· {modeLabel(selectedSource)}</span>
+                                        <span className="text-[var(--text-tertiary)]">· {modeLabel(selectedSource)}</span>
                                     ) : null}
                                     {selectedSource ? (
-                                        <span className="basis-full" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="basis-full text-[var(--text-tertiary)]">
                                             {t(
                                                 'app_studio.tables.source_linked_desc',
                                                 'The columns below describe what this app expects to find there. Changing them does not change the Studio table.',
@@ -626,10 +621,9 @@ export default function TablesManager({
                                 />
 
                                 <div
-                                    className="rounded-lg border p-3"
-                                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}
+                                    className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]"
                                 >
-                                    <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                                    <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
                                         <Database className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                                         {t('studio_apps_tables.manager.add_to_screen', 'Add to this screen')}
                                     </div>
@@ -642,15 +636,14 @@ export default function TablesManager({
                                               * eerlijker dan hem aanbieden en het bij de
                                               * eerste inzending laten stuklopen. */}
                                             {selectedSource && !sourceIsWritable(selectedSource) ? (
-                                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                                <p className="text-xs text-[var(--text-tertiary)]">
                                                     {t('app_studio.tables.source_read_only_no_form', 'This link is read only, so there is no form to make — a grid can still show the rows.')}
                                                 </p>
                                             ) : (
                                             <button
                                                 type="button"
                                                 onClick={() => generate('form')}
-                                                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)]"
-                                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)]"
                                             >
                                                 <FileInput className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                                                 {t('studio_apps_tables.manager.make_form', 'Make a form')}
@@ -659,8 +652,7 @@ export default function TablesManager({
                                             <button
                                                 type="button"
                                                 onClick={() => generate('grid')}
-                                                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)]"
-                                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)]"
                                             >
                                                 <Table2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                                                 {t('studio_apps_tables.manager.make_grid', 'Make a grid')}
@@ -668,15 +660,14 @@ export default function TablesManager({
                                         </div>
                                     ) : (
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                            <p className="text-xs text-[var(--text-tertiary)]">
                                                 {t('studio_apps_tables.manager.save_first', 'Save this table first, then you can drop a form or a list onto the screen.')}
                                             </p>
                                             <button
                                                 type="button"
                                                 onClick={save}
                                                 disabled={saving || !dirty}
-                                                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                                             >
                                                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
                                                 {t('studio_apps_tables.manager.save_now', 'Save now')}
@@ -686,13 +677,12 @@ export default function TablesManager({
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                            <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-sm text-[var(--text-tertiary)]">
                                 {t('studio_apps_tables.manager.pick_table', 'Pick a table on the left, or add one to get started.')}
                                 <button
                                     type="button"
                                     onClick={addTable}
-                                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)]"
-                                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)]"
                                 >
                                     <Plus className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                                     {t('studio_apps_tables.manager.add_table', 'Add a table')}

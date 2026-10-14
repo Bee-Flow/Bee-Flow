@@ -45,7 +45,7 @@ import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
 export default function SheetsStep({ t, files, describes, sheetDescribes, selection, marks, onToggleSheet, onChange, onOptIn, onRetry }) {
     return (
         <div className="space-y-3">
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm text-[var(--text-secondary)]">
                 {t('datatables.ss_sheets_intro', 'Tick the sheets to link. Each sheet becomes its own table.')}
             </p>
             {[...files.values()].map((file) => {
@@ -79,34 +79,34 @@ function FileSection({ t, file, fileKey, describe, sheetDescribes, selection, ma
                 {Logo
                     ? <span className="shrink-0 inline-flex" aria-hidden="true">{React.createElement(Logo, { size: 16 })}</span>
                     : null}
-                <span className="text-sm font-medium truncate min-w-0" style={{ color: 'var(--text-primary)' }}>{file.name}</span>
-                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{formatLabel(t, (data && data.format) || file.format)} · {providerName(file.provider)}</span>
+                <span className="text-sm font-medium truncate min-w-0 text-[var(--text-primary)]">{file.name}</span>
+                <span className="text-[11px] text-[var(--text-tertiary)]">{formatLabel(t, (data && data.format) || file.format)} · {providerName(file.provider)}</span>
                 {d.loading && (
-                    <span className="inline-flex items-center gap-1.5 text-xs ml-auto" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="inline-flex items-center gap-1.5 text-xs ml-auto text-[var(--text-tertiary)]">
                         <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />{t('datatables.nc_reading', 'Reading the columns…')}
                     </span>
                 )}
             </div>
             {d.error && (
-                <p role="alert" className="text-[11px]" style={{ color: 'var(--warning)' }}>
+                <p role="alert" className="text-[11px] text-[var(--warning)]">
                     {ssErrorMessage(t, d.error, providerName(file.provider)) || d.error.message}{' '}
-                    <button type="button" onClick={() => onRetry(fileKey)} className="underline" style={{ color: 'var(--text-primary)' }}>
+                    <button type="button" onClick={() => onRetry(fileKey)} className="underline text-[var(--text-primary)]">
                         {t('datatables.ss_retry', 'Try again')}
                     </button>
                 </p>
             )}
-            {mark && <p className="text-[11px]" style={{ color: 'var(--warning)' }}>{mark}</p>}
+            {mark && <p className="text-[11px] text-[var(--warning)]">{mark}</p>}
             {write && (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {writeCaveatText(t, write.mode, write.reason)}
                 </p>
             )}
             {notOwned && (
-                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-primary)' }}>
+                <label className="flex items-start gap-2 text-xs cursor-pointer text-[var(--text-primary)]">
                     <input type="checkbox" checked={optIn} onChange={(e) => onOptIn(fileKey, e.target.checked)} className="mt-0.5 shrink-0" />
                     <span>
                         {t('datatables.ss_shared_write_optin', 'Also write rows into this shared file')}
-                        <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="block text-[11px] text-[var(--text-tertiary)]">
                             {t('datatables.ss_shared_write_optin_help', 'The file belongs to someone else. With this on, rows added or changed here land in their storage; without it, the file is only read.')}
                         </span>
                     </span>
@@ -122,15 +122,15 @@ function FileSection({ t, file, fileKey, describe, sheetDescribes, selection, ma
                             <li key={sh.name}>
                                 <label className={`flex items-center gap-2 text-sm ${linked ? 'cursor-not-allowed' : 'cursor-pointer'}`} style={{ opacity: linked ? 0.6 : 1 }}>
                                     <input type="checkbox" checked={checked} disabled={linked} onChange={() => onToggleSheet(file, sh.name)} aria-label={`${sh.name} — ${file.name}`} />
-                                    <span style={{ color: 'var(--text-primary)' }}>{sh.name}</span>
-                                    {sh.hidden && <span className="text-[10px] px-1.5 rounded" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>{t('datatables.ss_sheet_hidden', 'hidden')}</span>}
+                                    <span className="text-[var(--text-primary)]">{sh.name}</span>
+                                    {sh.hidden && <span className="text-[10px] px-1.5 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)]">{t('datatables.ss_sheet_hidden', 'hidden')}</span>}
                                     {(sh.rows != null || sh.cols != null) && (
-                                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="text-[11px] text-[var(--text-tertiary)]">
                                             {t('datatables.nc_table_meta', '{rows} rows · {cols} columns', { rows: sh.rows ?? '?', cols: sh.cols ?? '?' })}
                                         </span>
                                     )}
                                     {linked && (
-                                        <span className="text-[11px] inline-flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="text-[11px] inline-flex items-center gap-1 text-[var(--text-tertiary)]">
                                             <Link2 className="w-3 h-3" aria-hidden="true" />{t('datatables.nc_already_linked', 'already linked')}
                                         </span>
                                     )}
@@ -161,7 +161,7 @@ function OnlySheetLine({ t, sheet, fileName }) {
         <p className="text-xs inline-flex items-center gap-2 flex-wrap" style={{ color: 'var(--text-secondary)', opacity: linked ? 0.6 : 1 }}>
             <span>{t('datatables.ss_file_sheet', 'Sheet: {sheet}', { sheet: sheetLabelOf(sheet.name, fileName) })}</span>
             {linked && (
-                <span className="text-[11px] inline-flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] inline-flex items-center gap-1 text-[var(--text-tertiary)]">
                     <Link2 className="w-3 h-3" aria-hidden="true" />{t('datatables.nc_already_linked', 'already linked')}
                 </span>
             )}

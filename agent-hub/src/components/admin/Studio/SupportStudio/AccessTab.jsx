@@ -138,7 +138,7 @@ function Radio({ checked, disabled, onChange, label, hint }) {
                 ? 'border-[var(--accent-primary)] bg-[var(--bg-secondary)]'
                 : 'border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'}`}>
             <span className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${checked ? 'border-[var(--accent-primary)]' : 'border-[var(--text-tertiary)]'}`}>
-                {checked && <span className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-primary)' }} />}
+                {checked && <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />}
             </span>
             <span className="min-w-0">
                 <span className="block text-sm text-[var(--text-primary)]">{label}</span>

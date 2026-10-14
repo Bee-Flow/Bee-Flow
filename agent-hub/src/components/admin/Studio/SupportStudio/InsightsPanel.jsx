@@ -28,9 +28,9 @@ function fmtAge(iso) {
 function Stat({ label, value, sub }) {
     return (
         <div className="rounded-lg border p-4" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
-            <div className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</div>
-            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
-            {sub && <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</div>}
+            <div className="text-2xl font-semibold text-[var(--text-primary)]">{value}</div>
+            <div className="text-xs mt-1 text-[var(--text-muted)]">{label}</div>
+            {sub && <div className="text-xs mt-0.5 text-[var(--text-muted)]">{sub}</div>}
         </div>
     );
 }
@@ -38,7 +38,7 @@ function Stat({ label, value, sub }) {
 function Section({ title, children }) {
     return (
         <div className="mb-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>{title}</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-tertiary)]">{title}</h4>
             {children}
         </div>
     );
@@ -174,7 +174,7 @@ export default function InsightsPanel({ inboxes = [], activeInbox }) {
 
     return (
         <div className="max-w-3xl mx-auto p-5 overflow-y-auto h-full">
-            <h3 className="text-base font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-base font-semibold mb-4 flex items-center gap-2 text-[var(--text-primary)]">
                 <BarChart3 size={16} /> {t('support.insights.title', 'Support insights')}
             </h3>
 
@@ -217,7 +217,7 @@ export default function InsightsPanel({ inboxes = [], activeInbox }) {
 
             {volume && volume.length > 1 && (
                 <Section title={t('support.insights.volume', 'Ticket volume (30 days)')}>
-                    <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                    <div className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                         <SvgAreaChart data={volume} yKey="total" color={CHART_COLOR} height={120}
                             formatY={(v) => `${v}`} formatLabel={(d) => d.period} />
                     </div>
@@ -243,9 +243,9 @@ export default function InsightsPanel({ inboxes = [], activeInbox }) {
 
             {agents && agents.length > 0 && (
                 <Section title={t('support.insights.agent_leaderboard', 'Teammate leaderboard')}>
-                    <div className="rounded-lg border divide-y" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                    <div className="rounded-lg border divide-y border-[var(--border-default)] bg-[var(--bg-card)]">
                         {agents.map(a => (
-                            <div key={a.userId} className="flex items-center justify-between px-3 py-2 text-sm" style={{ borderColor: 'var(--border-default)' }}>
+                            <div key={a.userId} className="flex items-center justify-between px-3 py-2 text-sm border-[var(--border-default)]">
                                 <span className="text-[var(--text-primary)] truncate">{names[a.userId] || a.userId}</span>
                                 <span className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
                                     <span>{a.resolved} {t('support.insights.resolved_count', 'resolved')}</span>

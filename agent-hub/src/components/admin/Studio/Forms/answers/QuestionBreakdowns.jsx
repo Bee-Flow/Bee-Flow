@@ -30,9 +30,9 @@ export function NumberBreakdown({ t, q }) {
     const b = q.breakdown || {};
     if (b.avg === null || b.avg === undefined) return <NoAnswers t={t} />;
     const cell = (label, v) => (
-        <div key={label} className="rounded-lg px-3 py-2" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="text-base font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>{v === null || v === undefined ? '—' : fmt.format(v)}</div>
-            <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
+        <div key={label} className="rounded-lg px-3 py-2 bg-[var(--bg-secondary)]">
+            <div className="text-base font-semibold tabular-nums text-[var(--text-primary)]">{v === null || v === undefined ? '—' : fmt.format(v)}</div>
+            <div className="text-[11px] text-[var(--text-tertiary)]">{label}</div>
         </div>
     );
     return (
@@ -60,13 +60,13 @@ export function TextBreakdown({ t, q, onSeeAll }) {
             <ul role="list" aria-label={t('forms.answers.q_recent', 'Most recent answers')} className="space-y-2">
                 {recent.map((r) => (
                     <li key={r.rowId} className="flex items-start gap-3 text-xs">
-                        <span className="flex-1 min-w-0 whitespace-pre-wrap break-words" style={{ color: 'var(--text-primary)' }}>“{r.value}”</span>
-                        <span className="shrink-0 tabular-nums" style={{ color: 'var(--text-tertiary)' }}>{r.at ? rel(r.at) : ''}</span>
+                        <span className="flex-1 min-w-0 whitespace-pre-wrap break-words text-[var(--text-primary)]">“{r.value}”</span>
+                        <span className="shrink-0 tabular-nums text-[var(--text-tertiary)]">{r.at ? rel(r.at) : ''}</span>
                     </li>
                 ))}
             </ul>
             {onSeeAll && (
-                <button type="button" onClick={onSeeAll} className="mt-2 text-xs underline-offset-2 hover:underline" style={{ color: 'var(--text-secondary)' }}>
+                <button type="button" onClick={onSeeAll} className="mt-2 text-xs underline-offset-2 hover:underline text-[var(--text-secondary)]">
                     {t('forms.answers.q_see_all', 'See all answers')} →
                 </button>
             )}
@@ -78,11 +78,11 @@ export function FileBreakdown({ t, q, onSeeAll }) {
     const n = q.breakdown?.count || 0;
     return (
         <div className="flex items-center gap-3 text-xs" data-testid="q-file">
-            <span style={{ color: 'var(--text-primary)' }}>
+            <span className="text-[var(--text-primary)]">
                 {n === 1 ? t('forms.answers.q_files', '{count} file', { count: n }) : t('forms.answers.q_files_plural', '{count} files', { count: n })}
             </span>
             {onSeeAll && n > 0 && (
-                <button type="button" onClick={onSeeAll} className="underline-offset-2 hover:underline" style={{ color: 'var(--text-secondary)' }}>
+                <button type="button" onClick={onSeeAll} className="underline-offset-2 hover:underline text-[var(--text-secondary)]">
                     {t('forms.answers.q_files_open', 'Open the rows')} →
                 </button>
             )}
@@ -91,7 +91,7 @@ export function FileBreakdown({ t, q, onSeeAll }) {
 }
 
 export function NoAnswers({ t }) {
-    return <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('forms.answers.q_none', 'No answers in this period.')}</p>;
+    return <p className="text-xs text-[var(--text-tertiary)]">{t('forms.answers.q_none', 'No answers in this period.')}</p>;
 }
 
 /** The breakdown a question gets, by its type. */

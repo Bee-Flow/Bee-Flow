@@ -522,8 +522,7 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }) {
                         />
                     ) : (
                         <aside
-                            className="flex w-10 shrink-0 flex-col items-center border-r pt-3"
-                            style={{ borderColor: 'var(--border-default)' }}
+                            className="flex w-10 shrink-0 flex-col items-center border-r pt-3 border-[var(--border-default)]"
                         >
                             <button
                                 type="button"
@@ -542,13 +541,11 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }) {
                 </>
             ) : (
                 <aside
-                    className="flex w-10 shrink-0 flex-col items-center border-r pt-3"
-                    style={{ borderColor: 'var(--border-default)' }}
+                    className="flex w-10 shrink-0 flex-col items-center border-r pt-3 border-[var(--border-default)]"
                     aria-label={t('app_studio.shell.ai_soon_aria', 'AI assistant (coming soon)')}
                 >
                     <span
-                        className="rounded-md p-1.5"
-                        style={{ color: 'var(--text-tertiary)' }}
+                        className="rounded-md p-1.5 text-[var(--text-tertiary)]"
                         title={t('app_studio.shell.ai_soon', 'AI assistant — coming soon')}
                     >
                         <Sparkles className="h-4 w-4" aria-hidden="true" />
@@ -638,8 +635,7 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }) {
                                 onClick={toggleInspector}
                                 aria-label={t('app_studio.shell.inspector_collapse', 'Collapse the inspector')}
                                 title={t('app_studio.shell.inspector_collapse', 'Collapse the inspector')}
-                                className="rounded-md p-1 hover:bg-[var(--bg-card-hover)]"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="rounded-md p-1 hover:bg-[var(--bg-card-hover)] text-[var(--text-tertiary)]"
                             >
                                 <PanelRightClose className="h-4 w-4" aria-hidden="true" />
                             </button>
@@ -649,16 +645,14 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }) {
                 </>
             ) : (
                 <aside
-                    className="flex w-10 shrink-0 flex-col items-center border-l pt-3"
-                    style={{ borderColor: 'var(--border-default)' }}
+                    className="flex w-10 shrink-0 flex-col items-center border-l pt-3 border-[var(--border-default)]"
                 >
                     <button
                         type="button"
                         onClick={toggleInspector}
                         aria-label={t('app_studio.shell.inspector_show', 'Show the inspector')}
                         title={t('app_studio.shell.inspector_show', 'Show the inspector')}
-                        className="rounded-md p-1.5 hover:bg-[var(--bg-card-hover)]"
-                        style={{ color: 'var(--text-tertiary)' }}
+                        className="rounded-md p-1.5 hover:bg-[var(--bg-card-hover)] text-[var(--text-tertiary)]"
                     >
                         <PanelRightOpen className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -673,12 +667,7 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }) {
 function DragChip({ label, Icon }) {
     return (
         <div
-            className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium shadow-lg"
-            style={{
-                background: 'var(--bg-secondary)',
-                borderColor: 'var(--accent-primary)',
-                color: 'var(--text-primary)',
-            }}
+            className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium shadow-lg bg-[var(--bg-secondary)] border-[var(--accent-primary)] text-[var(--text-primary)]"
         >
             {Icon ? <Icon className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" /> : null}
             {label}

@@ -188,14 +188,14 @@ function ParamRow({ param, connector, onChange, disabled }) {
             <div className="flex items-start gap-2">
                 <label htmlFor={controlId} className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{key}</span>
+                        <span className="text-sm font-medium text-[var(--text-primary)]">{key}</span>
                         {required ? <span className="text-xs" style={{ color: '#d97706' }} aria-label={t('studio_apps_bi.params.required', 'required')}>{t('studio_apps_bi.params.required', 'required')}</span> : null}
-                        <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
                             {Array.isArray(spec.enum) ? t('studio_apps_bi.params.type_choice', 'choice') : (spec.type || t('studio_apps_bi.params.type_text', 'text'))}
                         </span>
                     </span>
                     {spec.description ? (
-                        <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{spec.description}</span>
+                        <span className="block text-xs mt-0.5 text-[var(--text-tertiary)]">{spec.description}</span>
                     ) : null}
                 </label>
                 <div className="shrink-0">
@@ -220,14 +220,14 @@ function ParamRow({ param, connector, onChange, disabled }) {
             ) : null}
 
             {source === 'viewer' ? (
-                <p className="mt-1.5 flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                     <User className="h-3 w-3" aria-hidden="true" />
                     {t('studio_apps_bi.params.viewer_note', 'The app asks each viewer for this.')}
                 </p>
             ) : null}
 
             {source === 'chain' ? (
-                <p className="mt-1.5 flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                     <Link2 className="h-3 w-3" aria-hidden="true" />
                     {tRich(t, 'studio_apps_bi.params.chain_note', 'Filled from {field} of each row from the step before.', null, { field: <code>{chainStep?.argsFrom?.[key]}</code> })}
                 </p>
@@ -257,21 +257,21 @@ export default function ActionParamsForm({ action, connector, onChange, disabled
 
     if (catalogUnavailable) {
         return (
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs text-[var(--text-tertiary)]">
                 {t('studio_apps_bi.params.catalog_unavailable', 'We couldn’t load this action’s parameters. You can still set them as JSON under Advanced settings.')}
             </p>
         );
     }
     if (!action) {
         return (
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs text-[var(--text-tertiary)]">
                 {t('studio_apps_bi.params.pick_action', 'Pick an app and an action to see what it needs.')}
             </p>
         );
     }
     if (!params.length) {
         return (
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs text-[var(--text-tertiary)]">
                 {t('studio_apps_bi.params.no_params', 'This action takes no parameters — it runs as-is.')}
             </p>
         );
@@ -284,7 +284,7 @@ export default function ActionParamsForm({ action, connector, onChange, disabled
                 <ParamRow key={param.key} param={param} connector={connector} onChange={onChange} disabled={disabled} />
             ))}
             {extras.length ? (
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs text-[var(--text-tertiary)]">
                     {t('studio_apps_bi.params.also_sending', 'Also sending: {keys} — set under Advanced settings.', { keys: extras.join(', ') })}
                 </p>
             ) : null}

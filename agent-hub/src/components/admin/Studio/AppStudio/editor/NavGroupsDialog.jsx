@@ -152,7 +152,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
         >
             <div className="flex flex-col gap-4">
                 {groups.length === 0 ? (
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm text-[var(--text-muted)]">
                         {t('studio_apps_edit.nav_groups.empty', 'No groups yet. Ungrouped screens are listed directly; add a group to collect screens under a section label.')}
                     </p>
                 ) : null}
@@ -160,8 +160,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                 {groups.map((group) => (
                     <div
                         key={group.id}
-                        className="rounded-lg border p-3 flex flex-col gap-3"
-                        style={{ borderColor: 'var(--border-default)' }}
+                        className="rounded-lg border p-3 flex flex-col gap-3 border-[var(--border-default)]"
                         data-nav-group-editor={group.id}
                     >
                         <div className="flex items-start gap-2">
@@ -180,8 +179,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                                 onClick={() => removeGroup(group.id)}
                                 aria-label={t('studio_apps_edit.nav_groups.delete_group_aria', 'Delete group {name}', { name: group.label || t('studio_apps_edit.nav_groups.group', 'Group') })}
                                 title={t('studio_apps_edit.nav_groups.delete_group', 'Delete group')}
-                                className="p-2 rounded-md hover:bg-[var(--bg-card-hover)] shrink-0"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="p-2 rounded-md hover:bg-[var(--bg-card-hover)] shrink-0 text-[var(--text-tertiary)]"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -194,7 +192,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                         />
 
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                            <span className="text-xs font-medium text-[var(--text-secondary)]">
                                 {t('studio_apps_edit.nav_groups.screens_in_group', 'Screens in this group')}
                             </span>
                             {screens.map((screen) => {
@@ -217,7 +215,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                                             />
                                             <span className="truncate">{screen.name || t('studio_apps_edit.nav_groups.screen', 'Screen')}</span>
                                             {screen.showInNav === false ? (
-                                                <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                                                <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
                                                     {t('studio_apps_edit.nav_groups.hidden', 'hidden')}
                                                 </span>
                                             ) : null}
@@ -243,8 +241,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
                     type="button"
                     onClick={addGroup}
                     disabled={groups.length >= MAX_GROUPS}
-                    className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-md border text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-md border text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                     title={groups.length >= MAX_GROUPS ? t('studio_apps_edit.nav_groups.at_most', 'At most {max} groups', { max: MAX_GROUPS }) : undefined}
                 >
                     <Plus className="w-4 h-4" /> {t('studio_apps_edit.nav_groups.add_group', 'Add group')}

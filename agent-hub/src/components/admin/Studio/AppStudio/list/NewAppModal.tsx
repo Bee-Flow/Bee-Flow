@@ -211,7 +211,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
             />
 
             <div className="mb-4">
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">
                     {tab === 'blank' ? t('studio_apps_bi.list.name', 'Name')
                         : tab === 'import' ? t('studio_apps_bi.list.name_import', 'Name (optional — renames the imported template)')
                             : t('studio_apps_bi.list.name_template', 'Name (optional — templates bring their own)')}
@@ -246,8 +246,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
                     <button
                         type="submit"
                         disabled={busy}
-                        className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5 disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5 disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                         {t('studio_apps_bi.list.create_app', 'Create app')}

@@ -111,7 +111,7 @@ export default function OutputFieldsCard({ outputSchema, onChange, readOnly = fa
                     onChange={(next) => onChange(fieldsToSchema(next))}
                 />
             ) : (
-                <p className="text-xs m-0" style={{ color: 'var(--warning-ink)' }} data-testid="skill-output-unavailable">
+                <p className="text-xs m-0 text-[var(--warning-ink)]" data-testid="skill-output-unavailable">
                     {t('skills_studio.output.unavailable', 'These fields can only be edited from an AI step for now.')}
                 </p>
             ))}

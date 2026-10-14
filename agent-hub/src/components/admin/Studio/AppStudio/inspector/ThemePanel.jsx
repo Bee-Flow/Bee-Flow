@@ -245,7 +245,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                         onApply={applyPreset}
                         disabled={disabled}
                     />
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs text-[var(--text-muted)]">
                         {design.preset && design.preset !== 'custom'
                             ? t('studio_apps_insp.theme.look_preset_active', 'A preset sets colour, corners, density, typeface, surfaces, motion and navigation in one go. Adjust anything below — it becomes your own look.')
                             : t('studio_apps_insp.theme.look_pick_start', 'Pick a starting point, then adjust anything below.')}
@@ -438,7 +438,7 @@ function AiBrowsingSettings({ value, onCommit, disabled }) {
                     disabled={disabled}
                     size="sm"
                 />
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs text-[var(--text-muted)]">
                     {t('studio_apps_insp.theme.ai_browsing_explainer', 'An AI browsing step opens a real browser as you, and viewers watch it work. Only you can switch this on — the app builder cannot. Your organisation can revoke it at any time by turning off the Browse Web integration.')}
                 </p>
                 {enabled ? (

@@ -133,20 +133,17 @@ export default function DatatableDetail({
     } : undefined;
     // The delete dialog's notice: what deleting THIS table means.
     const deleteNotice = isMirror && spec ? (
-        <p className="text-xs px-3 py-2 rounded flex items-start gap-2"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
             {Glyph && React.createElement(Glyph, { className: 'w-3.5 h-3.5 mt-0.5 shrink-0', style: { color: 'var(--type-data)' }, 'aria-hidden': 'true' })}
             <span>{spec.unlinkNotice(t, sourceNameOf(table, mirror?.source))}</span>
         </p>
     ) : answers ? (
-        <p className="text-xs px-3 py-2 rounded flex items-start gap-2"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
             <ClipboardList className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--type-pause)' }} aria-hidden="true" />
             <span>{t('datatables.frm_delete_notice', 'This table holds the answers to a form. Deleting it deletes every answer; the form stays and stops collecting.')}</span>
         </p>
     ) : table.managedKind ? (
-        <p className="text-xs px-3 py-2 rounded flex items-start gap-2"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
             <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
             {/* A managed table's rows are third-party answers, so the
                 consequence of deleting it is not only "the rows go" —
@@ -175,8 +172,7 @@ export default function DatatableDetail({
                     <>
                         {answers && table.source?.automationId && (
                             <button type="button" onClick={() => onNavigate && onNavigate(`studio/forms/${table.source.automationId}`)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="open-form">
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]" data-testid="open-form">
                                 <ClipboardList className="w-3.5 h-3.5" aria-hidden="true" />{t('datatables.frm_open_form', 'Open the form')}
                             </button>
                         )}
@@ -225,7 +221,7 @@ export default function DatatableDetail({
                             <p className="flex-1 min-w-0 text-sm m-0" style={{ color: 'var(--text-secondary)', lineHeight: '19px' }}>
                                 {table.description || ''}
                             </p>
-                            <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }} data-testid="table-meta">
+                            <span className="text-xs whitespace-nowrap text-[var(--text-tertiary)]" data-testid="table-meta">
                                 {columnsWord(t, columnCount)} · {rowsWord(t, table.rowCount ?? 0)}
                             </span>
                         </div>
@@ -262,7 +258,7 @@ export default function DatatableDetail({
                                 {/* Permanent, not an empty-state hint: the answer to
                                     "how do I connect another one" does not stop
                                     being useful once the first one exists. */}
-                                <p className="text-xs m-0" style={{ color: 'var(--text-tertiary)' }}>
+                                <p className="text-xs m-0 text-[var(--text-tertiary)]">
                                     {t('datatables.usage_hint', 'To connect another automation: add a Datatable step there and pick this table.')}
                                 </p>
                             </>
@@ -516,7 +512,7 @@ function TableMenu({ t, table, canEdit, mirror = null, isMirror = false, onRenam
                         <Copy className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                         <span className="min-w-0 flex-1 text-left">
                             <span className="block">{t('datatables.menu_duplicate', 'Duplicate')}</span>
-                            <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('datatables.menu_duplicate_hint', 'columns only, no rows')}</span>
+                            <span className="block text-[11px] text-[var(--text-tertiary)]">{t('datatables.menu_duplicate_hint', 'columns only, no rows')}</span>
                         </span>
                     </button>
                 )}
@@ -530,7 +526,7 @@ function TableMenu({ t, table, canEdit, mirror = null, isMirror = false, onRenam
                     <Tag className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                     <span className="min-w-0 flex-1 text-left">
                         <span className="block">{t('datatables.field_key', 'Technical name')}</span>
-                        <code className="block text-[11px] font-mono truncate" style={{ color: 'var(--text-tertiary)' }}>{table.key}</code>
+                        <code className="block text-[11px] font-mono truncate text-[var(--text-tertiary)]">{table.key}</code>
                     </span>
                     {copied && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--success)' }} aria-hidden="true" />}
                 </button>
@@ -605,11 +601,11 @@ function HealthDialog({ t, table, onClose }) {
     const h = state.health;
     return (
         <Modal open onClose={onClose} size="md" title={t('datatables.check_repair', 'Check & repair')}>
-            <div className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <div className="space-y-3 text-sm text-[var(--text-secondary)]">
                 {state.loading ? (
                     <p className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('datatables.loading', 'Loading…')}</p>
                 ) : state.error ? (
-                    <p style={{ color: 'var(--warning)' }}>{state.error}</p>
+                    <p className="text-[var(--warning)]">{state.error}</p>
                 ) : h?.healthy ? (
                     <p>{state.repaired
                         ? t('datatables.health_repaired', 'Put right — the table and its columns are all there now.')

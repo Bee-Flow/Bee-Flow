@@ -98,15 +98,15 @@ export default function FindingRow({
                             <ExternalLink className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                         </button>
                     ) : (
-                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="playbook-compliance-target">{target.name}</span>
+                        <span className="text-[11px] text-[var(--text-tertiary)]" data-testid="playbook-compliance-target">{target.name}</span>
                     )
                 )}
-                {!target && finding.subject && <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{finding.subject}</span>}
+                {!target && finding.subject && <span className="text-[11px] text-[var(--text-tertiary)]">{finding.subject}</span>}
             </div>
 
             <p className="mt-1.5" style={{ fontSize: presenter ? 14 : 12, color: 'var(--text-secondary)' }}>{finding.why}</p>
             <p className="mt-1" style={{ fontSize: presenter ? 14 : 12, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--text-tertiary)' }}>{t('playbooks.compliance.fix', 'What to do')}: </span>{finding.fix}
+                <span className="text-[var(--text-tertiary)]">{t('playbooks.compliance.fix', 'What to do')}: </span>{finding.fix}
             </p>
 
             {/* The proposal — in this row, in words, before anything is written. */}
@@ -117,7 +117,7 @@ export default function FindingRow({
                     data-testid="playbook-compliance-proposal"
                 >
                     {planBusy && (
-                        <p className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
                             <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
                             {t('playbooks.compliance.fix_thinking', 'Working out what to change…')}
                         </p>
@@ -127,7 +127,7 @@ export default function FindingRow({
                     )}
                     {!planBusy && plan && (
                         <>
-                            <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{plan.title}</p>
+                            <p className="text-xs font-semibold text-[var(--text-primary)]">{plan.title}</p>
                             <ul className="mt-1 space-y-0.5">
                                 {(plan.what || []).map((line, i) => (
                                     <li key={i} className="flex items-start gap-1.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-secondary)' }}>
@@ -136,7 +136,7 @@ export default function FindingRow({
                                     </li>
                                 ))}
                             </ul>
-                            {plan.note && <p className="mt-1 text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>{plan.note}</p>}
+                            {plan.note && <p className="mt-1 text-[11px] italic text-[var(--text-tertiary)]">{plan.note}</p>}
                             {(plan.unresolved || []).length > 0 && (
                                 <ul className="mt-1 space-y-0.5" data-testid="playbook-compliance-unresolved">
                                     {plan.unresolved.map((u, i) => (
@@ -147,7 +147,7 @@ export default function FindingRow({
                                 </ul>
                             )}
                             {plan.modelFailed && (
-                                <p className="mt-1 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                                     {t('playbooks.compliance.fix_no_model', 'The AI could not be reached, so this is what the rules alone would do.')}
                                 </p>
                             )}
@@ -173,7 +173,7 @@ export default function FindingRow({
                                 >
                                     <X className="w-3 h-3" aria-hidden="true" />{t('playbooks.compliance.fix_cancel', 'Leave it')}
                                 </button>
-                                <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                                <span className="text-[10px] text-[var(--text-tertiary)]">
                                     {t('playbooks.compliance.fix_gate', 'Nothing is written until you press Apply.')}
                                 </span>
                             </div>
@@ -195,17 +195,17 @@ export default function FindingRow({
                     </button>
                 )}
                 {!canResolve && (
-                    <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="playbook-compliance-manual">
+                    <span className="text-[11px] text-[var(--text-tertiary)]" data-testid="playbook-compliance-manual">
                         {t('playbooks.compliance.needs_you', 'This one is a judgement — it needs you.')}
                     </span>
                 )}
                 {to && onNavigate && (
-                    <button type="button" onClick={() => onNavigate(to)} className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--type-ai)' }} data-testid="playbook-compliance-goto">
+                    <button type="button" onClick={() => onNavigate(to)} className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--type-ai)]" data-testid="playbook-compliance-goto">
                         {t('playbooks.compliance.goto', 'Take me there')}<ExternalLink className="w-3 h-3" aria-hidden="true" />
                     </button>
                 )}
                 {showKeep && (
-                    <label className="inline-flex items-center gap-1.5 text-[11px] cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                    <label className="inline-flex items-center gap-1.5 text-[11px] cursor-pointer text-[var(--text-secondary)]">
                         <input
                             type="checkbox"
                             checked={keepChecked}

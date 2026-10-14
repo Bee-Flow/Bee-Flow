@@ -32,7 +32,7 @@ export default function QuestionsTab({ detail, draft, setDraft, dirty, save, dis
                 <AiDraftPanel form={draft} onApply={(next) => setDraft(next)} seed={seed} />
             )}
             {pages.length > 0 && (
-                <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }} data-testid="form-pages-note">
+                <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)]" data-testid="form-pages-note">
                     <Info className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                     <span className="flex-1 min-w-0">
                         {nOf(t, 'forms.page.pages_note', pages.length, '{count} more page — edit it in the automation', '{count} more pages — edit them in the automation')}
@@ -44,22 +44,22 @@ export default function QuestionsTab({ detail, draft, setDraft, dirty, save, dis
             )}
             <DashCard testId="form-questions-card">
                 {draft ? (
-                    <Suspense fallback={<div className="flex items-center gap-2 text-xs py-6" style={{ color: 'var(--text-tertiary)' }}><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('forms.page.loading_editor', 'Loading the editor…')}</div>}>
+                    <Suspense fallback={<div className="flex items-center gap-2 text-xs py-6 text-[var(--text-tertiary)]"><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('forms.page.loading_editor', 'Loading the editor…')}</div>}>
                         <FormBuilderFields form={draft} onChange={setDraft} bindingBase="trigger.output" />
                     </Suspense>
                 ) : (
-                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('forms.page.readonly_hint', 'Shared with this account through its answers table — the questions and settings belong to the form’s owner.')}</p>
+                    <p className="text-xs text-[var(--text-tertiary)]">{t('forms.page.readonly_hint', 'Shared with this account through its answers table — the questions and settings belong to the form’s owner.')}</p>
                 )}
             </DashCard>
             {collecting && (
-                <p className="text-xs flex items-start gap-2" style={{ color: 'var(--text-tertiary)' }} data-testid="form-columns-note">
+                <p className="text-xs flex items-start gap-2 text-[var(--text-tertiary)]" data-testid="form-columns-note">
                     <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>{t('forms.page.columns_note', 'Every question here is a column in the answers table. Renaming a question renames its column; removing one keeps the column, marked “no longer on the form”.')}</span>
                 </p>
             )}
             {draft && (
                 <div className="sticky bottom-0 flex items-center justify-end gap-2 py-3 -mx-1 px-1" style={{ background: 'var(--bg-primary)' }} data-testid="form-savebar">
-                    {saveError && <span role="alert" className="mr-auto text-xs" style={{ color: 'var(--error)' }}>{saveError.message || t('forms.page.save_failed', 'Could not save the form.')}</span>}
+                    {saveError && <span role="alert" className="mr-auto text-xs text-[var(--error)]">{saveError.message || t('forms.page.save_failed', 'Could not save the form.')}</span>}
                     <button type="button" onClick={discard} disabled={!dirty || saving} className={BTN} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
                         {t('forms.page.discard', 'Discard changes')}
                     </button>

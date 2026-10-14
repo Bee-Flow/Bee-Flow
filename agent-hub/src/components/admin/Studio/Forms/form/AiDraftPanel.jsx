@@ -113,8 +113,8 @@ export default function AiDraftPanel({ form, onApply, seed = null }) {
             <div className="flex items-start gap-2">
                 <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                 <div className="min-w-0 flex-1">
-                    <h3 id="form-ai-title" className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('forms.ai.title', 'Build it with AI')}</h3>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <h3 id="form-ai-title" className="text-sm font-semibold text-[var(--text-primary)]">{t('forms.ai.title', 'Build it with AI')}</h3>
+                    <p className="text-xs mt-0.5 text-[var(--text-secondary)]">
                         {isRevise
                             ? t('forms.ai.intro_revise', 'Say what should change. The questions you keep stay as they are — and so do their answers.')
                             : t('forms.ai.intro', 'Describe the form, or paste what it should be based on — an intake checklist, an e-mail, a policy. The questions are drafted below for you to review; nothing is saved until you save.')}
@@ -149,9 +149,9 @@ export default function AiDraftPanel({ form, onApply, seed = null }) {
                 data-testid="form-ai-text"
             />
             <div className="flex flex-wrap items-center gap-2">
-                {error && <span role="alert" className="text-xs mr-auto" style={{ color: 'var(--error)' }}>{error}</span>}
+                {error && <span role="alert" className="text-xs mr-auto text-[var(--error)]">{error}</span>}
                 {!error && result && (
-                    <span className="text-xs mr-auto" style={{ color: 'var(--success-ink)' }} role="status" data-testid="form-ai-done">
+                    <span className="text-xs mr-auto text-[var(--success-ink)]" role="status" data-testid="form-ai-done">
                         {nOf(t, 'forms.ai.done', result.count, '{count} question drafted — review it below, then Save.', '{count} questions drafted — review them below, then Save.')}
                         {result.notes ? ` ${result.notes}` : ''}
                     </span>

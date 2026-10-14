@@ -295,17 +295,17 @@ export default function ConnectorSyncPanel({
     // ── Not set up yet ──────────────────────────────────────────────
     if (!sync) {
         return (
-            <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            <div className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
                     <Database className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                     {t('studio_apps_bi.sync.keep_in_table', 'Keep this in a table')}
                 </div>
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs text-[var(--text-tertiary)]">
                     {t('studio_apps_bi.sync.keep_intro', 'Store what this connector returns in one of your app’s tables. The app then reads the table instead of calling {app} on every screen — faster for viewers, and far fewer API calls.', { app: connector.integrationId || t('studio_apps_bi.sync.the_app', 'the app') })}
                 </p>
 
                 {proposal ? (
-                    <div className="mt-2.5 flex flex-col gap-2 rounded-md border p-2.5" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)' }}>
+                    <div className="mt-2.5 flex flex-col gap-2 rounded-md border p-2.5 border-[var(--border-default)] bg-[var(--bg-tertiary)]">
                         {(() => {
                             const set = proposal.tableSet?.tables;
                             // A chain whose steps returned different things
@@ -315,22 +315,22 @@ export default function ConnectorSyncPanel({
                             if (set && set.length > 1) {
                                 return (
                                     <>
-                                        <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                                        <p className="text-xs text-[var(--text-primary)]">
                                             {t('studio_apps_bi.sync.steps_return', 'Your steps return {n} different things, so they get {n} linked tables:', { n: set.length })}
                                         </p>
                                         {set.map((tb, i) => (
                                             <div key={tb.table.id} className="flex flex-col gap-0.5" style={{ paddingLeft: i ? '1rem' : 0 }}>
-                                                <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-primary)' }}>
+                                                <div className="flex items-center gap-1.5 text-sm text-[var(--text-primary)]">
                                                     {i ? <CornerDownRight className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                                                         : <Table2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />}
                                                     {tb.table.name}
-                                                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                                    <span className="text-xs text-[var(--text-tertiary)]">
                                                         {tb.rowCount === 1
                                                             ? t('studio_apps_bi.sync.table_summary_one', '— {cols} columns, 1 row', { cols: tb.table.fields.length })
                                                             : t('studio_apps_bi.sync.table_summary_many', '— {cols} columns, {rows} rows', { cols: tb.table.fields.length, rows: tb.rowCount })}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                                <p className="text-xs text-[var(--text-tertiary)]">
                                                     {!i
                                                         ? <>{tb.identity ? tRich(t, 'studio_apps_bi.sync.matched_on', 'matched on {field}', null, { field: <code>{tb.identity}</code> }) : t('studio_apps_bi.sync.replaced_every_refresh', 'replaced on every refresh')}</>
                                                         : tb.expandFrom
@@ -342,7 +342,7 @@ export default function ConnectorSyncPanel({
                                                 </p>
                                             </div>
                                         ))}
-                                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                        <p className="text-xs text-[var(--text-tertiary)]">
                                             {t('studio_apps_bi.sync.link_auto', 'The link is filled in automatically each refresh — you don’t have to match them up.')}
                                         </p>
                                     </>
@@ -350,23 +350,23 @@ export default function ConnectorSyncPanel({
                             }
                             return (
                                 <>
-                                    <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                                    <p className="text-xs text-[var(--text-primary)]">
                                         {proposal.rowCount === 1
                                             ? t('studio_apps_bi.sync.got_one_row', 'Got 1 row back. Here’s the table that fits:')
                                             : t('studio_apps_bi.sync.got_rows', 'Got {n} rows back. Here’s the table that fits:', { n: proposal.rowCount })}
                                     </p>
-                                    <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-primary)' }}>
+                                    <div className="flex items-center gap-1.5 text-sm text-[var(--text-primary)]">
                                         <Table2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                                         {proposal.suggestedTable.name}
-                                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="text-xs text-[var(--text-tertiary)]">
                                             {t('studio_apps_bi.sync.columns_summary', '— {cols} columns', { cols: proposal.suggestedTable.fields.length })}
                                         </span>
                                     </div>
-                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                    <p className="text-xs text-[var(--text-tertiary)]">
                                         {proposal.suggestedTable.fields.slice(0, 8).map((f) => f.key).join(', ')}
                                         {proposal.suggestedTable.fields.length > 8 ? '…' : ''}
                                     </p>
-                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                    <p className="text-xs text-[var(--text-tertiary)]">
                                         {proposal.identity
                                             ? tRich(t, 'studio_apps_bi.sync.rows_matched_on', 'Rows are matched on {field}, so refreshing updates them instead of piling up duplicates.', null, { field: <code>{proposal.identity}</code> })
                                             : t('studio_apps_bi.sync.nothing_identifies', 'Nothing identifies a row here, so each refresh replaces the whole table.')}
@@ -375,7 +375,7 @@ export default function ConnectorSyncPanel({
                             );
                         })()}
                         {proposal.incremental?.mode && proposal.incremental.mode !== 'none' ? (
-                            <p className="flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="flex items-start gap-1.5 text-xs text-[var(--text-secondary)]">
                                 <Zap className="mt-0.5 h-3 w-3 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                                 <span>
                                     <strong>{incrementalModeCopy(proposal.incremental.mode, proposal.incremental.field, proposal.incremental.param, t).title}.</strong>{' '}
@@ -383,17 +383,16 @@ export default function ConnectorSyncPanel({
                                 </span>
                             </p>
                         ) : (
-                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            <p className="text-xs text-[var(--text-tertiary)]">
                                 {t('studio_apps_bi.sync.no_timestamp', 'Nothing here says when a record last changed, so every refresh reloads the full list.')}
                             </p>
                         )}
                         <div className="flex items-center gap-2">
                             <button type="button" onClick={accept} disabled={disabled}
-                                className="rounded-md px-3 py-1.5 text-xs font-medium text-white"
-                                style={{ background: 'var(--accent-primary)' }}>
+                                className="rounded-md px-3 py-1.5 text-xs font-medium text-white bg-[var(--accent-primary)]">
                                 {t('studio_apps_bi.sync.create_it', 'Create it')}
                             </button>
-                            <button type="button" onClick={() => setProposal(null)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <button type="button" onClick={() => setProposal(null)} className="text-xs text-[var(--text-secondary)]">
                                 {t('studio_apps_bi.sync.not_now', 'Not now')}
                             </button>
                         </div>
@@ -412,13 +411,12 @@ export default function ConnectorSyncPanel({
                                 ? createMailboxTables()
                                 : runWithSave({ dirty: !saved, onSave, action: inspect }))}
                             disabled={disabled || busy === 'inspect' || (!isMailbox && !appId)}
-                            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                         >
                             {busy === 'inspect' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Database className="h-3.5 w-3.5" aria-hidden="true" />}
                             {isMailbox ? t('studio_apps_bi.sync.set_up_table', 'Set up a table') : saveFirstLabel(t('studio_apps_bi.sync.set_up_table', 'Set up a table'), !saved, t)}
                         </button>
-                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-xs text-[var(--text-tertiary)]">
                             {isMailbox
                                 ? (connector.groupIntoThreads
                                     ? t('studio_apps_bi.sync.creates_threads_messages', 'Creates a conversations table and a messages table.')
@@ -444,8 +442,8 @@ export default function ConnectorSyncPanel({
     const cadence = sync.schedule?.everyMinutes || 60;
 
     return (
-        <div className="rounded-lg border p-3 flex flex-col gap-2.5" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-            <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+        <div className="rounded-lg border p-3 flex flex-col gap-2.5 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
                 <Database className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                 {t('studio_apps_bi.sync.fills_table', 'Fills the table “{name}”', { name: table?.name || table?.key || sync.tableId })}
             </div>
@@ -499,13 +497,13 @@ export default function ConnectorSyncPanel({
                         placeholder="0 6 * * *"
                         onChange={(e) => patchSync({ schedule: { ...sync.schedule, cron: e.target.value } })}
                     />
-                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-xs text-[var(--text-tertiary)]">
                         {t('studio_apps_bi.sync.cron_hint', 'Minute, hour, day of month, month, day of week — in {tz}.', { tz: sync.schedule.tz || t('studio_apps_bi.sync.your_timezone', 'your timezone') })}
                     </span>
                 </label>
             ) : null}
 
-            <label className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <label className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
                 <input
                     type="checkbox"
                     checked={sync.refreshOnView !== false}
@@ -515,14 +513,14 @@ export default function ConnectorSyncPanel({
                 />
                 <span>
                     {t('studio_apps_bi.sync.refresh_on_view', 'Also refresh when someone opens the app and the data is older than that.')}
-                    <span className="block" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="block text-[var(--text-tertiary)]">
                         {t('studio_apps_bi.sync.refresh_on_view_hint', 'Keeps an app nobody opens from spending API calls.')}
                     </span>
                 </span>
             </label>
 
             {incremental ? (
-                <label className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <label className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
                     <input
                         type="checkbox"
                         checked
@@ -532,25 +530,24 @@ export default function ConnectorSyncPanel({
                     />
                     <span>
                         <strong>{incrementalCopy(connector, incremental, t).title}</strong>
-                        <span className="block" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="block text-[var(--text-tertiary)]">
                             {incrementalCopy(connector, incremental, t).body}
                         </span>
                     </span>
                 </label>
             ) : null}
 
-            <div className="flex flex-wrap items-center gap-2 border-t pt-2.5" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="flex flex-wrap items-center gap-2 border-t pt-2.5 border-[var(--border-default)]">
                 <button
                     type="button"
                     onClick={refreshNow}
                     disabled={disabled || !appId || !saved || busy === 'sync'}
-                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                 >
                     {busy === 'sync' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}
                     {t('studio_apps_bi.sync.refresh_now', 'Refresh now')}
                 </button>
-                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-xs text-[var(--text-tertiary)]">
                     {/* Refresh now is the ONE action that stays gated: it writes
                         real rows from someone's mailbox into the app database,
                         and an implicit save under that is a side effect nobody
@@ -570,8 +567,7 @@ export default function ConnectorSyncPanel({
                     type="button"
                     onClick={() => onChange({ sync: undefined })}
                     disabled={disabled}
-                    className="ml-auto text-xs"
-                    style={{ color: 'var(--error)' }}
+                    className="ml-auto text-xs text-[var(--error)]"
                 >
                     {t('studio_apps_bi.sync.stop_filling', 'Stop filling this table')}
                 </button>

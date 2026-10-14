@@ -28,7 +28,7 @@ function SavedGallery({ saved, status, onInstall }) {
     const { t } = useTranslation();
     if (status === 'error') {
         return (
-            <p className="w-full flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}
+            <p className="w-full flex items-start gap-1.5 text-xs text-[var(--text-tertiary)]"
                data-testid="blueprint-gallery-unavailable">
                 <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
                 {t('solutions.install_gallery_failed',
@@ -39,15 +39,14 @@ function SavedGallery({ saved, status, onInstall }) {
     if (saved.length === 0) return null;
     return (
         <div className="w-full flex flex-wrap items-center gap-2">
-            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <span className="text-xs text-[var(--text-tertiary)]">
                 {t('projects.blueprint_saved_here', 'Kept on this instance')}:
             </span>
             {saved.map(b => (
                 <button
                     key={b.id}
                     onClick={() => onInstall(b.id)}
-                    className="px-2.5 py-1 rounded-lg text-xs border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="px-2.5 py-1 rounded-lg text-xs border border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     {b.name} · v{b.version}
                 </button>
@@ -91,8 +90,7 @@ export default function InstallBlueprintButton({ onInstalled, showGallery = true
         <>
             <button
                 onClick={() => inputRef.current?.click()}
-                className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 border"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 border border-[var(--border-default)] text-[var(--text-secondary)]"
                 data-testid="projects-page-install-blueprint"
             >
                 {savedStatus === 'loading'
@@ -118,7 +116,7 @@ export default function InstallBlueprintButton({ onInstalled, showGallery = true
             )}
 
             {error && (
-                <p className="w-full flex items-start gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+                <p className="w-full flex items-start gap-2 text-sm text-[var(--text-primary)]">
                     <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
                     {error}
                 </p>

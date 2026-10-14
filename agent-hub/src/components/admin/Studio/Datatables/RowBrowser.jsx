@@ -337,7 +337,7 @@ export default function RowBrowser({ table, onChanged, mirror = null, reloadKey 
 
     if (rows === null) {
         return (
-            <div className="py-8 flex justify-center" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="py-8 flex justify-center text-[var(--text-tertiary)]">
                 <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                 <span className="sr-only">{t('datatables.loading', 'Loading…')}</span>
             </div>
@@ -390,13 +390,13 @@ export default function RowBrowser({ table, onChanged, mirror = null, reloadKey 
                         : t('datatables.filter', 'Filter')}
                 </button>
 
-                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-xs text-[var(--text-tertiary)]">
                     {rowsWord(t, total)}
                     {isMirror && mirror?.sync?.lastSuccessAt
                         ? <>{' · '}{t('datatables.nc_rows_refreshed', 'refreshed {when}', { when: rel(mirror.sync.lastSuccessAt) })}</>
                         : table.updatedAt && <>{' · '}{t('datatables.rows_updated', 'updated {when}', { when: rel(table.updatedAt) })}</>}
                     {writing && (
-                        <span className="inline-flex items-center gap-1 ml-2" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="inline-flex items-center gap-1 ml-2 text-[var(--text-secondary)]">
                             <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
                             {t('datatables.src_writing', 'Writing to {source}…', { source: sourceName })}
                         </span>
@@ -448,10 +448,9 @@ export default function RowBrowser({ table, onChanged, mirror = null, reloadKey 
             {/* aria-live: a failed save or a row conflict lands here without
                 moving focus, so silently is exactly how it reads otherwise. */}
             <div aria-live="polite">
-                {error && <p className="text-xs px-3 py-2 rounded" style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}>{error}</p>}
+                {error && <p className="text-xs px-3 py-2 rounded bg-[var(--bg-secondary)] text-[var(--warning)]">{error}</p>}
                 {canWrite && selected.size > 0 && (
-                    <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                    <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)]">
                         <span>{selected.size === 1
                             ? t('datatables.selected_one', '1 row selected')
                             : t('datatables.selected_n', '{n} rows selected', { n: selected.size })}</span>
@@ -525,7 +524,7 @@ export default function RowBrowser({ table, onChanged, mirror = null, reloadKey 
                 }}>
                     <table className="w-full text-xs">
                         <thead>
-                            <tr style={{ background: 'var(--bg-secondary)' }}>
+                            <tr className="bg-[var(--bg-secondary)]">
                                 {canWrite && (
                                     <th className="px-3 py-2.5 w-10">
                                         <input
@@ -544,7 +543,7 @@ export default function RowBrowser({ table, onChanged, mirror = null, reloadKey 
                                 <HeadCell t={t} sort={sort} field="created_at" onSort={() => toggleSort('created_at')}
                                     label={t('datatables.col_added', 'Added')} kind="date" muted />
                                 {retention && (
-                                    <th className="px-3 py-2.5 text-left font-semibold whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                                    <th className="px-3 py-2.5 text-left font-semibold whitespace-nowrap text-[var(--text-secondary)]">
                                         {t('datatables.col_expires', 'Expires')}
                                     </th>
                                 )}
@@ -582,7 +581,7 @@ export default function RowBrowser({ table, onChanged, mirror = null, reloadKey 
                                                     : <ManagedCell t={t} managedKind={table.managedKind} column={c} row={r} />}
                                             </td>
                                         ))}
-                                        <td className="px-3 py-2.5 align-top whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}
+                                        <td className="px-3 py-2.5 align-top whitespace-nowrap text-[var(--text-tertiary)]"
                                             title={r.created_at ? String(r.created_at).slice(0, 16).replace('T', ' ') : undefined}>
                                             {r.created_at ? rel(r.created_at) : '—'}
                                         </td>
@@ -771,7 +770,7 @@ function RelationCell({ t, column, row, columns, mirror }) {
         const localCol = columns.find(c => c.id === rel.localFieldId);
         label = localCol ? row[localCol.key] : null;
     }
-    if (id === null || id === undefined || id === '') return <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+    if (id === null || id === undefined || id === '') return <span className="text-[var(--text-tertiary)]">—</span>;
     return (
         <span
             className="inline-flex items-center gap-1 text-[11px] max-w-full"
@@ -838,7 +837,7 @@ function ManagedCell({ t, managedKind, column, row }) {
  */
 function ExpiryCell({ t, row, retention }) {
     const e = rowExpiry(row, retention);
-    if (!e) return <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+    if (!e) return <span className="text-[var(--text-tertiary)]">—</span>;
     if (e.overdue) {
         return (
             <span className="text-[11px] font-semibold" style={{
@@ -864,7 +863,7 @@ function ExpiryCell({ t, row, retention }) {
         );
     }
     return (
-        <span style={{ color: 'var(--text-secondary)' }}>
+        <span className="text-[var(--text-secondary)]">
             {t('datatables.expiry_in_days', 'in {n} days', { n: e.days })}
         </span>
     );
@@ -903,9 +902,9 @@ function AddRowForm({ columns: allColumns, onCancel, onAdd, requiredHint = null 
         >
             {columns.map(c => (
                 <label key={c.key} className="block">
-                    <span className="block text-[11px] mb-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="block text-[11px] mb-0.5 text-[var(--text-secondary)]">
                         <span title={columnKeyTitle(c)}>{columnLabel(c)}</span>
-                        {c.required && requiredHint ? <span style={{ color: 'var(--text-tertiary)' }}>{' · '}{requiredHint}</span> : null}
+                        {c.required && requiredHint ? <span className="text-[var(--text-tertiary)]">{' · '}{requiredHint}</span> : null}
                     </span>
                     <RowCellEditor
                         field={c}

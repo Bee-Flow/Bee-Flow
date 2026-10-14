@@ -37,11 +37,11 @@ export default function ChoiceCard({ name, kind, icon, checked, onChange, title,
                 <input type="radio" name={name} checked={checked} onChange={onChange} disabled={disabled} className="shrink-0" />
                 {icon}
                 {Glyph && !icon && <Glyph className="w-3.5 h-3.5 shrink-0" style={{ color: kindColorVar(kind) }} aria-hidden="true" />}
-                <span className="text-sm font-semibold min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</span>
+                <span className="text-sm font-semibold min-w-0 text-[var(--text-primary)]">{title}</span>
             </span>
-            <span className="text-[11px] leading-[17px]" style={{ color: 'var(--text-secondary)' }}>{blurb}</span>
+            <span className="text-[11px] leading-[17px] text-[var(--text-secondary)]">{blurb}</span>
             {note && (
-                <span className="text-[11px] leading-[17px]" style={{ color: 'var(--text-tertiary)' }}>{note}</span>
+                <span className="text-[11px] leading-[17px] text-[var(--text-tertiary)]">{note}</span>
             )}
         </label>
     );

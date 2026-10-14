@@ -181,14 +181,14 @@ export default function SourceDetail({
                     </div>
 
                     {loading ? (
-                        <p className="px-3.5 py-6 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="px-3.5 py-6 text-center text-[var(--text-tertiary)]">
                             <Loader2 className="w-4 h-4 animate-spin inline" aria-hidden="true" />
                             <span className="sr-only">{t('knowledge.loading', 'Loading…')}</span>
                         </p>
                     ) : error ? (
-                        <p className="px-3.5 py-4" style={{ color: 'var(--warning)' }}>{error}</p>
+                        <p className="px-3.5 py-4 text-[var(--warning)]">{error}</p>
                     ) : docs.length === 0 ? (
-                        <p className="px-3.5 py-6 text-center" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="px-3.5 py-6 text-center text-[var(--text-secondary)]">
                             {t('knowledge.docs.empty', 'Nothing here yet.')}
                         </p>
                     ) : docs.map((d, i) => (
@@ -210,8 +210,7 @@ export default function SourceDetail({
                 )}
 
                 <p
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
                 >
                     <ShieldCheck className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                     {t('knowledge.docs.redacted_note', '“Shielded” means personal data (name, address, IBAN) was replaced before the text entered the knowledge base. The AI knows the terms, not the customer.')}
@@ -220,8 +219,7 @@ export default function SourceDetail({
                 {docs.some(d => d.pii_status === 'unscanned' && d.status !== 'skipped') && (
                     <p
                         data-testid="kb-unscanned-banner"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--warning-ink)' }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning-ink)]"
                     >
                         <TriangleAlert className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                         {t('knowledge.docs.unchecked_note', 'Some of these were stored without being checked for personal data — the checker was unavailable or the document was too large. They are checked again on the next refresh.')}
@@ -287,8 +285,8 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }) {
             <span className="flex items-center gap-2 min-w-0">
                 <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
                 <span className="min-w-0">
-                    <span className="block font-medium truncate" style={{ color: 'var(--text-primary)' }}>{doc.title}</span>
-                    <span className="block truncate" style={{ color: 'var(--text-tertiary)' }}>{sizeLine(t, doc)}</span>
+                    <span className="block font-medium truncate text-[var(--text-primary)]">{doc.title}</span>
+                    <span className="block truncate text-[var(--text-tertiary)]">{sizeLine(t, doc)}</span>
                 </span>
             </span>
 
@@ -297,7 +295,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }) {
                     was skipped, which is more useful than an empty cell. */}
                 {doc.extract_summary || doc.status_reason || ''}
                 {doc.overlaps_document_id && (
-                    <span style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-[var(--text-tertiary)]">
                         {' · '}{t('knowledge.docs.overlaps', 'overlaps another source')}
                     </span>
                 )}
@@ -321,7 +319,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }) {
                 )}
             </span>
 
-            <span style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-[var(--text-secondary)]">
                 {rel(doc.source_modified_at || doc.updated_at || doc.created_at)}
             </span>
 
@@ -335,8 +333,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }) {
                             aria-haspopup="menu"
                             aria-expanded={menuOpen}
                             aria-label={t('knowledge.docs.row_menu', 'Actions for {name}', { name: doc.title })}
-                            className="p-1 rounded"
-                            style={{ color: 'var(--text-tertiary)' }}
+                            className="p-1 rounded text-[var(--text-tertiary)]"
                         >
                             <Ellipsis className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
@@ -352,8 +349,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }) {
                                     await knowledgeApi.removeDocument(kbId, doc.id).catch(() => {});
                                     onChanged?.();
                                 }}
-                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-[var(--bg-secondary)]"
-                                style={{ color: 'var(--error)' }}
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-[var(--bg-secondary)] text-[var(--error)]"
                             >
                                 {t('knowledge.docs.delete', 'Delete')}
                             </button>
@@ -369,7 +365,7 @@ function Pager({ t, total, offset, onOffset }) {
     const from = offset + 1;
     const to = Math.min(offset + PAGE_SIZE, total);
     return (
-        <div className="flex items-center gap-2 justify-end" style={{ color: 'var(--text-secondary)' }}>
+        <div className="flex items-center gap-2 justify-end text-[var(--text-secondary)]">
             <span>{t('knowledge.docs.range', '{from}–{to} of {total}', { from, to, total })}</span>
             <button type="button" disabled={offset === 0} onClick={() => onOffset(Math.max(0, offset - PAGE_SIZE))}
                 className="px-2 py-1 rounded-lg disabled:opacity-40" style={{ border: '1px solid var(--border-default)' }}>

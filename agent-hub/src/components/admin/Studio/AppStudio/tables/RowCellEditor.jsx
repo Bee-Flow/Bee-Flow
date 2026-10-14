@@ -65,15 +65,14 @@ function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }
     };
     return (
         <div
-            className="flex flex-col gap-1 rounded-md border p-1.5"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)' }}
+            className="flex flex-col gap-1 rounded-md border p-1.5 border-[var(--border-default)] bg-[var(--bg-primary)]"
             role="group"
             aria-label={ariaLabel}
         >
             {options.length === 0 ? (
-                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_tables.cell.no_choices', 'This column has no choices yet.')}</span>
+                <span className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_tables.cell.no_choices', 'This column has no choices yet.')}</span>
             ) : options.map((o) => (
-                <label key={o.value} className="inline-flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-primary)' }}>
+                <label key={o.value} className="inline-flex items-center gap-1.5 text-xs cursor-pointer text-[var(--text-primary)]">
                     <input
                         type="checkbox"
                         className="accent-[var(--accent-primary)]"
@@ -88,8 +87,7 @@ function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }
                 <button
                     type="button"
                     onClick={() => onDone(picked)}
-                    className="mt-0.5 self-start rounded-md border px-2 py-0.5 text-xs"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="mt-0.5 self-start rounded-md border px-2 py-0.5 text-xs border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     {t('studio_apps_tables.cell.done', 'Done')}
                 </button>

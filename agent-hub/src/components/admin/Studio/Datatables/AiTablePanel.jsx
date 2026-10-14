@@ -108,8 +108,8 @@ export default function AiTablePanel({ mode = 'create', current = null, onApply,
             <div className="flex items-start gap-2">
                 <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                 <div className="min-w-0 flex-1">
-                    <h3 id={`${testId}-title`} className="text-sm font-semibold m-0" style={{ color: 'var(--text-primary)' }}>{t('datatables.ai_title', 'Build it with AI')}</h3>
-                    <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--text-secondary)' }}>
+                    <h3 id={`${testId}-title`} className="text-sm font-semibold m-0 text-[var(--text-primary)]">{t('datatables.ai_title', 'Build it with AI')}</h3>
+                    <p className="text-xs mt-0.5 m-0 text-[var(--text-secondary)]">
                         {revise
                             ? t('datatables.ai_intro_revise', 'Say what should change. Columns you keep stay as they are — and so do their rows. Nothing is saved until you press Save.')
                             : t('datatables.ai_intro', 'Describe what the rows should hold, or paste what the columns should be based on — a spreadsheet’s header row, an e-mail, a list. The fields below are filled in for you to check.')}
@@ -135,20 +135,20 @@ export default function AiTablePanel({ mode = 'create', current = null, onApply,
                 data-testid={`${testId}-text`}
             />
             {revise && (
-                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                <label className="flex items-start gap-2 text-xs cursor-pointer text-[var(--text-secondary)]">
                     <input type="checkbox" className="mt-0.5" checked={allowDestructive} onChange={(e) => setAllowDestructive(e.target.checked)} disabled={busy} data-testid={`${testId}-allow`} />
                     <span>
-                        <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('datatables.ai_allow', 'Allow removing or retyping columns for this request')}</span>
-                        <span className="block" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="font-medium text-[var(--text-primary)]">{t('datatables.ai_allow', 'Allow removing or retyping columns for this request')}</span>
+                        <span className="block text-[var(--text-tertiary)]">
                             {t('datatables.ai_allow_help', 'Off, the AI can only add columns and rename them; a column it leaves out is put back. On, a removed or retyped column still asks you before it is saved — and names the rows it costs.')}
                         </span>
                     </span>
                 </label>
             )}
             <div className="flex flex-wrap items-center gap-2">
-                {error && <span role="alert" className="text-xs mr-auto" style={{ color: 'var(--error)' }}>{error}</span>}
+                {error && <span role="alert" className="text-xs mr-auto text-[var(--error)]">{error}</span>}
                 {!error && summary && (
-                    <span className="text-xs mr-auto inline-flex items-start gap-1.5" style={{ color: 'var(--success-ink)' }} role="status" data-testid={`${testId}-done`}>
+                    <span className="text-xs mr-auto inline-flex items-start gap-1.5 text-[var(--success-ink)]" role="status" data-testid={`${testId}-done`}>
                         <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />
                         <span>{summary}</span>
                     </span>

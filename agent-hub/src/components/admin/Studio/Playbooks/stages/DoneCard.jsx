@@ -18,8 +18,8 @@ function DoorLink({ icon, kind, label, name, onClick, t }) {
         >
             <span style={tile}>{React.cloneElement(icon, { style: glyph, 'aria-hidden': 'true' })}</span>
             <span className="min-w-0 flex-1">
-                <span className="block text-[11px]" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-                <span className="block text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{name}</span>
+                <span className="block text-[11px] text-[var(--text-secondary)]">{label}</span>
+                <span className="block text-sm font-medium truncate text-[var(--text-primary)]">{name}</span>
             </span>
             <ArrowUpRight className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
             <span className="sr-only">{t('playbooks.done.open', 'Open')}</span>
@@ -59,7 +59,7 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
                         <h2 className="font-semibold" style={{ fontSize: presenter ? 22 : 18, color: 'var(--text-primary)' }}>
                             {stopped ? t('playbooks.done.stopped_title', 'Stopped — this is what landed') : t('playbooks.done.title', '{title} is ready', { title: playbook.title })}
                         </h2>
-                        <p className="text-xs mt-1 flex flex-wrap gap-x-2" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-xs mt-1 flex flex-wrap gap-x-2 text-[var(--text-secondary)]">
                             <span>{t('playbooks.done.phases', '{n} of {total} phases built', { n: doneCount, total: phases.length })}</span>
                             {elapsed && (<><span aria-hidden="true">·</span><span>{t('playbooks.done.elapsed', 'in {time}', { time: elapsed })}</span></>)}
                             {Number.isFinite(fill?.artifacts?.rowCount) && (<><span aria-hidden="true">·</span><span>{t('playbooks.done.rows', '{n} rows', { n: fill.artifacts.rowCount })}</span></>)}
@@ -79,14 +79,14 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
                 </div>
 
                 {access && access.artifacts && access.artifacts.accessApplied && (
-                    <p className="mt-3 flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }} data-testid="playbook-done-access">
+                    <p className="mt-3 flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]" data-testid="playbook-done-access">
                         <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />
                         {access.summary || t('playbooks.fact.access', 'Access set')}
                     </p>
                 )}
 
                 {notBuilt.length > 0 && (
-                    <ul className="mt-4 text-[11px] space-y-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <ul className="mt-4 text-[11px] space-y-0.5 text-[var(--text-secondary)]">
                         {notBuilt.map((p) => (
                             <li key={p.key}>
                                 {phaseLabel(p, t)}

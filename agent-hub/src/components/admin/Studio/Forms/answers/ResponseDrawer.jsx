@@ -54,8 +54,8 @@ export default function ResponseDrawer({ datatableId, response, questions, mine,
                 </>
             )}
         >
-            {error && <p role="alert" className="text-xs" style={{ color: 'var(--error)' }}>{error.message}</p>}
-            {!row && !error && <div className="flex items-center gap-2 text-xs py-4" style={{ color: 'var(--text-tertiary)' }}><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('datatables.loading', 'Loading…')}</div>}
+            {error && <p role="alert" className="text-xs text-[var(--error)]">{error.message}</p>}
+            {!row && !error && <div className="flex items-center gap-2 text-xs py-4 text-[var(--text-tertiary)]"><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('datatables.loading', 'Loading…')}</div>}
             {row && (
                 <dl className="space-y-3" data-testid="response-answers">
                     {questions.map((q) => {
@@ -63,7 +63,7 @@ export default function ResponseDrawer({ datatableId, response, questions, mine,
                         const empty = v === null || v === undefined || v === '';
                         return (
                             <div key={q.key}>
-                                <dt className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                                <dt className="text-[11px] font-medium text-[var(--text-tertiary)]">
                                     {q.label}{q.retired ? ` · ${t('forms.answers.retired_title', 'No longer on the form')}` : ''}
                                 </dt>
                                 <dd className="text-sm whitespace-pre-wrap break-words" style={{ color: empty ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
@@ -74,7 +74,7 @@ export default function ResponseDrawer({ datatableId, response, questions, mine,
                     })}
                 </dl>
             )}
-            {response?.runId && <p className="mt-4 text-[11px]" style={{ color: 'var(--text-tertiary)' }}><ExternalLink className="inline w-3 h-3 mr-1" aria-hidden="true" />{t('forms.answers.drawer_run_id', 'Run {id}', { id: response.runId })}</p>}
+            {response?.runId && <p className="mt-4 text-[11px] text-[var(--text-tertiary)]"><ExternalLink className="inline w-3 h-3 mr-1" aria-hidden="true" />{t('forms.answers.drawer_run_id', 'Run {id}', { id: response.runId })}</p>}
         </Modal>
     );
 }

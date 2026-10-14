@@ -75,17 +75,16 @@ function StripLine({ line, onOpen }) {
                 <button
                     type="button"
                     onClick={() => onOpen(line.automationId)}
-                    className="font-medium truncate max-w-[45%] text-left hover:underline"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="font-medium truncate max-w-[45%] text-left hover:underline text-[var(--text-primary)]"
                     data-testid="now-running-open"
                 >
                     {title}
                 </button>
             ) : (
-                <span className="font-medium truncate max-w-[45%]" style={{ color: 'var(--text-primary)' }}>{title}</span>
+                <span className="font-medium truncate max-w-[45%] text-[var(--text-primary)]">{title}</span>
             )}
             <span className="truncate" style={{ color: tone.ink }}>{lineText(line, t)}</span>
-            <span className="ml-auto shrink-0 tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+            <span className="ml-auto shrink-0 tabular-nums text-[var(--text-tertiary)]">
                 {line.at ? rel(line.at) : ''}
             </span>
         </li>
@@ -107,10 +106,10 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
             style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
             data-testid="now-running"
         >
-            <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                 <Activity className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
                 {t('runs.now.title', 'Now running')}
-                <span className="ml-auto text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="ml-auto text-xs font-normal text-[var(--text-tertiary)]">
                     {t('runs.now.window', 'last 24 hours')}
                 </span>
             </div>
@@ -122,7 +121,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
             ) : !model ? (
                 /* UNREADABLE — never "nothing is running". A strip people
                    glance at has to be able to say it does not know. */
-                <div className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }} data-testid="now-running-unknown">
+                <div className="flex items-start gap-2 text-xs text-[var(--text-secondary)]" data-testid="now-running-unknown">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--warning)' }} aria-hidden="true" />
                     <span>
                         {failed
@@ -131,7 +130,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
                     </span>
                 </div>
             ) : model.lines.length === 0 ? (
-                <div className="text-xs" style={{ color: 'var(--text-tertiary)' }} data-testid="now-running-empty">
+                <div className="text-xs text-[var(--text-tertiary)]" data-testid="now-running-empty">
                     {t('runs.now.empty', 'Nothing has run in the last 24 hours.')}
                 </div>
             ) : (
@@ -142,7 +141,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
                         ))}
                     </ul>
                     {model.hidden > 0 && (
-                        <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="now-running-more">
+                        <div className="text-[11px] text-[var(--text-tertiary)]" data-testid="now-running-more">
                             {nOf(t, 'runs.now.more', model.hidden, 'and {count} more automation', 'and {count} more automations')}
                         </div>
                     )}

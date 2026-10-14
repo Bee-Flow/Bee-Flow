@@ -118,17 +118,16 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }) {
     const previewColumns = mapping.map((key, index) => ({ key, index })).filter(c => c.key !== NO_IMPORT);
 
     return (
-        <div className="flex flex-col gap-3 rounded-lg border p-3"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+        <div className="flex flex-col gap-3 rounded-lg border p-3 border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
             <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
                     <ClipboardPaste className="h-4 w-4" aria-hidden="true" />
                     {t('datatables.import_title', 'Paste from a spreadsheet')}
                 </span>
                 <Button onClick={onClose} disabled={busy} className="ml-auto">{t('datatables.import_back', 'Back to rows')}</Button>
             </div>
 
-            <label className="flex flex-col gap-1 text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+            <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
                 {t('datatables.import_help', 'Copy the rows in Excel or Google Sheets — including the header row — and paste them here.')}
                 <textarea
                     className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs"
@@ -146,12 +145,12 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }) {
             {parsed.header.length > 0 && !result && (
                 <>
                     <div className="flex flex-col gap-2">
-                        <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-xs font-semibold text-[var(--text-secondary)]">
                             {t('datatables.import_mapping', 'Where does each column go?')}
                         </p>
                         {parsed.header.map((name, index) => (
                             <div key={`${name}-${index}`} className="flex items-center gap-2 text-xs">
-                                <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
+                                <span className="min-w-0 flex-1 truncate text-[var(--text-primary)]">
                                     {name || t('datatables.import_column_n', 'Column {n}', { n: index + 1 })}
                                 </span>
                                 <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
@@ -175,8 +174,7 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }) {
                                 <thead>
                                     <tr>
                                         {previewColumns.map(c => (
-                                            <th key={c.index} className="px-2 py-1 text-left font-medium"
-                                                style={{ color: 'var(--text-secondary)' }}>
+                                            <th key={c.index} className="px-2 py-1 text-left font-medium text-[var(--text-secondary)]">
                                                 {fields.find(f => f.key === c.key)?.name || c.key}
                                             </th>
                                         ))}
@@ -186,8 +184,7 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }) {
                                     {previewRows.map((cells, i) => (
                                         <tr key={i}>
                                             {previewColumns.map(c => (
-                                                <td key={c.index} className="px-2 py-1 align-top"
-                                                    style={{ color: 'var(--text-primary)' }}>
+                                                <td key={c.index} className="px-2 py-1 align-top text-[var(--text-primary)]">
                                                     {cells[c.index] ?? ''}
                                                 </td>
                                             ))}
@@ -206,7 +203,7 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }) {
                                 : t('datatables.import_n', 'Import {n} rows', { n: parsed.rows.length })}
                         </Button>
                         {mappedCount === 0 && (
-                            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-xs text-[var(--text-tertiary)]">
                                 {t('datatables.import_unmapped', 'Point at least one column at a field first.')}
                             </span>
                         )}
@@ -218,14 +215,14 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }) {
                 change at all, so its result is otherwise visual only. */}
             <div aria-live="polite" className="flex flex-col gap-3">
             {error && (
-                <p className="text-xs px-2 py-1.5 rounded" style={{ background: 'var(--bg-primary)', color: 'var(--warning)' }}>
+                <p className="text-xs px-2 py-1.5 rounded bg-[var(--bg-primary)] text-[var(--warning)]">
                     {error}
                 </p>
             )}
 
             {result && (
                 <div className="flex flex-col gap-1.5 text-xs">
-                    <p style={{ color: 'var(--text-primary)' }}>
+                    <p className="text-[var(--text-primary)]">
                         {result.inserted === 1
                             ? t('datatables.import_done_one', '1 row imported')
                             : t('datatables.import_done', '{n} rows imported', { n: result.inserted })}
@@ -236,7 +233,7 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }) {
                     {result.errors.length > 0 && (
                         <ul className="flex flex-col gap-1">
                             {result.errors.map(e => (
-                                <li key={e.line} className="flex items-start gap-1.5" style={{ color: 'var(--warning)' }}>
+                                <li key={e.line} className="flex items-start gap-1.5 text-[var(--warning)]">
                                     <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" aria-hidden="true" />
                                     <span>{t('datatables.import_line', 'Line {n}', { n: e.line })}: {e.error}</span>
                                 </li>

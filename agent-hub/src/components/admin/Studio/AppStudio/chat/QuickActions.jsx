@@ -65,8 +65,7 @@ export default function QuickActions({ onAction, disabled = false, hasErrors = f
 
     return (
         <div
-            className="flex shrink-0 flex-wrap items-center gap-1.5 border-t px-2 py-1.5"
-            style={{ borderColor: 'var(--border-default)' }}
+            className="flex shrink-0 flex-wrap items-center gap-1.5 border-t px-2 py-1.5 border-[var(--border-default)]"
             data-quick-actions=""
         >
             {/* Something is broken → the repair chip leads the row. */}
@@ -80,8 +79,7 @@ export default function QuickActions({ onAction, disabled = false, hasErrors = f
                         disabled={disabled}
                         onClick={() => trigger(a.prompt)}
                         title={tr(a.title)}
-                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         <Icon className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                         {tr(a.label)}

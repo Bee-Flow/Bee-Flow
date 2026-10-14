@@ -560,11 +560,10 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
     useEffect(() => { chromeRef.current?.publishBuildCue?.(cue); }, [cue]);
 
     return (
-        <div className="flex h-full min-h-0 flex-col" style={{ background: 'var(--bg-primary)' }}>
+        <div className="flex h-full min-h-0 flex-col bg-[var(--bg-primary)]">
             {/* Header */}
             <div
-                className="flex shrink-0 items-center gap-2 border-b px-3 py-2"
-                style={{ borderColor: 'var(--border-default)' }}
+                className="flex shrink-0 items-center gap-2 border-b px-3 py-2 border-[var(--border-default)]"
             >
                 <span
                     className="flex h-7 w-7 items-center justify-center rounded-lg"
@@ -575,7 +574,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
                 >
                     <Sparkles size={14} aria-hidden="true" />
                 </span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
                     {t('app_studio.builder.chat.title', 'AI builder')}
                 </span>
             </div>
@@ -593,10 +592,10 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
                         >
                             <Sparkles size={18} aria-hidden="true" />
                         </span>
-                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-sm font-medium text-[var(--text-primary)]">
                             {t('app_studio.builder.chat.empty_title', 'Build with AI')}
                         </p>
-                        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="text-xs leading-relaxed text-[var(--text-tertiary)]">
                             {t('app_studio.builder.chat.empty_hint', "Describe the app you want — I'll build it on the canvas")}
                         </p>
                     </div>
@@ -647,14 +646,14 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
 
                         {/* Phased-build progress. */}
                         {running && currentPhase ? (
-                            <div className="self-start px-1 text-xs font-medium" style={{ color: 'var(--accent-primary)' }}>
+                            <div className="self-start px-1 text-xs font-medium text-[var(--accent-primary)]">
                                 {t('app_studio.builder.chat.phase_line', 'Building — phase {i}{total}{label}', { i: currentPhase.index, total: currentPhase.total ? `/${currentPhase.total}` : '', label: currentPhase.label ? `: ${currentPhase.label}` : '' })}
                             </div>
                         ) : null}
 
                         {/* Auto-continuation after a mid-plan budget exhaustion. */}
                         {continuation ? (
-                            <div className="self-start px-1 text-xs italic" style={{ color: 'var(--text-tertiary)' }}>
+                            <div className="self-start px-1 text-xs italic text-[var(--text-tertiary)]">
                                 {t('app_studio.builder.chat.continuing', 'Continuing{phase}…', { phase: continuation.phase ? ` (phase ${continuation.phase}${continuation.total ? `/${continuation.total}` : ''})` : '' })}
                             </div>
                         ) : null}
@@ -693,13 +692,11 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
 
             {/* Composer */}
             <form
-                className="shrink-0 border-t p-2"
-                style={{ borderColor: 'var(--border-default)' }}
+                className="shrink-0 border-t p-2 border-[var(--border-default)]"
                 onSubmit={(e) => { e.preventDefault(); handleSend(); }}
             >
                 <div
-                    className="flex flex-col gap-1.5 rounded-lg border px-2 py-1.5"
-                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}
+                    className="flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 border-[var(--border-default)] bg-[var(--bg-secondary)]"
                 >
                     {/* Staged screenshots, each with its own remove button. */}
                     <StagedImages images={images} onRemove={removeImage} disabled={busy} />
@@ -742,8 +739,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
                                     title={images.length >= MAX_IMAGES_PER_TURN
                                         ? t('app_studio.builder.chat.attach_limit', 'You can attach up to {n} images', { n: MAX_IMAGES_PER_TURN })
                                         : t('app_studio.builder.chat.attach_title', 'Attach an image (or paste a screenshot)')}
-                                    className="rounded-md p-1.5 transition-opacity disabled:opacity-40"
-                                    style={{ color: 'var(--text-tertiary)' }}
+                                    className="rounded-md p-1.5 transition-opacity disabled:opacity-40 text-[var(--text-tertiary)]"
                                 >
                                     <ImagePlus size={16} aria-hidden="true" />
                                 </button>
@@ -758,8 +754,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
                                 onClick={stop}
                                 aria-label={t('app_studio.builder.chat.stop', 'Stop')}
                                 title={t('app_studio.builder.chat.stop_title', 'Stop building')}
-                                className="rounded-md p-1.5 transition-opacity"
-                                style={{ color: 'var(--accent-primary)' }}
+                                className="rounded-md p-1.5 transition-opacity text-[var(--accent-primary)]"
                             >
                                 <Square size={14} fill="currentColor" aria-hidden="true" />
                             </button>
@@ -769,8 +764,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
                                 disabled={!input.trim() && !images.length}
                                 aria-label={t('app_studio.builder.chat.send', 'Send')}
                                 title={t('app_studio.builder.chat.send_title', 'Send (Enter)')}
-                                className="rounded-md p-1.5 transition-opacity disabled:opacity-40"
-                                style={{ color: 'var(--accent-primary)' }}
+                                className="rounded-md p-1.5 transition-opacity disabled:opacity-40 text-[var(--accent-primary)]"
                             >
                                 <Send size={16} aria-hidden="true" />
                             </button>
@@ -821,7 +815,7 @@ function ScreenshotItem({ item }) {
                 className="block w-full"
             />
             {item.caption ? (
-                <figcaption className="px-2.5 py-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <figcaption className="px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)]">
                     {item.caption}
                 </figcaption>
             ) : null}
@@ -927,26 +921,24 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
 
     return (
         <div
-            className="flex w-full flex-col rounded-lg border text-xs"
+            className="flex w-full flex-col rounded-lg border text-xs border-[var(--border-default)] bg-[var(--bg-secondary)]"
             data-what-changed=""
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}
         >
             <button
                 type="button"
                 onClick={onToggle}
                 aria-expanded={open}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-left font-medium"
-                style={{ color: 'var(--text-secondary)' }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-left font-medium text-[var(--text-secondary)]"
             >
                 <Chevron size={13} className="shrink-0" aria-hidden="true" />
                 {t('studio_apps_edit.chat.what_changed', 'What changed')}
-                <span style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[var(--text-tertiary)]">
                     {total === 1 ? t('studio_apps_edit.chat.updates_one', '· 1 update') : t('studio_apps_edit.chat.updates_many', '· {n} updates', { n: total })}
                 </span>
             </button>
 
             {open ? (
-                <div className="flex flex-col gap-1.5 border-t px-2.5 py-2" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="flex flex-col gap-1.5 border-t px-2.5 py-2 border-[var(--border-default)]">
                     <ul className="flex flex-col gap-0.5">
                         {rows.map((row) => {
                             const type = findNode(finalDef, row.id)?.node?.type;
@@ -955,8 +947,7 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                                     <button
                                         type="button"
                                         onClick={() => onSelect?.(row.id)}
-                                        className="flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-[var(--bg-tertiary)]"
-                                        style={{ color: 'var(--text-secondary)' }}
+                                        className="flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                                     >
                                         <span
                                             className="shrink-0 rounded px-1 text-[10px] font-medium"
@@ -975,7 +966,7 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                             );
                         })}
                         {total > rows.length ? (
-                            <li className="px-1 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                            <li className="px-1 text-[11px] text-[var(--text-tertiary)]">
                                 {t('studio_apps_edit.chat.more_changes', '+{n} more', { n: total - rows.length })}
                             </li>
                         ) : null}
@@ -985,8 +976,7 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                             <button
                                 type="button"
                                 onClick={() => onUndo()}
-                                className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                             >
                                 <Undo2 className="h-3 w-3" aria-hidden="true" />
                                 {t('studio_apps_edit.chat.undo_turn', 'Undo turn')}
@@ -996,8 +986,7 @@ function WhatChanged({ change, open, onToggle, onSelect, onUndo, onRevert }) {
                             <button
                                 type="button"
                                 onClick={() => onRevert()}
-                                className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                             >
                                 <History className="h-3 w-3" aria-hidden="true" />
                                 {t('studio_apps_edit.chat.revert_checkpoint', 'Revert to checkpoint')}

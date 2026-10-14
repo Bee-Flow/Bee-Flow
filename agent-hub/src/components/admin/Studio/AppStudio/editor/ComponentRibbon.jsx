@@ -245,8 +245,7 @@ export default function ComponentRibbon({
                         aria-label={collapsed ? t('app_studio.palette.show_strip', 'Show the component strip') : t('app_studio.palette.hide_strip', 'Hide the component strip')}
                         title={collapsed ? t('app_studio.palette.show_strip', 'Show the component strip') : t('app_studio.palette.hide_strip', 'Hide the component strip')}
                         aria-expanded={!collapsed}
-                        className="shrink-0 rounded-md p-1.5 hover:bg-[var(--bg-tertiary)]"
-                        style={{ color: 'var(--text-tertiary)' }}
+                        className="shrink-0 rounded-md p-1.5 hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                     >
                         {collapsed
                             ? <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
@@ -343,8 +342,7 @@ export function CompactComponentBar({ onCommit }) {
     return (
         <>
             <span
-                className="shrink-0 select-none text-[10px] font-semibold uppercase tracking-[.08em]"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="shrink-0 select-none text-[10px] font-semibold uppercase tracking-[.08em] text-[var(--text-tertiary)]"
                 data-testid="palette-kicker"
             >
                 {t('app_studio.palette.kicker', 'Components')}
@@ -396,8 +394,7 @@ export function CompactComponentBar({ onCommit }) {
                 onClick={toggleExpanded}
                 aria-expanded={showFull}
                 aria-controls="app-studio-full-ribbon"
-                className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-medium hover:bg-[var(--bg-tertiary)]"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]"
             >
                 <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('app_studio.palette.all', 'All components')}
@@ -617,8 +614,7 @@ function CategoryChip({ icon, label, entries, disabled, onAdd }) {
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-label={t('app_studio.palette.category_aria', '{label} components', { label })}
-                className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
             >
                 <Icon className="h-[13px] w-[13px] shrink-0" aria-hidden="true" />
                 {label}
@@ -642,8 +638,7 @@ function CategoryChip({ icon, label, entries, disabled, onAdd }) {
                             type="button"
                             role="menuitem"
                             onClick={() => { setOpen(false); onAdd(type); }}
-                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)]"
-                            style={{ color: 'var(--text-primary)' }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                         >
                             {EntryIcon ? <EntryIcon className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" /> : null}
                             {entry.label}

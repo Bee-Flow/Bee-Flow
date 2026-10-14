@@ -158,14 +158,14 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
     return (
         <div className="flex min-h-[22rem] flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
                     <ClipboardPaste className="h-4 w-4" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                     {t('studio_apps_tables.paste.title', 'Paste from a spreadsheet')}
                 </span>
                 <Button onClick={onClose} disabled={importing} className="ml-auto">{t('studio_apps_tables.paste.back', 'Back to rows')}</Button>
             </div>
 
-            <label className="flex flex-col gap-1 text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+            <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
                 {t('studio_apps_tables.paste.instructions', 'Copy the rows in Excel or Google Sheets — including the header row — and paste them here.')}
                 <textarea
                     className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs"
@@ -182,13 +182,13 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
 
             {parsed.header.length > 0 && !result ? (
                 <>
-                    <div className="flex flex-col gap-2 rounded-lg border p-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                        <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex flex-col gap-2 rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                        <p className="text-xs font-semibold text-[var(--text-secondary)]">
                             {t('studio_apps_tables.paste.where_each', 'Where does each column go?')}
                         </p>
                         {parsed.header.map((name, index) => (
                             <div key={`${name}-${index}`} className="flex items-center gap-2 text-xs">
-                                <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
+                                <span className="min-w-0 flex-1 truncate text-[var(--text-primary)]">
                                     {name || t('studio_apps_tables.paste.column_n', 'Column {n}', { n: index + 1 })}
                                 </span>
                                 <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
@@ -210,7 +210,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
 
                     {previewColumns.length > 0 ? (
                         <div className="flex flex-col gap-1">
-                            <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-xs font-semibold text-[var(--text-secondary)]">
                                 {parsed.rows.length === 1
                                     ? t('studio_apps_tables.paste.preview_one', 'The first {shown} of {total} row', { shown: Math.min(PREVIEW_ROWS, parsed.rows.length), total: parsed.rows.length })
                                     : t('studio_apps_tables.paste.preview_many', 'The first {shown} of {total} rows', { shown: Math.min(PREVIEW_ROWS, parsed.rows.length), total: parsed.rows.length })}
@@ -223,8 +223,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                                                 <th
                                                     key={c.index}
                                                     scope="col"
-                                                    className="border-b px-2 py-1 text-left font-medium"
-                                                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                                    className="border-b px-2 py-1 text-left font-medium border-[var(--border-default)] text-[var(--text-secondary)]"
                                                 >
                                                     {fields.find((f) => f.key === c.key)?.name || c.key}
                                                 </th>
@@ -262,7 +261,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                             ) : null}
                         </div>
                     ) : (
-                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="text-xs text-[var(--text-tertiary)]">
                             {t('studio_apps_tables.paste.pick_column', 'Pick a column above to import first — none of them is matched to a field yet.')}
                         </p>
                     )}
@@ -281,18 +280,18 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
             ) : null}
 
             {result ? (
-                <div className="flex flex-col gap-2 rounded-lg border p-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{summary}</p>
+                <div className="flex flex-col gap-2 rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{summary}</p>
                     {result.skipped.length ? (
                         <details>
-                            <summary className="cursor-pointer text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <summary className="cursor-pointer text-xs text-[var(--text-secondary)]">
                                 {result.skipped.length === 1
                                     ? t('studio_apps_tables.paste.why_one', 'Why {n} row was skipped', { n: result.skipped.length })
                                     : t('studio_apps_tables.paste.why_many', 'Why {n} rows were skipped', { n: result.skipped.length })}
                             </summary>
                             <ul className="mt-1 flex flex-col gap-0.5">
                                 {result.skipped.map((s) => (
-                                    <li key={s.line} className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                    <li key={s.line} className="text-xs text-[var(--text-tertiary)]">
                                         {t('studio_apps_tables.paste.row_line', 'Row {line}: {message}', { line: s.line, message: s.message })}
                                     </li>
                                 ))}
@@ -301,7 +300,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                     ) : null}
 
                     {paused ? (
-                        <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
                             <span>
                                 {paused.seconds > 0
                                     ? (paused.queue.length === 1
