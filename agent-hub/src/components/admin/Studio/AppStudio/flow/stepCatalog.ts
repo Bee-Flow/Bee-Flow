@@ -3,6 +3,20 @@ import {
     FileSearch, GitBranch, Globe, Inbox, Layers, Mail, MessageSquare, Pencil, Presentation, RefreshCw,
     Repeat, Search, SquareStack, Trash2, Workflow,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { Translate } from '../editor/dryRunIssues';
+
+/** How one step kind presents itself. The keys are set for every catalog entry. */
+export interface StepPresentation {
+    label: string;
+    labelKey?: string;
+    group: string;
+    icon: LucideIcon;
+    blurb: string;
+    blurbKey?: string;
+    server?: boolean;
+    container?: boolean;
+}
 
 /**
  * How each step KIND presents itself: a human name, an icon, a group, and the
@@ -18,7 +32,7 @@ import {
 export const STEP_GROUPS = ['On screen', 'Data', 'AI', 'Flow'];
 
 /** group id → [key, English]; the id itself stays English (the catalog and its tests key on it). */
-const GROUP_LABELS = {
+const GROUP_LABELS: Record<string, [string, string]> = {
     'On screen': ['studio_apps_edit.step_catalog.group_on_screen', 'On screen'],
     Data: ['studio_apps_edit.step_catalog.group_data', 'Data'],
     AI: ['studio_apps_edit.step_catalog.group_ai', 'AI'],
@@ -26,13 +40,13 @@ const GROUP_LABELS = {
 };
 
 /** The group's name for display. */
-export function groupLabel(group, t = null) {
+export function groupLabel(group: string, t: Translate | null = null): string {
     const entry = GROUP_LABELS[group];
     if (!entry) return group;
     return t ? t(entry[0], entry[1]) : entry[1];
 }
 
-export const STEP_CATALOG = {
+export const STEP_CATALOG: Record<string, StepPresentation> = {
     // ── On screen ───────────────────────────────────────────────────────────
     navigate: {
         label: 'Go to screen', labelKey: 'studio_apps_edit.step_catalog.navigate_label', group: 'On screen', icon: ArrowRight,
@@ -191,14 +205,14 @@ export const STEP_CATALOG = {
 };
 
 /** Fallback presentation, so an unknown kind is still readable. */
-export const UNKNOWN_STEP = { label: 'Step', group: 'Flow', icon: Bell, blurb: '' };
+export const UNKNOWN_STEP: StepPresentation = { label: 'Step', group: 'Flow', icon: Bell, blurb: '' };
 
 /**
  * The presentation for a kind. With `t`, label and blurb come back translated
  * (the entries carry their keys); without it, the English as written.
  */
-export function stepMeta(kind, t = null) {
-    const meta = STEP_CATALOG[kind];
+export function stepMeta(kind: string | undefined, t: Translate | null = null): StepPresentation {
+    const meta = STEP_CATALOG[kind as string];
     if (!meta) {
         return {
             ...UNKNOWN_STEP,
@@ -206,11 +220,11 @@ export function stepMeta(kind, t = null) {
         };
     }
     if (!t) return meta;
-    return { ...meta, label: t(meta.labelKey, meta.label), blurb: t(meta.blurbKey, meta.blurb) };
+    return { ...meta, label: t(meta.labelKey as string, meta.label), blurb: t(meta.blurbKey as string, meta.blurb) };
 }
 
 /** The palette, grouped and in a fixed order. */
-export function paletteGroups(t = null) {
+export function paletteGroups(t: Translate | null = null): Array<{ group: string; label?: string; kinds: Array<{ kind: string } & StepPresentation> }> {
     return STEP_GROUPS.map((group) => ({
         group,
         label: groupLabel(group, t),
@@ -225,7 +239,7 @@ export function paletteGroups(t = null) {
  * A step that arrives already failing validation makes the author fix a problem
  * they did not create.
  */
-export function newStep(kind, { screenId = '', modalId = '', t = null } = {}) {
+export function newStep(kind: string, { screenId = '', modalId = '', t = null }: { screenId?: string; modalId?: string; t?: Translate | null } = {}): { kind: string; [key: string]: unknown } {
     switch (kind) {
         case 'navigate': return { kind, screenId };
         case 'toast': return { kind, message: '', tone: 'info' };

@@ -1,4 +1,11 @@
 import { scopesOf } from './stepGraph';
+import type { GraphNode } from './stepGraph';
+
+/** A laid-out node's position on the canvas. */
+export interface NodePosition {
+    x: number;
+    y: number;
+}
 
 /**
  * Where each node sits on the canvas.
@@ -23,17 +30,17 @@ export const NODE_W = 260;
  * `nodes` is what stepsToGraph emits, already in tree order — so a single pass
  * per scope, following the parent links, is enough.
  */
-export function layoutGraph(nodes) {
-    const positions = new Map();
-    const byPrefix = new Map();
+export function layoutGraph(nodes: GraphNode[]): Map<string, NodePosition> {
+    const positions = new Map<string, NodePosition>();
+    const byPrefix = new Map<string, GraphNode[]>();
     for (const node of nodes) {
         if (!byPrefix.has(node.prefix)) byPrefix.set(node.prefix, []);
-        byPrefix.get(node.prefix).push(node);
+        (byPrefix.get(node.prefix) as GraphNode[]).push(node);
     }
 
     let cursorY = 0;
 
-    const placeScope = (prefix, x) => {
+    const placeScope = (prefix: string, x: number): void => {
         for (const node of byPrefix.get(prefix) || []) {
             positions.set(node.id, { x, y: cursorY });
             cursorY += ROW_H;
@@ -57,7 +64,7 @@ export function layoutGraph(nodes) {
  * The height a container spans, so the canvas can draw a frame around its
  * branches. Returns null for a step that holds nothing.
  */
-export function containerBounds(node, nodes, positions) {
+export function containerBounds(node: GraphNode | null | undefined, nodes: GraphNode[], positions: Map<string, NodePosition>): { x: number; y: number; width: number; height: number } | null {
     if (!node?.step) return null;
     const scopes = scopesOf(node.step);
     if (!scopes.length) return null;

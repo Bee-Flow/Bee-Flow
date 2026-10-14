@@ -2,6 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { resolveBuildScreen } from './buildScreenTarget';
 import { MIN_MOVE_GAP_MS } from '../../../../shared/builder/revealSchedule';
 import { findScreen } from '../state/definitionOps';
+import type { AppDefinition } from '../inspector/appDefinition';
+import type { BuildScreenCue, BuildScreenTarget } from './buildScreenTarget';
+import type { RevealPlan } from './revealQueue';
+
+/** The reveal the canvas is dealing: the plan, and when it started. */
+export interface BuildReveal {
+    plan?: RevealPlan | null;
+    at?: number;
+}
+
+/** The dispatch the editor reducer takes. */
+type Dispatch = (action: { type: string; [key: string]: unknown }) => void;
 
 /**
  * The camera during an AI build — for a canvas that is a scrolling DOM grid
@@ -33,10 +45,10 @@ import { findScreen } from '../state/definitionOps';
  */
 const LAND_LEAD_MS = 200;
 
-export function scheduleFollowMoves(plan, { minGapMs = MIN_MOVE_GAP_MS, leadMs = LAND_LEAD_MS } = {}) {
+export function scheduleFollowMoves(plan: RevealPlan | null | undefined, { minGapMs = MIN_MOVE_GAP_MS, leadMs = LAND_LEAD_MS }: { minGapMs?: number; leadMs?: number } = {}): Array<{ id: string; at: number }> {
     const ids = plan && Array.isArray(plan.ids) ? plan.ids : [];
-    const delays = plan && plan.delays instanceof Map ? plan.delays : new Map();
-    const out = [];
+    const delays: Map<string, number> = plan && plan.delays instanceof Map ? plan.delays : new Map<string, number>();
+    const out: Array<{ id: string; at: number }> = [];
     let lastAt = -Infinity;
     for (const id of ids) {
         const at = (delays.get(id) || 0) + leadMs;
@@ -50,10 +62,20 @@ export function scheduleFollowMoves(plan, { minGapMs = MIN_MOVE_GAP_MS, leadMs =
 export default function useBuildFollow({
     surfaceRef, reveal, toolDraft = null, lastCall = null, definition = null, screenId = null, dispatch = null,
     enabled = false, reducedMotion = false,
-}) {
+}: {
+    surfaceRef: { current: HTMLElement | null };
+    reveal?: BuildReveal | null;
+    toolDraft?: BuildScreenCue['toolDraft'];
+    lastCall?: BuildScreenCue['lastCall'];
+    definition?: AppDefinition | null;
+    screenId?: string | null;
+    dispatch?: Dispatch | null;
+    enabled?: boolean;
+    reducedMotion?: boolean;
+}): { following: boolean; follow: () => void; screen: BuildScreenTarget | null } {
     const [following, setFollowing] = useState(true);
     const followingRef = useRef(true);
-    const timersRef = useRef([]);
+    const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
     const clearTimers = () => { for (const t of timersRef.current) clearTimeout(t); timersRef.current = []; };
 
     // The chapter: resolved on every cue change, sticky across calls that name
@@ -62,16 +84,16 @@ export default function useBuildFollow({
         () => (enabled ? resolveBuildScreen({ definition, toolDraft, lastCall, reveal }) : null),
         [enabled, definition, toolDraft, lastCall, reveal],
     );
-    const [sticky, setSticky] = useState(null);
+    const [sticky, setSticky] = useState<BuildScreenTarget | null>(null);
     useEffect(() => {
         if (!enabled) { setSticky(null); return; }
         if (resolved) setSticky(resolved);
         else setSticky((prev) => (prev && !findScreen(definition, prev.id) ? null : prev));
     }, [enabled, resolved, definition]);
     const screen = enabled ? (resolved || sticky) : null;
-    const pendingScrollRef = useRef(null);
+    const pendingScrollRef = useRef<string | null>(null);
 
-    const scrollTo = useCallback((id) => {
+    const scrollTo = useCallback((id: string) => {
         const root = surfaceRef && surfaceRef.current;
         if (!root || typeof root.querySelector !== 'function') return;
         const el = root.querySelector(`[data-node-id="${id}"]`);

@@ -4,6 +4,54 @@ import { useBuildCue } from './BuildCueContext';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { enginePill, engineSegments, showsRates } from '../../../../shared/builder/engineLine';
 import { formatElapsed } from '../../../../shared/builder/formatElapsed';
+import type { Translate } from './dryRunIssues';
+
+/** One checklist row of the build plan. */
+interface PlanTodo {
+    text?: string | null;
+    done?: boolean;
+}
+
+/** The engine line's fields. */
+interface EngineView {
+    modelId?: string;
+    local?: boolean;
+    [key: string]: unknown;
+}
+
+/** The build cue fields this banner reads (the shell's CueView is loosely typed). */
+export interface CueView {
+    startedAt?: string | number | null;
+    phase?: string;
+    running?: boolean;
+    finalized?: boolean;
+    stopped?: boolean;
+    skipped?: unknown;
+    lastCall?: { title?: string; detail?: string } | null;
+    todos?: PlanTodo[] | null;
+    phaseInfo?: { index?: number; total?: number; label?: string } | null;
+    engine?: EngineView | null;
+    turn?: unknown;
+    componentCount?: number | null;
+    screenCount?: number | null;
+}
+
+/** What the banner remembers about a build that has just ended. */
+interface Farewell {
+    startedAt: string | number | null | undefined;
+    finalized: boolean;
+    stopped: boolean;
+    componentCount: number | null | undefined;
+    screenCount: number | null | undefined;
+}
+
+/** The banner's state machine: live, the frozen farewell, or nothing. */
+export interface BannerState {
+    kind: 'live' | 'farewell' | 'none';
+    cue: CueView | null;
+    endedAt: number | null;
+    farewell: Farewell | null;
+}
 
 /**
  * The build banner on the App Studio canvas — the sibling of the automation
@@ -25,17 +73,17 @@ const FAREWELL_MS = 4000;
 const TODO_MAX = 48;
 const REASON_MAX = 72;
 
-function elapsedSince(startedAt, now) {
-    return startedAt ? formatElapsed(new Date(startedAt).toISOString(), now) : null;
+function elapsedSince(startedAt: string | number | null | undefined, now: number | null | undefined): string | null {
+    return startedAt ? formatElapsed(new Date(startedAt).toISOString(), now as number | undefined) : null;
 }
 
-function shortReason(reason) {
+function shortReason(reason: unknown): string {
     const s = String(reason || '').replace(/\s+/g, ' ').trim();
     return s.length > REASON_MAX ? `${s.slice(0, REASON_MAX - 1).trimEnd()}…` : s;
 }
 
 /** "Plan 2/5 · Koppel de tabel" — only when the model published a plan. */
-export function planStrip(todos, verb) {
+export function planStrip(todos: PlanTodo[] | null | undefined, verb: string | null | undefined): { done: number; total: number; next: string | null } | null {
     const list = Array.isArray(todos) ? todos : [];
     const total = list.length;
     if (!total) return null;
@@ -48,7 +96,12 @@ export function planStrip(todos, verb) {
     return { done, total, next: shown && !duplicate ? shown : null };
 }
 
-function PlanStrip({ todos, phaseInfo, verb, t }) {
+function PlanStrip({ todos, phaseInfo, verb, t }: {
+    todos: PlanTodo[] | null | undefined;
+    phaseInfo?: { index?: number; total?: number; label?: string } | null;
+    verb: string | null;
+    t: Translate;
+}) {
     const plan = planStrip(todos, verb);
     if (plan) {
         return (
@@ -69,7 +122,7 @@ function PlanStrip({ todos, phaseInfo, verb, t }) {
     return null;
 }
 
-function EngineLine({ engine, turn, t }) {
+function EngineLine({ engine, turn, t }: { engine: CueView['engine'] | null; turn: CueView['turn'] | null; t: Translate }) {
     const pill = enginePill({ engine, t });
     const segments = engineSegments({ engine, turn, t });
     if (!pill && !segments.length) return null;
@@ -91,13 +144,14 @@ function EngineLine({ engine, turn, t }) {
  * Whether to show, and what: the live cue while running, then the frozen
  * farewell for FAREWELL_MS after it ends. Pure over (cue, now).
  */
-export function bannerState(cue, prev, now) {
+export function bannerState(cue: CueView | null | undefined, prev: BannerState | null, now: number): BannerState {
     if (cue && cue.running) return { kind: 'live', cue, endedAt: null, farewell: null };
     if (prev && prev.kind === 'live') {
         // The build just ended: freeze what it was into the farewell.
-        return { kind: 'farewell', cue: null, endedAt: now, farewell: { startedAt: prev.cue.startedAt, finalized: !!(cue && cue.finalized), stopped: !!(cue && cue.stopped), componentCount: cue ? cue.componentCount : prev.cue.componentCount, screenCount: cue ? cue.screenCount : prev.cue.screenCount } };
+        const was = prev.cue as CueView;
+        return { kind: 'farewell', cue: null, endedAt: now, farewell: { startedAt: was.startedAt, finalized: !!(cue && cue.finalized), stopped: !!(cue && cue.stopped), componentCount: cue ? cue.componentCount : was.componentCount, screenCount: cue ? cue.screenCount : was.screenCount } };
     }
-    if (prev && prev.kind === 'farewell' && now - prev.endedAt < FAREWELL_MS) return prev;
+    if (prev && prev.kind === 'farewell' && now - (prev.endedAt as number) < FAREWELL_MS) return prev;
     return { kind: 'none', cue: null, endedAt: null, farewell: null };
 }
 
@@ -107,11 +161,15 @@ export function bannerState(cue, prev, now) {
  *   the verb as "on Suppliers" so the banner and the canvas agree by
  *   construction; skipped when the verb already names it.
  */
-export default function BuildBanner({ following = true, onFollow = null, screen = null }) {
+export default function BuildBanner({ following = true, onFollow = null, screen = null }: {
+    following?: boolean;
+    onFollow?: (() => void) | null;
+    screen?: { id: string; name?: string } | null;
+}) {
     const { t } = useTranslation();
-    const cue = useBuildCue();
+    const cue = useBuildCue() as CueView | null;
     const [now, setNow] = useState(() => Date.now());
-    const [state, setState] = useState(() => bannerState(cue, null, Date.now()));
+    const [state, setState] = useState<BannerState>(() => bannerState(cue, null, Date.now()));
     useEffect(() => { setState((prev) => bannerState(cue, prev, Date.now())); }, [cue]);
     const live = state.kind === 'live';
     useEffect(() => {
@@ -125,11 +183,11 @@ export default function BuildBanner({ following = true, onFollow = null, screen 
     }, [state.kind, cue]);
     if (state.kind === 'none') return null;
 
-    const c = state.cue;
+    const c = state.cue as CueView;
     const lastCall = live && c ? c.lastCall : null;
-    const elapsed = live ? elapsedSince(c.startedAt, now) : elapsedSince(state.farewell && state.farewell.startedAt, state.endedAt);
-    let verb = null;
-    let verbTone = null;
+    const elapsed = live ? elapsedSince(c.startedAt as string | number, now) : elapsedSince(state.farewell && state.farewell.startedAt, state.endedAt);
+    let verb: string | null = null;
+    let verbTone: string | null = null;
     if (live && c.skipped) {
         verb = t('app_studio.builder.banner.build_skipped', 'Skipped: {reason}', { reason: shortReason(c.skipped) });
         verbTone = 'var(--warning)';
@@ -166,11 +224,11 @@ export default function BuildBanner({ following = true, onFollow = null, screen 
                     </>
                 ) : (
                     <span data-testid="app-build-farewell">
-                        {state.farewell.stopped
+                        {(state.farewell as Farewell).stopped
                             ? t('app_studio.builder.banner.build_stopped', 'Stopped — draft saved')
-                            : state.farewell.finalized
-                                ? t('app_studio.builder.banner.build_done', 'Built · {n} components · {s} screens · {t}', { n: state.farewell.componentCount ?? 0, s: state.farewell.screenCount ?? 0, t: elapsed || '0s' })
-                                : t('app_studio.builder.banner.build_saved', 'Saved · {n} components', { n: state.farewell.componentCount ?? 0 })}
+                            : (state.farewell as Farewell).finalized
+                                ? t('app_studio.builder.banner.build_done', 'Built · {n} components · {s} screens · {t}', { n: (state.farewell as Farewell).componentCount ?? 0, s: (state.farewell as Farewell).screenCount ?? 0, t: elapsed || '0s' })
+                                : t('app_studio.builder.banner.build_saved', 'Saved · {n} components', { n: (state.farewell as Farewell).componentCount ?? 0 })}
                     </span>
                 )}
             </span>

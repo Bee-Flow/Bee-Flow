@@ -11,6 +11,7 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import useAppTables, { fieldsForTable } from '../bi/useAppTables';
 import useConnectors from '../bi/useConnectors';
 import { useEditorChrome } from '../editor/EditorChromeContext';
+import type { AppDefinition } from '../inspector/appDefinition';
 
 /**
  * Everything a step can point at, loaded once and shared by the step settings
@@ -27,17 +28,20 @@ import { useEditorChrome } from '../editor/EditorChromeContext';
  */
 
 /** Saved datasets, read-only. useDatasets also brings CRUD this has no use for. */
-async function fetchDatasets(appId) {
+type DatasetRow = { id?: string; name?: string; title?: string };
+type AutomationRef = { id?: string; title?: string; name?: string };
+
+async function fetchDatasets(appId: string): Promise<DatasetRow[]> {
     const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/datasets`);
     if (!res.ok) return [];
-    let body = null;
+    let body: { datasets?: unknown } | null = null;
     try { body = await res.json(); } catch { return []; }
-    return Array.isArray(body?.datasets) ? body.datasets : [];
+    return Array.isArray(body?.datasets) ? body.datasets as DatasetRow[] : [];
 }
 
-export default function useStepReferences(definition) {
+export default function useStepReferences(definition: AppDefinition | null | undefined) {
     const { t } = useTranslation();
-    const chrome = useEditorChrome();
+    const chrome = useEditorChrome() as { appId?: string | null } | null;
     const appId = chrome?.appId || null;
 
     const { tables } = useAppTables(appId);
@@ -45,7 +49,7 @@ export default function useStepReferences(definition) {
 
     const datasetQuery = useQuery({
         queryKey: ['studio-app-datasets', appId],
-        queryFn: () => fetchDatasets(appId),
+        queryFn: () => fetchDatasets(appId as string),
         enabled: !!appId,
         staleTime: 30_000,
         retry: false,
@@ -71,8 +75,8 @@ export default function useStepReferences(definition) {
         queryKey: ['studio-app-step-automations'],
         queryFn: async () => {
             try {
-                const r = await automationApi.listAutomations();
-                return Array.isArray(r?.automations) ? r.automations : [];
+                const r = (await automationApi.listAutomations()) as { automations?: unknown } | null;
+                return Array.isArray(r?.automations) ? r.automations as AutomationRef[] : [];
             } catch { return []; }
         },
         // Gated on the editor shell like the rest: a per-kind inspector test
@@ -96,10 +100,10 @@ export default function useStepReferences(definition) {
         return {
             options,
             /** Raw column fields for a table, for the record-values picker. */
-            fieldsFor: (tableRef) => fieldsForTable(rawTables, tableRef),
+            fieldsFor: (tableRef: string) => fieldsForTable(rawTables, tableRef),
             /** A document's placeholders, for the values editor's rows. */
-            placeholdersFor: (documentId) => (
-                (documentQuery.data || []).find(d => d && d.id === documentId)?.placeholders || []
+            placeholdersFor: (documentId: string) => (
+                ((documentQuery.data || []) as Array<{ id?: string; placeholders?: unknown[] | null } | null>).find(d => d && d.id === documentId)?.placeholders || []
             ),
             appId,
         };

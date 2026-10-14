@@ -5,6 +5,14 @@ import IconButton from '../../../../shared/IconButton';
 import { useAppEditor } from '../state/AppEditorContext';
 import useTranslation from '../../../../../hooks/useTranslation';
 
+export interface EditorToolRowProps {
+    onCommit: unknown;
+    canUndo?: boolean;
+    canRedo?: boolean;
+    onUndo?: () => void;
+    onRedo?: () => void;
+}
+
 /**
  * App Studio editor — the SECOND ROW under the header (Studio artboard 1b):
  *
@@ -19,7 +27,7 @@ import useTranslation from '../../../../../hooks/useTranslation';
  * the chat pane and the inspector, and the full ribbon that "All components"
  * unfolds is a `basis-full` child that takes the next line.
  */
-export default function EditorToolRow({ onCommit, canUndo, canRedo, onUndo, onRedo }) {
+export default function EditorToolRow({ onCommit, canUndo, canRedo, onUndo, onRedo }: EditorToolRowProps) {
     const { t } = useTranslation();
     const { streamLock } = useAppEditor();
     return (

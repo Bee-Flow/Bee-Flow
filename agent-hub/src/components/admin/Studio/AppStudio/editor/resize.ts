@@ -30,11 +30,11 @@ export const GRID_COLUMNS = 12;
  * non-positive/unmeasurable width returns 0, which spanFromDrag reads as "do not
  * resize" — a bad measurement must never move anything.
  */
-export function columnStepPx({ innerWidth, columnGap = 0, columns = GRID_COLUMNS } = {}) {
-    if (!Number.isFinite(innerWidth) || innerWidth <= 0) return 0;
+export function columnStepPx({ innerWidth, columnGap = 0, columns = GRID_COLUMNS }: { innerWidth?: number; columnGap?: number; columns?: number } = {}): number {
+    if (!Number.isFinite(innerWidth) || (innerWidth as number) <= 0) return 0;
     if (!Number.isFinite(columns) || columns <= 0) return 0;
     const gap = Number.isFinite(columnGap) && columnGap > 0 ? columnGap : 0;
-    return (innerWidth + gap) / columns;
+    return ((innerWidth as number) + gap) / columns;
 }
 
 /**
@@ -42,20 +42,20 @@ export function columnStepPx({ innerWidth, columnGap = 0, columns = GRID_COLUMNS
  * than inline in the component) so the two stay in step; returns 0 for anything
  * unmeasurable, including jsdom, where every layout metric reads 0.
  */
-export function measureColumnWidth(gridEl) {
+export function measureColumnWidth(gridEl: HTMLElement | null | undefined): number {
     if (!gridEl || typeof gridEl.getBoundingClientRect !== 'function') return 0;
     const view = gridEl.ownerDocument?.defaultView;
     const cs = view?.getComputedStyle?.(gridEl);
-    const padLeft = parseFloat(cs?.paddingLeft) || 0;
-    const padRight = parseFloat(cs?.paddingRight) || 0;
-    const columnGap = parseFloat(cs?.columnGap) || 0;
+    const padLeft = parseFloat(cs?.paddingLeft as string) || 0;
+    const padRight = parseFloat(cs?.paddingRight as string) || 0;
+    const columnGap = parseFloat(cs?.columnGap as string) || 0;
     // clientWidth drops borders and the scrollbar gutter but keeps padding.
     const outer = gridEl.clientWidth || gridEl.getBoundingClientRect().width || 0;
     return columnStepPx({ innerWidth: outer - padLeft - padRight, columnGap });
 }
 
-function clampSpan(n) {
-    const v = Number.isFinite(n) ? Math.round(n) : MAX_SPAN;
+function clampSpan(n: number | undefined): number {
+    const v = Number.isFinite(n) ? Math.round(n as number) : MAX_SPAN;
     return Math.max(MIN_SPAN, Math.min(MAX_SPAN, v));
 }
 
@@ -67,10 +67,10 @@ function clampSpan(n) {
  * unmeasurable grid) leaves the span at its clamped start so a bad measurement
  * never resizes anything.
  */
-export function spanFromDrag({ startSpan, dx, columnWidth } = {}) {
+export function spanFromDrag({ startSpan, dx, columnWidth }: { startSpan?: number; dx?: number; columnWidth?: number } = {}): number {
     const base = clampSpan(startSpan);
-    if (!Number.isFinite(columnWidth) || columnWidth <= 0 || !Number.isFinite(dx)) return base;
-    return clampSpan(base + Math.round(dx / columnWidth));
+    if (!Number.isFinite(columnWidth) || (columnWidth as number) <= 0 || !Number.isFinite(dx)) return base;
+    return clampSpan(base + Math.round((dx as number) / (columnWidth as number)));
 }
 
 /**
@@ -86,7 +86,7 @@ export function spanFromDrag({ startSpan, dx, columnWidth } = {}) {
  * could not express 'fill' either. Ordering it last also reads correctly under
  * the drag: pulling down grows the box, and 'fill' is as tall as it goes.
  */
-export const HEIGHT_STEPS = ['auto', 'sm', 'md', 'lg', 'xl', 'fill'];
+export const HEIGHT_STEPS: string[] = ['auto', 'sm', 'md', 'lg', 'xl', 'fill'];
 
 /** One height step ≈ this many pixels of vertical drag. */
 export const HEIGHT_STEP_PX = 80;
@@ -96,10 +96,10 @@ export const HEIGHT_STEP_PX = 80;
  *   { startHeight, dy, stepPx } → one of HEIGHT_STEPS
  * dy is pixels dragged down (positive) / up (negative) from pointerdown y.
  */
-export function heightFromDrag({ startHeight, dy, stepPx = HEIGHT_STEP_PX } = {}) {
-    const start = HEIGHT_STEPS.indexOf(startHeight);
+export function heightFromDrag({ startHeight, dy, stepPx = HEIGHT_STEP_PX }: { startHeight?: string; dy?: number; stepPx?: number } = {}): string {
+    const start = HEIGHT_STEPS.indexOf(startHeight as string);
     const base = start === -1 ? 0 : start;
     if (!Number.isFinite(dy) || !Number.isFinite(stepPx) || stepPx <= 0) return HEIGHT_STEPS[base];
-    const idx = Math.max(0, Math.min(HEIGHT_STEPS.length - 1, base + Math.round(dy / stepPx)));
+    const idx = Math.max(0, Math.min(HEIGHT_STEPS.length - 1, base + Math.round((dy as number) / stepPx)));
     return HEIGHT_STEPS[idx];
 }

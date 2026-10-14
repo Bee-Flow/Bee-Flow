@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { BuildCue } from './shell/useChromeHandles';
 
 /**
  * App Studio editor — the live build, seen from the canvas.
@@ -27,8 +28,8 @@ import { createContext, useContext } from 'react';
  * the very draft that creates it. The camera and the banner read the same
  * resolution, so they agree by construction.
  */
-export const BuildCueContext = createContext(null);
+export const BuildCueContext = createContext<BuildCue | null>(null);
 
-export function useBuildCue() {
+export function useBuildCue(): BuildCue | null {
     return useContext(BuildCueContext);
 }

@@ -2,6 +2,25 @@ import { useEffect, useRef } from 'react';
 import { getClipboard, hasClipboard, pasteNodes, serializeNodes, setClipboard } from '../state/clipboard';
 import { useAppEditor } from '../state/AppEditorContext';
 import { duplicateNode, findNode, moveNode, removeNode } from '../state/definitionOps';
+import type { AppDefinition } from '../inspector/appDefinition';
+
+/** Everything the key handler reads, refreshed after every render. */
+interface HotkeyContext {
+    enabled: boolean;
+    onUndo?: () => void;
+    onRedo?: () => void;
+    onFlush?: () => void;
+    onCommit?: (def: AppDefinition) => void;
+    onCommandPalette?: () => void;
+    onTogglePresenter?: () => void;
+    definition: AppDefinition;
+    selectedNodeId: string | null;
+    selectedNodeIds: Set<string> | null | undefined;
+    screenId: string | null;
+    mode: string;
+    streamLock: boolean;
+    dispatch: (action: { type: string; [key: string]: unknown }) => void;
+}
 
 /**
  * App Studio editor — window-level keyboard shortcuts.
@@ -32,19 +51,28 @@ import { duplicateNode, findNode, moveNode, removeNode } from '../state/definiti
  * pause under streamLock and require edit mode.
  */
 
-function isTyping(target) {
-    const tag = target?.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!target?.isContentEditable;
+function isTyping(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null;
+    const tag = el?.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!el?.isContentEditable;
 }
 
-export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlush, onCommit, onCommandPalette, onTogglePresenter }) {
+export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlush, onCommit, onCommandPalette, onTogglePresenter }: {
+    enabled?: boolean;
+    onUndo?: () => void;
+    onRedo?: () => void;
+    onFlush?: () => void;
+    onCommit?: (def: AppDefinition) => void;
+    onCommandPalette?: () => void;
+    onTogglePresenter?: () => void;
+}) {
     const {
         definition, selectedNodeId, selectedNodeIds, screenId, mode, streamLock, dispatch,
     } = useAppEditor();
 
     // One listener for the component's lifetime; reads everything via a ref
     // refreshed after every render (key events always fire after effects).
-    const ctxRef = useRef(null);
+    const ctxRef = useRef<HotkeyContext | null>(null);
     useEffect(() => {
         ctxRef.current = {
             enabled, onUndo, onRedo, onFlush, onCommit, onCommandPalette, onTogglePresenter,
@@ -53,7 +81,7 @@ export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlu
     });
 
     useEffect(() => {
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             const c = ctxRef.current;
             if (!c || !c.enabled) return;
             const meta = e.metaKey || e.ctrlKey;
@@ -120,7 +148,7 @@ export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlu
                 // Paste AFTER the anchor when it's a direct child of a section,
                 // else append to the anchor's section, else the current screen's
                 // first section (pasteNodes resolves the target).
-                let target = { screenId: c.screenId };
+                let target: { screenId?: string | null; sectionId?: string; index?: number } = { screenId: c.screenId };
                 if (c.selectedNodeId) {
                     const found = findNode(c.definition, c.selectedNodeId);
                     // ...but only when the anchor is on the screen being

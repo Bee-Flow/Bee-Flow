@@ -16,8 +16,21 @@
  */
 
 import { orderAdded, revealSchedule } from '../../../../shared/builder/revealSchedule';
+import type { AppDefinition } from '../inspector/appDefinition';
 
-export function planReveal({ diff, definition, hintIds = [], reducedMotion = false } = {}) {
+export interface RevealPlan {
+    ids: string[];
+    screens: string[];
+    delays: Map<string, number>;
+    animate: boolean;
+}
+
+export function planReveal({ diff, definition, hintIds = [], reducedMotion = false }: {
+    diff?: { addedIds?: Set<string> | null } | null;
+    definition?: AppDefinition | null;
+    hintIds?: string[];
+    reducedMotion?: boolean;
+} = {}): RevealPlan {
     const added = diff && diff.addedIds instanceof Set ? [...diff.addedIds] : [];
     if (!added.length) return { ids: [], screens: [], delays: new Map(), animate: false };
     const screenIds = new Set((definition && Array.isArray(definition.screens) ? definition.screens : []).map((s) => s && s.id).filter(Boolean));
@@ -31,7 +44,7 @@ export function planReveal({ diff, definition, hintIds = [], reducedMotion = fal
 }
 
 /** Milliseconds until the LAST card of a plan has appeared (its delay + the 1.2 s pulse). */
-export function revealEndsAfterMs(plan, pulseMs = 1200) {
+export function revealEndsAfterMs(plan: RevealPlan | null | undefined, pulseMs = 1200): number {
     if (!plan || !(plan.delays instanceof Map) || !plan.ids.length) return 0;
     let max = 0;
     for (const id of plan.ids) max = Math.max(max, plan.delays.get(id) || 0);

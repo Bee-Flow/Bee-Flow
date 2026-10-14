@@ -20,6 +20,21 @@
  * who has to fix it.
  */
 
+import type { Translate } from '../editor/dryRunIssues';
+import type { AppDefinition } from '../inspector/appDefinition';
+
+/** A { key, en } translation entry. */
+export interface RefText {
+    key: string;
+    en: string;
+}
+
+/** One option in a reference picker. */
+export interface RefOption {
+    id: string;
+    label: string;
+}
+
 /** Which reference a field key names. Keys are the STEP_SPECS field names. */
 export const REFERENCE_FIELDS = {
     screenId: 'screen',
@@ -32,7 +47,7 @@ export const REFERENCE_FIELDS = {
 };
 
 /** The label a picker shows when the field is not set yet: { key, en } per reference kind. */
-export const REFERENCE_PLACEHOLDERS = {
+export const REFERENCE_PLACEHOLDERS: Record<string, RefText> = {
     screen: { key: 'studio_apps_edit.step_refs.pick_screen', en: 'Pick a screen…' },
     modal: { key: 'studio_apps_edit.step_refs.pick_dialog', en: 'Pick a dialog…' },
     table: { key: 'studio_apps_edit.step_refs.pick_table', en: 'Pick a table…' },
@@ -46,7 +61,7 @@ export const REFERENCE_PLACEHOLDERS = {
  * What to say when the list is empty — the reason, and what to do about it,
  * because "no options" on its own reads as a broken screen.
  */
-export const REFERENCE_EMPTY_HINTS = {
+export const REFERENCE_EMPTY_HINTS: Record<string, RefText> = {
     screen: { key: 'studio_apps_edit.step_refs.empty_screen', en: 'This app has no other screens yet.' },
     modal: { key: 'studio_apps_edit.step_refs.empty_dialog', en: 'This app has no dialogs yet — add a Dialog component to a screen first.' },
     table: { key: 'studio_apps_edit.step_refs.empty_table', en: 'This app has no tables yet — make one under Data first.' },
@@ -57,7 +72,7 @@ export const REFERENCE_EMPTY_HINTS = {
 };
 
 /** A { key, en } entry from the tables above, translated (English without `t`). */
-export function referenceText(entry, t = null) {
+export function referenceText(entry: RefText | null | undefined, t: Translate | null = null): string {
     if (!entry) return '';
     return t ? t(entry.key, entry.en) : entry.en;
 }
@@ -67,11 +82,11 @@ export function referenceText(entry, t = null) {
  * author picking between "Factuur" and "Factuur (oud)" needs to see which one
  * still has holes to fill, and the alternative is opening both in another tab.
  */
-export function documentOptions(documents, t = null) {
+export function documentOptions(documents: Array<DocLike | null | undefined> | null | undefined, t: Translate | null = null): RefOption[] {
     return (Array.isArray(documents) ? documents : [])
-        .filter((d) => d && typeof d.id === 'string')
+        .filter((d): d is DocLike => !!d && typeof d.id === 'string')
         .map((d) => ({
-            id: d.id,
+            id: d.id as string,
             label: d.placeholders?.length
                 ? (t
                     ? t('studio_apps_edit.step_refs.document_placeholders', '{name} · {n} placeholder(s)', { name: d.name, n: d.placeholders.length })
@@ -80,10 +95,17 @@ export function documentOptions(documents, t = null) {
         }));
 }
 
+/** A document as the picker reads it. */
+interface DocLike {
+    id?: unknown;
+    name: string;
+    placeholders?: unknown[] | null;
+}
+
 /** Every `modal` node in the app, in the order the screens list them. */
-export function collectModals(definition) {
-    const out = [];
-    const walk = (nodes) => {
+export function collectModals(definition: AppDefinition | null | undefined): RefOption[] {
+    const out: RefOption[] = [];
+    const walk = (nodes: WalkNode[] | null | undefined): void => {
         for (const n of nodes || []) {
             if (n?.type === 'modal' && typeof n.id === 'string') {
                 out.push({ id: n.id, label: modalLabel(n) });
@@ -97,45 +119,54 @@ export function collectModals(definition) {
     return out;
 }
 
+/** The node fields the dialog walk reads. */
+interface WalkNode {
+    id?: string;
+    type?: string;
+    props?: unknown;
+    children?: WalkNode[];
+}
+
 /** A dialog's own title, falling back to its id so it stays identifiable. */
-function modalLabel(node) {
-    const title = node?.props?.title || node?.props?.heading || node?.props?.label;
-    return (typeof title === 'string' && title.trim()) ? title.trim() : node.id;
+function modalLabel(node: WalkNode | null | undefined): string {
+    const props = node?.props as { title?: unknown; heading?: unknown; label?: unknown } | undefined;
+    const title = props?.title || props?.heading || props?.label;
+    return (typeof title === 'string' && title.trim()) ? title.trim() : node?.id as string;
 }
 
 /** Screens as { id, label } — `name` is what the author typed on the tab. */
-export function screenOptions(screens) {
+export function screenOptions(screens: Array<{ id?: unknown; name?: string } | null | undefined> | null | undefined): RefOption[] {
     return (Array.isArray(screens) ? screens : [])
         .filter((s) => s && typeof s.id === 'string')
-        .map((s) => ({ id: s.id, label: s.name || s.id }));
+        .map((s) => ({ id: (s as { id: string }).id, label: (s?.name || s?.id) as string }));
 }
 
 /** Tables as { id, label }. The data model calls the human name `name`. */
-export function tableOptions(tables) {
+export function tableOptions(tables: Array<{ id?: string; key?: string; name?: string; label?: string } | null | undefined> | null | undefined): RefOption[] {
     return (Array.isArray(tables) ? tables : [])
         .filter((t) => t && (typeof t.id === 'string' || typeof t.key === 'string'))
-        .map((t) => ({ id: t.id ?? t.key, label: t.name || t.label || t.key || t.id }));
+        .map((t) => ({ id: (t?.id ?? t?.key) as string, label: (t?.name || t?.label || t?.key || t?.id) as string }));
 }
 
 /** Saved datasets as { id, label }. */
-export function datasetOptions(datasets) {
+export function datasetOptions(datasets: Array<{ id?: string; name?: string; title?: string } | null | undefined> | null | undefined): RefOption[] {
     return (Array.isArray(datasets) ? datasets : [])
         .filter((d) => d && typeof d.id === 'string')
-        .map((d) => ({ id: d.id, label: d.name || d.title || d.id }));
+        .map((d) => ({ id: (d as { id: string }).id, label: (d?.name || d?.title || d?.id) as string }));
 }
 
 /** Automations as { id, label }. */
-export function automationOptions(automations) {
+export function automationOptions(automations: Array<{ id?: string; title?: string; name?: string } | null | undefined> | null | undefined): RefOption[] {
     return (Array.isArray(automations) ? automations : [])
         .filter((a) => a && typeof a.id === 'string')
-        .map((a) => ({ id: a.id, label: a.title || a.name || a.id }));
+        .map((a) => ({ id: a?.id as string, label: (a?.title || a?.name || a?.id) as string }));
 }
 
 /** Connectors as { id, label }. */
-export function connectorOptions(connectors) {
+export function connectorOptions(connectors: Array<{ id?: string; name?: string; kind?: string } | null | undefined> | null | undefined): RefOption[] {
     return (Array.isArray(connectors) ? connectors : [])
         .filter((c) => c && typeof c.id === 'string')
-        .map((c) => ({ id: c.id, label: c.name || c.kind || c.id }));
+        .map((c) => ({ id: c?.id as string, label: (c?.name || c?.kind || c?.id) as string }));
 }
 
 /**
@@ -143,7 +174,7 @@ export function connectorOptions(connectors) {
  * thing it pointed at is gone — in which case showing the raw id is the only
  * honest answer, and the one that lets somebody repair the step).
  */
-export function labelForRef(options, id) {
+export function labelForRef(options: RefOption[] | null | undefined, id: string | number | null | undefined): string {
     if (id == null || id === '') return '';
     const hit = (Array.isArray(options) ? options : []).find((o) => o.id === id);
     return hit ? hit.label : String(id);
@@ -155,7 +186,7 @@ export function labelForRef(options, id) {
  * not a toast at run time. `false` only when the list has actually loaded —
  * an empty list is "not known yet", never "broken".
  */
-export function isDanglingRef(options, id) {
+export function isDanglingRef(options: RefOption[] | null | undefined, id: string | number | null | undefined): boolean {
     if (id == null || id === '') return false;
     if (!Array.isArray(options) || options.length === 0) return false;
     return !options.some((o) => o.id === id);
@@ -170,13 +201,13 @@ export function isDanglingRef(options, id) {
  * called it. The recordValues map is keyed by `key`, so that is what a picker
  * must emit while showing `name`.
  */
-export function columnOptions(fields) {
+export function columnOptions(fields: Array<{ key?: string; name?: string; type?: string | null; required?: boolean } | null | undefined> | null | undefined): Array<{ key: string; label: string; type: string | null; required: boolean }> {
     return (Array.isArray(fields) ? fields : [])
         .filter((f) => f && typeof f.key === 'string')
         .map((f) => ({
-            key: f.key,
-            label: f.name || f.key,
-            type: f.type || null,
-            required: !!f.required,
+            key: f?.key as string,
+            label: (f?.name || f?.key) as string,
+            type: (f as { type?: string | null }).type || null,
+            required: !!(f as { required?: boolean }).required,
         }));
 }

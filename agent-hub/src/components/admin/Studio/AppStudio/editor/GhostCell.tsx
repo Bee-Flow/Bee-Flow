@@ -1,8 +1,15 @@
 import { Sparkles } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
+import type { GhostCell as GhostDraft } from './ghostCellDraft';
+
+export interface GhostCellProps {
+    draft: GhostDraft | null | undefined;
+    container: Element | null | undefined;
+}
 
 /**
  * The dashed cell where the component being typed will land — portalled into
@@ -15,10 +22,10 @@ import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
  * Under reduced motion the ghost still renders (it is information: where the
  * next card lands) but editor.css stills its dots and caret.
  */
-export default function GhostCell({ draft, container }) {
+export default function GhostCell({ draft, container }: GhostCellProps) {
     const { t } = useTranslation();
     if (!draft || !container) return null;
-    const entry = draft.type ? APP_COMPONENT_TYPES[draft.type] : null;
+    const entry = draft.type ? (APP_COMPONENT_TYPES as Record<string, { icon?: LucideIcon } | undefined>)[draft.type] : null;
     const Icon = (entry && entry.icon) || Sparkles;
     return createPortal(
         <div

@@ -1,5 +1,35 @@
 import { describeAction } from '../inspector/actionLabels';
 import { NODE_EVENTS } from '../state/definitionOps';
+import type { AppDefinition, AppScreen } from '../inspector/appDefinition';
+import type { Translate } from './dryRunIssues';
+
+/** The node fields this module reads (event slots are read by name). */
+export interface LogicNode {
+    id?: string;
+    type?: string;
+    visible?: boolean;
+    visibleWhen?: unknown;
+    enabledWhen?: unknown;
+    validations?: unknown;
+    computed?: unknown;
+    children?: LogicNode[];
+}
+
+interface ActionLike {
+    kind?: string;
+    automationId?: unknown;
+}
+
+/** One logic mark, drawn as a badge on a component. */
+export interface LogicMark {
+    key: string;
+    kind: 'action' | 'visibility' | 'enablement' | 'validation' | 'computed';
+    text: string;
+    event?: string;
+    actionId?: string;
+    actionKind?: string | null;
+    actionTitle?: string | null;
+}
 
 /**
  * What logic a component carries, in a sentence each.
@@ -28,7 +58,7 @@ import { NODE_EVENTS } from '../state/definitionOps';
  * fills the {placeholders} in, so a summary reads exactly as it did before
  * this module learned to translate.
  */
-const EN_ONLY = (key, en, params) => (params && typeof params === 'object'
+const EN_ONLY: Translate = (_key, en, params) => (params && typeof params === 'object'
     ? Object.entries(params).reduce(
         (out, [k, v]) => out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v)),
         String(en),
@@ -51,7 +81,7 @@ const EN_ONLY = (key, en, params) => (params && typeof params === 'object'
  * `default` now covers only a slot that does not exist yet, which is the only
  * thing it should ever have covered.
  */
-export function eventText(t, event) {
+export function eventText(t: Translate, event: string): string {
     switch (event) {
         case 'onClick': return t('app_studio.inspector.when_clicked', 'When clicked');
         case 'onSubmit': return t('app_studio.inspector.when_submitted', 'When submitted');
@@ -71,31 +101,31 @@ export function eventText(t, event) {
 }
 
 /** The expression behind a boolean|formula flag (legacy bare strings included). */
-function exprOf(flag) {
+function exprOf(flag: unknown): string {
     if (typeof flag === 'string') return flag;
-    if (flag && typeof flag === 'object') return flag.expr || '';
+    if (flag && typeof flag === 'object') return (flag as { expr?: string }).expr || '';
     return '';
 }
 
 /** Cap an expression so a badge tooltip stays one readable line. */
-function short(expr, max = 60) {
+function short(expr: unknown, max = 60): string {
     const s = String(expr || '').replace(/\s+/g, ' ').trim();
     return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
-export default function nodeLogicSummary(node, definition, titleFor = null, t = EN_ONLY) {
+export default function nodeLogicSummary(node: LogicNode | null | undefined, definition: AppDefinition | null | undefined, titleFor: ((id: unknown) => string | null | undefined) | null = null, t: Translate = EN_ONLY): LogicMark[] {
     if (!node || typeof node !== 'object') return [];
-    const marks = [];
-    const actions = (definition?.actions && typeof definition.actions === 'object') ? definition.actions : {};
+    const marks: LogicMark[] = [];
+    const actions: Record<string, ActionLike | undefined> = (definition?.actions && typeof definition.actions === 'object') ? definition.actions : {};
 
     // What happens when someone uses it. First, because it is the question
     // asked most often and the one the canvas was least able to answer.
     for (const event of NODE_EVENTS) {
-        const actionId = node[event];
+        const actionId = (node as Record<string, unknown>)[event];
         if (!actionId || typeof actionId !== 'string') continue;
         const action = actions[actionId];
         const what = action
-            ? describeAction(actionId, action, definition, titleFor)
+            ? describeAction(actionId, action, definition, titleFor as null)
             // A slot pointing at an action that is not there is a real break —
             // validate.js rejects it on the next save — so say so rather than
             // drawing a badge that claims something happens.
@@ -141,7 +171,7 @@ export default function nodeLogicSummary(node, definition, titleFor = null, t = 
         });
     }
 
-    const rules = Array.isArray(node.validations) ? node.validations.filter(Boolean) : [];
+    const rules: unknown[] = Array.isArray(node.validations) ? node.validations.filter(Boolean) : [];
     if (rules.length) {
         marks.push({
             key: 'validations',
@@ -174,7 +204,7 @@ export default function nodeLogicSummary(node, definition, titleFor = null, t = 
  * has an action — and a collapsed or scrolled-away child is exactly the one
  * somebody loses track of.
  */
-export function subtreeHasLogic(node, definition) {
+export function subtreeHasLogic(node: LogicNode | null | undefined, definition: AppDefinition | null | undefined): boolean {
     if (!node) return false;
     if (nodeLogicSummary(node, definition).length) return true;
     return (Array.isArray(node.children) ? node.children : [])
@@ -194,9 +224,9 @@ export function subtreeHasLogic(node, definition) {
  * getal onbetrouwbaar maakte; wat hier overblijft is de eventtelling, en die
  * heet ook zo.
  */
-export function countLogicMarks(definition) {
+export function countLogicMarks(definition: AppDefinition | null | undefined): number {
     let n = 0;
-    const walk = (node) => {
+    const walk = (node: LogicNode | null | undefined) => {
         if (!node || typeof node !== 'object') return;
         n += nodeLogicSummary(node, definition).filter((m) => m.kind === 'action').length;
         for (const child of Array.isArray(node.children) ? node.children : []) walk(child);
@@ -219,12 +249,12 @@ export function countLogicMarks(definition) {
  * marks, met scherm en component erbij — en het blijft de vorm die een lezer
  * wil die alleen de BEDRADE logica hoeft te weten.
  */
-export function collectLogicMarks(definition, titleFor = null, t = EN_ONLY) {
-    const rows = [];
-    const walk = (node, screen) => {
+export function collectLogicMarks(definition: AppDefinition | null | undefined, titleFor: ((id: unknown) => string | null | undefined) | null = null, t: Translate = EN_ONLY) {
+    const rows: Array<{ screenId: string; screenName: string; nodeId: string | undefined; nodeType: string | undefined; mark: LogicMark }> = [];
+    const walk = (node: LogicNode | null | undefined, screen: AppScreen) => {
         if (!node || typeof node !== 'object') return;
         for (const mark of nodeLogicSummary(node, definition, titleFor, t)) {
-            rows.push({ screenId: screen.id, screenName: screen.name || '', nodeId: node.id, nodeType: node.type, mark });
+            rows.push({ screenId: screen.id as string, screenName: screen.name || '', nodeId: node.id, nodeType: node.type, mark });
         }
         for (const child of Array.isArray(node.children) ? node.children : []) walk(child, screen);
     };

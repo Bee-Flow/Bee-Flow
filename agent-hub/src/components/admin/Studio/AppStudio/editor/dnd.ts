@@ -25,34 +25,71 @@
 
 import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
 import { deepClone, findNode, insertNode, moveNode, newId, subtreeIds } from '../state/definitionOps';
+import type { AppDefinition, AppNode, AppScreen } from '../inspector/appDefinition';
+
+/** The registry fields the editor reads for a component type. */
+export interface ComponentEntry {
+    label?: string;
+    defaultProps?: Record<string, unknown>;
+    defaultStyle?: Record<string, unknown>;
+    container?: boolean;
+}
+
+/** The `data` a palette row or canvas node hands dnd-kit. */
+interface DragData {
+    type?: string;
+    componentType?: string;
+}
+
+/** The dragged item (dnd-kit's Active). */
+interface DragActive {
+    id: string | number;
+    data?: unknown;
+}
+
+/** The droppable under the item (dnd-kit's Over). */
+interface DragOver {
+    id: string | number;
+}
+
+/** A resolved drop: an insert of a new node, or a move of an existing one. */
+export interface DragOp {
+    op: 'insert' | 'move';
+    node?: AppNode | null;
+    parentId?: string;
+    nodeId?: string | number;
+    toParentId?: string;
+    index: number | null;
+    screenId?: string | null;
+}
 
 const SECTION_PREFIX = 'section:';
 const SCREENTAB_PREFIX = 'screentab:';
 export const PALETTE_PREFIX = 'palette:';
 
-export function sectionDroppableId(sectionId) {
+export function sectionDroppableId(sectionId: string): string {
     return `${SECTION_PREFIX}${sectionId}`;
 }
 
-export function sectionIdFromDroppable(id) {
+export function sectionIdFromDroppable(id: unknown): string | null {
     return typeof id === 'string' && id.startsWith(SECTION_PREFIX)
         ? id.slice(SECTION_PREFIX.length)
         : null;
 }
 
 /** Droppable id for a screen tab (cross-screen drag target). */
-export function screenTabDroppableId(screenId) {
+export function screenTabDroppableId(screenId: string): string {
     return `${SCREENTAB_PREFIX}${screenId}`;
 }
 
-export function screenIdFromScreenTabDroppable(id) {
+export function screenIdFromScreenTabDroppable(id: unknown): string | null {
     return typeof id === 'string' && id.startsWith(SCREENTAB_PREFIX)
         ? id.slice(SCREENTAB_PREFIX.length)
         : null;
 }
 
 /** The first section id of a screen (the drop target for cross-screen drags). */
-function firstSectionOfScreen(definition, screenId) {
+function firstSectionOfScreen(definition: AppDefinition, screenId: string): string | null {
     const screen = (definition?.screens || []).find((s) => s.id === screenId);
     return screen?.sections?.[0]?.id || null;
 }
@@ -62,10 +99,10 @@ function firstSectionOfScreen(definition, screenId) {
  * Containers get an empty children array (container-ness contract of
  * definitionOps). Returns null for unknown types.
  */
-export function buildNode(type) {
-    const entry = APP_COMPONENT_TYPES[type];
+export function buildNode(type: string): AppNode | null {
+    const entry = (APP_COMPONENT_TYPES as Record<string, ComponentEntry | undefined>)[type];
     if (!entry) return null;
-    const node = {
+    const node: AppNode & { children?: AppNode[] } = {
         id: newId('component'),
         type,
         visible: true,
@@ -77,13 +114,13 @@ export function buildNode(type) {
 }
 
 /** dnd-kit hands entry.data as a ref ({ current }); tests pass plain objects. */
-function dragData(entry) {
+function dragData(entry: { data?: unknown } | null | undefined): DragData {
     const data = entry?.data;
-    if (data && typeof data === 'object' && 'current' in data) return data.current || {};
-    return data || {};
+    if (data && typeof data === 'object' && 'current' in data) return (data as { current?: DragData | null }).current || {};
+    return (data as DragData | null | undefined) || {};
 }
 
-function sectionExists(definition, sectionId) {
+function sectionExists(definition: AppDefinition, sectionId: string): boolean {
     return (definition?.screens || []).some((screen) =>
         (screen.sections || []).some((section) => section.id === sectionId));
 }
@@ -107,7 +144,12 @@ function sectionExists(definition, sectionId) {
  *   - node over 'section:x'      → append to that section
  *   - over itself / own subtree / own parent container → null
  */
-export function computeDragEnd({ active, over, definition, screenId } = {}) {
+export function computeDragEnd({ active, over, definition, screenId }: {
+    active?: DragActive | null;
+    over?: DragOver | null;
+    definition?: AppDefinition | null;
+    screenId?: string | null;
+} = {}): DragOp | null {
     if (!active || !over || !definition || over.id == null) return null;
     const overId = over.id;
     const activeData = dragData(active);
@@ -188,7 +230,13 @@ export function computeDragEnd({ active, over, definition, screenId } = {}) {
  * fresh computation is a no-op BUT the live draft diverged from the snapshot,
  * we keep that transient move as the committed result instead of reverting.
  */
-export function resolveDrop({ snapshot, liveDefinition, active, over, screenId } = {}) {
+export function resolveDrop({ snapshot, liveDefinition, active, over, screenId }: {
+    snapshot?: AppDefinition | null;
+    liveDefinition?: AppDefinition | null;
+    active?: DragActive | null;
+    over?: DragOver | null;
+    screenId?: string | null;
+} = {}): { def: AppDefinition; nodeId: string | null; op: DragOp['op'] } | null {
     if (!snapshot) return null;
     const res = computeDragEnd({ active, over, definition: snapshot, screenId });
     if (res) {
@@ -208,7 +256,7 @@ export function resolveDrop({ snapshot, liveDefinition, active, over, screenId }
     // reads as the editor ignoring you.
     const isSelfDrop = over && active && over.id != null && over.id === active.id;
     if (isSelfDrop && liveDefinition && liveDefinition !== snapshot) {
-        return { def: liveDefinition, nodeId: active?.id ?? null, op: 'move' };
+        return { def: liveDefinition, nodeId: (active?.id ?? null) as string | null, op: 'move' };
     }
     return null;
 }
@@ -218,7 +266,7 @@ export function resolveDrop({ snapshot, liveDefinition, active, over, screenId }
  * Returns { def, nodeId } — same def reference when nothing changed; nodeId
  * is the inserted node's real id (insert) or the moved node's id (move).
  */
-export function applyDragResult(definition, result) {
+export function applyDragResult(definition: AppDefinition, result: DragOp | null | undefined): { def: AppDefinition; nodeId: string | null } {
     if (!result) return { def: definition, nodeId: null };
     if (result.op === 'insert') {
         const { def, nodeId } = insertNode(definition, {
@@ -233,7 +281,7 @@ export function applyDragResult(definition, result) {
             toParentId: result.toParentId,
             index: result.index ?? undefined,
         });
-        return { def, nodeId: result.nodeId };
+        return { def, nodeId: result.nodeId as string };
     }
     return { def: definition, nodeId: null };
 }

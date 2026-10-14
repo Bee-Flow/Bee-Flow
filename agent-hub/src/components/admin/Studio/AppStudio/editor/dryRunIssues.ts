@@ -18,6 +18,42 @@
  */
 
 import { resolveTarget } from '../../../../shared/resolveTarget';
+import type { AppDefinition } from '../inspector/appDefinition';
+
+/** The translator a caller passes in (or the English stand-in below). */
+export type Translate = (key: string, en: string, params?: Record<string, unknown>) => string;
+
+/** An issue the panel can draw. `code` is only used as a React key hint. */
+export interface DryRunIssue {
+    code: string;
+    message: string;
+    hint: string | null;
+    nodeId: string | null;
+    path: string | null;
+    severity: 'error' | 'warning';
+}
+
+/** The pre-flight result from appDryRun (only the parts this module reads). */
+export interface DryRunResult {
+    static?: { errors?: unknown; warnings?: unknown } | null;
+    bindings?: unknown;
+    roleFindings?: unknown;
+    actions?: unknown;
+}
+
+interface DryRunEntry {
+    nodeId?: string | null;
+    ok?: boolean;
+    rowCount?: number;
+    skipped?: boolean;
+    kind?: string;
+    error?: string;
+    role?: string;
+    note?: string;
+    step?: string;
+    errors?: unknown;
+    [key: string]: unknown;
+}
 
 /**
  * The stand-in for t() when a caller has none: `nodeLabel` is exported and the
@@ -27,7 +63,7 @@ import { resolveTarget } from '../../../../shared/resolveTarget';
  * learned to translate. The sibling editor/nodeLogicSummary.js carries the same
  * stand-in, for the same reason.
  */
-const EN_ONLY = (key, en, params) => (params && typeof params === 'object'
+const EN_ONLY: Translate = (_key, en, params) => (params && typeof params === 'object'
     ? Object.entries(params).reduce(
         (out, [k, v]) => out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v)),
         String(en),
@@ -35,7 +71,14 @@ const EN_ONLY = (key, en, params) => (params && typeof params === 'object'
     : en);
 
 /** An issue the panel can draw. `code` is only used as a React key hint. */
-function issue({ code, message, hint = null, nodeId = null, path = null, severity }) {
+function issue({ code, message, hint = null, nodeId = null, path = null, severity }: {
+    code: string;
+    message: string;
+    hint?: string | null;
+    nodeId?: string | null;
+    path?: string | null;
+    severity: DryRunIssue['severity'];
+}): DryRunIssue {
     return { code, message, hint, nodeId, path, severity };
 }
 
@@ -46,27 +89,27 @@ function issue({ code, message, hint = null, nodeId = null, path = null, severit
  * sentence — a node's own words in quotes, its type bare, the id as a last
  * resort.
  */
-export function nodeLabel(definition, nodeId, t = EN_ONLY) {
+export function nodeLabel(definition: AppDefinition | null, nodeId: string | null | undefined, t: Translate = EN_ONLY): string {
     if (!nodeId) return t('app_studio.publish.issue_component', 'A component');
-    const hit = resolveTarget(definition, { nodeId, kind: 'app' });
+    const hit = resolveTarget(definition as object, { nodeId, kind: 'app' });
     if (!hit?.label) return nodeId;
     return hit.labelIsText ? `“${hit.label}”` : hit.label;
 }
 
-export default function dryRunIssues(result, definition = null, t = EN_ONLY) {
-    const errors = [];
-    const warnings = [];
+export default function dryRunIssues(result: DryRunResult | null | undefined, definition: AppDefinition | null = null, t: Translate = EN_ONLY): { errors: DryRunIssue[]; warnings: DryRunIssue[] } {
+    const errors: DryRunIssue[] = [];
+    const warnings: DryRunIssue[] = [];
     if (!result || typeof result !== 'object') return { errors, warnings };
 
     // 1. The static pass is already in the right shape — pass it straight
     //    through so a publish blocker reads identically here and there.
-    for (const e of asList(result.static?.errors)) errors.push({ ...e, severity: 'error' });
-    for (const w of asList(result.static?.warnings)) warnings.push({ ...w, severity: 'warning' });
+    for (const e of asList<Partial<DryRunIssue>>(result.static?.errors)) errors.push({ ...e, severity: 'error' } as DryRunIssue);
+    for (const w of asList<Partial<DryRunIssue>>(result.static?.warnings)) warnings.push({ ...w, severity: 'warning' } as DryRunIssue);
 
     // 2. Bindings that were actually EXECUTED. A failure here is a screen that
     //    will not load; zero rows is only worth a warning, because a demo table
     //    nobody has seeded yet is normal and must never block a publish.
-    for (const b of asList(result.bindings)) {
+    for (const b of asList<DryRunEntry>(result.bindings)) {
         const who = nodeLabel(definition, b.nodeId, t);
         if (b.ok === false) {
             errors.push(issue({
@@ -92,7 +135,7 @@ export default function dryRunIssues(result, definition = null, t = EN_ONLY) {
     // 3. What a member with the previewed role would see. An empty screen for
     //    everyone but the owner is the classic one nobody catches before
     //    somebody else opens the app.
-    for (const f of asList(result.roleFindings)) {
+    for (const f of asList<DryRunEntry>(result.roleFindings)) {
         if (f.rowCount !== 0) continue;
         warnings.push(issue({
             code: 'dryrun.role_empty',
@@ -119,7 +162,7 @@ export default function dryRunIssues(result, definition = null, t = EN_ONLY) {
     // 4. Mutating steps, checked against the data model without running them.
     //    A step writing a column that does not exist fails at the moment
     //    somebody clicks the button, which is the worst time to find out.
-    for (const a of asList(result.actions)) {
+    for (const a of asList<DryRunEntry>(result.actions)) {
         if (a.ok !== false) continue;
         errors.push(issue({
             code: 'dryrun.step_invalid',
@@ -137,10 +180,10 @@ export default function dryRunIssues(result, definition = null, t = EN_ONLY) {
     return { errors, warnings };
 }
 
-function asList(v) {
-    return Array.isArray(v) ? v.filter((x) => x && typeof x === 'object') : [];
+function asList<T extends object>(v: unknown): T[] {
+    return Array.isArray(v) ? v.filter((x): x is T => !!x && typeof x === 'object') : [];
 }
 
-function reasons(v) {
-    return (Array.isArray(v) ? v : []).filter((s) => typeof s === 'string' && s.trim()).join('; ');
+function reasons(v: unknown): string {
+    return (Array.isArray(v) ? v : []).filter((s): s is string => typeof s === 'string' && s.trim() !== '').join('; ');
 }

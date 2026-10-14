@@ -17,30 +17,62 @@
 
 import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
 import { findNode, findScreen, findSection } from '../state/definitionOps';
+import type { AppDefinition, AppScreen, AppSection } from '../inspector/appDefinition';
+import type { ComponentEntry } from './dnd';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+
+/** The typed-so-far batch, as the server streams it (tool_draft). */
+/** One entry of the typed batch. */
+export interface ToolDraftItem {
+    kind?: string;
+    type?: unknown;
+    label?: unknown;
+    partial?: boolean;
+}
+
+export interface ToolDraft {
+    name?: string;
+    items?: Array<ToolDraftItem | null | undefined> | null;
+    count?: number;
+    parentId?: string | null;
+}
+
+/** The one card being typed, projected onto the canvas. */
+export interface GhostCell {
+    kind: 'component';
+    type: string | null;
+    typeLabel: string | null;
+    label: string | null;
+    partial: boolean;
+    index: number;
+    count: number;
+    sectionId: string;
+    span: number;
+    caption: string;
+}
 
 const KINDS_ON_CANVAS = new Set(['component']);
 
-function sectionIdsOf(screen) {
-    return new Set((screen && Array.isArray(screen.sections) ? screen.sections : []).map((s) => s && s.id).filter(Boolean));
+function sectionIdsOf(screen: AppScreen | null | undefined): Set<string> {
+    return new Set((screen && Array.isArray(screen.sections) ? screen.sections : []).map((s) => s && s.id).filter((id): id is string => Boolean(id)));
 }
 
 /**
- * @returns {null | { kind:'component', type, typeLabel, label, partial, index, count, sectionId, span, caption }}
- */
 /** The section the ghost belongs in on `screen`, or null when the parent is on another screen. */
-function ghostSectionFor(parent, definition, screen, sections) {
+function ghostSectionFor(parent: string | null | undefined, definition: AppDefinition | null | undefined, screen: AppScreen, sections: Set<string>): string | null {
     if (parent && sections.has(parent)) return parent;
     if (parent) {
         const found = findNode(definition, parent);
         if (found && found.screen && found.section) return found.screen.id === screen.id ? found.section.id : null;
         if (findSection(definition, parent)) return null; // a section of another screen
     }
-    return screen.sections[screen.sections.length - 1].id;
+    const screenSections = screen.sections as AppSection[];
+    return screenSections[screenSections.length - 1].id as string;
 }
 
-export function projectGhostCell(toolDraft, definition, activeScreenId, t = null) {
+export function projectGhostCell(toolDraft: ToolDraft | null | undefined, definition: AppDefinition | null | undefined, activeScreenId: string | null | undefined, t: TranslateFn | null = null): GhostCell | null {
     if (!toolDraft || toolDraft.name !== 'app_add_components') return null;
-    const items = Array.isArray(toolDraft.items) ? toolDraft.items.filter((i) => i && KINDS_ON_CANVAS.has(i.kind)) : [];
+    const items: ToolDraftItem[] = Array.isArray(toolDraft.items) ? toolDraft.items.filter((i): i is ToolDraftItem => !!i && KINDS_ON_CANVAS.has(i.kind as string)) : [];
     if (!items.length) return null;
     const screen = findScreen(definition, activeScreenId);
     if (!screen) return null;
@@ -58,12 +90,13 @@ export function projectGhostCell(toolDraft, definition, activeScreenId, t = null
     if (!sectionId) return null;
 
     const last = items[items.length - 1];
-    const type = typeof last.type === 'string' && APP_COMPONENT_TYPES[last.type] ? last.type : null;
-    const entry = type ? APP_COMPONENT_TYPES[type] : null;
+    const registry = APP_COMPONENT_TYPES as Record<string, ComponentEntry | undefined>;
+    const type = typeof last.type === 'string' && registry[last.type] ? last.type : null;
+    const entry = type ? registry[type] : null;
     const typeLabel = entry ? (entry.label || type) : (t ? t('app_studio.builder.draft.component', 'Component') : 'Component');
-    const span = entry && entry.defaultStyle && Number.isFinite(entry.defaultStyle.span) ? entry.defaultStyle.span : 12;
+    const span = entry && entry.defaultStyle && Number.isFinite(entry.defaultStyle.span) ? (entry.defaultStyle.span as number) : 12;
     const index = items.length;
-    const count = Number.isFinite(toolDraft.count) && toolDraft.count >= index ? toolDraft.count : index;
+    const count = Number.isFinite(toolDraft.count) && (toolDraft.count as number) >= index ? (toolDraft.count as number) : index;
     const label = typeof last.label === 'string' && last.label.trim() ? last.label.trim() : null;
     const caption = label
         || (t ? t('app_studio.builder.draft.typing', 'Adding {type}…', { type: typeLabel }) : `Adding ${typeLabel}…`);

@@ -1,6 +1,12 @@
 import { createContext, useContext, useMemo, useRef } from 'react';
 import { mergeFormValues } from '../runtime/formValues';
 
+export interface ScreenValuesStore {
+    publish(formName: string, values: Record<string, unknown>): void;
+    read(): Record<string, Record<string, unknown>>;
+    readForm(formName: string | null | undefined): Record<string, unknown> | null;
+}
+
 /**
  * De LIVE waarden die op het scherm staan, leesbaar buiten de canvas.
  *
@@ -35,14 +41,14 @@ import { mergeFormValues } from '../runtime/formValues';
  * inspector/testPayload.js.
  */
 
-export const ScreenValuesContext = createContext(null);
+export const ScreenValuesContext = createContext<ScreenValuesStore | null>(null);
 
 /**
  * De store zelf. Eén per editor-shell; de waarde is stabiel over de hele
  * levensduur, zodat consumenten hem gerust als dependency mogen gebruiken.
  */
-export function useScreenValuesStore() {
-    const ref = useRef({});
+export function useScreenValuesStore(): ScreenValuesStore {
+    const ref = useRef<Record<string, Record<string, unknown>>>({});
     return useMemo(() => ({
         /** Zelfde vouw als de canvas-scope (mergeFormValues) — één bron, één vorm. */
         publish(formName, values) {
@@ -67,6 +73,6 @@ export function useScreenValuesStore() {
 }
 
 /** De store, of null buiten de editor (de run-pagina heeft geen inspector). */
-export function useScreenValues() {
+export function useScreenValues(): ScreenValuesStore | null {
     return useContext(ScreenValuesContext);
 }

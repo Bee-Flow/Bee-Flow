@@ -22,9 +22,24 @@
  */
 
 import { findNode, findScreen, findSection } from '../state/definitionOps';
+import type { AppDefinition } from '../inspector/appDefinition';
+
+/** The slice of the build cue this module reads. */
+export interface BuildScreenCue {
+    definition?: AppDefinition | null;
+    toolDraft?: { parentId?: unknown } | null;
+    lastCall?: { added?: Array<{ type?: string; id?: string } | null> | null } | null;
+    reveal?: { plan?: { screens?: string[]; ids?: string[] } | null } | null;
+}
+
+export interface BuildScreenTarget {
+    id: string;
+    name: string;
+    reason: 'typing' | 'screen' | 'landed';
+}
 
 /** The screen an id lives on: a screen id → itself, a section → its screen, a component → its screen. */
-export function screenOfNode(def, id) {
+export function screenOfNode(def: AppDefinition | null | undefined, id: unknown): string | null {
     if (!def || typeof id !== 'string' || !id) return null;
     if (findScreen(def, id)) return id;
     const sec = findSection(def, id);
@@ -33,23 +48,19 @@ export function screenOfNode(def, id) {
     return found && found.screen ? found.screen.id : null;
 }
 
-/**
- * @param {{ definition, toolDraft, lastCall, reveal }} cue
- * @returns {{ id: string, name: string, reason: 'typing'|'screen'|'landed' } | null}
- */
-function typingTarget(definition, toolDraft) {
+function typingTarget(definition: AppDefinition, toolDraft: BuildScreenCue['toolDraft']): string | null {
     return toolDraft && typeof toolDraft.parentId === 'string' ? screenOfNode(definition, toolDraft.parentId) : null;
 }
 
-function addedScreenTarget(definition, lastCall, reveal) {
+function addedScreenTarget(definition: AppDefinition, lastCall: BuildScreenCue['lastCall'], reveal: BuildScreenCue['reveal']): string | null {
     const added = lastCall && Array.isArray(lastCall.added) ? lastCall.added : [];
-    const screenAdded = added.find((a) => a && a.type === 'screen' && typeof a.id === 'string');
+    const screenAdded = added.find((a): a is { type?: string; id: string } => !!a && a.type === 'screen' && typeof a.id === 'string');
     if (screenAdded && findScreen(definition, screenAdded.id)) return screenAdded.id;
     const planScreens = reveal && reveal.plan && Array.isArray(reveal.plan.screens) ? reveal.plan.screens : [];
     return planScreens.find((id) => findScreen(definition, id)) || null;
 }
 
-function landedTarget(definition, reveal) {
+function landedTarget(definition: AppDefinition, reveal: BuildScreenCue['reveal']): string | null {
     const planIds = reveal && reveal.plan && Array.isArray(reveal.plan.ids) ? reveal.plan.ids : [];
     for (const id of planIds) {
         const on = screenOfNode(definition, id);
@@ -58,9 +69,9 @@ function landedTarget(definition, reveal) {
     return null;
 }
 
-export function resolveBuildScreen({ definition, toolDraft, lastCall, reveal } = {}) {
+export function resolveBuildScreen({ definition, toolDraft, lastCall, reveal }: BuildScreenCue = {}): BuildScreenTarget | null {
     if (!definition) return null;
-    const answer = (id, reason) => {
+    const answer = (id: string | null, reason: BuildScreenTarget['reason']): BuildScreenTarget | null => {
         const screen = id ? findScreen(definition, id) : null;
         return screen ? { id: screen.id, name: screen.name || '', reason } : null;
     };

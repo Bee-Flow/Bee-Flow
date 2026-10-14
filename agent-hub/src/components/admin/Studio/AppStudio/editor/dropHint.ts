@@ -1,6 +1,12 @@
 import { createContext, useContext } from 'react';
 import { sectionIdFromDroppable, screenIdFromScreenTabDroppable } from './dnd';
 import { findNode, subtreeIds } from '../state/definitionOps';
+import type { AppDefinition } from '../inspector/appDefinition';
+
+export interface DropHint {
+    nodeId: string | number;
+    edge: 'before' | 'after' | 'inside';
+}
 
 /**
  * Where a drag would land, published for the canvas to draw.
@@ -16,17 +22,19 @@ import { findNode, subtreeIds } from '../state/definitionOps';
  * this reads the same inputs, so the line can never point somewhere the drop
  * will not go.
  */
-export const DropHintContext = createContext(null);
+export const DropHintContext = createContext<DropHint | null>(null);
 
-export function useDropHint(nodeId) {
+export function useDropHint(nodeId: string | number | null | undefined): DropHint['edge'] | null {
     const hint = useContext(DropHintContext);
     return (hint && hint.nodeId === nodeId) ? hint.edge : null;
 }
 
-/**
- * @returns {{nodeId: string, edge: 'before'|'after'|'inside'}|null}
- */
-export function computeDropHint({ active, over, definition, isPalette }) {
+export function computeDropHint({ active, over, definition, isPalette }: {
+    active: { id: string | number } | null | undefined;
+    over: { id: string | number } | null | undefined;
+    definition: AppDefinition | null | undefined;
+    isPalette?: boolean;
+}): DropHint | null {
     if (!active || !over || over.id == null || !definition) return null;
     const overId = over.id;
     // A section or a screen tab already renders its own "drop here" affordance.

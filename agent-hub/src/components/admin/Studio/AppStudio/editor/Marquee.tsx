@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppEditor } from '../state/AppEditorContext';
+import type { AppEditorValue } from '../state/appEditorState';
 
 /**
  * App Studio editor — rubber-band (marquee) multi-select overlay.
@@ -20,14 +21,22 @@ import { useAppEditor } from '../state/AppEditorContext';
 
 const DRAG_THRESHOLD = 4; // px before a click becomes a marquee drag
 
+/** A viewport-coordinate rectangle. */
+export interface MarqueeRect {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+}
+
 /** Axis-aligned rectangle overlap test (viewport coords). */
-export function rectsIntersect(a, b) {
+export function rectsIntersect(a: MarqueeRect | null | undefined, b: MarqueeRect | null | undefined): boolean {
     if (!a || !b) return false;
     return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
 /** Normalize a drag (anchor → pointer) into a {left,top,right,bottom} rect. */
-export function marqueeRect(x0, y0, x1, y1) {
+export function marqueeRect(x0: number, y0: number, x1: number, y1: number): MarqueeRect {
     return {
         left: Math.min(x0, x1),
         top: Math.min(y0, y1),
@@ -40,18 +49,18 @@ export function marqueeRect(x0, y0, x1, y1) {
  * Pure selection resolver — the node ids whose rect intersects `rect`.
  * `nodeRects` is [{ id, rect }]; returned order follows input order.
  */
-export function idsInMarquee(nodeRects, rect) {
-    const out = [];
+export function idsInMarquee(nodeRects: Array<{ id: string | null; rect: MarqueeRect }> | null | undefined, rect: MarqueeRect): string[] {
+    const out: string[] = [];
     for (const { id, rect: r } of nodeRects || []) {
         if (id && rectsIntersect(r, rect)) out.push(id);
     }
     return out;
 }
 
-export default function Marquee({ surfaceRef }) {
-    const { mode, streamLock, dispatch } = useAppEditor();
-    const [box, setBox] = useState(null); // active marquee rect (viewport) or null
-    const dragRef = useRef(null);
+export default function Marquee({ surfaceRef }: { surfaceRef: { current: HTMLElement | null } }) {
+    const { mode, streamLock, dispatch } = useAppEditor() as AppEditorValue;
+    const [box, setBox] = useState<MarqueeRect | null>(null); // active marquee rect (viewport) or null
+    const dragRef = useRef<{ x0: number; y0: number; active: boolean } | null>(null);
 
     // Read live mode/lock via a ref so the once-attached listener stays fresh.
     const gateRef = useRef({ mode, streamLock, dispatch });
@@ -61,7 +70,7 @@ export default function Marquee({ surfaceRef }) {
         const surface = surfaceRef?.current;
         if (!surface) return undefined;
 
-        const onMove = (e) => {
+        const onMove = (e: PointerEvent) => {
             const d = dragRef.current;
             if (!d) return;
             if (!d.active) {
@@ -70,7 +79,7 @@ export default function Marquee({ surfaceRef }) {
             }
             const rect = marqueeRect(d.x0, d.y0, e.clientX, e.clientY);
             setBox(rect);
-            const nodeRects = [];
+            const nodeRects: Array<{ id: string | null; rect: MarqueeRect }> = [];
             for (const el of surface.querySelectorAll('[data-node-id]')) {
                 nodeRects.push({ id: el.getAttribute('data-node-id'), rect: el.getBoundingClientRect() });
             }
@@ -85,11 +94,11 @@ export default function Marquee({ surfaceRef }) {
             window.removeEventListener('pointercancel', finish);
         };
 
-        const onDown = (e) => {
+        const onDown = (e: PointerEvent) => {
             const { mode: m, streamLock: locked } = gateRef.current;
             if (m !== 'edit' || locked || e.button !== 0) return;
             // A drag that begins on a node belongs to dnd-kit, not the marquee.
-            if (e.target?.closest?.('[data-node-id]')) return;
+            if ((e.target as Element | null)?.closest?.('[data-node-id]')) return;
             dragRef.current = { x0: e.clientX, y0: e.clientY, active: false };
             window.addEventListener('pointermove', onMove);
             window.addEventListener('pointerup', finish);
