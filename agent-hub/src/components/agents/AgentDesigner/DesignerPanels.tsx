@@ -57,7 +57,7 @@ function isIntegrationAvailable(item: CatalogItem, status: IntegrationStatus | n
 /** The section list on the left; Integrations only when one is available. */
 export function DesignerSectionNav({ integrationStatus, activeSection, setActiveSection }: {
     integrationStatus: IntegrationStatus | null | undefined;
-    activeSection: string;
+    activeSection: string | null;
     setActiveSection: (id: string) => void;
 }) {
     const hasIntegrations = (INTEGRATION_CATALOG as CatalogItem[]).some(item => isIntegrationAvailable(item, integrationStatus));
