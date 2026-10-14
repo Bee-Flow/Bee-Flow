@@ -4,8 +4,9 @@ import AnchoredMenu from './AnchoredMenu';
 import {
     PERSONAL, ORG, GROUPS,
     audienceModeOf, makeGroupNamer, useAudienceActions, GroupChecklist,
+    type AudienceEntity, type GroupNames, type OrgGroup,
 } from './VisibilityCapsule';
-import { useTranslation } from '../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
 
 /**
  * AudienceRows — the INLINE presentation of the visibility state, for
@@ -30,6 +31,23 @@ import { useTranslation } from '../../hooks/useTranslation';
  * Extra props over the capsule: `title` (row-group heading), `hint` (the
  * consequence line under the rows), `disabled` (read-only viewers).
  */
+export interface AudienceRowsProps {
+    t?: TranslateFn;
+    agent?: AudienceEntity | null;
+    isPublished?: boolean;
+    sharedGroups?: string[] | null;
+    orgGroups?: OrgGroup[];
+    groupNames?: GroupNames | null;
+    onSetPersonal?: () => void;
+    onSetEntireOrg?: () => void;
+    onToggleGroup?: (groupId: string) => void;
+    confirmWidening?: boolean;
+    disabled?: boolean;
+    title?: React.ReactNode;
+    hint?: React.ReactNode;
+    className?: string;
+}
+
 export default function AudienceRows({
     t: tProp,
     agent,
@@ -45,9 +63,9 @@ export default function AudienceRows({
     title = null,
     hint = null,
     className = '',
-}) {
+}: AudienceRowsProps) {
     const { t: tHook } = useTranslation();
-    const t = tProp || tHook;
+    const t: TranslateFn = tProp || tHook;
     const groups = Array.isArray(sharedGroups) ? sharedGroups : [];
     const mode = audienceModeOf({ isPublished, sharedGroups: groups });
     const nameOf = makeGroupNamer({ groupNames, orgGroups });
@@ -57,9 +75,9 @@ export default function AudienceRows({
     });
 
     const [pickerOpen, setPickerOpen] = useState(false);
-    const addRef = useRef(null);
+    const addRef = useRef<HTMLButtonElement>(null);
 
-    const rowStyle = (active) => ({
+    const rowStyle = (active: boolean): React.CSSProperties => ({
         display: 'flex',
         alignItems: 'center',
         gap: 8,
@@ -78,7 +96,7 @@ export default function AudienceRows({
         width: '100%',
     });
 
-    const onRowKey = (fn) => (e) => {
+    const onRowKey = (fn: () => void) => (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (disabled) return;
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); }
     };

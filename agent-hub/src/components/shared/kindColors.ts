@@ -36,7 +36,7 @@
  *   - Lives in components/shared/: not under AppStudio (the noPurple scan
  *     roots) and not under Builder/flow/ (a kind is not a step).
  */
-import { BookOpen, Bot, ClipboardList, FileText, Globe, LayoutGrid, Mic, Package, Scale, Table, Workflow, Zap, Clapperboard } from 'lucide-react';
+import { BookOpen, Bot, ClipboardList, FileText, Globe, LayoutGrid, Mic, Package, Scale, Table, Workflow, Zap, Clapperboard, type LucideIcon } from 'lucide-react';
 
 /** The thirteen kinds, in rail order: Bouwen, AI, Bundelen — then the one area you administer. */
 export const KIND_KEYS = Object.freeze([
@@ -44,9 +44,17 @@ export const KIND_KEYS = Object.freeze([
     'agent', 'skill', 'kb', 'meeting',
     'playbook', 'solution',
     'compliance',
-]);
+] as const);
 
-const KIND_VAR = Object.freeze({
+export type KindKey = (typeof KIND_KEYS)[number];
+
+const KIND_LIST: readonly string[] = KIND_KEYS;
+
+function isKindKey(s: string): s is KindKey {
+    return KIND_LIST.includes(s);
+}
+
+const KIND_VAR: Readonly<Record<string, string>> = Object.freeze({
     automation: 'var(--type-trigger)',
     datatable: 'var(--type-data)',
     app: 'var(--kind-app)',
@@ -63,7 +71,7 @@ const KIND_VAR = Object.freeze({
 });
 
 /** The glyph of each kind — the exact lucide names artboard 1b draws. */
-const KIND_ICON = Object.freeze({
+const KIND_ICON: Readonly<Record<string, LucideIcon>> = Object.freeze({
     automation: Workflow,
     datatable: Table,
     app: LayoutGrid,
@@ -84,7 +92,7 @@ const KIND_ICON = Object.freeze({
  * resource types, sidebar section ids, usage rows, plurals — folded onto
  * the twelve keys, so a caller can hand over whatever it has.
  */
-const KIND_ALIASES = Object.freeze({
+const KIND_ALIASES: Readonly<Record<string, KindKey>> = Object.freeze({
     automations: 'automation', automation: 'automation', flow: 'automation',
     datatables: 'datatable', table: 'datatable', tables: 'datatable', data_table: 'datatable',
     apps: 'app', application: 'app',
@@ -107,20 +115,27 @@ const KIND_ALIASES = Object.freeze({
  * reference (`{ objectType }` / `{ resourceType }`) all resolve without the
  * caller unpacking them. Unknown input → null, never a throw.
  */
-export function kindOf(objOrKind) {
+type KindFields = { kind?: unknown; objectType?: unknown; resourceType?: unknown; type?: unknown };
+
+function kindField(o: object): unknown {
+    const f: KindFields = o;
+    return f.kind ?? f.objectType ?? f.resourceType ?? f.type ?? null;
+}
+
+export function kindOf(objOrKind: string | object | null | undefined): KindKey | null {
     if (!objOrKind) return null;
-    const raw = typeof objOrKind === 'string'
+    const raw: unknown = typeof objOrKind === 'string'
         ? objOrKind
-        : (objOrKind.kind ?? objOrKind.objectType ?? objOrKind.resourceType ?? objOrKind.type ?? null);
+        : kindField(objOrKind);
     if (typeof raw !== 'string' || !raw) return null;
     const key = raw.trim().toLowerCase();
-    if (KIND_KEYS.includes(key)) return key;
+    if (isKindKey(key)) return key;
     return KIND_ALIASES[key] ?? null;
 }
 
 /** `var(--kind-kb)` for a kind; a neutral ink when there is none. */
-export function kindColorVar(kind) {
-    return KIND_VAR[kind] ?? 'var(--text-tertiary)';
+export function kindColorVar(kind: string | null | undefined): string {
+    return (kind && KIND_VAR[kind]) || 'var(--text-tertiary)';
 }
 
 /**
@@ -129,7 +144,7 @@ export function kindColorVar(kind) {
  * needs a touch more fill to read as a tile at all). `color-mix` so it
  * follows the theme's own value at paint time.
  */
-export function kindTint(kind, pct = 16) {
+export function kindTint(kind: string | null | undefined, pct = 16): string {
     return `color-mix(in srgb, ${kindColorVar(kind)} ${pct}%, transparent)`;
 }
 
@@ -139,14 +154,14 @@ export function kindTint(kind, pct = 16) {
  * card on the canvas), a form is a circle (like a form page's tile), every
  * other kind is a plain 8px tile.
  */
-export function cardRadius(kind) {
+export function cardRadius(kind: string | null | undefined): string {
     if (kind === 'automation') return '15px 8px 8px 15px';
     if (kind === 'form') return '999px';
     return '8px';
 }
 
 /** cardRadius at any tile size: the trigger's leading edge stays a half-circle. */
-function tileRadius(kind, size) {
+function tileRadius(kind: string | null | undefined, size: number): string {
     if (kind === 'automation') {
         const r = Math.round(size / 2);
         return `${r}px 8px 8px ${r}px`;
@@ -161,22 +176,22 @@ function tileRadius(kind, size) {
  * Returns `{ tile, glyph }` inline-style objects. Accepts `size` as a bare
  * number too (`kindTileStyle('kb', 36)`).
  */
-export function kindTileStyle(kind, opts = {}) {
+export function kindTileStyle(kind: string | null | undefined, opts: number | { size?: number; pct?: number } = {}): { tile: React.CSSProperties; glyph: React.CSSProperties } {
     const { size = 30, pct } = typeof opts === 'number' ? { size: opts } : opts;
     const tintPct = pct ?? (size <= 28 ? 18 : 16);
     const glyphPx = size === 28 ? 15 : Math.round(size / 2);
-    const tile = {
+    const tile: React.CSSProperties = {
         width: size, height: size, flexShrink: 0,
         borderRadius: tileRadius(kind, size),
         display: 'grid', placeItems: 'center',
         background: kindTint(kind, tintPct),
         color: kindColorVar(kind),
     };
-    const glyph = { width: glyphPx, height: glyphPx, display: 'inline-flex' };
+    const glyph: React.CSSProperties = { width: glyphPx, height: glyphPx, display: 'inline-flex' };
     return { tile, glyph };
 }
 
 /** The lucide component for a kind; null for an unknown kind. */
-export function kindIcon(kind) {
-    return KIND_ICON[kind] ?? null;
+export function kindIcon(kind: string | null | undefined): LucideIcon | null {
+    return (kind && KIND_ICON[kind]) || null;
 }

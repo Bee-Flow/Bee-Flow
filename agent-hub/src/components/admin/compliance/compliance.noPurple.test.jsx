@@ -29,8 +29,8 @@ const ROOTS = [
 // Only these shared files belong to the compliance contract; the rest of
 // shared/ has its own tests and may legitimately carry hex (e.g. chart palettes).
 const SHARED_FILES = new Set([
-    'statusTone.js', 'SideDrawer.jsx', 'DeadlineClock.jsx', 'deadlineMath.js',
-    'DataTable.jsx', 'FilterPills.jsx', 'Pager.jsx', 'NavCountBadge.jsx',
+    'statusTone.ts', 'SideDrawer.tsx', 'DeadlineClock.tsx', 'deadlineMath.ts',
+    'DataTable.tsx', 'FilterPills.tsx', 'Pager.tsx', 'NavCountBadge.tsx',
 ]);
 
 // Same list as AppStudio.noPurple.test.jsx — keep them identical.

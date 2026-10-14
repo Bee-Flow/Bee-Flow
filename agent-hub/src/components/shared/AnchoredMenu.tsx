@@ -55,7 +55,7 @@ const MENU_GAP = 4;
  * client box (clientWidth/clientHeight) does not. A point past the client edge
  * but still inside the border box is therefore in the gutter.
  */
-export function isScrollbarPress(e) {
+export function isScrollbarPress(e: MouseEvent): boolean {
     const el = e.target;
     if (!(el instanceof Element)) return false;
     const cw = el.clientWidth;
@@ -68,12 +68,12 @@ export function isScrollbarPress(e) {
 }
 
 /** Keys a text field needs for its caret; the menu pattern must not take them from it. */
-const TEXT_KEYS = new Set(['Home', 'End', 'ArrowLeft', 'ArrowRight']);
+const TEXT_KEYS: ReadonlySet<string> = new Set(['Home', 'End', 'ArrowLeft', 'ArrowRight']);
 
-const NON_TEXT_INPUTS = new Set(['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color', 'file', 'image']);
+const NON_TEXT_INPUTS: ReadonlySet<string> = new Set(['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color', 'file', 'image']);
 
 /** Where the ARIA menu keys move the focus: ArrowDown/Up cycle, Home/End jump; null for any other key. */
-function nextMenuIndex(key, idx, length) {
+function nextMenuIndex(key: string, idx: number, length: number): number | null {
     if (key === 'ArrowDown') return (idx + 1) % length;
     if (key === 'ArrowUp') return (idx - 1 + length) % length;
     if (key === 'Home') return 0;
@@ -81,15 +81,42 @@ function nextMenuIndex(key, idx, length) {
     return null;
 }
 
-function keepsCaret(e) {
+function keepsCaret(e: KeyboardEvent): boolean {
     return TEXT_KEYS.has(e.key) && isTextEntry(e.target);
 }
 
-function isTextEntry(el) {
+/** `node.contains(target)` for an event target that may not be a node at all. */
+function within(node: Element | null | undefined, target: EventTarget | null): boolean {
+    return target instanceof Node && !!node?.contains(target);
+}
+
+function isTextEntry(el: EventTarget | null): boolean {
     if (!(el instanceof HTMLElement)) return false;
     if (el.tagName === 'TEXTAREA') return true;
-    if (el.tagName === 'INPUT') return !NON_TEXT_INPUTS.has(el.type);
+    if (el instanceof HTMLInputElement) return !NON_TEXT_INPUTS.has(el.type);
     return el.isContentEditable || !!el.closest('[contenteditable=""], [contenteditable="true"]');
+}
+
+export interface AnchoredMenuProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'role' | 'style' | 'children'> {
+    open?: boolean;
+    onClose?: () => void;
+    anchorRef?: React.RefObject<HTMLElement | null>;
+    align?: 'stretch' | 'left' | 'right';
+    width?: number | null;
+    minWidth?: number;
+    maxHeight?: number | null;
+    closeOnEscape?: boolean;
+    className?: string;
+    style?: React.CSSProperties | null;
+    role?: React.AriaRole;
+    children?: React.ReactNode;
+}
+
+interface Placement {
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
 }
 
 export default function AnchoredMenu({
@@ -106,9 +133,9 @@ export default function AnchoredMenu({
     role = 'listbox',
     children,
     ...rest
-}) {
-    const panelRef = useRef(null);
-    const [placement, setPlacement] = useState(null);
+}: AnchoredMenuProps) {
+    const panelRef = useRef<HTMLDivElement>(null);
+    const [placement, setPlacement] = useState<Placement | null>(null);
 
     const position = useCallback(() => {
         const anchor = anchorRef?.current;
@@ -167,14 +194,14 @@ export default function AnchoredMenu({
         const panel = panelRef.current;
         const anchorEl = anchorRef?.current || null;
         if (!panel) return undefined;
-        const items = () => Array.from(panel.querySelectorAll('[role="menuitem"]:not(:disabled)'));
+        const items = () => Array.from(panel.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)'));
         items()[0]?.focus?.();
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             const list = items();
             // A text field inside the menu (a search box) keeps its caret keys.
             if (!list.length || keepsCaret(e)) return;
             if (e.key === 'Tab') { e.preventDefault(); onClose?.(); return; }
-            const next = nextMenuIndex(e.key, list.indexOf(document.activeElement), list.length);
+            const next = nextMenuIndex(e.key, list.findIndex((el) => el === document.activeElement), list.length);
             if (next === null) return;
             e.preventDefault();
             list[next]?.focus?.();
@@ -193,18 +220,18 @@ export default function AnchoredMenu({
     useEffect(() => {
         if (!open) return undefined;
 
-        const onDown = (e) => {
-            if (panelRef.current?.contains(e.target)) return;
-            if (anchorRef?.current?.contains(e.target)) return;
+        const onDown = (e: MouseEvent) => {
+            if (within(panelRef.current, e.target)) return;
+            if (within(anchorRef?.current, e.target)) return;
             if (isScrollbarPress(e)) return;
             onClose?.();
         };
-        const onKey = (e) => { if (closeOnEscape && e.key === 'Escape') onClose?.(); };
+        const onKey = (e: KeyboardEvent) => { if (closeOnEscape && e.key === 'Escape') onClose?.(); };
         // Reposition rather than close when the surrounding page scrolls — the
         // author is usually scrolling the very form the menu belongs to. The
         // panel's own scrolling never reaches here (it is `overscroll-contain`
         // and this listener skips targets inside the panel).
-        const onScroll = (e) => { if (panelRef.current?.contains(e.target)) return; position(); };
+        const onScroll = (e: Event) => { if (within(panelRef.current, e.target)) return; position(); };
         const onResize = () => position();
 
         document.addEventListener('mousedown', onDown, true);
@@ -221,7 +248,7 @@ export default function AnchoredMenu({
 
     if (!open || typeof document === 'undefined') return null;
 
-    const panelStyle = {
+    const panelStyle: React.CSSProperties = {
         position: 'fixed',
         // First paint happens off-screen so the measuring pass can read the
         // natural height without the user seeing the panel in the wrong place.

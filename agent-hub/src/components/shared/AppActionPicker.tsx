@@ -78,7 +78,51 @@ import useTranslation from '../../hooks/useTranslation';
  */
 
 /** De Engelse standaardteksten van de schil. Een surface met `t()` overschrijft ze. */
-export const PICKER_TEXT = Object.freeze({
+export interface AppAction {
+    name: string;
+    label?: string;
+    description?: string;
+    effect?: string;
+    sideEffect?: boolean;
+    producesList?: boolean;
+}
+
+export interface AppItem {
+    id: string;
+    label?: string;
+    description?: string;
+    available?: boolean;
+    unavailableHint?: string;
+    actionsKnown?: boolean;
+    actions?: AppAction[];
+}
+
+/** One app's selection: a set (possibly empty), nothing said (undefined), or unknown (null). */
+export type AppSelectionValue = Set<string> | readonly string[] | null | undefined;
+
+/** The shell's English strings, as PICKER_TEXT holds them. */
+export interface PickerText {
+    search: string;
+    enableAll: string;
+    disableAll: string;
+    selectedOf: string;
+    selectedOfOne: string;
+    noMatch: string;
+    actionsUnknown: string;
+    filterAll: string;
+    filterReads: string;
+    filterWrites: string;
+    filterSends: string;
+    filterGroup: string;
+    badgeReads: string;
+    badgeWrites: string;
+    badgeSends: string;
+    badgeUnknown: string;
+    badgeList: string;
+    sendsNote: string | null;
+}
+
+export const PICKER_TEXT: Readonly<PickerText> = Object.freeze({
     search: 'Search apps and actions',
     enableAll: 'Enable all',
     disableAll: 'Disable all',
@@ -108,16 +152,32 @@ export const PICKER_TEXT = Object.freeze({
     sendsNote: null,
 });
 
-const EFFECTS = Object.freeze(['reads', 'writes', 'sends']);
+export type ActionEffect = 'reads' | 'writes' | 'sends';
+
+type EffectFilter = 'all' | ActionEffect;
+
+type BadgeKey = 'badgeReads' | 'badgeWrites' | 'badgeSends';
+
+const EFFECTS: readonly string[] = Object.freeze(['reads', 'writes', 'sends']);
+
+const EFFECT_BADGE: Readonly<Record<ActionEffect, BadgeKey>> = Object.freeze({
+    reads: 'badgeReads',
+    writes: 'badgeWrites',
+    sends: 'badgeSends',
+});
+
+function isActionEffect(s: string): s is ActionEffect {
+    return EFFECTS.includes(s);
+}
 
 /** `reads`/`writes`/`sends`, of `null` als de catalogus het niet zegt. */
-export function actionEffect(action) {
+export function actionEffect(action: AppAction | null | undefined): ActionEffect | null {
     const raw = action && typeof action.effect === 'string' ? action.effect.trim() : '';
-    return EFFECTS.includes(raw) ? raw : null;
+    return isActionEffect(raw) ? raw : null;
 }
 
 /** Onbekend telt als versturen — dezelfde lezing als de runtime. */
-function matchesEffectFilter(action, filter) {
+function matchesEffectFilter(action: AppAction, filter: EffectFilter): boolean {
     if (filter === 'all') return true;
     const effect = actionEffect(action);
     if (effect === null) return filter === 'sends';
@@ -125,21 +185,21 @@ function matchesEffectFilter(action, filter) {
 }
 
 /** De token-kleur van een effect. Geen losse hexwaarden: het thema beslist. */
-const EFFECT_TOKEN = Object.freeze({
+const EFFECT_TOKEN: Readonly<Record<ActionEffect | 'unknown', string>> = Object.freeze({
     reads: 'var(--success)',
     writes: 'var(--warning)',
     sends: 'var(--error)',
     unknown: 'var(--error)',
 });
 
-function fmt(template, vars) {
+function fmt(template: string | null | undefined, vars?: Record<string, string | number>): string {
     let out = String(template ?? '');
     for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
     return out;
 }
 
 /** Een badge in één token — tekst én rand in dezelfde kleur. */
-function EffectBadge({ kind, label }) {
+function EffectBadge({ kind, label }: { kind: ActionEffect | 'unknown'; label: string }) {
     return (
         <span
             data-testid={`action-effect-${kind}`}
@@ -152,8 +212,8 @@ function EffectBadge({ kind, label }) {
 }
 
 /** De chiprij. Verschijnt alleen als er effecten in de catalogus staan. */
-function EffectFilters({ txt, value, onChange }) {
-    const chips = [
+function EffectFilters({ txt, value, onChange }: { txt: PickerText; value: EffectFilter; onChange: (value: EffectFilter) => void }) {
+    const chips: [EffectFilter, string][] = [
         ['all', txt.filterAll],
         ['reads', txt.filterReads],
         ['writes', txt.filterWrites],
@@ -180,7 +240,15 @@ function EffectFilters({ txt, value, onChange }) {
 }
 
 /** Eén actierij. Een rij die kán versturen dimt en zegt dat er eerst gevraagd wordt. */
-function ActionRow({ action, app, on, readOnly, showEffect, txt, onToggle }) {
+function ActionRow({ action, app, on, readOnly, showEffect, txt, onToggle }: {
+    action: AppAction;
+    app: AppItem;
+    on: boolean;
+    readOnly: boolean;
+    showEffect: boolean;
+    txt: PickerText;
+    onToggle?: ((name: string, app: AppItem, action: AppAction) => void) | null;
+}) {
     const effect = actionEffect(action);
     const sendsIsh = showEffect && (effect === 'sends' || effect === null);
     return (
@@ -205,7 +273,7 @@ function ActionRow({ action, app, on, readOnly, showEffect, txt, onToggle }) {
                         <span className="text-[9px] uppercase tracking-wide font-semibold text-[var(--accent)] border border-[var(--accent)]/50 rounded px-1 py-px flex-shrink-0">{txt.badgeList}</span>
                     )}
                     {showEffect
-                        ? <EffectBadge kind={effect || 'unknown'} label={effect ? txt[`badge${effect[0].toUpperCase()}${effect.slice(1)}`] : txt.badgeUnknown} />
+                        ? <EffectBadge kind={effect || 'unknown'} label={effect ? txt[EFFECT_BADGE[effect]] : txt.badgeUnknown} />
                         : action.sideEffect && <EffectBadge kind="writes" label={txt.badgeWrites} />}
                     {sendsIsh && txt.sendsNote && (
                         <span className="text-[10px] text-[var(--text-tertiary)] flex-shrink-0">{txt.sendsNote}</span>
@@ -217,6 +285,22 @@ function ActionRow({ action, app, on, readOnly, showEffect, txt, onToggle }) {
             </span>
         </button>
     );
+}
+
+export interface AppActionPickerProps {
+    apps?: AppItem[];
+    selected?: string[];
+    selection?: Map<string, AppSelectionValue> | Record<string, AppSelectionValue> | null;
+    onToggle?: (name: string, app: AppItem, action: AppAction) => void;
+    onToggleApp?: (app: AppItem, turnOn: boolean, visibleActions: AppAction[]) => void;
+    onClose?: () => void;
+    title?: string;
+    emptyLabel?: string;
+    footer?: React.ReactNode;
+    unavailableHint?: string;
+    focusAppId?: string | null;
+    readOnly?: boolean;
+    text?: Partial<PickerText> | null;
 }
 
 export default function AppActionPicker({
@@ -233,30 +317,30 @@ export default function AppActionPicker({
     focusAppId = null,
     readOnly = false,
     text = null,
-}) {
+}: AppActionPickerProps) {
     const { t } = useTranslation();
     const txt = useMemo(() => ({ ...PICKER_TEXT, ...(text || {}) }), [text]);
     const flatSet = useMemo(() => new Set(selected), [selected]);
     const [search, setSearch] = useState('');
-    const [effectFilter, setEffectFilter] = useState('all');
-    const [focusedId, setFocusedId] = useState(focusAppId || apps[0]?.id || null);
+    const [effectFilter, setEffectFilter] = useState<EffectFilter>('all');
+    const [focusedId, setFocusedId] = useState<string | null>(focusAppId || apps[0]?.id || null);
 
     // Het per-app model wint van het platte. `undefined` = niets gezegd (geen
     // vinkjes), `null` = onbekend (niets te vinken, en dus ook niets aan te
     // raken). Zie de kop.
-    const pickedFor = (appId) => {
-        if (!selection) return undefined;
+    const pickedFor = (appId: string | undefined): Set<string> | null | undefined => {
+        if (!selection || appId === undefined) return undefined;
         const raw = selection instanceof Map ? selection.get(appId) : selection[appId];
         if (raw === null) return null;
         if (raw === undefined) return undefined;
-        return raw instanceof Set ? raw : new Set(Array.isArray(raw) ? raw : []);
+        return raw instanceof Set ? raw : new Set<string>(Array.isArray(raw) ? raw : []);
     };
-    const isOn = (appId, name) => {
+    const isOn = (appId: string | undefined, name: string): boolean => {
         if (!selection) return flatSet.has(name);
         const picked = pickedFor(appId);
         return picked instanceof Set ? picked.has(name) : false;
     };
-    const countFor = (app) => (app.actions || []).reduce((n, a) => n + (isOn(app.id, a.name) ? 1 : 0), 0);
+    const countFor = (app: AppItem): number => (app.actions || []).reduce((n, a) => n + (isOn(app.id, a.name) ? 1 : 0), 0);
 
     // Draagt deze catalogus effecten? Zo niet: geen chips, geen effect-badges
     // — filteren op een veld dat er niet is verbergt alles.

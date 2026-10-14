@@ -29,8 +29,8 @@
  */
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import UsedByTab, { adaptUsageRows } from './UsedByTab';
-import useTranslation from '../../hooks/useTranslation';
+import UsedByTab, { adaptUsageRows, type UsageAdapter, type UsageRow } from './UsedByTab';
+import useTranslation, { type TranslateFn } from '../../hooks/useTranslation';
 
 const BTN = 'px-3 py-1.5 rounded-lg text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 
@@ -54,23 +54,37 @@ const BTN = 'px-3 py-1.5 rounded-lg text-sm focus-visible:outline focus-visible:
  */
 
 /** The `usage` rows out of a 409 in_use payload (or an error wrapping one), else null. */
-export function inUsePayload(x) {
+type Loose = { code?: unknown; usage?: unknown; status?: unknown; body?: unknown };
+
+export function inUsePayload(x: unknown): UsageRow[] | null {
     if (!x || typeof x !== 'object') return null;
-    if (x.code === 'in_use' && Array.isArray(x.usage)) return x.usage;
-    if (x.body && typeof x.body === 'object' && x.body.code === 'in_use' && Array.isArray(x.body.usage)) return x.body.usage;
-    if (x.status === 409 && x.body && Array.isArray(x.body.usage)) return x.body.usage;
+    const e: Loose = x;
+    if (e.code === 'in_use' && Array.isArray(e.usage)) return e.usage;
+    if (e.body && typeof e.body === 'object') {
+        const b: Loose = e.body;
+        if (b.code === 'in_use' && Array.isArray(b.usage)) return b.usage;
+    }
+    if (e.status === 409 && e.body && typeof e.body === 'object') {
+        const b: Loose = e.body;
+        if (Array.isArray(b.usage)) return b.usage;
+    }
     return null;
+}
+
+/** The message of a thrown value, when it carries one. */
+function errorMessage(e: unknown): string {
+    return e && typeof e === 'object' && 'message' in e && typeof e.message === 'string' ? e.message : '';
 }
 
 /**
  * @param {object} props
  * @param {string}     props.entityName      the name the person must type
  * @param {Array|null} props.usage           the shared list: null = not loaded, [] = nothing depends on it
- * @param {(confirmedBreaking: boolean) => Promise<any>|any} props.onDelete
+ * @param {(confirmedBreaking: boolean) => unknown} props.onDelete
  * @param {string}     [props.kindLabel]     "table", "agent" — for the copy; defaults to a neutral word
  * @param {string|null}[props.currentUserId] forwarded to the list (navigable-vs-plain-text rule)
  * @param {(href: string) => void} [props.onNavigate]
- * @param {(row: any) => object|null} [props.adapt]  legacy row → contract row, for both the list and a 409 payload
+ * @param {UsageAdapter} [props.adapt]  legacy row → contract row, for both the list and a 409 payload
  * @param {React.ReactNode} [props.notice]   an extra warning shown inside the armed card (e.g. "rows hold plaintext")
  * @param {string}     [props.openLabel]     the collapsed link's text
  * @param {boolean}    [props.requireName]   always ask for the name, even with no dependents — for a thing
@@ -85,6 +99,25 @@ export function inUsePayload(x) {
  *                                           host closes itself here instead of dropping the
  *                                           person back onto the collapsed link
  */
+export interface DangerZoneProps {
+    entityName: string;
+    usage?: UsageRow[] | null;
+    onDelete: (confirmedBreaking: boolean) => unknown;
+    kindLabel?: string;
+    currentUserId?: string | null;
+    onNavigate?: ((href: string) => void) | null;
+    adapt?: UsageAdapter;
+    notice?: React.ReactNode;
+    openLabel?: string;
+    requireName?: boolean;
+    unchecked?: string[];
+    defaultArmed?: boolean;
+    onCancel?: (() => void) | null;
+    className?: string;
+    question?: string | null;
+    confirmLabel?: string | null;
+}
+
 export default function DangerZone({
     entityName,
     usage,
@@ -106,17 +139,17 @@ export default function DangerZone({
     // a threat the product cannot carry out. Defaults are the delete wording.
     question = null,
     confirmLabel = null,
-}) {
+}: DangerZoneProps) {
     const { t } = useTranslation();
     const [armed, setArmed] = useState(defaultArmed);
     const [typed, setTyped] = useState('');
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     // The server's 409 payload, once it has spoken: fresher than the list we
     // were handed, so it wins — but only against the `usage` it answered to.
     // The moment the parent hands us a new list, the conflict is stale by
     // construction (derived during render, no effect needed).
-    const [conflict, setConflict] = useState(null); // { base: usage, rows }
+    const [conflict, setConflict] = useState<{ base: UsageRow[] | null | undefined; rows: UsageRow[] } | null>(null); // { base: usage, rows }
     const conflictUsage = conflict && conflict.base === usage ? conflict.rows : null;
     const mounted = useRef(true);
     useEffect(() => () => { mounted.current = false; }, []);
@@ -141,7 +174,7 @@ export default function DangerZone({
         onCancel?.();
     }, [onCancel]);
 
-    const showConflict = useCallback((rows) => {
+    const showConflict = useCallback((rows: UsageRow[]) => {
         setConflict({ base: usage, rows });
         setTyped('');
         setBusy(false);
@@ -163,7 +196,7 @@ export default function DangerZone({
             if (!mounted.current) return;
             const conflict = inUsePayload(e);
             if (conflict) { showConflict(conflict); return; }
-            setError(e?.message || t('usage.err_delete', 'Could not delete “{name}”', { name: entityName }));
+            setError(errorMessage(e) || t('usage.err_delete', 'Could not delete “{name}”', { name: entityName }));
             setBusy(false);
         }
     }, [onDelete, hasDependents, showConflict, entityName, t]);
@@ -245,7 +278,13 @@ export default function DangerZone({
  * What breaks: still checking · the list · nothing found but not everything
  * checked · nothing. Answered before the name is asked.
  */
-function Dependents({ t, dependents, unchecked = [], currentUserId, onNavigate }) {
+function Dependents({ t, dependents, unchecked = [], currentUserId, onNavigate }: {
+    t: TranslateFn;
+    dependents: UsageRow[] | null;
+    unchecked?: string[];
+    currentUserId?: string | null;
+    onNavigate?: ((href: string) => void) | null;
+}) {
     if (dependents === null) {
         return (
             <p className="text-xs flex items-center gap-2 text-[var(--text-secondary)]" data-testid="danger-checking">

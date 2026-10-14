@@ -1,8 +1,9 @@
 import { ChevronDown, Globe, Lock, Building2, Users, Check } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
 import useConfirm from './useConfirm';
-import { useTranslation } from '../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
 
 /**
  * VisibilityCapsule — THE "who can see this" control (Personal / Entire
@@ -81,21 +82,55 @@ export const PERSONAL = 'personal';
 export const ORG = 'org';
 export const GROUPS = 'groups';
 
+export type AudienceMode = typeof PERSONAL | typeof ORG | typeof GROUPS;
+
+/** Whatever the audience is for: an agent, a step, a knowledge base, a webpage. */
+export interface AudienceEntity {
+    id?: string | number | null;
+    name?: string | null;
+    title?: string | null;
+}
+
+export interface OrgGroup {
+    id: string;
+    name?: string | null;
+}
+
+export type GroupNames = Record<string, string> | Map<string, string>;
+
+export interface AudienceActionsOptions {
+    t: TranslateFn;
+    entity?: AudienceEntity | null;
+    mode: AudienceMode;
+    sharedGroups: string[];
+    nameOf?: ((id: string) => string) | null;
+    confirmWidening?: boolean;
+    onSetPersonal?: () => void;
+    onSetEntireOrg?: () => void;
+    onToggleGroup?: (groupId: string) => void;
+    onLastGroup?: (() => void) | null;
+}
+
+/** Was this press inside `node`? A target that is not a node at all is not. */
+function within(node: Element | null | undefined, target: EventTarget | null): boolean {
+    return target instanceof Node && !!node?.contains(target);
+}
+
 /** The one derivation, shared with AudienceRows. Empty groups on a published thing = org. */
-export function audienceModeOf({ isPublished, sharedGroups }) {
+export function audienceModeOf({ isPublished, sharedGroups }: { isPublished?: boolean; sharedGroups?: string[] | null }): AudienceMode {
     if (!isPublished) return PERSONAL;
     return (Array.isArray(sharedGroups) && sharedGroups.length > 0) ? GROUPS : ORG;
 }
 
 /** id → display name, from `groupNames` (object or Map) first, then the directory list. */
-export function makeGroupNamer({ groupNames, orgGroups } = {}) {
-    const fromMap = (id) => {
+export function makeGroupNamer({ groupNames, orgGroups }: { groupNames?: GroupNames | null; orgGroups?: OrgGroup[] | null } = {}): (id: string) => string {
+    const fromMap = (id: string): string | undefined => {
         if (!groupNames) return undefined;
         if (groupNames instanceof Map) return groupNames.get(id);
         return groupNames[id];
     };
     const list = Array.isArray(orgGroups) ? orgGroups : [];
-    return (id) => {
+    return (id: string): string => {
         const named = fromMap(id);
         if (named) return named;
         const hit = list.find(g => g && g.id === id);
@@ -108,7 +143,7 @@ export function makeGroupNamer({ groupNames, orgGroups } = {}) {
  * interpolates `{name}` itself; a caller-supplied `t` (tests, embeds) may not,
  * and a capsule reading "{count} groups" is worse than no capsule.
  */
-function tx(t, key, fallback, params) {
+function tx(t: TranslateFn, key: string, fallback: string, params?: Record<string, string | number>): string {
     let value = t(key, fallback, params);
     if (typeof value !== 'string') value = fallback;
     for (const [k, v] of Object.entries(params || {})) {
@@ -118,8 +153,8 @@ function tx(t, key, fallback, params) {
 }
 
 /** ["a","b","c"] → "a, b and c" — the "and" goes through i18n. */
-export function joinAudienceNames(t, names) {
-    const list = (names || []).filter(Boolean);
+export function joinAudienceNames(t: TranslateFn, names: (string | null | undefined)[] | null | undefined): string {
+    const list = (names || []).filter((n): n is string => Boolean(n));
     if (list.length <= 1) return list[0] || '';
     return tx(t, 'visibility.names_and', '{head} and {last}', {
         head: list.slice(0, -1).join(', '),
@@ -128,7 +163,7 @@ export function joinAudienceNames(t, names) {
 }
 
 /** The trigger label: the audience's name, never a count in brackets. */
-export function audienceLabel(t, mode, sharedGroups, nameOf) {
+export function audienceLabel(t: TranslateFn, mode: AudienceMode, sharedGroups: string[] | null | undefined, nameOf?: ((id: string) => string) | null): string {
     if (mode === PERSONAL) return t('visibility.personal', 'Personal');
     if (mode === ORG) return t('visibility.entire_org', 'Entire organisation');
     const ids = Array.isArray(sharedGroups) ? sharedGroups : [];
@@ -155,11 +190,11 @@ export function useAudienceActions({
     // `onSetPersonal` (see toggleGroup); a consumer whose list lives inside
     // a popover hands in a refusal instead, because onSetPersonal closes it.
     onLastGroup = null,
-}) {
+}: AudienceActionsOptions) {
     const { confirm, confirmDialog } = useConfirm();
     const subject = (entity && (entity.name || entity.title)) || t('visibility.this_item', 'this item');
 
-    const ask = (description) => confirm({
+    const ask = (description: string) => confirm({
         title: t('visibility.confirm_title', 'Share more widely?'),
         description,
         confirmLabel: t('visibility.confirm_share', 'Share'),
@@ -177,7 +212,7 @@ export function useAudienceActions({
             .then((ok) => { if (ok) onSetEntireOrg?.(); });
     };
 
-    const toggleGroup = (gid) => {
+    const toggleGroup = (gid: string) => {
         const current = Array.isArray(sharedGroups) ? sharedGroups : [];
         const adding = !current.includes(gid);
         // Unticking the last group: `[]` on a published thing means EVERYONE,
@@ -199,7 +234,17 @@ export function useAudienceActions({
 }
 
 /** Checkbox list over the org's groups — the capsule panel and the AudienceRows "+" picker share it. */
-export function GroupChecklist({ t, orgGroups = [], groupsUnavailable = false, sharedGroups = [], onToggle, disabled = false, className = '' }) {
+export interface GroupChecklistProps {
+    t: TranslateFn;
+    orgGroups?: OrgGroup[];
+    groupsUnavailable?: boolean;
+    sharedGroups?: string[];
+    onToggle?: (groupId: string) => void;
+    disabled?: boolean;
+    className?: string;
+}
+
+export function GroupChecklist({ t, orgGroups = [], groupsUnavailable = false, sharedGroups = [], onToggle, disabled = false, className = '' }: GroupChecklistProps) {
     if (!orgGroups.length) {
         // Same distinction the capsule panel makes: an empty list is a fact
         // about the organisation, and only a read that ANSWERED may state it.
@@ -231,7 +276,31 @@ export function GroupChecklist({ t, orgGroups = [], groupsUnavailable = false, s
     );
 }
 
-const MODE_ICON = { [PERSONAL]: Lock, [ORG]: Building2, [GROUPS]: Users };
+const MODE_ICON: Record<AudienceMode, LucideIcon> = { [PERSONAL]: Lock, [ORG]: Building2, [GROUPS]: Users };
+
+export interface VisibilityCapsuleProps {
+    t?: TranslateFn;
+    agent?: AudienceEntity | null;
+    open?: boolean;
+    onToggle?: () => void;
+    onClose?: () => void;
+    isPublished?: boolean;
+    onSetPersonal?: () => void;
+    onSetEntireOrg?: () => void;
+    embedEnabled?: boolean;
+    orgGroups?: OrgGroup[];
+    groupsUnavailable?: boolean;
+    onRetryGroups?: (() => void) | null;
+    sharedGroups?: string[] | null;
+    onToggleGroup?: (groupId: string) => void;
+    extraSection?: React.ReactNode;
+    variant?: 'pill' | 'capsule';
+    anchored?: boolean;
+    groupNames?: GroupNames | null;
+    confirmWidening?: boolean;
+    disabled?: boolean;
+    className?: string;
+}
 
 export default function VisibilityCapsule({
     t: tProp,
@@ -255,19 +324,19 @@ export default function VisibilityCapsule({
     confirmWidening = false,
     disabled = false,
     className = '',
-}) {
+}: VisibilityCapsuleProps) {
     const { t: tHook } = useTranslation();
-    const t = tProp || tHook;
-    const popoverRef = useRef(null);
-    const triggerRef = useRef(null);
+    const t: TranslateFn = tProp || tHook;
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     // Click-outside for the in-flow popover. The anchored path leaves this to
     // AnchoredMenu, which also ignores presses on a scrollbar.
     useEffect(() => {
         if (!open || anchored) return undefined;
-        const onDoc = (e) => {
-            if (popoverRef.current?.contains(e.target)) return;
-            if (triggerRef.current?.contains(e.target)) return;
+        const onDoc = (e: MouseEvent) => {
+            if (within(popoverRef.current, e.target)) return;
+            if (within(triggerRef.current, e.target)) return;
             onClose?.();
         };
         document.addEventListener('mousedown', onDoc);
@@ -282,7 +351,7 @@ export default function VisibilityCapsule({
     // gone again the moment the menu closes or the audience changes. The
     // refusal records the audience it happened in, and the hint only shows
     // while that is still the audience — derived, so no reset effect.
-    const [lastGroupHintAt, setLastGroupHintAt] = useState(null);
+    const [lastGroupHintAt, setLastGroupHintAt] = useState<string | null>(null);
     const audienceKey = open ? `${mode}:${groups.length}` : null;
     const lastGroupHint = audienceKey !== null && lastGroupHintAt === audienceKey;
     const { choosePersonal, chooseOrg, toggleGroup, confirmDialog } = useAudienceActions({

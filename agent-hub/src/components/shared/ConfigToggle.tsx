@@ -11,7 +11,16 @@ import React from 'react';
  * @param {boolean}  checked     - Whether the toggle is checked
  * @param {function} onChange    - Called with the new boolean value
  */
-export default function ConfigToggle({ id, label, description, icon, checked, onChange }) {
+export interface ConfigToggleProps {
+    id: string;
+    label: React.ReactNode;
+    description?: React.ReactNode;
+    icon?: React.ReactNode;
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+}
+
+export default function ConfigToggle({ id, label, description, icon, checked, onChange }: ConfigToggleProps) {
     return (
         <label
             htmlFor={id}

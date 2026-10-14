@@ -36,23 +36,42 @@ import { TONES } from './statusTone';
  * answer for advice: it must not read as a warning. Anything unrecognised
  * lands on --warning, which is what the pill did before this was shared.
  */
-function severityTone(severity) {
+function severityTone(severity: string): string {
     if (severity === 'error') return 'var(--error)';
     if (severity === 'info') return 'var(--text-tertiary)';
     return 'var(--warning)';
 }
 
 /** The text colour of a small row: the tone's ink (info: neutral ink). */
-function severityInk(severity) {
+function severityInk(severity: string): string {
     if (severity === 'error') return TONES.error.ink;
     if (severity === 'info') return TONES.neutral.ink;
     return TONES.warning.ink;
 }
 
 /** Size-dependent look: the class, the text colour and the data attribute. */
-function rowLook(size, severity, tone) {
+interface RowLook {
+    sizeClass: string;
+    ink: string;
+    dataSize: string | undefined;
+}
+
+function rowLook(size: string, severity: string, tone: string): RowLook {
     if (size === 'sm') return { sizeClass: 'text-xs leading-snug', ink: severityInk(severity), dataSize: 'sm' };
     return { sizeClass: '', ink: tone, dataSize: undefined };
+}
+
+export interface FindingRowProps {
+    code?: string | null;
+    severity?: string;
+    label?: string | null;
+    message: React.ReactNode;
+    hint?: React.ReactNode;
+    onOpen?: (() => void) | null;
+    openLabel?: string;
+    icon?: React.ReactNode;
+    size?: 'sm' | 'md';
+    testId?: string;
 }
 
 export default function FindingRow({
@@ -66,7 +85,7 @@ export default function FindingRow({
     icon = null,
     size = 'md',
     testId = undefined,
-}) {
+}: FindingRowProps) {
     const tone = severityTone(severity);
     const look = rowLook(size, severity, tone);
     const clickable = typeof onOpen === 'function';
@@ -75,8 +94,8 @@ export default function FindingRow({
     const interactive = clickable ? {
         role: 'button',
         tabIndex: 0,
-        onClick: () => onOpen(),
-        onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } },
+        onClick: () => onOpen?.(),
+        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } },
         title: openLabel,
     } : null;
     return (

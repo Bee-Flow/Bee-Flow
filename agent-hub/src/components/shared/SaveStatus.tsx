@@ -18,8 +18,8 @@ import useTranslation from '../../hooks/useTranslation';
  * Colours go through `--vsc-fg-muted` where that theme is in scope and fall
  * back to the project tokens everywhere else.
  */
-function fmtTime(date) {
-    if (!date) return '';
+function fmtTime(date: unknown): string {
+    if (!(date instanceof Date)) return '';
     const diff = (Date.now() - date.getTime()) / 1000;
     if (diff < 60) return 'just now';
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -29,6 +29,20 @@ function fmtTime(date) {
 const MUTED = 'var(--vsc-fg-muted, var(--text-tertiary))';
 const DANGER = 'var(--error)';
 
+/**
+ * `saveState` is the status word: 'idle' | 'saving' | 'saved' | 'error', or nothing.
+ * Callers hand over whatever their store holds, so it is typed loosely here;
+ * any other word reads as 'saved', as it always did.
+ */
+export interface SaveStatusProps {
+    saveState?: unknown;
+    lastSavedAt?: unknown;
+    onRetry?: (() => void) | null;
+    size?: number;
+    className?: string;
+    showWhenIdle?: boolean;
+}
+
 export default function SaveStatus({
     saveState,
     lastSavedAt,
@@ -36,7 +50,7 @@ export default function SaveStatus({
     size = 11,
     className = '',
     showWhenIdle = false,
-}) {
+}: SaveStatusProps) {
     const { t } = useTranslation();
     // "just now" must not still say "just now" ten minutes later. Only ticks
     // while there is a timestamp on screen to go stale.

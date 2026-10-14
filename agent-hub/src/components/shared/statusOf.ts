@@ -27,11 +27,22 @@
  */
 
 /** The vocabulary, in the order the pill's docblock explains it. */
-export const STATUSES = Object.freeze(['live', 'paused', 'draft', 'published', 'stale', 'unknown']);
+export const STATUSES = Object.freeze(['live', 'paused', 'draft', 'published', 'stale', 'unknown'] as const);
+
+export type StudioStatus = (typeof STATUSES)[number];
+
+/** Row fields, camelCase or snake_case, as a client store or the API hands them over. */
+export type StatusRow = Record<string, unknown> | null | undefined;
+
+const STATUS_LIST: readonly unknown[] = STATUSES;
+
+function isStudioStatus(s: unknown): s is StudioStatus {
+    return STATUS_LIST.includes(s);
+}
 
 /** Any status word outside the vocabulary is `unknown` — never a crash, never a guess. */
-export function normalizeStatus(status) {
-    return STATUSES.includes(status) ? status : 'unknown';
+export function normalizeStatus(status: unknown): StudioStatus {
+    return isStudioStatus(status) ? status : 'unknown';
 }
 
 /**
@@ -39,7 +50,7 @@ export function normalizeStatus(status) {
  * BuilderShell uses for its status label (a draft is finalised BY activating
  * it, so the two are never both true on a real row).
  */
-export function automation(row) {
+export function automation(row: StatusRow): StudioStatus {
     if (row?.isDraft) return 'draft';
     return row?.isActive ? 'live' : 'paused';
 }
@@ -48,7 +59,7 @@ export function automation(row) {
  * Steps (kind='block'): published once a version has been rolled out
  * (`publishedVersion != null`, BuilderHeader's own chip), a draft until then.
  */
-export function step(row) {
+export function step(row: StatusRow): StudioStatus {
     return (row?.publishedVersion ?? row?.published_version) != null ? 'published' : 'draft';
 }
 
@@ -59,7 +70,7 @@ export function step(row) {
  * is the truth when present (an unpublished thing keeps its old version
  * number); the version column only speaks when the flag is absent.
  */
-function isPublishedRow(row, versionFields) {
+function isPublishedRow(row: StatusRow, versionFields: readonly string[]): boolean {
     const flag = row?.is_published ?? row?.isPublished;
     if (flag != null) return !!flag;
     return versionFields.some((f) => row?.[f] != null);
@@ -69,17 +80,17 @@ const AGENT_VERSION_FIELDS = ['published_version', 'publishedVersion'];
 const WEBPAGE_VERSION_FIELDS = ['published_version_id', 'publishedVersionId'];
 
 /** Agents: `is_published` today, `published_version` after A1. */
-export function agent(row) {
+export function agent(row: StatusRow): StudioStatus {
     return isPublishedRow(row, AGENT_VERSION_FIELDS) ? 'published' : 'draft';
 }
 
 /** Knowledge bases: `is_published` (same audience contract as agents). */
-export function kb(row) {
+export function kb(row: StatusRow): StudioStatus {
     return isPublishedRow(row, AGENT_VERSION_FIELDS) ? 'published' : 'draft';
 }
 
 /** Webpages: `is_published` today, `published_version_id` after W2. */
-export function webpage(row) {
+export function webpage(row: StatusRow): StudioStatus {
     return isPublishedRow(row, WEBPAGE_VERSION_FIELDS) ? 'published' : 'draft';
 }
 
@@ -91,7 +102,7 @@ export function webpage(row) {
  * A row without a canvas `version` cannot be compared either, so it is
  * `unknown` too rather than a `stale` it cannot back up.
  */
-export function app(row) {
+export function app(row: StatusRow): StudioStatus {
     const publishedVersion = row?.publishedVersion ?? row?.published_version ?? null;
     if (!(row?.isPublished ?? row?.is_published) || publishedVersion == null) return 'unknown';
     if (row?.version == null) return 'unknown';

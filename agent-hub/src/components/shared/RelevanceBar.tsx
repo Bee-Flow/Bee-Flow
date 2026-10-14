@@ -26,7 +26,7 @@ import React from 'react';
 /** A floor, so the weakest hit is still visibly a hit rather than an empty rail. */
 const MIN_WIDTH = 0.08;
 
-export function relativeWidth(score, best) {
+export function relativeWidth(score: unknown, best: unknown): number {
     const s = Number(score);
     const b = Number(best);
     if (!Number.isFinite(s) || !Number.isFinite(b) || b <= 0 || s <= 0) return 0;
@@ -37,7 +37,13 @@ export function relativeWidth(score, best) {
  * @param {number} score  this passage's score
  * @param {number} best   the highest score in the same answer
  */
-export default function RelevanceBar({ score, best, className = '' }) {
+export interface RelevanceBarProps {
+    score: number;
+    best: number;
+    className?: string;
+}
+
+export default function RelevanceBar({ score, best, className = '' }: RelevanceBarProps) {
     const width = relativeWidth(score, best);
     if (width === 0) return null;
     return (

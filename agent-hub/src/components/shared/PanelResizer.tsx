@@ -22,6 +22,17 @@ import React, { useCallback, useRef } from 'react';
  *   onResizeEnd(w) — pointer released (parent persists)
  *   label          — aria-label for the separator
  */
+export interface PanelResizerProps {
+    width: number;
+    min: number;
+    max: number;
+    defaultWidth: number;
+    edge?: 'start' | 'end';
+    onResize?: (width: number) => void;
+    onResizeEnd?: (width: number) => void;
+    label?: string;
+}
+
 export default function PanelResizer({
     width,
     min,
@@ -31,36 +42,36 @@ export default function PanelResizer({
     onResize,
     onResizeEnd,
     label = 'Resize panel',
-}) {
-    const dragRef = useRef(null); // { startX, startWidth }
+}: PanelResizerProps) {
+    const dragRef = useRef<{ startX: number; startWidth: number } | null>(null); // { startX, startWidth }
     const clamp = useCallback(
-        (w) => Math.max(min, Math.min(max, Math.round(w))),
+        (w: number) => Math.max(min, Math.min(max, Math.round(w))),
         [min, max]);
 
-    const onPointerDown = (e) => {
+    const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         // Primary button / touch only.
         if (e.button !== undefined && e.button !== 0) return;
         dragRef.current = { startX: e.clientX, startWidth: width };
         e.currentTarget.setPointerCapture?.(e.pointerId);
         e.preventDefault();
     };
-    const onPointerMove = (e) => {
+    const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
         const drag = dragRef.current;
         if (!drag) return;
         const dx = e.clientX - drag.startX;
         const next = clamp(drag.startWidth + (edge === 'start' ? dx : -dx));
         if (next !== width) onResize?.(next);
     };
-    const endDrag = (e) => {
+    const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
         if (!dragRef.current) return;
         dragRef.current = null;
         e.currentTarget.releasePointerCapture?.(e.pointerId);
         onResizeEnd?.(width);
     };
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         const grow = edge === 'start' ? 'ArrowRight' : 'ArrowLeft';
         const shrink = edge === 'start' ? 'ArrowLeft' : 'ArrowRight';
-        let next = null;
+        let next: number | null = null;
         if (e.key === grow) next = clamp(width + 16);
         else if (e.key === shrink) next = clamp(width - 16);
         else if (e.key === 'Home') next = min;

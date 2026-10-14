@@ -25,22 +25,30 @@ import ConfirmDialog from './ConfirmDialog';
  * Only one confirm can be open at a time (matching window.confirm semantics);
  * a second call while one is open resolves the first as cancelled.
  */
-export default function useConfirm() {
-    const [pending, setPending] = useState(null); // { title, description, confirmLabel, cancelLabel, destructive }
-    const resolveRef = useRef(null);
+export interface ConfirmOptions {
+    title?: React.ReactNode;
+    description?: React.ReactNode;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    destructive?: boolean;
+}
 
-    const settle = useCallback((ok) => {
+export default function useConfirm() {
+    const [pending, setPending] = useState<ConfirmOptions | null>(null); // { title, description, confirmLabel, cancelLabel, destructive }
+    const resolveRef = useRef<((ok: boolean) => void) | null>(null);
+
+    const settle = useCallback((ok: boolean) => {
         const resolve = resolveRef.current;
         resolveRef.current = null;
         setPending(null);
         if (resolve) resolve(ok);
     }, []);
 
-    const confirm = useCallback((opts) => {
+    const confirm = useCallback((opts?: ConfirmOptions) => {
         // Cancel any confirm already on screen — mirrors the "one native
         // dialog at a time" behavior callers were written against.
         if (resolveRef.current) resolveRef.current(false);
-        return new Promise((resolve) => {
+        return new Promise<boolean>((resolve) => {
             resolveRef.current = resolve;
             setPending(opts || {});
         });

@@ -21,7 +21,7 @@ import { KIND_KEYS, kindOf, kindColorVar, kindTint, kindTileStyle, cardRadius, k
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const INDEX_CSS = fs.readFileSync(path.resolve(HERE, '../../index.css'), 'utf8');
-const SELF = fs.readFileSync(path.join(HERE, 'kindColors.js'), 'utf8');
+const SELF = fs.readFileSync(path.join(HERE, 'kindColors.ts'), 'utf8');
 
 const THEMES = ['dark', 'light', 'glass', 'glass-dark', 'high-contrast', 'paper', 'obsidian', 'sepia'];
 const NO_COMMENTS = INDEX_CSS.replace(/\/\*[\s\S]*?\*\//g, '');

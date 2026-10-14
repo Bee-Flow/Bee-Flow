@@ -1,6 +1,9 @@
 import React from 'react';
-import { normalizeStatus } from './statusOf';
-import useTranslation from '../../hooks/useTranslation';
+import { normalizeStatus, type StudioStatus } from './statusOf';
+import type { LucideIcon } from 'lucide-react';
+import useTranslation, { type TranslateFn } from '../../hooks/useTranslation';
+
+type IconLike = LucideIcon | React.ReactElement;
 
 /**
  * StatusActionPill — a thing's status and its ONE next action as a single
@@ -54,21 +57,21 @@ import useTranslation from '../../hooks/useTranslation';
  */
 
 /** Literal fold variants per container name — see the docblock. */
-export const FOLD_CLASSES = Object.freeze({
+export const FOLD_CLASSES: Readonly<Record<string, Readonly<{ status: string; action: string }>>> = Object.freeze({
     bar: Object.freeze({ status: '@max-[1440px]/bar:hidden', action: '@max-[1180px]/bar:hidden' }),
     edhead: Object.freeze({ status: '@max-[1440px]/edhead:hidden', action: '@max-[1180px]/edhead:hidden' }),
 });
 
 const NO_FOLD = Object.freeze({ status: '', action: '' });
 
-function foldFor(containerName) {
+function foldFor(containerName: string | null | undefined): { status: string; action: string } {
     if (!containerName) return NO_FOLD;
     return FOLD_CLASSES[containerName]
         ?? { status: `@max-[1440px]/${containerName}:hidden`, action: `@max-[1180px]/${containerName}:hidden` };
 }
 
 /** Which theme token a status speaks in; null = neutral ink. */
-const TONE = Object.freeze({
+const TONE: Readonly<Record<StudioStatus, 'success' | 'warning' | null>> = Object.freeze({
     live: 'success',
     published: 'success',
     stale: 'warning',
@@ -77,7 +80,7 @@ const TONE = Object.freeze({
     unknown: null,
 });
 
-function stylesFor(status) {
+function stylesFor(status: StudioStatus): { tone: string; cell: React.CSSProperties; dot: React.CSSProperties } {
     const tone = TONE[status];
     if (tone) {
         const v = `var(--${tone})`;
@@ -102,7 +105,7 @@ function stylesFor(status) {
     };
 }
 
-function statusWord(t, status) {
+function statusWord(t: TranslateFn, status: StudioStatus): string {
     switch (status) {
         case 'live': return t('studio.status.live', 'Live');
         case 'paused': return t('studio.status.paused', 'Paused');
@@ -116,7 +119,7 @@ function statusWord(t, status) {
 // The theme's primary recipe: accent + its paired foreground. Never a bare
 // text-white on the accent (measured ~2.5:1 on the default accent), never
 // the artboard's ink.
-const ACCENT_RECIPE = Object.freeze({ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' });
+const ACCENT_RECIPE: React.CSSProperties = Object.freeze({ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' });
 const PRIMARY_CLASS = 'flex items-center gap-1.5 px-3 transition disabled:opacity-50 hover:brightness-95';
 const QUIET_CLASS = 'flex items-center gap-1.5 px-3 text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition disabled:opacity-50';
 
@@ -127,7 +130,17 @@ const QUIET_CLASS = 'flex items-center gap-1.5 px-3 text-[var(--text-primary)] h
  * remembering it. The forward action is primary unless the caller says
  * otherwise; on a live/published thing the action quiets it, so it is not.
  */
-function planAction(action, status, t) {
+export interface PillAction {
+    label?: string;
+    icon?: IconLike;
+    onClick?: () => void;
+    disabled?: boolean;
+    title?: string;
+    ariaLabel?: string;
+    primary?: boolean;
+}
+
+function planAction(action: PillAction | null, status: StudioStatus, t: TranslateFn): { label: string | null; ariaLabel: string | undefined; className: string; style: React.CSSProperties | undefined } | null {
     if (!action) return null;
     const label = action.label ?? (status === 'stale' ? t('studio.status.republish', 'Republish') : null);
     const primary = action.primary ?? !(status === 'live' || status === 'published');
@@ -139,7 +152,7 @@ function planAction(action, status, t) {
     };
 }
 
-function renderIcon(icon) {
+function renderIcon(icon: IconLike | null | undefined): React.ReactNode {
     if (!icon) return null;
     if (React.isValidElement(icon)) return icon;
     const Icon = icon;
@@ -150,11 +163,20 @@ function renderIcon(icon) {
  * @param {object} props
  * @param {string} [props.status]
  * @param {string | null} [props.label]
- * @param {{ label?: string, icon?: any, onClick?: () => void, disabled?: boolean, title?: string, ariaLabel?: string, primary?: boolean } | null} [props.action]
+ * @param {PillAction | null} [props.action]
  * @param {string | null} [props.containerName]
  * @param {string} [props.testId]
  * @param {string} [props.className]
  */
+export interface StatusActionPillProps {
+    status?: string | null;
+    label?: string | null;
+    action?: PillAction | null;
+    containerName?: string | null;
+    testId?: string;
+    className?: string;
+}
+
 export default function StatusActionPill({
     status: rawStatus,
     label = null,
@@ -162,7 +184,7 @@ export default function StatusActionPill({
     containerName = 'bar',
     testId = 'status-pill',
     className = '',
-}) {
+}: StatusActionPillProps) {
     const { t } = useTranslation();
     const status = normalizeStatus(rawStatus);
     const { tone, cell, dot } = stylesFor(status);
@@ -183,7 +205,7 @@ export default function StatusActionPill({
                 <span className="h-2 w-2 rounded-full" style={dot} aria-hidden="true" />
                 <span className={fold.status || undefined}>{label ?? statusWord(t, status)}</span>
             </span>
-            {plan && (
+            {plan && action && (
                 <>
                     <span aria-hidden="true" className="w-px self-stretch bg-[var(--border-default)]" />
                     <button

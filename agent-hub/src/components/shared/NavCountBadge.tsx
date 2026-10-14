@@ -15,15 +15,17 @@
  */
 import React from 'react';
 
-const TONE_STYLE = {
+export type NavCountTone = 'warning' | 'error' | 'success' | 'neutral';
+
+const TONE_STYLE: Readonly<Record<NavCountTone, React.CSSProperties>> = {
     warning: { borderColor: 'var(--warning)', color: 'var(--warning-ink)' },
     error: { borderColor: 'var(--error)', color: 'var(--error-ink)' },
     success: { borderColor: 'var(--success)', color: 'var(--success-ink)' },
     neutral: { borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' },
 };
 
-export function badgeCount(count) {
-    const raw = typeof count === 'string' && count.trim() !== '' ? Number(count) : count;
+export function badgeCount(count: number | string | null | undefined): number | null {
+    const raw: unknown = typeof count === 'string' && count.trim() !== '' ? Number(count) : count;
     if (typeof raw !== 'number' || !Number.isFinite(raw)) return null;
     // Floor BEFORE the threshold, not after: a fractional 0.9 is above zero
     // and would otherwise floor to 0 and put a "0" pill on the row — the one
@@ -32,7 +34,15 @@ export function badgeCount(count) {
     return n > 0 ? n : null;
 }
 
-export default function NavCountBadge({ count, tone = 'neutral', max = 99, className = '', testId = 'nav-count-badge' }) {
+export interface NavCountBadgeProps {
+    count?: number | string | null;
+    tone?: NavCountTone;
+    max?: number;
+    className?: string;
+    testId?: string;
+}
+
+export default function NavCountBadge({ count, tone = 'neutral', max = 99, className = '', testId = 'nav-count-badge' }: NavCountBadgeProps) {
     const n = badgeCount(count);
     if (n === null) return null;
     const style = TONE_STYLE[tone] || TONE_STYLE.neutral;

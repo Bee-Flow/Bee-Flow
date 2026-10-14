@@ -46,10 +46,35 @@
  * blue here and teal on the rail.
  */
 import { ArrowUpRight, FolderKanban, Loader2, MessageSquare, NotebookPen } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { kindColorVar, kindIcon, kindOf, kindTint } from './kindColors';
-import useRelativeTime from '../../hooks/useRelativeTime';
-import useTranslation from '../../hooks/useTranslation';
+import useRelativeTime, { type RelativeTimeInput } from '../../hooks/useRelativeTime';
+import useTranslation, { type TranslateFn } from '../../hooks/useTranslation';
+
+/** One usage row: the contract below, or a legacy shape `adapt` maps onto it. */
+export type UsageRow = Record<string, unknown>;
+
+export type UsageAdapter = (row: UsageRow) => UsageRow | null;
+
+interface KindVisual {
+    Icon: LucideIcon | null;
+    color: string;
+}
+
+/** A field as text, or null when it is not a non-empty string. */
+export function textOf(v: unknown): string | null {
+    return typeof v === 'string' && v !== '' ? v : null;
+}
+
+/** A field as a time `rel` can read, or null. */
+function timeOf(v: unknown): RelativeTimeInput {
+    return typeof v === 'string' || typeof v === 'number' || v instanceof Date ? v : null;
+}
+
+function isUsageRow(r: UsageRow | null): r is UsageRow {
+    return !!r && typeof r === 'object';
+}
 
 export const USAGE_ROLES = Object.freeze([
     'read', 'write', 'readwrite', 'contains', 'invokes', 'chat', 'ai_step', 'answer_block',
@@ -61,14 +86,14 @@ export const USAGE_ROLES = Object.freeze([
  * USED). A chat borrows the agent's blue — Agents artboard 1b draws the Chat
  * row with `message-square` in `--type-ai`.
  */
-const EXTRA_KIND = Object.freeze({
+const EXTRA_KIND: Readonly<Record<string, KindVisual>> = Object.freeze({
     chat: { Icon: MessageSquare, color: 'var(--type-ai)' },
     project: { Icon: FolderKanban, color: 'var(--text-secondary)' },
     notebook: { Icon: NotebookPen, color: 'var(--text-secondary)' },
 });
 
 /** Studio deep-link segment per kind — only kinds with a detail page. */
-const STUDIO_PATH = Object.freeze({
+const STUDIO_PATH: Readonly<Record<string, string>> = Object.freeze({
     automation: 'automations',
     agent: 'agents',
     app: 'apps',
@@ -80,27 +105,29 @@ const STUDIO_PATH = Object.freeze({
 });
 
 /** The kind key for a row: a Studio kind via kindOf, else one of the extras. */
-export function usageKind(row) {
+export function usageKind(row: UsageRow): string | null {
     const raw = typeof row?.kind === 'string' ? row.kind.trim().toLowerCase() : '';
     if (EXTRA_KIND[raw]) return raw;
     return kindOf(row) || raw || null;
 }
 
-function kindVisual(kind) {
-    if (EXTRA_KIND[kind]) return EXTRA_KIND[kind];
+function kindVisual(kind: string | null): KindVisual {
+    if (kind && EXTRA_KIND[kind]) return EXTRA_KIND[kind];
     return { Icon: kindIcon(kind), color: kindColorVar(kind) };
 }
 
 /** `row.href`, else the Studio page for its kind, else null (not navigable). */
-export function usageHref(row) {
-    if (row?.href) return row.href;
-    const segment = STUDIO_PATH[usageKind(row)];
-    if (!segment || row?.id == null || row.id === '') return null;
-    return `studio/${segment}/${row.id}`;
+export function usageHref(row: UsageRow): string | null {
+    const href = textOf(row.href);
+    if (href) return href;
+    const kind = usageKind(row);
+    const segment = kind ? STUDIO_PATH[kind] : undefined;
+    if (!segment || row.id == null || row.id === '') return null;
+    return `studio/${segment}/${String(row.id)}`;
 }
 
 /** Owned by somebody who is not the viewer — the plain-text rule above. */
-export function isForeignRow(row, currentUserId) {
+export function isForeignRow(row: UsageRow, currentUserId?: string | null): boolean {
     const owner = row?.ownerId;
     if (owner == null || owner === '') return false;
     return owner !== currentUserId;
@@ -111,10 +138,10 @@ export function isForeignRow(row, currentUserId) {
  * CHECK(read|write) column; `columns` names what the step touches, which is
  * the part a column drop needs to know, so it rides in `siteLabel`.
  */
-export function adaptDatatableUsageRow(u) {
+export function adaptDatatableUsageRow(u: UsageRow | null | undefined): UsageRow | null {
     if (!u || typeof u !== 'object') return null;
     if (u.kind) return u; // already contract-shaped
-    const columns = Array.isArray(u.columns) ? u.columns.filter(Boolean) : [];
+    const columns: unknown[] = Array.isArray(u.columns) ? u.columns.filter(Boolean) : [];
     return {
         kind: 'automation',
         id: u.automationId,
@@ -127,15 +154,15 @@ export function adaptDatatableUsageRow(u) {
 }
 
 /** Rows through `adapt` (when given), nulls dropped. Pure; safe for tests. */
-export function adaptUsageRows(rows, adapt) {
+export function adaptUsageRows(rows: UsageRow[] | null | undefined, adapt?: UsageAdapter | null): UsageRow[] {
     if (!Array.isArray(rows)) return [];
-    const mapped = typeof adapt === 'function' ? rows.map(adapt) : rows;
-    return mapped.filter((r) => r && typeof r === 'object');
+    const mapped: (UsageRow | null)[] = typeof adapt === 'function' ? rows.map(adapt) : rows;
+    return mapped.filter(isUsageRow);
 }
 
 /** `{ kind: count }` in first-seen order, for the summary pills. */
-export function countByKind(rows) {
-    const counts = new Map();
+export function countByKind(rows: UsageRow[]): { kind: string; n: number }[] {
+    const counts = new Map<string, number>();
     for (const row of rows) {
         const kind = usageKind(row) || 'other';
         counts.set(kind, (counts.get(kind) || 0) + 1);
@@ -143,7 +170,7 @@ export function countByKind(rows) {
     return [...counts.entries()].map(([kind, n]) => ({ kind, n }));
 }
 
-const HEAD_STYLE = {
+const HEAD_STYLE: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: '1fr 120px 120px 32px',
     gap: 12,
@@ -156,7 +183,7 @@ const HEAD_STYLE = {
     color: 'var(--text-tertiary)',
 };
 
-const ROW_STYLE = {
+const ROW_STYLE: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: '1fr 120px 120px 32px',
     gap: 12,
@@ -173,7 +200,7 @@ const ROW_STYLE = {
  * @param {(href: string) => void} [props.onNavigate]
  * @param {string}     [props.roleHeader]  the second column's heading; "Does" by default, an agent says "As"
  * @param {string}     [props.emptyText]
- * @param {(row: any) => object|null} [props.adapt]  legacy row → contract row
+ * @param {UsageAdapter} [props.adapt]  legacy row → contract row
  * @param {boolean}    [props.showSummary] the kind pills above the table (default true)
  * @param {string[]}   [props.unchecked]   kinds whose scan did not answer
  *
@@ -188,6 +215,20 @@ const ROW_STYLE = {
  * wins: a caller that has written its own sentence has already thought about
  * this.
  */
+export interface UsedByTabProps {
+    rows?: UsageRow[] | null;
+    loading?: boolean;
+    error?: string | null;
+    currentUserId?: string | null;
+    onNavigate?: ((href: string) => void) | null;
+    roleHeader?: string;
+    emptyText?: string;
+    adapt?: UsageAdapter | null;
+    showSummary?: boolean;
+    unchecked?: string[];
+    className?: string;
+}
+
 export default function UsedByTab({
     rows,
     loading = false,
@@ -200,13 +241,13 @@ export default function UsedByTab({
     showSummary = true,
     unchecked = [],
     className = '',
-}) {
+}: UsedByTabProps) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const list = useMemo(() => adaptUsageRows(rows, adapt), [rows, adapt]);
     const pending = loading || rows === null || rows === undefined;
 
-    const kindLabel = (kind, n) => kindLabelFor(t, kind, n);
+    const kindLabel = (kind: string | null | undefined, n: number): string => kindLabelFor(t, kind, n);
     const unknownKinds = Array.isArray(unchecked) ? unchecked.filter(Boolean) : [];
     const incomplete = unknownKinds.length > 0;
 
@@ -282,7 +323,12 @@ export default function UsedByTab({
  * artboards' cards: 14% tint, 999px radius, 10px glyph; the empty pill is
  * dashed `--warning` with the warning ink).
  */
-function UsageSummary({ counts, t, kindLabel, incomplete = false }) {
+function UsageSummary({ counts, t, kindLabel, incomplete = false }: {
+    counts: { kind: string; n: number }[];
+    t: TranslateFn;
+    kindLabel: (kind: string, n: number) => string;
+    incomplete?: boolean;
+}) {
     return (
         <div className="flex flex-wrap gap-1" data-testid="usage-summary">
             {counts.length === 0 ? (
@@ -319,18 +365,31 @@ function UsageSummary({ counts, t, kindLabel, incomplete = false }) {
     );
 }
 
-function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }) {
+interface UsageRowProps {
+    row: UsageRow;
+    last: boolean;
+    currentUserId?: string | null;
+    onNavigate?: ((href: string) => void) | null;
+    t: TranslateFn;
+    rel: (dateLike: RelativeTimeInput) => string;
+    kindLabel: (kind: string | null | undefined, n: number) => string;
+}
+
+function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }: UsageRowProps) {
     const kind = usageKind(row);
     const { Icon, color } = kindVisual(kind);
     const href = usageHref(row);
     const foreign = isForeignRow(row, currentUserId);
     const navigable = !foreign && typeof onNavigate === 'function' && !!href;
     const label = kindLabel(kind, 1);
-    const title = row.title
+    const rawTitle = textOf(row.title);
+    const title = rawTitle
         || (foreign
             ? t('usage.someone_elses_kind', 'Someone else’s {kind}', { kind: label })
             : t('usage.untitled_kind', 'Untitled {kind}', { kind: label }));
-    const when = row.lastLabel || (row.lastAt ? rel(row.lastAt) : '') || '—';
+    const lastAt = timeOf(row.lastAt);
+    const when = textOf(row.lastLabel) || (lastAt ? rel(lastAt) : '') || '—';
+    const siteLabel = textOf(row.siteLabel);
 
     return (
         <div
@@ -343,7 +402,7 @@ function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }) {
                 {navigable ? (
                     <button
                         type="button"
-                        onClick={() => onNavigate(href)}
+                        onClick={() => { if (href && onNavigate) onNavigate(href); }}
                         className="font-medium truncate hover:underline rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                         style={{ color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
                     >
@@ -352,10 +411,10 @@ function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }) {
                 ) : (
                     <span className="font-medium truncate text-[var(--text-primary)]">{title}</span>
                 )}
-                {row.siteLabel && (
-                    <span className="truncate text-[var(--text-tertiary)]">· {row.siteLabel}</span>
+                {siteLabel && (
+                    <span className="truncate text-[var(--text-tertiary)]">· {siteLabel}</span>
                 )}
-                {foreign && row.title && (
+                {foreign && rawTitle && (
                     <span className="shrink-0 text-[var(--text-tertiary)]">
                         · {t('usage.someone_elses', 'someone else’s')}
                     </span>
@@ -373,7 +432,7 @@ function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }) {
 }
 
 /** What the row DOES with this thing — the "Does"/"As" column. */
-export function roleLabelFor(t, role) {
+export function roleLabelFor(t: TranslateFn, role: unknown): string {
     switch (role) {
         case 'read': return t('usage.role_read', 'reads');
         case 'write': return t('usage.role_write', 'writes');
@@ -392,7 +451,7 @@ export function roleLabelFor(t, role) {
  * Keys `usage.kind_<kind>` / `usage.kind_<kind>_plural`, English fallbacks
  * inline so the i18n guard can read them.
  */
-const KIND_NOUNS = Object.freeze({
+const KIND_NOUNS: Readonly<Record<string, readonly [string, string]>> = Object.freeze({
     automation: ['automation', 'automations'],
     datatable: ['table', 'tables'],
     app: ['app', 'apps'],
@@ -418,7 +477,7 @@ const KIND_NOUNS = Object.freeze({
  * pretty, but it names the thing, and it is the signal that a noun is missing
  * here. `other` stays for a row that genuinely has no kind.
  */
-export function kindLabelFor(t, kind, n = 1) {
+export function kindLabelFor(t: TranslateFn, kind: string | null | undefined, n = 1): string {
     if (!kind) return n === 1 ? t('usage.kind_other', 'item') : t('usage.kind_other_plural', 'items');
     if (!KIND_NOUNS[kind]) return String(kind);
     const [one, many] = KIND_NOUNS[kind];

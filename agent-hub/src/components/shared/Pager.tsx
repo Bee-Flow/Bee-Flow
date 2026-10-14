@@ -15,7 +15,16 @@ import useTranslation from '../../hooks/useTranslation';
  * range text is one translatable sentence with three numbers, not three
  * fragments glued together.
  */
-export default function Pager({ offset = 0, limit = 12, total = null, onOffset, className = '', testId = undefined }) {
+export interface PagerProps {
+    offset?: number;
+    limit?: number;
+    total?: number | null;
+    onOffset?: (offset: number) => void;
+    className?: string;
+    testId?: string;
+}
+
+export default function Pager({ offset = 0, limit = 12, total = null, onOffset, className = '', testId = undefined }: PagerProps) {
     const { t } = useTranslation();
     const n = Number(total);
     if (total === null || total === undefined || !Number.isFinite(n) || n <= 0) return null;

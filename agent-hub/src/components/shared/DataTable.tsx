@@ -1,5 +1,5 @@
 import React from 'react';
-import { TONES } from './statusTone';
+import { TONES, isToneKey } from './statusTone';
 import useContainerWidth from './useContainerWidth';
 
 /**
@@ -51,6 +51,26 @@ import useContainerWidth from './useContainerWidth';
 
 export const TABLE_CONTAINER = 'ctable';
 
+export interface TableColumn {
+    id: string;
+    label: React.ReactNode;
+    width?: string;
+    foldBelow?: 1180 | 900;
+    align?: 'left' | 'right' | 'center';
+    ariaSort?: 'ascending' | 'descending' | 'none' | 'other';
+}
+
+/** The three grid custom properties TABLE_GRID reads (`--ct-cols`, `--ct-cols-1180`, `--ct-cols-900`). */
+type CSSVars = React.CSSProperties & Record<`--${string}`, string>;
+
+/** What a row renderer gets besides the row itself. */
+export interface RowContext {
+    columns: TableColumn[];
+    isMobile: boolean;
+    gridTemplateColumns: string;
+    index: number;
+}
+
 /**
  * The fold literals: both the header cell and the body cell of a folding
  * column get one. Spelled out because Tailwind needs it so.
@@ -72,11 +92,11 @@ export const TABLE_FOLDED_ONLY = Object.freeze({
 export const TABLE_GRID = '[grid-template-columns:var(--ct-cols)] @max-[1180px]/ctable:[grid-template-columns:var(--ct-cols-1180)] @max-[900px]/ctable:[grid-template-columns:var(--ct-cols-900)]';
 
 /** The fold tiers, widest first. A column folds in every tier at or below its own. */
-const FOLD_TIERS = Object.freeze([1180, 900]);
+const FOLD_TIERS: readonly number[] = Object.freeze([1180, 900]);
 
-function foldsAt(column, tier) {
+function foldsAt(column: TableColumn | null | undefined, tier: number): boolean {
     const fold = column?.foldBelow;
-    return FOLD_TIERS.includes(fold) && fold >= tier;
+    return fold !== undefined && FOLD_TIERS.includes(fold) && fold >= tier;
 }
 
 /**
@@ -84,13 +104,13 @@ function foldsAt(column, tier) {
  * With a `tier` (1180 or 900) the columns that are folded at that width
  * leave no track behind.
  */
-export function gridTemplate(columns = [], tier = null) {
+export function gridTemplate(columns: TableColumn[] = [], tier: number | null = null): string {
     const kept = tier ? columns.filter((c) => !foldsAt(c, tier)) : columns;
     return kept.map((c) => c?.width || '1fr').join(' ') || '1fr';
 }
 
 /** The three custom properties TABLE_GRID reads, for a header's or row's style. */
-function gridVars(columns = []) {
+function gridVars(columns: TableColumn[] = []): CSSVars {
     return {
         '--ct-cols': gridTemplate(columns),
         '--ct-cols-1180': gridTemplate(columns, 1180),
@@ -98,26 +118,34 @@ function gridVars(columns = []) {
     };
 }
 
-function foldClass(column) {
+function foldClass(column: TableColumn | null | undefined): string {
     if (column?.foldBelow === 1180) return TABLE_FOLD;
     if (column?.foldBelow === 900) return TABLE_FOLD_NARROW;
     return '';
 }
 
-function alignClass(align) {
+function alignClass(align: string | null | undefined): string {
     if (align === 'right') return 'text-right justify-end';
     if (align === 'center') return 'text-center justify-center';
     return '';
 }
 
 /** The stripe colour for a row: status tone raw, or the area's teal for 'kind'. */
-export function accentColor(accent) {
+export function accentColor(accent: string | null | undefined): string | null {
     if (accent === 'kind') return 'var(--kind-compliance)';
-    return TONES[accent]?.raw ?? null;
+    return isToneKey(accent) ? TONES[accent].raw : null;
 }
 
 /** A body cell: min-w-0 so long text truncates, the fold class when its column folds. */
-export function TableCell({ column = null, children = null, className = '', align = undefined, testId = undefined }) {
+export interface TableCellProps {
+    column?: TableColumn | null;
+    children?: React.ReactNode;
+    className?: string;
+    align?: string;
+    testId?: string;
+}
+
+export function TableCell({ column = null, children = null, className = '', align = undefined, testId = undefined }: TableCellProps) {
     return (
         <div
             role="cell"
@@ -130,7 +158,13 @@ export function TableCell({ column = null, children = null, className = '', alig
 }
 
 /** The header row. A column's `ariaSort` ('ascending' | 'descending') marks the column the rows are sorted by. */
-export function TableHeader({ columns = [], className = '', testId = undefined }) {
+export interface TableHeaderProps {
+    columns?: TableColumn[];
+    className?: string;
+    testId?: string;
+}
+
+export function TableHeader({ columns = [], className = '', testId = undefined }: TableHeaderProps) {
     return (
         <div
             role="row"
@@ -161,6 +195,19 @@ export function TableHeader({ columns = [], className = '', testId = undefined }
  */
 const ROW_FOCUS = 'cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus-ring)]';
 
+export interface TableRowProps {
+    accent?: string | null;
+    selected?: boolean;
+    expanded?: boolean;
+    onClick?: ((e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => void) | null;
+    ariaExpanded?: boolean;
+    columns?: TableColumn[];
+    children?: React.ReactNode;
+    className?: string;
+    testId?: string;
+    style?: React.CSSProperties;
+}
+
 export function TableRow({
     accent = null,
     selected = false,
@@ -172,7 +219,7 @@ export function TableRow({
     className = '',
     testId = undefined,
     style = undefined,
-}) {
+}: TableRowProps) {
     const clickable = typeof onClick === 'function';
     // The selected row wears the area's colour: it is the row the drawer is
     // about, and its status is written in the drawer's own clock block.
@@ -187,9 +234,9 @@ export function TableRow({
     const interactive = clickable ? {
         tabIndex: 0,
         onClick,
-        onKeyDown: (e) => {
+        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
             if (e.target !== e.currentTarget) return;
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); }
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(e); }
         },
     } : null;
     return (
@@ -220,7 +267,7 @@ export function TableRow({
     );
 }
 
-function SkeletonRows({ columns, count }) {
+function SkeletonRows({ columns, count }: { columns: TableColumn[]; count: number }) {
     return Array.from({ length: count }).map((_, i) => (
         <div
             key={i}
@@ -237,7 +284,25 @@ function SkeletonRows({ columns, count }) {
     ));
 }
 
-export default function DataTable({
+export interface DataTableProps<R extends { id?: React.Key | null }> {
+    columns?: TableColumn[];
+    rows?: R[] | null;
+    rowKey?: (row: R, index: number) => React.Key;
+    renderRow: (row: R, ctx: RowContext) => React.ReactNode;
+    renderCard?: ((row: R, ctx: RowContext) => React.ReactNode) | null;
+    isMobile?: boolean;
+    cardsBelow?: number;
+    loading?: boolean;
+    skeletonRows?: number;
+    empty?: React.ReactNode;
+    footer?: React.ReactNode;
+    containerName?: string;
+    className?: string;
+    ariaLabel?: string;
+    testId?: string;
+}
+
+export default function DataTable<R extends { id?: React.Key | null }>({
     columns = [],
     rows = [],
     rowKey = (row, i) => row?.id ?? i,
@@ -253,7 +318,7 @@ export default function DataTable({
     className = '',
     ariaLabel = undefined,
     testId = undefined,
-}) {
+}: DataTableProps<R>) {
     // The card list on a phone, and on any device while the card is
     // narrower than `cardsBelow` (unknown width = the table).
     const observe = cardsBelow > 0 && typeof renderCard === 'function';
@@ -267,7 +332,7 @@ export default function DataTable({
     const ctx = { columns, isMobile: cards, gridTemplateColumns: gridTemplate(columns) };
     const list = Array.isArray(rows) ? rows : [];
 
-    let body;
+    let body: React.ReactNode;
     if (loading) {
         body = cards
             ? <div role="list" aria-busy="true" className="flex flex-col"><SkeletonRows columns={columns.slice(0, 1)} count={Math.min(skeletonRows, 4)} /></div>
@@ -279,7 +344,7 @@ export default function DataTable({
             <div role="list" className="flex flex-col">
                 {list.map((row, i) => (
                     <div key={rowKey(row, i)} role="listitem" className="min-h-[44px] flex items-center px-3.5 py-2.5 border-b border-[var(--border-default)] last:border-b-0">
-                        {renderCard(row, { ...ctx, index: i })}
+                        {renderCard?.(row, { ...ctx, index: i })}
                     </div>
                 ))}
             </div>

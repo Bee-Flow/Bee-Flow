@@ -1,9 +1,10 @@
 import { ArrowLeft, Check, ChevronDown } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
 import { kindIcon, kindOf, kindTileStyle } from './kindColors';
-import SegmentedControl, { resolveSegmentedBadge } from './SegmentedControl';
-import useTranslation from '../../hooks/useTranslation';
+import SegmentedControl, { resolveSegmentedBadge, type SegmentedBadgeTone, type SegmentedOption } from './SegmentedControl';
+import useTranslation, { type TranslateFn } from '../../hooks/useTranslation';
 
 /**
  * StudioSectionHeader — THE 48px header of every Studio object (Bee Flow
@@ -92,6 +93,18 @@ import useTranslation from '../../hooks/useTranslation';
 /** The container the fold classes address — `StatusActionPill containerName={OBJHEAD}`. */
 export const OBJHEAD = 'objhead';
 
+type IconLike = LucideIcon | React.ReactElement;
+
+/** One tab of the strip: `count` and `tone` feed its badge slot. */
+export interface TabItem {
+    id: string;
+    label: string;
+    count?: React.ReactNode;
+    tone?: SegmentedBadgeTone;
+    icon?: IconLike;
+    disabled?: boolean;
+}
+
 /**
  * Literal fold classes for callers composing `primary` / `extras` content:
  * wrap a word in `OBJHEAD_FOLD.label` to drop it at the icon stage, in
@@ -105,7 +118,7 @@ export const OBJHEAD_FOLD = Object.freeze({
 });
 
 /** The strip / menu pair of each tab fold (literals: Tailwind must read them whole). */
-const TAB_FOLD = Object.freeze({
+const TAB_FOLD: Readonly<Record<string, Readonly<{ strip: string; menu: string }>>> = Object.freeze({
     default: Object.freeze({ strip: 'flex-shrink-0 @max-[1180px]/objhead:hidden', menu: 'hidden @max-[1180px]/objhead:block' }),
     compact: Object.freeze({ strip: 'flex-shrink-0 @max-[900px]/objhead:hidden', menu: 'hidden @max-[900px]/objhead:block' }),
 });
@@ -116,13 +129,13 @@ export const PRIMARY_ACTION_STYLE = Object.freeze({
     color: 'var(--accent-primary-fg)',
 });
 
-const BADGE_TONE_COLOR = Object.freeze({
+const BADGE_TONE_COLOR: Readonly<Record<SegmentedBadgeTone, string>> = Object.freeze({
     neutral: 'var(--text-tertiary)',
     error: 'var(--error)',
     warning: 'var(--warning)',
 });
 
-function renderGlyph(icon, style) {
+function renderGlyph(icon: IconLike | null | undefined, style?: React.CSSProperties): React.ReactNode {
     if (!icon) return null;
     if (React.isValidElement(icon)) return icon;
     const Icon = icon;
@@ -130,7 +143,7 @@ function renderGlyph(icon, style) {
 }
 
 /** The 28px kind tile: colour and shape from kindColors, glyph 15px. */
-function KindTile({ kind, icon }) {
+function KindTile({ kind, icon }: { kind?: string; icon?: IconLike | null }) {
     const key = kindOf(kind);
     const { tile, glyph } = kindTileStyle(key, { size: 28, pct: 18 });
     const Glyph = icon ?? kindIcon(key);
@@ -143,12 +156,12 @@ function KindTile({ kind, icon }) {
 }
 
 /** The name: a plain 14/600 span, or a rename-on-click button + input. */
-function Title({ title, onRename, renameRequest = 0, t }) {
+function Title({ title, onRename, renameRequest = 0, t }: { title?: string | null; onRename?: ((next: string) => void) | null; renameRequest?: number; t: TranslateFn }) {
     const display = (title || '').trim();
     const shown = display || t('studio.header.untitled', 'Untitled');
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(display);
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     // A caller's "Rename…" menu item opens the SAME inline edit rather than
     // growing a second rename UI: it bumps `renameRequest`, and the title
@@ -157,13 +170,11 @@ function Title({ title, onRename, renameRequest = 0, t }) {
     useEffect(() => {
         if (renameRequest !== lastRequest.current) {
             lastRequest.current = renameRequest;
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             if (onRename) setEditing(true);
         }
     }, [renameRequest, onRename]);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!editing) setDraft(display);
     }, [display, editing]);
 
@@ -177,7 +188,7 @@ function Title({ title, onRename, renameRequest = 0, t }) {
         if (!next || next === display) { setDraft(display); return; }
         onRename?.(next);
     };
-    const onKey = (e) => {
+    const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') { e.preventDefault(); commit(); }
         else if (e.key === 'Escape') { e.preventDefault(); setDraft(display); setEditing(false); }
     };
@@ -215,7 +226,7 @@ function Title({ title, onRename, renameRequest = 0, t }) {
 }
 
 /** "Saved · v3": 11px, tertiary ink, hairline border, full radius. */
-function StatusChip({ chip }) {
+function StatusChip({ chip }: { chip?: React.ReactNode }) {
     if (chip === null || chip === undefined || chip === false || chip === '') return null;
     if (React.isValidElement(chip)) return chip;
     return (
@@ -235,7 +246,7 @@ function StatusChip({ chip }) {
 }
 
 /** tabs[] → SegmentedControl options; the label folds to its icon at the first stage. */
-function toOptions(tabs) {
+function toOptions(tabs: TabItem[]): SegmentedOption<string>[] {
     return tabs.map((tab) => ({
         value: tab.id,
         icon: tab.icon ? renderGlyph(tab.icon, { width: 14, height: 14, display: 'inline-flex' }) : undefined,
@@ -250,9 +261,9 @@ function toOptions(tabs) {
  * BuilderHeader's ViewMenu, portalled through AnchoredMenu so the panel
  * cannot be clipped by the scrolling chrome a 48px bar sits in (BFSF-328).
  */
-function TabMenu({ tabs, activeTab, onTab, t }) {
+function TabMenu({ tabs, activeTab, onTab, t }: { tabs: TabItem[]; activeTab?: string; onTab?: (id: string) => void; t: TranslateFn }) {
     const [open, setOpen] = useState(false);
-    const anchorRef = useRef(null);
+    const anchorRef = useRef<HTMLButtonElement>(null);
     const current = tabs.find((tab) => tab.id === activeTab) || tabs[0];
     const currentBadge = current ? resolveSegmentedBadge({ count: current.count, tone: current.tone }) : null;
     return (
@@ -314,7 +325,7 @@ function TabMenu({ tabs, activeTab, onTab, t }) {
 }
 
 /** The back arrow: 32×32, radius 8, secondary ink; its name says where it goes. */
-function BackButton({ onBack, label }) {
+function BackButton({ onBack, label }: { onBack?: () => void; label: string }) {
     return (
         <button
             type="button"
@@ -334,15 +345,15 @@ function BackButton({ onBack, label }) {
  * 103-105), with its narrow-width menu twin. The strip and the menu are BOTH
  * in the DOM; the container query decides which one paints.
  */
-function TabsSlot({ tabs, activeTab, onTab, fold, t }) {
+function TabsSlot({ tabs, activeTab, onTab, fold = '', t }: { tabs: TabItem[]; activeTab?: string; onTab?: (id: string) => void; fold?: string; t: TranslateFn }) {
     const cls = TAB_FOLD[fold] || TAB_FOLD.default;
     return (
         <>
             <div className={cls.strip}>
-                <SegmentedControl
+                <SegmentedControl<string>
                     size="sm"
                     ariaLabel={t('studio.header.tabs', 'Sections')}
-                    value={activeTab}
+                    value={activeTab ?? ''}
                     onChange={(id) => onTab?.(id)}
                     options={toOptions(tabs)}
                 />
@@ -357,7 +368,7 @@ function TabsSlot({ tabs, activeTab, onTab, fold, t }) {
 }
 
 /** capsule · primary · extras, in that order, never shrinking. */
-function ActionCluster({ capsule, primary, extras }) {
+function ActionCluster({ capsule, primary, extras }: { capsule?: React.ReactNode; primary?: React.ReactNode; extras?: React.ReactNode }) {
     if (!capsule && !primary && !extras) return null;
     return (
         <div className="flex items-center gap-2 flex-shrink-0" data-testid="studio-section-actions">
@@ -371,6 +382,27 @@ function ActionCluster({ capsule, primary, extras }) {
 // Slot props deliberately carry no defaults: every child below treats
 // `undefined` as "not given", and each default would count against the
 // lint complexity budget without changing behaviour.
+export interface StudioSectionHeaderProps {
+    kind?: string;
+    icon?: IconLike | null;
+    title?: string | null;
+    onRename?: ((next: string) => void) | null;
+    renameRequest?: number;
+    statusChip?: React.ReactNode;
+    tabs?: TabItem[] | null;
+    activeTab?: string;
+    onTab?: (id: string) => void;
+    tabsFold?: 'compact';
+    titleMin?: boolean;
+    capsule?: React.ReactNode;
+    primary?: React.ReactNode;
+    extras?: React.ReactNode;
+    onBack?: () => void;
+    backLabel?: string;
+    className?: string;
+    testId?: string;
+}
+
 export default function StudioSectionHeader({
     kind,
     icon,
@@ -390,7 +422,7 @@ export default function StudioSectionHeader({
     backLabel,
     className = '',
     testId = 'studio-section-header',
-}) {
+}: StudioSectionHeaderProps) {
     const { t } = useTranslation();
     const tabList = Array.isArray(tabs) ? tabs.filter(Boolean) : [];
 

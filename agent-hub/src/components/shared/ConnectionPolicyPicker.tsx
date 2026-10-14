@@ -17,22 +17,41 @@ import useTranslation from '../../hooks/useTranslation';
 const BASE = `${API_BASE}/api/integrations/connections`;
 
 // Providers that support lending today (API-key / basic named connections).
-const LENDABLE = new Set(['fireflies', 'youtrack', 'gamma', 'signrequest', 'linkedin', 'github']);
-const PROVIDER_NAME = {
+const LENDABLE: ReadonlySet<string> = new Set(['fireflies', 'youtrack', 'gamma', 'signrequest', 'linkedin', 'github']);
+const PROVIDER_NAME: Readonly<Record<string, string>> = {
     fireflies: 'Fireflies.ai', youtrack: 'YouTrack', gamma: 'Gamma',
     signrequest: 'SignRequest', linkedin: 'LinkedIn', github: 'GitHub',
 };
 
-const selStyle = {
+const selStyle: React.CSSProperties = {
     background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)',
 };
 
-const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
+interface Connection {
+    id: string;
+    provider: string;
+    label: string;
+}
+
+interface Grant {
+    id: string;
+    provider: string;
+    connection_id: string;
+    revoked_at?: string | null;
+}
+
+export interface ConnectionPolicyPickerProps {
+    resourceType: string;
+    resourceId?: string | null;
+    providers?: string[] | null;
+}
+
+const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }: ConnectionPolicyPickerProps) => {
     const { t } = useTranslation();
-    const [connsByProvider, setConnsByProvider] = useState({});
-    const [grantByProvider, setGrantByProvider] = useState({}); // provider -> { grantId, connectionId }
+    const [connsByProvider, setConnsByProvider] = useState<Record<string, Connection[]>>({});
+    const [grantByProvider, setGrantByProvider] = useState<Record<string, { grantId: string; connectionId: string }>>({}); // provider -> { grantId, connectionId }
     const [loading, setLoading] = useState(true);
-    const [busy, setBusy] = useState(null);
+    const [busy, setBusy] = useState<string | null>(null);
 
     const lendable = (providers || []).filter(p => LENDABLE.has(p));
 
@@ -43,12 +62,12 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
                 authFetch(BASE),
                 authFetch(`${BASE}/grants?resourceType=${resourceType}&resourceId=${encodeURIComponent(resourceId)}`),
             ]);
-            const c = cRes.ok ? await cRes.json() : { connections: [] };
-            const g = gRes.ok ? await gRes.json() : { grants: [] };
-            const byProv = {};
+            const c: { connections?: Connection[] } = cRes.ok ? await cRes.json() : { connections: [] };
+            const g: { grants?: Grant[] } = gRes.ok ? await gRes.json() : { grants: [] };
+            const byProv: Record<string, Connection[]> = {};
             for (const conn of (c.connections || [])) (byProv[conn.provider] ||= []).push(conn);
             setConnsByProvider(byProv);
-            const grantMap = {};
+            const grantMap: Record<string, { grantId: string; connectionId: string }> = {};
             for (const grant of (g.grants || [])) {
                 if (grant.revoked_at) continue;
                 grantMap[grant.provider] = { grantId: grant.id, connectionId: grant.connection_id };
@@ -60,7 +79,7 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
 
     useEffect(() => { load(); }, [load]);
 
-    const onChange = async (provider, value) => {
+    const onChange = async (provider: string, value: string) => {
         setBusy(provider);
         try {
             const existing = grantByProvider[provider];

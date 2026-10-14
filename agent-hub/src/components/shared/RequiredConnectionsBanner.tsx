@@ -16,9 +16,21 @@ import useTranslation from '../../hooks/useTranslation';
 
 const BASE = `${API_BASE}/api/integrations/connections`;
 
-const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpose = "to use all of this agent's tools" }) => {
+interface RequiredConnection {
+    provider: string;
+    [key: string]: unknown;
+}
+
+export interface RequiredConnectionsBannerProps {
+    resourceType: string;
+    resourceId?: string | null;
+    providers?: (string | null | undefined)[] | null;
+    purpose?: string;
+}
+
+const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpose = "to use all of this agent's tools" }: RequiredConnectionsBannerProps) => {
     const { t } = useTranslation();
-    const [required, setRequired] = useState([]);
+    const [required, setRequired] = useState<RequiredConnection[]>([]);
     const list = (providers || []).filter(Boolean);
 
     useEffect(() => {
@@ -29,7 +41,7 @@ const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpos
                 const qs = new URLSearchParams({ resourceType, resourceId, providers: list.join(',') });
                 const res = await authFetch(`${BASE}/required?${qs.toString()}`);
                 if (!res.ok) return;
-                const data = await res.json();
+                const data: { requiresConnection?: RequiredConnection[] } = await res.json();
                 if (alive) setRequired(data.requiresConnection || []);
             } catch (_) { /* silent */ }
         })();
