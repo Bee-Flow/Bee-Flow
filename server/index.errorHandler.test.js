@@ -270,6 +270,15 @@ test('an unexpected 5xx never leaks the message or the stack to the client', () 
     assert.strictEqual(logged, err, 'the full error (with stack) is logged server-side');
 });
 
+test('the logged path drops the query string, where public links carry their token', () => {
+    const { api, logs } = build();
+    const req = { method: 'GET', path: '/api/support/thread', originalUrl: '/api/support/thread?token=s3cr3t-link-token' };
+    api.terminalErrorHandler(new Error('boom'), req, mockRes(), () => assert.fail('next() must not be called'));
+    const [line] = logs.error[0];
+    assert.ok(line.includes('/api/support/thread'), 'log line carries the path');
+    assert.ok(!line.includes('s3cr3t-link-token'), 'the token must not reach the log');
+});
+
 test('a 5xx that declares its own status still gets a generic body', () => {
     const { api } = build();
     const err = Object.assign(new Error('upstream vault said: token=abcd1234'), { status: 502 });

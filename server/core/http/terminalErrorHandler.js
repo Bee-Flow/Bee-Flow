@@ -60,7 +60,10 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
         const declared = Number(err?.status || err?.statusCode) || 500;
         const status = declared >= 400 && declared <= 599 ? declared : 500;
         const correlationId = req?.id || randomUUID();
-        const where = `${safeForLog(req?.method, 10)} ${safeForLog(req?.originalUrl || req?.path, 200)}`;
+        // The query string stays out of the log: public links carry their token
+        // there (`?token=`), and every unhandled route error now lands here.
+        const url = String(req?.originalUrl || req?.path || '').split('?')[0];
+        const where = `${safeForLog(req?.method, 10)} ${safeForLog(url, 200)}`;
 
         if (status >= 500 && err?.expose !== true) {
             log.error(`[HTTP] ${status} ${where} correlationId=${correlationId}`, err);
