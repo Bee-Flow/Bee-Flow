@@ -32,7 +32,7 @@ const { AI_STEP_AGENT_PERMISSION_KEYS } = require('./validate/constants');
  */
 const REPAIRABLE = {
     http_request: {
-        build: (draft, args) => require('./builderTools/stepBuilders').applyAddHttpRequest(draft, args),
+        build: (draft, args) => require('./builderTools/stepBuilders/outboundSteps').applyAddHttpRequest(draft, args),
         fields: [
             'url', 'method', 'headers', 'body', 'query', 'timeoutMs', 'blockPrivateTargets',
             'parseResponse', 'askOnce', 'cacheInto', 'authConnectionId',

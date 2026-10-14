@@ -43,7 +43,7 @@ async function runIntegrationTool(connector, { app, viewerId, params, systemArgs
             userId: app.userId,
             session: await deps.buildOwnerSession(app, {
                 include: integrationIds,
-                providerHint: providerFor(integrationIds[0]),
+                providerHint: providerFor(integrationIds[0], deps),
             }),
         };
     const exec = {

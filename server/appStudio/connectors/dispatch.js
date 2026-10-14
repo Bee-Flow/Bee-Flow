@@ -17,11 +17,12 @@ const {
  * gets whichever `Object.entries` happened to yield first as the session's
  * primary accessToken — so a Gmail connector could be handed a Microsoft token.
  */
-function providerFor(integrationId) {
+function providerFor(integrationId, deps) {
     if (!integrationId) return null;
     try {
-        const { providersForIntegrations } = require('../../auth/automationAuth');
-        return providersForIntegrations([integrationId])[0] || null;
+        // Through deps (session.js wires auth/automationAuth), so this module
+        // and its importers stay out of the server's import cycle.
+        return deps.providersForIntegrations([integrationId])[0] || null;
     } catch { return null; }
 }
 
@@ -44,7 +45,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
     const provider = (typeof connector.integrationId === 'string' && connector.integrationId) ? connector.integrationId : null;
     // Same `include` the owner path uses — a viewer-mode connector must not fail
     // for the config reason the owner path used to.
-    const sessionOpts = { include: integrationIdsFor(connector), providerHint: providerFor(provider) };
+    const sessionOpts = { include: integrationIdsFor(connector), providerHint: providerFor(provider, deps) };
 
     const session = await deps.buildUserSession(viewerId, app.organizationId || null, sessionOpts);
     try {
@@ -127,15 +128,14 @@ const MISSING_CONNECTION_RE = /not connected|must log in|not configured|no (?:va
  * `code` stays `connection_required` either way so existing clients keep working;
  * `reason` distinguishes them for a caller that wants to.
  */
-async function connectionError(connector, message, { userId, deps: _deps } = {}) {
+async function connectionError(connector, message, { userId, deps } = {}) {
     const provider = (typeof connector?.integrationId === 'string' && connector.integrationId) ? connector.integrationId : null;
     let hasCredential = false;
     if (userId && provider) {
         try {
-            const oauthProvider = providerFor(provider);
+            const oauthProvider = providerFor(provider, deps);
             if (oauthProvider) {
-                const { getProviderAuth } = require('../../auth/automationAuth');
-                hasCredential = !!(await getProviderAuth(userId, oauthProvider))?.accessToken;
+                hasCredential = !!(await deps.getProviderAuth(userId, oauthProvider))?.accessToken;
             }
         } catch { /* fall back to the plain "connect it" message */ }
     }

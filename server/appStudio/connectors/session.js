@@ -113,6 +113,7 @@ function defaultDeps() {
         // token, so every REST connector on a short-lived provider (Withings
         // expires in 3 h) died silently once the first token aged out.
         getProviderAuth: (...a) => require('../../auth/automationAuth').getProviderAuth(...a),
+        providersForIntegrations: (...a) => require('../../auth/automationAuth').providersForIntegrations(...a),
         safeFetch: (...a) => require('../../utils/ssrfGuard').safeFetch(...a),
         isPrivateTarget: (...a) => require('../../utils/isPrivateTarget').isPrivateTarget(...a),
         buildOwnerSession: defaultBuildOwnerSession,
