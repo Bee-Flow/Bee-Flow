@@ -23,6 +23,17 @@ const PARENT_FILES = ['index.js', ...[...PARENT_ENTRY.matchAll(/^ \* {3}(\w+\.js
 const PARENT = PARENT_FILES.map(f => fs.readFileSync(path.join(PARENT_DIR, f), 'utf8')).join('\n')
     .replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
+// A row route registered with a named handler (`H.updateRow`) keeps its body
+// in a sibling module of the folder (rowHandlers.js): the handler's own
+// definition is what the assertions below read, not the registration line.
+function handlerText(reg) {
+    const ref = reg.match(/,\s*(?:[A-Z]\w*\.)?(\w+)\);/);
+    const at = ref ? PARENT.indexOf(`function ${ref[1]}(`) : -1;
+    if (at === -1) return reg;
+    const end = PARENT.slice(at + 1).search(/\n(?:async )?function |\nconst |\nmodule\.exports/);
+    return end === -1 ? PARENT.slice(at) : PARENT.slice(at, at + 1 + end);
+}
+
 function routeBody(verb, pathStr) {
     const needle = `router.${verb}('${pathStr}'`;
     const i = SRC.indexOf(needle);
@@ -98,7 +109,7 @@ test('the per-table mirror routes sit in the parent, at the right grades, and re
 });
 
 test('the row writes branch to the mirror engine AFTER the pinned refusals and BEFORE the compile', () => {
-    const body = (verb, p) => { const i = PARENT.indexOf(`router.${verb}('${p}'`); const rest = PARENT.slice(i); const n = rest.search(/\nrouter\.(get|post|put|delete|use)\(/); return n === -1 ? rest : rest.slice(0, n); };
+    const body = (verb, p) => { const i = PARENT.indexOf(`router.${verb}('${p}'`); const rest = PARENT.slice(i); const n = rest.search(/\n[ \t]*router\.(get|post|put|delete|use)\(/); const reg = n === -1 ? rest : rest.slice(0, n); return handlerText(reg); };
     const put = body('put', '/:id/rows/:rowId');
     assert.ok(put.indexOf("code: 'expected_updated_at_required'") < put.indexOf('mirrorWrites().updateRow'));
     assert.ok(put.indexOf("code: 'no_values'") < put.indexOf('mirrorWrites().updateRow'));
@@ -140,6 +151,6 @@ test('the projection ships source and sync, never the column map or the instance
 
 test('the rows list kicks a stale mirror behind its answer', () => {
     const i = PARENT.indexOf("router.get('/:id/rows'");
-    const body = PARENT.slice(i, PARENT.indexOf("router.get('/:id/rows/:rowId'"));
+    const body = handlerText(PARENT.slice(i, PARENT.indexOf("router.get('/:id/rows/:rowId'")));
     assert.ok(body.indexOf('res.json({') < body.indexOf("kickStale(req.datatable, { reason: 'view' })"));
 });
