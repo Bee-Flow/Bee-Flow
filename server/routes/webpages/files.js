@@ -48,41 +48,34 @@ function register(router, { upload }) {
     // Read content of one extra file. Used by the frontend to fetch the bytes
     // for the live preview and the file-explorer detail view.
     router.get('/:id/files', requireAuth, validate({ query: FileQuery }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            // Owner OR org/group-published reader — same visibility as GET /:id, so
-            // shared-page viewers can load the React src/ files their preview needs.
-            let wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) {
-                const raw = await webpageStore.getWebpageRaw(req.params.id);
-                const { orgIds, userGroups } = await resolveAudienceContext(req);
-                const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
-                if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) {
-                    wp = raw;
-                }
+        const userId = req.session.user.id;
+        // Owner OR org/group-published reader — same visibility as GET /:id, so
+        // shared-page viewers can load the React src/ files their preview needs.
+        let wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) {
+            const raw = await webpageStore.getWebpageRaw(req.params.id);
+            const { orgIds, userGroups } = await resolveAudienceContext(req);
+            const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+            if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) {
+                wp = raw;
             }
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            // Extra-file bytes live under the OWNER's RustFS prefix, not the caller's.
-            const ownerId = wp.userId;
-            const path = req.query.path;
-            const managed = await webpageStore.managedPayloadOf(wp);
-            if (path === undefined) {
-                const list = await webpageStore.listExtraFiles(req.params.id);
-                return res.json({ files: list, managed });
-            }
-            const file = await webpageStore.readExtraFile({ webpageId: req.params.id, userId: ownerId, path });
-            if (!file) return res.status(404).json({ error: 'File not found' });
-            if (file.meta.isText) {
-                return res.json({ meta: file.meta, content: file.text, managed });
-            }
-            // Binary: return base64 so the frontend can build a data URL.
-            return res.json({ meta: file.meta, contentBase64: file.bytes.toString('base64'), managed });
-        } catch (err) {
-            // A refusal worded for the caller (409 managed_part) keeps its status and code.
-            if (err?.status && err.status < 500) throw err;
-            log.error('[Webpages] Get extra file failed:', err);
-            res.status(500).json({ error: 'Failed to get file' });
         }
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        // Extra-file bytes live under the OWNER's RustFS prefix, not the caller's.
+        const ownerId = wp.userId;
+        const path = req.query.path;
+        const managed = await webpageStore.managedPayloadOf(wp);
+        if (path === undefined) {
+            const list = await webpageStore.listExtraFiles(req.params.id);
+            return res.json({ files: list, managed });
+        }
+        const file = await webpageStore.readExtraFile({ webpageId: req.params.id, userId: ownerId, path });
+        if (!file) return res.status(404).json({ error: 'File not found' });
+        if (file.meta.isText) {
+            return res.json({ meta: file.meta, content: file.text, managed });
+        }
+        // Binary: return base64 so the frontend can build a data URL.
+        return res.json({ meta: file.meta, contentBase64: file.bytes.toString('base64'), managed });
     });
 
     // Upsert content of one extra text file. Owner-only — read-only viewers
@@ -119,24 +112,17 @@ function register(router, { upload }) {
 
     // Delete one extra file. Owner-only.
     router.delete('/:id/files', requireAuth, validate({ query: PathQuery }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            const wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            if (wp.userId !== userId) return res.status(403).json({ error: 'Read-only' });
-            const ok = await webpageStore.deleteExtraFile({ webpageId: req.params.id, userId, path: req.query.path });
-            if (!ok) return res.status(404).json({ error: 'File not found' });
-            reSnapshotWebpageShares(req.params.id, userId);
-            // Een weggegooid bestand is de kant waarop de index STIL fout gaat: de
-            // rij van de tabel die alleen dáár stond blijft anders eeuwig staan.
-            webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
-            res.json({ success: true });
-        } catch (err) {
-            // A refusal worded for the caller (409 managed_part) keeps its status and code.
-            if (err?.status && err.status < 500) throw err;
-            log.error('[Webpages] Delete extra file failed:', err);
-            res.status(500).json({ error: 'Failed to delete file' });
-        }
+        const userId = req.session.user.id;
+        const wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        if (wp.userId !== userId) return res.status(403).json({ error: 'Read-only' });
+        const ok = await webpageStore.deleteExtraFile({ webpageId: req.params.id, userId, path: req.query.path });
+        if (!ok) return res.status(404).json({ error: 'File not found' });
+        reSnapshotWebpageShares(req.params.id, userId);
+        // Een weggegooid bestand is de kant waarop de index STIL fout gaat: de
+        // rij van de tabel die alleen dáár stond blijft anders eeuwig staan.
+        webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
+        res.json({ success: true });
     });
 
     // Upload a BINARY asset (image, font, audio, …) as an extra file. Multipart so
