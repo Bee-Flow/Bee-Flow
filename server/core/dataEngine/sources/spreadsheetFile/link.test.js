@@ -108,6 +108,10 @@ const linking = {
     setRelations: async () => ({}),
     orderParentsFirst: (t) => t,
 };
+// Core reaches these through core/integrations/integrationClients.js (boot registers the real ones).
+require('../../../integrations/integrationClients').registerIntegrationClients({
+    nextcloud: () => ({ resolveAuth: async () => ({ baseUrl: 'http://nc', uid: 'admin', fetch: async () => ({}) }) }),
+});
 const restore = installResolveStub({
     '../../../../stores/datatableStore': datatableStore,
     '../../../../stores/datatableDbStore': { scopeKey: () => 'org:org_1' },
@@ -116,7 +120,6 @@ const restore = installResolveStub({
     '../mirror/linking': linking,
     './providers': { providerFor: (name) => { if (!['google_drive', 'onedrive', 'nextcloud_files'].includes(name)) { const e = new Error('no'); e.code = 'unknown_provider'; throw e; } return providerModule(name); } },
     './credentials': { resolveProviderCredential: async (userId, provider) => ({ userId, oauthProvider: provider }) },
-    '../../../../integrations/nextcloudClient': { resolveAuth: async () => ({ baseUrl: 'http://nc', uid: 'admin', fetch: async () => ({}) }) },
     '../../../integrations/integrationTools': { isIntegrationPermittedForUser: async (args) => world.permitted(args) },
     '../../../../stores/userStore': { getOrganization: async () => ({ id: 'org_1', nc_instance_id: 'inst_1' }) },
     // The linker's client — what a settings change reads the sheet through.

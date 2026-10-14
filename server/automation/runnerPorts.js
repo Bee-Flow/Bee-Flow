@@ -29,6 +29,11 @@ registerRunnerPorts({
     triggerBus: {
         runPollingPass: (...args) => triggerBus().runPollingPass(...args),
         renewExpiringSubscriptions: (...args) => triggerBus().renewExpiringSubscriptions(...args),
+        // core/meetingNotes: background Nextcloud auth, the meeting.processed event,
+        // and the matcher its usage list shares with the bus.
+        loadSession: (...args) => triggerBus().loadSession(...args),
+        dispatchEvent: (...args) => triggerBus().dispatchEvent(...args),
+        pickMatcher: (...args) => require('./triggerBus/filters').pickMatcher(...args),
     },
     formQueue: {
         recoverPending: (...args) => formQueue().recoverPending(...args),

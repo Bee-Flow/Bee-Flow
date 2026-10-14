@@ -67,6 +67,8 @@
 
 const { pool } = require('../../db');
 const log = require('../../telemetry/log');
+// The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
+const { runnerPort } = require('../automationRunner/featurePorts');
 
 /** Every kind this can find, in the order the bar and the Used-by tab list them. */
 const KINDS = Object.freeze(['kb', 'automation', 'notebook']);
@@ -201,7 +203,7 @@ function syntheticPayload(meeting) {
  */
 function triggerFires(trigger, payload) {
     try {
-        const { pickMatcher } = require('../../automation/triggerBus/filters');
+        const { pickMatcher } = runnerPort('triggerBus');
         const { applyDslFilter } = require('../automationModel/dslFilters');
         const base = pickMatcher(MEETING_PROVIDER, MEETING_EVENT);
         return applyDslFilter(payload, trigger?.appEvent?.filter ?? null, base) === true;

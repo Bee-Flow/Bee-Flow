@@ -39,6 +39,8 @@ const {
 } = require('./summaryHelpers');
 const { stampForTemplate } = require('./summaryStamp');
 const log = require('../../telemetry/log');
+// The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
+const { runnerPort } = require('../automationRunner/featurePorts');
 
 const savedDir = path.resolve(__dirname, '../../data/uploads/saved-recordings');
 
@@ -368,7 +370,7 @@ async function ingestLocalRecording(opts) {
 function emitMeetingProcessed({ transcriptionId, tags, userId, orgId, reprocessed = false }) {
     if (!transcriptionId) return;
     try {
-        const { dispatchEvent } = require('../../automation/triggerBus');
+        const { dispatchEvent } = runnerPort('triggerBus');
         Promise.resolve(dispatchEvent({
             provider: 'meeting-notes',
             event: 'meeting.processed',

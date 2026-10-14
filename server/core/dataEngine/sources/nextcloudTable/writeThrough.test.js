@@ -10,6 +10,7 @@
  * Run: cd server && node --test core/dataEngine/sources/nextcloudTable/writeThrough.test.js
  */
 const test = require('node:test');
+require('../../../../integrations/integrationClients'); // the injected integration clients (boot does this for the server)
 const assert = require('node:assert');
 const { installResolveStub } = require('../../../../testUtils/stubRequire');
 

@@ -32,6 +32,8 @@
 const { Readable } = require('stream');
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formatOf, SPREADSHEET_MIMES } = require('./index');
+// The Google client is injected by integrations/ (core/integrations/integrationClients.js).
+const { integrationClient } = require('../../../../integrations/integrationClients');
 
 const provider = 'google_drive';
 const oauthProvider = 'google';
@@ -219,7 +221,7 @@ function makeApi(cred, ctx = {}) {
     let clientsPromise = null;
     const clients = () => {
         if (!clientsPromise) {
-            const { createGoogleApiClient } = require('../../../../../integrations/googleClient');
+            const { createGoogleApiClient } = integrationClient('google');
             clientsPromise = createGoogleApiClient(cred, {
                 api: 'drive', version: 'v3',
                 extraApis: [{ api: 'sheets', version: 'v4' }],

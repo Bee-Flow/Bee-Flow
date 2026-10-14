@@ -37,7 +37,7 @@ test('registering again replaces the port; a non-function member is refused', ()
 const EXPECTED = {
     approvals: ['projectStamp', 'dispatchApprovalRequested', 'dispatchApprovalDecided', 'runOnDecidedHook',
         'notifyApproval', 'automationForApproval', 'pollTalkReactions'],
-    triggerBus: ['runPollingPass', 'renewExpiringSubscriptions'],
+    triggerBus: ['runPollingPass', 'renewExpiringSubscriptions', 'loadSession', 'dispatchEvent', 'pickMatcher'],
     formQueue: ['recoverPending', 'stop'],
     evolution: ['evaluateCanaries'],
     periodicJobs: ['runRetentionPass', 'purgeTrashPass', 'datatableRetentionPass', 'digestPass'],

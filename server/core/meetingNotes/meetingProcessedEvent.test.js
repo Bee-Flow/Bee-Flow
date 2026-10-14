@@ -21,17 +21,17 @@
 
 'use strict';
 
-const { test, beforeEach, after } = require('node:test');
+const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../testUtils/stubRequire');
 
 const dispatched = [];
-const restore = installResolveStub({
-    '../../automation/triggerBus': {
-        dispatchEvent: async (evt) => { dispatched.push(evt); return []; },
-    },
+const recordingBus = { dispatchEvent: async (evt) => { dispatched.push(evt); return []; } };
+let bus = recordingBus;
+// The ingest reaches automation/'s trigger bus through the triggerBus port of
+// core/automationRunner/featurePorts.js (boot registers the real one).
+require('../automationRunner/featurePorts').registerRunnerPorts({
+    triggerBus: { dispatchEvent: (...args) => bus.dispatchEvent(...args) },
 });
-after(() => restore());
 
 const { emitMeetingProcessed } = require('./ingestRecordingCore');
 
@@ -108,14 +108,12 @@ test('a malformed tags value becomes an empty list, never a crash', async () => 
 
 test('a bus that is down never fails the ingest that called it', async () => {
     // The note is already saved by the time this runs.
-    const original = require.cache[Object.keys(require.cache).find(k => k.includes('stub:../../automation/triggerBus'))];
-    const stub = original.exports;
-    original.exports = { dispatchEvent: async () => { throw new Error('bus is down'); } };
+    bus = { dispatchEvent: async () => { throw new Error('bus is down'); } };
     try {
         assert.doesNotThrow(() => emitMeetingProcessed({ transcriptionId: 'm1', tags: [], userId: 'u1' }));
         await settle();
     } finally {
-        original.exports = stub;
+        bus = recordingBus;
     }
 });
 

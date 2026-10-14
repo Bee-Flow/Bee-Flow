@@ -43,10 +43,14 @@ const integrationAppIds = ['nextcloud'];
 const DOWNLOAD_TIMEOUT_MS = 60_000;
 const SEARCH_LIMIT = 50;
 
+const { integrationClient } = require('../../../../integrations/integrationClients');
+
 function deps() {
     return {
-        webdav: require('../../../../../integrations/nextcloudFiles/webdav'),
-        ncClient: require('../../../../../integrations/nextcloudClient'),
+        // Injected by integrations/ (core/integrations/integrationClients.js); getters,
+        // so only a call that uses one needs the registration.
+        get webdav() { return integrationClient('nextcloudWebdav'); },
+        get ncClient() { return integrationClient('nextcloud'); },
         guard: require('../../../../integrations/ncScopeGuard'),
         officegen: require('../../../../documents/office/officegen'),
     };

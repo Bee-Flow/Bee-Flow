@@ -9,7 +9,9 @@
  * X-MAILCLIENT-ONLINE-MEETING). No connector changes.
  */
 
-const { executeNextcloudCalendarTool } = require('../../integrations/nextcloudCalendarTools');
+// The calendar tool is injected by integrations/ (see ../integrations/integrationClients.js).
+const { integrationClient } = require('../integrations/integrationClients');
+const calendarTools = () => integrationClient('nextcloudCalendar');
 
 const TALK_CALL_URL_RE = /\/call\/([A-Za-z0-9]+)/;
 
@@ -41,7 +43,7 @@ async function listUpcomingTalkMeetings({ session, userId, orgId = null, windowH
         const endISO = new Date(Date.now() + windowHours * 3600_000).toISOString();
 
         const calRes = await guardedNcCall('nextcloud_calendar_list', {}, { userId, orgId, session },
-            () => executeNextcloudCalendarTool('nextcloud_calendar_list', {}, userId, session));
+            () => calendarTools().executeNextcloudCalendarTool('nextcloud_calendar_list', {}, userId, session));
         const calendars = Array.isArray(calRes?.calendars) ? calRes.calendars : [];
         if (!calendars.length) return [];
 
@@ -56,7 +58,7 @@ async function listUpcomingTalkMeetings({ session, userId, orgId = null, windowH
             // events are read.
             const evArgs = { calendar: slug, start: startISO, end: endISO };
             const evRes = await guardedNcCall('nextcloud_calendar_list_events', evArgs, { userId, orgId, session },
-                () => executeNextcloudCalendarTool('nextcloud_calendar_list_events', evArgs, userId, session),
+                () => calendarTools().executeNextcloudCalendarTool('nextcloud_calendar_list_events', evArgs, userId, session),
             ).catch(() => null);
             const events = Array.isArray(evRes?.events) ? evRes.events : [];
             for (const ev of events) {

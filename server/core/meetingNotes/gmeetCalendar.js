@@ -11,7 +11,8 @@
  * conferenceData.entryPoints[0].uri`).
  */
 
-const { createGoogleApiClient } = require('../../integrations/googleClient');
+// The Google client is injected by integrations/ (see ../integrations/integrationClients.js).
+const { integrationClient } = require('../integrations/integrationClients');
 
 // Meet codes are three dash-separated lowercase groups (3-4-3), e.g.
 // `abc-defg-hij`. Accept full meet.google.com URLs (with or without scheme,
@@ -50,7 +51,7 @@ function formatMeetEvent(event) {
 }
 
 async function listMeetEvents(session, { timeMin, timeMax }) {
-    const calendar = await createGoogleApiClient(session, {
+    const calendar = await integrationClient('google').createGoogleApiClient(session, {
         api: 'calendar',
         version: 'v3',
         notConnectedError: 'Not connected to Google — user must log in with Google',

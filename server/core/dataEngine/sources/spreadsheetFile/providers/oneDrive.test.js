@@ -14,7 +14,6 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../../../../testUtils/stubRequire');
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const calls = { graph: [], fetch: [] };
@@ -38,18 +37,18 @@ async function dispatch(method, path, options) {
     return graphErr(404, 'itemNotFound', `no route for ${method} ${path}`);
 }
 
-const restore = installResolveStub({
-    '../../../../../integrations/msGraphClient': {
-        GRAPH_BASE,
-        graphRequest: async (path, session, options = {}) => {
-            calls.graph.push({ path, method: options.method || 'GET', headers: options.headers || {}, body: options.body, session });
-            if (world.notConnected) throw new Error('NOT_CONNECTED');
-            return dispatch(options.method || 'GET', path, options);
-        },
+const fakeGraph = {
+    GRAPH_BASE,
+    graphRequest: async (path, session, options = {}) => {
+        calls.graph.push({ path, method: options.method || 'GET', headers: options.headers || {}, body: options.body, session });
+        if (world.notConnected) throw new Error('NOT_CONNECTED');
+        return dispatch(options.method || 'GET', path, options);
     },
-});
+};
+// Core reaches the Graph client through core/integrations/integrationClients.js
+// (boot registers the real one).
+require('../../../../integrations/integrationClients').registerIntegrationClients({ msGraph: () => fakeGraph });
 const oneDrive = require('./oneDrive');
-test.after(() => restore());
 
 const realFetch = globalThis.fetch;
 test.beforeEach(() => {

@@ -23,6 +23,8 @@
 'use strict';
 
 const { test, before } = require('node:test');
+require('../../integrations/integrationClients'); // the injected integration clients (boot does this for the server)
+require('../../automation/runnerPorts'); // the injected trigger-bus port (boot does this for the server)
 const assert = require('node:assert');
 
 const { PGlite } = require('@electric-sql/pglite');

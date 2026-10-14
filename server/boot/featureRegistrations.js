@@ -8,6 +8,8 @@
  *   automation/runnerPorts.js      approvals, trigger bus, form queue, evolution
  *                                  -> core/automationRunner/featurePorts.js
  *   jobs/runnerPorts.js            the retention and digest passes the runner ticks drive
+ *   integrations/integrationClients.js  the provider clients meeting notes and datatable
+ *                                  sources use -> core/integrations/integrationClients.js
  *
  * Loaded by index.js, early. A test that drives the real code path through
  * one of these loads the registering module itself.
@@ -18,3 +20,4 @@
 require('../integrations/toolFamilies');
 require('../automation/runnerPorts');
 require('../jobs/runnerPorts');
+require('../integrations/integrationClients');

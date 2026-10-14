@@ -29,9 +29,12 @@ const modules = {
     onedrive: { provider: 'onedrive', oauthProvider: 'microsoft', integrationAppIds: ['onedrive'], forLinker: (cred, ctx) => { calls.forLinker.push({ provider: 'onedrive', cred, ctx }); return fakeApi; } },
     nextcloud_files: { provider: 'nextcloud_files', oauthProvider: 'nextcloud', integrationAppIds: ['nextcloud'], forLinker: (cred, ctx) => { calls.forLinker.push({ provider: 'nextcloud_files', cred, ctx }); return fakeApi; } },
 };
+// Core reaches these through core/integrations/integrationClients.js (boot registers the real ones).
+require('../../../integrations/integrationClients').registerIntegrationClients({
+    nextcloud: () => ({ resolveAuth: async () => { if (world.authThrows) throw new Error('Nextcloud not connected'); return world.auth; } }),
+});
 const restore = installResolveStub({
     '../../../automationRunner/sessionResolution': { resolveUserSession: async () => world.session },
-    '../../../../integrations/nextcloudClient': { resolveAuth: async () => { if (world.authThrows) throw new Error('Nextcloud not connected'); return world.auth; } },
     '../../../integrations/integrationTools': { isIntegrationPermittedForUser: async () => world.permitted },
     '../../../integrations/ncScopeGuard': { checkToolCall: async (args) => { calls.checks.push(args); return world.denial; } },
     '../../../../stores/userStore': { getOrganization: async () => world.org },

@@ -12,7 +12,6 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../../../../testUtils/stubRequire');
 
 const calls = { list: [], get: [], update: [], ssGet: [], valuesGet: [], append: [], batch: [] };
 const world = { files: {}, list: { files: [], nextPageToken: null }, media: Buffer.from('a;b\n1;2\n'), version: 7, sheet: {}, grid: [], values: [], appendRange: "'Blad1'!A12:C12", clientOpts: null, savedCalls: 0 };
@@ -45,13 +44,14 @@ const fakeSheets = {
     },
 };
 
-const restore = installResolveStub({
-    '../../../../../integrations/googleClient': {
+// Core reaches the Google client through core/integrations/integrationClients.js
+// (boot registers the real one).
+require('../../../../integrations/integrationClients').registerIntegrationClients({
+    google: () => ({
         createGoogleApiClient: async (session, opts) => { world.clientOpts = opts; return { drive: fakeDrive, sheets: fakeSheets }; },
-    },
+    }),
 });
 const googleDrive = require('./googleDrive');
-test.after(() => restore());
 test.beforeEach(() => {
     for (const k of Object.keys(calls)) calls[k].length = 0;
     Object.assign(world, { files: { f1: fileFixture('f1'), g: fileFixture('g', { name: 'Budget', mimeType: 'application/vnd.google-apps.spreadsheet', size: undefined }) }, list: { files: [], nextPageToken: null }, media: Buffer.from('a;b\n1;2\n'), version: 7, sheet: {}, grid: [], values: [], appendRange: "'Blad1'!A12:C12", clientOpts: null, savedCalls: 0 });

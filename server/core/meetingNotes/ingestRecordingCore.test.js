@@ -178,6 +178,12 @@ const MOCKS = {
         },
     },
 };
+// Core reaches these clients through core/integrations/integrationClients.js
+// (boot registers the real ones).
+require('../integrations/integrationClients').registerIntegrationClients({
+    nextcloud: () => MOCKS['../../integrations/nextcloudClient'],
+    nextcloudTalk: () => MOCKS['../../integrations/nextcloudTalkTools'],
+});
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:ingestcore:${request}`;

@@ -103,13 +103,17 @@ function spendStorageBudget(principal) {
     });
 }
 
+const { integrationClient } = require('../../../integrations/integrationClients');
+
 function deps() {
     // Lazily required: the pure modules beside this one must stay loadable in
     // suites that stub the database, and these pull in stores at load time.
     return {
         providers: require('./providers'),
         credentials: require('./credentials'),
-        ncClient: require('../../../../integrations/nextcloudClient'),
+        // Injected by integrations/ (core/integrations/integrationClients.js); a getter,
+        // so only a call that uses it needs the registration.
+        get ncClient() { return integrationClient('nextcloud'); },
         isIntegrationPermittedForUser: require('../../../integrations/integrationTools').isIntegrationPermittedForUser,
         userStore: require('../../../../stores/userStore'),
     };

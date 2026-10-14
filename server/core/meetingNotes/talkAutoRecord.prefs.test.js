@@ -110,6 +110,17 @@ const MOCKS = {
     },
 };
 
+// Core reaches these clients through core/integrations/integrationClients.js
+// (boot registers the real ones).
+require('../integrations/integrationClients').registerIntegrationClients({
+    nextcloudTalk: () => MOCKS['../../integrations/nextcloudTalkTools'],
+});
+// ...and the trigger bus through the triggerBus port of core/automationRunner/featurePorts.js.
+require('../automationRunner/featurePorts').registerRunnerPorts({
+    triggerBus: {
+        loadSession: (...args) => MOCKS['../../automation/triggerBus'].loadSession(...args),
+    },
+});
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:talkautorecord:${request}`;

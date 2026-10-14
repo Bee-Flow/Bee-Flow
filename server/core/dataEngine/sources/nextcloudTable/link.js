@@ -37,9 +37,13 @@ const TAG = '[NextcloudTable]';
 
 const MAX_TABLES_PER_LINK = 10;
 
+const { integrationClient } = require('../../../integrations/integrationClients');
+
 function deps() {
     return {
-        ncClient: require('../../../../integrations/nextcloudClient'),
+        // Injected by integrations/ (core/integrations/integrationClients.js); a getter,
+        // so only a call that uses it needs the registration.
+        get ncClient() { return integrationClient('nextcloud'); },
         guardedNcCall: require('../../../integrations/ncScopeGuard').guardedNcCall,
         isNcOrg: require('../../../../auth/ncAudience').isNcOrg,
         isIntegrationPermittedForUser: require('../../../integrations/integrationTools').isIntegrationPermittedForUser,

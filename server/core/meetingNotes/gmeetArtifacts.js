@@ -16,7 +16,8 @@
 
 const fs = require('fs');
 const { pipeline } = require('stream/promises');
-const { createGoogleApiClient } = require('../../integrations/googleClient');
+// The Google client is injected by integrations/ (see ../integrations/integrationClients.js).
+const { integrationClient } = require('../integrations/integrationClients');
 const log = require('../../telemetry/log');
 
 const NOT_CONNECTED_ERROR = 'Not connected to Google — user must log in with Google';
@@ -29,11 +30,11 @@ const MATCH_POST_MS = 6 * 3600_000;
 const AUTO_RECORDING_MASK = 'config.artifactConfig.recordingConfig.autoRecordingGeneration';
 
 async function createMeetClient(session) {
-    return createGoogleApiClient(session, { api: 'meet', version: 'v2', notConnectedError: NOT_CONNECTED_ERROR });
+    return integrationClient('google').createGoogleApiClient(session, { api: 'meet', version: 'v2', notConnectedError: NOT_CONNECTED_ERROR });
 }
 
 async function createDriveClient(session) {
-    return createGoogleApiClient(session, { api: 'drive', version: 'v3', notConnectedError: NOT_CONNECTED_ERROR });
+    return integrationClient('google').createGoogleApiClient(session, { api: 'drive', version: 'v3', notConnectedError: NOT_CONNECTED_ERROR });
 }
 
 // HTTP status off a gaxios error (`.status` on current gaxios, `.response.status`

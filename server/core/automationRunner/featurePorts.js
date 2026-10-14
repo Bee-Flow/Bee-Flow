@@ -8,6 +8,7 @@
  * core/tools/toolFamilyRegistry.js.
  *
  *   automation/runnerPorts.js   approvals, triggerBus, formQueue, evolution, ...
+ *                               (the trigger bus also serves core/meetingNotes)
  *   jobs/runnerPorts.js         the retention and digest passes
  *
  * boot/featureRegistrations.js loads them for the server; a test that drives

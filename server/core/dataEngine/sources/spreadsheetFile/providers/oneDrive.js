@@ -42,6 +42,8 @@
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formulaShaped } = require('../cells');
 const { formatOf } = require('./index');
+// The Graph client is injected by integrations/ (core/integrations/integrationClients.js).
+const { integrationClient } = require('../../../../integrations/integrationClients');
 
 const provider = 'onedrive';
 const oauthProvider = 'microsoft';
@@ -60,7 +62,7 @@ const DATE_FORMAT_RE = /[dmy]/i;
 const TIME_FORMAT_RE = /[hs]|AM\/PM/i;
 
 function graph() {
-    return require('../../../../../integrations/msGraphClient');
+    return integrationClient('msGraph');
 }
 
 // ─── Small helpers ──────────────────────────────────────────────────────
