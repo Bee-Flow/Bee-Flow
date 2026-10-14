@@ -1,8 +1,11 @@
 import { CreditCard, KeyRound, Shield, Lock, Brain, DatabaseZap, Info, Globe, X, Plus } from 'lucide-react';
 import { cloneElement, isValidElement, useId, useState, useRef } from 'react';
+import type { KeyboardEvent, ReactElement, ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 // Map a 3-letter currency code to its glyph for inline display.
-const currencySym = (c) => ({ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR').toUpperCase()] || (c || '€'));
+const currencySym = (c: string | null | undefined): string => ({ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR').toUpperCase()] || (c || '€'));
 
 // Labelled form field wrapper. Defined at module scope (not inside the panel's
 // render) so its component identity is stable across renders — otherwise React
@@ -11,17 +14,26 @@ const currencySym = (c) => ({ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR
 // to the hint (aria-describedby); any other child (the logo picker) keeps a
 // plain caption, as a label pointing at a <div> names nothing.
 const FORM_CONTROLS = new Set(['input', 'select', 'textarea']);
-const Field = ({ label, hint, children }) => {
+interface FieldProps {
+    label: ReactNode;
+    hint?: ReactNode;
+    children: ReactNode;
+}
+
+type ControlProps = { id?: string; 'aria-describedby'?: string };
+
+const Field = ({ label, hint, children }: FieldProps) => {
     const autoId = useId();
-    const isControl = isValidElement(children) && FORM_CONTROLS.has(children.type);
-    const controlId = isControl ? (children.props.id || autoId) : undefined;
+    const isControl = isValidElement<ControlProps>(children) && typeof children.type === 'string' && FORM_CONTROLS.has(children.type);
+    const control = isControl ? (children as ReactElement<ControlProps>) : null;
+    const controlId = control ? (control.props.id || autoId) : undefined;
     const hintId = hint ? `${autoId}-hint` : undefined;
     return (
         <div>
             <label htmlFor={controlId} className="block text-sm font-medium mb-1.5 text-[var(--text-primary)]">{label}</label>
             {hint && <p id={hintId} className="text-[11px] text-[var(--text-muted)] mb-1.5">{hint}</p>}
-            {isControl
-                ? cloneElement(children, { id: controlId, 'aria-describedby': hintId })
+            {control
+                ? cloneElement(control, { id: controlId, 'aria-describedby': hintId })
                 : children}
         </div>
     );
@@ -41,7 +53,15 @@ const Skeleton = () => (
     </div>
 );
 
-const AUTH_METHODS = [
+interface AuthMethodOption {
+    id: string;
+    nameKey: string;
+    descKey: string;
+    icon: ReactNode;
+    color: string;
+}
+
+const AUTH_METHODS: AuthMethodOption[] = [
     {
         id: 'password',
         nameKey: 'org.password_auth',
@@ -84,7 +104,14 @@ const AUTH_METHODS = [
     },
 ];
 
-const SECTIONS = [
+interface OrgSettingsSection {
+    id: string;
+    labelKey: string;
+    icon: LucideIcon;
+    color: string;
+}
+
+const SECTIONS: OrgSettingsSection[] = [
     { id: 'license', labelKey: 'settings.license_usage', icon: CreditCard, color: '#3b82f6' },
     { id: 'auth', labelKey: 'settings.signin_method', icon: KeyRound, color: '#10b981' },
     { id: 'privacy', labelKey: 'settings.privacy_shield', icon: Shield, color: '#ef4444' },
@@ -95,11 +122,16 @@ const SECTIONS = [
 ];
 
 // ── Allowed Domains editor (tag-input) ──
-/** @param {{ domains?: string[], onChange: Function, t: Function }} props */
-const AllowedDomainsEditor = ({ domains = [], onChange, t }) => {
+interface AllowedDomainsEditorProps {
+    domains?: string[];
+    onChange: (domains: string[]) => void;
+    t: TranslateFn;
+}
+
+const AllowedDomainsEditor = ({ domains = [], onChange, t }: AllowedDomainsEditorProps) => {
     const [inputValue, setInputValue] = useState('');
     const [error, setError] = useState('');
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
     const ids = useId();
 
     const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
@@ -123,11 +155,11 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }) => {
         inputRef.current?.focus();
     };
 
-    const removeDomain = (domainToRemove) => {
+    const removeDomain = (domainToRemove: string) => {
         onChange(domains.filter(d => d !== domainToRemove));
     };
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             addDomain();
@@ -204,14 +236,26 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }) => {
 };
 
 // ── Usage bar component ──
-const UsageBar = ({ label, icon: Icon, used, limit, unit, color = '#3b82f6', pctLabel, percentOnly = false }) => {
+interface UsageBarProps {
+    label: ReactNode;
+    icon: LucideIcon;
+    used: number;
+    /** null, undefined or -1: unlimited. */
+    limit: number | null | undefined;
+    unit?: string;
+    color?: string;
+    pctLabel?: string;
+    percentOnly?: boolean;
+}
+
+const UsageBar = ({ label, icon: Icon, used, limit, unit, color = '#3b82f6', pctLabel, percentOnly = false }: UsageBarProps) => {
     const isUnlimited = limit === null || limit === undefined || limit === -1;
-    const pct = isUnlimited ? 0 : limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+    const pct = isUnlimited ? 0 : (limit as number) > 0 ? Math.min(100, Math.round((used / (limit as number)) * 100)) : 0;
     const isWarning = pct >= 80 && pct < 95;
     const isCritical = pct >= 95;
     const barColor = isCritical ? '#ef4444' : isWarning ? '#f59e0b' : color;
 
-    const formatValue = (val) => {
+    const formatValue = (val: number | null | undefined) => {
         if (val === null || val === undefined || val === -1) return '∞';
         if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
         if (val >= 1_000) return `${(val / 1_000).toFixed(1)}K`;

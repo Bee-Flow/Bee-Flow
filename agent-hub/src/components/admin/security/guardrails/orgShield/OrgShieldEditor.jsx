@@ -46,16 +46,17 @@ import { toast } from '../../../../shared/Toast';
  * route parsers, and still survives a bookmark and the back button.
  * `guardrailsRoutes.js` already writes this rule down for this very console.
  *
- * @param {string}  [orgId]          The organisation to edit. Required unless
+ * @param {object}  [props]
+ * @param {string|null}  [props.orgId]    The organisation to edit. Required unless
  *   `allowOrgPicker` is set — see useOrgShield for why guessing is forbidden.
- * @param {boolean} [allowOrgPicker] Render a visible org picker and default to
+ * @param {boolean} [props.allowOrgPicker] Render a visible org picker and default to
  *   the first organisation. Admin view only; never in an embedded context,
  *   where a guess would be both invisible and writable.
- * @param {boolean} [readOnly]       Render every control disabled and hide Save.
- * @param {Function}[onSaved]        Called after a successful save.
- * @param {string|null} [urlParam]   Query param carrying the active tab.
+ * @param {boolean} [props.readOnly]       Render every control disabled and hide Save.
+ * @param {Function}[props.onSaved]        Called after a successful save.
+ * @param {string|null} [props.urlParam]   Query param carrying the active tab.
  *   `null` opts out of URL sync entirely — for hosts that own the URL already.
- * @param {boolean} [showActivityTab] Offer the "What happened" monitoring tab.
+ * @param {boolean} [props.showActivityTab] Offer the "What happened" monitoring tab.
  *   Default OFF, and the admin GuardrailsHub must NEVER pass it: the
  *   monitoring endpoints derive the organisation from the SESSION, so on a
  *   mount that can pin a different org the tab would silently show the wrong
