@@ -57,7 +57,6 @@ const { resolveDatatablePrincipal } = require('../auth/datatableAccess');
 const { isNextcloudSourceError } = require('../core/dataEngine/sources/nextcloudTable/errors');
 const { validate } = require('../core/http/validate');
 const { worded, bodyOf, scopeWord } = require('./datatables/schemas');
-const log = require('../telemetry/log');
 
 const NC_ID_TEXT = 'A Nextcloud table or view id is a whole number.';
 
@@ -145,8 +144,7 @@ function makeNextcloudRouter({ publicTable }) {
             res.json(await link.listLinkable(req.session, principal, scope));
         } catch (e) {
             if (answer(res, e)) return;
-            log.error('[datatables/nextcloud] linkable failed:', e.message);
-            res.status(500).json({ error: 'Could not list the Nextcloud tables' });
+            throw e;
         }
     });
 
@@ -165,8 +163,7 @@ function makeNextcloudRouter({ publicTable }) {
             res.json(await link.describe(req.session, principal, scope, ncViewId ? { ncViewId } : { ncTableId }));
         } catch (e) {
             if (answer(res, e)) return;
-            log.error('[datatables/nextcloud] describe failed:', e.message);
-            res.status(500).json({ error: 'Could not read that Nextcloud table' });
+            throw e;
         }
     });
 
@@ -191,8 +188,7 @@ function makeNextcloudRouter({ publicTable }) {
             });
         } catch (e) {
             if (answer(res, e)) return;
-            log.error('[datatables/nextcloud] link failed:', e.message);
-            res.status(500).json({ error: 'Could not link the Nextcloud table' });
+            throw e;
         }
     });
 

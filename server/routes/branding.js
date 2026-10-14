@@ -55,7 +55,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
@@ -186,14 +185,9 @@ function receiveWallpaper(req, res, next) {
 // ── Public endpoints (no auth) ──────────────────────────────────
 
 router.get('/public', async (req, res) => {
-    try {
-        const data = await brandingStore.getPublic();
-        res.set('Cache-Control', 'public, max-age=60');
-        res.json(data);
-    } catch (e) {
-        log.error('[Branding API] public', e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const data = await brandingStore.getPublic();
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json(data);
 });
 
 // Static serve for wallpapers — public so the login page can show the image.
@@ -217,34 +211,24 @@ router.get('/wallpaper/:filename', (req, res) => {
 // ── Authenticated endpoints ─────────────────────────────────────
 
 router.get('/effective', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session?.user?.id || null;
-        const data = await brandingStore.getEffective(userId);
-        res.json(data);
-    } catch (e) {
-        log.error('[Branding API] effective', e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const userId = req.session?.user?.id || null;
+    const data = await brandingStore.getEffective(userId);
+    res.json(data);
 });
 
 router.put('/user', requireAuth, validate({ body: UserBody }), async (req, res) => {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const orgDefault = await brandingStore.getOrgDefault();
-        if (!orgDefault.allowUserOverride) {
-            return res.status(403).json({ error: 'User theme override is disabled by the administrator' });
-        }
-
-        // null — no body at all — clears the override; an object is a merge.
-        const next = await brandingStore.setUserOverride(userId, req.body);
-        const data = await brandingStore.getEffective(userId);
-        res.json({ override: next, effective: data });
-    } catch (e) {
-        log.error('[Branding API] put user', e);
-        res.status(500).json({ error: 'Internal Server Error' });
+    const orgDefault = await brandingStore.getOrgDefault();
+    if (!orgDefault.allowUserOverride) {
+        return res.status(403).json({ error: 'User theme override is disabled by the administrator' });
     }
+
+    // null — no body at all — clears the override; an object is a merge.
+    const next = await brandingStore.setUserOverride(userId, req.body);
+    const data = await brandingStore.getEffective(userId);
+    res.json({ override: next, effective: data });
 });
 
 // Back to the organisation theme. Same gate as the PUT: when the admin has
@@ -297,68 +281,48 @@ router.get('/debug', requireAdmin, async (req, res) => {
 });
 
 router.get('/admin', requireAdmin, async (req, res) => {
-    try {
-        const data = await brandingStore.getOrgDefault();
-        const wallpaperFilename = await brandingStore.getWallpaperFilename();
-        res.json({
-            ...data,
-            wallpaperUrl: wallpaperFilename ? `/api/branding/wallpaper/${wallpaperFilename}` : null,
-        });
-    } catch (e) {
-        log.error('[Branding API] get admin', e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const data = await brandingStore.getOrgDefault();
+    const wallpaperFilename = await brandingStore.getWallpaperFilename();
+    res.json({
+        ...data,
+        wallpaperUrl: wallpaperFilename ? `/api/branding/wallpaper/${wallpaperFilename}` : null,
+    });
 });
 
 router.put('/admin', requireAdmin, validate({ body: AdminBody }), async (req, res) => {
-    try {
-        const next = await brandingStore.setOrgDefault(req.body);
-        const wallpaperFilename = await brandingStore.getWallpaperFilename();
-        res.json({
-            ...next,
-            wallpaperUrl: wallpaperFilename ? `/api/branding/wallpaper/${wallpaperFilename}` : null,
-        });
-    } catch (e) {
-        log.error('[Branding API] put admin', e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const next = await brandingStore.setOrgDefault(req.body);
+    const wallpaperFilename = await brandingStore.getWallpaperFilename();
+    res.json({
+        ...next,
+        wallpaperUrl: wallpaperFilename ? `/api/branding/wallpaper/${wallpaperFilename}` : null,
+    });
 });
 
 router.post('/wallpaper', requireAdmin, receiveWallpaper, async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        // Delete the previous wallpaper file (single-wallpaper-per-org).
-        const previous = await brandingStore.getWallpaperFilename();
-        if (previous && previous !== req.file.filename) {
-            const prevPath = path.join(uploadDir, previous);
-            fs.promises.unlink(prevPath).catch(() => { /* missing is fine */ });
-        }
-
-        await brandingStore.setWallpaperFilename(req.file.filename);
-        res.json({
-            filename: req.file.filename,
-            url: `/api/branding/wallpaper/${req.file.filename}`,
-        });
-    } catch (e) {
-        log.error('[Branding API] wallpaper upload', e);
-        res.status(500).json({ error: 'Upload failed' });
+    // Delete the previous wallpaper file (single-wallpaper-per-org).
+    const previous = await brandingStore.getWallpaperFilename();
+    if (previous && previous !== req.file.filename) {
+        const prevPath = path.join(uploadDir, previous);
+        fs.promises.unlink(prevPath).catch(() => { /* missing is fine */ });
     }
+
+    await brandingStore.setWallpaperFilename(req.file.filename);
+    res.json({
+        filename: req.file.filename,
+        url: `/api/branding/wallpaper/${req.file.filename}`,
+    });
 });
 
 router.delete('/wallpaper', requireAdmin, async (req, res) => {
-    try {
-        const previous = await brandingStore.getWallpaperFilename();
-        if (previous) {
-            const prevPath = path.join(uploadDir, previous);
-            fs.promises.unlink(prevPath).catch(() => { /* missing is fine */ });
-        }
-        await brandingStore.setWallpaperFilename(null);
-        res.json({ success: true });
-    } catch (e) {
-        log.error('[Branding API] wallpaper delete', e);
-        res.status(500).json({ error: 'Delete failed' });
+    const previous = await brandingStore.getWallpaperFilename();
+    if (previous) {
+        const prevPath = path.join(uploadDir, previous);
+        fs.promises.unlink(prevPath).catch(() => { /* missing is fine */ });
     }
+    await brandingStore.setWallpaperFilename(null);
+    res.json({ success: true });
 });
 
 module.exports = router;

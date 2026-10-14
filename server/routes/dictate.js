@@ -46,6 +46,7 @@ const { z, typeError } = require('../utils/zod');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 
 const router = express.Router();
 
@@ -120,7 +121,7 @@ router.post('/', requireAuth, (req, res, next) => {
             return res.status(413).json({ error: err.message, code: 'recording_too_long' });
         }
         log.error('[Dictate] failed:', err.message);
-        return res.status(500).json({ error: 'Could not transcribe that recording.', code: 'dictation_failed' });
+        throw new HttpError(500, 'dictation_failed', 'Could not transcribe that recording.');
     } finally {
         try { await fs.promises.unlink(tmpPath); } catch (_) { /* never written */ }
     }

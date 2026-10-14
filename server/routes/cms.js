@@ -73,7 +73,6 @@
 
 const express = require('express');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
-const log = require('../telemetry/log');
 const router = express.Router();
 
 const cmsStore = require('../stores/cmsStore');
@@ -220,13 +219,8 @@ async function getDefaultSiteId({ create = false } = {}) {
 // alongside the routes that use it.
 
 async function attachSiteId(req, res, next) {
-    try {
-        req.siteId = await getDefaultSiteId({ create: true });
-        next();
-    } catch (err) {
-        log.error('[CMS] siteId resolution failed:', err.message);
-        res.status(500).json({ error: 'Failed to resolve CMS project' });
-    }
+    req.siteId = await getDefaultSiteId({ create: true });
+    next();
 }
 
 // SITE_ID_RE + attachSiteIdFromParam live in ./cmsShared.js (shared with

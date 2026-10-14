@@ -34,6 +34,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 
 const dsrStore = require('../stores/dsrStore');
@@ -533,10 +534,7 @@ router.get('/requests/:id', requireAuth, requirePermission('admin_compliance'), 
     } catch (auditError) {
         // No address, no notes, no subject text — the id and the reason only.
         log.error(`[DSR] access audit for request #${row.id} failed; detail withheld:`, auditError.message);
-        return res.status(500).json({
-            error: 'Could not record who viewed this request, so it cannot be shown.',
-            code: 'audit_write_failed',
-        });
+        throw new HttpError(500, 'audit_write_failed', 'Could not record who viewed this request, so it cannot be shown.');
     }
     const clock = clockFor(row);
     res.json({ ...row, days_left: clock.days_left, state: clock.state, subject_email_masked: maskEmail(row.subject_email) });

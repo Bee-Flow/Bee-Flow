@@ -208,6 +208,8 @@ app.set('trust proxy', 1); // the test sends X-Forwarded-For, as the ingress doe
 app.use(express.json());
 app.use((req, _res, next) => { req.session = currentSession; next(); });
 app.use('/api/dsr', router);
+// As in index.js: an error a route throws ends at the terminal handler.
+app.use(require('../core/http/terminalErrorHandler').createTerminalErrorHandler({ log: { error() {}, warn() {} } }));
 let server;
 let base;
 

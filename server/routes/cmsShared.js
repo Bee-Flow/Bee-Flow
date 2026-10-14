@@ -39,19 +39,14 @@ async function requireAdmin(req, res, next) {
 }
 
 async function attachSiteIdFromParam(req, res, next) {
-    try {
-        const { siteId } = req.params;
-        if (!siteId || !SITE_ID_RE.test(siteId)) {
-            return res.status(400).json({ error: 'Invalid siteId format' });
-        }
-        const project = await cmsStore.getProject(siteId);
-        if (!project) return res.status(404).json({ error: 'Site not found' });
-        req.siteId = siteId;
-        next();
-    } catch (err) {
-        log.error('[CMS] siteId param resolution failed:', err.message);
-        res.status(500).json({ error: 'Failed to resolve site' });
+    const { siteId } = req.params;
+    if (!siteId || !SITE_ID_RE.test(siteId)) {
+        return res.status(400).json({ error: 'Invalid siteId format' });
     }
+    const project = await cmsStore.getProject(siteId);
+    if (!project) return res.status(404).json({ error: 'Site not found' });
+    req.siteId = siteId;
+    next();
 }
 
 async function getLiveSiteId() {

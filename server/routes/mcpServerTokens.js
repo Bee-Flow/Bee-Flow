@@ -27,7 +27,6 @@
 const express = require('express');
 const configStore = require('../stores/configStore');
 const { mintToken, SECRET_KEY } = require('../auth/mcpToken');
-const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const { z, onUnknownKeys } = require('../utils/zod');
 
@@ -91,13 +90,8 @@ router.post('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (req, 
     const userId = callerId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
     const { token, random } = mintToken(userId);
-    try {
-        await configStore.setSecret(SECRET_KEY(userId), random);
-        await configStore.setSecret(`${SECRET_KEY(userId)}_revoked`, '0');
-    } catch (err) {
-        log.error('[MCP server] could not store token:', err.message);
-        return res.status(500).json({ error: 'Could not store the token' });
-    }
+    await configStore.setSecret(SECRET_KEY(userId), random);
+    await configStore.setSecret(`${SECRET_KEY(userId)}_revoked`, '0');
     const base = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
     res.json({
         token,
@@ -116,14 +110,9 @@ router.post('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (req, 
 router.delete('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
     const userId = callerId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-    try {
-        const { random } = mintToken(userId);
-        await configStore.setSecret(SECRET_KEY(userId), random);
-        await configStore.setSecret(`${SECRET_KEY(userId)}_revoked`, '1');
-    } catch (err) {
-        log.error('[MCP server] could not revoke token:', err.message);
-        return res.status(500).json({ error: 'Could not revoke the token' });
-    }
+    const { random } = mintToken(userId);
+    await configStore.setSecret(SECRET_KEY(userId), random);
+    await configStore.setSecret(`${SECRET_KEY(userId)}_revoked`, '1');
     res.json({ success: true });
 });
 

@@ -32,6 +32,7 @@ const { requireSuperAdmin } = require('../auth/permissions');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, closedObject, choice, typeError } = require('../core/http/schemaParts');
+const { HttpError } = require('../core/http/errors');
 
 const router = express.Router();
 
@@ -424,7 +425,7 @@ router.post('/report/:type', async (req, res) => {
         return res.json(payload);
     } catch (err) {
         log.error(`[CMS] analytics report ${req.params.type} failed:`, err.message);
-        return res.status(502).json({ error: 'Failed to load report' });
+        throw new HttpError(502, 'analytics_unavailable', 'Failed to load report');
     }
 });
 
@@ -778,7 +779,7 @@ async function getAnalyticsOverviewHandler(req, res) {
         });
     } catch (err) {
         log.error('[CMS] analytics overview error:', err.message);
-        res.status(502).json({ error: 'Failed to load analytics' });
+        throw new HttpError(502, 'analytics_unavailable', 'Failed to load analytics');
     }
 }
 
