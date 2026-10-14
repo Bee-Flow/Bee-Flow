@@ -1,8 +1,8 @@
 import { Search } from 'lucide-react';
-import React from 'react';
 import { ORG_ROLES } from '../../../config/orgRoles';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { ORG_NONE } from '../../../hooks/useUserFilters';
+import type { UserFilters, UseUserFiltersReturn } from '../../../hooks/useUserFilters';
 
 /**
  * The people filter bar — search + role + group + status, and optionally
@@ -20,6 +20,25 @@ const selectClass =
     'px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] ' +
     'text-[var(--text-primary)] text-xs outline-none disabled:opacity-50';
 
+interface NamedOption {
+    id: string;
+    name?: string;
+}
+
+interface UserFilterBarProps {
+    filters: UserFilters;
+    setFilter: UseUserFiltersReturn['setFilter'];
+    clear: () => void;
+    active: boolean;
+    shownCount: number;
+    totalCount: number;
+    groups?: NamedOption[];
+    /** Pass to show the organisation select. */
+    organizations?: NamedOption[] | null;
+    showVia?: boolean;
+    countLabel?: ((shown: number, total: number) => string) | null;
+}
+
 export default function UserFilterBar({
     filters,
     setFilter,
@@ -31,7 +50,7 @@ export default function UserFilterBar({
     organizations = null,
     showVia = false,
     countLabel = null,
-}) {
+}: UserFilterBarProps) {
     const { t } = useTranslation();
 
     return (

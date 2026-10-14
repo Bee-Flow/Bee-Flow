@@ -1,5 +1,5 @@
 import { AlertTriangle, UserCheck } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 
@@ -15,9 +15,27 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
  * malformed body), when health is 'ok', or when there is nothing actionable.
  * It must never break the users panel for non-connector orgs / older servers.
  */
-export default function OrgHealthBanner({ onJumpToPending }) {
+interface HealthProblem {
+    code?: string;
+    severity?: string;
+    message?: string;
+    remediation?: string;
+}
+
+/** GET /auth/admin/connector-health/mine, as far as the banner reads it. */
+interface ConnectorHealth {
+    health?: string;
+    users?: { pending?: number | string };
+    problems?: Array<HealthProblem | null>;
+}
+
+interface OrgHealthBannerProps {
+    onJumpToPending?: () => void;
+}
+
+export default function OrgHealthBanner({ onJumpToPending }: OrgHealthBannerProps) {
     const { t } = useTranslation();
-    const [data, setData] = useState(null);
+    const [data, setData] = useState<ConnectorHealth | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -38,7 +56,7 @@ export default function OrgHealthBanner({ onJumpToPending }) {
 
     const pending = Number(data.users?.pending) || 0;
     const problems = Array.isArray(data.problems) ? data.problems : [];
-    const blocking = problems.filter(p => p && (p.severity === 'error' || p.severity === 'critical'));
+    const blocking = problems.filter((p): p is HealthProblem => !!p && (p.severity === 'error' || p.severity === 'critical'));
 
     if (pending <= 0 && blocking.length === 0) return null;
 
