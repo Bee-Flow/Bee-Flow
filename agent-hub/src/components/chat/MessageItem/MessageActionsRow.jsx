@@ -150,8 +150,7 @@ const MessageActionsRow = ({
                         >
                             <button
                                 onClick={() => { handleCopy(); setShowCopyMenu(false); }}
-                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--bg-tertiary)] transition-colors"
-                                style={{ color: 'var(--text-primary)' }}
+                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]"
                                 data-testid="msg-copy-btn-menu"
                             >
                                 <Copy className="w-3.5 h-3.5 opacity-60" />
@@ -159,8 +158,7 @@ const MessageActionsRow = ({
                             </button>
                             <button
                                 onClick={() => { handleCopyMarkdown(); setShowCopyMenu(false); }}
-                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--bg-tertiary)] transition-colors"
-                                style={{ color: 'var(--text-primary)' }}
+                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]"
                                 data-testid="msg-copy-md-btn"
                             >
                                 <FileText className="w-3.5 h-3.5 opacity-60" />
@@ -169,8 +167,7 @@ const MessageActionsRow = ({
                             <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
                             <button
                                 onClick={() => { handleExportPdf(); setShowCopyMenu(false); }}
-                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--bg-tertiary)] transition-colors"
-                                style={{ color: 'var(--text-primary)' }}
+                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]"
                                 data-testid="msg-export-pdf-btn"
                             >
                                 <Download className="w-3.5 h-3.5 opacity-60" />

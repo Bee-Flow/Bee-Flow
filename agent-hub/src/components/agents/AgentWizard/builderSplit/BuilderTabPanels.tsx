@@ -163,7 +163,7 @@ export function UsedByTabPanel({ t, user, usageError, refetchUsage, agentUsage }
                 // — dus tekenen we hem hier niet, we vragen het
                 // opnieuw.
                 <div role="status" data-testid="agent-usage-error" className="text-sm text-[var(--text-secondary)] flex flex-col items-start gap-2">
-                    <span style={{ color: 'var(--warning)' }}>
+                    <span className="text-[var(--warning)]">
                         {t('agent_studio.used_by.unreadable', 'Could not load who uses this agent, so nothing is claimed here.')}
                     </span>
                     <button

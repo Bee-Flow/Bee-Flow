@@ -286,9 +286,9 @@ const AgentDesignerPanel = ({
     };
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }} data-testid="agent-designer-panel">
+        <div className="flex flex-col h-full bg-[var(--bg-primary)]" data-testid="agent-designer-panel">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
                         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,10 +296,10 @@ const AgentDesignerPanel = ({
                         </svg>
                     </div>
                     <div>
-                        <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <h2 className="text-base font-semibold text-[var(--text-primary)]">
                             {agent ? t('agent.edit_agent') : t('agent.create_agent')}
                         </h2>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs text-[var(--text-muted)]">
                             {formData.name || t('agent.new_agent')}
                         </p>
                     </div>
@@ -309,7 +309,7 @@ const AgentDesignerPanel = ({
                     className="p-2 rounded-lg hover:bg-white/10 transition-all"
                     title={t('agent.back_to_chat')}
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)' }}>
+                    <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -335,14 +335,13 @@ const AgentDesignerPanel = ({
             </div>
 
             {/* Footer Actions */}
-            <div className="px-4 py-3 border-t flex items-center justify-between" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+            <div className="px-4 py-3 border-t flex items-center justify-between border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 <div className="flex items-center gap-2">
                     {agent && (
                         <>
                             <button
                                 onClick={handleDelete}
-                                className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-red-500/20"
-                                style={{ color: 'var(--error)' }}
+                                className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-red-500/20 text-[var(--error)]"
                                 data-testid="agent-delete-btn"
                             >
                                 {t('common.delete')}
@@ -373,8 +372,7 @@ const AgentDesignerPanel = ({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/5"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-[var(--text-muted)]"
                     >
                         {t('common.cancel')}
                     </button>

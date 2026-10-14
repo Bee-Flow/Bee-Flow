@@ -376,11 +376,10 @@ export default function WorkspaceNotebook({
     useEffect(() => () => { flushSaveRef.current?.(); }, []);
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-primary)]">
             {/* ── Header Bar ── */}
             <div
-                className="shrink-0 flex items-center justify-between px-4 py-2 border-b"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+                className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
             >
                 <div className="flex items-center gap-2">
                     <span className="text-sm">📓</span>
@@ -388,7 +387,7 @@ export default function WorkspaceNotebook({
                         {t('notebooks.panel_title', 'Notebook')}
                     </h3>
                     {saving && (
-                        <span className="text-[10px] animate-pulse ml-1" style={{ color: 'var(--accent-primary)' }}>
+                        <span className="text-[10px] animate-pulse ml-1 text-[var(--accent-primary)]">
                             {t('notebooks.saving', 'Saving…')}
                         </span>
                     )}
@@ -414,21 +413,18 @@ export default function WorkspaceNotebook({
 
                         {exportMenuOpen && (
                             <div
-                                className="absolute right-0 top-full mt-1 rounded-xl border py-1 shadow-xl z-50 min-w-[150px]"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}
+                                className="absolute right-0 top-full mt-1 rounded-xl border py-1 shadow-xl z-50 min-w-[150px] bg-[var(--bg-primary)] border-[var(--border-default)]"
                             >
                                 <button
                                     onClick={() => handleExport('pdf')}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-tertiary)]"
-                                    style={{ color: 'var(--text-primary)' }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                                 >
                                     <FileDown className="w-3.5 h-3.5 text-red-500" />
                                     {t('notebooks.export_pdf')}
                                 </button>
                                 <button
                                     onClick={() => handleExport('docx')}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-tertiary)]"
-                                    style={{ color: 'var(--text-primary)' }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                                 >
                                     <FileText className="w-3.5 h-3.5 text-blue-500" />
                                     {t('notebooks.export_word')}
@@ -442,8 +438,7 @@ export default function WorkspaceNotebook({
                     {user?.featureFlags?.openInNotebook !== false && (
                     <button
                         onClick={handleOpenNotebook}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ color: 'var(--accent-primary)' }}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--accent-primary)]"
                         title={t('notebooks.open_in_notebook_title')}
                     >
                         <ExternalLink className="w-3 h-3" />
@@ -453,14 +448,13 @@ export default function WorkspaceNotebook({
 
                     {/* Divider */}
                     {(user?.featureFlags?.export !== false || user?.featureFlags?.openInNotebook !== false) && (
-                        <div className="w-px h-4 mx-1" style={{ background: 'var(--border-subtle)' }} />
+                        <div className="w-px h-4 mx-1 bg-[var(--border-subtle)]" />
                     )}
 
                     {/* Close — flush first; closing is not unmounting everywhere. */}
                     <button
                         onClick={() => { flushSaveRef.current?.(); onClose?.(); }}
-                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ color: 'var(--text-tertiary)' }}
+                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                         title={t('notebooks.close')}
                     >
                         <X className="w-4 h-4" />

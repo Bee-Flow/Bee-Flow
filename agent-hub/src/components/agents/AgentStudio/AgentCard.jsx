@@ -112,10 +112,10 @@ export default function AgentCard({
                                 : <Bot style={glyph} />}
                     </span>
                     <span className="min-w-0 flex-1">
-                        <span className="block font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                        <span className="block font-semibold truncate text-[var(--text-primary)]">
                             {agent?.name || t('agent_studio.untitled', 'Untitled agent')}
                         </span>
-                        <span className="block text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="block text-xs mt-0.5 truncate text-[var(--text-secondary)]">
                             {meta.join(' · ')}
                         </span>
                     </span>
@@ -147,7 +147,7 @@ export default function AgentCard({
                 ) : (
                     // Geen drie nullen: nul is een bewering, en die is hier niet
                     // gedaan — de config kon niet gelezen worden.
-                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }} data-testid="agent-card-counts-unreadable">
+                    <span className="text-xs text-[var(--text-tertiary)]" data-testid="agent-card-counts-unreadable">
                         {t('agent_studio.card.counts_unreadable', 'Configuration could not be read')}
                     </span>
                 )}

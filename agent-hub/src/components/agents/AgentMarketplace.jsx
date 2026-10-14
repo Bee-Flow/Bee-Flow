@@ -63,8 +63,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
             {isOwner && onEdit && (
                 <button
                     onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                    className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100 hover:brightness-90"
-                    style={{ background: 'var(--bg-tertiary)' }}
+                    className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100 hover:brightness-90 bg-[var(--bg-tertiary)]"
                     title={t('agent.agent_marketplace_edit_agent', 'Edit agent')}
                     data-testid={`agent-edit-${agentId}`}
                 >
@@ -74,8 +73,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
             {isOwner && onUnpublish && (
                 <button
                     onClick={(e) => { e.stopPropagation(); onUnpublish(agentId); }}
-                    className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"
-                    style={{ background: 'var(--bg-tertiary)' }}
+                    className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100 bg-[var(--bg-tertiary)]"
                     title={t('agent.agent_marketplace_unpublish_agent', 'Unpublish agent')}
                 >
                     <EyeOff className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
@@ -109,8 +107,8 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
                 );
             })()}
             <div className="flex-1 min-w-0 pr-16">
-                <h3 className="font-semibold text-[13px] truncate" style={{ color: 'var(--text-primary)' }} title={name}>{name}</h3>
-                <p className="text-xs mt-0.5 line-clamp-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <h3 className="font-semibold text-[13px] truncate text-[var(--text-primary)]" title={name}>{name}</h3>
+                <p className="text-xs mt-0.5 line-clamp-2 leading-relaxed text-[var(--text-secondary)]">
                     {description || 'AI agent ready to assist.'}
                 </p>
             </div>
@@ -260,27 +258,26 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
     );
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden w-full h-full" style={{ background: 'var(--bg-secondary)' }} data-testid="agent-marketplace">
+        <div className="flex-1 flex flex-col overflow-hidden w-full h-full bg-[var(--bg-secondary)]" data-testid="agent-marketplace">
             {/* Header */}
-            <div className="px-6 pt-5 pb-4 border-b" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}>
+            <div className="px-6 pt-5 pb-4 border-b bg-[var(--bg-primary)] border-[var(--border-subtle)]">
                 <div className="flex items-center justify-between mb-3">
                     <div>
-                        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('store.title')}</h1>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('store.count', { visible: filtered.length, total: marketplaceAgents.length })}</p>
+                        <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('store.title')}</h1>
+                        <p className="text-xs mt-0.5 text-[var(--text-muted)]">{t('store.count', { visible: filtered.length, total: marketplaceAgents.length })}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         {canManageAgents && onEditAgent && (
                                 <button
                                     onClick={() => onEditAgent()}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:bg-[var(--bg-tertiary)]"
-                                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
                                     data-testid="marketplace-agent-editor"
                                 >
                                     <Pencil className="w-3.5 h-3.5" />
                                     {t('store.agent_editor')}
                                 </button>
                             )}
-                        <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }}>
+                        <button onClick={onClose} className="p-2 rounded-lg transition-colors text-[var(--text-muted)]">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -326,9 +323,9 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                 </button>
 
                 {showFilters && (
-                    <div className="mt-2 space-y-2 pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="mt-2 space-y-2 pt-2 border-t border-[var(--border-subtle)]">
                         <div className="flex flex-wrap gap-1.5">
-                            <span className="text-[10px] font-medium self-center mr-1" style={{ color: 'var(--text-muted)' }}>Type:</span>
+                            <span className="text-[10px] font-medium self-center mr-1 text-[var(--text-muted)]">Type:</span>
                             {JOB_CHIPS.map(job => {
                                 const active = activeJobs.includes(job.key);
                                 return (
@@ -344,7 +341,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                             })}
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>Sort:</span>
+                            <span className="text-[10px] font-medium text-[var(--text-muted)]">Sort:</span>
                             <select value={sortBy} onChange={e => setSortBy(e.target.value)}
                                 className="text-xs py-1 px-2 rounded-md border focus:outline-none cursor-pointer"
                                 style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}
@@ -353,7 +350,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                             </select>
                             {hasActiveFilters && (
                                 <button onClick={() => { setActiveCategory('popular'); setActiveJobs([]); setSortBy('top'); }}
-                                    className="text-xs ml-auto hover:underline" style={{ color: 'var(--text-muted)' }}>{t('agent.agent_marketplace_reset', 'Reset')}</button>
+                                    className="text-xs ml-auto hover:underline text-[var(--text-muted)]">{t('agent.agent_marketplace_reset', 'Reset')}</button>
                             )}
                         </div>
                     </div>
@@ -369,7 +366,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
 
                     {/* Grid */}
                     <div>
-                        <h2 className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
+                        <h2 className="text-[11px] font-semibold uppercase tracking-wider mb-3 text-[var(--text-muted)]">
                             {isSearching ? t('store.results') : activeCategory === 'all' ? t('store.all_agents') : CATEGORIES.find(c => c.key === activeCategory)?.label || t('store.badge_agent')}
                             <span className="font-normal ml-1 normal-case tracking-normal">({filtered.length})</span>
                         </h2>
@@ -389,11 +386,10 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                         {filtered.length === 0 && (
                             <div className="py-16 flex flex-col items-center justify-center">
                                 <div className="text-3xl mb-3">📭</div>
-                                <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t('store.no_agents')}</h3>
-                                <p className="text-xs text-center max-w-xs" style={{ color: 'var(--text-muted)' }}>{t('store.no_agents_hint')}</p>
+                                <h3 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">{t('store.no_agents')}</h3>
+                                <p className="text-xs text-center max-w-xs text-[var(--text-muted)]">{t('store.no_agents_hint')}</p>
                                 <button onClick={() => { setActiveCategory('popular'); setActiveJobs([]); setSearch(''); }}
-                                    className="mt-4 px-4 py-1.5 rounded-lg text-white text-xs font-semibold hover:opacity-90"
-                                    style={{ background: 'var(--accent-primary)' }}>{t('store.clear_filters')}</button>
+                                    className="mt-4 px-4 py-1.5 rounded-lg text-white text-xs font-semibold hover:opacity-90 bg-[var(--accent-primary)]">{t('store.clear_filters')}</button>
                             </div>
                         )}
                     </div>

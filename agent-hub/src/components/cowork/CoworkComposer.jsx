@@ -169,8 +169,7 @@ export default function CoworkComposer({
                         <span
                             role="status"
                             data-testid="cowork-apps-unavailable"
-                            className="text-[11.5px] px-1.5"
-                            style={{ color: 'var(--text-tertiary)' }}
+                            className="text-[11.5px] px-1.5 text-[var(--text-tertiary)]"
                         >
                             {t('cowork.composer.apps_unavailable', 'App list unavailable — this run follows your workspace list')}
                         </span>
@@ -211,8 +210,7 @@ export default function CoworkComposer({
                         disabled={!canSend}
                         data-testid="cowork-send"
                         title={cowork.summary}
-                        className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-full text-[12.5px] font-semibold text-white transition-all shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-full text-[12.5px] font-semibold text-white transition-all shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--accent-primary)]"
                     >
                         {cowork.submitting
                             ? t('cowork.composer.starting', 'Starting…')

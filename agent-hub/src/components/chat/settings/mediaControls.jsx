@@ -13,8 +13,8 @@ export const Slider = ({ label, value, min, max, step, defaultVal, unit, onChang
     return (
         <div>
             <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</label>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                <label className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</label>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                     {v}{unit || ''}
                 </span>
             </div>
@@ -22,7 +22,7 @@ export const Slider = ({ label, value, min, max, step, defaultVal, unit, onChang
                 className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                 style={{ accentColor: accent, background: `linear-gradient(to right, ${accent} ${pct}%, var(--border-subtle) ${pct}%)` }}
             />
-            <div className="flex justify-between text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex justify-between text-[9px] mt-0.5 text-[var(--text-muted)]">
                 <span>{min}{unit || ''}</span><span>{max}{unit || ''}</span>
             </div>
         </div>
@@ -32,8 +32,8 @@ export const Slider = ({ label, value, min, max, step, defaultVal, unit, onChang
 export const Toggle = ({ label, desc, value, onChange, accent }) => (
     <div className="flex items-center justify-between py-0.5">
         <div>
-            <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-            {desc && <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{desc}</p>}
+            <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
+            {desc && <p className="text-[9px] text-[var(--text-muted)]">{desc}</p>}
         </div>
         <button onClick={() => onChange(!value)}
             className="w-8 h-[18px] rounded-full transition-all relative flex-shrink-0"
@@ -59,7 +59,7 @@ export const Pill = ({ label, selected, onClick, accent }) => (
 /** A row of mutually-exclusive Pills bound to one value. */
 export const PillSelect = ({ label, options, value, onChange, accent }) => (
     <div>
-        {label && <label className="block text-[11px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{label}</label>}
+        {label && <label className="block text-[11px] font-medium mb-1.5 text-[var(--text-secondary)]">{label}</label>}
         <div className="flex gap-1 flex-wrap">
             {options.map(opt => {
                 const val = typeof opt === 'string' ? opt : opt.value;

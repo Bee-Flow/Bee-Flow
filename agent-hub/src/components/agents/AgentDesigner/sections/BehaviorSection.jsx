@@ -59,7 +59,7 @@ export const BehaviorSection = ({
                                                         {/* Embed URL Info Card */}
                                                         {embedEnabled && selectedAgent && (
                                                             <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.05)' }}>
-                                                                <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--accent-primary)' }}>
+                                                                <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent-primary)]">
                                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
                                                                     {t('agent_studio.behavior_embed_settings', 'Embed Settings')}
                                                                 </div>
@@ -74,8 +74,7 @@ export const BehaviorSection = ({
                                                                         />
                                                                         <button
                                                                             onClick={() => copy(`${window.location.origin}/chat/${selectedAgent.id}`)}
-                                                                            className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity"
-                                                                            style={{ background: 'var(--accent-primary)' }}
+                                                                            className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity bg-[var(--accent-primary)]"
                                                                         >
                                                                             {t('agent_studio.behavior_copy', 'Copy')}
                                                                         </button>
@@ -92,8 +91,7 @@ export const BehaviorSection = ({
                                                                         />
                                                                         <button
                                                                             onClick={() => copy(`<iframe src="${window.location.origin}/chat/${selectedAgent.id}" width="400" height="600" style="border:none;border-radius:12px;"></iframe>`)}
-                                                                            className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity"
-                                                                            style={{ background: 'var(--accent-primary)' }}
+                                                                            className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity bg-[var(--accent-primary)]"
                                                                         >
                                                                             {t('agent_studio.behavior_copy', 'Copy')}
                                                                         </button>
@@ -310,7 +308,7 @@ export const BehaviorSection = ({
                                                                     </div>
 
                                                                     {/* Live Preview */}
-                                                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border" style={{ borderColor: 'var(--border-subtle)' }}>
+                                                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-[var(--border-subtle)]">
                                                                         <div
                                                                             style={{
                                                                                 width: `${Math.min(bubbleSize, 50)}px`,
@@ -370,8 +368,7 @@ export const BehaviorSection = ({
                                                                                     const code = `<!-- Bee Flow Chat Widget -->\n<script>\n(function(){\n  var d=document,s=d.createElement('style'),b=d.createElement('div');\n  s.textContent='#bf-bubble{position:fixed;bottom:24px;${pos};width:${bubbleSize}px;height:${bubbleSize}px;border-radius:50%;background:linear-gradient(135deg,${bubbleColor},${bubbleColor}dd);border:none;cursor:pointer;box-shadow:0 4px 20px ${bubbleColor}66;display:flex;align-items:center;justify-content:center;font-size:${Math.round(bubbleSize * 0.45)}px;transition:transform .3s,box-shadow .3s;z-index:10001}#bf-bubble:hover{transform:scale(1.1)}#bf-bubble.open{background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 4px 20px rgba(231,76,60,.4)}#bf-window{position:fixed;bottom:${bubbleSize + 40}px;${pos};width:${windowWidth}px;height:${windowHeight}px;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.15);opacity:0;transform:translateY(20px) scale(.95);pointer-events:none;transition:opacity .3s,transform .3s;z-index:10000}#bf-window.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}#bf-window iframe{width:100%;height:100%;border:none}';\n  d.head.appendChild(s);\n  b.innerHTML='<div id="bf-window"><iframe src="${chatUrl}"><\\/iframe><\\/div><button id="bf-bubble">${bubbleIcon}<\\/button>';\n  d.body.appendChild(b);\n  d.getElementById('bf-bubble').onclick=function(){var w=d.getElementById('bf-window'),t=this;t.classList.toggle('open');w.classList.toggle('open');t.textContent=t.classList.contains('open')?'\\u2715':'${bubbleIcon}'};\n})();\n</script>`;
                                                                                     copy(code);
                                                                                 }}
-                                                                                className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity self-start"
-                                                                                style={{ background: 'var(--accent-primary)' }}
+                                                                                className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity self-start bg-[var(--accent-primary)]"
                                                                             >
                                                                                 {t('agent_studio.behavior_copy', 'Copy')}
                                                                             </button>

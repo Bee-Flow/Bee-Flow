@@ -187,8 +187,7 @@ function RuleChips({ rules, tt }) {
             aria-label={hint}
         >
             <span
-                className="text-[10px] uppercase tracking-wide select-none"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="text-[10px] uppercase tracking-wide select-none text-[var(--text-tertiary)]"
                 title={hint}
                 data-testid="judged-label"
             >
@@ -246,8 +245,7 @@ const AnswerChips = ({
                     {citationsHidden > 0 && (
                         <span
                             data-testid="answer-chips-more"
-                            className="text-[10px] px-2 py-0.5 rounded-full border border-dashed"
-                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
+                            className="text-[10px] px-2 py-0.5 rounded-full border border-dashed border-[var(--border-subtle)] text-[var(--text-tertiary)]"
                         >
                             {nOf(tt, 'agent_studio.answer_chips_more', citationsHidden,
                                 '+{count} more source', '+{count} more sources')}

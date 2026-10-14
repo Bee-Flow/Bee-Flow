@@ -184,10 +184,10 @@ export default function SwarmTimeline({ swarm }) {
                         : <img src={beeFlowIcon} alt="" className="w-4 h-4 object-contain" />}
                 </span>
                 <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-[12.5px] font-semibold leading-tight text-[var(--text-primary)]">
                         {swarmName}
                     </div>
-                    <div className="text-[10.5px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="text-[10.5px] mt-0.5 text-[var(--text-tertiary)]">
                         {swarm.state === 'done'
                             ? t('chat.msg.swarm_completed', 'Completed {done}/{total} phases{failures}', {
                                 done: doneCount,

@@ -174,7 +174,7 @@ export default function SessionSkillsTimeline({
                 <div className="flex-1 min-w-0">
                     {bootstrap ? (
                         <>
-                            <div className="text-[12.5px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                            <div className="text-[12.5px] font-semibold leading-tight text-[var(--text-primary)]">
                                 {isPending
                                     ? t('chat.msg.flow_preparing', 'Preparing Flow stages…')
                                     : nOf(t, 'chat.msg.flow_created_stages', ordered.length,
@@ -182,13 +182,13 @@ export default function SessionSkillsTimeline({
                                         'Created {count} stages for this conversation')}
                             </div>
                             {!isPending && (
-                                <div className="text-[10.5px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                                <div className="text-[10.5px] mt-0.5 text-[var(--text-tertiary)]">
                                     {t('chat.msg.flow_stages_hint', 'Stages activate in order; each one updates live below.')}
                                 </div>
                             )}
                         </>
                     ) : (
-                        <div className="text-[12.5px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                        <div className="text-[12.5px] font-semibold leading-tight text-[var(--text-primary)]">
                             {t(
                                 doneCount === total ? 'chat.msg.flow_summary_done' : 'chat.msg.flow_summary_progress',
                                 doneCount === total ? 'Flow · Done {total}/{total}' : 'Flow · {done}/{total} done',

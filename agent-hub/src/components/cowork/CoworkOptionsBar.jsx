@@ -46,12 +46,12 @@ function Sheet({ open, onClose, title, subtitle, isMobile, children, anchorClass
     const body = (
         <>
             {isMobile && (
-                <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: 'var(--border-default)' }} />
+                <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--border-default)]" />
             )}
             <div className={isMobile ? 'text-center mb-3' : 'px-2 pt-1 pb-2'}>
-                <div className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</div>
+                <div className="text-[13px] font-semibold text-[var(--text-primary)]">{title}</div>
                 {subtitle && (
-                    <div className="text-[11.5px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{subtitle}</div>
+                    <div className="text-[11.5px] mt-0.5 text-[var(--text-tertiary)]">{subtitle}</div>
                 )}
             </div>
             {children}
@@ -112,7 +112,7 @@ function SheetOption({ selected, icon: Icon, label, hint, onClick }) {
                     {label}
                 </span>
                 {hint && (
-                    <span className="block text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>{hint}</span>
+                    <span className="block text-[11px] truncate text-[var(--text-tertiary)]">{hint}</span>
                 )}
             </span>
             {selected && <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-primary)' }} strokeWidth={2.5} />}

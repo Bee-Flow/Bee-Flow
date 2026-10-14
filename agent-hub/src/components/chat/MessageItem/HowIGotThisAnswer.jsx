@@ -43,9 +43,9 @@ const HowIGotThisAnswer = ({ msg, idx, allMessages, hasPrivacyInfo, t: tProp, sh
                 <span className="text-sm opacity-70">🧠</span>
                 <span className="font-medium">{t('chat.msg.how_i_got_this', 'How I got this answer')}</span>
                 {/* Aggregate stats bar */}
-                <span className="flex items-center gap-1.5 ml-1 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="flex items-center gap-1.5 ml-1 text-[10px] text-[var(--text-tertiary)]">
                     {visibleTools.length > 0 && (
-                        <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                        <span className="px-1.5 py-0.5 rounded-full font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                             {nOf(t, 'chat.msg.n_tools', visibleTools.length, '1 tool', '{count} tools')}{totalSec ? t('chat.msg.tools_seconds', ' · {seconds}s', { seconds: totalSec }) : ''}
                         </span>
                     )}
@@ -53,16 +53,16 @@ const HowIGotThisAnswer = ({ msg, idx, allMessages, hasPrivacyInfo, t: tProp, sh
                         panel (citationGroups.ts). It used to count passages,
                         so "10 sources" sat above a handful of notes (BFSF-352). */}
                     {showSources && msg.kbSources?.length > 0 && (
-                        <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                        <span className="px-1.5 py-0.5 rounded-full font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                             {nOf(t, 'chat.msg.kb_doc_count', documentCountOf(msg.kbSources), '1 document', '{count} documents')}
                         </span>
                     )}
                     {msg.autoSelectedTier ? (
-                        <span className="px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} title={msg.modelId || ''}>
+                        <span className="px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]" title={msg.modelId || ''}>
                             {t('chat.msg.auto_picked', 'Auto → {tier}', { tier: tierLabel(msg.autoSelectedTier) })}
                         </span>
                     ) : msg.modelTier ? (
-                        <span className="px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} title={msg.modelId || ''}>
+                        <span className="px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]" title={msg.modelId || ''}>
                             {tierLabel(msg.modelTier)}
                         </span>
                     ) : null}
@@ -110,9 +110,9 @@ const HowIGotThisAnswer = ({ msg, idx, allMessages, hasPrivacyInfo, t: tProp, sh
 
                 {/* Sequential Thinking reference */}
                 {msg.thinkingSteps?.length > 0 && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                         <span>🔄</span>
-                        <span>{t('chat.msg.sequential_thinking', 'Sequential Thinking:')} <strong style={{ color: 'var(--text-primary)' }}>{nOf(t, 'chat.msg.n_steps', msg.thinkingSteps.length, '1 step', '{count} steps')}</strong></span>
+                        <span>{t('chat.msg.sequential_thinking', 'Sequential Thinking:')} <strong className="text-[var(--text-primary)]">{nOf(t, 'chat.msg.n_steps', msg.thinkingSteps.length, '1 step', '{count} steps')}</strong></span>
                         <span className="opacity-40 text-[10px]">{t('chat.msg.shown_above', '↑ shown above')}</span>
                     </div>
                 )}

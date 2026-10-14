@@ -45,8 +45,7 @@ function ToneChip({ t, row, onToggle, readOnly, full }) {
             <span
                 data-testid="agent-role-tone-chip"
                 data-on="true"
-                className="px-2.5 py-0.5 rounded-full text-[12px] font-semibold"
-                style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                className="px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-[var(--text-primary)] text-[var(--bg-primary)]"
             >{label}</span>
         );
     }

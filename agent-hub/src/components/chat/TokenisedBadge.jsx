@@ -122,11 +122,11 @@ export default function TokenisedBadge({ warnings = [], t = FALLBACK_T }) {
                             <li key={(w.filename || 'file') + i}>
                                 <span className="font-medium">{w.filename || t('dlp.attachment_unnamed', 'attachment')}</span>
                                 {(scanned != null && total != null) && (
-                                    <span style={{ color: 'var(--text-secondary)' }}>
+                                    <span className="text-[var(--text-secondary)]">
                                         {' — '}{t('dlp.attachment_scanned_partial', 'Scanned {scanned} of {total} pages', { scanned, total })}
                                     </span>
                                 )}
-                                <div style={{ color: 'var(--text-secondary)' }}>⚠️ {warningLine(w, t)}</div>
+                                <div className="text-[var(--text-secondary)]">⚠️ {warningLine(w, t)}</div>
                             </li>
                         );
                     })}

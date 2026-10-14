@@ -40,7 +40,7 @@ import Toggle from '../../../shared/Toggle';
 
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */
 function RowWarning({ children }) {
-    return <div className="text-[12px]" style={{ color: 'var(--warning)' }}>{children}</div>;
+    return <div className="text-[12px] text-[var(--warning)]">{children}</div>;
 }
 
 /**

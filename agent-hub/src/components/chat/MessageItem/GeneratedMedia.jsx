@@ -171,8 +171,8 @@ export const GeneratedFiles = ({ msg }) => {
                     f.path || null,
                 ].filter(Boolean).join(' · ');
                 return (
-                    <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[var(--border-subtle)] max-w-md" style={{ background: 'var(--bg-tertiary)' }}>
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: 'var(--bg-secondary)' }} aria-hidden="true" data-file-kind={kind}>
+                    <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[var(--border-subtle)] max-w-md bg-[var(--bg-tertiary)]">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 bg-[var(--bg-secondary)]" aria-hidden="true" data-file-kind={kind}>
                             {FILE_KIND_ICON[kind]}
                         </div>
                         <div className="min-w-0 flex-1">

@@ -57,8 +57,7 @@ export function TimelineRail({ show = true }) {
     if (!show) return null;
     return (
         <div
-            className="absolute left-[11px] top-4 bottom-4 w-px"
-            style={{ background: 'var(--border-subtle)' }}
+            className="absolute left-[11px] top-4 bottom-4 w-px bg-[var(--border-subtle)]"
             aria-hidden="true"
         />
     );
@@ -70,8 +69,7 @@ export function DurationPill({ ms, title }) {
     if (!label) return null;
     return (
         <span
-            className="text-[10px] px-1.5 py-0.5 rounded"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}
+            className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
             data-testid="duration-pill"
             title={title}
         >

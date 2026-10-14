@@ -476,10 +476,12 @@ describe('CoworkDetail — the header identity (CW-06)', () => {
         // One primary action per pane, and it follows the admin's accent
         // through the eight themes rather than the artboard's ink hex.
         await renderFull();
-        const style = screen.getByTestId('cowork-run-now').getAttribute('style');
-        expect(style).toContain('var(--accent-primary)');
-        expect(style).toContain('var(--accent-primary-fg)');
-        expect(screen.getByTestId('cowork-toggle').getAttribute('style')).not.toContain('--accent-primary');
+        const runNow = screen.getByTestId('cowork-run-now').className;
+        expect(runNow).toContain('bg-[var(--accent-primary)]');
+        expect(runNow).toContain('text-[var(--accent-primary-fg)]');
+        const toggle = screen.getByTestId('cowork-toggle');
+        expect(toggle.className).not.toContain('--accent-primary');
+        expect(toggle.getAttribute('style')).not.toContain('--accent-primary');
     });
 });
 

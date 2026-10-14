@@ -157,8 +157,7 @@ export default function DlpHighlightedText({ text, spans, onAddSpan, onRemoveSpa
                                 type="button"
                                 role="menuitem"
                                 onClick={() => { onRemoveSpan(openSpan.id); setOpenSpanKey(null); }}
-                                className="w-full text-left px-2 py-1 rounded text-xs hover:bg-[var(--bg-tertiary)]"
-                                style={{ color: 'var(--text-secondary)' }}
+                                className="w-full text-left px-2 py-1 rounded text-xs hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                             >
                                 {t('dlp.unmark', 'Unmark')}
                             </button>

@@ -127,8 +127,7 @@ export function ThinkingPanel({ msg }) {
                 onToggle={(e) => setUserOpened(e.currentTarget.open)}
             >
                 <summary
-                    className="flex items-center gap-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden px-3 py-2"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="flex items-center gap-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden px-3 py-2 text-[var(--text-secondary)]"
                 >
                     <Brain
                         className={`w-3.5 h-3.5 text-purple-400 flex-shrink-0 ${isStreaming ? 'animate-pulse' : ''}`}

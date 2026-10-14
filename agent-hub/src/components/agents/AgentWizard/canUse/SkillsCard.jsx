@@ -82,7 +82,7 @@ export default function SkillsCard({
                             ),
                     ]}
                     note={(row.readable || pending) ? null : (
-                        <div className="text-[12px]" style={{ color: 'var(--warning)' }}>
+                        <div className="text-[12px] text-[var(--warning)]">
                             {t('agent_studio.can_use.skill_row_unreadable', 'Attached, but this skill could not be read — so what it does is unknown.')}
                         </div>
                     )}

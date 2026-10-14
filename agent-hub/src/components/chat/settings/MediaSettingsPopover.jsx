@@ -29,12 +29,12 @@ export default function MediaSettingsPopover({
             className={`absolute bottom-full mb-2 left-0 ${width} rounded-xl border shadow-2xl overflow-hidden z-50`}
             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)]">
                 <div className="flex items-center gap-2">
                     <span className="text-base">{icon}</span>
-                    <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</span>
+                    <span className="text-xs font-semibold text-[var(--text-primary)]">{title}</span>
                 </div>
-                <button onClick={onClose} aria-label={t('common.close', 'Close')} title={t('common.close', 'Close')} className="p-1 rounded hover:bg-white/10 transition-colors" style={{ color: 'var(--text-tertiary)' }}>
+                <button onClick={onClose} aria-label={t('common.close', 'Close')} title={t('common.close', 'Close')} className="p-1 rounded hover:bg-white/10 transition-colors text-[var(--text-tertiary)]">
                     <X className="w-3.5 h-3.5" />
                 </button>
             </div>

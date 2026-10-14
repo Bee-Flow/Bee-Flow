@@ -199,7 +199,7 @@ function ChooserFooter({ t, ro, delta, degraded, firstCuration, onApply }) {
     // via `readOnly` op de schil, dus er valt hier ook niets te tellen.
     if (ro) {
         return (
-            <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }} data-testid="agent-tool-chooser-readonly">
+            <p className="text-[12px] text-[var(--text-tertiary)]" data-testid="agent-tool-chooser-readonly">
                 {t('agent_studio.can_use.chooser_read_only', 'Read-only — you cannot change what this agent may use.')}
             </p>
         );
@@ -215,12 +215,12 @@ function ChooserFooter({ t, ro, delta, degraded, firstCuration, onApply }) {
     return (
         <div className="flex flex-col gap-2">
             {degraded && (
-                <p className="text-[11px]" style={{ color: 'var(--warning)' }} data-testid="agent-tool-chooser-degraded">
+                <p className="text-[11px] text-[var(--warning)]" data-testid="agent-tool-chooser-degraded">
                     {t('agent_studio.can_use.tools_degraded', 'Could not check which apps you are allowed to use, so nothing is claimed about that here.')}
                 </p>
             )}
             {firstCuration && (
-                <p className="text-[11px]" style={{ color: 'var(--warning)' }} data-testid="agent-tool-chooser-first-curation">
+                <p className="text-[11px] text-[var(--warning)]" data-testid="agent-tool-chooser-first-curation">
                     {t('agent_studio.can_use.chooser_first_curation', 'This is the first time you limit this agent: from now on it gets only what is ticked here, and actions that send always ask a person first.')}
                 </p>
             )}
@@ -230,8 +230,7 @@ function ChooserFooter({ t, ro, delta, degraded, firstCuration, onApply }) {
                     onClick={onApply}
                     disabled={!delta.dirty}
                     data-testid="agent-tool-chooser-apply"
-                    className="rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {label}
                 </button>

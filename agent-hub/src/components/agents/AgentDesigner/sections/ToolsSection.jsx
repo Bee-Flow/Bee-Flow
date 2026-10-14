@@ -107,7 +107,7 @@ export const ToolsSection = ({
                                                                         </div>
                                                                     </div>
                                                                 ) : (
-                                                                    <div className="text-center py-8 rounded-xl border border-dashed" style={{ borderColor: 'var(--border-subtle)' }}>
+                                                                    <div className="text-center py-8 rounded-xl border border-dashed border-[var(--border-subtle)]">
                                                                         <svg className="w-8 h-8 mx-auto mb-2 text-muted opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
                                                                         <p className="text-sm text-muted">{t('agent_studio.tools_no_integrations_available', 'No integrations available')}</p>
                                                                         <p className="text-[10px] text-muted mt-1">{t('agent_studio.tools_connect_via_google_sso_or_configure', 'Connect via Google SSO or configure API keys in Settings')}</p>

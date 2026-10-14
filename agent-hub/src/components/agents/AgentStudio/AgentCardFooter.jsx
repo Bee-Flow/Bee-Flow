@@ -121,8 +121,7 @@ export default function AgentCardFooter({ agent, viewerId = null }) {
     if (footer.variant === 'ungrounded') {
         return (
             <span
-                className="flex items-center gap-1.5 text-xs"
-                style={{ color: 'var(--warning)' }}
+                className="flex items-center gap-1.5 text-xs text-[var(--warning)]"
                 data-testid="agent-card-footer"
                 data-variant="ungrounded"
             >

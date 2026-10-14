@@ -51,16 +51,15 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
     return (
         <div
             ref={panelRef}
-            className="absolute bottom-full mb-2 left-0 w-72 rounded-xl border shadow-2xl overflow-hidden z-50"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}
+            className="absolute bottom-full mb-2 left-0 w-72 rounded-xl border shadow-2xl overflow-hidden z-50 bg-[var(--bg-secondary)] border-[var(--border-subtle)]"
         >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
                 <div className="flex items-center gap-2">
                     <span className="text-lg">🍌</span>
-                    <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{t('chat.composer.media_image', 'Image Generation')}</span>
+                    <span className="text-xs font-semibold text-[var(--text-primary)]">{t('chat.composer.media_image', 'Image Generation')}</span>
                 </div>
-                <button onClick={onClose} aria-label={t('common.close', 'Close')} title={t('common.close', 'Close')} className="p-1 rounded hover:bg-white/10 transition-colors" style={{ color: 'var(--text-tertiary)' }}>
+                <button onClick={onClose} aria-label={t('common.close', 'Close')} title={t('common.close', 'Close')} className="p-1 rounded hover:bg-white/10 transition-colors text-[var(--text-tertiary)]">
                     <X className="w-3.5 h-3.5" />
                 </button>
             </div>
@@ -68,13 +67,13 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
             {/* Body */}
             <div className="p-4 space-y-4">
                 {/* Info */}
-                <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
                     {t('chat.media.image_gen_intro', 'Just ask the AI to generate an image in your message. It will automatically use these settings.')}
                 </p>
 
                 {/* Aspect Ratio */}
                 <div>
-                    <label className="block text-[11px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    <label className="block text-[11px] font-medium mb-2 text-[var(--text-secondary)]">
                         {t('chat.media.default_aspect_ratio', 'Default Aspect Ratio')}
                     </label>
                     <div className="flex gap-1">
@@ -102,7 +101,7 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
 
                 {/* Model */}
                 <div>
-                    <label className="block text-[11px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    <label className="block text-[11px] font-medium mb-2 text-[var(--text-secondary)]">
                         {t('chat.media.model', 'Model')}
                     </label>
                     <div className="space-y-1">
@@ -124,7 +123,7 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
                                 {currentModel === m.value ? (
                                     <Check className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                                 ) : (
-                                    <div className="w-3.5 h-3.5 rounded-full border flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }} />
+                                    <div className="w-3.5 h-3.5 rounded-full border flex-shrink-0 border-[var(--border-subtle)]" />
                                 )}
                                 {m.label}
                             </button>

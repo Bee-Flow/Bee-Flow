@@ -140,8 +140,7 @@ export function ActivityIndicator({ msg, sessionSkills = [] }) {
             </span>
             <span className="flex items-center gap-0.5 ml-0.5">
                 <span
-                    className="w-1 h-1 rounded-full animate-pulse"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="w-1 h-1 rounded-full animate-pulse bg-[var(--accent-primary)]"
                 />
                 <span
                     className="w-1 h-1 rounded-full animate-pulse"

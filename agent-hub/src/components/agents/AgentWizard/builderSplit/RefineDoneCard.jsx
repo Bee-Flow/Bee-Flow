@@ -94,17 +94,17 @@ export default function RefineDoneCard({
             className="rounded-2xl border px-4 py-3"
             style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card, transparent)' }}
         >
-            <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <div className="text-sm font-semibold text-[var(--text-primary)]">
                 {t('agent_studio.refine.done_title', 'Done')}
             </div>
 
             {lines.length === 0 ? (
                 // Nul wijzigingen is een uitkomst, geen lege lijst.
-                <p className="mt-1 text-[13px]" style={{ color: 'var(--text-secondary)' }} data-testid="refine-done-nothing">
+                <p className="mt-1 text-[13px] text-[var(--text-secondary)]" data-testid="refine-done-nothing">
                     {t('agent_studio.refine.done_nothing', 'Nothing changed — the agent already worked that way.')}
                 </p>
             ) : (
-                <ul className="mt-1 space-y-0.5 text-[13px]" style={{ color: 'var(--text-secondary)' }} data-testid="refine-done-changes">
+                <ul className="mt-1 space-y-0.5 text-[13px] text-[var(--text-secondary)]" data-testid="refine-done-changes">
                     {lines.map((line, i) => (
                         <li key={i} className="flex gap-2">
                             <span aria-hidden="true">·</span>
@@ -119,8 +119,7 @@ export default function RefineDoneCard({
                     type="button"
                     onClick={onTest}
                     data-testid="refine-done-test"
-                    className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition border-[var(--border-default)] text-[var(--text-primary)]"
                 >
                     <FlaskConical size={13} aria-hidden="true" />
                     {t('agent_studio.refine.test_cta', 'Test with a question')}
@@ -132,8 +131,7 @@ export default function RefineDoneCard({
                     data-testid="refine-done-undo"
                     data-undo-state={state}
                     title={undoText}
-                    className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition disabled:opacity-60 disabled:cursor-not-allowed border-[var(--border-default)] text-[var(--text-primary)]"
                 >
                     <Undo2 size={13} aria-hidden="true" />
                     {undoText}
@@ -141,7 +139,7 @@ export default function RefineDoneCard({
             </div>
 
             {undoState === 'failed' && (
-                <p className="mt-2 text-[12px]" style={{ color: 'var(--error)' }} data-testid="refine-done-undo-failed">
+                <p className="mt-2 text-[12px] text-[var(--error)]" data-testid="refine-done-undo-failed">
                     {t('agent_studio.refine.undo_failed', 'Undo failed — the agent was left as it is.')}
                 </p>
             )}

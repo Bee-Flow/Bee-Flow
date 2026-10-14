@@ -26,7 +26,7 @@ export default function DlpFindingsSummaryBar({ spans }) {
 
     if (spans.length === 0) {
         return (
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {t('dlp.summary_none_found', 'No personal data detected. Do you see something anyway? Select it below.')}
             </p>
         );
@@ -34,7 +34,7 @@ export default function DlpFindingsSummaryBar({ spans }) {
 
     return (
         <div className="flex flex-col gap-2">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {manualCount > 0
                     ? t('dlp.summary_with_manual', '{auto} detected · {manual} added by you', { auto: autoCount, manual: manualCount })
                     : t('dlp.summary_auto_only', '{count} detected', { count: autoCount })}

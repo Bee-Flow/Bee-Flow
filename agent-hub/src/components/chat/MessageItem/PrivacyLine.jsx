@@ -84,8 +84,7 @@ export default function PrivacyLine({
         <span
             data-testid="privacy-line"
             data-privacy-line={line.form}
-            className="text-[11px] leading-[16px]"
-            style={{ color: 'var(--text-tertiary)' }}
+            className="text-[11px] leading-[16px] text-[var(--text-tertiary)]"
         >
             <Lock className="w-3 h-3 inline-block shrink-0 mr-1 align-[-2px]" aria-hidden="true" />
             {before}
@@ -94,8 +93,7 @@ export default function PrivacyLine({
                     {i > 0 && ', '}
                     <code
                         data-testid="privacy-line-token"
-                        className="font-mono rounded px-1"
-                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                        className="font-mono rounded px-1 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                     >
                         {token}
                     </code>

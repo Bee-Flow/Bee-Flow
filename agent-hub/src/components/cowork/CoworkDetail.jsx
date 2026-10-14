@@ -48,8 +48,7 @@ function Pill(props) {
     const { tone, children } = props;
     return (
         <span
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-[11.5px] max-w-full"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-[11.5px] max-w-full bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
         >
             <Glyph aria-hidden="true" className="w-3 h-3 flex-shrink-0" style={{ color: tone }} />
             <span className="truncate">{children}</span>
@@ -96,8 +95,7 @@ function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRun
 
     return (
         <div
-            className="flex items-center gap-2.5 px-5 py-2.5 border-b flex-wrap"
-            style={{ borderColor: 'var(--border-subtle)' }}
+            className="flex items-center gap-2.5 px-5 py-2.5 border-b flex-wrap border-[var(--border-subtle)]"
         >
             <div style={tile.tile}><AgentIcon aria-hidden="true" style={tile.glyph} /></div>
             <h2 className="text-[14px] font-semibold truncate min-w-0" style={{ color: 'var(--text-primary)' }}>
@@ -106,8 +104,7 @@ function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRun
             <span
                 data-testid="cowork-status"
                 data-status-key={status.labelKey}
-                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-[11.5px] flex-shrink-0"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-[11.5px] flex-shrink-0 border-[var(--border-subtle)] text-[var(--text-secondary)]"
             >
                 <span aria-hidden="true" className="w-[7px] h-[7px] rounded-full" style={{ background: tone }} />
                 {runningSince
@@ -133,8 +130,7 @@ function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRun
                     type="button" onClick={() => onDelete(item)} disabled={busy}
                     data-testid="cowork-delete"
                     aria-label={t('cowork.detail.delete', 'Delete this cowork')}
-                    className="p-1.5 rounded-lg border text-red-600 dark:text-red-400 disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-subtle)' }}
+                    className="p-1.5 rounded-lg border text-red-600 dark:text-red-400 disabled:opacity-50 border-[var(--border-subtle)]"
                 >
                     <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -147,8 +143,7 @@ function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRun
                     onClick={() => onRunNow(item.id)}
                     disabled={busy || item.lastStatus === 'running'}
                     data-testid="cowork-run-now"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                 >
                     <Play className="w-3.5 h-3.5" />{t('cowork.detail.run_now', 'Run now')}
                 </button>

@@ -52,14 +52,14 @@ const VideoGenSettings = ({ isOpen, onClose }) => {
 
     return (
         <MediaSettingsPopover isOpen={isOpen} onClose={onClose} icon="🎬" title={t('chat.media.veo_panel_title', 'Video Generation (Veo)')} bodyClassName="p-4 space-y-3">
-            <p className="text-[10px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
                 {t('chat.media.veo_intro', 'Google Veo — AI video generation. Takes 1-3 minutes per clip.')}
             </p>
 
             <SettingsDropdown label={t('chat.media.model', 'Model')} options={VIDEO_MODELS} value={settings.model || 'veo-3.1-generate-preview'} onChange={v => update('model', v)} accentColor={ACCENT} />
 
             <div>
-                <label className="block text-[11px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('chat.media.aspect_ratio', 'Aspect Ratio')}</label>
+                <label className="block text-[11px] font-medium mb-1.5 text-[var(--text-secondary)]">{t('chat.media.aspect_ratio', 'Aspect Ratio')}</label>
                 <div className="flex gap-1">
                     {ASPECT_RATIOS.map(ar => (
                         <Pill key={ar.value} label={ar.label} icon={ar.icon}
@@ -70,7 +70,7 @@ const VideoGenSettings = ({ isOpen, onClose }) => {
             </div>
 
             <div>
-                <label className="block text-[11px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('chat.media.duration', 'Duration')}</label>
+                <label className="block text-[11px] font-medium mb-1.5 text-[var(--text-secondary)]">{t('chat.media.duration', 'Duration')}</label>
                 <div className="flex gap-1">
                     {DURATIONS.map(d => (
                         <Pill key={d.value} label={d.label}

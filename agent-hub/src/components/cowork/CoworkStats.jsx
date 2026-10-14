@@ -35,8 +35,7 @@ function Figure({ label, value, sub, tone }) {
             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}
         >
             <div
-                className="text-[10.5px] font-semibold uppercase tracking-wide truncate"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="text-[10.5px] font-semibold uppercase tracking-wide truncate text-[var(--text-tertiary)]"
             >
                 {label}
             </div>
@@ -46,7 +45,7 @@ function Figure({ label, value, sub, tone }) {
             >
                 {value}
             </div>
-            <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>{sub}</div>
+            <div className="text-[11px] truncate text-[var(--text-tertiary)]">{sub}</div>
         </div>
     );
 }
@@ -148,7 +147,7 @@ export default function CoworkStats({ coworkId, reloadKey }) {
 
     if (settled && state.failed) {
         return (
-            <p className="text-[11.5px]" style={{ color: 'var(--text-tertiary)' }} data-testid="cowork-stats-unavailable">
+            <p className="text-[11.5px] text-[var(--text-tertiary)]" data-testid="cowork-stats-unavailable">
                 {t('cowork.stats.unavailable', 'The figures for this work could not be loaded.')}
             </p>
         );

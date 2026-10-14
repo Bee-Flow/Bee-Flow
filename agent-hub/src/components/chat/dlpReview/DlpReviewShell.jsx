@@ -54,19 +54,19 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error })
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', maxHeight: '85vh', animation: 'overlayContentIn .2s ease-out' }}
             >
                 {/* Header */}
-                <div className="px-5 py-4 border-b flex items-start gap-3 shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="px-5 py-4 border-b flex items-start gap-3 shrink-0 border-[var(--border-subtle)]">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(234, 88, 12, 0.12)' }}>
                         <ShieldAlert className="w-5 h-5" style={{ color: '#ea580c' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h3 id="dlp-review-title" className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <h3 id="dlp-review-title" className="text-base font-semibold text-[var(--text-primary)]">
                             {isAttachment
                                 ? t('dlp.review_title_attachment', 'Check this attachment before it goes to the AI')
                                 : t('dlp.review_title', 'Check this before it goes to the AI')}
                         </h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                             {t('dlp.preview_subtitle', 'This prompt will be sent to')}{' '}
-                            <strong style={{ color: 'var(--text-primary)' }}>{providerLabel}</strong>
+                            <strong className="text-[var(--text-primary)]">{providerLabel}</strong>
                             {provider.isExternal !== false && (
                                 <span className="ml-1 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(234, 88, 12, 0.12)', color: '#ea580c' }}>
                                     <Lock className="w-2.5 h-2.5" />
@@ -83,11 +83,11 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error })
                     {isAttachment
                         ? <DlpDocumentRenderer filename={pending.filename} text={pending.reviewText} spans={spans} onAddSpan={addSpan} onRemoveSpan={removeSpan} />
                         : <DlpChatTextRenderer text={pending.reviewText} spans={spans} onAddSpan={addSpan} onRemoveSpan={removeSpan} />}
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] text-[var(--text-muted)]">
                         {t('dlp.select_text_hint', 'Tip: select text above to mark something the detector missed.')}
                     </p>
 
-                    <label className="flex items-center gap-2 text-xs cursor-pointer select-none" style={{ color: 'var(--text-secondary)' }}>
+                    <label className="flex items-center gap-2 text-xs cursor-pointer select-none text-[var(--text-secondary)]">
                         <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="rounded" />
                         {t('dlp.remember_label', 'Remember my choice for this conversation')}
                     </label>
@@ -100,7 +100,7 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error })
                 </div>
 
                 {/* Actions */}
-                <div className="px-5 py-3 border-t flex items-center gap-2 justify-end shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                <div className="px-5 py-3 border-t flex items-center gap-2 justify-end shrink-0 border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                     <button
                         onClick={() => onSubmit('block')}
                         disabled={submitting}
@@ -113,8 +113,7 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error })
                     <button
                         onClick={() => onSubmit('allow', { rememberForConversation: remember })}
                         disabled={submitting}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                        style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 text-[var(--text-secondary)] bg-[var(--bg-tertiary)]"
                         title={t('dlp.action_allow_tooltip', 'Send the prompt unchanged')}
                     >
                         <Send className="w-3.5 h-3.5" />
@@ -123,8 +122,7 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error })
                     <button
                         onClick={submitRedact}
                         disabled={submitting}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         <Eye className="w-3.5 h-3.5" />
                         {spans.length > 0 ? t('dlp.action_redact', 'Redact and send') : t('dlp.action_confirm_send', 'Send')}

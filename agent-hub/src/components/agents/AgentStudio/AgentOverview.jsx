@@ -77,17 +77,17 @@ export default function AgentOverview({
                 <div className="mx-auto px-6 py-8 space-y-4" style={{ maxWidth: 1100 }}>
                     <div className="flex items-end gap-3 flex-wrap">
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-[18px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
                                 {systemMode
                                     ? t('agent_studio.title_system', 'System Agents')
                                     : t('agent_studio.title', 'Agents')}
                                 {!loading && !error && rows.length > 0 && (
-                                    <span className="ml-2 font-medium" style={{ color: 'var(--text-tertiary)' }} data-testid="agent-overview-count">
+                                    <span className="ml-2 font-medium text-[var(--text-tertiary)]" data-testid="agent-overview-count">
                                         {rows.length}
                                     </span>
                                 )}
                             </h2>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-sm mt-1 text-[var(--text-secondary)]">
                                 {t('agent_studio.intro', 'An agent answers in your words, from the knowledge and tools you give it. Open one to change what it knows and what it may do.')}
                             </p>
                         </div>
@@ -134,14 +134,13 @@ export default function AgentOverview({
                         components/admin/Studio/Datatables/DatatablesStudio.jsx. */}
                     <div aria-live="polite">
                         {loading ? (
-                            <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-tertiary)' }} aria-busy="true">
+                            <div className="flex items-center justify-center py-12 text-[var(--text-tertiary)]" aria-busy="true">
                                 <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                                 <span className="sr-only">{t('agent_studio.loading', 'Loading agents')}</span>
                             </div>
                         ) : error ? (
                             <div
-                                className="px-3 py-2.5 rounded-lg text-sm flex flex-col gap-2 items-start"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}
+                                className="px-3 py-2.5 rounded-lg text-sm flex flex-col gap-2 items-start bg-[var(--bg-secondary)] text-[var(--warning)]"
                                 data-testid="agent-overview-error"
                             >
                                 <span>{t('agent_studio.load_error', 'Failed to load agents')}: {error}</span>
@@ -149,8 +148,7 @@ export default function AgentOverview({
                                     <button
                                         type="button"
                                         onClick={onRetry}
-                                        className="px-2 py-1 rounded-md text-xs border"
-                                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                        className="px-2 py-1 rounded-md text-xs border border-[var(--border-default)] text-[var(--text-secondary)]"
                                     >
                                         {t('agent_studio.retry', 'Retry')}
                                     </button>
@@ -168,7 +166,7 @@ export default function AgentOverview({
                                 } : undefined}
                             />
                         ) : visible.length === 0 ? (
-                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }} data-testid="agent-overview-no-match">
+                            <p className="text-sm text-[var(--text-secondary)]" data-testid="agent-overview-no-match">
                                 {t('agent_studio.search_empty', 'No agent matches that.')}
                             </p>
                         ) : (
@@ -232,7 +230,7 @@ function Chip({ label, count, active, onClick }) {
             }}
         >
             <span className="truncate max-w-[12rem]">{label}</span>
-            <span style={{ color: 'var(--text-tertiary)' }}>{count}</span>
+            <span className="text-[var(--text-tertiary)]">{count}</span>
         </button>
     );
 }

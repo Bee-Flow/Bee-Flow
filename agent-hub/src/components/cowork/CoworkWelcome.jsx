@@ -59,7 +59,7 @@ export function CoworkWelcomeHeader({ className = 'text-center mb-6' }) {
             >
                 {t('cowork.welcome.heading', COWORK_HEADING)}
             </h1>
-            <p className="mt-2 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="mt-2 text-[13px] text-[var(--text-tertiary)]">
                 {t('cowork.welcome.subheading', COWORK_SUBHEADING)}
             </p>
         </div>

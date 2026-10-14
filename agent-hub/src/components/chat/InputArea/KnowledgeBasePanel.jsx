@@ -66,10 +66,10 @@ const KnowledgeBasePanel = ({
             }}
         >
             <div className="px-3.5 pt-3 pb-2">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
                     {t('chat.composer.kb_panel_title', 'Knowledge bases')}
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                     {t('chat.composer.kb_panel_hint', 'Pick one or more to ground this chat.')}
                 </p>
             </div>
@@ -86,7 +86,7 @@ const KnowledgeBasePanel = ({
             </div>
             <div className="max-h-72 overflow-auto px-1.5 pb-1.5">
                 {kbPickerOptions.length === 0 ? (
-                    <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <div className="px-3 py-6 text-center text-xs text-[var(--text-muted)]">
                         {kbClaim.options.length === 0
                             ? t('chat.composer.kb_none', 'No knowledge bases available. Create one in the Knowledge Bases section.')
                             : t('chat.composer.kb_no_matches', 'No matches.')}
@@ -136,20 +136,19 @@ const KnowledgeBasePanel = ({
                                     className="accent-[var(--accent-primary)] w-4 h-4 flex-shrink-0"
                                 />
                                 <span
-                                    className="flex-shrink-0 w-7 h-7 rounded-md inline-flex items-center justify-center text-[15px]"
-                                    style={{ background: 'var(--bg-secondary)' }}
+                                    className="flex-shrink-0 w-7 h-7 rounded-md inline-flex items-center justify-center text-[15px] bg-[var(--bg-secondary)]"
                                 >{kb.icon && (kb.icon.startsWith('data:') || kb.icon.startsWith('http')) ? (
                                     <img src={kb.icon} alt="" className="w-5 h-5 rounded object-cover" />
                                 ) : (kb.icon || '📚')}</span>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5">
-                                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{kb.name}</p>
+                                        <p className="text-sm font-medium truncate text-[var(--text-primary)]">{kb.name}</p>
                                         <span
                                             className="px-1.5 py-0.5 rounded font-medium text-[9px] flex-shrink-0 uppercase tracking-wide"
                                             style={{ background: visibility.bg, color: visibility.fg }}
                                         >{visibility.label}</span>
                                     </div>
-                                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                                    <p className="text-[11px] mt-0.5 text-[var(--text-muted)]">
                                         {isEmpty
                                             ? t('chat.composer.kb_empty', 'Empty')
                                             : kb.document_count === 1
@@ -170,16 +169,15 @@ const KnowledgeBasePanel = ({
                     style={{ color: 'var(--warning)', borderTop: '1px solid var(--border-subtle)' }}
                 >{kbErrorText(kbError)}</div>
             )}
-            <div className="px-3 py-2 border-t flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="px-3 py-2 border-t flex items-center justify-between border-[var(--border-subtle)]">
                 <button
                     onClick={() => commitKBIds([])}
                     disabled={kbClaim.attachedIds.length === 0 || kbSaving}
-                    className="px-2 py-1 rounded-md text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="px-2 py-1 rounded-md text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 text-[var(--text-muted)]"
                 >{t('chat.composer.kb_clear', 'Clear')}</button>
                 <div className="flex items-center gap-2">
                     {kbSaving && (
-                        <span className="text-[11px]" data-testid="composer-kb-saving" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-[11px] text-[var(--text-muted)]" data-testid="composer-kb-saving">
                             {t('chat.composer.kb_saving', 'Saving…')}
                         </span>
                     )}

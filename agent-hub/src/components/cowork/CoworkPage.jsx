@@ -259,8 +259,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     const explainer = (
         <p
             data-testid="cowork-explainer"
-            className="mt-3 mx-1 px-3 py-2.5 rounded-[9px] border border-dashed text-[11px] leading-relaxed"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}
+            className="mt-3 mx-1 px-3 py-2.5 rounded-[9px] border border-dashed text-[11px] leading-relaxed border-[var(--border-default)] text-[var(--text-tertiary)]"
         >
             {t(
                 'cowork.list.explainer',
@@ -276,14 +275,14 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     const showPane = !isMobile || !!selected;
 
     return (
-        <div className="flex-1 flex min-h-0 min-w-0" style={{ background: 'var(--bg-primary)' }}>
+        <div className="flex-1 flex min-h-0 min-w-0 bg-[var(--bg-primary)]">
             {showList && (
             <aside
                 className={`${isMobile ? 'flex-1' : 'w-80 flex-shrink-0 border-r'} flex flex-col min-h-0`}
                 style={{ borderColor: 'var(--border-subtle)' }}
             >
-                <div className="flex items-center gap-2 px-3 py-2.5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                    <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Cowork</span>
+                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border-subtle)]">
+                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">Cowork</span>
                     {/* The tally, and only when there is one to tell. A
                         permanent "0 running" is a fact nobody asked for; the
                         pill exists to be noticed. */}
@@ -306,8 +305,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                             disabled={loading || busy}
                             aria-label={t('cowork.list.refresh', 'Refresh')}
                             data-testid="cowork-refresh"
-                            className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                            style={{ color: 'var(--text-tertiary)' }}
+                            className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] disabled:opacity-50 text-[var(--text-tertiary)]"
                         >
                             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                         </button>
@@ -321,8 +319,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                             onClick={() => { setSelectedId(null); setEditingId(null); textareaRef.current?.focus(); }}
                             disabled={busy}
                             data-testid="cowork-new"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold disabled:opacity-50"
-                            style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                         >
                             <Plus className="w-3.5 h-3.5 flex-shrink-0" />
                             {t('cowork.list.new', 'New task')}
@@ -340,7 +337,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                         </div>
                     )}
                     {loading && items.length === 0 && (
-                        <p className="px-2 pt-3 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="px-2 pt-3 text-[12px] text-[var(--text-tertiary)]">
                             {t('cowork.list.loading', 'Loading…')}
                         </p>
                     )}
@@ -404,7 +401,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                                         })}
                                     </div>
                                 ) : (
-                                    <p className="mt-6 text-[13px] flex items-center gap-2 justify-center" style={{ color: 'var(--text-tertiary)' }}>
+                                    <p className="mt-6 text-[13px] flex items-center gap-2 justify-center text-[var(--text-tertiary)]">
                                         <CalendarClock className="w-4 h-4 flex-shrink-0" />
                                         {t('cowork.pick_left', 'Or pick something on the left to see when it runs and how every run went.')}
                                     </p>
@@ -426,10 +423,9 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                     label={t('cowork.delete.heading', 'Delete this cowork?')}
                 >
                     <div
-                        className="w-full max-w-sm rounded-2xl border shadow-2xl p-5"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}
+                        className="w-full max-w-sm rounded-2xl border shadow-2xl p-5 bg-[var(--bg-primary)] border-[var(--border-default)]"
                     >
-                        <div className="text-[14px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                        <div className="text-[14px] font-semibold mb-1 text-[var(--text-primary)]">
                             {t('cowork.delete.heading', 'Delete this cowork?')}
                         </div>
                         {/* The title travels as a PARAMETER, not as a child
@@ -437,7 +433,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                             able to move it inside the sentence, and half a
                             sentence either side of a name is not translatable
                             at all in most languages. */}
-                        <p className="text-[12.5px] mb-4" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-[12.5px] mb-4 text-[var(--text-secondary)]">
                             {t(
                                 'cowork.delete.consequence',
                                 '“{title}” stops running and its history is removed. This can’t be undone.',
@@ -447,8 +443,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                         <div className="flex justify-end gap-2">
                             <button
                                 onClick={() => setPendingDelete(null)}
-                                className="px-3.5 py-2 rounded-lg text-[12.5px] font-medium hover:bg-[var(--bg-tertiary)]"
-                                style={{ color: 'var(--text-secondary)' }}
+                                className="px-3.5 py-2 rounded-lg text-[12.5px] font-medium hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                             >
                                 {t('cowork.delete.cancel', 'Cancel')}
                             </button>
@@ -470,8 +465,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                     type="button"
                     onClick={() => { setSelectedId(null); setEditingId(null); }}
                     aria-label={t('cowork.list.back', 'Back to the list')}
-                    className="fixed top-3 right-3 z-[900] p-2 rounded-full border shadow-sm"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                    className="fixed top-3 right-3 z-[900] p-2 rounded-full border shadow-sm bg-[var(--bg-primary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
                 >
                     <X className="w-4 h-4" />
                 </button>

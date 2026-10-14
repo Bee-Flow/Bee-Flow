@@ -211,8 +211,7 @@ const AgentDesigner = ({
   };
   return (
     <div
-      className="h-full flex flex-col"
-      style={{ background: "var(--bg-primary)" }}
+      className="h-full flex flex-col bg-[var(--bg-primary)]"
     >
       {/* Title bar — only rendered when inline (onClose provided) */}
       {onClose && (
@@ -220,29 +219,22 @@ const AgentDesigner = ({
           className="flex-shrink-0 flex items-center px-5"
           style={{ height: '48px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}
         >
-          <span className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}</span>
+          <span className="text-[15px] font-semibold text-[var(--text-primary)]">{t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}</span>
         </div>
       )}
       {/* Main Content */}
       <div
-        className="flex-1 flex overflow-hidden"
-        style={{ background: "var(--bg-primary)" }}
+        className="flex-1 flex overflow-hidden bg-[var(--bg-primary)]"
       >
         {/* 1. Agent List Sidebar */}
         <div
-          className="w-64 border-r flex flex-col flex-shrink-0"
-          style={{
-            borderColor: "var(--border-subtle)",
-            background: "var(--bg-primary)",
-          }}
+          className="w-64 border-r flex flex-col flex-shrink-0 border-[var(--border-subtle)] bg-[var(--bg-primary)]"
         >
           <div
-            className="px-3 h-9 border-b flex items-center justify-between"
-            style={{ borderColor: "var(--border-default)" }}
+            className="px-3 h-9 border-b flex items-center justify-between border-[var(--border-default)]"
           >
             <span
-              className="text-[13px] font-semibold tracking-normal"
-              style={{ color: "var(--text-primary)" }}
+              className="text-[13px] font-semibold tracking-normal text-[var(--text-primary)]"
             >
               {systemMode ? "System Agents" : "Agents"}
             </span>
@@ -250,18 +242,16 @@ const AgentDesigner = ({
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => { window.history.pushState({ page: 'agentWizard' }, '', '/app/agent-wizard'); window.dispatchEvent(new PopStateEvent('popstate')); }}
-                  className="px-2 py-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors flex items-center gap-1 text-[11px]"
+                  className="px-2 py-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]"
                   title={t('agent_studio.agent_designer_create_with_ai', 'Create with AI')}
-                  style={{ color: "var(--text-tertiary)" }}
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z"/></svg>
                   {t('agent_studio.agent_designer_ai', 'AI')}
                 </button>
                 <button
                   onClick={createNewAgent}
-                  className="p-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors"
+                  className="p-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors text-[var(--text-tertiary)]"
                   title={t('agent_studio.agent_designer_create_new_agent_empty', 'Create New Agent (empty)')}
-                  style={{ color: "var(--text-tertiary)" }}
                 >
                   <svg
                     className="w-4 h-4"
@@ -294,11 +284,7 @@ const AgentDesigner = ({
                 {!systemMode && hasPermission("manage_agents") && (
                   <button
                     onClick={createNewAgent}
-                    className="text-xs font-medium px-3 py-1.5 rounded-lg border bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-all"
-                    style={{
-                      borderColor: "var(--border-default)",
-                      color: "var(--text-secondary)",
-                    }}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg border bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-all border-[var(--border-default)] text-[var(--text-secondary)]"
                   >
                     {t('agent_studio.agent_designer_create_first_agent', 'Create First Agent')}
                   </button>
@@ -384,18 +370,15 @@ const AgentDesigner = ({
             <div className="flex-1 flex w-full">
               {/* Configuration Area */}
               <div
-                className="flex-1 flex flex-col min-w-[600px] border-r"
-                style={{ borderColor: "var(--border-default)" }}
+                className="flex-1 flex flex-col min-w-[600px] border-r border-[var(--border-default)]"
               >
                 {/* Header */}
                 <div
-                  className="px-6 py-3 border-b flex items-center justify-between"
-                  style={{ borderColor: "var(--border-default)" }}
+                  className="px-6 py-3 border-b flex items-center justify-between border-[var(--border-default)]"
                 >
                   <div>
                     <h1
-                      className="text-lg font-semibold"
-                      style={{ color: "var(--text-primary)" }}
+                      className="text-lg font-semibold text-[var(--text-primary)]"
                     >
                       {isCreating ? "Create New Agent" : "Edit Agent"}
                     </h1>
@@ -443,18 +426,15 @@ const AgentDesigner = ({
                             }}
                           >
                             <div
-                              className="p-3 border-b"
-                              style={{ borderColor: "var(--border-subtle)" }}
+                              className="p-3 border-b border-[var(--border-subtle)]"
                             >
                               <p
-                                className="text-sm font-semibold"
-                                style={{ color: "var(--text-primary)" }}
+                                className="text-sm font-semibold text-[var(--text-primary)]"
                               >
                                 {t('agent_studio.agent_designer_publish_to', 'Publish to...')}
                               </p>
                               <p
-                                className="text-xs mt-0.5"
-                                style={{ color: "var(--text-muted)" }}
+                                className="text-xs mt-0.5 text-[var(--text-muted)]"
                               >
                                 {t('agent_studio.agent_designer_choose_who_can_see_this_agent', 'Choose who can see this agent')}
                               </p>
@@ -474,8 +454,8 @@ const AgentDesigner = ({
                                 </svg>
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t('agent_studio.agent_designer_personal', 'Personal')}</p>
-                                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{t('agent_studio.agent_designer_only_you_can_access', 'Only you can access')}</p>
+                                <p className="text-sm font-medium text-[var(--text-primary)]">{t('agent_studio.agent_designer_personal', 'Personal')}</p>
+                                <p className="text-xs text-[var(--text-muted)]">{t('agent_studio.agent_designer_only_you_can_access', 'Only you can access')}</p>
                               </div>
                               {!isPublished && (
                                 <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -485,8 +465,7 @@ const AgentDesigner = ({
                             {/* Publish to entire org */}
                             <button
                               onClick={() => setPublishState(true, [])}
-                              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors text-left border-t"
-                              style={{ borderColor: "var(--border-subtle)" }}
+                              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors text-left border-t border-[var(--border-subtle)]"
                             >
                               <div
                                 className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -510,14 +489,12 @@ const AgentDesigner = ({
                               </div>
                               <div className="flex-1">
                                 <p
-                                  className="text-sm font-medium"
-                                  style={{ color: "var(--text-primary)" }}
+                                  className="text-sm font-medium text-[var(--text-primary)]"
                                 >
                                   {t('agent_studio.agent_designer_entire_organization', 'Entire Organization')}
                                 </p>
                                 <p
-                                  className="text-xs"
-                                  style={{ color: "var(--text-muted)" }}
+                                  className="text-xs text-[var(--text-muted)]"
                                 >
                                   {t('agent_studio.agent_designer_all_members_can_access', 'All members can access')}
                                 </p>
@@ -530,12 +507,10 @@ const AgentDesigner = ({
                             {/* Divider */}
                             {orgGroups.length > 0 && (
                               <div
-                                className="px-3 py-2 border-t"
-                                style={{ borderColor: "var(--border-subtle)" }}
+                                className="px-3 py-2 border-t border-[var(--border-subtle)]"
                               >
                                 <p
-                                  className="text-xs font-semibold uppercase tracking-wider"
-                                  style={{ color: "var(--text-muted)" }}
+                                  className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
                                 >
                                   {t('agent_studio.agent_designer_or_specific_groups', 'Or specific groups')}
                                 </p>
@@ -568,15 +543,13 @@ const AgentDesigner = ({
                                   />
                                   <div className="flex-1">
                                     <p
-                                      className="text-sm"
-                                      style={{ color: "var(--text-primary)" }}
+                                      className="text-sm text-[var(--text-primary)]"
                                     >
                                       {group.name}
                                     </p>
                                     {group.description && (
                                       <p
-                                        className="text-xs"
-                                        style={{ color: "var(--text-muted)" }}
+                                        className="text-xs text-[var(--text-muted)]"
                                       >
                                         {group.description}
                                       </p>
@@ -589,8 +562,7 @@ const AgentDesigner = ({
                             {/* Publish to selected groups button */}
                             {sharedGroups.length > 0 && (
                               <div
-                                className="p-3 border-t"
-                                style={{ borderColor: "var(--border-subtle)" }}
+                                className="p-3 border-t border-[var(--border-subtle)]"
                               >
                                 <button
                                   onClick={() => togglePublish(sharedGroups)}
@@ -607,8 +579,7 @@ const AgentDesigner = ({
                             {publishError && (
                               <div
                                 role="alert"
-                                className="px-3 py-2 border-t text-xs text-red-500 bg-red-500/10"
-                                style={{ borderColor: "var(--border-subtle)" }}
+                                className="px-3 py-2 border-t text-xs text-red-500 bg-red-500/10 border-[var(--border-subtle)]"
                               >
                                 {publishError}
                               </div>
@@ -616,13 +587,11 @@ const AgentDesigner = ({
 
                             {/* Cancel */}
                             <div
-                              className="p-2 border-t"
-                              style={{ borderColor: "var(--border-subtle)" }}
+                              className="p-2 border-t border-[var(--border-subtle)]"
                             >
                               <button
                                 onClick={() => setShowPublishMenu(false)}
-                                className="w-full px-3 py-1.5 rounded-lg text-xs text-center"
-                                style={{ color: "var(--text-muted)" }}
+                                className="w-full px-3 py-1.5 rounded-lg text-xs text-center text-[var(--text-muted)]"
                               >
                                 {t('agent_studio.agent_designer_cancel', 'Cancel')}
                               </button>
@@ -639,11 +608,7 @@ const AgentDesigner = ({
                       <button
                         onClick={saveAgent}
                         disabled={saving || !name.trim() || isReadonly}
-                        className="px-5 py-1.5 text-sm font-medium rounded-lg border bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{
-                          borderColor: "var(--border-default)",
-                          color: "var(--text-secondary)",
-                        }}
+                        className="px-5 py-1.5 text-sm font-medium rounded-lg border bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-all disabled:opacity-40 disabled:cursor-not-allowed border-[var(--border-default)] text-[var(--text-secondary)]"
                       >
                         {saving ? "Saving..." : "Save Changes"}
                       </button>
@@ -655,11 +620,7 @@ const AgentDesigner = ({
                 <div className="flex-1 flex overflow-hidden">
                   {/* Navigation Sidebar */}
                   <div
-                    className="w-40 flex flex-col py-3 border-r"
-                    style={{
-                      borderColor: "var(--border-subtle)",
-                      background: "var(--bg-primary)",
-                    }}
+                    className="w-40 flex flex-col py-3 border-r border-[var(--border-subtle)] bg-[var(--bg-primary)]"
                   >
                     {(() => {
                       const isIntegrationAvailable = (item) => {
@@ -729,8 +690,7 @@ const AgentDesigner = ({
                               />
                             ) : (
                               <div
-                                className="h-full flex flex-col items-center justify-center text-muted border-2 border-dashed rounded-xl"
-                                style={{ borderColor: "var(--border-subtle)" }}
+                                className="h-full flex flex-col items-center justify-center text-muted border-2 border-dashed rounded-xl border-[var(--border-subtle)]"
                               >
                                 <p>
                                   {t('agent_studio.agent_designer_please_save_the_agent_first_to_add', 'Please save the agent first to add knowledge.')}

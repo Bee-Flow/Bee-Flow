@@ -62,7 +62,7 @@ import { SECTION_LBL } from '../../../shell/sidebar/sidebarTokens';
 
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */
 function RowWarning({ children, testId }) {
-    return <div data-testid={testId} className="text-[12px]" style={{ color: 'var(--warning)' }}>{children}</div>;
+    return <div data-testid={testId} className="text-[12px] text-[var(--warning)]">{children}</div>;
 }
 
 /**
@@ -380,7 +380,7 @@ function AutomationRow({ t, row }) {
                                             className="inline-flex items-center px-1.5 py-px rounded-md border border-[var(--border-default)] text-[11px] text-[var(--text-secondary)]"
                                         >
                                             {p.name}
-                                            {p.required && <span aria-hidden="true" className="ml-0.5" style={{ color: 'var(--error)' }}>*</span>}
+                                            {p.required && <span aria-hidden="true" className="ml-0.5 text-[var(--error)]">*</span>}
                                         </span>
                                     ))}
                                 </>

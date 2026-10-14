@@ -260,7 +260,7 @@ export default function SuggestedTestForm({
             />
 
             {saveError && (
-                <div role="status" data-testid="agent-tests-suggest-error" className="text-[12px]" style={{ color: 'var(--warning)' }}>
+                <div role="status" data-testid="agent-tests-suggest-error" className="text-[12px] text-[var(--warning)]">
                     {saveError}
                 </div>
             )}

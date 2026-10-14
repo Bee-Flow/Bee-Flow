@@ -52,7 +52,7 @@ function TableBlock({ block, spans, onAddSpan, onRemoveSpan }) {
 function TextBlock({ block, spans, onAddSpan, onRemoveSpan }) {
     if (!block.value) return <div className="h-2" />;
     return (
-        <div className="mb-1.5 text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+        <div className="mb-1.5 text-xs font-medium text-[var(--text-secondary)]">
             <DlpHighlightedText
                 text={block.value}
                 spans={spansInRange(spans, block.start, block.end)}
@@ -71,12 +71,10 @@ export default function DlpDocumentRenderer({ filename, text, spans, onAddSpan, 
 
     return (
         <div
-            className="mx-auto w-full max-w-xl rounded-lg border shadow-sm"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)' }}
+            className="mx-auto w-full max-w-xl rounded-lg border shadow-sm bg-[var(--bg-card)] border-[var(--border-subtle)]"
         >
             <div
-                className="flex items-center gap-2 px-4 py-2.5 border-b text-xs font-medium"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                className="flex items-center gap-2 px-4 py-2.5 border-b text-xs font-medium border-[var(--border-subtle)] text-[var(--text-secondary)]"
             >
                 <FileText className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{filename}</span>

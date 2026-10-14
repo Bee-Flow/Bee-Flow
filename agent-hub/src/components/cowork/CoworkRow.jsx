@@ -115,7 +115,7 @@ export default function CoworkRow({ item, selected, onSelect }) {
             }}
         >
             <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[12.5px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-[12.5px] font-medium truncate text-[var(--text-primary)]">
                     {item.title || t('cowork.row.untitled', 'Untitled cowork')}
                 </span>
                 <span
@@ -133,8 +133,7 @@ export default function CoworkRow({ item, selected, onSelect }) {
 
             {meta && (
                 <p
-                    className="mt-1.5 text-[11px] truncate"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="mt-1.5 text-[11px] truncate text-[var(--text-tertiary)]"
                 >
                     {meta}
                 </p>

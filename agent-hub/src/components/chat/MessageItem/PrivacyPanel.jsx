@@ -72,10 +72,10 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }) => {
                         : t('privacy.action_tokenised', 'Tokenised');
     return (
         <details className="group/privacy">
-            <summary className="flex items-center gap-2 cursor-pointer text-[11px] px-2 py-1.5 rounded-lg select-none list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>
+            <summary className="flex items-center gap-2 cursor-pointer text-[11px] px-2 py-1.5 rounded-lg select-none list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                 <span className="text-xs">🔒</span>
                 <span className="font-medium">{t('privacy.panel_title', 'Privacy protection')}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                     {nothingFound
                         ? t('privacy.badge_scanned', 'scanned')
                         : nOf(
@@ -94,9 +94,9 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }) => {
                 </span>
                 <svg className="w-2.5 h-2.5 transition-transform group-open/privacy:rotate-90 ml-auto opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </summary>
-            <div className="mt-1 px-3 py-2 rounded-lg text-[11px] leading-relaxed" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+            <div className="mt-1 px-3 py-2 rounded-lg text-[11px] leading-relaxed bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                 <p className="mb-1.5">
-                    <strong style={{ color: 'var(--text-primary)' }}>{actionLabel}</strong>
+                    <strong className="text-[var(--text-primary)]">{actionLabel}</strong>
                     {info.provider && <> &middot; {t('privacy.sent_to', 'Sent to')} <strong>{info.provider}</strong></>}
                     {t(info.automatic ? 'privacy.by_automatic' : 'privacy.by_choice',
                         info.automatic ? ' (automatic)' : ' (you chose)')}
@@ -125,7 +125,7 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }) => {
                                     : '';
                                 return (
                                     <li key={`${att.filename}-${i}`}>
-                                        <strong style={{ color: 'var(--text-primary)' }}>{att.filename}</strong>
+                                        <strong className="text-[var(--text-primary)]">{att.filename}</strong>
                                         {fileLine && <> — {fileLine}</>}
                                         {incompleteReason && <span className="ml-1" style={{ color: WARN_INK }}>— ⚠️ {incompleteMsg}{pageNote}</span>}
                                         {pageEntries.length > 0 && (
@@ -199,14 +199,14 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }) => {
                         return (
                             <div className="mt-2">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
-                                    {hint && <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>· {hint}</span>}
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">{label}</span>
+                                    {hint && <span className="text-[10px] text-[var(--text-tertiary)]">· {hint}</span>}
                                     {revealable && !revealed && (
-                                        <button onClick={() => setRevealed(true)} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-primary)', color: 'var(--accent-primary)' }}>
+                                        <button onClick={() => setRevealed(true)} className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-primary)] text-[var(--accent-primary)]">
                                             {t('privacy.click_to_reveal', 'Click to reveal')}
                                         </button>
                                     )}
-                                    <button onClick={() => copy(text)} className="ml-auto text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--bg-primary)]" style={{ color: 'var(--text-tertiary)' }} title={t('chat.copy', 'Copy')}>
+                                    <button onClick={() => copy(text)} className="ml-auto text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--bg-primary)] text-[var(--text-tertiary)]" title={t('chat.copy', 'Copy')}>
                                         {t('chat.copy', 'Copy')}
                                     </button>
                                 </div>
@@ -224,22 +224,22 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }) => {
                         return (
                             <div className="mt-2">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{t('privacy.token_mapping', 'Token mapping')}</span>
-                                    <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{nOf(t, 'privacy.n_items', entries.length, '· 1 item', '· {count} items')}</span>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">{t('privacy.token_mapping', 'Token mapping')}</span>
+                                    <span className="text-[10px] text-[var(--text-tertiary)]">{nOf(t, 'privacy.n_items', entries.length, '· 1 item', '· {count} items')}</span>
                                     {!revealed && (
-                                        <button onClick={() => setRevealed(true)} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-primary)', color: 'var(--accent-primary)' }}>
+                                        <button onClick={() => setRevealed(true)} className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-primary)] text-[var(--accent-primary)]">
                                             {t('privacy.click_to_reveal', 'Click to reveal')}
                                         </button>
                                     )}
-                                    <button onClick={() => copy(allText)} className="ml-auto text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--bg-primary)]" style={{ color: 'var(--text-tertiary)' }} title={t('chat.copy', 'Copy')}>
+                                    <button onClick={() => copy(allText)} className="ml-auto text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--bg-primary)] text-[var(--text-tertiary)]" title={t('chat.copy', 'Copy')}>
                                         {t('chat.copy', 'Copy')}
                                     </button>
                                 </div>
                                 <div className="px-2.5 py-1.5 rounded text-[11px] leading-relaxed font-mono" style={{ background: 'var(--bg-primary)', maxHeight: '180px', overflow: 'auto' }}>
                                     {entries.map(([token, value]) => (
                                         <div key={token} className="flex gap-2 items-baseline">
-                                            <code className="shrink-0" style={{ color: 'var(--accent-primary)' }}>{token}</code>
-                                            <span style={{ color: 'var(--text-tertiary)' }}>→</span>
+                                            <code className="shrink-0 text-[var(--accent-primary)]">{token}</code>
+                                            <span className="text-[var(--text-tertiary)]">→</span>
                                             <span className="break-all" style={{ color: revealed ? 'var(--text-primary)' : 'transparent', textShadow: revealed ? 'none' : '0 0 8px var(--text-tertiary)' }}>
                                                 {revealed ? value : '•'.repeat(Math.min(24, (value || '').length))}
                                             </span>
@@ -266,7 +266,7 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }) => {
                         return out;
                     })();
                     return (
-                        <div className="mt-3 pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                        <div className="mt-3 pt-2 border-t border-[var(--border-subtle)]">
                             <Row
                                 label={t('privacy.row_original', 'Original message')}
                                 text={originalUserMsg}

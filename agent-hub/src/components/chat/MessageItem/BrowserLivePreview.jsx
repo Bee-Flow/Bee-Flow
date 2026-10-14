@@ -43,7 +43,7 @@ export default function BrowserLivePreview({ preview }) {
                     style={{ opacity: ended ? 0.75 : 1 }}
                 />
             ) : (
-                <div className="px-2 py-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <div className="px-2 py-3 text-[11px] text-[var(--text-secondary)]">
                     {queued
                         ? t(
                             queuePosition ? 'chat.msg.browse_queued_pos' : 'chat.msg.browse_queued',

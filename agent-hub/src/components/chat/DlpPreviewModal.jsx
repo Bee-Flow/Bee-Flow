@@ -59,17 +59,17 @@ function LegacyDlpPreview({ pending, submit, submitting, error }) {
                 className="w-full rounded-2xl border shadow-2xl overflow-hidden"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', animation: 'overlayContentIn .2s ease-out' }}
             >
-                <div className="px-5 py-4 border-b flex items-start gap-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="px-5 py-4 border-b flex items-start gap-3 border-[var(--border-subtle)]">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(234, 88, 12, 0.12)' }}>
                         <ShieldAlert className="w-5 h-5" style={{ color: '#ea580c' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h3 id="dlp-preview-title" className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <h3 id="dlp-preview-title" className="text-base font-semibold text-[var(--text-primary)]">
                             {t('dlp.preview_title', 'Sensitive content detected')}
                         </h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                             {t('dlp.preview_subtitle', 'This prompt will be sent to')}{' '}
-                            <strong style={{ color: 'var(--text-primary)' }}>{providerLabel}</strong>
+                            <strong className="text-[var(--text-primary)]">{providerLabel}</strong>
                             {provider.isExternal !== false && (
                                 <span className="ml-1 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(234, 88, 12, 0.12)', color: '#ea580c' }}>
                                     <Lock className="w-2.5 h-2.5" />
@@ -81,12 +81,12 @@ function LegacyDlpPreview({ pending, submit, submitting, error }) {
                 </div>
 
                 <div className="px-5 py-4">
-                    <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="text-xs font-medium mb-2 text-[var(--text-secondary)]">
                         {t('dlp.findings_title', 'Detected items')}
                     </div>
                     <ul className="space-y-1.5">
                         {grouped.map(({ label, source, count }) => (
-                            <li key={label} className="flex items-center justify-between text-sm px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                            <li key={label} className="flex items-center justify-between text-sm px-3 py-2 rounded-lg bg-[var(--bg-secondary)]">
                                 <span className="flex items-center gap-2 min-w-0">
                                     <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-medium shrink-0" style={{
                                         background: source === 'custom' ? 'rgba(139, 92, 246, 0.12)' : 'rgba(59, 130, 246, 0.12)',
@@ -94,14 +94,14 @@ function LegacyDlpPreview({ pending, submit, submitting, error }) {
                                     }}>
                                         {source === 'custom' ? t('dlp.source_custom', 'custom') : t('dlp.source_pii', 'pii')}
                                     </span>
-                                    <span className="truncate" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                                    <span className="truncate text-[var(--text-primary)]">{label}</span>
                                 </span>
-                                <span className="text-xs shrink-0 ml-2" style={{ color: 'var(--text-muted)' }}>×{count}</span>
+                                <span className="text-xs shrink-0 ml-2 text-[var(--text-muted)]">×{count}</span>
                             </li>
                         ))}
                     </ul>
 
-                    <label className="flex items-center gap-2 mt-4 text-xs cursor-pointer select-none" style={{ color: 'var(--text-secondary)' }}>
+                    <label className="flex items-center gap-2 mt-4 text-xs cursor-pointer select-none text-[var(--text-secondary)]">
                         <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="rounded" />
                         {t('dlp.remember_label', 'Remember my choice for this conversation')}
                     </label>
@@ -113,7 +113,7 @@ function LegacyDlpPreview({ pending, submit, submitting, error }) {
                     )}
                 </div>
 
-                <div className="px-5 py-3 border-t flex items-center gap-2 justify-end" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                <div className="px-5 py-3 border-t flex items-center gap-2 justify-end border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                     <button
                         onClick={() => submit('block')}
                         disabled={submitting}
@@ -126,8 +126,7 @@ function LegacyDlpPreview({ pending, submit, submitting, error }) {
                     <button
                         onClick={() => submit('allow', { rememberForConversation: remember })}
                         disabled={submitting}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                        style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 text-[var(--text-secondary)] bg-[var(--bg-tertiary)]"
                         title={t('dlp.action_allow_tooltip', 'Send the prompt unchanged')}
                     >
                         <Send className="w-3.5 h-3.5" />
@@ -136,8 +135,7 @@ function LegacyDlpPreview({ pending, submit, submitting, error }) {
                     <button
                         onClick={() => submit('redact', { rememberForConversation: remember })}
                         disabled={submitting}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         <Eye className="w-3.5 h-3.5" />
                         {t('dlp.action_redact', 'Redact and send')}

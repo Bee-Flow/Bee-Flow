@@ -43,8 +43,8 @@ const saveSettings = mediaGenSettingsStore.saveAll;
 const SliderControl = ({ label, value, min, max, step, defaultVal, unit, onChange }) => (
     <div>
         <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</label>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+            <label className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</label>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                 {value ?? defaultVal}{unit || ''}
             </span>
         </div>
@@ -56,7 +56,7 @@ const SliderControl = ({ label, value, min, max, step, defaultVal, unit, onChang
             className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-blue-500"
             style={{ background: `linear-gradient(to right, ${ACCENT} ${((value ?? defaultVal) - min) / (max - min) * 100}%, var(--border-subtle) ${((value ?? defaultVal) - min) / (max - min) * 100}%)` }}
         />
-        <div className="flex justify-between text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex justify-between text-[9px] mt-0.5 text-[var(--text-muted)]">
             <span>{min}{unit || ''}</span>
             <span>{max}{unit || ''}</span>
         </div>
@@ -66,8 +66,8 @@ const SliderControl = ({ label, value, min, max, step, defaultVal, unit, onChang
 const ToggleControl = ({ label, description, value, onChange }) => (
     <div className="flex items-center justify-between py-1">
         <div>
-            <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-            {description && <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{description}</p>}
+            <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
+            {description && <p className="text-[9px] text-[var(--text-muted)]">{description}</p>}
         </div>
         <button
             onClick={() => onChange(!value)}
@@ -82,7 +82,7 @@ const ToggleControl = ({ label, description, value, onChange }) => (
 
 const PillSelect = ({ label, options, value, onChange }) => (
     <div>
-        <label className="block text-[11px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{label}</label>
+        <label className="block text-[11px] font-medium mb-1.5 text-[var(--text-secondary)]">{label}</label>
         <div className="flex flex-wrap gap-1">
             {options.map(opt => (
                 <button
@@ -111,7 +111,7 @@ const ImageTab = ({ settings, onUpdate, t }) => {
 
     return (
         <div className="space-y-3">
-            <p className="text-[10px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
                 {t('chat.media.image_intro', 'Ask AI to generate an image. These settings apply automatically.')}
             </p>
             <PillSelect label={t('chat.media.aspect_ratio', 'Aspect Ratio')} options={ASPECT_RATIOS} value={s.aspectRatio || '1:1'} onChange={v => update('aspectRatio', v)} />
@@ -126,20 +126,20 @@ const ElevenLabsTab = ({ settings, onUpdate, t }) => {
 
     return (
         <div className="space-y-3">
-            <p className="text-[10px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
                 {t('chat.media.el_intro', 'ElevenLabs — AI music (with or without vocals), text-to-speech, and sound effects.')}
             </p>
 
             {/* Music settings */}
-            <div className="pt-1 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>🎵 {t('chat.media.music_heading', 'MUSIC')}</span>
+            <div className="pt-1 border-t border-[var(--border-subtle)]">
+                <span className="text-[10px] font-semibold text-[var(--text-muted)]">🎵 {t('chat.media.music_heading', 'MUSIC')}</span>
             </div>
             <SliderControl label={t('chat.media.el_song_duration', 'Song Duration')} value={s.musicDuration} min={3} max={120} step={1} defaultVal={30} unit="s" onChange={v => update('musicDuration', v)} />
             <ToggleControl label={t('chat.media.el_force_instrumental', 'Force Instrumental')} description={t('chat.media.el_instrumental_only', 'No vocals, instrumental only')} value={!!s.instrumental} onChange={v => update('instrumental', v)} />
 
             {/* TTS settings */}
-            <div className="pt-1 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>🗣️ {t('chat.media.el_tts_heading', 'TEXT-TO-SPEECH')}</span>
+            <div className="pt-1 border-t border-[var(--border-subtle)]">
+                <span className="text-[10px] font-semibold text-[var(--text-muted)]">🗣️ {t('chat.media.el_tts_heading', 'TEXT-TO-SPEECH')}</span>
             </div>
             <SettingsDropdown label={t('chat.media.el_voice', 'Voice')} options={TTS_VOICES} value={s.ttsVoice || DEFAULT_TTS_VOICE} onChange={v => update('ttsVoice', v)} accentColor={ACCENT} />
             <SettingsDropdown label={t('chat.media.el_tts_model', 'TTS Model')} options={TTS_MODELS} value={s.ttsModel || DEFAULT_TTS_MODEL} onChange={v => update('ttsModel', v)} accentColor={ACCENT} />
@@ -153,7 +153,7 @@ const SfxTab = ({ settings, onUpdate, t }) => {
 
     return (
         <div className="space-y-3">
-            <p className="text-[10px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
                 {t('chat.media.sfx_intro', 'ElevenLabs Sound Effects — ambient sounds, foley, cinematic effects.')}
             </p>
             <SliderControl label={t('chat.media.duration', 'Duration')} value={s.duration} min={0.5} max={30} step={0.5} defaultVal={5} unit="s" onChange={v => update('duration', v)} />
@@ -187,18 +187,18 @@ const NanoBananaSettings = ({ isOpen, onClose, settings, onSettingsChange }) => 
             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', width: '320px' }}
         >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)]">
                 <div className="flex items-center gap-2">
                     <span className="text-base">🍌</span>
-                    <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Nano Banana</span>
+                    <span className="text-xs font-semibold text-[var(--text-primary)]">Nano Banana</span>
                 </div>
-                <button onClick={onClose} aria-label={t('common.close', 'Close')} title={t('common.close', 'Close')} className="p-1 rounded hover:bg-white/10 transition-colors" style={{ color: 'var(--text-tertiary)' }}>
+                <button onClick={onClose} aria-label={t('common.close', 'Close')} title={t('common.close', 'Close')} className="p-1 rounded hover:bg-white/10 transition-colors text-[var(--text-tertiary)]">
                     <X className="w-3.5 h-3.5" />
                 </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="flex border-b border-[var(--border-subtle)]">
                 {TABS.map(tab => (
                     <button
                         key={tab.id}

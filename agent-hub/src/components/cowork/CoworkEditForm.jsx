@@ -42,14 +42,13 @@ function Field({ label, icon: Icon, children, hint, as: Tag = 'label' }) {
     return (
         <Tag className="block">
             <span
-                className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide mb-1.5"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide mb-1.5 text-[var(--text-tertiary)]"
             >
                 {Icon && <Icon className="w-3.5 h-3.5" />}{label}
             </span>
             {children}
             {hint && (
-                <span className="block text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>{hint}</span>
+                <span className="block text-[11px] mt-1 text-[var(--text-tertiary)]">{hint}</span>
             )}
         </Tag>
     );
@@ -239,8 +238,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                     <div
                         role="status"
                         data-testid="cowork-apps-unavailable"
-                        className="px-2 py-1.5 rounded-lg border text-[12.5px]"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                        className="px-2 py-1.5 rounded-lg border text-[12.5px] bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
                     >
                         {t('cowork.edit.apps_unavailable', 'Your app list could not be loaded.')}
                     </div>
@@ -267,15 +265,14 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                     )}
                 >
                     <div
-                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg border"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)' }}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg border bg-[var(--bg-card)] border-[var(--border-subtle)]"
                     >
                         <AppsPicker
                             apps={availableApps}
                             isAppEnabled={isAppEnabled}
                             toggleApp={toggleApp}
                         />
-                        <span className="text-[12.5px] tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-[12.5px] tabular-nums text-[var(--text-secondary)]">
                             {t('cowork.edit.apps_enabled_count', '{count} of {total} enabled', {
                                 count: enabledCount, total: availableApps.length,
                             })}
@@ -285,8 +282,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                                 type="button"
                                 onClick={() => set({ enabledApps: null })}
                                 data-testid="cowork-apps-reset"
-                                className="ml-auto text-[11.5px] hover:underline"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="ml-auto text-[11.5px] hover:underline text-[var(--text-tertiary)]"
                             >
                                 {t('cowork.edit.apps_reset', 'Follow my workspace list')}
                             </button>
@@ -328,8 +324,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                     type="submit"
                     disabled={!canSave}
                     data-testid="cowork-edit-save"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                 >
                     <Save className="w-3.5 h-3.5" />
                     {t(saving ? 'cowork.edit.saving' : 'cowork.edit.save', saving ? 'Saving…' : 'Save')}
@@ -338,8 +333,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                     type="button"
                     onClick={onCancel}
                     data-testid="cowork-edit-cancel"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[13px] font-medium"
-                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[13px] font-medium border-[var(--border-subtle)] text-[var(--text-secondary)]"
                 >
                     <X className="w-3.5 h-3.5" />{t('cowork.edit.cancel', 'Cancel')}
                 </button>
