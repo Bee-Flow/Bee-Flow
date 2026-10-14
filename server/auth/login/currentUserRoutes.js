@@ -277,28 +277,23 @@ router.get('/consents', async (req, res) => {
     if (!req.session.isAuthenticated || !req.session.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
-    try {
-        const documentRegistry = require('../../legal/documentRegistry');
-        const freshUser = await userStore.getUser(req.session.user.id);
-        if (!freshUser) return res.status(401).json({ error: 'Not authenticated' });
+    const documentRegistry = require('../../legal/documentRegistry');
+    const freshUser = await userStore.getUser(req.session.user.id);
+    if (!freshUser) return res.status(401).json({ error: 'Not authenticated' });
 
-        const optState = await userStore.getOptionalConsents(freshUser.id);
-        const optional = documentRegistry.optionalConsents()
-            .filter(c => c.enabled !== false)
-            .map(c => ({
-                id: c.id,
-                category: c.category,
-                version: c.version,
-                labelKey: c.labelKey || null,
-                granted: !!(optState[c.id] && optState[c.id].granted),
-                updatedAt: (optState[c.id] && optState[c.id].updatedAt) || null,
-            }));
+    const optState = await userStore.getOptionalConsents(freshUser.id);
+    const optional = documentRegistry.optionalConsents()
+        .filter(c => c.enabled !== false)
+        .map(c => ({
+            id: c.id,
+            category: c.category,
+            version: c.version,
+            labelKey: c.labelKey || null,
+            granted: !!(optState[c.id] && optState[c.id].granted),
+            updatedAt: (optState[c.id] && optState[c.id].updatedAt) || null,
+        }));
 
-        res.json({ optional });
-    } catch (e) {
-        log.error('[consents] error:', e.message);
-        res.status(500).json({ error: 'Failed to load consents' });
-    }
+    res.json({ optional });
 });
 
 // POST /auth/consents/optional — grant/withdraw an optional (marketing) consent.
@@ -307,53 +302,48 @@ router.post('/consents/optional', validate({ body: OptionalConsentBody }), async
     if (!req.session.isAuthenticated || !req.session.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
-    try {
-        const documentRegistry = require('../../legal/documentRegistry');
-        const { id, granted } = req.body;
-        const consent = documentRegistry.getOptionalConsent(id);
-        if (!consent || consent.enabled === false) {
-            return res.status(400).json({ error: 'Unknown consent' });
-        }
-        const freshUser = await userStore.getUser(req.session.user.id);
-        if (!freshUser) return res.status(401).json({ error: 'Not authenticated' });
-
-        await userStore.recordConsentAcceptance({
-            userId: freshUser.id,
-            email: freshUser.email,
-            accountType: freshUser.organizationId ? 'org' : 'consumer',
-            docId: consent.id,
-            docVersion: consent.version,
-            docSha256: null,
-            method: granted ? 'consent_grant' : 'consent_withdraw',
-            route: req.originalUrl,
-            ip: consentGuards.auditClientIp(req),
-            userAgent: req.headers['user-agent'] || null,
-            organizationId: freshUser.organizationId || null,
-        });
-
-        const state = await userStore.getOptionalConsents(freshUser.id);
-        state[consent.id] = { granted, version: consent.version, updatedAt: new Date().toISOString() };
-        await userStore.setOptionalConsents(freshUser.id, state);
-
-        // Withdrawal must CASCADE for special-category data: keeping a
-        // biometric voiceprint after its Art. 9(2)(a) consent is withdrawn has
-        // no lawful basis, so the template goes at the same moment the flag
-        // flips. Best-effort — the consent state is the record of intent and
-        // must be persisted even if the delete hiccups.
-        if (consent.id === documentRegistry.VOICEPRINT_CONSENT_ID && !granted) {
-            try {
-                const removed = await require('../../stores/voiceprintStore').deleteVoiceprintForUser(freshUser.id);
-                if (removed) log.info(`[consents/optional] Voiceprint deleted for ${freshUser.id} on consent withdrawal`);
-            } catch (e) {
-                log.error('[consents/optional] voiceprint deletion on withdrawal failed:', e.message);
-            }
-        }
-
-        res.json({ success: true, id: consent.id, granted });
-    } catch (e) {
-        log.error('[consents/optional] error:', e.message);
-        res.status(500).json({ error: 'Failed to update consent' });
+    const documentRegistry = require('../../legal/documentRegistry');
+    const { id, granted } = req.body;
+    const consent = documentRegistry.getOptionalConsent(id);
+    if (!consent || consent.enabled === false) {
+        return res.status(400).json({ error: 'Unknown consent' });
     }
+    const freshUser = await userStore.getUser(req.session.user.id);
+    if (!freshUser) return res.status(401).json({ error: 'Not authenticated' });
+
+    await userStore.recordConsentAcceptance({
+        userId: freshUser.id,
+        email: freshUser.email,
+        accountType: freshUser.organizationId ? 'org' : 'consumer',
+        docId: consent.id,
+        docVersion: consent.version,
+        docSha256: null,
+        method: granted ? 'consent_grant' : 'consent_withdraw',
+        route: req.originalUrl,
+        ip: consentGuards.auditClientIp(req),
+        userAgent: req.headers['user-agent'] || null,
+        organizationId: freshUser.organizationId || null,
+    });
+
+    const state = await userStore.getOptionalConsents(freshUser.id);
+    state[consent.id] = { granted, version: consent.version, updatedAt: new Date().toISOString() };
+    await userStore.setOptionalConsents(freshUser.id, state);
+
+    // Withdrawal must CASCADE for special-category data: keeping a
+    // biometric voiceprint after its Art. 9(2)(a) consent is withdrawn has
+    // no lawful basis, so the template goes at the same moment the flag
+    // flips. Best-effort — the consent state is the record of intent and
+    // must be persisted even if the delete hiccups.
+    if (consent.id === documentRegistry.VOICEPRINT_CONSENT_ID && !granted) {
+        try {
+            const removed = await require('../../stores/voiceprintStore').deleteVoiceprintForUser(freshUser.id);
+            if (removed) log.info(`[consents/optional] Voiceprint deleted for ${freshUser.id} on consent withdrawal`);
+        } catch (e) {
+            log.error('[consents/optional] voiceprint deletion on withdrawal failed:', e.message);
+        }
+    }
+
+    res.json({ success: true, id: consent.id, granted });
 });
 
 module.exports = router;

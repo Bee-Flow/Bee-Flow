@@ -92,7 +92,7 @@ router.get('/organizations/public', async (req, res) => {
 
 
 // Store pending signup data in session (for OAuth flows)
-router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBody }), async (req, res) => {
+router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBody }), async (req, res, next) => {
     if (process.env.ALLOW_SIGNUPS === 'false') {
         return res.status(403).json({ error: 'Account creation is disabled on this server.' });
     }
@@ -135,10 +135,7 @@ router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBo
             consent: { accepted: true, accountType: 'consumer' },
         };
         return req.session.save((err) => {
-            if (err) {
-                log.error('[PendingSignup] Session save error:', err);
-                return res.status(500).json({ error: 'Failed to save pending signup' });
-            }
+            if (err) return next(err);
             log.info(`[PendingSignup] Stored consumer signup in session ${req.sessionID}`);
             res.json({ ok: true });
         });
@@ -160,10 +157,7 @@ router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBo
         consent: { accepted: true, accountType: 'org_admin' },
     };
     req.session.save((err) => {
-        if (err) {
-            log.error('[PendingSignup] Session save error:', err);
-            return res.status(500).json({ error: 'Failed to save pending signup' });
-        }
+        if (err) return next(err);
         log.info(`[PendingSignup] Stored org "${newOrgName}" in session ${req.sessionID}`);
         res.json({ ok: true });
     });

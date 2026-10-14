@@ -89,44 +89,39 @@ router.post('/forgot-password', forgotPasswordIpLimiter, forgotPasswordTargetLim
 // Complete a reset with a valid token + a new password.
 router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBody }), async (req, res) => {
     const { token, newPassword } = req.body;
-    try {
-        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-        const user = await userStore.getUserByPasswordResetToken(tokenHash);
-        if (!user || !user.password_reset_expires_at || new Date(user.password_reset_expires_at).getTime() < Date.now()) {
-            return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
-        }
-        // Policy is applied AFTER the token is validated, so an anonymous caller
-        // cannot use this endpoint as a free oracle for what the password rules
-        // are — and, more usefully, so the rules can be applied with the account's
-        // own username and role in hand.
-        const policy = await validatePasswordAsync(newPassword, {
-            username: user.username || user.id,
-            email: user.email,
-            role: user.role,
-            orgRole: user.orgRole || user.org_role,
-        });
-        if (!policy.ok) return res.status(400).json({ error: policy.error, code: policy.code });
-        const passwordHash = await passwords.hash(newPassword);
-        await userStore.updateUser(user.id, {
-            passwordHash,
-            passwordResetTokenHash: null,
-            passwordResetExpiresAt: null,
-            passwordResetRequired: 0,
-        });
-        // A completed reset proves the mailbox owner is back, so lift any
-        // lockout the failed attempts that led them here had accumulated —
-        // otherwise the recovery path dead-ends in a 429.
-        try {
-            await loginThrottle.clearIdentifier(user.id);
-            if (user.username) await loginThrottle.clearIdentifier(user.username);
-            if (user.email) await loginThrottle.clearIdentifier(user.email);
-        } catch (_) { /* best-effort */ }
-        log.info(`[Auth] Password reset completed for user ${user.id}`);
-        return res.json({ success: true });
-    } catch (err) {
-        log.error('[Auth] reset-password error:', err.message);
-        return res.status(500).json({ error: 'Failed to reset password' });
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await userStore.getUserByPasswordResetToken(tokenHash);
+    if (!user || !user.password_reset_expires_at || new Date(user.password_reset_expires_at).getTime() < Date.now()) {
+        return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
     }
+    // Policy is applied AFTER the token is validated, so an anonymous caller
+    // cannot use this endpoint as a free oracle for what the password rules
+    // are — and, more usefully, so the rules can be applied with the account's
+    // own username and role in hand.
+    const policy = await validatePasswordAsync(newPassword, {
+        username: user.username || user.id,
+        email: user.email,
+        role: user.role,
+        orgRole: user.orgRole || user.org_role,
+    });
+    if (!policy.ok) return res.status(400).json({ error: policy.error, code: policy.code });
+    const passwordHash = await passwords.hash(newPassword);
+    await userStore.updateUser(user.id, {
+        passwordHash,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
+        passwordResetRequired: 0,
+    });
+    // A completed reset proves the mailbox owner is back, so lift any
+    // lockout the failed attempts that led them here had accumulated —
+    // otherwise the recovery path dead-ends in a 429.
+    try {
+        await loginThrottle.clearIdentifier(user.id);
+        if (user.username) await loginThrottle.clearIdentifier(user.username);
+        if (user.email) await loginThrottle.clearIdentifier(user.email);
+    } catch (_) { /* best-effort */ }
+    log.info(`[Auth] Password reset completed for user ${user.id}`);
+    return res.json({ success: true });
 });
 
 module.exports = router;

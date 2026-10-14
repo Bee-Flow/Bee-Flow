@@ -59,23 +59,18 @@ router.post('/update-profile', requireAuth, validate({ body: ProfileBody }), asy
         updates.displayName = clean;
     }
 
-    try {
-        const ok = await userStore.updateUser(userId, updates);
-        if (!ok) return res.status(500).json({ error: 'Failed to update profile' });
+    const ok = await userStore.updateUser(userId, updates);
+    if (!ok) throw new Error(`update-profile: updateUser wrote nothing for '${userId}'`);
 
-        // Reflect changes in session
-        if (updates.avatar !== undefined) req.session.user.avatar = updates.avatar;
-        if (updates.avatarType !== undefined) req.session.user.avatarType = updates.avatarType;
-        if (updates.displayName !== undefined) req.session.user.displayName = updates.displayName;
+    // Reflect changes in session
+    if (updates.avatar !== undefined) req.session.user.avatar = updates.avatar;
+    if (updates.avatarType !== undefined) req.session.user.avatarType = updates.avatarType;
+    if (updates.displayName !== undefined) req.session.user.displayName = updates.displayName;
 
-        req.session.save((err) => {
-            if (err) log.error('Session save error:', err);
-            res.json({ success: true });
-        });
-    } catch (err) {
-        log.error('[Auth] update-profile failed:', err.message);
-        res.status(500).json({ error: 'Update failed' });
-    }
+    req.session.save((err) => {
+        if (err) log.error('Session save error:', err);
+        res.json({ success: true });
+    });
 });
 
 // Logout

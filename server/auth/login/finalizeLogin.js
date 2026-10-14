@@ -120,58 +120,48 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
     }
     // Derive and store encryption key — only when encryption is enabled for user's plan
     const encryptionEnabled = await isEncryptionEnabledForUser(user.id);
-    try {
-        if (!encryptionEnabled) {
-            // Encryption disabled for this user's plan — skip DEK
-            try {
-                await establishSession(req, {
-                    user: sessionUser, isAdmin,
-                    // The session-user shape has no organisation; the stored row does.
-                    audit: { method: 'password', organizationId: storedUser?.organizationId || null },
-                });
-            } catch (err) {
-                log.error('Session save error:', err);
-            }
-            return res.json({ success: true, user: sessionUser });
-        }
-
-        // Ensure admin user exists in users table (for DEK storage)
-        if (user.id === 'admin') {
-            const adminRow = await userStore.getUser('admin');
-            if (!adminRow) {
-                const config = await loadConfig();
-                await userStore.createUser({
-                    id: 'admin', username: 'admin', displayName: 'Administrator',
-                    passwordHash: config.admin.passwordHash, role: 'admin', groups: [],
-                    // The hash is copied out of the config, where it has been
-                    // sitting since setup — nothing about this login changed the
-                    // credential, so the row must not be dated as if it did.
-                    credentialUnchanged: true,
-                });
-            }
-        }
-
-        const result = await getOrCreateUserDEKCompat(user.id, password);
-        if (!result) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
+    if (!encryptionEnabled) {
+        // Encryption disabled for this user's plan — skip DEK
         try {
             await establishSession(req, {
-                user: sessionUser, isAdmin, extra: { encryptionKey: result.encryptionKey },
+                user: sessionUser, isAdmin,
+                // The session-user shape has no organisation; the stored row does.
                 audit: { method: 'password', organizationId: storedUser?.organizationId || null },
             });
         } catch (err) {
             log.error('Session save error:', err);
-            return res.status(500).json({ error: 'Failed to save session' });
         }
-        // Include recovery key in response if DEK was just created or migrated
-        const response = { success: true, user: sessionUser };
-        if (result.recoveryKey) response.recoveryKey = result.recoveryKey;
-        return res.json(response);
-    } catch (err) {
-        log.error('[Auth] DEK operation failed:', err.message);
-        return res.status(500).json({ error: 'Encryption initialization failed' });
+        return res.json({ success: true, user: sessionUser });
     }
+
+    // Ensure admin user exists in users table (for DEK storage)
+    if (user.id === 'admin') {
+        const adminRow = await userStore.getUser('admin');
+        if (!adminRow) {
+            const config = await loadConfig();
+            await userStore.createUser({
+                id: 'admin', username: 'admin', displayName: 'Administrator',
+                passwordHash: config.admin.passwordHash, role: 'admin', groups: [],
+                // The hash is copied out of the config, where it has been
+                // sitting since setup — nothing about this login changed the
+                // credential, so the row must not be dated as if it did.
+                credentialUnchanged: true,
+            });
+        }
+    }
+
+    const result = await getOrCreateUserDEKCompat(user.id, password);
+    if (!result) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    await establishSession(req, {
+        user: sessionUser, isAdmin, extra: { encryptionKey: result.encryptionKey },
+        audit: { method: 'password', organizationId: storedUser?.organizationId || null },
+    });
+    // Include recovery key in response if DEK was just created or migrated
+    const response = { success: true, user: sessionUser };
+    if (result.recoveryKey) response.recoveryKey = result.recoveryKey;
+    return res.json(response);
 }
 
 module.exports = { finalizeLogin };
