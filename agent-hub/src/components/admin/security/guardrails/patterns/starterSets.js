@@ -205,8 +205,9 @@ export const STARTER_RULES = RULES;
  * Rules the admin has already edited are left alone: a template must never
  * overwrite a pattern someone deliberately changed.
  *
- * @returns {{rules: object[], collections: object[], addedRules: number,
- *            addedCollection: boolean}}
+ * @returns {{rules: import('./patternTypes').RegexRule[],
+ *            collections: import('./patternTypes').RuleCollection[],
+ *            addedRules: number, addedCollection: boolean}}
  */
 export function applyStarterSet(set, rules, collections) {
     const byId = new Map(rules.map(r => [r.id, r]));
