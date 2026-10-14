@@ -1,67 +1,108 @@
 // State core of the ProductWebsitePanel container — every useState/useRef
 // (plus the tiny persisted toggle callbacks that close directly over them)
-// moved verbatim from ProductWebsitePanel.jsx. Called first in the panel,
+// moved verbatim from ProductWebsitePanel. Called first in the panel,
 // so all state stays owned by the panel's fiber; the panel and the other
 // panel hooks receive these bindings by explicit threading.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import scopedStorage from '../../../../utils/scopedStorage';
 import useConfirm from '../../../shared/useConfirm';
 import { SITE_VIRTUAL_ID } from '../sentinels';
+import type {
+    CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc, CmsSiteListEntry,
+} from './cmsPanelTypes';
+
+/** AI auto-translate progress for the active page/site. */
+export interface CmsAiStatus {
+    state: 'running' | 'done' | 'error';
+    scope: string;
+    translated?: number;
+    total?: number;
+}
+
+/** null = the add-block dialog is closed; index null = insert after the active block. */
+export interface AddBlockRequest {
+    index: number | null;
+}
+
+/** A page template, summary shape (no blocks payload). */
+export interface CmsTemplateSummary {
+    id: string;
+    name?: string;
+    [key: string]: unknown;
+}
+
+/** Pre-turn snapshot and what an AI builder turn touched, for What-changed / Undo turn. */
+export interface BuilderTurn {
+    preSite: CmsSiteDoc | null;
+    prePages: CmsPageDoc[];
+    created: string[];
+    touched: Set<string>;
+    draftsSeen: number;
+}
+
+interface FocusRestore {
+    nav: boolean;
+    inspector: boolean;
+    assistant: boolean;
+}
+
+/** The page whose context menu opened Save-as-template, with its blocks. */
+type PendingTemplatePage = CmsPageIndexEntry & { blocks?: unknown[] };
 
 export default function useCmsPanelState() {
     // ── multi-site state ─────────────────────────────────────────────
-    const [sites, setSites]                   = useState([]);
+    const [sites, setSites]                   = useState<CmsSiteListEntry[]>([]);
     const [sitesLoaded, setSitesLoaded]       = useState(false);
-    const [activeSiteId, setActiveSiteId]     = useState(null);
+    const [activeSiteId, setActiveSiteId]     = useState<string | null>(null);
 
     // Mirror of activeSiteId for use inside callbacks that have stable
     // (empty) deps — keeps debounced saves pointing at the correct site
     // even mid-switch (the switcher's flush runs BEFORE we update the ref).
-    const activeSiteIdRef = useRef(null);
+    const activeSiteIdRef = useRef<string | null>(null);
 
     // ── server state ────────────────────────────────────────────────
     const [loading, setLoading]               = useState(true);
-    const [error, setError]                   = useState(null);
+    const [error, setError]                   = useState<string | null>(null);
     // liveSiteId is the *globally* live project id (or null). The Live
     // toggle in the panel reflects whether this site === liveSiteId,
     // since at most one project can be live at a time.
-    const [liveSiteId, setLiveSiteId]         = useState(null);
+    const [liveSiteId, setLiveSiteId]         = useState<string | null>(null);
     const [defaultLocale, setDefaultLocale]   = useState('en');
-    const [locales, setLocales]               = useState([{ code: 'en', name: 'English', isDefault: true }]);
+    const [locales, setLocales]               = useState<CmsLocale[]>([{ code: 'en', name: 'English', isDefault: true }]);
     // Per-locale translation overrides, mirroring getAdminPayload's
     // `localeOverrides`. siteByLocale: { [locale]: siteOverride };
     // pagesByLocale: { [pageId]: { [locale]: pageOverride } }. Only populated
     // for non-default locales — the default locale lives in the base docs.
-    const [localeOverrides, setLocaleOverrides] = useState({ siteByLocale: {}, pagesByLocale: {} });
+    const [localeOverrides, setLocaleOverrides] = useState<CmsLocaleOverrides>({ siteByLocale: {}, pagesByLocale: {} });
     // AI auto-translate progress for the active page/site. null = idle.
-    const [aiStatus, setAiStatus]             = useState(null);
-    const [site, setSiteDoc]                  = useState(null);   // SiteDoc
-    const [pages, setPages]                   = useState([]);     // [PageDoc]
-    const [saveStatus, setSaveStatus]         = useState('idle');
+    const [aiStatus, setAiStatus]             = useState<CmsAiStatus | null>(null);
+    const [site, setSiteDoc]                  = useState<CmsSiteDoc | null>(null);   // SiteDoc
+    const [pages, setPages]                   = useState<CmsPageDoc[]>([]);     // [PageDoc]
+    const [saveStatus, setSaveStatus]         = useState<string>('idle');
     // ISO string of the last successful publish for the active site, or
     // null if it has never been published. Drives the "Publish" button
     // hint and the disabled state when there's nothing new to ship.
-    const [publishedAt, setPublishedAt]       = useState(null);
+    const [publishedAt, setPublishedAt]       = useState<string | null>(null);
     const [publishing, setPublishing]         = useState(false);
 
     // ── editor state ────────────────────────────────────────────────
-    const [activeLocale, setActiveLocale]     = useState('en');
-    const [activePageId, setActivePageId]     = useState(SITE_VIRTUAL_ID);
-    const [activeBlockId, setActiveBlockId]   = useState(null);
-    const [blockEditorTab, setBlockEditorTab] = useState('content'); // 'content' | 'style'
-    const [rightView, setRightView]           = useState('preview'); // 'preview' | 'sitemap'
+    const [activeLocale, setActiveLocale]     = useState<string>('en');
+    const [activePageId, setActivePageId]     = useState<string | null>(SITE_VIRTUAL_ID);
+    const [activeBlockId, setActiveBlockId]   = useState<string | null>(null);
+    const [blockEditorTab, setBlockEditorTab] = useState<string>('content'); // 'content' | 'style'
+    const [rightView, setRightView]           = useState<string>('preview'); // 'preview' | 'sitemap'
     // Add-block dialog request — null = closed. { index: null } comes from
     // the BlockList "+" (default insert-after-active); { index: n } comes
     // from a canvas insert-between "+" zone (cms-insert-at) and splices at
     // that explicit position.
-    const [addBlockRequest, setAddBlockRequest] = useState(null);
+    const [addBlockRequest, setAddBlockRequest] = useState<AddBlockRequest | null>(null);
     // Page templates — global list, summary shape (no blocks payload).
     // Loaded once on mount and refreshed after save/delete. `pendingTemplatePage`
     // holds the page whose context-menu opened the Save dialog (null = no
     // dialog open). The blocks for that page are read out of `pages` state
     // when the user confirms the save.
-    const [templates, setTemplates]                       = useState([]);
-    const [pendingTemplatePage, setPendingTemplatePage]   = useState(null);
+    const [templates, setTemplates]                       = useState<CmsTemplateSummary[]>([]);
+    const [pendingTemplatePage, setPendingTemplatePage]   = useState<PendingTemplatePage | null>(null);
 
     // ── shell state ─────────────────────────────────────────────────
     // One promise-based ConfirmDialog for every destructive action.
@@ -88,21 +129,21 @@ export default function useCmsPanelState() {
     const [dirtySincePublish, setDirtySincePublish] = useState(false);
     // Preview device preset ('desktop' | 'tablet' | 'mobile') — a pure
     // max-width on the stage's iframe wrapper.
-    const [device, setDevice] = useState(() => scopedStorage.getItem('cmsPreviewDevice') || 'desktop');
-    const changeDevice = useCallback((key) => {
+    const [device, setDevice] = useState<string>(() => scopedStorage.getItem('cmsPreviewDevice') || 'desktop');
+    const changeDevice = useCallback((key: string) => {
         scopedStorage.setItem('cmsPreviewDevice', key);
         setDevice(key);
     }, []);
     // AI-translate model tier (AiTranslateControl vocabulary: fast/thinking/
     // writer/pro — the same picker the Languages tab uses). Persisted per user.
-    const [translateTier, setTranslateTier] = useState(() => scopedStorage.getItem('cmsTranslateTier') || 'fast');
-    const changeTranslateTier = useCallback((t) => {
+    const [translateTier, setTranslateTier] = useState<string>(() => scopedStorage.getItem('cmsTranslateTier') || 'fast');
+    const changeTranslateTier = useCallback((t: string) => {
         scopedStorage.setItem('cmsTranslateTier', t);
         setTranslateTier(t);
     }, []);
     // D4 guard bookkeeping — warn once per block per session when a list is
     // reordered in the default locale while translations exist for it.
-    const reorderWarnedRef = useRef(new Set());
+    const reorderWarnedRef = useRef<Set<string>>(new Set());
     // ── AI assistant (builder) state ────────────────────────────────
     const [assistantOpen, setAssistantOpen] = useState(() =>
         scopedStorage.getItem('cmsFocusMode') !== '1' && scopedStorage.getItem('cmsAssistantOpen') === '1');
@@ -116,7 +157,7 @@ export default function useCmsPanelState() {
     // scopedStorage mechanism as the individual panel flags (which are
     // left untouched while focused — see the initializers above).
     const [focusMode, setFocusMode] = useState(() => scopedStorage.getItem('cmsFocusMode') === '1');
-    const focusRestoreRef = useRef(null);
+    const focusRestoreRef = useRef<FocusRestore | null>(null);
     const toggleFocusMode = useCallback(() => {
         const entering = !focusMode;
         scopedStorage.setItem('cmsFocusMode', entering ? '1' : '0');
@@ -143,9 +184,9 @@ export default function useCmsPanelState() {
     // Focus-mode hotkey '\' — skipped while typing (inputs, textareas,
     // selects, contentEditable) so backslashes can still be typed.
     useEffect(() => {
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key !== '\\' || e.ctrlKey || e.metaKey || e.altKey) return;
-            const t = e.target;
+            const t = e.target as HTMLElement | null;
             if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
             e.preventDefault();
             toggleFocusMode();
@@ -159,7 +200,7 @@ export default function useCmsPanelState() {
     const builderRunningRef = useRef(false);
     // Per-turn bookkeeping for What-changed / Undo turn: pre-turn snapshot +
     // what the drafts touched. Armed until the next turn or human edit.
-    const builderTurnRef = useRef(null); // { preSite, prePages, created:[], touched:Set, draftsSeen }
+    const builderTurnRef = useRef<BuilderTurn | null>(null);
     const [builderUndoAvailable, setBuilderUndoAvailable] = useState(false);
     const builderUndoAvailableRef = useRef(false);
     const disarmBuilderUndo = useCallback(() => {
@@ -170,26 +211,26 @@ export default function useCmsPanelState() {
     }, []);
 
     // refs for debounced saves
-    const iframeRef         = useRef(null);
+    const iframeRef         = useRef<HTMLIFrameElement | null>(null);
     const previewReadyRef   = useRef(false);
-    const saveTimerRef      = useRef(null);
-    const saveStatusTimer   = useRef(null);
-    const pendingSaves      = useRef({});   // { [pageId]: PageDoc | 'site' }
+    const saveTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const saveStatusTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingSaves      = useRef<Record<string, unknown>>({});   // { [pageId]: PageDoc | 'site' }
     // Tracks the most recent flushSaves() Promise so handlePublish can await
     // an in-flight save that was kicked off by the debounce timer firing
     // (the timer callback otherwise drops the Promise on the floor, which
     // lets a Publish click race the network round-trip).
-    const inFlightSaveRef   = useRef(null);
+    const inFlightSaveRef   = useRef<Promise<unknown> | null>(null);
     // True while an AI translate POST is in flight — gates manual translation
     // writes so they can't be clobbered by the returned whole-override.
     const aiRunningRef      = useRef(false);
     // Holds the batch from the most recent failed flushSaves() so the user
     // can retry without losing their edits. Cleared when a flush succeeds.
-    const failedSavesRef    = useRef(null);
+    const failedSavesRef    = useRef<Record<string, unknown> | null>(null);
     // Live mirror of localeOverrides so the override mutators can read the
     // latest value synchronously between rapid edits (typing in the list)
     // without stale-closure races.
-    const localeOverridesRef = useRef({ siteByLocale: {}, pagesByLocale: {} });
+    const localeOverridesRef = useRef<CmsLocaleOverrides>({ siteByLocale: {}, pagesByLocale: {} });
 
     return {
         sites, setSites, sitesLoaded, setSitesLoaded, activeSiteId, setActiveSiteId, activeSiteIdRef,
