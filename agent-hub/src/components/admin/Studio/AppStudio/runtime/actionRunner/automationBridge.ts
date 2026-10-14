@@ -25,8 +25,8 @@ async function pollRun(ctx: RunnerContext, runId: unknown): Promise<RunBody> {
         );
         const body = await readJson(res);
         if (!res.ok) throw new Error((body?.error as string) || tr('studio_apps_runtime.actions.check_run_failed', 'Could not check the run ({status})', { status: res.status }));
-        const status = body?.status;
-        if (status && !['pending', 'running', 'queued'].includes(status as string)) return body;
+        const status = body?.status as string | undefined;
+        if (status && !['pending', 'running', 'queued'].includes(status)) return body;
     }
     throw new Error(tr('studio_apps_runtime.actions.run_too_long', 'The automation is taking too long — check its run history.'));
 }

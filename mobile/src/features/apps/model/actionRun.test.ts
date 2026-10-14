@@ -1,7 +1,7 @@
 /**
  * An app action's run: which answer the button shows and when it stops
  * spinning. The statuses it polls through are the web runner's, read out of
- * useActionRunner.js.
+ * the runner's automation bridge (runtime/actionRunner/automationBridge.ts).
  */
 
 import fs from 'node:fs';
@@ -64,7 +64,7 @@ describe('runView', () => {
 
 it('polls through the statuses the web runner polls through', () => {
     const src = fs.readFileSync(
-        path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/AppStudio/runtime/useActionRunner.js'),
+        path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/AppStudio/runtime/actionRunner/automationBridge.ts'),
         'utf8',
     );
     const list = /if \(status && !\[([^\]]+)\]\.includes\(status\)\) return body;/.exec(src)?.[1];
