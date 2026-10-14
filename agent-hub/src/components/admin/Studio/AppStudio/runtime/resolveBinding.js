@@ -31,7 +31,7 @@
  * the cache on the RESOLVED filter, so a vars/currentUser change refetches.
  *
  * The second argument is a BAG: `{ actionState, dataState, scope }`.
- *   actionState — { [actionId]: { status, result, error } } (useActionRunner.js)
+ *   actionState — { [actionId]: { status, result, error } } (useActionRunner.ts)
  *   dataState   — { [cacheKey]: { status, result, error, tableId?, datasetId? } }
  *                 (DataContext.jsx — mirrors actionState's status vocabulary)
  *   scope       — the shared expression-scope root (buildScope) used by formulas

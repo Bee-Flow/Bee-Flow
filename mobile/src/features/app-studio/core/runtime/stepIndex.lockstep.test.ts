@@ -3,16 +3,15 @@
  *
  * The server's flattenSteps (server/appStudio/actionSequence.js) cannot be
  * required here (its module pulls in the action executor), so it is lifted out
- * of the file's text and run; so are the web runner's buildStepIndexMap,
- * sequenceHasServerStep, caseMatches and resolveNavParams (useActionRunner.js
- * is a React hook module). All run on the same action trees as the port.
+ * of the file's text and run. The web runner's buildStepIndexMap,
+ * sequenceHasServerStep, caseMatches and resolveNavParams come from its pure
+ * step-walk module (runtime/actionRunner/stepWalk.ts). All run on the same
+ * action trees as the port.
  */
 
-import { tryEvaluate } from '@/shared/expr';
-
 import { allFixtures } from '../testing/fixtures';
-import { readRepo } from '../testing/loadWeb';
-import { constSource, evalSource, functionSource } from '../testing/source';
+import { loadWeb, readRepo } from '../testing/loadWeb';
+import { evalSource, functionSource } from '../testing/source';
 import type { ActionStep } from '../types';
 import * as port from './stepIndex';
 
@@ -25,8 +24,9 @@ const server = evalSource<{ flattenSteps: (s: unknown) => unknown[]; normalizeSe
     ['flattenSteps', 'normalizeSequence'],
 );
 
-const runnerSrc = readRepo('agent-hub/src/components/admin/Studio/AppStudio/runtime/useActionRunner.js');
-const runner = evalSource<{
+// The web runner's pure step walk lives in its own React-free module, so it is
+// loaded as a module rather than lifted out of the hook's text.
+const runner = loadWeb<{
     SERVER_STEP_KINDS: Set<string>;
     MAX_LOOP_ITERATIONS: number;
     buildStepIndexMap: (s: unknown) => Map<unknown, number>;
@@ -34,17 +34,7 @@ const runner = evalSource<{
     caseMatches: (a: unknown, b: unknown) => boolean;
     resolveNavParams: (p: unknown, scope: unknown) => unknown;
     normalizeSequence: (a: unknown) => unknown[];
-}>(
-    [
-        constSource(runnerSrc, 'SERVER_STEP_KINDS'),
-        constSource(runnerSrc, 'MAX_LOOP_ITERATIONS'),
-        ...['buildStepIndexMap', 'sequenceHasServerStep', 'caseMatches', 'resolveNavParams', 'normalizeSequence'].map(
-            (name) => functionSource(runnerSrc, name),
-        ),
-    ],
-    ['SERVER_STEP_KINDS', 'MAX_LOOP_ITERATIONS', 'buildStepIndexMap', 'sequenceHasServerStep', 'caseMatches', 'resolveNavParams', 'normalizeSequence'],
-    { tryEvaluate },
-);
+}>('runtime/actionRunner/stepWalk.ts');
 
 const EXTRA: unknown[] = [
     null,

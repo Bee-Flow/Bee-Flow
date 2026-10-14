@@ -11,7 +11,7 @@ import useActionRunner from './useActionRunner';
 import { authFetch } from '../../../../../utils/helpers';
 import toast from '../../../../shared/Toast';
 
-// Matches POLL_INTERVAL_MS in useActionRunner.js (not exported).
+// Matches POLL_INTERVAL_MS in actionRunner/core.ts.
 const POLL_INTERVAL_MS = 2000;
 
 // A minimal fetch Response stub.

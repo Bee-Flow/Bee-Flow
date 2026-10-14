@@ -14,7 +14,7 @@ import { dataCacheKey } from './resolveBinding';
  *   onSelectNode     — editor selection callback (id | null)
  *   recentlyAddedIds — Set of node ids to flash as "just added"
  *   actionState      — { [actionId]: { status, result, error } } (see
- *                      useActionRunner.js — the editor passes a stub)
+ *                      useActionRunner.ts — the editor passes a stub)
  *   dataState        — { [cacheKey]: { status, result, error } } for
  *                      record/records/dataset bindings (see DataContext.jsx)
  *   runAction        — (actionId, opts) → void|Promise; the editor stubs it
