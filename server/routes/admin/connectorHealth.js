@@ -23,7 +23,6 @@
  */
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const router = express.Router();
 
 const orgHealthStore = require('../../stores/orgHealthStore');
@@ -212,107 +211,87 @@ function toCustomerSafeProblem(p) {
 // ── Routes (fixed paths BEFORE :orgId params) ───────────────────────────────
 
 router.get('/admin/connector-health/fleet', requireAuth, requireSuperAdmin, async (req, res) => {
-    try {
-        res.json(await orgHealthStore.getFleetOverview());
-    } catch (e) {
-        log.error('[ConnectorHealth] fleet error:', e.message);
-        res.status(500).json({ error: 'Failed to load fleet overview' });
-    }
+    res.json(await orgHealthStore.getFleetOverview());
 });
 
 router.get('/admin/connector-health/mine', requireAuth, async (req, res) => {
-    try {
-        // Org and role both come from the DB. The session's user object is
-        // populated from the SSO profile and carries neither orgRole nor
-        // organizationId, so reading them here 403'd every SSO org admin on
-        // their own org's health panel. resolveUserOrgIds also picks up an org
-        // reached via a group, which the old sessUser.organizationId could not.
-        const orgIds = await resolveUserOrgIds(req);
-        const orgId = orgIds === null
-            ? (req.session?.user?.organizationId || null)   // platform admin: their own org, if any
-            : (orgIds.size > 0 ? Array.from(orgIds)[0] : null);
-        if (!orgId) return res.status(404).json({ error: 'No organization' });
-        if (!(await isOrgAdminForOrg(req, orgId))) {
-            return res.status(403).json({ error: 'Org admin access required' });
-        }
-        const org = await userStore.getOrganization(orgId);
-        if (!org) return res.status(404).json({ error: 'Organization not found' });
-
-        // User census (same source as ncSync's /users route). Active mirrors
-        // getActiveSeatCount semantics: missing status counts as active.
-        const allUsers = await userStore.getAllUsers();
-        const orgUsers = allUsers.filter(u => u.organizationId === orgId);
-        const users = {
-            total: orgUsers.length,
-            active: orgUsers.filter(u => (u.status || 'active') === 'active').length,
-            pending: orgUsers.filter(u => u.status === 'pending').length,
-        };
-
-        // Subscription presence — boolean only, matching the fleet query's
-        // status='active' predicate. Never expose plan/status details here.
-        let hasActiveSubscription = false;
-        try {
-            const sub = await userStore.getOrgSubscription(orgId);
-            hasActiveSubscription = !!sub && sub.status === 'active';
-        } catch (_) { /* treat as unknown-not-active */ }
-
-        // Total successful messages — computeHealth needs it for 'inactive'.
-        let messagesTotal = 0;
-        try {
-            const summary = await require('../../stores/usageStore').getUsageSummary({ organizationId: orgId });
-            messagesTotal = Number(summary?.total_calls) || 0;
-        } catch (_) { /* 0 is safe: 'inactive' is non-actionable in the banner */ }
-
-        const problems = await orgHealthStore.listProblems({ organizationId: orgId });
-        const health = orgHealthStore.computeHealth({
-            ncInstanceId: org.nc_instance_id || null,
-            ncOnboardingCompletedAt: org.nc_onboarding_completed_at || null,
-            hasActiveSubscription,
-            users,
-            messagesTotal,
-            problems,
-        });
-
-        res.json({
-            health,
-            problems: problems.map(toCustomerSafeProblem).filter(Boolean),
-            users,
-        });
-    } catch (e) {
-        log.error('[ConnectorHealth] mine error:', e.message);
-        res.status(500).json({ error: 'Failed to load organization health' });
+    // Org and role both come from the DB. The session's user object is
+    // populated from the SSO profile and carries neither orgRole nor
+    // organizationId, so reading them here 403'd every SSO org admin on
+    // their own org's health panel. resolveUserOrgIds also picks up an org
+    // reached via a group, which the old sessUser.organizationId could not.
+    const orgIds = await resolveUserOrgIds(req);
+    const orgId = orgIds === null
+        ? (req.session?.user?.organizationId || null)   // platform admin: their own org, if any
+        : (orgIds.size > 0 ? Array.from(orgIds)[0] : null);
+    if (!orgId) return res.status(404).json({ error: 'No organization' });
+    if (!(await isOrgAdminForOrg(req, orgId))) {
+        return res.status(403).json({ error: 'Org admin access required' });
     }
+    const org = await userStore.getOrganization(orgId);
+    if (!org) return res.status(404).json({ error: 'Organization not found' });
+
+    // User census (same source as ncSync's /users route). Active mirrors
+    // getActiveSeatCount semantics: missing status counts as active.
+    const allUsers = await userStore.getAllUsers();
+    const orgUsers = allUsers.filter(u => u.organizationId === orgId);
+    const users = {
+        total: orgUsers.length,
+        active: orgUsers.filter(u => (u.status || 'active') === 'active').length,
+        pending: orgUsers.filter(u => u.status === 'pending').length,
+    };
+
+    // Subscription presence — boolean only, matching the fleet query's
+    // status='active' predicate. Never expose plan/status details here.
+    let hasActiveSubscription = false;
+    try {
+        const sub = await userStore.getOrgSubscription(orgId);
+        hasActiveSubscription = !!sub && sub.status === 'active';
+    } catch (_) { /* treat as unknown-not-active */ }
+
+    // Total successful messages — computeHealth needs it for 'inactive'.
+    let messagesTotal = 0;
+    try {
+        const summary = await require('../../stores/usageStore').getUsageSummary({ organizationId: orgId });
+        messagesTotal = Number(summary?.total_calls) || 0;
+    } catch (_) { /* 0 is safe: 'inactive' is non-actionable in the banner */ }
+
+    const problems = await orgHealthStore.listProblems({ organizationId: orgId });
+    const health = orgHealthStore.computeHealth({
+        ncInstanceId: org.nc_instance_id || null,
+        ncOnboardingCompletedAt: org.nc_onboarding_completed_at || null,
+        hasActiveSubscription,
+        users,
+        messagesTotal,
+        problems,
+    });
+
+    res.json({
+        health,
+        problems: problems.map(toCustomerSafeProblem).filter(Boolean),
+        users,
+    });
 });
 
 router.get('/admin/connector-health/:orgId/problems', requireAuth, checkOrgAdmin, validate({ query: ProblemsQuery }), async (req, res) => {
-    try {
-        const includeResolved = req.query.includeResolved === '1' || req.query.includeResolved === 'true';
-        const problems = await orgHealthStore.listProblems({
-            organizationId: req.params.orgId,
-            includeResolved,
-        });
-        res.json({ problems });
-    } catch (e) {
-        log.error('[ConnectorHealth] problems error:', e.message);
-        res.status(500).json({ error: 'Failed to load problems' });
-    }
+    const includeResolved = req.query.includeResolved === '1' || req.query.includeResolved === 'true';
+    const problems = await orgHealthStore.listProblems({
+        organizationId: req.params.orgId,
+        includeResolved,
+    });
+    res.json({ problems });
 });
 
 router.get('/admin/connector-health/:orgId/events', requireAuth, checkOrgAdmin, validate({ query: EventsQuery }), async (req, res) => {
-    try {
-        const limit = Math.min(Math.max(req.query.limit || 50, 1), 100);
-        const result = await orgHealthStore.listEvents({
-            organizationId: req.params.orgId,
-            code: req.query.code || null,
-            severity: req.query.severity || null,
-            limit,
-            cursor: req.query.cursor || null,
-        });
-        res.json(result); // { events, nextCursor }
-    } catch (e) {
-        log.error('[ConnectorHealth] events error:', e.message);
-        res.status(500).json({ error: 'Failed to load events' });
-    }
+    const limit = Math.min(Math.max(req.query.limit || 50, 1), 100);
+    const result = await orgHealthStore.listEvents({
+        organizationId: req.params.orgId,
+        code: req.query.code || null,
+        severity: req.query.severity || null,
+        limit,
+        cursor: req.query.cursor || null,
+    });
+    res.json(result); // { events, nextCursor }
 });
 
 module.exports = router;

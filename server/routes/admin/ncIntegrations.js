@@ -14,7 +14,6 @@
  */
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -129,12 +128,7 @@ router.put('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'
     // enforce. The scope doc records a mode per integration, so unticking
     // everything means what it says, and an org that has never opened this
     // panel still has no doc and therefore no restriction.
-    try {
-        await ncScope.setOrgEnabledIntegrations(o.id, requested, { updatedBy: req.session?.user?.id || null });
-    } catch (e) {
-        log.error(`[ncIntegrations] failed to persist org scope for ${o.id}: ${e.message}`);
-        return res.status(500).json({ error: 'Could not save the Nextcloud integration settings' });
-    }
+    await ncScope.setOrgEnabledIntegrations(o.id, requested, { updatedBy: req.session?.user?.id || null });
 
     guardrailEventStore.logGuardrailEvent({
         organization_id: o.id,
@@ -185,7 +179,7 @@ router.put('/admin/:orgId/nc-integrations/groups/:groupId', requireAuth, require
 
     const disabled = req.body.disabledIntegrations;
     const ok = await userStore.updateGroup(groupId, { disabledIntegrations: disabled });
-    if (!ok) return res.status(500).json({ error: 'Could not update group' });
+    if (!ok) throw new Error(`Could not update group ${groupId}`);
 
     guardrailEventStore.logGuardrailEvent({
         organization_id: orgId,
