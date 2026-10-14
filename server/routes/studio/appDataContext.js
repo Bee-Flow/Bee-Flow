@@ -185,10 +185,10 @@ function buildViewer(user, role) {
 // Public projection of a table — fields ONLY. NEVER the access rules,
 // rowFilters or roleMapping (those are the owner's secret enforcement config).
 //
-// `source` gaat er evenmin in: de id van een Studio-datatabel hoort bij de
-// organisatie waar hij staat, niet bij deze app. Wat de client wél moet weten
-// staat in `linkedTableFlags` hieronder — DAT een tabel gekoppeld is en of hij
-// alleen-lezen is, zonder te zeggen waaraan.
+// `source` stays out too: the id of a Studio datatable belongs to the
+// organisation it lives in, not to this app. What the client does need to know
+// is in `linkedTableFlags` below — THAT a table is linked and whether it is
+// read-only, without saying to what.
 function publicTable(t) {
     return {
         id: t.id,
@@ -221,10 +221,10 @@ function parseListQuery(req) {
     return { filters, sort };
 }
 
-// De cache-invalidatie + rijtelling na een schrijving stond hier als
-// `afterWrite`, met de DELETE-route als enige aanroeper. Die gaat nu door
-// actionExecutor.eraseRecord, dat zijn eigen boekhouding doet — precies zoals
-// writeRecord dat voor create/update al deed. Eén plek die bumpt, niet twee.
+// The cache invalidation + row count after a write used to live here as
+// `afterWrite`, with the DELETE route as its only caller. That route now goes
+// through actionExecutor.eraseRecord, which does its own bookkeeping — exactly
+// as writeRecord already did for create/update. One place that bumps, not two.
 
 /**
  * Stale-while-serve for connector-filled tables.
@@ -267,20 +267,19 @@ function kickStaleSync(ctx) {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Mag deze kijker deze GEKOPPELDE tabel lezen, en wat mag de client erover
- * weten? → null voor een gewone tabel, `REFUSED` als de koppeling hem weigert.
+ * May this viewer read this LINKED table, and what may the client know about
+ * it? → null for an ordinary table, `REFUSED` when the link refuses it.
  *
- * `rlsGateway.canRead` kent alleen het `access`-blok van de APP. Een tabel die
- * haar rijen uit een Studio-datatabel haalt heeft een tweede slot — de
- * rechtenladder van die datatabel — en zonder deze vraag stond in de
- * tabellenlijst de NAAM en de KOLOMNAMEN van een tabel waarvan de rijen
- * vervolgens met 403 worden geweigerd.
+ * `rlsGateway.canRead` only knows the APP's `access` block. A table that
+ * takes its rows from a Studio datatable has a second lock — that datatable's
+ * permission ladder — and without this question the table list showed the
+ * NAME and the COLUMN NAMES of a table whose rows were then refused with 403.
  *
- * Elke weigering, ook een storing (503) of een kapotte koppeling (422), laat de
- * tabel uit de lijst. Dat is dezelfde betekenis die `canRead` al had: wat er
- * niet in staat, is niet voor jou. Het onderscheid tussen "leeg" en "onleesbaar"
- * hoort bij het LEZEN van de rijen, en daar wordt het ook gemaakt — met de
- * status en de reden erbij (appStudio/readError.js).
+ * Every refusal, an outage (503) or a broken link (422) included, leaves the
+ * table out of the list. That is the meaning `canRead` already had: what is
+ * not in it is not for you. The distinction between "empty" and "unreadable"
+ * belongs to READING the rows, and that is where it is made — with the
+ * status and the reason attached (appStudio/readError.js).
  */
 const LINK_REFUSED = Symbol('link_refused');
 async function linkedTableFlags(ctx, table) {
@@ -292,7 +291,7 @@ async function linkedTableFlags(ctx, table) {
         throw e;
     }
     const mode = table.source && typeof table.source === 'object' ? table.source.mode : null;
-    // DAT hij gekoppeld is en of hij alleen-lezen is — nooit de datatableId.
+    // THAT it is linked and whether it is read-only — never the datatableId.
     return { linked: true, readOnly: mode !== 'readwrite' };
 }
 

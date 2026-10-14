@@ -139,13 +139,13 @@ async function deleteRecord(req, res) {
     try {
         const ctx = await resolveDataContext(req, res, { tableId: req.params.tableId });
         if (!ctx) return;
-        // eraseRecord is het DELETE-knooppunt: RLS (403), de tweede tabelsoort,
-        // de access-filter in de WHERE en de boekhouding erna. Deletes blijven
-        // quotavrij — dat is de uitweg waarlangs een volle app kan krimpen.
-        // Deze route compileerde dat zelf en kende de gekoppelde tabel daardoor
-        // niet: `DELETE FROM \"klanten\"` op de app-opslag, 404 op een rij die
-        // in de datatabel gewoon staat, en op een tabel die ooit eigen opslag
-        // WAS de stille wis van de oude schaduwrijen.
+        // eraseRecord is the DELETE choke point: RLS (403), the second kind of
+        // table, the access filter in the WHERE and the bookkeeping after it.
+        // Deletes stay quota-free — that is the way out by which a full app can
+        // shrink. This route used to compile it itself and so did not know the
+        // linked table: `DELETE FROM \"klanten\"` on the app storage, 404 on a
+        // row that sits right there in the datatable, and on a table that once
+        // HAD its own storage the silent wipe of the old shadow rows.
         const { changes } = await actionExecutor.eraseRecord(
             ctx.app, ctx.model, ctx.table, req.params.recordId, { viewer: ctx.viewer });
         if (!changes) return res.status(404).json({ error: 'Record not found' });

@@ -50,18 +50,18 @@ async function exportData(req, res) {
         const stamp = new Date().toISOString();
         const safeName = String(app.name || 'app').replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 60) || 'app';
 
-        // ── Elk leesplan VÓÓR de eerste byte ────────────────────────
-        // Een gekoppelde tabel las hier de LEGE schaduwtabel in de app-database
-        // en kwam als `[]` uit de export — een bestand dat beweert dat een tabel
-        // leeg is terwijl de rijen bestaan. In een privacyproduct is dat het
-        // bestand waarmee iemand een inzageverzoek of een migratie beantwoordt,
-        // en "leeg" en "staat ergens anders" zijn verschillende antwoorden.
+        // ── Every read plan BEFORE the first byte ───────────────────
+        // A linked table used to read the EMPTY shadow table in the app database
+        // here and came out of the export as `[]` — a file claiming a table is
+        // empty while its rows exist. In a privacy product that is the file
+        // someone answers a subject access request or a migration with, and
+        // "empty" and "lives somewhere else" are different answers.
         //
-        // Ze worden nu meegeëxporteerd, uit de datatabel, met de graad van de
-        // EIGENAAR (dat is wie de export vraagt — `loadOwnedApp`). Kan er één
-        // niet gelezen worden, dan faalt de hele export met de reden ervan, en
-        // wel HIER: eenmaal onderweg is de status al 200 en zou de weigering als
-        // geldige, volledige JSON aankomen.
+        // They are now exported along, from the datatable, with the OWNER's
+        // grade (the owner is who asks for the export — `loadOwnedApp`). If one
+        // cannot be read, the whole export fails with its reason, and it does
+        // so HERE: once under way the status is already 200 and the refusal
+        // would arrive as valid, complete JSON.
         const exportCtx = {
             app, ownerScope: app.userId, viewerId: app.userId, model,
             role: 'owner', viewer: ownerViewer,
@@ -73,9 +73,9 @@ async function exportData(req, res) {
             plans.set(table.key, await dataReadRunner.readPlan(exportCtx, table));
             if (datatableSource.isDatatableBacked(table)) {
                 const src = (table.source && typeof table.source === 'object') ? table.source : {};
-                // De herkomst hoort in het bestand: zonder deze regel staat er
-                // een tabel met rijen die de app niet bezit, zonder dat iets
-                // zegt waar ze vandaan komen of waar ze blijven staan.
+                // The origin belongs in the file: without this line it holds a
+                // table with rows the app does not own, with nothing saying
+                // where they come from or where they stay.
                 linkedTables[table.key] = {
                     datatableId: typeof src.datatableId === 'string' ? src.datatableId : null,
                     mode: typeof src.mode === 'string' ? src.mode : null,
