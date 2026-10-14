@@ -57,6 +57,7 @@ const audience = require('../core/webpages/webpagePublicAudience');
 const webpageUsageSync = require('../core/webpages/webpageUsageSync');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { worded, bodyOf, choice } = require('./webpages/schemas');
 
@@ -275,15 +276,20 @@ async function buildModel(req, wp) {
     return decorateTableLabels(model, wp.userId);
 }
 
+/**
+ * The column choice is already saved when the other live links are rewritten,
+ * so a failure there is not a plain "something went wrong": the answer says
+ * what did and did not happen. The cause goes to the log, not to the client.
+ */
+function linksNotNarrowed(e) {
+    log.error('[Webpages/audience] not every public link was narrowed:', e);
+    throw new HttpError(500, 'links_not_narrowed', 'Column choice saved, but not every public link could be updated');
+}
+
 router.get('/:id/audience', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    try {
-        const wp = await ownedWebpage(req, res);
-        if (!wp) return;
-        res.json(await buildModel(req, wp));
-    } catch (err) {
-        log.error('[Webpages/audience] load failed:', err);
-        res.status(500).json({ error: 'Failed to load who can see this page' });
-    }
+    const wp = await ownedWebpage(req, res);
+    if (!wp) return;
+    res.json(await buildModel(req, wp));
 });
 
 /**
@@ -299,160 +305,132 @@ router.get('/:id/audience', requireAuth, validate({ query: NO_QUERY }), async (r
  *   expiresAt      ISO-string of null
  */
 router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), async (req, res) => {
-    try {
-        const wp = await ownedWebpage(req, res);
-        if (!wp) return;
-        const userId = req.session.user.id;
-        const body = req.body || {};
+    const wp = await ownedWebpage(req, res);
+    if (!wp) return;
+    const userId = req.session.user.id;
+    const body = req.body || {};
 
-        if (body.on === false) {
-            const share = wp.publicShareId ? await publicShareStore.getShareById(wp.publicShareId) : null;
-            // Wijzer eerst weg, dan pas intrekken: valt de intrekking om, dan
-            // is de pagina in elk geval niet meer "openbaar" volgens het adres.
-            await publicAddress.setCanonicalShare(wp.id, userId, null);
-            if (share && share.webpageId === wp.id && !share.revokedAt) {
-                await publicShareStore.revokeShare(share.id, share.createdBy);
-                await publicShareStore.deleteShare(share.id, share.createdBy).catch(() => {});
-            }
-            const fresh = await webpageStore.getWebpage(wp.id, userId);
-            return res.json(await buildModel(req, fresh || { ...wp, publicShareId: null }));
+    if (body.on === false) {
+        const share = wp.publicShareId ? await publicShareStore.getShareById(wp.publicShareId) : null;
+        // Wijzer eerst weg, dan pas intrekken: valt de intrekking om, dan
+        // is de pagina in elk geval niet meer "openbaar" volgens het adres.
+        await publicAddress.setCanonicalShare(wp.id, userId, null);
+        if (share && share.webpageId === wp.id && !share.revokedAt) {
+            await publicShareStore.revokeShare(share.id, share.createdBy);
+            await publicShareStore.deleteShare(share.id, share.createdBy).catch(() => {});
         }
-
-        // ── openbaar AAN ────────────────────────────────────────────────
-        // 1. de poort. Altijd, en vóór alles: de snapshot verderop rendert
-        //    bf-table uit precies deze lijst, dus dit moet al opgeslagen zijn
-        //    voordat er ook maar één byte naar buiten gaat.
-        const current = await bridgeGrants.getBridgeGrants(wp.id);
-        const narrowed = audience.applyColumnChoice(current.tables, body.publicColumns);
-        const saved = await bridgeGrants.updateBridgeGrants(wp.id, userId, { tables: narrowed });
-        if (!saved) return res.status(404).json({ error: 'Webpage not found' });
-        // `applyColumnChoice` versmalt vandaag alleen `publicColumns` en laat de
-        // rest van de binding staan, dus de index verandert er meestal niet van.
-        // De aanroep staat er toch: de regel is "elk pad dat de bindingen
-        // vastlegt", niet "elk pad waarvan we vandaag weten dat het ertoe doet".
-        webpageUsageSync.reconcileWebpageUsageDetached(wp.id);
-
-        // 2. het adres. Idempotent — een pagina die eerder openbaar was, houdt
-        //    hetzelfde /w/<slug>.
-        let slug;
-        try {
-            slug = await publicAddress.ensureSlug(wp.id, userId, wp.name);
-        } catch (e) {
-            log.error('[Webpages/audience] could not mint an address:', e);
-            return res.status(500).json({ error: 'Could not give this page an address' });
-        }
-        if (!slug) return res.status(404).json({ error: 'Webpage not found' });
-
-        // 3. de share. Bestaat er al een levende canonieke met dezelfde
-        //    toegangsinstelling, dan blijft die — een nieuw token zou elke
-        //    gedeelde link breken zonder dat iemand daarom vroeg.
-        const { share: existing, known: canonicalKnown } = await liveCanonicalShare(wp);
-        // ONBEKEND IS HIER GEEN "er is er nog geen". Kon de huidige canonieke
-        // share niet gelezen worden, dan leest `existing === null` hieronder als
-        // "maak er maar een": er komt een TWEEDE levende link bij en het
-        // intrekken van de oude wordt overgeslagen — die blijft dus staan met
-        // het OUDE wachtwoord of de oude ontvangerslijst, terwijl het scherm
-        // belooft dat links die mensen al hebben stoppen te werken. Onbekend
-        // versmalt: niets publiceren, en het zeggen. De kolomkeuze uit stap 1
-        // is al opgeslagen — die kant op (smaller) is veilig, en het antwoord
-        // beweert niets anders.
-        if (!canonicalKnown) {
-            return res.status(500).json({
-                error: 'Could not read the current public link for this page, so nothing was published. The column choice was saved; the existing link is unchanged. Please try again.',
-            });
-        }
-        const accessMode = body.accessMode || (existing ? existing.accessMode : 'unlisted');
-        const requested = {
-            accessMode,
-            // Alleen een wachtwoord-share heeft er iets aan. `accessOptionsChanged`
-            // telt elk meegestuurd wachtwoord als een wijziging, en het paneel
-            // houdt een eerder getypt wachtwoord vast nadat de keuze terug is
-            // gezet op "unlisted" — dus elke opslag daarna sloeg een NIEUW token
-            // en brak elke link die mensen al hadden.
-            password: accessMode === 'password' ? body.password : undefined,
-            allowedEmails: body.allowedEmails,
-        };
-        let expiresAt;
-        try { expiresAt = parseExpiry(body.expiresAt, existing); }
-        catch (e) { return res.status(400).json({ error: e.message }); }
-
-        if (existing && !audience.accessOptionsChanged(existing, requested)) {
-            if (body.expiresAt !== undefined) {
-                await publicShareStore.updateExpiry(existing.id, existing.createdBy, expiresAt);
-            }
-            try {
-                await webpageSnapshot.writeSnapshot({ shareId: existing.id, webpageId: wp.id, ownerId: wp.userId });
-            } catch (e) {
-                log.error('[Webpages/audience] re-snapshot failed:', e);
-                return res.status(500).json({ error: 'Failed to publish this page' });
-            }
-            // De poort geldt voor élke levende link van deze pagina, niet
-            // alleen voor het adres — anders serveert een losse /share/<token>
-            // de zojuist weggevinkte kolom gewoon verder.
-            try {
-                await reSnapshotOtherLiveShares(wp, existing.id);
-            } catch (e) {
-                log.error('[Webpages/audience] not every public link was narrowed:', e);
-                return res.status(500).json({ error: 'Column choice saved, but not every public link could be updated' });
-            }
-            const fresh = await webpageStore.getWebpage(wp.id, userId);
-            return res.json(await buildModel(req, fresh || wp));
-        }
-
-        let created;
-        try {
-            created = await publicShareStore.createShare({
-                webpageId: wp.id,
-                createdBy: userId,
-                organizationId: wp.organizationId || null,
-                accessMode: requested.accessMode,
-                password: requested.password,
-                allowedEmails: audience.normalizeEmails(requested.allowedEmails),
-                expiresAt,
-                title: wp.name || '',
-            });
-        } catch (e) {
-            // createShare gooit op een ongeldige modus, een te kort wachtwoord
-            // of een lege ontvangerslijst — allemaal invoerfouten van dit
-            // scherm, dus 400 met de eigen tekst.
-            return res.status(400).json({ error: e.message || 'Could not create the public link' });
-        }
-
-        // 4. bytes vóór wijzer.
-        try {
-            await webpageSnapshot.writeSnapshot({ shareId: created.share.id, webpageId: wp.id, ownerId: wp.userId });
-        } catch (e) {
-            await publicShareStore.deleteShare(created.share.id, userId).catch(() => {});
-            log.error('[Webpages/audience] snapshot failed:', e);
-            return res.status(500).json({ error: 'Failed to publish this page' });
-        }
-        await publicAddress.setCanonicalShare(wp.id, userId, created.share.id);
-        // De oude canonieke pas hierna intrekken: tot dit punt was zij het
-        // werkende adres, en een fout hierboven mocht haar niet meenemen.
-        if (existing) {
-            await publicShareStore.revokeShare(existing.id, existing.createdBy).catch(() => {});
-            await publicShareStore.deleteShare(existing.id, existing.createdBy).catch(() => {});
-        }
-        // Pas hierna de overige levende shares: de zojuist ingetrokken oude
-        // canonieke hoeft niet meer herschreven te worden, de losse shares wel.
-        try {
-            await reSnapshotOtherLiveShares(wp, created.share.id);
-        } catch (e) {
-            log.error('[Webpages/audience] not every public link was narrowed:', e);
-            return res.status(500).json({ error: 'Column choice saved, but not every public link could be updated' });
-        }
-
         const fresh = await webpageStore.getWebpage(wp.id, userId);
-        const model = await buildModel(req, fresh || { ...wp, slug, publicShareId: created.share.id });
-        // Het onbewerkte token gaat één keer mee terug, net als bij POST
-        // /:id/public-shares: er bestaat een tweede, token-gebaseerd adres
-        // (/share/<token>) en dat is voor de eigenaar de enige kans om het te
-        // zien. Het ADRES dat het scherm toont blijft /w/<slug>.
-        res.json({ ...model, rawToken: created.rawToken });
-    } catch (err) {
-        log.error('[Webpages/audience] publish failed:', err);
-        res.status(500).json({ error: 'Failed to change who can see this page' });
+        return res.json(await buildModel(req, fresh || { ...wp, publicShareId: null }));
     }
+
+    // ── openbaar AAN ────────────────────────────────────────────────
+    // 1. de poort. Altijd, en vóór alles: de snapshot verderop rendert
+    //    bf-table uit precies deze lijst, dus dit moet al opgeslagen zijn
+    //    voordat er ook maar één byte naar buiten gaat.
+    const current = await bridgeGrants.getBridgeGrants(wp.id);
+    const narrowed = audience.applyColumnChoice(current.tables, body.publicColumns);
+    const saved = await bridgeGrants.updateBridgeGrants(wp.id, userId, { tables: narrowed });
+    if (!saved) return res.status(404).json({ error: 'Webpage not found' });
+    // `applyColumnChoice` versmalt vandaag alleen `publicColumns` en laat de
+    // rest van de binding staan, dus de index verandert er meestal niet van.
+    // De aanroep staat er toch: de regel is "elk pad dat de bindingen
+    // vastlegt", niet "elk pad waarvan we vandaag weten dat het ertoe doet".
+    webpageUsageSync.reconcileWebpageUsageDetached(wp.id);
+
+    // 2. het adres. Idempotent — een pagina die eerder openbaar was, houdt
+    //    hetzelfde /w/<slug>.
+    const slug = await publicAddress.ensureSlug(wp.id, userId, wp.name);
+    if (!slug) return res.status(404).json({ error: 'Webpage not found' });
+
+    // 3. de share. Bestaat er al een levende canonieke met dezelfde
+    //    toegangsinstelling, dan blijft die — een nieuw token zou elke
+    //    gedeelde link breken zonder dat iemand daarom vroeg.
+    const { share: existing, known: canonicalKnown } = await liveCanonicalShare(wp);
+    // ONBEKEND IS HIER GEEN "er is er nog geen". Kon de huidige canonieke
+    // share niet gelezen worden, dan leest `existing === null` hieronder als
+    // "maak er maar een": er komt een TWEEDE levende link bij en het
+    // intrekken van de oude wordt overgeslagen — die blijft dus staan met
+    // het OUDE wachtwoord of de oude ontvangerslijst, terwijl het scherm
+    // belooft dat links die mensen al hebben stoppen te werken. Onbekend
+    // versmalt: niets publiceren, en het zeggen. De kolomkeuze uit stap 1
+    // is al opgeslagen — die kant op (smaller) is veilig, en het antwoord
+    // beweert niets anders.
+    if (!canonicalKnown) {
+        throw new HttpError(500, 'public_link_unreadable',
+            'Could not read the current public link for this page, so nothing was published. The column choice was saved; the existing link is unchanged. Please try again.');
+    }
+    const accessMode = body.accessMode || (existing ? existing.accessMode : 'unlisted');
+    const requested = {
+        accessMode,
+        // Alleen een wachtwoord-share heeft er iets aan. `accessOptionsChanged`
+        // telt elk meegestuurd wachtwoord als een wijziging, en het paneel
+        // houdt een eerder getypt wachtwoord vast nadat de keuze terug is
+        // gezet op "unlisted" — dus elke opslag daarna sloeg een NIEUW token
+        // en brak elke link die mensen al hadden.
+        password: accessMode === 'password' ? body.password : undefined,
+        allowedEmails: body.allowedEmails,
+    };
+    let expiresAt;
+    try { expiresAt = parseExpiry(body.expiresAt, existing); }
+    catch (e) { return res.status(400).json({ error: e.message }); }
+
+    if (existing && !audience.accessOptionsChanged(existing, requested)) {
+        if (body.expiresAt !== undefined) {
+            await publicShareStore.updateExpiry(existing.id, existing.createdBy, expiresAt);
+        }
+        await webpageSnapshot.writeSnapshot({ shareId: existing.id, webpageId: wp.id, ownerId: wp.userId });
+        // De poort geldt voor élke levende link van deze pagina, niet
+        // alleen voor het adres — anders serveert een losse /share/<token>
+        // de zojuist weggevinkte kolom gewoon verder.
+        await reSnapshotOtherLiveShares(wp, existing.id).catch(linksNotNarrowed);
+        const fresh = await webpageStore.getWebpage(wp.id, userId);
+        return res.json(await buildModel(req, fresh || wp));
+    }
+
+    let created;
+    try {
+        created = await publicShareStore.createShare({
+            webpageId: wp.id,
+            createdBy: userId,
+            organizationId: wp.organizationId || null,
+            accessMode: requested.accessMode,
+            password: requested.password,
+            allowedEmails: audience.normalizeEmails(requested.allowedEmails),
+            expiresAt,
+            title: wp.name || '',
+        });
+    } catch (e) {
+        // createShare gooit op een ongeldige modus, een te kort wachtwoord
+        // of een lege ontvangerslijst — allemaal invoerfouten van dit
+        // scherm, dus 400 met de eigen tekst.
+        return res.status(400).json({ error: e.message || 'Could not create the public link' });
+    }
+
+    // 4. bytes vóór wijzer.
+    try {
+        await webpageSnapshot.writeSnapshot({ shareId: created.share.id, webpageId: wp.id, ownerId: wp.userId });
+    } catch (e) {
+        await publicShareStore.deleteShare(created.share.id, userId).catch(() => {});
+        throw e;
+    }
+    await publicAddress.setCanonicalShare(wp.id, userId, created.share.id);
+    // De oude canonieke pas hierna intrekken: tot dit punt was zij het
+    // werkende adres, en een fout hierboven mocht haar niet meenemen.
+    if (existing) {
+        await publicShareStore.revokeShare(existing.id, existing.createdBy).catch(() => {});
+        await publicShareStore.deleteShare(existing.id, existing.createdBy).catch(() => {});
+    }
+    // Pas hierna de overige levende shares: de zojuist ingetrokken oude
+    // canonieke hoeft niet meer herschreven te worden, de losse shares wel.
+    await reSnapshotOtherLiveShares(wp, created.share.id).catch(linksNotNarrowed);
+
+    const fresh = await webpageStore.getWebpage(wp.id, userId);
+    const model = await buildModel(req, fresh || { ...wp, slug, publicShareId: created.share.id });
+    // Het onbewerkte token gaat één keer mee terug, net als bij POST
+    // /:id/public-shares: er bestaat een tweede, token-gebaseerd adres
+    // (/share/<token>) en dat is voor de eigenaar de enige kans om het te
+    // zien. Het ADRES dat het scherm toont blijft /w/<slug>.
+    res.json({ ...model, rawToken: created.rawToken });
 });
 
 /**
