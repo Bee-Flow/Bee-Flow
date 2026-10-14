@@ -22,7 +22,7 @@ export type AppEditorAction =
     | { type: 'set_screen'; screenId: string }
     | { type: 'set_mode'; mode: EditorMode }
     | { type: 'set_stream_lock'; streamLock: boolean }
-    | { type: 'set_recent_ids'; ids: Iterable<string>; delays?: Map<string, number> }
+    | { type: 'set_recent_ids'; ids: Iterable<string>; delays?: Map<string, number> | null }
     | { type: 'clear_recent_id'; nodeId: string }
     | { type: 'clear_recent_ids' }
     | { type: 'set_version'; version: number | string | null }
