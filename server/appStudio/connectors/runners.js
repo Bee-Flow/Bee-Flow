@@ -7,9 +7,9 @@
 'use strict';
 
 const {
-    MAX_CONNECTOR_ROWS, REST_TIMEOUT_MS, MAX_REST_BYTES, MAX_CHAIN_STEPS, MAX_CHAIN_CALLS, connectorError, isPlainObject, sanitizeViewerParams, declaredParamKeys, toRows, getByPath, integrationIdsFor, providerFor,
+    MAX_CONNECTOR_ROWS, REST_TIMEOUT_MS, MAX_REST_BYTES, MAX_CHAIN_STEPS, MAX_CHAIN_CALLS, connectorError, isPlainObject, sanitizeViewerParams, declaredParamKeys, toRows, getByPath, integrationIdsFor,
 } = require('./shared');
-const { resolveViewerExecution, dispatchTool } = require('./dispatch');
+const { providerFor, resolveViewerExecution, dispatchTool } = require('./dispatch');
 const { applyChainStep } = require('./chain');
 
 async function runIntegrationTool(connector, { app, viewerId, params, systemArgs, trace, deps }) {

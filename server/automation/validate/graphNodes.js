@@ -8,11 +8,10 @@
 const { SECONDARY_TRIGGER_KINDS, VALID_STEP_TYPES } = require('./constants');
 const { isObject, validatePosition } = require('./helpers');
 const { checkBindableStepId } = require('./fieldChecks');
-const { checkPinnedOutput } = require('./stepRules');
 const { checkScheduleTrigger } = require('./graphTrigger');
 
 /** definition.triggers[]: extra entry points (root scope only). */
-function checkAdditionalTriggers({ graph, p, pushE, isContractScope, contractNoun }, ids, stepById) {
+function checkAdditionalTriggers({ graph, p, pushE, isContractScope, contractNoun, checkPinnedOutput }, ids, stepById) {
     if (isContractScope) {
         pushE({ code: 'triggers.not_supported_here', severity: 'error', path: p('triggers'), message: `A ${contractNoun} cannot declare additional triggers — only the automation root can.`, hint: 'Remove the `triggers` array from this scope.' });
     } else if (!Array.isArray(graph.triggers)) {

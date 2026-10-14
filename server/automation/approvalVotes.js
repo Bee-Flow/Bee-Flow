@@ -10,9 +10,17 @@
 const automationStore = require('../stores/automationStore');
 const {
     deploymentRequesterId, currentStage, isSeatedInStage, evaluateStage, seatIndexFor, evaluatePanel,
-    mergeVoteAnswers, voteSummary, panelProgress, isFinalApprover, nextStageRemindAt,
+    mergeVoteAnswers, voteSummary, panelProgress, isFinalApprover,
 } = require('./approvalRulebook');
 const { outcome, userDisplayName, finalizeDecision } = require('./approvalDecision');
+
+/** The next stage's reminder deadline, or undefined to leave the clock alone. */
+function nextStageRemindAt(approval, stage) {
+    const hours = Number(stage?.remindAfterHours);
+    if (!Number.isFinite(hours) || hours < 1) return undefined;
+    const { approvalClocks } = require('../core/automationRunner/approvalLifecycle');
+    return approvalClocks({ remindAfterHours: hours, expiresAt: approval.expiresAt || null }).remindAt;
+}
 
 /**
  * One vote on a STAGED approval. The caller (decide) has already run every
@@ -301,4 +309,4 @@ async function notifyFinalApprover(approval) {
     }).catch(() => {});
 }
 
-module.exports = { castStageVote, castPanelVote };
+module.exports = { castStageVote, castPanelVote, nextStageRemindAt };

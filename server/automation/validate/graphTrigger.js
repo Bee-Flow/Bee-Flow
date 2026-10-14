@@ -17,7 +17,6 @@ const { nextScheduledRunAt } = require('../holidays');
 // scheduler runs" can never drift apart.
 const { DEFAULT_SCHEDULE_TZ } = require('../triggerColumns');
 const { isObject, validatePosition } = require('./helpers');
-const { checkPinnedOutput } = require('./stepRules');
 
 /**
  * The schedule checks, shared by the primary trigger and every additional
@@ -201,7 +200,7 @@ if (scope === 'root' && trigger.kind === 'app_event'
  * scope), position, pinned sample data and deliverability.
  */
 function checkPrimaryTrigger(ctx, deliverableEvents) {
-    const { graph, trigger, p, pushE, isContractScope, contractNoun } = ctx;
+    const { graph, trigger, p, pushE, isContractScope, contractNoun, checkPinnedOutput } = ctx;
     if (!trigger.id || typeof trigger.id !== 'string') pushE({ code: 'trigger.id_missing', severity: 'error', path: p('trigger.id'), message: 'trigger.id is required.', hint: 'Re-run builder_propose_trigger; it generates a stable id.' });
     if (isContractScope) {
         // Layer/Step graphs: the trigger is the input contract — kind is fixed.

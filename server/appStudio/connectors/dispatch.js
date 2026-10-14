@@ -8,8 +8,22 @@
 
 const log = require('../../telemetry/log');
 const {
-    connectorError, isPlainObject, integrationIdsFor, providerFor,
+    connectorError, isPlainObject, integrationIdsFor,
 } = require('./shared');
+
+/**
+ * The OAuth provider behind an integration id, used as buildUserAuth's
+ * providerHint. Without it, a user who has connected BOTH Google and Microsoft
+ * gets whichever `Object.entries` happened to yield first as the session's
+ * primary accessToken — so a Gmail connector could be handed a Microsoft token.
+ */
+function providerFor(integrationId) {
+    if (!integrationId) return null;
+    try {
+        const { providersForIntegrations } = require('../../auth/automationAuth');
+        return providersForIntegrations([integrationId])[0] || null;
+    } catch { return null; }
+}
 
 /**
  * Resolve WHO a runAs:'viewer' integration_tool connector executes as.
@@ -178,4 +192,4 @@ async function dispatchTool(tool, args, exec, deps, app, connector) {
     return result;
 }
 
-module.exports = { resolveViewerExecution, readRowPath, connectionError, dispatchTool };
+module.exports = { providerFor, resolveViewerExecution, readRowPath, connectionError, dispatchTool };

@@ -23,10 +23,10 @@ const log = require('../telemetry/log');
 const {
     isRunless, isOwnDeploymentRequest, hasPanel, isSeatedOnPanel, isFinalApprover, hasStages, currentStage,
     isSeatedInStage, isChainParticipant, evaluateStage, seatIndexFor, evaluatePanel, mergeVoteAnswers, voteSummary,
-    panelProgress, canDecide, canView, nextStageRemindAt,
+    panelProgress, canDecide, canView,
 } = require('./approvalRulebook');
 const { outcome, recordDeploymentOutcome, userDisplayName, deciderName, finalizeDecision } = require('./approvalDecision');
-const { castStageVote, castPanelVote } = require('./approvalVotes');
+const { castStageVote, castPanelVote, nextStageRemindAt } = require('./approvalVotes');
 
 /**
  * Lazy backfill: a run paused before the approvals table existed (or whose

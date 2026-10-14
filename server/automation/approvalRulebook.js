@@ -311,18 +311,9 @@ function canView(approval, viewer) {
     return false;
 }
 
-/** The next stage's reminder deadline, or undefined to leave the clock alone. */
-function nextStageRemindAt(approval, stage) {
-    const hours = Number(stage?.remindAfterHours);
-    if (!Number.isFinite(hours) || hours < 1) return undefined;
-    const { approvalClocks } = require('../core/automationRunner/approvalLifecycle');
-    return approvalClocks({ remindAfterHours: hours, expiresAt: approval.expiresAt || null }).remindAt;
-}
-
 module.exports = {
     isRunless, isOwnDeploymentRequest, deploymentRequesterId, votableSeatCount,
     hasPanel, isSeatedOnPanel, isFinalApprover,
     hasStages, currentStage, isSeatedInStage, isChainParticipant, evaluateStage, seatIndexFor,
     evaluatePanel, mergeVoteAnswers, voteSummary, neededVotes, panelProgress, canDecide, canView,
-    nextStageRemindAt,
 };

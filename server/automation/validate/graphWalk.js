@@ -7,7 +7,6 @@
 const { VALID_STEP_TYPES } = require('./constants');
 const { isObject } = require('./helpers');
 const { checkBindableStepId } = require('./fieldChecks');
-const { createStepChecker } = require('./stepRules');
 
 /**
  * @param {object} ctx   validateGraph's context
@@ -16,7 +15,7 @@ const { createStepChecker } = require('./stepRules');
  *                      availableAgents, topicClassifier).
  */
 function walkGraphSteps(ctx, walk) {
-    const { graph, trigger, p, pushE, pushW, isContractScope } = ctx;
+    const { graph, trigger, p, pushE, pushW, isContractScope, createStepChecker } = ctx;
     const { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier } = walk;
     const seenSoFar = new Set([trigger.id]); // outputs available
     const checkStep = createStepChecker({

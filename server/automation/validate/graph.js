@@ -15,6 +15,10 @@ const { isObject, topoOrder } = require('./helpers');
 const { collectCallLayerSteps, validateCallLayerStep } = require('./callLayer');
 const { collectCallBlockSteps, validateCallBlockStep } = require('./callBlock');
 // The rule groups, one module each; validateGraph runs them in phase order.
+// The step rules are handed to the rule modules through ctx rather than
+// required there: stepRules sits inside the server's import cycle, and the rule
+// modules need not.
+const { createStepChecker, checkPinnedOutput } = require('./stepRules');
 const { checkPrimaryTrigger } = require('./graphTrigger');
 const { collectGraphNodes, checkContractOutputs } = require('./graphNodes');
 const { checkEdges } = require('./graphEdges');
@@ -131,7 +135,7 @@ function validateGraph(graph, pathPrefix, opts) {
 
     // Trigger — ensure it has an id and a kind.
     const trigger = graph.trigger;
-    const ctx = { graph, pathPrefix, scope, p, pushE, pushW, isContractScope, contractNoun, trigger };
+    const ctx = { graph, pathPrefix, scope, p, pushE, pushW, isContractScope, contractNoun, trigger, checkPinnedOutput, createStepChecker };
     checkPrimaryTrigger(ctx, deliverableEvents);
 
     const { ids, stepById } = collectGraphNodes(ctx);
