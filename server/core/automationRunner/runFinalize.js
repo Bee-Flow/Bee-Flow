@@ -21,7 +21,7 @@ const { sanitizeError } = require('../privacy/errorSanitizer');
 const { classifyUnknownError, remediationFor } = require('../automationErrors');
 const { bindingMissSummary } = require('./bindingMisses');
 const { summariseDefinition } = require('../../automation/summarise');
-const holidays = require('../../automation/holidays');
+const holidays = require('../scheduling/holidays');
 const log = require('../../telemetry/log');
 
 /**

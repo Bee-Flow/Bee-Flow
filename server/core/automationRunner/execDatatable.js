@@ -70,7 +70,7 @@
 'use strict';
 
 const { resolveValue, resolveInputs } = require('../automationModel/bind');
-const { hasPlaceholder } = require('../../automation/validate/refPaths');
+const { hasPlaceholder } = require('../automationModel/refPaths');
 const {
     DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT, PENDING_DATATABLE_RE,
 } = require('../automationModel/constants');

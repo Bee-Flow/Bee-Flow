@@ -76,7 +76,7 @@ function nextRunFor(schedule, fromTs = Date.now(), {
 
     if (s && typeof s.cron === 'string' && s.cron && !consecutiveErrors) {
         try {
-            const iso = require('../../automation/cron').nextRunAt(s.cron, s.tz || undefined, fromTs);
+            const iso = require('./cron').nextRunAt(s.cron, s.tz || undefined, fromTs);
             if (iso) {
                 return retryFloor && Date.parse(iso) < retryFloor
                     ? new Date(retryFloor).toISOString()

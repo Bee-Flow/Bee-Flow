@@ -31,9 +31,9 @@ require('../automationModel/sideEffectMap');
 require('../../automation/outputSchemas');
 require('../../automation/shapeCache');
 require('../../automation/summarise');
-require('../../automation/cron');
+require('../scheduling/cron');
 require('../../automation/codeSandbox');
-require('../../automation/notificationDefaults');
+require('../automationModel/notificationDefaults');
 require('../runEventBus');
 // Feature C — http_request credential injection. MASK_VALUES is the Symbol-
 // keyed mask array on runState: unreachable from templates/exprs/code steps

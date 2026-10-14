@@ -79,7 +79,7 @@ mock('../../../db', {
 mock('../engine', { INSTANCE_ID: 'runner-test' });
 mock('../execution', { executeAutomation: async () => ({}) });
 mock('../cancellation', { ACTIVE_RUNS: new Map() });
-mock('../../../automation/cron', { nextRunAt: () => null });
+mock('../../scheduling/cron', { nextRunAt: () => null });
 mock('./reapers', {
     reapStuckAutomations: async () => { calls.reapStuck += 1; },
     reapOrphanFormUploads: async () => { calls.reapOrphan += 1; },

@@ -202,7 +202,7 @@ function syntheticPayload(meeting) {
 function triggerFires(trigger, payload) {
     try {
         const { pickMatcher } = require('../../automation/triggerBus/filters');
-        const { applyDslFilter } = require('../../automation/triggers/dslFilters');
+        const { applyDslFilter } = require('../automationModel/dslFilters');
         const base = pickMatcher(MEETING_PROVIDER, MEETING_EVENT);
         return applyDslFilter(payload, trigger?.appEvent?.filter ?? null, base) === true;
     } catch (e) {

@@ -179,6 +179,8 @@ jobs:
               # fieldDiff.js reads paths with the shared grammar
               - 'server/automation/expr.js'
               - 'server/automation/validate/refPaths.js'
+              # ...a re-export of this one
+              - 'server/core/automationModel/refPaths.js'
               - 'server/core/automationRunner/definitionForRun.js'
               - 'server/core/http/errors.js'
               # required by errors.js

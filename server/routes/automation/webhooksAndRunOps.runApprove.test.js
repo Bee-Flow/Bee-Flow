@@ -80,7 +80,7 @@ mock(path.join(SERVER, 'core/automationRunner'), {
     executeAutomation: async (a, opts) => { calls.execute.push({ id: a.id, needsFirstRunConfirm: a.needsFirstRunConfirm, ...opts }); return { id: 'run2', status: 'success' }; },
     requestCancel: async () => null,
 });
-mock(path.join(SERVER, 'automation/publicUrl'), {
+mock(path.join(SERVER, 'utils/publicUrl'), {
     webhookUrlForSlug: (slug) => `https://example.test/wh/${slug}`,
     formUrlForToken: (t) => `https://example.test/f/${t}`,
 });

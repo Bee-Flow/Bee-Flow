@@ -32,7 +32,7 @@ const noopMw = () => (req, res, next) => next();
 // bare require never hits the DB / network / background timers.
 mock(path.join(SERVER, 'stores/automationStore'), {});
 mock(path.join(SERVER, 'stores/configStore'), {});
-mock(path.join(SERVER, 'automation/cron'), {});
+mock(path.join(SERVER, 'core/scheduling/cron'), {});
 mock(path.join(SERVER, 'automation/validate'), { validateDefinition: () => ({ valid: true }) });
 mock(path.join(SERVER, 'automation/summarise'), {});
 mock(path.join(SERVER, 'automation/deliverableEvents'), {});

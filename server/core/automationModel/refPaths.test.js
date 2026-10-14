@@ -13,7 +13,7 @@ const {
     refHead, templateRefs, hasPlaceholder, isBareRefString, relativePathTokens, splitPathHead,
     findRefPaths, suggestPathSpelling, suggestExprSpelling, tryParseExpr, exprStepIds,
 } = require('./refPaths');
-const { getRelativePath, parsePath } = require('../expr');
+const { getRelativePath, parsePath } = require('../../shared/expr/index.mjs');
 
 test('refHead: root and step id for every spelling, the head read even when the tail breaks', () => {
     assert.deepStrictEqual([refHead('steps.s1.output.x').root, refHead('steps.s1.output.x').second], ['steps', 's1']);

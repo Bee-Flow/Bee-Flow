@@ -8,7 +8,7 @@
 const automationStore = require('../../stores/automationStore');
 // The 256 KB truncation sentinel is persisted under an ordinary 'success', so
 // every replay-seeding path has to recognise it as "not data" (BFSF-360).
-const { isTruncatedOutput, fullOutputRefOf } = require('../../automation/payloadTruncation');
+const { isTruncatedOutput, fullOutputRefOf } = require('../automationModel/payloadTruncation');
 
 // ── Replay seeding for partial runs ─────────────────────
 //

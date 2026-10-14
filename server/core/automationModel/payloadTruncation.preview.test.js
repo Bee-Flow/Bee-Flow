@@ -21,7 +21,7 @@ const assert = require('node:assert/strict');
 const {
     truncatePayload, isTruncatedOutput, shapePreview, DEFAULT_MAX_BYTES, PREVIEW_MAX_BYTES,
 } = require('./payloadTruncation');
-const { getPath } = require('./expr');
+const { getPath } = require('../../shared/expr/index.mjs');
 
 const part = (i) => ({
     mimeType: 'multipart/alternative',

@@ -13,7 +13,7 @@
 
 const automationStore = require('../../../stores/automationStore');
 const { pool } = require('../../../db');
-const holidays = require('../../../automation/holidays');
+const holidays = require('../../scheduling/holidays');
 const { holidaySkipFor } = require('./holidaySkip');
 // What the ticks drive in automation/ and jobs/ (both above core): see ../featurePorts.js.
 const { runnerPort } = require('../featurePorts');

@@ -21,7 +21,7 @@
 'use strict';
 
 const { definitionForRun } = require('../definitionForRun');
-const holidays = require('../../../automation/holidays');
+const holidays = require('../../scheduling/holidays');
 
 /**
  * @param {object} automation  the claimed automation row

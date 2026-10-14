@@ -33,7 +33,7 @@ stub('../stores/configStore', {
     getConfig: async () => null, // → /events/github answers 503 "not configured"
     getSecret: async () => null,
 });
-stub('../automation/cron', {});
+stub('../core/scheduling/cron', {});
 stub('../automation/validate', {});
 stub('../automation/summarise', {});
 stub('../automation/deliverableEvents', {});

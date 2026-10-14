@@ -45,9 +45,9 @@
 const log = require('../../telemetry/log');
 const {
     normalizeNotificationSettings, normalizeEventSettings, urgencyToCategory, foldsIntoDigest,
-} = require('../../automation/notificationDefaults');
-const { resolveRecipientIds } = require('../../automation/notificationRecipients');
-const { shortMessage, talkText } = require('../../automation/notificationMessages');
+} = require('../automationModel/notificationDefaults');
+const { resolveRecipientIds } = require('../automationModel/notificationRecipients');
+const { shortMessage, talkText } = require('../automationModel/notificationMessages');
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -70,7 +70,7 @@ function defaultDeps() {
         deliverApprovalCard: (o) => approvalDelivery().deliverApprovalToNextcloud(o),
         absoluteUrl: (path) => {
             if (!path || /^https?:\/\//i.test(path)) return path || null;
-            try { return `${require('../../automation/publicUrl').resolvePublicBaseUrl()}${path}`; } catch { return path; }
+            try { return `${require('../../utils/publicUrl').resolvePublicBaseUrl()}${path}`; } catch { return path; }
         },
         appPaths: require('../../utils/appPaths'),
     };

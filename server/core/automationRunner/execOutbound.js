@@ -17,7 +17,7 @@ const { MASK_VALUES, resolveHttpAuthHeaders, evictToken } = require('./httpAuth'
 // answer lives there, so this file gains call sites and no policy.
 const httpCache = require('./httpCache');
 const { fetchFollowingSameHost } = require('./sameHostFetch');
-const { HTTP_RESPONSE_CAP, readBodyBounded } = require('../../automation/httpResponseLimits');
+const { HTTP_RESPONSE_CAP, readBodyBounded } = require('../http/httpResponseLimits');
 // Every secret this run can see, for the one refusal the visible cache tier
 // adds: a credential must never become a permanent row (execDatatable's own
 // refusal #4, and a key can sit in a URL PATH segment as well as in a query).

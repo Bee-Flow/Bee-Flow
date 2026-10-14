@@ -10,7 +10,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { analyzeCode, blockingFindings } = require('./index');
+const { analyzeCode, blockingFindings } = require('.');
 
 const BENIGN = [
     'return inputs.items.map((i) => ({ ...i, total: i.qty * i.price }));',

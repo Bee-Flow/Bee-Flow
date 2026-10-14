@@ -61,7 +61,7 @@ mock(path.join(SERVER, 'core/automationRunner'), {
     executeAutomation: async (...a) => { touched.push({ what: 'executeAutomation', args: a }); return { lastOutput: null }; },
     requestCancel: async () => null,
 });
-mock(path.join(SERVER, 'automation/publicUrl'), {
+mock(path.join(SERVER, 'utils/publicUrl'), {
     webhookUrlForSlug: (slug) => `https://example.test/wh/${slug}`,
     formUrlForToken: (t) => `https://example.test/f/${t}`,
 });
