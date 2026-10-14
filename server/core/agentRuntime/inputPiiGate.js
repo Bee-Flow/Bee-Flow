@@ -5,9 +5,12 @@
  *
  * Single backend: the PII Guard service (GLiNER). If the guard isn't
  * installed, detectPii() returns null and the chat path fails open.
+ *
+ * The detector, the scan-phase status line and the DLP runner are handed in
+ * as `d` ({ validateInputForPii, startPrivacyScanPhase, messageText,
+ * dlpRunner() }) by ./guardrailsRunner: they sit in the server's large import
+ * cycle, which this module stays out of.
  */
-const { validateInputForPii } = require('../privacy/piiDetection');
-const { startPrivacyScanPhase, messageText } = require('./phaseEvents');
 const guardrailEventStore = require('../../stores/guardrailEventStore');
 const log = require('../../telemetry/log');
 
@@ -24,7 +27,7 @@ const PRIVACY_MODE_RULES = `
  * (each null/unchanged when the gate had nothing to say). `piiReport` is
  * filled in place (validate.js `options.report`).
  */
-async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage }) {
+async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage }, d) {
     const out = { moderationViolation: null, processedUserMessage, userPrivacyMeta: null, assistantTokenisationInfo: null };
     try {
         const piiMessages = [
@@ -40,22 +43,22 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
         // starting from 1 again.
         let existingTokenMap = null;
         try {
-            existingTokenMap = await require('../dlp/dlpRunner').getConversationTokenMapAsync(conversationId);
+            existingTokenMap = await d.dlpRunner().getConversationTokenMapAsync(conversationId);
         } catch (_) { /* non-fatal — worst case we start fresh, as before */ }
 
         // Same status line the direct-chat path shows: a big paste is scanned
         // window by window and takes minutes, and the agent path reported
         // nothing at all while it did.
-        const _ps = startPrivacyScanPhase(onEvent, messageText(messages[messages.length - 1]));
+        const _ps = d.startPrivacyScanPhase(onEvent, d.messageText(messages[messages.length - 1]));
         let piiResult;
         try {
-            piiResult = await validateInputForPii(piiMessages, orgPiiEnabled, orgShield, null, existingTokenMap, { vaultUserId: userId || null, onProgress: _ps.onProgress, report: piiReport });
+            piiResult = await d.validateInputForPii(piiMessages, orgPiiEnabled, orgShield, null, existingTokenMap, { vaultUserId: userId || null, onProgress: _ps.onProgress, report: piiReport });
         } finally {
             _ps.end();
         }
 
         if (piiResult && piiResult.tokenizedText) {
-            applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx });
+            applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx }, d);
         }
     } catch (piiError) {
         out.moderationViolation = piiBlockFromError(piiError, { onEvent, eventCtx });
@@ -64,7 +67,7 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
 }
 
 /** Redact/tokenise mode: rewrite the user message, tell the model and the client, keep the persistence meta. */
-function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx }) {
+function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx }, d) {
     // Replace the user message with the tokenized version
     const lastMsg = messages[messages.length - 1];
     if (lastMsg && lastMsg.role === 'user') {
@@ -86,7 +89,7 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
     // response. Without this step the tokens leak through to the UI
     // whenever DLP itself is disabled.
     try {
-        require('../dlp/dlpRunner').mergeTokenMap(conversationId, piiResult.tokenMap);
+        d.dlpRunner().mergeTokenMap(conversationId, piiResult.tokenMap);
     } catch (_) { /* non-fatal — missing dlpRunner just means no restoration */ }
 
     // Let the LLM know that the placeholders in the user's message are

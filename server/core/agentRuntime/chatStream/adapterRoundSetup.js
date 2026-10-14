@@ -1,13 +1,16 @@
 /**
  * What ./nativeAdapterStream hands the provider adapter, and what it does
  * with the adapter's thinking-part events and its usage afterwards.
+ *
+ * The outbound token guard, the tier defaults and the usage store are handed
+ * in as `d` ({ applyTokenMapToMessages, tierDefaults(), usageStore }) by
+ * ./nativeAdapterStream: they sit in the server's large import cycle, which
+ * this module stays out of.
  */
-const usageStore = require('../../../stores/usageStore');
 const { usageLogFields } = require('../../providers/usageNormalizer');
 const testChatMod = require('../testChat');
 const { placeVolatileBlock } = require('../../llm/promptLayout');
 const { sanitizeMessages } = require('../../../utils/messageUtils');
-const { applyTokenMapToMessages } = require('../../dlp/applyTokenMapToOutbound');
 const { toolSetFingerprint, systemPrefixFingerprint } = require('../../llm/promptCacheStability');
 const log = require('../../../telemetry/log');
 
@@ -30,7 +33,7 @@ const log = require('../../../telemetry/log');
  * (local), and a self-hosted prefix cache then keeps the history instead of
  * re-reading it behind the clock line.
  */
-function buildAdapterMessages({ effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, conversation }) {
+function buildAdapterMessages({ effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, conversation }, d) {
     const _volatileMessage = effectiveVolatilePrompt.trim()
         ? { role: 'system', content: effectiveVolatilePrompt.trimStart() }
         : null;
@@ -40,16 +43,16 @@ function buildAdapterMessages({ effectiveSystemPrompt, effectiveVolatilePrompt, 
         ...sanitizeMessages(finalMessages),
     ];
     if (_volatileMessage) placeVolatileBlock(_layout, _volatileMessage);
-    return applyTokenMapToMessages({
+    return d.applyTokenMapToMessages({
         conversationId: conversation?.id,
         messages: _layout,
     });
 }
 
 /** Generation settings from the tier, the per-turn composer choices and the attachment bump. */
-function generationOptions({ agent, modelToUse, messageMetadata, tierSettings }) {
+function generationOptions({ agent, modelToUse, messageMetadata, tierSettings }, d) {
     const isThinkingModel = modelToUse.includes('magistral');
-    const { TIER_DEFAULTS } = require('../../llm/modelResolver');
+    const TIER_DEFAULTS = d.tierDefaults();
     const tierName = (agent.model && agent.model.startsWith('tier:')) ? agent.model.substring(5) : 'fast';
     const tierDefaults = TIER_DEFAULTS[tierName] || TIER_DEFAULTS['fast'];
     const defaultMaxTokens = isThinkingModel ? 40960 : tierDefaults.maxTokens;
@@ -80,8 +83,8 @@ function generationOptions({ agent, modelToUse, messageMetadata, tierSettings })
 }
 
 /** The adapter's options for this round: generation settings, cache routing, local-runtime guards and tools. */
-function buildAdapterOptions({ agent, userId, messageMetadata, modelToUse, conversation, tools, signal, tierSettings, effectiveSystemPrompt, _adapterIsLocal, _forceFinalAnswer }) {
-    const adapterOptions = generationOptions({ agent, modelToUse, messageMetadata, tierSettings });
+function buildAdapterOptions({ agent, userId, messageMetadata, modelToUse, conversation, tools, signal, tierSettings, effectiveSystemPrompt, _adapterIsLocal, _forceFinalAnswer }, d) {
+    const adapterOptions = generationOptions({ agent, modelToUse, messageMetadata, tierSettings }, d);
 
     // Conversation-stable prompt-cache routing hint. A per-conversation
     // key keeps the (byte-stable) system+tools prefix on the same cache
@@ -187,9 +190,9 @@ function appendThinkingText(data, { _thinkingParts, _getThinkingPart }) {
 }
 
 /** Log usage for a native adapter stream (best effort). */
-async function logAdapterUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, _adapterStreamUsage, _streamCallStart }) {
+async function logAdapterUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, _adapterStreamUsage, _streamCallStart }, d) {
     try {
-        await usageStore.logUsage({
+        await d.usageStore.logUsage({
             user_id: userId,
             agent_id: agentId,
             agent_name: agent.name,

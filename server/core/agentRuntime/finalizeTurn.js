@@ -17,6 +17,13 @@ const {
     stripToolCallMarkup, restoreToolHistoryTokens, persistedThinking, synthesiseTokenisationInfo,
 } = require('./assistantMessageExtras');
 
+// The PII detector and the DLP runner, lazily, for ./assistantMessageExtras
+// (which stays out of the server's large import cycle).
+const PRIVACY = {
+    piiDetection: () => require('../privacy/piiDetection'),
+    dlpRunner: () => require('../dlp/dlpRunner'),
+};
+
 async function finalizeStreamTurn(turn) {
     const {
         useNativeAdapter, onEvent, conversation,
@@ -37,7 +44,7 @@ async function finalizeStreamTurn(turn) {
     // synthesiseTokenisationInfo).
     let _assistantTokenisationInfo = turn._assistantTokenisationInfo;
     if (!_assistantTokenisationInfo) {
-        _assistantTokenisationInfo = synthesiseTokenisationInfo({ ut: turn._ut, conversation, modelToUse, onEvent });
+        _assistantTokenisationInfo = synthesiseTokenisationInfo({ ut: turn._ut, conversation, modelToUse, onEvent }, PRIVACY);
     }
     if (_assistantTokenisationInfo) {
         if (_captureRaw && _rawResponseBuffer) {
@@ -109,14 +116,14 @@ function buildAssistantMessage(turn, fullResponse) {
     // does not know the field simply ignores it.
     if (_pendingToolCalls.length > 0) assistantMsg.pendingToolCalls = _pendingToolCalls;
     if (_toolHistory.length > 0) {
-        restoreToolHistoryTokens(_toolHistory, conversation);
+        restoreToolHistoryTokens(_toolHistory, conversation, PRIVACY);
         assistantMsg.toolHistory = _toolHistory;
     }
     if (_kbSources.length > 0) assistantMsg.kbSources = _kbSources;
     // Memories injected into this turn (ids and types only, never their
     // text), so the "used memory" chip survives a reload.
     if (Array.isArray(memoryUsed) && memoryUsed.length > 0) assistantMsg.memoryUsed = persistedMemoryUsed(memoryUsed);
-    const thinking = persistedThinking(_thinkingParts, _thinking, conversation);
+    const thinking = persistedThinking(_thinkingParts, _thinking, conversation, PRIVACY);
     if (thinking !== undefined) assistantMsg.thinking = thinking;
     return assistantMsg;
 }

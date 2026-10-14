@@ -4,13 +4,15 @@
  * ./skillActivation handler. The result is one flat bag of the bindings the
  * loop in ./turnLoop reads.
  */
-const { resolveProjectContext } = require('../contextEnrichment');
-const { setupTurn } = require('./turnSetup');
-const { assembleTurnHistory } = require('./turnHistory');
-const { runTurnPreflight } = require('./turnPreflight');
-const { createSkillActivationHandler } = require('./skillActivation');
 
-async function prepareTurn({ agentId, userId, userMessage, userAuth, onEvent, historyOverride, messageMetadata, _pendingTurnReleases, _turnCallId }) {
+/**
+ * `phases` carries the phase functions themselves ({ setupTurn,
+ * resolveProjectContext, assembleTurnHistory, runTurnPreflight,
+ * createSkillActivationHandler }), handed in by ./turnLoop: they sit in the
+ * server's large import cycle, which this module stays out of.
+ */
+async function prepareTurn({ agentId, userId, userMessage, userAuth, onEvent, historyOverride, messageMetadata, _pendingTurnReleases, _turnCallId }, phases) {
+    const { setupTurn, resolveProjectContext, assembleTurnHistory, runTurnPreflight, createSkillActivationHandler } = phases;
     // Which agent row, which model and provider, which tools, which
     // conversation — and the shared project thread's turn lock. See
     // ./turnSetup; the release callback is parked with the wrapper (via

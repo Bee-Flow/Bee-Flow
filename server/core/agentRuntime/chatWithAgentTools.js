@@ -1,9 +1,13 @@
 /**
  * Tool execution for the non-streaming agent loop (./chatWithAgent): the
  * Privacy Shield gate, connection lending and the dispatch of one tool call.
+ *
+ * The collaborators in the server's large import cycle come in on the
+ * context as `ctx.d` ({ mayLendOwnerConnection, connectionResolution(),
+ * toolDispatcher(), toolPiiGate() }, the getters lazy) from ./chatWithAgent,
+ * so this module stays out of it.
  */
 const { sanitizeToolResult } = require('../../utils/sanitize');
-const { mayLendOwnerConnection } = require('./toolPolicy');
 const log = require('../../telemetry/log');
 
 /**
@@ -13,18 +17,18 @@ const log = require('../../telemetry/log');
  * set, in which case effUserId/effOrgId fall back to exactly today's values.
  * Never overrides an explicit acting identity.
  */
-async function resolveLentIdentity({ toolName, agent, agentId, userId, userAuth }) {
+async function resolveLentIdentity({ toolName, agent, agentId, userId, userAuth, d }) {
     let effUserId = userAuth?.integrationUserId || userId;
     let effOrgId = userAuth?.integrationOrgId || null;
     let lentConnection = null;
     try {
-        const cr = require('../integrations/connectionResolution');
+        const cr = d.connectionResolution();
         // The owner's `actAs` answer, asked here too. The streaming route asked
         // it and this one did not, so the same stored "as the person asking"
         // was obeyed on one route and ignored on the other — an owner cannot
         // tell which route a caller lands on, so a restriction that holds on
         // only one of them is not a restriction.
-        const _mayLend = mayLendOwnerConnection(toolName, agent?.config);
+        const _mayLend = d.mayLendOwnerConnection(toolName, agent?.config);
         if (cr.isLendingEnabled() && !userAuth?.integrationUserId && _mayLend) {
             if (!userAuth.__runCtx) userAuth.__runCtx = await cr.runningUserContext(userId);
             const ov = await cr.resolveEffectiveIdentity({
@@ -42,11 +46,11 @@ async function resolveLentIdentity({ toolName, agent, agentId, userId, userAuth 
 
 /** Run the tool through the unified dispatcher; a throw becomes `{ error }`. */
 async function dispatchChatTool({ toolName, toolArgs, fixedParams, identity, ctx }) {
-    const { agent, agentId, userId, userAuth, conversation, modelToUse } = ctx;
+    const { agent, agentId, userId, userAuth, conversation, modelToUse, d } = ctx;
     const { effUserId, effOrgId, lentConnection } = identity;
     try {
         // Use unified tool dispatcher — supports integrations + components
-        const { executeTool: dispatchTool } = require('../tools/toolDispatcher');
+        const { executeTool: dispatchTool } = d.toolDispatcher();
         return await dispatchTool(toolName, toolArgs, {
             // Integration tools may run under an explicit acting identity (e.g.
             // the Support inbox's designated operator) so per-user OAuth / API
@@ -100,8 +104,8 @@ async function dispatchChatTool({ toolName, toolArgs, fixedParams, identity, ctx
  * forbidden categories stripped. Rules in core/privacy/toolPiiGate.js.
  */
 async function executeChatToolCall(toolCall, ctx) {
-    const { toolParamsMap, orgShield, logShieldEvent } = ctx;
-    const toolPiiGate = require('../privacy/toolPiiGate');
+    const { toolParamsMap, orgShield, logShieldEvent, d } = ctx;
+    const toolPiiGate = d.toolPiiGate();
     const toolName = toolCall.function.name;
     let toolArgs = {};
     try {

@@ -20,6 +20,25 @@ const { recordAgentRun } = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
 const { resolveGenerationSettings, loadToolParamsMap, shieldIncomingMessages, tokenPreservationAddendum } = require('./chatWithAgentPrep');
 const { executeChatToolCall } = require('./chatWithAgentTools');
+const { getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel } = require('../llm/modelResolver');
+const { validateInputForPii } = require('../privacy/piiDetection');
+const { resolveShieldFor } = require('../privacy/orgShield');
+const dlpRunner = require('../dlp/dlpRunner');
+const { mayLendOwnerConnection } = require('./toolPolicy');
+
+// What ./chatWithAgentPrep and ./chatWithAgentTools work with, handed in:
+// it sits in the server's large import cycle, which those modules stay out
+// of. The lazy ones stay lazy.
+const PREP_DEPS = {
+    getAIConfig, agentStore, getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel,
+    validateInputForPii, resolveShieldFor, dlpRunner,
+};
+const TOOL_DEPS = {
+    mayLendOwnerConnection,
+    connectionResolution: () => require('../integrations/connectionResolution'),
+    toolDispatcher: () => require('../tools/toolDispatcher'),
+    toolPiiGate: () => require('../privacy/toolPiiGate'),
+};
 
 async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
     const _agentT0 = Date.now();
@@ -56,7 +75,7 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
                 // Execute tool calls in parallel
                 const results = await Promise.all(assistantMessage.tool_calls.map((toolCall) => executeChatToolCall(toolCall, {
                     agent, agentId, userId, userAuth, conversation, modelToUse,
-                    toolParamsMap: run.toolParamsMap, orgShield: run.orgShield, logShieldEvent: run.logShieldEvent,
+                    toolParamsMap: run.toolParamsMap, orgShield: run.orgShield, logShieldEvent: run.logShieldEvent, d: TOOL_DEPS,
                 })));
 
                 // Add results to history and toolCalls array in order
@@ -126,7 +145,7 @@ async function prepareRun({ agent, agentId, userId, userMessage, userAuth }) {
         userOrgId: userAuth?.userOrgId || agent.organization_id || null,
         userId,
         tierKey: resolvedTierKey,
-    });
+    }, PREP_DEPS);
 
     const tools = await getAgentTools(agentId);
     // Callers (e.g. the support auto-responder) may inject extra read-only
@@ -136,7 +155,7 @@ async function prepareRun({ agent, agentId, userId, userMessage, userAuth }) {
     }
 
     // Load tool configs with fixed params
-    const toolParamsMap = await loadToolParamsMap(agentId);
+    const toolParamsMap = await loadToolParamsMap(agentId, PREP_DEPS);
 
     const conversation = await agentStore.getOrCreateConversation(agentId, userId);
     const messages = [...conversation.messages];
@@ -149,8 +168,8 @@ async function prepareRun({ agent, agentId, userId, userMessage, userAuth }) {
         `You are a helpful AI assistant. You have access to various tools to help accomplish tasks. Use them when appropriate.`;
     systemPrompt = processSystemPrompt(systemPrompt);
 
-    const { orgShield, piiTokenMap } = await shieldIncomingMessages({ messages, agent, userId, userAuth, conversation });
-    const _tokenAddendum = tokenPreservationAddendum(conversation, piiTokenMap);
+    const { orgShield, piiTokenMap } = await shieldIncomingMessages({ messages, agent, userId, userAuth, conversation }, PREP_DEPS);
+    const _tokenAddendum = tokenPreservationAddendum(conversation, piiTokenMap, PREP_DEPS);
     if (_tokenAddendum) systemPrompt += _tokenAddendum;
 
     // Privacy Shield tool block lists ("Outside tools" / "Own server"): the

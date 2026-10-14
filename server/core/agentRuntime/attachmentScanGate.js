@@ -3,6 +3,10 @@
  * ./attachmentProcessor: scan, ask the person when the policy says so, block,
  * and collect a per-file summary row for every outcome that must not be
  * silent.
+ *
+ * The scanner and the ask flow come in as `dlp` ({ attachmentScanner(),
+ * attachmentAskFlow() }, lazy, handed in by ./attachmentProcessor): they sit
+ * in the server's large import cycle, which this module stays out of.
  */
 
 /** The summary row fields every outcome shares. */
@@ -77,13 +81,13 @@ function scanSummaryRow(filename, r) {
  * shield) and pushes a row onto `summaries` when the outcome needs one; a
  * block throws AttachmentPrivacyBlock.
  */
-function createAttachmentScanGate({ orgShield, conversationId, provider, userId, emit, registerDecision }) {
+function createAttachmentScanGate({ orgShield, conversationId, provider, userId, emit, registerDecision }, dlp) {
     // Per-file scan summaries (one row per attachment that produced findings).
     // Returned to the caller so the chat UI badge can show per-file detail
     // and the audit logger can emit per-page rows.
     const summaries = [];
-    const { scanAttachmentText, AttachmentPrivacyBlock } = require('../dlp/attachmentScanner');
-    const { resolveAttachmentAsk } = require('../dlp/attachmentAskFlow');
+    const { scanAttachmentText, AttachmentPrivacyBlock } = dlp.attachmentScanner();
+    const { resolveAttachmentAsk } = dlp.attachmentAskFlow();
 
     async function maybeScan({ text, pages, filename }) {
         if (!orgShield) return { action: 'pass', text };

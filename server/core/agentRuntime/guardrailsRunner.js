@@ -3,6 +3,16 @@ const { checkRegexPatterns } = require('../privacy/guardrails');
 const guardrailEventStore = require('../../stores/guardrailEventStore');
 const { sanitizeMessagesUnicode } = require('../../utils/unicodeSanitizer');
 const { runInputPiiGate } = require('./inputPiiGate');
+const { validateInputForPii } = require('../privacy/piiDetection');
+const { startPrivacyScanPhase, messageText } = require('./phaseEvents');
+
+// What ./inputPiiGate works with, handed in: it sits in the server's large
+// import cycle, which that module stays out of. The DLP runner stays lazily
+// required, as it always was.
+const PII_GATE_DEPS = {
+    validateInputForPii, startPrivacyScanPhase, messageText,
+    dlpRunner: () => require('../dlp/dlpRunner'),
+};
 const log = require('../../telemetry/log');
 
 // `isDryRun` marks every guardrail row of this turn as a dry run — the test
@@ -58,7 +68,7 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
     else if (!(globalConfig?.piiDetectionEnabled || orgPiiEnabled)) piiReport.status = 'disabled';
     let pii = { moderationViolation: null, processedUserMessage, userPrivacyMeta: null, assistantTokenisationInfo: null };
     if (!dlpWillHandle && (globalConfig?.piiDetectionEnabled || orgPiiEnabled)) {
-        pii = await runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage });
+        pii = await runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage }, PII_GATE_DEPS);
     }
     processedUserMessage = pii.processedUserMessage;
 

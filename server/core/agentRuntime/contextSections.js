@@ -3,17 +3,20 @@
  * halves. Each returns the text it adds ('' when it adds nothing); which half
  * a section belongs to is decided by the caller, per the prompt-caching
  * contract documented on buildSystemPrompt.
+ *
+ * The collaborators in the server's large import cycle are handed in as `d`
+ * by ./contextBuilder ({ buildToolHint, memoryStore(), sidePanelWebpageContext(),
+ * sidePanelDocumentContext() }), so this module stays out of it.
  */
-const { buildToolHint } = require('../integrations/integrationTools');
 const houseStyleStore = require('../../stores/houseStyleStore');
 const log = require('../../telemetry/log');
 
 /** Integration tool hints, so the AI knows what integrations are available (stable). */
-async function toolHintSection(tools, userId) {
+async function toolHintSection(tools, userId, d) {
     const mcpCount = tools.filter(t => t.function?.name?.startsWith('mcp_')).length;
     log.info(`[MCP-DEBUG] contextBuilder: building system prompt with ${tools.length} tools (${mcpCount} MCP)`);
     try {
-        const toolHint = await buildToolHint(tools, userId);
+        const toolHint = await d.buildToolHint(tools, userId);
         if (toolHint) {
             log.info(`[MCP-DEBUG] contextBuilder: toolHint added (${toolHint.length} chars) — preview: ${toolHint.substring(0, 200)}`);
             return toolHint;
@@ -45,10 +48,10 @@ Deliver only the result. Never close with notes about how often this runs, never
  * repeating them unless there's a real update. Only fires when memory is
  * enabled on the agent — opt-in by design.
  */
-async function scheduleCoverageSection(agent, scheduleId) {
+async function scheduleCoverageSection(agent, scheduleId, d) {
     if (!scheduleId || agent?.config?.memoryEnabled !== true) return '';
     try {
-        const memoryStore = require('../../stores/memoryStore');
+        const memoryStore = d.memoryStore();
         const covered = await memoryStore.getScheduleCoverage(scheduleId, { limit: 30 });
         if (!covered || covered.length === 0) return '';
         const items = covered.map(c => {
@@ -133,11 +136,11 @@ function notebookSections(messageMetadata) {
  * document. Agents have no document tools, so the open document's text goes
  * in read-only, and only on a turn whose request carries it.
  */
-async function sidePanelSections(messageMetadata, userId) {
+async function sidePanelSections(messageMetadata, userId, d) {
     let volatile = '';
     if (messageMetadata?.sidePanelWebpage?.id) {
         try {
-            const { buildSidePanelWebpageContext } = require('../webpages/sidePanelWebpageContext');
+            const { buildSidePanelWebpageContext } = d.sidePanelWebpageContext();
             const block = await buildSidePanelWebpageContext(messageMetadata.sidePanelWebpage, userId);
             if (block) volatile += block;
         } catch (e) {
@@ -146,7 +149,7 @@ async function sidePanelSections(messageMetadata, userId) {
     }
     if (messageMetadata?.sidePanelDocument) {
         try {
-            const { buildAgentContent } = require('../documents/sidePanelDocumentContext');
+            const { buildAgentContent } = d.sidePanelDocumentContext();
             const block = await buildAgentContent(messageMetadata.sidePanelDocument, userId);
             if (block) volatile += block;
         } catch (e) {

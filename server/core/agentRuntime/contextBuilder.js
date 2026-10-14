@@ -6,6 +6,16 @@ const {
     toolHintSection, scheduleSection, scheduleCoverageSection, houseStyleSection,
     notebookSections, sidePanelSections, STRICT_KNOWLEDGE_PREAMBLE,
 } = require('./contextSections');
+const { buildToolHint } = require('../integrations/integrationTools');
+
+// What ./contextSections reads through, handed in: it sits in the server's
+// large import cycle, which that module stays out of. The lazy ones stay lazy.
+const SECTION_DEPS = {
+    buildToolHint,
+    memoryStore: () => require('../../stores/memoryStore'),
+    sidePanelWebpageContext: () => require('../webpages/sidePanelWebpageContext'),
+    sidePanelDocumentContext: () => require('../documents/sidePanelDocumentContext'),
+};
 
 /**
  * Build the agent's system prompt as two halves.
@@ -47,7 +57,7 @@ async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memory
     // is expanded inline here.
     systemPrompt = processSystemPrompt(systemPrompt, { deferClockTags: true });
 
-    systemPrompt += await toolHintSection(tools, userId);
+    systemPrompt += await toolHintSection(tools, userId, SECTION_DEPS);
 
     // Memory is relevance-retrieved against THIS turn's message, so it changes
     // almost every turn — volatile half.
@@ -56,7 +66,7 @@ async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memory
     }
 
     systemPrompt += scheduleSection(messageMetadata?.scheduleText);
-    volatilePrompt += await scheduleCoverageSection(agent, messageMetadata?.scheduleId);
+    volatilePrompt += await scheduleCoverageSection(agent, messageMetadata?.scheduleId, SECTION_DEPS);
 
     // ─── Writing style (BFSF-261) ────────────────────────────────
     // Unconditional so per-agent custom prompts get it too. Static text, so it
@@ -80,7 +90,7 @@ async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memory
     const notebook = notebookSections(messageMetadata);
     systemPrompt += notebook.stable;
     volatilePrompt += notebook.volatile;
-    volatilePrompt += await sidePanelSections(messageMetadata, userId);
+    volatilePrompt += await sidePanelSections(messageMetadata, userId, SECTION_DEPS);
 
     systemPrompt += await injectSkills({ agent, tools, userId, messageMetadata, forceDynamicSkills });
 

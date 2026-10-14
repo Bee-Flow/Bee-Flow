@@ -5,52 +5,33 @@
  * datatables, KB ingest), Nextcloud, and the agent-callable automations and
  * reusable Steps.
  *
- * Every function takes the run context `c` built in getIntegrationTools. The
- * ORDER of the calls is the order the model sees the tools in, and the order
- * of the configStore lookups is pinned by
- * integrationTools.characterisation.test.js.
+ * Every function takes the run context `c` built in getIntegrationTools.
+ * The toolsets (`c.T`, e.g. `T.GMAIL_TOOLS`) and every collaborator in the
+ * server's large import cycle (`c.D`: the config store and lazy getters for
+ * the rest) are handed in by ./integrationTools, which requires them, so this
+ * module stays out of that cycle. The ORDER of the calls is the order the
+ * model sees the tools in, and the order of the configStore lookups is pinned
+ * by integrationTools.characterisation.test.js.
  */
 
-const configStore = require('../../stores/configStore');
-const { buildN8nTools } = require('../../integrations/n8nTools');
-const { N8N_WORKFLOW_TOOLS, getN8nToolPermission } = require('../../integrations/n8nWorkflowTools');
-const { hasPermission } = require('../../auth/permissions');
-const { REGEX_GENERATOR_TOOLS } = require('../../integrations/regexGeneratorTools');
-const { WORKSPACE_TOOLS } = require('../../integrations/workspaceTools');
-const { KB_SEARCH_TOOLS } = require('../../integrations/kbSearchTools');
-const { KB_INGEST_TOOLS } = require('../../integrations/kbIngestTools');
-const { NEXTCLOUD_TOOLS } = require('../../integrations/nextcloudTools');
-const { NEXTCLOUD_CALENDAR_TOOLS } = require('../../integrations/nextcloudCalendarTools');
-const { NEXTCLOUD_CONTACTS_TOOLS } = require('../../integrations/nextcloudContactsTools');
-const { NEXTCLOUD_DECK_TOOLS } = require('../../integrations/nextcloudDeckTools');
-const { NEXTCLOUD_NOTIFICATIONS_TOOLS } = require('../../integrations/nextcloudNotificationsTools');
-const { NEXTCLOUD_TALK_TOOLS } = require('../../integrations/nextcloudTalkTools');
-const { NEXTCLOUD_TASKS_TOOLS } = require('../../integrations/nextcloudTasksTools');
-const { NEXTCLOUD_NOTES_TOOLS } = require('../../integrations/nextcloudNotesTools');
-const { NEXTCLOUD_MAIL_TOOLS } = require('../../integrations/nextcloudMailTools');
-const { NEXTCLOUD_ACTIVITY_TOOLS } = require('../../integrations/nextcloudActivityTools');
-const { NEXTCLOUD_TABLES_TOOLS } = require('../../integrations/nextcloudTablesTools');
-const { NEXTCLOUD_FORMS_TOOLS } = require('../../integrations/nextcloudFormsTools');
-const { NEXTCLOUD_TEAMS_TOOLS } = require('../../integrations/nextcloudTeamsTools');
-const { NEXTCLOUD_STATUS_TOOLS } = require('../../integrations/nextcloudStatusTools');
 const log = require('../../telemetry/log');
 
-/** Each Nextcloud family's app id and tools, in the order they are offered. */
+/** Each Nextcloud family's app id and toolset name, in the order they are offered. */
 const NEXTCLOUD_FAMILIES = [
-    ['nextcloud', NEXTCLOUD_TOOLS],
-    ['nextcloud-calendar', NEXTCLOUD_CALENDAR_TOOLS],
-    ['nextcloud-contacts', NEXTCLOUD_CONTACTS_TOOLS],
-    ['nextcloud-deck', NEXTCLOUD_DECK_TOOLS],
-    ['nextcloud-notifications', NEXTCLOUD_NOTIFICATIONS_TOOLS],
-    ['nextcloud-talk', NEXTCLOUD_TALK_TOOLS],
-    ['nextcloud-tasks', NEXTCLOUD_TASKS_TOOLS],
-    ['nextcloud-notes', NEXTCLOUD_NOTES_TOOLS],
-    ['nextcloud-mail', NEXTCLOUD_MAIL_TOOLS],
-    ['nextcloud-activity', NEXTCLOUD_ACTIVITY_TOOLS],
-    ['nextcloud-tables', NEXTCLOUD_TABLES_TOOLS],
-    ['nextcloud-forms', NEXTCLOUD_FORMS_TOOLS],
-    ['nextcloud-teams', NEXTCLOUD_TEAMS_TOOLS],
-    ['nextcloud-status', NEXTCLOUD_STATUS_TOOLS],
+    ['nextcloud', 'NEXTCLOUD_TOOLS'],
+    ['nextcloud-calendar', 'NEXTCLOUD_CALENDAR_TOOLS'],
+    ['nextcloud-contacts', 'NEXTCLOUD_CONTACTS_TOOLS'],
+    ['nextcloud-deck', 'NEXTCLOUD_DECK_TOOLS'],
+    ['nextcloud-notifications', 'NEXTCLOUD_NOTIFICATIONS_TOOLS'],
+    ['nextcloud-talk', 'NEXTCLOUD_TALK_TOOLS'],
+    ['nextcloud-tasks', 'NEXTCLOUD_TASKS_TOOLS'],
+    ['nextcloud-notes', 'NEXTCLOUD_NOTES_TOOLS'],
+    ['nextcloud-mail', 'NEXTCLOUD_MAIL_TOOLS'],
+    ['nextcloud-activity', 'NEXTCLOUD_ACTIVITY_TOOLS'],
+    ['nextcloud-tables', 'NEXTCLOUD_TABLES_TOOLS'],
+    ['nextcloud-forms', 'NEXTCLOUD_FORMS_TOOLS'],
+    ['nextcloud-teams', 'NEXTCLOUD_TEAMS_TOOLS'],
+    ['nextcloud-status', 'NEXTCLOUD_STATUS_TOOLS'],
 ];
 
 /**
@@ -60,15 +41,15 @@ const NEXTCLOUD_FAMILIES = [
  * access). Only the write-bucket is permission-gated via
  * modify_n8n_workflows. Resolves to the n8n org id (null when not resolved).
  */
-async function addN8nTools({ userId, session, userSimpleMode, userOrgId, isAppOn, addTools }) {
+async function addN8nTools({ userId, session, userSimpleMode, userOrgId, isAppOn, addTools, D }) {
     let n8nOrgId = null;
     try {
         if (!userSimpleMode && userOrgId) {
             n8nOrgId = userOrgId;
-            const n8nUrl = await configStore.getConfig(`n8n_url_org_${n8nOrgId}`);
-            const n8nKey = await configStore.getSecret(`n8n_api_key_org_${n8nOrgId}`);
+            const n8nUrl = await D.configStore.getConfig(`n8n_url_org_${n8nOrgId}`);
+            const n8nKey = await D.configStore.getSecret(`n8n_api_key_org_${n8nOrgId}`);
             if (n8nUrl && n8nKey && isAppOn('n8n')) {
-                const canModify = await hasPermission(userId, 'modify_n8n_workflows', session);
+                const canModify = await D.hasPermission(userId, 'modify_n8n_workflows', session);
 
                 // Dynamic webhook-trigger tools — umbrella gating.
                 // A user who has 'n8n' enabled (or is covered by AUTO_ENABLED_APPS)
@@ -82,7 +63,7 @@ async function addN8nTools({ userId, session, userSimpleMode, userOrgId, isAppOn
                 // narrow list back and `isToolAllowed` agreed with the picker.
                 // A grant that is storable, validated against the registry and
                 // enforced nowhere is worse than no grant at all.
-                const n8nTools = await buildN8nTools(n8nOrgId);
+                const n8nTools = await D.buildN8nTools(n8nOrgId);
                 const cleanN8nTools = [];
                 for (const n8nTool of n8nTools) {
                     const { _n8n, ...cleanTool } = n8nTool;
@@ -98,8 +79,8 @@ async function addN8nTools({ userId, session, userSimpleMode, userOrgId, isAppOn
                 //   write / execute / delete / activate             → modify_n8n_workflows
                 // The RBAC bucket first (it is about the person), then the
                 // grants inside addTools (they are about the agent).
-                addTools(N8N_WORKFLOW_TOOLS.filter(
-                    t => !(getN8nToolPermission(t.function.name) === 'modify_n8n_workflows' && !canModify),
+                addTools(D.N8N_WORKFLOW_TOOLS.filter(
+                    t => !(D.getN8nToolPermission(t.function.name) === 'modify_n8n_workflows' && !canModify),
                 ));
             }
         }
@@ -110,14 +91,14 @@ async function addN8nTools({ userId, session, userSimpleMode, userOrgId, isAppOn
 }
 
 /** The first-party tools: regex generator, notebooks, presentations, Word, memory, automation evolution, KB, datatables. */
-async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, automationStep, userSimpleMode, entSnapshot, isAppOn, addTools }) {
+async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, automationStep, userSimpleMode, entSnapshot, isAppOn, addTools, T, D }) {
     // Regex Generator — admin only
     if (!userSimpleMode && isAdmin) {
-        addTools(REGEX_GENERATOR_TOOLS);
+        addTools(T.REGEX_GENERATOR_TOOLS);
     }
 
     // Workspace/Notebook — check feature flag (disabled from admin panel = no tools)
-    const notebooksFeatureEnabled = (await configStore.getConfig('feature_notebooks_enabled')) !== false;
+    const notebooksFeatureEnabled = (await D.configStore.getConfig('feature_notebooks_enabled')) !== false;
     if (!userSimpleMode && notebooksFeatureEnabled) {
         // BFSF-207: notebook tools mirror the HTTP surface gates — `notebooks`
         // capability via the unified resolver (same as requireCapability on
@@ -126,11 +107,11 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
         // degraded snapshot (matches the MCP fail-closed posture).
         let notebooksEntitled = false;
         try {
-            const entitlements = require('../entitlements/entitlements');
+            const entitlements = D.entitlements();
             notebooksEntitled = !!(entSnapshot && !entSnapshot.degraded && entitlements.snapshotHas(entSnapshot, 'notebooks'));
         } catch (_) { notebooksEntitled = false; }
-        if (notebooksEntitled && await hasPermission(userId, 'use_notebooks', session)) {
-            addTools(WORKSPACE_TOOLS);
+        if (notebooksEntitled && await D.hasPermission(userId, 'use_notebooks', session)) {
+            addTools(T.WORKSPACE_TOOLS);
         }
     }
 
@@ -138,10 +119,10 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
     // a real .pptx in the org's house style and hands back a download link.
     // No credentials, no org toggle; the simple mode is the only switch.
     if (!userSimpleMode) {
-        addTools(require('../../integrations/presentationTools').PRESENTATION_TOOLS);
+        addTools(D.presentationTools().PRESENTATION_TOOLS);
         // Word documents — the same footing: a real .docx in the org's Word
         // house style, kept in storage (or Nextcloud) behind a download link.
-        addTools(require('../../integrations/wordDocumentTools').WORD_DOCUMENT_TOOLS);
+        addTools(D.wordDocumentTools().WORD_DOCUMENT_TOOLS);
     }
 
     // Personal memory — the user's own user_memories, read and written through
@@ -149,18 +130,18 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
     // preference is the only switch (memory itself is governed by the memory
     // settings, which the tools honour by reading through memoryStore).
     if (isAppOn('memory')) {
-        addTools(require('../../integrations/memoryTools').MEMORY_TOOLS);
+        addTools(D.memoryTools().MEMORY_TOOLS);
     }
     // Automation evolution — automation steps only (never chat): an automation proposes
     // and, after approval, applies changes to its OWN definition.
     if (automationStep && isAppOn('automation-evolution')) {
-        addTools(require('../../integrations/automationEvolutionTools').AUTOMATION_EVOLUTION_TOOLS);
+        addTools(D.automationEvolutionTools().AUTOMATION_EVOLUTION_TOOLS);
     }
 
     // KB Search — available when agent has knowledge bases configured
     // This lets agents explicitly search KB with custom queries (e.g., after reading an email)
     if (agentConfig?.knowledge_base_ids?.length > 0) {
-        addTools(KB_SEARCH_TOOLS);
+        addTools(T.KB_SEARCH_TOOLS);
     }
 
     // Datatable as knowledge — `datatable_query`, read-only and LIVE (A1c).
@@ -171,7 +152,7 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
     // Costs nothing for an agent whose owner granted no table — the grants map
     // is checked before any database work.
     try {
-        const { buildDatatableTools } = require('../tools/datatableTools');
+        const { buildDatatableTools } = D.datatableTools();
         addTools(await buildDatatableTools({ userId, agentConfig }));
     } catch (e) {
         // One tool, not the toolbelt: an exception escaping here is caught by
@@ -182,8 +163,8 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
     // KB Ingest — automation-only WRITE tool (Support Studio "solved tickets → KB"
     // template). Never surfaced to chat agents (automationStep gate) and only to
     // holders of the org-level support_inbox permission.
-    if (automationStep && isAppOn('kb-ingest') && await hasPermission(userId, 'support_inbox', session)) {
-        addTools(KB_INGEST_TOOLS);
+    if (automationStep && isAppOn('kb-ingest') && await D.hasPermission(userId, 'support_inbox', session)) {
+        addTools(T.KB_INGEST_TOOLS);
     }
 }
 
@@ -194,9 +175,9 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
  * contacts, Deck, notifications) gates on its own per-app toggle so admins
  * can disable individual surfaces.
  */
-async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools }) {
+async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools, T, D }) {
     try {
-        const oauthCfg = (await configStore.getConfig('oauth')) || {};
+        const oauthCfg = (await D.configStore.getConfig('oauth')) || {};
         // Connector-bound user: NC tools route through the connector's /nc/*
         // proxy with AppAPI shared-secret + impersonation. No OAuth URL or
         // app password is required; the org's nc_base_url is the binding.
@@ -209,7 +190,7 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
             // the user to a Nextcloud instance. Without this check those users
             // are never offered any NC tool.
             try {
-                const ncClient = require('../../integrations/nextcloudClient');
+                const ncClient = D.nextcloudClient();
                 isConnectorUser = !!(await ncClient.resolveNcBinding(session, userId));
             } catch (_) { /* store unavailable — fall through to URL/app-password */ }
         }
@@ -217,7 +198,7 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
         // Nextcloud URL (Settings → Connections), which makes NC reachable even
         // when the org-wide oauth.nextcloudUrl is unset. Look it up once so it
         // can both open the gate and signal the connection.
-        const userStoreLocal = require('../../stores/userStore');
+        const userStoreLocal = D.userStore();
         const ncCreds = isConnectorUser ? null : await userStoreLocal.getAppPassword(userId);
         const hasNcUrl = !!(oauthCfg.nextcloudUrl || ncCreds?.url);
         if (!(hasNcUrl || isConnectorUser)) return;
@@ -233,7 +214,7 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
         // can only cost a denied call, never grant one.
         let scopeOn = () => true;
         try {
-            const { resolveNcScope } = require('./ncScope');
+            const { resolveNcScope } = D.ncScope();
             // orgId matters: the org ceiling is where the admin's own
             // Nextcloud toggles live. Without it a family the org turned off
             // would still be offered to the model, which would call it and be
@@ -242,8 +223,8 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
             const ncScope = await resolveNcScope({ userId, orgId: userOrgId });
             scopeOn = (id) => ncScope[id]?.mode !== 'off';
         } catch (_) { /* Layer 2 still enforces — keep offering */ }
-        for (const [appId, familyTools] of NEXTCLOUD_FAMILIES) {
-            if (scopeOn(appId) && isAppOn(appId)) addTools(familyTools);
+        for (const [appId, toolset] of NEXTCLOUD_FAMILIES) {
+            if (scopeOn(appId) && isAppOn(appId)) addTools(T[toolset]);
         }
     } catch (e) { /* ignore — credentials missing or store unavailable */ }
 }
@@ -275,11 +256,11 @@ function capabilityOrgId(userOrgId) {
  * the normalisation keeps an empty section on purpose (see
  * toolPolicy.normaliseToolsConfig).
  */
-async function addAgentCallableAutomations(tools, { userId, userOrgId, agentId, agentConfig }) {
+async function addAgentCallableAutomations(tools, { userId, userOrgId, agentId, agentConfig, D }) {
     const _plainObjectLike = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
     const _automationGrants = (() => {
         try {
-            const p = require('../agentRuntime/toolPolicy');
+            const p = D.toolPolicy();
             return p.automationGrantsOf(p.toolsConfigOf(agentConfig));
         } catch (_) { return null; }        // policy unreadable — decided below
     })();
@@ -291,9 +272,9 @@ async function addAgentCallableAutomations(tools, { userId, userOrgId, agentId, 
             log.warn('[IntegrationTools] Automation grants unreadable — offering no agent-callable automations');
             return;
         }
-        const { hasCapability } = require('../entitlements/entitlements');
+        const { hasCapability } = D.entitlements();
         if (await hasCapability('automations', { userId, orgId: capabilityOrgId(userOrgId) })) {
-            const { getAgentCallableTools } = require('../../automation/agentCallableTools');
+            const { getAgentCallableTools } = D.agentCallableTools();
             const agentTools = await getAgentCallableTools({ agentId });
             for (const t of agentTools) {
                 if (_curatedAutomations) {
@@ -316,11 +297,11 @@ async function addAgentCallableAutomations(tools, { userId, userOrgId, agentId, 
  * chat". Owner-only in v1 (mirrors agent_call), so the Step runs under the
  * caller's own identity. Same 'automations' capability gate.
  */
-async function addStepTools(tools, { userId, userOrgId }) {
+async function addStepTools(tools, { userId, userOrgId, D }) {
     try {
-        const { hasCapability } = require('../entitlements/entitlements');
+        const { hasCapability } = D.entitlements();
         if (await hasCapability('automations', { userId, orgId: capabilityOrgId(userOrgId) })) {
-            const { getStepToolsForUser } = require('../../automation/agentCallableTools');
+            const { getStepToolsForUser } = D.agentCallableTools();
             const stepTools = await getStepToolsForUser(userId);
             for (const t of stepTools) {
                 if (!tools.find(x => x?.function?.name === t?.function?.name)) tools.push(t);

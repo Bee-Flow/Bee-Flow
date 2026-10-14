@@ -2,6 +2,10 @@
  * The retrieval half of the agent knowledge search (./knowledgeSearch): the
  * search query, the call to the local store or the search service, the
  * document-level metadata and the metadata-aware score boost.
+ *
+ * The KB provider resolver and the local search are handed in as `kb`
+ * ({ resolveProvider(), localKBIngest() }, lazy) by ./knowledgeSearch: they
+ * sit in the server's large import cycle, which this module stays out of.
  */
 const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');
@@ -44,10 +48,10 @@ function toKnowledgeResult(c, score) {
  * fresh installs that have no SEARCH_SERVICE_URL. A failed search is logged
  * and yields no results.
  */
-async function fetchKnowledgeResults({ userId, kbIds, userMessage }) {
+async function fetchKnowledgeResults({ userId, kbIds, userMessage }, kb) {
     const results = [];
     try {
-        const { resolveKbProvider } = require('../kb/resolveProvider');
+        const { resolveKbProvider } = kb.resolveProvider();
         const kbProvider = await resolveKbProvider();
         const useAzure = kbProvider === 'local';
         const searchQuery = searchQueryFrom(userMessage);
@@ -55,7 +59,7 @@ async function fetchKnowledgeResults({ userId, kbIds, userMessage }) {
         if (useAzure) {
             // ── Local search path (Azure) ──────────────────────────
             // Search locally-ingested chunks directly from PostgreSQL
-            const { searchLocally } = require('../kb/localKBIngest');
+            const { searchLocally } = kb.localKBIngest();
             const chunks = await searchLocally(userId, kbIds, searchQuery, { topK: 5 });
             results.push(...chunks.map(c => toKnowledgeResult(c, c.score || 0)));
         } else {

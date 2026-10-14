@@ -104,15 +104,17 @@ function createTurnLoopState() {
  * instead of the agent's last write. Gated on the notebook tools actually
  * being present — that array is only populated when the notebooks
  * entitlement + use_notebooks permission pass, so this mirrors the tool gate
- * exactly without re-running the checks.
+ * exactly without re-running the checks. `workspaceTools` loads
+ * integrations/workspaceTools (handed in: it sits in the server's large
+ * import cycle, which this module stays out of).
  */
-async function seedNotebookFromEditor({ messageMetadata, tools, conversation, userId }) {
+async function seedNotebookFromEditor({ messageMetadata, tools, conversation, userId, workspaceTools }) {
     const _seedNbContent = messageMetadata?.notebookspaceContent;
     const _hasNotebookTools = Array.isArray(tools) && tools.some(t =>
         t.function?.name === 'notebook_read' || t.function?.name === 'notebook_write');
     if (!_hasNotebookTools || typeof _seedNbContent !== 'string' || _seedNbContent.trim() === '' || !conversation?.id) return;
     try {
-        const { syncClientWorkspaceContent } = require('../../../integrations/workspaceTools');
+        const { syncClientWorkspaceContent } = workspaceTools();
         const _seedRes = await syncClientWorkspaceContent(conversation.id, userId, _seedNbContent);
         if (_seedRes?.seeded) log.info(`[AgentRuntime] Seeded notebook from live editor content (${_seedNbContent.length} chars, ${_seedRes.reason})`);
     } catch (e) {

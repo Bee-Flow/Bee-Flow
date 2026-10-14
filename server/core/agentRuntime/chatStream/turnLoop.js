@@ -15,19 +15,34 @@
  */
 const terminationStore = require('../../../stores/terminationStore');
 const configStore = require('../../../stores/configStore');
+const agentStore = require('../../../stores/agentStore');
 const { isTruncatedStop, truncationRetryMessages, emptyReplyRetryMessages } = require('../../llm/toolLoop');
 const { respondGuardrailHardBlock } = require('../guardrailHardBlock');
 const { finalizeStreamTurn } = require('../finalizeTurn');
 
 // The turn's phases, in pipeline order.
 const { prepareTurn } = require('./turnPrepare');
-const { _serializeConversationWrite } = require('./turnHistory');
+const { resolveProjectContext } = require('../contextEnrichment');
+const { setupTurn } = require('./turnSetup');
+const { assembleTurnHistory, _serializeConversationWrite } = require('./turnHistory');
+const { runTurnPreflight } = require('./turnPreflight');
+const { createSkillActivationHandler } = require('./skillActivation');
 const { MAX_TOOL_REPEAT, createTurnLoopState, seedNotebookFromEditor } = require('./turnState');
 const { attachmentTelemetry, terminationBase } = require('./terminationRow');
 const { runModelRound } = require('./roundStream');
+const { emitPhase } = require('../phaseEvents');
+const { buildRoundRequest } = require('./roundRequest');
+const { streamNativeAdapterRound } = require('./nativeAdapterStream');
+const { streamRawSseRound } = require('./rawSseStream');
 const { buildRoundAssistantMessage, dispatchToolRound } = require('./toolRoundGate');
 const { wrapUpAnswer, attributeTestChatTurn, rethrowRoundError, throwLoopExit } = require('./turnExits');
 const log = require('../../../telemetry/log');
+
+// The once-per-turn phases, handed to ./turnPrepare, and one round's phases,
+// handed to ./roundStream: both modules stay out of the server's large import
+// cycle, so what sits in it is required here and passed down.
+const PREPARE_PHASES = { setupTurn, resolveProjectContext, assembleTurnHistory, runTurnPreflight, createSkillActivationHandler };
+const ROUND_STEPS = { buildRoundRequest, emitPhase, streamNativeAdapterRound, streamRawSseRound };
 
 /**
  * Turn locks awaiting release, keyed by the call that took them.
@@ -46,7 +61,7 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
     // handler — see ./turnPrepare. `tools` and `onEvent` come back rebound by
     // the preflight (an org policy can drop web search; every event from here
     // on goes through the un-tokeniser).
-    const t = await prepareTurn({ agentId, userId, userMessage, userAuth, onEvent, historyOverride, messageMetadata, _pendingTurnReleases, _turnCallId });
+    const t = await prepareTurn({ agentId, userId, userMessage, userAuth, onEvent, historyOverride, messageMetadata, _pendingTurnReleases, _turnCallId }, PREPARE_PHASES);
 
     // ── Hard block: skip AI entirely when guardrails/moderation fired ──
     // The AI must never see the user message or KB context when a violation is detected.
@@ -61,7 +76,10 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
     }
 
     const maxIterations = parseInt(await configStore.getConfig('max_tool_rounds_chat'), 10) || 20;
-    await seedNotebookFromEditor({ messageMetadata, tools: t.tools, conversation: t.conversation, userId });
+    await seedNotebookFromEditor({
+        messageMetadata, tools: t.tools, conversation: t.conversation, userId,
+        workspaceTools: () => require('../../../integrations/workspaceTools'),
+    });
     return await runTurnLoop({ ...t, agentId, userId, userMessage, userAuth, messageMetadata, maxIterations });
 }
 
@@ -146,7 +164,7 @@ async function runTurnLoop(t) {
             // reading the round as "done".
             const _round = await runModelRound(t, st, {
                 guardrailViolation, _assistantTokenisationInfo, _forceFinalAnswer, signal,
-                terminationBaseRow: _terminationBase,
+                terminationBaseRow: _terminationBase, steps: ROUND_STEPS,
             });
             _assistantTokenisationInfo = _round._assistantTokenisationInfo;
             guardrailViolation = _round.guardrailViolation;
@@ -233,7 +251,9 @@ async function runTurnLoop(t) {
 
             // "Rule followed: …" chip, test chats only — see ./turnExits.
             if (_isTestChat) {
-                await attributeTestChatTurn({ agent, agentId, userId, userMessage, messageMetadata, fullResponse, onEvent });
+                await attributeTestChatTurn({ agent, agentId, userId, userMessage, messageMetadata, fullResponse, onEvent }, {
+                    agentStore, ruleAttribution: () => require('../ruleAttribution'),
+                });
             }
 
             // End of turn: assistant-message build, persistence, memory

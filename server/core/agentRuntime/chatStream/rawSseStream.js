@@ -16,6 +16,12 @@
 const { checkRegexPatterns } = require('../../privacy/guardrails');
 const log = require('../../../telemetry/log');
 const { buildRawRequestBody, fetchRawStream, applySseFrame, logRawUsage } = require('./rawSseParts');
+const usageStore = require('../../../stores/usageStore');
+const { applyTokenMapToOutbound } = require('../../dlp/applyTokenMapToOutbound');
+
+// What ./rawSseParts works with, handed in (it stays out of the server's large
+// import cycle).
+const PARTS_DEPS = { applyTokenMapToOutbound, usageStore };
 
 async function streamRawSseRound({
     agent, agentId, userId, messageMetadata, modelToUse, conversation,
@@ -27,7 +33,7 @@ async function streamRawSseRound({
     const requestBody = buildRawRequestBody({
         agentId, modelToUse, conversation, tools, _forceFinalAnswer,
         effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, tierSettings,
-    });
+    }, PARTS_DEPS);
     const response = await fetchRawStream({ apiUrl, headers, requestBody, signal });
 
     // Parse SSE stream
@@ -110,7 +116,7 @@ async function streamRawSseRound({
     await logRawUsage({
         agent, agentId, userId, modelToUse, messageMetadata, conversation,
         usage: rs.usage, finishReason: rs.finishReason, _streamCallStart,
-    });
+    }, PARTS_DEPS);
 
     return {
         contentBuffer: rs.contentBuffer, currentToolCalls: rs.currentToolCalls, guardrailViolation,

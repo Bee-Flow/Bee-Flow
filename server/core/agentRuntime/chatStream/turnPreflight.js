@@ -15,13 +15,27 @@
  * block is the caller's return.
  */
 const testChatMod = require('../testChat');
-const { injectProjectAndKnowledgeContext } = require('../contextEnrichment');
+const { withPhase } = require('../phaseEvents');
+const { buildSystemPrompt } = require('../contextBuilder');
+const { runInputGuardrails } = require('../guardrailsRunner');
+const { resolveShieldFor } = require('../../privacy/orgShield');
+const { resolveMemoryContext, injectProjectAndKnowledgeContext } = require('../contextEnrichment');
+const { resolveMemoryPolicy } = require('../../memory/memoryPolicy');
 const { createUntokenisingEventWrapper } = require('../streamUntokeniser');
 const chatSignals = require('../../privacy/chatSignals');
 const {
     resolveAndPrewarmShield, buildPromptWithMemory, hydrateTokenVault, runGuardrailsPhase,
     dropWebSearchOnUpload, runAgentDlpPreflight, dlpBlockError,
 } = require('./preflightSteps');
+
+// What ./preflightSteps works with, handed in: it all sits in the server's
+// large import cycle, which that module stays out of. The DLP modules stay
+// lazily required, as they always were.
+const STEP_DEPS = {
+    withPhase, buildSystemPrompt, runInputGuardrails, resolveShieldFor, resolveMemoryContext, resolveMemoryPolicy,
+    dlpRunner: () => require('../../dlp/dlpRunner'),
+    dlpPreflight: () => require('../../dlp/dlpPreflight'),
+};
 
 async function runTurnPreflight({
     agent, agentId, userId, userMessage, userAuth, messageMetadata, globalConfig,
@@ -34,16 +48,16 @@ async function runTurnPreflight({
     // null`, so resolve the personal user shield as fallback (agent-path twin
     // of BFSF-290 / BFSF-291). DLP itself stays org-only — `resolveUserShield`
     // returns `dlpEnabled: false`.
-    const dlpShield = await resolveAndPrewarmShield({ agent, userId, messages, config });
+    const dlpShield = await resolveAndPrewarmShield({ agent, userId, messages, config }, STEP_DEPS);
 
     const { memoryPolicy, memoryUsed, isStrictKnowledge, ...halves } = await buildPromptWithMemory({
         agent, agentId, userId, userMessage, userAuth, messageMetadata, tools, validProjectId, onEvent, conversation, isStandardTier,
-    });
+    }, STEP_DEPS);
     let { systemPrompt, volatileSystemPrompt } = halves;
 
-    await hydrateTokenVault(conversation);
+    await hydrateTokenVault(conversation, STEP_DEPS);
 
-    const guardrailsResult = await runGuardrailsPhase({ agent, messages, userMessage, globalConfig, onEvent, userId, conversation, messageMetadata, modelToUse });
+    const guardrailsResult = await runGuardrailsPhase({ agent, messages, userMessage, globalConfig, onEvent, userId, conversation, messageMetadata, modelToUse }, STEP_DEPS);
     const { moderationViolation, guardrailViolation, regexConfig, webSearchGuardEnabled, webSearchGuardPiiCategories } = guardrailsResult;
     let processedUserMessage = guardrailsResult.processedUserMessage;
     // Privacy / DLP metadata accumulators — attached to the saved user/assistant
@@ -71,7 +85,7 @@ async function runTurnPreflight({
     let dlp = null;
     const _recordSignal = () => recordChatSignal({ userId, messageMetadata, agent, config, dlpShield, dlp, piiReport: guardrailsResult?.piiReport || null });
     if (dlpShield?.dlpEnabled) {
-        dlp = await runAgentDlpPreflight({ messages, dlpShield, agent, agentId, conversation, userId, modelToUse, messageMetadata, config, onEvent });
+        dlp = await runAgentDlpPreflight({ messages, dlpShield, agent, agentId, conversation, userId, modelToUse, messageMetadata, config, onEvent }, STEP_DEPS);
         if (dlp.blocked) {
             // Agent path aborts the turn by throwing; the caller turns it into a
             // short reply.

@@ -7,7 +7,9 @@
  *
  * mistralOCR is still invoked, but via the unified attachmentExtractor helper
  * (see ../documents/attachmentExtractor.js) so PDF handling stays consistent
- * with direct chat.
+ * with direct chat. The extractor itself is handed in by ./attachmentProcessor
+ * as `ctx.attachmentExtractor()` (lazy): it sits in the server's large import
+ * cycle, which this module stays out of.
  */
 const path = require('path');
 const { randomUUID } = require('crypto');
@@ -87,8 +89,8 @@ function appendTextPart(lastMsg, text) {
  * Document Intelligence → Mistral OCR → vision fallback. Behaviour change
  * from the old agent path: Azure now fires here too.
  */
-async function appendPdf(att, lastMsg, { modelSupportsVision, maybeScan, persistedByLive, userId }) {
-    const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = require('../documents/attachmentExtractor');
+async function appendPdf(att, lastMsg, { modelSupportsVision, maybeScan, persistedByLive, userId, attachmentExtractor }) {
+    const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = attachmentExtractor();
     const result = await extractAttachment(att, { modelSupportsVision });
     log.info(`[AttachmentProcessor] PDF ${att.name} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
 

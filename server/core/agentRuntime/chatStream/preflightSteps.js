@@ -2,14 +2,13 @@
  * The steps of ./turnPreflight, each one phase of "everything that has to be
  * settled before the model may be called". The chat-signals recorder stays in
  * ./turnPreflight itself.
+ *
+ * Every step takes `d`, the collaborators ./turnPreflight hands in
+ * ({ withPhase, buildSystemPrompt, runInputGuardrails, resolveShieldFor,
+ * resolveMemoryContext, resolveMemoryPolicy, dlpRunner(), dlpPreflight() }):
+ * they sit in the server's large import cycle, which this module stays out of.
  */
-const { withPhase } = require('../phaseEvents');
 const testChatMod = require('../testChat');
-const { buildSystemPrompt } = require('../contextBuilder');
-const { runInputGuardrails } = require('../guardrailsRunner');
-const { resolveShieldFor } = require('../../privacy/orgShield');
-const { resolveMemoryContext } = require('../contextEnrichment');
-const { resolveMemoryPolicy } = require('../../memory/memoryPolicy');
 const log = require('../../../telemetry/log');
 
 /** The provider as the DLP scanner sees it. */
@@ -33,10 +32,10 @@ function dlpProviderConfig(config) {
  * the message in between, the key mismatch discards the pre-warm instead of
  * misapplying it.
  */
-async function resolveAndPrewarmShield({ agent, userId, messages, config }) {
-    const dlpShield = await resolveShieldFor({ orgId: agent.organization_id, userId });
+async function resolveAndPrewarmShield({ agent, userId, messages, config }, d) {
+    const dlpShield = await d.resolveShieldFor({ orgId: agent.organization_id, userId });
     if (dlpShield?.dlpEnabled) {
-        require('../../dlp/dlpRunner').preWarmPiiScan({
+        d.dlpRunner().preWarmPiiScan({
             messages,
             orgShieldConfig: dlpShield,
             providerConfig: dlpProviderConfig(config),
@@ -65,8 +64,8 @@ async function resolveAndPrewarmShield({ agent, userId, messages, config }) {
  * dynamic-on-demand on the Flow tier, mirroring how direct chat handles its
  * session skills.
  */
-async function buildPromptWithMemory({ agent, agentId, userId, userMessage, userAuth, messageMetadata, tools, validProjectId, onEvent, conversation, isStandardTier }) {
-    const memoryPolicy = await resolveMemoryPolicy({
+async function buildPromptWithMemory({ agent, agentId, userId, userMessage, userAuth, messageMetadata, tools, validProjectId, onEvent, conversation, isStandardTier }, d) {
+    const memoryPolicy = await d.resolveMemoryPolicy({
         userId,
         orgId: messageMetadata?.userOrgId || userAuth?.userOrgId || agent.organization_id || null,
         agent,
@@ -75,11 +74,11 @@ async function buildPromptWithMemory({ agent, agentId, userId, userMessage, user
     });
     // `memoryUsed`: the memories injected this turn, persisted on the assistant message.
     const memoryUsedOut = { items: [] };
-    const memoryContext = await resolveMemoryContext({ agent, agentId, userId, userMessage, validProjectId, onEvent, memoryPolicy, usedOut: memoryUsedOut, conversationId: conversation?.id || null });
+    const memoryContext = await d.resolveMemoryContext({ agent, agentId, userId, userMessage, validProjectId, onEvent, memoryPolicy, usedOut: memoryUsedOut, conversationId: conversation?.id || null });
 
     const isStrictKnowledge = agent.config?.strictKnowledge === true;
-    const _promptHalves = await withPhase(onEvent, 'building_prompt', null, () =>
-        buildSystemPrompt({ agent, tools, userId, messageMetadata, memoryContext, isStrictKnowledge, forceDynamicSkills: isStandardTier })
+    const _promptHalves = await d.withPhase(onEvent, 'building_prompt', null, () =>
+        d.buildSystemPrompt({ agent, tools, userId, messageMetadata, memoryContext, isStrictKnowledge, forceDynamicSkills: isStandardTier })
     );
     return {
         memoryPolicy, memoryUsed: memoryUsedOut.items, isStrictKnowledge,
@@ -94,20 +93,20 @@ async function buildPromptWithMemory({ agent, agentId, userId, userMessage, user
  * moves to a new server pod — without this, a `[medication_1]` minted on turn
  * 1 survives as literal text in every later assistant reply. Idempotent.
  */
-async function hydrateTokenVault(conversation) {
+async function hydrateTokenVault(conversation, d) {
     if (!conversation?.id) return;
-    try { await require('../../dlp/dlpRunner').getConversationTokenMapAsync(conversation.id); }
+    try { await d.dlpRunner().getConversationTokenMapAsync(conversation.id); }
     catch (_) { /* hydration is best-effort */ }
 }
 
 /** GUARDRAILS (before KB search — block early). */
-function runGuardrailsPhase({ agent, messages, userMessage, globalConfig, onEvent, userId, conversation, messageMetadata, modelToUse }) {
-    return withPhase(onEvent, 'guardrails', null, () =>
+function runGuardrailsPhase({ agent, messages, userMessage, globalConfig, onEvent, userId, conversation, messageMetadata, modelToUse }, d) {
+    return d.withPhase(onEvent, 'guardrails', null, () =>
         // `source` / `isDryRun`: a test turn writes its guardrail rows under
         // its own source and as a dry run — otherwise a builder's experiment
         // shows up among the production turns in the org's Privacy Shield
         // activity (see testChat.js).
-        runInputGuardrails({
+        d.runInputGuardrails({
             agent, messages, userMessage, globalConfig, onEvent, userId,
             conversationId: conversation?.id,
             source: testChatMod.usageSourceFor(messageMetadata, 'agent_stream'),
@@ -137,8 +136,8 @@ function dropWebSearchOnUpload({ tools, disableSearchOnUpload, messageMetadata, 
  * blocks / pauses-to-ask based on the org's `dlpMode`. Unified with the
  * direct-chat path in core/dlp/dlpPreflight.js.
  */
-async function runAgentDlpPreflight({ messages, dlpShield, agent, agentId, conversation, userId, modelToUse, messageMetadata, config, onEvent }) {
-    const { runDlpPreflight } = require('../../dlp/dlpPreflight');
+async function runAgentDlpPreflight({ messages, dlpShield, agent, agentId, conversation, userId, modelToUse, messageMetadata, config, onEvent }, d) {
+    const { runDlpPreflight } = d.dlpPreflight();
     return runDlpPreflight({
         messages,
         resolvedShield: dlpShield,

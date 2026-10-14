@@ -6,19 +6,20 @@
  * The round stop reason is hoisted out of both branches so the loop's
  * empty-round guard (./turnLoop) can tell "cut off at the output limit" from
  * "the model simply said nothing".
+ *
+ * The phases themselves (./roundRequest, ./nativeAdapterStream,
+ * ./rawSseStream, ../phaseEvents) are handed in as `steps` by ./turnLoop:
+ * they sit in the server's large import cycle, which this module stays out of.
  */
 const terminationStore = require('../../../stores/terminationStore');
 const { isTruncatedStop } = require('../../llm/toolLoop');
-const { emitPhase } = require('../phaseEvents');
-const { buildRoundRequest } = require('./roundRequest');
-const { streamNativeAdapterRound } = require('./nativeAdapterStream');
-const { streamRawSseRound } = require('./rawSseStream');
 
 /**
  * Stream one round. Writes the token counters and reasoning into `st` (see
  * ./turnState) and returns what the loop needs to decide the next step.
  */
-async function streamRound({ st, req, terminationBaseRow, ...turn }) {
+async function streamRound({ st, req, terminationBaseRow, steps, ...turn }) {
+    const { streamNativeAdapterRound, streamRawSseRound } = steps;
     const {
         agent, agentId, userId, messageMetadata, config, modelToUse, conversation,
         tools, signal, onEvent, regexConfig, guardrailViolation, _forceFinalAnswer,
@@ -83,7 +84,8 @@ async function streamRound({ st, req, terminationBaseRow, ...turn }) {
  * hand-over to the model, then stream it. `t` is the prepared turn (see
  * ./turnPrepare), `st` the loop state (./turnState).
  */
-async function runModelRound(t, st, { guardrailViolation, _assistantTokenisationInfo, _forceFinalAnswer, signal, terminationBaseRow }) {
+async function runModelRound(t, st, { guardrailViolation, _assistantTokenisationInfo, _forceFinalAnswer, signal, terminationBaseRow, steps }) {
+    const { buildRoundRequest, emitPhase } = steps;
     const { agent, agentId, userId, messageMetadata, config, modelToUse, conversation, messages, onEvent } = t;
     // What this round sends, and down which branch — see ./roundRequest.
     const _req = await buildRoundRequest({
@@ -102,7 +104,7 @@ async function runModelRound(t, st, { guardrailViolation, _assistantTokenisation
     }
 
     const _round = await streamRound({
-        st, req: _req, terminationBaseRow,
+        st, req: _req, terminationBaseRow, steps,
         agent, agentId, userId, messageMetadata, config, modelToUse, conversation,
         tools: t.tools, signal, onEvent, regexConfig: t.regexConfig, guardrailViolation, _forceFinalAnswer,
     });

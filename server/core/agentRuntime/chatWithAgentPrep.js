@@ -2,13 +2,12 @@
  * What the non-streaming agent loop (./chatWithAgent) settles before its first
  * round: the generation settings, the fixed tool params, and the input-side
  * privacy pass (Unicode smuggling, PII, the token-preservation addendum).
+ *
+ * Every function takes `d`, the collaborators ./chatWithAgent hands in
+ * ({ getAIConfig, agentStore, getEUAwareTiers, TIER_DEFAULTS,
+ * findTierKeyForModel, validateInputForPii, resolveShieldFor, dlpRunner }):
+ * they sit in the server's large import cycle, which this module stays out of.
  */
-const { getAIConfig } = require('../aiAgent');
-const agentStore = require('../../stores/agentStore');
-const { getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel } = require('../llm/modelResolver');
-const { validateInputForPii } = require('../privacy/piiDetection');
-const { resolveShieldFor } = require('../privacy/orgShield');
-const dlpRunner = require('../dlp/dlpRunner');
 const { buildTokenPreservationAddendum } = require('../dlp/tokenPreservationPrompt');
 const log = require('../../telemetry/log');
 
@@ -26,7 +25,8 @@ const log = require('../../telemetry/log');
  * adaptive-only models. Falls back to tier defaults when the model isn't
  * attached to any tier.
  */
-async function resolveGenerationSettings(modelId, { userOrgId = null, userId = null, tierKey: explicitTierKey = null } = {}) {
+async function resolveGenerationSettings(modelId, { userOrgId = null, userId = null, tierKey: explicitTierKey = null } = {}, d) {
+    const { getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel } = d;
     let tiers = {};
     try {
         tiers = await getEUAwareTiers({ userOrgId, userId }) || {};
@@ -52,9 +52,9 @@ async function resolveGenerationSettings(modelId, { userOrgId = null, userId = n
 }
 
 /** The agent's fixed tool params, keyed by tool name. */
-async function loadToolParamsMap(agentId) {
+async function loadToolParamsMap(agentId, d) {
     const toolParamsMap = {};
-    const toolConfigs = await agentStore.getAgentToolsWithParams(agentId);
+    const toolConfigs = await d.agentStore.getAgentToolsWithParams(agentId);
     for (const tc of toolConfigs) {
         // Convert component ID to tool name format (replace hyphens with underscores)
         const toolName = tc.componentId.replace(/-/g, '_');
@@ -71,7 +71,8 @@ async function loadToolParamsMap(agentId) {
  * Content moderation (Hate/Violence/Sexual/Self-Harm) was removed when the
  * Azure Content Safety backend was dropped; PII detection still runs here.
  */
-async function shieldIncomingMessages({ messages, agent, userId, userAuth, conversation }) {
+async function shieldIncomingMessages({ messages, agent, userId, userAuth, conversation }, d) {
+    const { getAIConfig, resolveShieldFor, validateInputForPii, dlpRunner } = d;
     // ── Unicode Smuggling Defense (must run FIRST) ───────────────────
     const { sanitizeMessagesUnicode } = require('../../utils/unicodeSanitizer');
     const unicodeResult = sanitizeMessagesUnicode(messages);
@@ -120,9 +121,9 @@ async function shieldIncomingMessages({ messages, agent, userId, userAuth, conve
 }
 
 /** PII tokens: instruct the LLM to preserve & reuse them rather than invent new placeholders. */
-function tokenPreservationAddendum(conversation, piiTokenMap) {
+function tokenPreservationAddendum(conversation, piiTokenMap, d) {
     const _convTokenMap = conversation?.id
-        ? dlpRunner.getConversationTokenMap(conversation.id)
+        ? d.dlpRunner.getConversationTokenMap(conversation.id)
         : (piiTokenMap || {});
     return buildTokenPreservationAddendum(_convTokenMap);
 }

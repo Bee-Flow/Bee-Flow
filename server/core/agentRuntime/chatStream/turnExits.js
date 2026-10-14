@@ -8,7 +8,6 @@
  *   - the test-chat rule attribution that runs right before `done`.
  */
 const terminationStore = require('../../../stores/terminationStore');
-const agentStore = require('../../../stores/agentStore');
 const testChatMod = require('../testChat');
 const { sanitizeError } = require('../../privacy/errorSanitizer');
 const { findWireProblems } = require('../../../utils/messageUtils');
@@ -57,11 +56,14 @@ function wrapUpAnswer({ currentToolCalls, fullResponse, _bailReason, onEvent }) 
  * projection STRIPS `persona` (it is an editor artefact), so without this
  * read there is nothing to attribute against. One extra query, only in a
  * test chat, only at the end.
+ *
+ * The agent store and the attribution module are handed in (they sit in the
+ * server's large import cycle, which this module stays out of).
  */
-async function attributeTestChatTurn({ agent, agentId, userId, userMessage, messageMetadata, fullResponse, onEvent }) {
+async function attributeTestChatTurn({ agent, agentId, userId, userMessage, messageMetadata, fullResponse, onEvent }, { agentStore, ruleAttribution }) {
     try {
         const _editorView = await agentStore.getAgent(agentId);
-        const _attribution = await require('../ruleAttribution').attributeTurn({
+        const _attribution = await ruleAttribution().attributeTurn({
             testChat: true,
             persona: _editorView ? _editorView.persona : null,
             configInfo: testChatMod.testChatConfigInfo(agent),

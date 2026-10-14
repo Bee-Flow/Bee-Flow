@@ -3,6 +3,11 @@
  * Detaching co-edited documents (./lifecycle.js): fold the final state into
  * the resource, keep a version, and delete the co-editing state — for one
  * resource, a whole project, or an organisation that switched co-editing off.
+ *
+ * `orgIds` resolves an organisation id the way the connection store does
+ * (stores/integrationConnectionStore.resolveOrgId, handed in lazily by
+ * ./lifecycle): that store sits in the server's large import cycle, which
+ * this module stays out of.
  */
 
 'use strict';
@@ -16,8 +21,9 @@ const ORG_BATCH = 500;
  * @param {any} ctx the shared context built in index.js
  * @param {ReturnType<typeof import('./lifecycleBase').makeLifecycleBase>} base
  * @param {ReturnType<typeof import('./lifecycleVersions').makeLifecycleVersions>} versions
+ * @param {() => { resolveOrgId: (orgId: string|null) => any }} orgIds
  */
-function makeLifecycleDetach(ctx, base, versions) {
+function makeLifecycleDetach(ctx, base, versions, orgIds) {
     const { store, resources, log } = ctx;
     const { soft, open } = base;
     const { materialise, closeSession } = versions;
@@ -168,7 +174,7 @@ function makeLifecycleDetach(ctx, base, versions) {
      * @param {string|null} orgId @param {{ batch?: number }} [opts]
      */
     async function detachOrganisation(orgId, { batch = ORG_BATCH } = {}) {
-        const { resolveOrgId } = require('../../stores/integrationConnectionStore');
+        const { resolveOrgId } = orgIds();
         const org = resolveOrgId(orgId);
         const fallback = resolveOrgId(null);
         let detached = 0;

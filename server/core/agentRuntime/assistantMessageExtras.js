@@ -3,6 +3,10 @@
  * of a streaming agent turn: the stray tool-call / think markup stripped from
  * the text, the render-time un-tokenisation of the saved tool history and
  * thinking, and the tokenisation info behind the "Privacy protection" panel.
+ *
+ * The PII detector and the DLP runner are handed in as `privacy`
+ * ({ piiDetection(), dlpRunner() }, lazy, by ./finalizeTurn): they sit in the
+ * server's large import cycle, which this module stays out of.
  */
 const log = require('../../telemetry/log');
 
@@ -49,10 +53,10 @@ function stripToolCallMarkup(fullResponse, { useNativeAdapter, onEvent }) {
  * toolHistory is never fed back to the AI; it surfaces in the "How I got this
  * answer" panel where the user wants real values.
  */
-function restoreToolHistoryTokens(toolHistory, conversation) {
+function restoreToolHistoryTokens(toolHistory, conversation, privacy) {
     try {
-        const { restoreTokens } = require('../privacy/piiDetection');
-        const _convMapTH = require('../dlp/dlpRunner').getConversationTokenMap(conversation?.id);
+        const { restoreTokens } = privacy.piiDetection();
+        const _convMapTH = privacy.dlpRunner().getConversationTokenMap(conversation?.id);
         if (Object.keys(_convMapTH).length === 0) return;
         for (const t of toolHistory) {
             if (typeof t?.resultPreview === 'string') {
@@ -87,11 +91,11 @@ const _capText = (s) => (typeof s === 'string' && s.length > THINKING_BUDGET)
  * reload (BFSF-253). Best-effort; the live stream is handled by the
  * un-tokeniser wrapper.
  */
-function persistedThinking(thinkingParts, thinking, conversation) {
+function persistedThinking(thinkingParts, thinking, conversation, privacy) {
     let _restoreTH = (s) => s;
     try {
-        const { restoreTokens } = require('../privacy/piiDetection');
-        const _convMapTHK = require('../dlp/dlpRunner').getConversationTokenMap(conversation?.id);
+        const { restoreTokens } = privacy.piiDetection();
+        const _convMapTHK = privacy.dlpRunner().getConversationTokenMap(conversation?.id);
         if (_convMapTHK && Object.keys(_convMapTHK).length > 0) {
             _restoreTH = (s) => (typeof s === 'string' ? restoreTokens(s, _convMapTHK) : s);
         }
@@ -154,7 +158,7 @@ function tokenCategories(tokens) {
  *     This is state, not action: PII detection does NOT run on the reply;
  *     the conv map was populated on earlier turns.
  */
-function synthesiseTokenisationInfo({ ut, conversation, modelToUse, onEvent }) {
+function synthesiseTokenisationInfo({ ut, conversation, modelToUse, onEvent }, privacy) {
     if (!ut || typeof ut.getReplacedTokens !== 'function') return null;
     const replaced = ut.getReplacedTokens();
     let info = null;
@@ -175,7 +179,7 @@ function synthesiseTokenisationInfo({ ut, conversation, modelToUse, onEvent }) {
             tokenMap,
         };
     } else {
-        const convMap = require('../dlp/dlpRunner').getConversationTokenMap(conversation?.id) || {};
+        const convMap = privacy.dlpRunner().getConversationTokenMap(conversation?.id) || {};
         const convEntries = Object.entries(convMap);
         if (convEntries.length === 0) return null;
         info = {

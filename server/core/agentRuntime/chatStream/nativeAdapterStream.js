@@ -20,6 +20,15 @@ const log = require('../../../telemetry/log');
 const {
     buildAdapterMessages, buildAdapterOptions, applyThinkingPartEvent, appendThinkingText, logAdapterUsage,
 } = require('./adapterRoundSetup');
+const usageStore = require('../../../stores/usageStore');
+const { applyTokenMapToMessages } = require('../../dlp/applyTokenMapToOutbound');
+
+// What ./adapterRoundSetup works with, handed in (it stays out of the server's
+// large import cycle). The tier defaults stay lazily required, as they were.
+const SETUP_DEPS = {
+    applyTokenMapToMessages, usageStore,
+    tierDefaults: () => require('../../llm/modelResolver').TIER_DEFAULTS,
+};
 
 const THINKING_PART_EVENTS = new Set(['thinking_start', 'thinking_signature', 'thinking_stop']);
 
@@ -37,11 +46,11 @@ async function streamNativeAdapterRound({
     // nudge instead of reading the round as "done".
     let _invalidToolCalls = [];
 
-    const adapterMessages = buildAdapterMessages({ effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, conversation });
+    const adapterMessages = buildAdapterMessages({ effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, conversation }, SETUP_DEPS);
     const adapterOptions = buildAdapterOptions({
         agent, userId, messageMetadata, modelToUse, conversation, tools, signal, tierSettings,
         effectiveSystemPrompt, _adapterIsLocal, _forceFinalAnswer,
-    });
+    }, SETUP_DEPS);
     const mcpToolCount = tools.filter(t => t._mcp || t.function?.name?.startsWith('mcp_')).length;
     if (mcpToolCount > 0) {
         log.info(`[AgentRuntime] 🔌 ${mcpToolCount} MCP tools loaded for LLM`);
@@ -143,7 +152,7 @@ async function streamNativeAdapterRound({
         return providerAdapter.stream(config.apiKey, config.url, modelToUse, adapterMessages, adapterOptions, onAdapterEvent);
     }, 3, signal);
 
-    await logAdapterUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, _adapterStreamUsage, _streamCallStart });
+    await logAdapterUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, _adapterStreamUsage, _streamCallStart }, SETUP_DEPS);
 
     return {
         contentBuffer, currentToolCalls, _invalidToolCalls, guardrailViolation,

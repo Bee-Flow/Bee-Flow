@@ -4,12 +4,16 @@
  * co-edited document's surroundings current: the mirror (materialise), the
  * version with its announcements (closeSession), and compaction of the
  * update log.
+ *
+ * The resources' feed item types and scan subjects come in as `kinds`
+ * ({ FEED_ITEM_TYPE, SCAN_SUBJECT } from ./resources, handed in by
+ * ./lifecycle): ./resources sits in the server's large import cycle, which
+ * this module stays out of.
  */
 
 'use strict';
 
 const Y = require('yjs');
-const { FEED_ITEM_TYPE, SCAN_SUBJECT } = require('./resources');
 
 /**
  * Contributors of a version from the server-attested authors of its updates.
@@ -37,8 +41,10 @@ function toContributors(authors) {
 /**
  * @param {any} ctx the shared context built in index.js
  * @param {ReturnType<typeof import('./lifecycleBase').makeLifecycleBase>} base
+ * @param {{ FEED_ITEM_TYPE: Record<string, string>, SCAN_SUBJECT: Record<string, string> }} kinds
  */
-function makeLifecycleVersions(ctx, base) {
+function makeLifecycleVersions(ctx, base, kinds) {
+    const { FEED_ITEM_TYPE, SCAN_SUBJECT } = kinds;
     const { store, converter, resources, limits, log } = ctx;
     const { soft, renderOf, leased, open } = base;
 

@@ -44,12 +44,16 @@ async function processAttachments(attachments = [], lastMsg, userId = null, opts
         userId,
         emit: opts.emit || null,
         registerDecision: opts.registerDecision || null,
+    }, {
+        attachmentScanner: () => require('../dlp/attachmentScanner'),
+        attachmentAskFlow: () => require('../dlp/attachmentAskFlow'),
     });
     const ctx = {
         modelSupportsVision: modelSupportsVisionById(opts.modelId),
         persistedByLive: opts.persistedByLive || null,
         maybeScan,
         userId,
+        attachmentExtractor: () => require('../documents/attachmentExtractor'),
     };
 
     for (const att of attachments) {

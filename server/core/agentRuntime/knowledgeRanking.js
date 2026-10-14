@@ -2,8 +2,10 @@
  * The ranking half of the agent knowledge search (./knowledgeSearch): score
  * floors, near-duplicate removal, the per-passage trim, and the prompt block
  * the surviving passages are injected as.
+ *
+ * The config store is handed in by ./knowledgeSearch: it sits in the
+ * server's large import cycle, which this module stays out of.
  */
-const configStore = require('../../stores/configStore');
 const { estimateTokens, fitIntoTokenBudget } = require('../llm/tokenBudget');
 const log = require('../../telemetry/log');
 
@@ -48,7 +50,7 @@ function jaccardSimilarity(setA, setB) {
  * pretending the score is a probability. Its RANKING is trustworthy; its
  * absolute value is not.
  */
-async function hasCalibratedReranker() {
+async function hasCalibratedReranker(configStore) {
     const azureRerankerEndpoint = await configStore.getConfig('azure_reranker_endpoint') || process.env.AZURE_RERANKER_ENDPOINT;
     return !!(azureRerankerEndpoint || process.env.RERANKER_URL);
 }
@@ -58,11 +60,11 @@ async function hasCalibratedReranker() {
  * `{ filtered, topResults, hasReranker }`: everything that passed the score
  * floors (sorted), and the passages that will be shown.
  */
-async function rankKnowledgeResults(results) {
+async function rankKnowledgeResults(results, configStore) {
     // Score threshold: use config-based detection (same logic as kbSearchTools.js)
     // When Azure reranker is configured, no threshold — trust the reranker.
     // When RRF-only, apply a minimal floor.
-    const hasReranker = await hasCalibratedReranker();
+    const hasReranker = await hasCalibratedReranker(configStore);
     const MIN_SCORE = hasReranker ? 0 : 0.01;
     let filtered = results.filter(r => (r.score || 0) >= MIN_SCORE);
 

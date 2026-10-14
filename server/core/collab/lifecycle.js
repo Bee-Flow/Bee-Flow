@@ -33,6 +33,7 @@
 
 'use strict';
 
+const { FEED_ITEM_TYPE, SCAN_SUBJECT } = require('./resources');
 const { makeLifecycleBase } = require('./lifecycleBase');
 const { makeLifecycleVersions, toContributors } = require('./lifecycleVersions');
 const { makeLifecycleDetach } = require('./lifecycleDetach');
@@ -42,8 +43,8 @@ const { makeLifecycleReads, makeServerEdit, SERVER_ORIGINS } = require('./lifecy
 function makeLifecycle(ctx) {
     const { store, limits } = ctx;
     const base = makeLifecycleBase(ctx);
-    const versions = makeLifecycleVersions(ctx, base);
-    const detaching = makeLifecycleDetach(ctx, base, versions);
+    const versions = makeLifecycleVersions(ctx, base, { FEED_ITEM_TYPE, SCAN_SUBJECT });
+    const detaching = makeLifecycleDetach(ctx, base, versions, () => require('../../stores/integrationConnectionStore'));
     const reads = makeLifecycleReads(ctx, base, versions, detaching);
     const { applyServerEdit } = makeServerEdit(ctx, base, versions, reads);
     const { soft, open } = base;

@@ -2,17 +2,19 @@
  * The pieces of ./rawSseStream: the request body, the fetch (retried, with
  * the client-disconnect signal combined with a 120 s ceiling), one parsed
  * `data:` frame applied to the round's state, and the usage row.
+ *
+ * The outbound token guard and the usage store are handed in as `d`
+ * ({ applyTokenMapToOutbound, usageStore }) by ./rawSseStream: they sit in the
+ * server's large import cycle, which this module stays out of.
  */
-const usageStore = require('../../../stores/usageStore');
 const { usageLogFields } = require('../../providers/usageNormalizer');
 const testChatMod = require('../testChat');
 const { sanitizeMessages } = require('../../../utils/messageUtils');
-const { applyTokenMapToOutbound } = require('../../dlp/applyTokenMapToOutbound');
 const { retryStreamCall } = require('../streamRetry');
 const log = require('../../../telemetry/log');
 
 /** The OpenAI-compatible request body for this round. */
-function buildRawRequestBody({ agentId, modelToUse, conversation, tools, _forceFinalAnswer, effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, tierSettings }) {
+function buildRawRequestBody({ agentId, modelToUse, conversation, tools, _forceFinalAnswer, effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, tierSettings }, d) {
     // Detect reasoning models that need special handling
     const isReasoningModel = /^o\d|^gpt-5/i.test(modelToUse);
     const isRestrictedTemp = /^o\d|nano|^gpt-5/i.test(modelToUse);
@@ -21,7 +23,7 @@ function buildRawRequestBody({ agentId, modelToUse, conversation, tools, _forceF
     // This path is OpenAI-compatible and has no prompt cache to
     // protect, so the two halves are joined back into one system
     // message.
-    const _guardedRaw = applyTokenMapToOutbound({
+    const _guardedRaw = d.applyTokenMapToOutbound({
         conversationId: conversation?.id,
         systemPrompt: effectiveSystemPrompt + effectiveVolatilePrompt,
         messages: sanitizeMessages(finalMessages),
@@ -168,10 +170,10 @@ function applySseFrame(parsed, rs, { splitter, onEvent }) {
  * writing here avoids duplicate rows when servers emit multiple usage frames
  * or when [DONE] races the last frame.
  */
-async function logRawUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, usage, finishReason, _streamCallStart }) {
+async function logRawUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, usage, finishReason, _streamCallStart }, d) {
     if (!usage) return;
     try {
-        await usageStore.logUsage({
+        await d.usageStore.logUsage({
             user_id: userId,
             agent_id: agentId,
             agent_name: agent.name,

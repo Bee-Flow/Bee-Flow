@@ -1,3 +1,4 @@
+const configStore = require('../../stores/configStore');
 const { getServiceHeaders } = require('../serviceAuth');
 const { getAll } = require('../../db');
 const { userHasBetaFeature } = require('../entitlements/betaFeatures');
@@ -7,6 +8,13 @@ const {
     contentTokenSet, jaccardSimilarity, hasCalibratedReranker, rankKnowledgeResults,
     trimPassages, passageSource, knowledgePromptBlock, NO_RESULTS_BLOCK, EMPTY_KB_BLOCK,
 } = require('./knowledgeRanking');
+
+// The KB provider and the local search, lazily, for ./knowledgeRetrieval
+// (which stays out of the server's large import cycle).
+const KB_SEARCH = {
+    resolveProvider: () => require('../kb/resolveProvider'),
+    localKBIngest: () => require('../kb/localKBIngest'),
+};
 
 // Mirror of routes/knowledgeBases.js — kept here too so the agent runtime
 // doesn't have to import a routes-layer constant. Slugs identify a
@@ -132,7 +140,7 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
     }
 
     const allKnowledgeResults = kbIds.length > 0
-        ? await fetchKnowledgeResults({ userId, kbIds, userMessage })
+        ? await fetchKnowledgeResults({ userId, kbIds, userMessage }, KB_SEARCH)
         : [];
 
     if (allKnowledgeResults.length === 0) {
@@ -145,7 +153,7 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
     await enrichResultsWithDocMetadata(allKnowledgeResults, kbIds);
     applyMetadataBoost(allKnowledgeResults, userMessage);
 
-    const { filtered, topResults, hasReranker } = await rankKnowledgeResults(allKnowledgeResults);
+    const { filtered, topResults, hasReranker } = await rankKnowledgeResults(allKnowledgeResults, configStore);
     log.info(`[KnowledgeSearch] Results: ${filtered.length} after filters → ${topResults.length} after dedup (hasReranker=${hasReranker}, includeRefs=${agent.config?.includeSourceReferences})`);
 
     const anyChunkTruncated = trimPassages(topResults);
@@ -242,7 +250,7 @@ async function quickKBSearch(userId, kbIds, query, options = {}) {
     // which is what made "Test question" answer "nothing matched" on a base
     // whose rows the search had just found. See hasCalibratedReranker for why
     // the llama.cpp and CPU rerankers are deliberately NOT counted as calibrated.
-    const MIN_RELEVANCE = (await hasCalibratedReranker()) ? 0.72 : 0.01;
+    const MIN_RELEVANCE = (await hasCalibratedReranker(configStore)) ? 0.72 : 0.01;
     chunks = chunks.filter(c => (c.score || c.rerank_score || 0) >= MIN_RELEVANCE);
 
     // Jaccard dedup (same as kbSearchTools)
