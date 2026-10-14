@@ -90,6 +90,9 @@ const realRunConnector = connectors.runConnector;
 connectors.runConnector = (connector, opts) => { runCalls.push({ connector, opts }); return runImpl(connector, opts); };
 
 const router = require('./studioAppConnectors');
+const { createTerminalErrorHandler } = require('../core/http/terminalErrorHandler');
+// Behind the router, as in index.js: an error the router hands on is answered here.
+const terminalErrorHandler = createTerminalErrorHandler({ log: { error() {}, warn() {} } });
 
 // ── Dispatch harness ────────────────────────────────────────────────
 function dispatch({ method = 'GET', url, user = 'viewer-1', orgIds = [], groups = [], body, query = {} }) {
@@ -114,7 +117,9 @@ function dispatch({ method = 'GET', url, user = 'viewer-1', orgIds = [], groups 
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
         };
-        router(req, res, (err) => reject(err || new Error(`fell through router: ${method} ${url}`)));
+        router(req, res, (err) => (err
+            ? terminalErrorHandler(err, req, res, reject)
+            : reject(new Error(`fell through router: ${method} ${url}`))));
     });
 }
 
@@ -272,6 +277,7 @@ test('an unexpected error collapses to a generic 500 (no internals leaked)', asy
     runImpl = async () => { throw new Error('secret internal detail'); };
     const r = await dispatch({ method: 'POST', url: `/${app.id}/data/connectors/conn_rest01/run`, user: OWNER, body: {} });
     assert.strictEqual(r.statusCode, 500);
+    assert.strictEqual(r.body.error, 'Internal server error');
     assert.ok(!JSON.stringify(r.body).includes('secret internal detail'));
 });
 

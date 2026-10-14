@@ -101,252 +101,222 @@ const BulkDeleteBody = bodyOf({ ids: ids('ids is a list of source ids.') }, 'Del
 // ── Source: File Upload (PDF, DOCX, XLSX, CSV, TXT…) ────────────
 
 router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const notebookId = req.params.id;
+    const userId = req.session.user.id;
+    const notebookId = req.params.id;
 
-        const nb = req.notebook;
-        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-        await assertSourceRoom(nb.id);
+    const nb = req.notebook;
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    await assertSourceRoom(nb.id);
 
-        // Source type from the extension, and a copy in RustFS when storage is on.
-        const uploaded = await require('../db').withTransaction(async (client) => {
-            const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [notebookId]);
-            if (!rows[0]) throw new HttpError(404, 'notebook_not_found', 'Notebook not found');
-            const contentCrypto = require('../stores/lib/documentCrypto');
-            const resource = contentCrypto.resourceOf(rows[0], 'notebook');
-            const context = await contentCrypto.writeContext(resource);
-            const file = await keepUploadedSource(req.file, {
-                userId, prefix: 'nb', folder: 'notebooks',
-                protectBuffer: context ? (bytes, key) => require('../stores/lib/notebookFileCrypto').sealBuffer(resource, key, bytes, context) : null,
+    // Source type from the extension, and a copy in RustFS when storage is on.
+    const uploaded = await require('../db').withTransaction(async (client) => {
+        const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [notebookId]);
+        if (!rows[0]) throw new HttpError(404, 'notebook_not_found', 'Notebook not found');
+        const contentCrypto = require('../stores/lib/documentCrypto');
+        const resource = contentCrypto.resourceOf(rows[0], 'notebook');
+        const context = await contentCrypto.writeContext(resource);
+        const file = await keepUploadedSource(req.file, {
+            userId, prefix: 'nb', folder: 'notebooks',
+            protectBuffer: context ? (bytes, key) => require('../stores/lib/notebookFileCrypto').sealBuffer(resource, key, bytes, context) : null,
+        });
+        try {
+            const source = await notebookStore.addSource({
+                notebookId, type: file.type, name: file.fileName,
+                storageKey: file.storageKey, fileName: file.fileName, metadata: { mimeType: file.mimeType, size: file.buffer.length }, client,
             });
-            try {
-                const source = await notebookStore.addSource({
-                    notebookId, type: file.type, name: file.fileName,
-                    storageKey: file.storageKey, fileName: file.fileName, metadata: { mimeType: file.mimeType, size: file.buffer.length }, client,
-                });
-                return { ...file, source };
-            } catch (e) {
-                if (file.storageKey) await require('../stores/storageStore').deleteFile(file.storageKey).catch(() => undefined);
-                throw e;
-            }
-        });
-        const { fileName, mimeType, buffer, source } = uploaded;
+            return { ...file, source };
+        } catch (e) {
+            if (file.storageKey) await require('../stores/storageStore').deleteFile(file.storageKey).catch(() => undefined);
+            throw e;
+        }
+    });
+    const { fileName, mimeType, buffer, source } = uploaded;
 
-        res.json({ success: true, source });
-        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
+    res.json({ success: true, source });
+    void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
 
-        // Background: parse + ingest into KB
-        ingestFileSource(notebookId, source.id, userId, buffer, fileName, mimeType).catch(err => {
-            log.error(`[Notebooks] Background ingestion failed for ${fileName}:`, err.message);
-        });
+    // Background: parse + ingest into KB
+    ingestFileSource(notebookId, source.id, userId, buffer, fileName, mimeType).catch(err => {
+        log.error(`[Notebooks] Background ingestion failed for ${fileName}:`, err.message);
+    });
 
-    } catch (err) {
-        if (err instanceof HttpError) throw err;
-        log.error('[Notebooks] File upload failed:', err);
-        res.status(500).json({ error: 'Failed to upload file' });
-    }
 });
 
 // ── Source: URL ──────────────────────────────────────────────────
 
 router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), asEditor, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const notebookId = req.params.id;
-        const { url } = req.body;
-        if (!url) return res.status(400).json({ error: 'URL required' });
+    const userId = req.session.user.id;
+    const notebookId = req.params.id;
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'URL required' });
 
-        const nb = req.notebook;
-        await assertSourceRoom(nb.id);
+    const nb = req.notebook;
+    await assertSourceRoom(nb.id);
 
-        // Derive name from URL
-        let name;
-        try { name = new URL(url).hostname + new URL(url).pathname; } catch { name = url; }
-        if (name.length > 80) name = name.slice(0, 80) + '…';
+    // Derive name from URL
+    let name;
+    try { name = new URL(url).hostname + new URL(url).pathname; } catch { name = url; }
+    if (name.length > 80) name = name.slice(0, 80) + '…';
 
-        const source = await notebookStore.addSource({
-            notebookId, type: 'url', name,
-            metadata: { url }
-        });
+    const source = await notebookStore.addSource({
+        notebookId, type: 'url', name,
+        metadata: { url }
+    });
 
-        res.json({ success: true, source });
-        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
+    res.json({ success: true, source });
+    void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
 
-        // Background: fetch + ingest
-        ingestUrlSource(notebookId, source.id, userId, url).catch(err => {
-            log.error(`[Notebooks] URL ingestion failed for ${url}:`, err.message);
-        });
+    // Background: fetch + ingest
+    ingestUrlSource(notebookId, source.id, userId, url).catch(err => {
+        log.error(`[Notebooks] URL ingestion failed for ${url}:`, err.message);
+    });
 
-    } catch (err) {
-        if (err instanceof HttpError) throw err;
-        log.error('[Notebooks] URL source failed:', err);
-        res.status(500).json({ error: 'Failed to add URL source' });
-    }
 });
 
 // ── Source: Pasted Text ─────────────────────────────────────────
 
 router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asEditor, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const notebookId = req.params.id;
-        const { text, name } = req.body;
-        if (!text) return res.status(400).json({ error: 'Text content required' });
+    const userId = req.session.user.id;
+    const notebookId = req.params.id;
+    const { text, name } = req.body;
+    if (!text) return res.status(400).json({ error: 'Text content required' });
 
-        const nb = req.notebook;
-        assertTextFits(text);
-        await assertSourceRoom(nb.id);
+    const nb = req.notebook;
+    assertTextFits(text);
+    await assertSourceRoom(nb.id);
 
-        const sourceName = name || 'Pasted text';
-        const source = await notebookStore.addSource({
-            notebookId, type: 'text', name: sourceName,
-            wordCount: countWords(text)
-        });
+    const sourceName = name || 'Pasted text';
+    const source = await notebookStore.addSource({
+        notebookId, type: 'text', name: sourceName,
+        wordCount: countWords(text)
+    });
 
-        res.json({ success: true, source });
-        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
+    res.json({ success: true, source });
+    void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
 
-        // Background: ingest
-        ingestTextSource(notebookId, source.id, userId, text, sourceName).catch(err => {
-            log.error(`[Notebooks] Text ingestion failed:`, err.message);
-        });
+    // Background: ingest
+    ingestTextSource(notebookId, source.id, userId, text, sourceName).catch(err => {
+        log.error(`[Notebooks] Text ingestion failed:`, err.message);
+    });
 
-    } catch (err) {
-        if (err instanceof HttpError) throw err;
-        log.error('[Notebooks] Text source failed:', err);
-        res.status(500).json({ error: 'Failed to add text source' });
-    }
 });
 
 // ── Source: Meeting Notes ─────────────────────────────────────────
 
 router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody }), asEditor, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const notebookId = req.params.id;
-        const { meetingId, mode } = req.body;
-        if (!meetingId) return res.status(400).json({ error: 'Meeting ID required' });
-        const ingestMode = mode === 'summary' ? 'summary' : 'full';
+    const userId = req.session.user.id;
+    const notebookId = req.params.id;
+    const { meetingId, mode } = req.body;
+    if (!meetingId) return res.status(400).json({ error: 'Meeting ID required' });
+    const ingestMode = mode === 'summary' ? 'summary' : 'full';
 
-        const nb = req.notebook;
-        await assertSourceRoom(nb.id);
+    const nb = req.notebook;
+    await assertSourceRoom(nb.id);
 
-        const meeting = await transcriptionStore.getTranscription(meetingId, userId);
-        if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
+    const meeting = await transcriptionStore.getTranscription(meetingId, userId);
+    if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
 
-        const fullTranscript = meeting.fullText || meeting.transcript || meeting.transcription || '';
-        const summaryText = meeting.summary || '';
-        // Prefer the requested mode; fall back to whichever is populated.
-        const sourceText = ingestMode === 'summary'
-            ? (summaryText.trim() ? summaryText : fullTranscript)
-            : (fullTranscript.trim() ? fullTranscript : summaryText);
+    const fullTranscript = meeting.fullText || meeting.transcript || meeting.transcription || '';
+    const summaryText = meeting.summary || '';
+    // Prefer the requested mode; fall back to whichever is populated.
+    const sourceText = ingestMode === 'summary'
+        ? (summaryText.trim() ? summaryText : fullTranscript)
+        : (fullTranscript.trim() ? fullTranscript : summaryText);
 
-        const modeLabel = ingestMode === 'summary' && summaryText.trim() ? ' (summary)' : '';
-        const sourceName = `Meeting Note: ${meeting.title || 'Untitled Meeting'}${modeLabel}`;
+    const modeLabel = ingestMode === 'summary' && summaryText.trim() ? ' (summary)' : '';
+    const sourceName = `Meeting Note: ${meeting.title || 'Untitled Meeting'}${modeLabel}`;
 
-        if (!sourceText.trim()) return res.status(400).json({ error: 'Meeting has no transcription content' });
+    if (!sourceText.trim()) return res.status(400).json({ error: 'Meeting has no transcription content' });
 
-        // type 'meeting' (not 'text') so the UI shows the meeting icon, and
-        // contentText up front so retry works even if ingestion dies before
-        // its own content_text write.
-        const source = await notebookStore.addSource({
-            notebookId, type: 'meeting', name: sourceName, sourceRefId: meeting.id,
-            wordCount: countWords(sourceText),
-            contentText: sourceText.slice(0, MAX_STORED_TEXT)
-        });
+    // type 'meeting' (not 'text') so the UI shows the meeting icon, and
+    // contentText up front so retry works even if ingestion dies before
+    // its own content_text write.
+    const source = await notebookStore.addSource({
+        notebookId, type: 'meeting', name: sourceName, sourceRefId: meeting.id,
+        wordCount: countWords(sourceText),
+        contentText: sourceText.slice(0, MAX_STORED_TEXT)
+    });
 
-        res.json({ success: true, source });
-        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
+    res.json({ success: true, source });
+    void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
 
-        // Background: ingest
-        ingestTextSource(notebookId, source.id, userId, sourceText, sourceName).catch(err => {
-            log.error(`[Notebooks] Meeting source ingestion failed:`, err.message);
-        });
+    // Background: ingest
+    ingestTextSource(notebookId, source.id, userId, sourceText, sourceName).catch(err => {
+        log.error(`[Notebooks] Meeting source ingestion failed:`, err.message);
+    });
 
-    } catch (err) {
-        if (err instanceof HttpError) throw err;
-        log.error('[Notebooks] Meeting source failed:', err);
-        res.status(500).json({ error: 'Failed to add meeting source' });
-    }
 });
 
 // ── Source: Google Drive / OneDrive ──────────────────────────────
 
 router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), asEditor, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const notebookId = req.params.id;
-        const { files, provider } = req.body; // provider: 'google' | 'microsoft'
+    const userId = req.session.user.id;
+    const notebookId = req.params.id;
+    const { files, provider } = req.body; // provider: 'google' | 'microsoft'
 
-        if (!files || !Array.isArray(files) || files.length === 0) {
-            return res.status(400).json({ error: 'Files array required' });
-        }
-        // Bound the batch. Each file below starts a detached ingestion promise —
-        // extraction, chunking and embedding — with no concurrency limit, so a
-        // single picker selection of a few hundred files could saturate the
-        // process (and the embedding backend) for everyone on the instance.
-        if (files.length > MAX_DRIVE_FILES_PER_REQUEST) {
-            return res.status(400).json({
-                error: `Too many files — add at most ${MAX_DRIVE_FILES_PER_REQUEST} at a time`,
-                code: 'too_many_files',
-            });
-        }
-
-        const nb = req.notebook;
-
-        // Everything that can refuse the request is checked before the first row
-        // is inserted, so a refused import leaves no half-added sources behind.
-        assertTextFits(...files.map((f) => f.content));
-        await assertSourceRoom(nb.id, files.length);
-
-        const type = provider === 'microsoft' ? 'onedrive' : 'gdrive';
-        const sources = [];
-        const empty = [];
-        // Sequential on purpose: each insert takes the next sort_order, so the
-        // list keeps the order the picker sent. At most 25 cheap inserts.
-        for (const file of files) {
-            const source = await notebookStore.addSource({
-                notebookId,
-                type,
-                name: file.name || 'Drive file',
-                metadata: {
-                    provider,
-                    driveFileId: file.driveFileId,
-                    charCount: file.content?.length
-                },
-                wordCount: countWords(file.content)
-            });
-            sources.push(source);
-
-            // Background: ingest
-            if (file.content) {
-                ingestDriveSource(notebookId, source.id, userId, file.content, file.name).catch(err => {
-                    log.error(`[Notebooks] Drive ingestion failed for ${file.name}:`, err.message);
-                });
-            } else {
-                empty.push(source);
-            }
-        }
-        if (empty.length > 0) {
-            const emptyError = friendlyError('No content received from Drive');
-            await Promise.all(empty.map((source) => {
-                source.status = 'error';
-                source.stage = 'error';
-                source.error = emptyError;
-                return notebookStore.updateSource(source.id, { status: 'error', stage: 'error', error: emptyError })
-                    .catch(e => log.warn(`[Notebooks] could not mark empty Drive source ${source.id}:`, e.message));
-            }));
-        }
-
-        res.json({ success: true, sources });
-        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId, count: sources.length });
-
-    } catch (err) {
-        if (err instanceof HttpError) throw err;
-        log.error('[Notebooks] Drive source failed:', err);
-        res.status(500).json({ error: 'Failed to add Drive source' });
+    if (!files || !Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ error: 'Files array required' });
     }
+    // Bound the batch. Each file below starts a detached ingestion promise —
+    // extraction, chunking and embedding — with no concurrency limit, so a
+    // single picker selection of a few hundred files could saturate the
+    // process (and the embedding backend) for everyone on the instance.
+    if (files.length > MAX_DRIVE_FILES_PER_REQUEST) {
+        return res.status(400).json({
+            error: `Too many files — add at most ${MAX_DRIVE_FILES_PER_REQUEST} at a time`,
+            code: 'too_many_files',
+        });
+    }
+
+    const nb = req.notebook;
+
+    // Everything that can refuse the request is checked before the first row
+    // is inserted, so a refused import leaves no half-added sources behind.
+    assertTextFits(...files.map((f) => f.content));
+    await assertSourceRoom(nb.id, files.length);
+
+    const type = provider === 'microsoft' ? 'onedrive' : 'gdrive';
+    const sources = [];
+    const empty = [];
+    // Sequential on purpose: each insert takes the next sort_order, so the
+    // list keeps the order the picker sent. At most 25 cheap inserts.
+    for (const file of files) {
+        const source = await notebookStore.addSource({
+            notebookId,
+            type,
+            name: file.name || 'Drive file',
+            metadata: {
+                provider,
+                driveFileId: file.driveFileId,
+                charCount: file.content?.length
+            },
+            wordCount: countWords(file.content)
+        });
+        sources.push(source);
+
+        // Background: ingest
+        if (file.content) {
+            ingestDriveSource(notebookId, source.id, userId, file.content, file.name).catch(err => {
+                log.error(`[Notebooks] Drive ingestion failed for ${file.name}:`, err.message);
+            });
+        } else {
+            empty.push(source);
+        }
+    }
+    if (empty.length > 0) {
+        const emptyError = friendlyError('No content received from Drive');
+        await Promise.all(empty.map((source) => {
+            source.status = 'error';
+            source.stage = 'error';
+            source.error = emptyError;
+            return notebookStore.updateSource(source.id, { status: 'error', stage: 'error', error: emptyError })
+                .catch(e => log.warn(`[Notebooks] could not mark empty Drive source ${source.id}:`, e.message));
+        }));
+    }
+
+    res.json({ success: true, sources });
+    void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId, count: sources.length });
+
 });
 
 // ── List Sources ────────────────────────────────────────────────
@@ -368,58 +338,52 @@ router.get('/:id/sources', requireAuth, asViewer, async (req, res) => {
 // to re-adding the source.
 
 router.post('/:id/sources/:sid/retry', requireAuth, asEditor, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const nb = req.notebook;
+    const userId = req.session.user.id;
+    const nb = req.notebook;
 
-        const source = await notebookStore.getSource(req.params.sid);
-        if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
+    const source = await notebookStore.getSource(req.params.sid);
+    if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
 
-        // Reset state so the UI immediately shows the spinner. A source that is
-        // still being read is not started a second time.
-        if (!await notebookStore.claimSourceForRetry(source.id)) {
-            throw new HttpError(409, 'source_busy', 'This source is still being read. Wait for it to finish, or cancel it first.');
-        }
-        res.json({ success: true });
-
-        // Dispatch retry in the background so the HTTP request doesn't stall.
-        (async () => {
-            try {
-                if (source.type === 'url') {
-                    const url = source.metadata?.url;
-                    if (!url) throw new Error('Source has no URL to retry');
-                    await ingestUrlSource(nb.id, source.id, userId, url);
-                } else if (source.storageKey) {
-                    // File source — re-fetch bytes from storage, re-ingest.
-                    if (!storageStore.isAvailable()) throw new Error('Storage not configured');
-                    const buffer = await require('../stores/lib/notebookFileCrypto').readBuffer(source.storageKey);
-                    const mimeType = source.metadata?.mimeType || 'application/octet-stream';
-                    await ingestFileSource(nb.id, source.id, userId, buffer, source.fileName || source.name, mimeType);
-                } else {
-                    // Text / meeting / drive sources now keep their extracted text,
-                    // so retry re-ingests from the stored copy.
-                    const stored = await notebookStore.getSourceContent(source.id);
-                    if (stored && stored.trim()) {
-                        await ingestTextSource(nb.id, source.id, userId, stored, source.name);
-                    } else {
-                        throw new Error('This source type cannot be retried — please re-add it.');
-                    }
-                }
-            } catch (e) {
-                log.error(`[Notebooks] Retry failed for source ${source.id}:`, e.message);
-                // Conditional: a cancel/delete during the retry wins.
-                await notebookStore.updateSource(
-                    source.id,
-                    { status: 'error', stage: 'error', error: friendlyError(e) },
-                    { onlyIfProcessing: true },
-                ).catch(() => {});
-            }
-        })();
-    } catch (err) {
-        if (err instanceof HttpError) throw err;
-        log.error('[Notebooks] Retry source route failed:', err);
-        res.status(500).json({ error: 'Failed to retry source' });
+    // Reset state so the UI immediately shows the spinner. A source that is
+    // still being read is not started a second time.
+    if (!await notebookStore.claimSourceForRetry(source.id)) {
+        throw new HttpError(409, 'source_busy', 'This source is still being read. Wait for it to finish, or cancel it first.');
     }
+    res.json({ success: true });
+
+    // Dispatch retry in the background so the HTTP request doesn't stall.
+    (async () => {
+        try {
+            if (source.type === 'url') {
+                const url = source.metadata?.url;
+                if (!url) throw new Error('Source has no URL to retry');
+                await ingestUrlSource(nb.id, source.id, userId, url);
+            } else if (source.storageKey) {
+                // File source — re-fetch bytes from storage, re-ingest.
+                if (!storageStore.isAvailable()) throw new Error('Storage not configured');
+                const buffer = await require('../stores/lib/notebookFileCrypto').readBuffer(source.storageKey);
+                const mimeType = source.metadata?.mimeType || 'application/octet-stream';
+                await ingestFileSource(nb.id, source.id, userId, buffer, source.fileName || source.name, mimeType);
+            } else {
+                // Text / meeting / drive sources now keep their extracted text,
+                // so retry re-ingests from the stored copy.
+                const stored = await notebookStore.getSourceContent(source.id);
+                if (stored && stored.trim()) {
+                    await ingestTextSource(nb.id, source.id, userId, stored, source.name);
+                } else {
+                    throw new Error('This source type cannot be retried — please re-add it.');
+                }
+            }
+        } catch (e) {
+            log.error(`[Notebooks] Retry failed for source ${source.id}:`, e.message);
+            // Conditional: a cancel/delete during the retry wins.
+            await notebookStore.updateSource(
+                source.id,
+                { status: 'error', stage: 'error', error: friendlyError(e) },
+                { onlyIfProcessing: true },
+            ).catch(() => {});
+        }
+    })();
 });
 
 // ── Cancel / Dismiss Stuck Source ───────────────────────────────

@@ -216,8 +216,7 @@ router.post('/:id/data/connectors/:connectorId/run', requireAuth, connectorRunLi
                 ...(typeof err.provider === 'string' && err.provider ? { provider: err.provider } : {}),
             });
         }
-        log.error(`[StudioAppConnectors/run] ${err.message}`);
-        return res.status(500).json({ error: 'Connector failed to run' });
+        throw err;
     }
 });
 

@@ -78,8 +78,7 @@ router.get('/tmp/:token', async (req, res) => {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'File not found' });
         }
-        log.error('[StorageProxy] Temp download error:', err.message);
-        res.status(500).json({ error: 'Failed to retrieve file' });
+        throw err;
     }
 });
 
@@ -156,8 +155,7 @@ router.get('/file/{*fileKey}', async (req, res) => {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'File not found' });
         }
-        log.error('[StorageProxy] Error streaming file:', err.message);
-        res.status(500).json({ error: 'Failed to retrieve file' });
+        throw err;
     }
 });
 

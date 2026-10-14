@@ -292,8 +292,7 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
         res.status(201).json({ ...skill, canEdit: true });
     } catch (err) {
         if (answerStructureError(res, err)) return;
-        log.error('[Skills] POST / error:', err);
-        res.status(500).json({ error: 'Failed to create skill' });
+        throw err;
     }
 });
 
@@ -305,15 +304,6 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
 async function managedOf(skill) {
     if (!skill?.projectId || !(await managedParts.managedInfo(skill.projectId))) return null;
     return solutionStageStore.managedPayloadFor({ projectId: skill.projectId, kind: 'skill', entityId: skill.id });
-}
-
-/**
- * A refusal the store meant for the client (409 managed_part on a skill in a
- * Solution stage) goes to the terminal handler, which answers its status,
- * code and details; only an unexpected error becomes this route's 500.
- */
-function isClientError(err) {
-    return Number.isInteger(err?.status) && err.status < 500;
 }
 
 // ── GET /api/skills/:id — get skill details ──────────────────
@@ -441,50 +431,42 @@ router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSk
         res.json({ success: true });
     } catch (err) {
         if (answerStructureError(res, err)) return;
-        if (isClientError(err)) throw err;
-        log.error('[Skills] PUT /:id error:', err);
-        res.status(500).json({ error: 'Failed to update skill' });
+        throw err;
     }
 });
 
 // ── DELETE /api/skills/:id — delete a skill ──────────────────
 router.delete('/:id', validate({ query: DeleteQuery, body: DeleteBody }), async (req, res) => {
-    try {
-        const isAdmin = req.session?.isAdmin || req.session?.user?.role === 'admin';
-        const orgId = await getOrgId(req);
+    const isAdmin = req.session?.isAdmin || req.session?.user?.role === 'admin';
+    const orgId = await getOrgId(req);
 
-        // Anything that attaches or applies this skill stops working the
-        // moment it is gone. Ask once (same contract as datatables): 409 with
-        // the list, unless the caller confirmed the breakage.
-        if (!confirmedBreaking(req)) {
-            const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id);
-            if (skill) {
-                const { rows, unchecked } = await skillStore.listSkillUsage(skill.id, skill.orgId);
-                if (rows.length > 0) {
-                    return res.status(409).json({ error: 'This skill is still in use', code: 'in_use', usage: rows, unchecked });
-                }
+    // Anything that attaches or applies this skill stops working the
+    // moment it is gone. Ask once (same contract as datatables): 409 with
+    // the list, unless the caller confirmed the breakage.
+    if (!confirmedBreaking(req)) {
+        const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id);
+        if (skill) {
+            const { rows, unchecked } = await skillStore.listSkillUsage(skill.id, skill.orgId);
+            if (rows.length > 0) {
+                return res.status(409).json({ error: 'This skill is still in use', code: 'in_use', usage: rows, unchecked });
             }
         }
-
-        const deleted = await skillStore.deleteSkill(req.params.id, req.session.user.id, isAdmin);
-        if (!deleted) return res.status(404).json({ error: 'Skill not found or not owner' });
-
-        // Scrub the deleted skill id from every agent in this org that had it attached.
-        // Non-fatal: a failure here leaves a dangling id that the runtime simply ignores.
-        try {
-            const agentStore = require('../stores/agentStore');
-            const scrubbed = await agentStore.scrubSkillFromAllAgents(orgId, req.params.id);
-            if (scrubbed > 0) log.info(`[Skills] Scrubbed deleted skill ${req.params.id} from ${scrubbed} agent(s)`);
-        } catch (scrubErr) {
-            log.warn('[Skills] Scrub after delete failed:', scrubErr.message);
-        }
-
-        res.json({ success: true });
-    } catch (err) {
-        if (isClientError(err)) throw err;
-        log.error('[Skills] DELETE /:id error:', err);
-        res.status(500).json({ error: 'Failed to delete skill' });
     }
+
+    const deleted = await skillStore.deleteSkill(req.params.id, req.session.user.id, isAdmin);
+    if (!deleted) return res.status(404).json({ error: 'Skill not found or not owner' });
+
+    // Scrub the deleted skill id from every agent in this org that had it attached.
+    // Non-fatal: a failure here leaves a dangling id that the runtime simply ignores.
+    try {
+        const agentStore = require('../stores/agentStore');
+        const scrubbed = await agentStore.scrubSkillFromAllAgents(orgId, req.params.id);
+        if (scrubbed > 0) log.info(`[Skills] Scrubbed deleted skill ${req.params.id} from ${scrubbed} agent(s)`);
+    } catch (scrubErr) {
+        log.warn('[Skills] Scrub after delete failed:', scrubErr.message);
+    }
+
+    res.json({ success: true });
 });
 
 module.exports = router;
