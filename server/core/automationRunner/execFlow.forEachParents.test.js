@@ -14,7 +14,7 @@ const assert = require('node:assert');
 const { execForEachStep } = require('./execFlow');
 const { walkPath } = require('../automationModel/bind');
 const { resolveForEachItems, walkWithTrail } = require('./forEachScope');
-const { parsePath } = require('../../automation/expr');
+const { parsePath } = require('./expr');
 
 // Shopify-like: orders → line items → properties. Parent and child both have `id`.
 const SHOP = {

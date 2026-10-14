@@ -5,7 +5,7 @@
  */
 
 const { interpolateTemplate } = require('../automationModel/bind');
-const { evaluate } = require('../../automation/expr');
+const { evaluate } = require('./expr');
 const { desugarApprovalStages } = require('../automationModel/approvalStages');
 const { resolveApprovalTtlMs } = require('./shared');
 

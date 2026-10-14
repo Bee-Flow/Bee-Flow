@@ -8,7 +8,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseExpr } = require('../../automation/expr');
+const { parseExpr } = require('./expr');
 const { withBindingLog, describeBindingMiss } = require('../automationModel/bind');
 const { rulePaths, createRuleMissCounter } = require('./ruleMisses');
 

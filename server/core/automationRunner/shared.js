@@ -9,7 +9,7 @@
 // (bind.js walks string paths only), folded into secretValuesFor below.
 const { MASK_VALUES } = require('./httpAuth');
 // The shared path grammar (pure, no engine module): how a binding root is read.
-const { scanTemplate, formatPath } = require('../../automation/expr');
+const { scanTemplate, formatPath } = require('./expr');
 const { refHead, findRefPaths, tryParseExpr } = require('../../automation/validate/refPaths');
 
 const RUNNER_INTERVAL_MS = 60_000;

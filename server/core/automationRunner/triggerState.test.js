@@ -15,7 +15,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { buildTriggerState, TRIGGER_META_KEYS } = require('./triggerState');
 const { walkPath, interpolateTemplate } = require('../automationModel/bind');
-const { evaluate } = require('../../automation/expr');
+const { evaluate } = require('./expr');
 
 const GMAIL = { id: 'trg', type: 'trigger', kind: 'app_event', label: 'New mail', appEvent: { provider: 'gmail', event: 'mail.new', filter: {} } };
 const DAILY = { id: 'trig_ab12cd', type: 'trigger', kind: 'schedule', label: 'Daily briefing', schedule: { cron: '0 7 * * 1-5', tz: 'Europe/Amsterdam' } };

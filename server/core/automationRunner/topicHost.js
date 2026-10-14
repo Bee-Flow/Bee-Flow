@@ -22,7 +22,7 @@
 
 const {
     parseExpr, evaluate, TOPIC_HOST_SPEC, MAX_TOPIC_LABELS, topicCallsOf, normalizeTopicText, makeTopicHost,
-} = require('../../automation/expr');
+} = require('./expr');
 
 /** Distinct texts one step invocation may classify. */
 const MAX_TEXTS_PER_STEP = Number(process.env.AUTOMATION_TOPIC_MAX_TEXTS) || 500;

@@ -25,7 +25,7 @@ require('../privacy/errorSanitizer');
 require('../automationErrors');
 require('../automationModel/bind');
 require('../../utils/ssrfGuard');
-require('../../automation/expr');
+require('./expr');
 require('../automationModel/approvalStages');
 require('../automationModel/sideEffectMap');
 require('../../automation/outputSchemas');

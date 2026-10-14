@@ -5,7 +5,7 @@
  * TERMINAL_STEP_TYPES for the full list of readers).
  */
 
-const { evaluate, parsePath, walkTokens, parseJsonText, jsonCacheFor } = require('../../automation/expr');
+const { evaluate, parsePath, walkTokens, parseJsonText, jsonCacheFor } = require('./expr');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
 const { createRuleMissCounter } = require('./ruleMisses');

@@ -26,7 +26,7 @@
 const crypto = require('crypto');
 const automationStore = require('../../stores/automationStore');
 const { interpolateTemplate, resolveValue, walkPath } = require('../automationModel/bind');
-const { scanTemplate } = require('../../automation/expr');
+const { scanTemplate } = require('./expr');
 const { renderFilledDocument, documentFileName } = require('../documents/renderFilledDocument');
 const { resolveDocumentMarking, markingOutcome } = require('./execDocument');
 const log = require('../../telemetry/log');

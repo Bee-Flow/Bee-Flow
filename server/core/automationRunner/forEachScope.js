@@ -24,7 +24,7 @@
 
 // The trail walk lives in shared/expr/nested.mjs (flatten.mjs walks lists
 // inside lists the same way); this file binds what it finds to a forEach.
-const { parsePath, formatPath, walkTokens, jsonCacheFor, listOf, walkTrail, parentDepths } = require('../../automation/expr');
+const { parsePath, formatPath, walkTokens, jsonCacheFor, listOf, walkTrail, parentDepths } = require('./expr');
 
 /**
  * Resolve a forEach. Returns:
