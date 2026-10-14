@@ -30,6 +30,8 @@
 'use strict';
 
 const test = require('node:test');
+// execCode reaches this sandbox through the runner's codeSandbox port (boot registers it).
+require('./runnerPorts');
 const assert = require('node:assert');
 
 const sandbox = require('./codeSandbox');
