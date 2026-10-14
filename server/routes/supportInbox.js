@@ -166,13 +166,8 @@ async function agentUsableByInbox(agentId, organizationId, userId) {
 const AGENT_REFUSED = { error: "That agent is not available to this inbox's organisation.", code: 'agent_not_available' };
 
 router.get('/inboxes', async (req, res) => {
-    try {
-        const inboxes = await access.accessibleInboxes(req);
-        res.json({ inboxes });
-    } catch (err) {
-        log.error('[SupportInbox] GET /inboxes error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
-    }
+    const inboxes = await access.accessibleInboxes(req);
+    res.json({ inboxes });
 });
 
 router.post('/inboxes', validate({ body: S.CreateInboxBody }), async (req, res) => {
@@ -386,13 +381,9 @@ router.post('/inboxes/:id/scan', validate({ body: S.ScanBody }), async (req, res
 });
 
 router.get('/inboxes/:id/scan', async (req, res) => {
-    try {
-        const inbox = await loadInboxInScope(req, res, req.params.id);
-        if (!inbox) return;
-        res.json({ scan_status: inbox.scan_status, scan_progress: inbox.scan_progress, scan_result: inbox.scan_result });
-    } catch (err) {
-        res.status(500).json({ error: 'Internal error' });
-    }
+    const inbox = await loadInboxInScope(req, res, req.params.id);
+    if (!inbox) return;
+    res.json({ scan_status: inbox.scan_status, scan_progress: inbox.scan_progress, scan_result: inbox.scan_result });
 });
 
 // ── OAuth connect (dedicated per-mailbox flow — NOT the login OAuth) ──────────
@@ -517,86 +508,68 @@ router.get('/oauth/callback', async (req, res) => {
 // ── Threads (tenant-scoped) ───────────────────────────────────────────────────
 
 router.get('/threads', validate({ query: S.ThreadsQuery }), async (req, res) => {
-    try {
-        const inboxes = await access.accessibleInboxes(req);
-        let inboxIds = inboxes.map(i => i.id);
-        const { inbox, status, q, assignee, limit, offset } = req.query;
-        if (inbox) {
-            if (!inboxIds.includes(inbox)) return res.json({ threads: [], counts: {} });
-            inboxIds = [inbox];
-        }
-        if (!inboxIds.length) return res.json({ threads: [], counts: {} });
-        const statusList = status ? status.split(',').map(s => s.trim()).filter(Boolean) : null;
-        const { NOT_SUPPORT_TAG } = require('../services/supportClassifier');
-        const { tag, excludeFiltered } = req.query;
-        const viewingNotSupport = tag === NOT_SUPPORT_TAG;
-        const listOpts = {
-            inboxIdIn: inboxIds,
-            statusIn: statusList && statusList.length ? statusList : null,
-            q: q || null,
-            assigneeUserId: assignee || null,
-            limit: limit ? parseInt(limit, 10) : 100,
-            offset: offset ? parseInt(offset, 10) : 0,
-        };
-        // Default views hide non-support tickets; the dedicated tab shows only them.
-        if (viewingNotSupport) listOpts.tagsIn = [NOT_SUPPORT_TAG];
-        else if (excludeFiltered !== '0') listOpts.excludeTags = [NOT_SUPPORT_TAG];
-        const threads = await supportStore.listThreads(listOpts);
-        // Status-tab counts exclude filtered tickets; expose the filtered total separately.
-        const counts = await supportStore.countThreadsByStatus({ inboxIdIn: inboxIds, excludeTags: [NOT_SUPPORT_TAG] });
-        const nsCounts = await supportStore.countThreadsByStatus({ inboxIdIn: inboxIds, tagsIn: [NOT_SUPPORT_TAG] });
-        counts.not_support = Object.values(nsCounts).reduce((a, b) => a + b, 0);
-        res.json({ threads, counts });
-    } catch (err) {
-        log.error('[SupportInbox] GET /threads error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
+    const inboxes = await access.accessibleInboxes(req);
+    let inboxIds = inboxes.map(i => i.id);
+    const { inbox, status, q, assignee, limit, offset } = req.query;
+    if (inbox) {
+        if (!inboxIds.includes(inbox)) return res.json({ threads: [], counts: {} });
+        inboxIds = [inbox];
     }
+    if (!inboxIds.length) return res.json({ threads: [], counts: {} });
+    const statusList = status ? status.split(',').map(s => s.trim()).filter(Boolean) : null;
+    const { NOT_SUPPORT_TAG } = require('../services/supportClassifier');
+    const { tag, excludeFiltered } = req.query;
+    const viewingNotSupport = tag === NOT_SUPPORT_TAG;
+    const listOpts = {
+        inboxIdIn: inboxIds,
+        statusIn: statusList && statusList.length ? statusList : null,
+        q: q || null,
+        assigneeUserId: assignee || null,
+        limit: limit ? parseInt(limit, 10) : 100,
+        offset: offset ? parseInt(offset, 10) : 0,
+    };
+    // Default views hide non-support tickets; the dedicated tab shows only them.
+    if (viewingNotSupport) listOpts.tagsIn = [NOT_SUPPORT_TAG];
+    else if (excludeFiltered !== '0') listOpts.excludeTags = [NOT_SUPPORT_TAG];
+    const threads = await supportStore.listThreads(listOpts);
+    // Status-tab counts exclude filtered tickets; expose the filtered total separately.
+    const counts = await supportStore.countThreadsByStatus({ inboxIdIn: inboxIds, excludeTags: [NOT_SUPPORT_TAG] });
+    const nsCounts = await supportStore.countThreadsByStatus({ inboxIdIn: inboxIds, tagsIn: [NOT_SUPPORT_TAG] });
+    counts.not_support = Object.values(nsCounts).reduce((a, b) => a + b, 0);
+    res.json({ threads, counts });
 });
 
 router.get('/threads/:id', async (req, res) => {
-    try {
-        const thread = await loadThreadInScope(req, res, req.params.id);
-        if (!thread) return;
-        const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: true });
-        res.json({ thread, messages });
-    } catch (err) {
-        log.error('[SupportInbox] GET /threads/:id error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
-    }
+    const thread = await loadThreadInScope(req, res, req.params.id);
+    if (!thread) return;
+    const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: true });
+    res.json({ thread, messages });
 });
 
 // Read-only customer context for the ticket sidebar (reuses the support read
 // tools so staff see the same lookup data the AI can).
 router.get('/threads/:id/context', async (req, res) => {
-    try {
-        const thread = await loadThreadInScope(req, res, req.params.id);
-        if (!thread) return;
-        const { executeSupportTool } = require('../integrations/supportTools');
-        const ctx = { supportThreadId: thread.id };
-        const [profile, organization, subscription, recent] = await Promise.all([
-            executeSupportTool('support_get_requester_profile', {}, ctx).catch(() => null),
-            executeSupportTool('support_get_organization_info', {}, ctx).catch(() => null),
-            executeSupportTool('support_get_subscription_status', {}, ctx).catch(() => null),
-            executeSupportTool('support_list_recent_threads_for_requester', { limit: 5 }, ctx).catch(() => []),
-        ]);
-        res.json({ profile, organization, subscription, recentThreads: Array.isArray(recent) ? recent : [] });
-    } catch (err) {
-        res.status(500).json({ error: 'Internal error' });
-    }
+    const thread = await loadThreadInScope(req, res, req.params.id);
+    if (!thread) return;
+    const { executeSupportTool } = require('../integrations/supportTools');
+    const ctx = { supportThreadId: thread.id };
+    const [profile, organization, subscription, recent] = await Promise.all([
+        executeSupportTool('support_get_requester_profile', {}, ctx).catch(() => null),
+        executeSupportTool('support_get_organization_info', {}, ctx).catch(() => null),
+        executeSupportTool('support_get_subscription_status', {}, ctx).catch(() => null),
+        executeSupportTool('support_list_recent_threads_for_requester', { limit: 5 }, ctx).catch(() => []),
+    ]);
+    res.json({ profile, organization, subscription, recentThreads: Array.isArray(recent) ? recent : [] });
 });
 
 // Per-ticket audit timeline — reads the unified audit log so AI / automation /
 // staff / system / requester events are distinguished precisely (the legacy
 // support_thread_events collapses ai/automation to 'system'). Newest-first.
 router.get('/threads/:id/events', async (req, res) => {
-    try {
-        const thread = await loadThreadInScope(req, res, req.params.id);
-        if (!thread) return;
-        const { events } = await supportStore.listAuditEvents({ threadId: thread.id, limit: 200 });
-        res.json({ events });
-    } catch (err) {
-        res.status(500).json({ error: 'Internal error' });
-    }
+    const thread = await loadThreadInScope(req, res, req.params.id);
+    if (!thread) return;
+    const { events } = await supportStore.listAuditEvents({ threadId: thread.id, limit: 200 });
+    res.json({ events });
 });
 
 // Staff reply — sends from the connected mailbox into the customer conversation.
@@ -755,72 +728,61 @@ async function _dispatchResolved(thread, resolvedByUserId) {
 // ── Org-scoped helpers for the settings UI (canned / tags / sla / insights) ───
 
 router.get('/canned', async (req, res) => {
-    try {
-        const scope = await resolveOrgScope(req);
-        const out = [];
-        for (const orgId of scope) out.push(...await supportStore.listCannedResponses(orgId));
-        res.json({ canned: out });
-    } catch (err) { res.status(500).json({ error: 'Internal error' }); }
+    const scope = await resolveOrgScope(req);
+    const out = [];
+    for (const orgId of scope) out.push(...await supportStore.listCannedResponses(orgId));
+    res.json({ canned: out });
 });
 
 router.get('/tags', async (req, res) => {
-    try {
-        const scope = await resolveOrgScope(req);
-        const out = [];
-        for (const orgId of scope) out.push(...await supportStore.listTags(orgId));
-        res.json({ tags: out });
-    } catch (err) { res.status(500).json({ error: 'Internal error' }); }
+    const scope = await resolveOrgScope(req);
+    const out = [];
+    for (const orgId of scope) out.push(...await supportStore.listTags(orgId));
+    res.json({ tags: out });
 });
 
 router.get('/insights', validate({ query: S.InboxQuery }), async (req, res) => {
-    try {
-        const inboxes = await access.accessibleInboxes(req);
-        const inboxIds = inboxes.map(i => i.id);
-        if (!inboxIds.length) return res.json({});
-        const { NOT_SUPPORT_TAG } = require('../services/supportClassifier');
-        const { inbox } = req.query;
-        // Optional single-inbox scope (validated like GET /threads); insights
-        // always exclude non-support tickets so the numbers reflect real support.
-        let opts;
-        if (inbox) {
-            if (!inboxIds.includes(inbox)) return res.json({});
-            opts = { inboxId: inbox };
-        } else {
-            opts = { inboxIdIn: inboxIds };
-        }
-        opts.excludeTags = [NOT_SUPPORT_TAG];
-        const insights = await supportStore.getInsights(opts);
-        res.json(insights);
-    } catch (err) { res.status(500).json({ error: 'Internal error' }); }
+    const inboxes = await access.accessibleInboxes(req);
+    const inboxIds = inboxes.map(i => i.id);
+    if (!inboxIds.length) return res.json({});
+    const { NOT_SUPPORT_TAG } = require('../services/supportClassifier');
+    const { inbox } = req.query;
+    // Optional single-inbox scope (validated like GET /threads); insights
+    // always exclude non-support tickets so the numbers reflect real support.
+    let opts;
+    if (inbox) {
+        if (!inboxIds.includes(inbox)) return res.json({});
+        opts = { inboxId: inbox };
+    } else {
+        opts = { inboxIdIn: inboxIds };
+    }
+    opts.excludeTags = [NOT_SUPPORT_TAG];
+    const insights = await supportStore.getInsights(opts);
+    res.json(insights);
 });
 
 // Eligible teammates for assignment (read-only) — powers the ticket assignee
 // picker. Returns the union of in-scope orgs' support-capable staff with names.
 router.get('/teammates', async (req, res) => {
-    try {
-        const scope = await resolveOrgScope(req);
-        const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-        const userStore = require('../stores/userStore');
-        const seen = new Set();
-        const out = [];
-        for (const orgId of scope) {
-            const ids = await _eligibleStaffForOrg(orgId).catch(() => []);
-            for (const id of ids) {
-                if (seen.has(id)) continue;
-                seen.add(id);
-                const u = await userStore.getUser(id).catch(() => null);
-                out.push({
-                    id,
-                    name: u?.displayName || u?.display_name || u?.name || null,
-                    email: u?.email || null,
-                });
-            }
+    const scope = await resolveOrgScope(req);
+    const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
+    const userStore = require('../stores/userStore');
+    const seen = new Set();
+    const out = [];
+    for (const orgId of scope) {
+        const ids = await _eligibleStaffForOrg(orgId).catch(() => []);
+        for (const id of ids) {
+            if (seen.has(id)) continue;
+            seen.add(id);
+            const u = await userStore.getUser(id).catch(() => null);
+            out.push({
+                id,
+                name: u?.displayName || u?.display_name || u?.name || null,
+                email: u?.email || null,
+            });
         }
-        res.json({ teammates: out });
-    } catch (err) {
-        log.error('[SupportInbox] GET /teammates error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
     }
+    res.json({ teammates: out });
 });
 
 // Integrations the support AI can be GRANTED for this inbox — scoped to what
@@ -829,73 +791,68 @@ router.get('/teammates', async (req, res) => {
 // literal. The frontend joins these ids with its INTEGRATION_CATALOG for
 // labels/icons. Pass ?operator=<userId> to preview a not-yet-saved choice.
 router.get('/inboxes/:id/available-integrations', validate({ query: S.OperatorQuery }), async (req, res) => {
-    try {
-        const inbox = await loadInboxInScope(req, res, req.params.id);
-        if (!inbox) return;
-        const operatorUserId = String(req.query.operator || inbox.operator_user_id || '').trim() || null;
-        if (!operatorUserId) return res.json({ integrations: [], operatorUserId: null });
+    const inbox = await loadInboxInScope(req, res, req.params.id);
+    if (!inbox) return;
+    const operatorUserId = String(req.query.operator || inbox.operator_user_id || '').trim() || null;
+    if (!operatorUserId) return res.json({ integrations: [], operatorUserId: null });
 
-        const userStore = require('../stores/userStore');
-        const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-        const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch(() => []);
-        if (!Array.isArray(eligible) || !eligible.includes(operatorUserId)) {
-            return res.status(400).json({ error: "Operator must be a member of this inbox's organisation." });
-        }
-
-        // Authoritative: the operator's resolved integration entitlement
-        // (ceiling ∩ org grant ∩ per-group). Falls back to the org-admin active
-        // list only if the resolver is unavailable.
-        let effective = new Set();
-        try {
-            const entitlements = require('../core/entitlements/entitlements');
-            const snap = await entitlements.resolveEntitlements({ userId: operatorUserId, orgId: inbox.organization_id });
-            if (snap && !snap.degraded && Array.isArray(snap.effective?.integration)) {
-                effective = new Set(snap.effective.integration);
-            }
-        } catch (_) { /* fall through */ }
-        if (!effective.size) {
-            const active = await userStore.getOrgEnabledIntegrations(inbox.organization_id).catch(() => []);
-            effective = new Set(Array.isArray(active) ? active : []);
-        }
-
-        // Only surface catalog integrations that actually expose agent tools,
-        // and never Nextcloud (its own panel + connector own that surface).
-        const { TOOL_REGISTRY } = require('../automation/toolRegistry');
-        const toolApps = new Set(TOOL_REGISTRY.map(e => e.app));
-        const ids = Array.from(effective)
-            .filter(id => typeof id === 'string' && toolApps.has(id) && !id.startsWith('nextcloud'))
-            .sort();
-
-        // Webpages is a per-user beta-feature capability, not an org/entitlement
-        // integration, so it never lands in `effective`/org-enabled above. Offer
-        // it as a grantable integration when the operator genuinely has webpage
-        // access — the SAME gate the runtime uses (core/integrationTools →
-        // WEBPAGE_AUTOMATION_TOOLS): the `webpages` beta feature, or a webpage
-        // they own / that is shared into their org/group. This keeps the picker
-        // in parity with what _resolveOperatorIntegrations will actually grant,
-        // giving the support AI the exact webpage tools an agent gets in a normal
-        // (non-in-editor) chat. Fail closed: any probe error leaves it out.
-        try {
-            if (toolApps.has('webpages') && !ids.includes('webpages')) {
-                const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
-                let webpagesOk = await userHasBetaFeature(operatorUserId, 'webpages').catch(() => false);
-                if (!webpagesOk) {
-                    const op = await userStore.getUser(operatorUserId).catch(() => null);
-                    const groupIds = Array.isArray(op?.groups) ? op.groups : [];
-                    const webpageStore = require('../stores/webpageStore');
-                    webpagesOk = await webpageStore
-                        .userHasAnyWebpageAccess(operatorUserId, groupIds, inbox.organization_id ? [inbox.organization_id] : [])
-                        .catch(() => false);
-                }
-                if (webpagesOk) { ids.push('webpages'); ids.sort(); }
-            }
-        } catch (_) { /* webpages probe failed — leave it out */ }
-
-        res.json({ integrations: ids, operatorUserId });
-    } catch (err) {
-        log.error('[SupportInbox] GET /available-integrations error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
+    const userStore = require('../stores/userStore');
+    const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
+    const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch(() => []);
+    if (!Array.isArray(eligible) || !eligible.includes(operatorUserId)) {
+        return res.status(400).json({ error: "Operator must be a member of this inbox's organisation." });
     }
+
+    // Authoritative: the operator's resolved integration entitlement
+    // (ceiling ∩ org grant ∩ per-group). Falls back to the org-admin active
+    // list only if the resolver is unavailable.
+    let effective = new Set();
+    try {
+        const entitlements = require('../core/entitlements/entitlements');
+        const snap = await entitlements.resolveEntitlements({ userId: operatorUserId, orgId: inbox.organization_id });
+        if (snap && !snap.degraded && Array.isArray(snap.effective?.integration)) {
+            effective = new Set(snap.effective.integration);
+        }
+    } catch (_) { /* fall through */ }
+    if (!effective.size) {
+        const active = await userStore.getOrgEnabledIntegrations(inbox.organization_id).catch(() => []);
+        effective = new Set(Array.isArray(active) ? active : []);
+    }
+
+    // Only surface catalog integrations that actually expose agent tools,
+    // and never Nextcloud (its own panel + connector own that surface).
+    const { TOOL_REGISTRY } = require('../automation/toolRegistry');
+    const toolApps = new Set(TOOL_REGISTRY.map(e => e.app));
+    const ids = Array.from(effective)
+        .filter(id => typeof id === 'string' && toolApps.has(id) && !id.startsWith('nextcloud'))
+        .sort();
+
+    // Webpages is a per-user beta-feature capability, not an org/entitlement
+    // integration, so it never lands in `effective`/org-enabled above. Offer
+    // it as a grantable integration when the operator genuinely has webpage
+    // access — the SAME gate the runtime uses (core/integrationTools →
+    // WEBPAGE_AUTOMATION_TOOLS): the `webpages` beta feature, or a webpage
+    // they own / that is shared into their org/group. This keeps the picker
+    // in parity with what _resolveOperatorIntegrations will actually grant,
+    // giving the support AI the exact webpage tools an agent gets in a normal
+    // (non-in-editor) chat. Fail closed: any probe error leaves it out.
+    try {
+        if (toolApps.has('webpages') && !ids.includes('webpages')) {
+            const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
+            let webpagesOk = await userHasBetaFeature(operatorUserId, 'webpages').catch(() => false);
+            if (!webpagesOk) {
+                const op = await userStore.getUser(operatorUserId).catch(() => null);
+                const groupIds = Array.isArray(op?.groups) ? op.groups : [];
+                const webpageStore = require('../stores/webpageStore');
+                webpagesOk = await webpageStore
+                    .userHasAnyWebpageAccess(operatorUserId, groupIds, inbox.organization_id ? [inbox.organization_id] : [])
+                    .catch(() => false);
+            }
+            if (webpagesOk) { ids.push('webpages'); ids.sort(); }
+        }
+    } catch (_) { /* webpages probe failed — leave it out */ }
+
+    res.json({ integrations: ids, operatorUserId });
 });
 
 // ── SSE live updates (tenant inboxes only) ────────────────────────────────────
@@ -970,14 +927,9 @@ function inboxToSettings(inbox) {
 }
 
 router.get('/inboxes/:id/settings', async (req, res) => {
-    try {
-        const inbox = await loadInboxInScope(req, res, req.params.id);
-        if (!inbox) return;
-        res.json({ inbox, settings: inboxToSettings(inbox) });
-    } catch (err) {
-        log.error('[SupportInbox] GET /settings error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
-    }
+    const inbox = await loadInboxInScope(req, res, req.params.id);
+    if (!inbox) return;
+    res.json({ inbox, settings: inboxToSettings(inbox) });
 });
 
 // ── Per-inbox group access ────────────────────────────────────────────────────
@@ -1009,24 +961,19 @@ async function _resolveAccessMembers(inbox, sharedGroups) {
 }
 
 router.get('/inboxes/:id/access', async (req, res) => {
-    try {
-        const inbox = await loadInboxInScope(req, res, req.params.id);
-        if (!inbox) return;
-        const userStore = require('../stores/userStore');
-        const allGroups = await userStore.getAllGroups().catch(() => []);
-        const availableGroups = (Array.isArray(allGroups) ? allGroups : [])
-            .filter(g => g.organizationId === inbox.organization_id)
-            .map(g => ({ id: g.id, name: g.name }));
-        const sharedGroups = Array.isArray(inbox.shared_groups) ? inbox.shared_groups : [];
-        const resolvedMembers = await _resolveAccessMembers(inbox, sharedGroups);
-        res.json({
-            mode: sharedGroups.length ? 'groups' : 'everyone',
-            sharedGroups, availableGroups, resolvedMembers,
-        });
-    } catch (err) {
-        log.error('[SupportInbox] GET /access error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
-    }
+    const inbox = await loadInboxInScope(req, res, req.params.id);
+    if (!inbox) return;
+    const userStore = require('../stores/userStore');
+    const allGroups = await userStore.getAllGroups().catch(() => []);
+    const availableGroups = (Array.isArray(allGroups) ? allGroups : [])
+        .filter(g => g.organizationId === inbox.organization_id)
+        .map(g => ({ id: g.id, name: g.name }));
+    const sharedGroups = Array.isArray(inbox.shared_groups) ? inbox.shared_groups : [];
+    const resolvedMembers = await _resolveAccessMembers(inbox, sharedGroups);
+    res.json({
+        mode: sharedGroups.length ? 'groups' : 'everyone',
+        sharedGroups, availableGroups, resolvedMembers,
+    });
 });
 
 router.put('/inboxes/:id/access', validate({ body: S.AccessBody }), async (req, res) => {
@@ -1061,49 +1008,39 @@ router.put('/inboxes/:id/access', validate({ body: S.AccessBody }), async (req, 
 // ── Audit feed ────────────────────────────────────────────────────────────────
 
 router.get('/inboxes/:id/audit', validate({ query: S.InboxAuditQuery }), async (req, res) => {
-    try {
-        const inbox = await loadInboxInScope(req, res, req.params.id);
-        if (!inbox) return;
-        const { actor, action, from, to, cursor, limit } = req.query;
-        const out = await supportStore.listAuditEvents({
-            inboxId: inbox.id,
-            actorKind: actor || undefined, action: action || undefined,
-            since: from || undefined, until: to || undefined,
-            cursor: cursor || undefined, limit: limit ? parseInt(limit, 10) : 50,
-        });
-        res.json(out);
-    } catch (err) {
-        log.error('[SupportInbox] GET /inboxes/:id/audit error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
-    }
+    const inbox = await loadInboxInScope(req, res, req.params.id);
+    if (!inbox) return;
+    const { actor, action, from, to, cursor, limit } = req.query;
+    const out = await supportStore.listAuditEvents({
+        inboxId: inbox.id,
+        actorKind: actor || undefined, action: action || undefined,
+        since: from || undefined, until: to || undefined,
+        cursor: cursor || undefined, limit: limit ? parseInt(limit, 10) : 50,
+    });
+    res.json(out);
 });
 
 // Org-wide audit feed. Restricted to the caller's accessible inboxes plus
 // config events (inbox_id IS NULL) within their org scope — a forbidden inbox's
 // events can never leak here.
 router.get('/audit', validate({ query: S.AuditQuery }), async (req, res) => {
-    try {
-        const inboxes = await access.accessibleInboxes(req);
-        const inboxIds = inboxes.map(i => i.id);
-        const { scope } = await access.resolveOrgScope(req);
-        const { inbox, actor, action, from, to, cursor, limit } = req.query;
-        let inboxIdIn = inboxIds;
-        if (inbox) {
-            if (!inboxIds.includes(inbox)) return res.json({ events: [], nextCursor: null });
-            inboxIdIn = [inbox];
-        }
-        const out = await supportStore.listAuditEvents({
-            organizationIdIn: scope,
-            inboxIdIn,
-            actorKind: actor || undefined, action: action || undefined,
-            since: from || undefined, until: to || undefined,
-            cursor: cursor || undefined, limit: limit ? parseInt(limit, 10) : 50,
-        });
-        res.json(out);
-    } catch (err) {
-        log.error('[SupportInbox] GET /audit error:', err.message);
-        res.status(500).json({ error: 'Internal error' });
+    const inboxes = await access.accessibleInboxes(req);
+    const inboxIds = inboxes.map(i => i.id);
+    const { scope } = await access.resolveOrgScope(req);
+    const { inbox, actor, action, from, to, cursor, limit } = req.query;
+    let inboxIdIn = inboxIds;
+    if (inbox) {
+        if (!inboxIds.includes(inbox)) return res.json({ events: [], nextCursor: null });
+        inboxIdIn = [inbox];
     }
+    const out = await supportStore.listAuditEvents({
+        organizationIdIn: scope,
+        inboxIdIn,
+        actorKind: actor || undefined, action: action || undefined,
+        since: from || undefined, until: to || undefined,
+        cursor: cursor || undefined, limit: limit ? parseInt(limit, 10) : 50,
+    });
+    res.json(out);
 });
 
 // ── Org-scoped Templates & SLA writes (tenant-owned) ──────────────────────────
@@ -1189,12 +1126,10 @@ router.delete('/canned/:id', async (req, res) => {
 });
 
 router.get('/sla-policies', async (req, res) => {
-    try {
-        const { scope } = await access.resolveOrgScope(req);
-        const orgId = scope[0] || null;
-        const policies = await supportStore.listSlaPolicies(orgId);
-        res.json({ policies });
-    } catch (err) { res.status(500).json({ error: 'Internal error' }); }
+    const { scope } = await access.resolveOrgScope(req);
+    const orgId = scope[0] || null;
+    const policies = await supportStore.listSlaPolicies(orgId);
+    res.json({ policies });
 });
 
 router.put('/sla-policies', validate({ body: S.SlaBody }), async (req, res) => {

@@ -32,7 +32,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 
 const { requireAuth } = require('../auth/permissions');
@@ -92,21 +91,16 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
     const userId = req.session.user.id;
     if (rateLimited(userId)) return res.status(429).json({ error: 'Too many requests' });
 
-    try {
-        const limit = Math.min(req.query.limit ?? 200, 500);
-        const offset = req.query.offset ?? 0;
-        const search = req.query.search ?? '';
+    const limit = Math.min(req.query.limit ?? 200, 500);
+    const offset = req.query.offset ?? 0;
+    const search = req.query.search ?? '';
 
-        const { entries, total } = await vault.listForUser(userId, {
-            search, limit, offset,
-            orgId: req.session.user.organizationId || undefined,
-        });
-        audit(req, 'pii_vault.read', { returned: entries.length, total });
-        res.json({ entries, total, limit, offset, maxEntries: vault.MAX_ENTRIES_PER_USER });
-    } catch (err) {
-        log.error('[PiiVault] list failed:', err.message);
-        res.status(500).json({ error: 'Could not load your vault' });
-    }
+    const { entries, total } = await vault.listForUser(userId, {
+        search, limit, offset,
+        orgId: req.session.user.organizationId || undefined,
+    });
+    audit(req, 'pii_vault.read', { returned: entries.length, total });
+    res.json({ entries, total, limit, offset, maxEntries: vault.MAX_ENTRIES_PER_USER });
 });
 
 /**
@@ -118,15 +112,10 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
  */
 router.delete('/:id', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
     const userId = req.session.user.id;
-    try {
-        const ok = await vault.deleteEntry(userId, req.params.id);
-        if (!ok) return res.status(404).json({ error: 'Entry not found' });
-        audit(req, 'pii_vault.delete', { entryId: req.params.id });
-        res.json({ ok: true });
-    } catch (err) {
-        log.error('[PiiVault] delete failed:', err.message);
-        res.status(500).json({ error: 'Could not delete that entry' });
-    }
+    const ok = await vault.deleteEntry(userId, req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Entry not found' });
+    audit(req, 'pii_vault.delete', { entryId: req.params.id });
+    res.json({ ok: true });
 });
 
 /**
@@ -137,14 +126,9 @@ router.delete('/:id', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }),
  */
 router.delete('/', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
     const userId = req.session.user.id;
-    try {
-        const removed = await vault.clearForUser(userId);
-        audit(req, 'pii_vault.clear', { removed });
-        res.json({ ok: true, removed });
-    } catch (err) {
-        log.error('[PiiVault] clear failed:', err.message);
-        res.status(500).json({ error: 'Could not clear your vault' });
-    }
+    const removed = await vault.clearForUser(userId);
+    audit(req, 'pii_vault.clear', { removed });
+    res.json({ ok: true, removed });
 });
 
 module.exports = router;

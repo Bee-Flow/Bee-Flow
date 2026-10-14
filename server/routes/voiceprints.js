@@ -160,41 +160,31 @@ async function freshUser(req) {
  * Voxtral deployment should never learn the feature exists.
  */
 router.get('/availability', requireAuth, async (req, res) => {
-    try {
-        const user = await freshUser(req);
-        if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const user = await freshUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
-        const availability = await voiceprintClient.isVoiceprintAvailable(user);
-        const payload = {
-            ...availability,
-            enrolled: false,
-            voiceprint: null,
-            coverage: { enrolled: 0, members: 0 },
-            limits: voiceprintClient.LIMITS,
-            consentVersion: CONSENT_VERSION,
-        };
-        if (availability.available) {
-            const meta = await voiceprintStore.getVoiceprintForUser(user.id);
-            payload.voiceprint = meta;
-            payload.enrolled = !!(meta && meta.status === 'ready');
-            payload.coverage = await voiceprintStore.countOrgCoverage(user.organizationId);
-        }
-        res.json(payload);
-    } catch (e) {
-        log.error('[Voiceprints] availability error:', e.message);
-        res.status(500).json({ error: 'Could not load voice profile status' });
+    const availability = await voiceprintClient.isVoiceprintAvailable(user);
+    const payload = {
+        ...availability,
+        enrolled: false,
+        voiceprint: null,
+        coverage: { enrolled: 0, members: 0 },
+        limits: voiceprintClient.LIMITS,
+        consentVersion: CONSENT_VERSION,
+    };
+    if (availability.available) {
+        const meta = await voiceprintStore.getVoiceprintForUser(user.id);
+        payload.voiceprint = meta;
+        payload.enrolled = !!(meta && meta.status === 'ready');
+        payload.coverage = await voiceprintStore.countOrgCoverage(user.organizationId);
     }
+    res.json(payload);
 });
 
 /** The caller's own voiceprint — metadata only, never the template. */
 router.get('/me', requireAuth, async (req, res) => {
-    try {
-        const meta = await voiceprintStore.getVoiceprintForUser(req.session.user.id);
-        res.json({ voiceprint: meta, enrolled: !!(meta && meta.status === 'ready') });
-    } catch (e) {
-        log.error('[Voiceprints] GET /me error:', e.message);
-        res.status(500).json({ error: 'Could not load your voice profile' });
-    }
+    const meta = await voiceprintStore.getVoiceprintForUser(req.session.user.id);
+    res.json({ voiceprint: meta, enrolled: !!(meta && meta.status === 'ready') });
 });
 
 /**
@@ -294,15 +284,10 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
 
 /** Delete the caller's own voice profile. Also withdraws the recorded consent. */
 router.delete('/me', requireAuth, validate({ body: NoBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const removed = await voiceprintStore.deleteVoiceprintForUser(userId);
-        if (removed) await recordConsentWithdrawal(req, userId);
-        res.json({ ok: true, removed });
-    } catch (e) {
-        log.error('[Voiceprints] DELETE /me error:', e.message);
-        res.status(500).json({ error: 'Could not delete your voice profile' });
-    }
+    const userId = req.session.user.id;
+    const removed = await voiceprintStore.deleteVoiceprintForUser(userId);
+    if (removed) await recordConsentWithdrawal(req, userId);
+    res.json({ ok: true, removed });
 });
 
 /**
@@ -342,29 +327,24 @@ async function recordConsentWithdrawal(req, userId) {
  * get the per-member list so they can chase up adoption and offboarding.
  */
 router.get('/org/:orgId/coverage', requireAuth, async (req, res) => {
-    try {
-        const { orgId } = req.params;
-        const orgIds = await resolveUserOrgIds(req);
-        const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
-        if (!isMember) return res.status(403).json({ error: 'Not a member of this organization' });
+    const { orgId } = req.params;
+    const orgIds = await resolveUserOrgIds(req);
+    const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
+    if (!isMember) return res.status(403).json({ error: 'Not a member of this organization' });
 
-        const coverage = await voiceprintStore.countOrgCoverage(orgId);
-        if (!(await isOrgAdminForOrg(req, orgId))) return res.json({ ...coverage, members: coverage.members, enrolledUsers: null });
+    const coverage = await voiceprintStore.countOrgCoverage(orgId);
+    if (!(await isOrgAdminForOrg(req, orgId))) return res.json({ ...coverage, members: coverage.members, enrolledUsers: null });
 
-        const meta = await voiceprintStore.listOrgVoiceprintMeta(orgId);
-        res.json({
-            ...coverage,
-            enrolledUsers: meta.map(m => ({
-                userId: m.userId,
-                name: voiceprintClient.displayNameFor(m),
-                createdAt: m.createdAt,
-                lastMatchedAt: m.lastMatchedAt,
-            })),
-        });
-    } catch (e) {
-        log.error('[Voiceprints] coverage error:', e.message);
-        res.status(500).json({ error: 'Could not load voice profile coverage' });
-    }
+    const meta = await voiceprintStore.listOrgVoiceprintMeta(orgId);
+    res.json({
+        ...coverage,
+        enrolledUsers: meta.map(m => ({
+            userId: m.userId,
+            name: voiceprintClient.displayNameFor(m),
+            createdAt: m.createdAt,
+            lastMatchedAt: m.lastMatchedAt,
+        })),
+    });
 });
 
 /**
@@ -375,28 +355,23 @@ router.get('/org/:orgId/coverage', requireAuth, async (req, res) => {
  * there is no corresponding create, and no read.
  */
 router.delete('/org/:orgId/user/:userId', requireAuth, async (req, res) => {
-    try {
-        const { orgId, userId } = req.params;
-        if (!(await isOrgAdminForOrg(req, orgId))) {
-            return res.status(403).json({ error: 'Only organization admins can revoke voice profiles' });
-        }
-        const target = await userStore.getUser(userId);
-        if (!target || target.organizationId !== orgId) {
-            return res.status(404).json({ error: 'User not found in this organization' });
-        }
-        const removed = await voiceprintStore.deleteVoiceprintForUser(userId);
-        if (removed) {
-            log.info(`[Voiceprints] ${req.session.user.id} revoked the voice profile of ${userId} (org ${orgId})`);
-            await userStore.logAccessAudit(
-                'voiceprint.revoke', 'user', userId, req.session.user.id,
-                { enrolled: true }, { enrolled: false }, orgId,
-            );
-        }
-        res.json({ ok: true, removed });
-    } catch (e) {
-        log.error('[Voiceprints] revoke error:', e.message);
-        res.status(500).json({ error: 'Could not revoke the voice profile' });
+    const { orgId, userId } = req.params;
+    if (!(await isOrgAdminForOrg(req, orgId))) {
+        return res.status(403).json({ error: 'Only organization admins can revoke voice profiles' });
     }
+    const target = await userStore.getUser(userId);
+    if (!target || target.organizationId !== orgId) {
+        return res.status(404).json({ error: 'User not found in this organization' });
+    }
+    const removed = await voiceprintStore.deleteVoiceprintForUser(userId);
+    if (removed) {
+        log.info(`[Voiceprints] ${req.session.user.id} revoked the voice profile of ${userId} (org ${orgId})`);
+        await userStore.logAccessAudit(
+            'voiceprint.revoke', 'user', userId, req.session.user.id,
+            { enrolled: true }, { enrolled: false }, orgId,
+        );
+    }
+    res.json({ ok: true, removed });
 });
 
 module.exports = router;
