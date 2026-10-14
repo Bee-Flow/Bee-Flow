@@ -139,21 +139,20 @@ router.put('/organizations/:orgId/beta-features', requireOrgAdmin('orgId'), vali
         });
     }
 
-    if (await setOrgBetaFeatures(orgId, features)) {
-        const updatedFeatures = await getOrgBetaFeatures(orgId);
-        // Trim the org-admin "enabled" subset to what's still in the
-        // allow-list so a feature pulled by the super admin can't linger.
-        try {
-            const current = await userStore.getOrgEnabledBetaFeatures(orgId);
-            const trimmed = current.filter(id => updatedFeatures.includes(id));
-            if (trimmed.length !== current.length) {
-                await userStore.setOrgEnabledBetaFeatures(orgId, trimmed);
-            }
-        } catch (e) { /* non-fatal */ }
-        res.json({ success: true, features: updatedFeatures });
-    } else {
-        res.status(500).json({ error: 'Failed to update beta features' });
+    if (!(await setOrgBetaFeatures(orgId, features))) {
+        throw new Error(`Failed to update beta features for organisation '${orgId}'`);
     }
+    const updatedFeatures = await getOrgBetaFeatures(orgId);
+    // Trim the org-admin "enabled" subset to what's still in the
+    // allow-list so a feature pulled by the super admin can't linger.
+    try {
+        const current = await userStore.getOrgEnabledBetaFeatures(orgId);
+        const trimmed = current.filter(id => updatedFeatures.includes(id));
+        if (trimmed.length !== current.length) {
+            await userStore.setOrgEnabledBetaFeatures(orgId, trimmed);
+        }
+    } catch (e) { /* non-fatal */ }
+    res.json({ success: true, features: updatedFeatures });
 });
 
 // ── Org-admin "active" subset routes ─────────────────────────────
@@ -200,7 +199,7 @@ router.put('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId')
     // Intersect — drop anything not in the allow-list (incl. NC IDs).
     const clean = Array.from(new Set(enabled.filter(id => allowedSet.has(id))));
     if (!(await userStore.setOrgEnabledIntegrations(orgId, clean))) {
-        return res.status(500).json({ error: 'Failed to save' });
+        throw new Error(`Failed to save active integrations for organisation '${orgId}'`);
     }
     res.json({ success: true, enabled: clean });
 });
@@ -235,7 +234,7 @@ router.put('/organizations/:orgId/active-beta-features', requireOrgAdmin('orgId'
     const allowedSet = new Set(allowed);
     const clean = Array.from(new Set(enabled.filter(id => allowedSet.has(id))));
     if (!(await userStore.setOrgEnabledBetaFeatures(orgId, clean))) {
-        return res.status(500).json({ error: 'Failed to save' });
+        throw new Error(`Failed to save active beta features for organisation '${orgId}'`);
     }
     res.json({ success: true, enabled: clean });
 });
@@ -391,7 +390,7 @@ router.put('/me/active-features', requireAuth, validate({ body: ActiveFeaturesBo
         const allowedSet = new Set(ctx.allowedBetaFeatures);
         const clean = Array.from(new Set(betaEnabled.filter(id => allowedSet.has(id))));
         if (!(await userStore.setOrgEnabledBetaFeatures(ctx.orgId, clean))) {
-            return res.status(500).json({ error: 'Failed to save beta features' });
+            throw new Error(`Failed to save beta features for organisation '${ctx.orgId}'`);
         }
         savedBeta = clean;
     }
@@ -401,7 +400,7 @@ router.put('/me/active-features', requireAuth, validate({ body: ActiveFeaturesBo
         let clean = Array.from(new Set(integrationsEnabled.filter(id => allowedSet.has(id))));
         clean = planEntitlements.applyCap(clean, caps.integrations);
         if (!(await userStore.setOrgEnabledIntegrations(ctx.orgId, clean))) {
-            return res.status(500).json({ error: 'Failed to save integrations' });
+            throw new Error(`Failed to save integrations for organisation '${ctx.orgId}'`);
         }
         savedInt = clean;
     }
