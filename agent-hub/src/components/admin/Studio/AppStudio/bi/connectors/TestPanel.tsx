@@ -1,9 +1,9 @@
 import { AlertTriangle, CheckCircle2, Loader2, Plug } from 'lucide-react';
 import { useState } from 'react';
+import { postConnector } from './connectorHttp';
 import { INPUT, LABEL, previewGrid, testFailureMessage } from './connectorModel';
 import type { Connector } from './connectorModel';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 
 type TestResult = { status: 'running' } | { status: 'done'; rows: unknown[] } | { status: 'error'; message: string };
 
@@ -86,10 +86,7 @@ export default function TestPanel({ connector, appId, disabled, problem }: TestP
     const run = async () => {
         setResult({ status: 'running' });
         try {
-            const res = await authFetch(
-                `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/connectors/${encodeURIComponent(connector.id)}/run`,
-                { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ params: values }) },
-            );
+            const res = await postConnector(appId as string, connector.id, 'run', JSON.stringify({ params: values }));
             let body = null;
             try { body = await res.json(); } catch { body = null; }
             if (!res.ok) { setResult({ status: 'error', message: testFailureMessage(res.status, body, t) }); return; }

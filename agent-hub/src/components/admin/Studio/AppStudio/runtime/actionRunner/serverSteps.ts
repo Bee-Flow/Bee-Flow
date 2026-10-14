@@ -2,11 +2,10 @@
  * The two ways a sequence step reaches the server: the plain JSON /step
  * dispatch, and ai_browse, which streams over its own SSE endpoint.
  */
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import { actionsUrl, postJson } from './actionHttp';
 import { parseSseStream } from '../sseStream';
 import { BROWSE_STEP_DEADLINE_MS, STEP_DEADLINE_MS, quotaToast, readJson } from './core';
 import type { EffectObject, Translate, Vars } from './core';
-import { actionsUrl } from './runnerContext';
 import type { RunnerContext } from './runnerContext';
 
 /** A running sequence's state, threaded (and mutated) through its steps. */
@@ -41,12 +40,7 @@ function stepBody(stepIndex: number | undefined, st: SeqState): Record<string, u
 /** POSTs a step, turning a deadline abort into the given readable error. */
 async function postStep(url: string, body: Record<string, unknown>, deadlineMs: number, tooLong: () => string): Promise<Response> {
     try {
-        return await authFetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-            signal: AbortSignal.timeout(deadlineMs),
-        });
+        return await postJson(url, body, deadlineMs);
     } catch (err) {
         const name = (err as { name?: unknown } | null)?.name;
         if (name === 'TimeoutError' || name === 'AbortError') throw new Error(tooLong());
@@ -62,7 +56,7 @@ export async function dispatchServerStep(ctx: RunnerContext, stepIndex: number |
     // not: a provider adapter that ignores timeoutMs would otherwise leave
     // the spinner up forever.
     const res = await postStep(
-        `${API_BASE}${actionsUrl(appId)}/${encodeURIComponent(st.actionId)}/step${qs}`,
+        `${actionsUrl(appId)}/${encodeURIComponent(st.actionId)}/step${qs}`,
         stepBody(stepIndex, st),
         STEP_DEADLINE_MS,
         () => tr('studio_apps_runtime.actions.step_too_long', 'That took too long and was stopped. Try again, or with fewer documents.'),
@@ -107,7 +101,7 @@ export async function dispatchBrowseStep(ctx: RunnerContext, stepIndex: number |
     // Above the server's 240s hard cap, so a specific server error wins the
     // race over this generic backstop.
     const res = await postStep(
-        `${API_BASE}${actionsUrl(appId)}/${encodeURIComponent(actionId)}/step/stream${qs}`,
+        `${actionsUrl(appId)}/${encodeURIComponent(actionId)}/step/stream${qs}`,
         body,
         BROWSE_STEP_DEADLINE_MS,
         () => tr('studio_apps_runtime.actions.browse_too_long', 'The browse took too long and was stopped.'),

@@ -1,10 +1,10 @@
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { postConnector } from './connectorHttp';
 import { TextField } from './ConnectorFields';
 import { INPUT, LABEL } from './connectorModel';
 import type { Connector } from './connectorModel';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 
 /** Sets (or, for '' / null, removes) one optional connector field. */
 export type SetOpt = (key: string, value: unknown) => void;
@@ -26,10 +26,7 @@ function useVerify(connector: Connector, appId: string | null) {
         setVerifying(true);
         setVerify(null);
         try {
-            const res = await authFetch(
-                `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/connectors/${encodeURIComponent(connector.id)}/verify`,
-                { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
-            );
+            const res = await postConnector(appId as string, connector.id, 'verify', '{}');
             const body = await res.json().catch(() => null);
             setVerify(body || { ok: false, error: t('studio_apps_bi.connectors.check_failed', 'Check failed ({status})', { status: res.status }) });
         } catch (e) {

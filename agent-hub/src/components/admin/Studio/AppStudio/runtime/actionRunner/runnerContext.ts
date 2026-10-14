@@ -45,8 +45,3 @@ export interface RunnerContext {
     setVar: (name: string, value: unknown) => void;
     applyEffects: (effects: EffectObject | null | undefined, ctx?: EffectContext) => Promise<void>;
 }
-
-/** The base URL of one app's action routes. */
-export function actionsUrl(appId: string): string {
-    return `/api/studio-apps/${encodeURIComponent(appId)}/actions`;
-}

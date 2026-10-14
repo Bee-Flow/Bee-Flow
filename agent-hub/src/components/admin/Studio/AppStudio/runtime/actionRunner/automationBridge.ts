@@ -4,12 +4,11 @@
  * onSuccess effects merged with the automation's own _appEffects — or the
  * onError effects when it failed.
  */
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import { actionsUrl, getAuthed, postJson } from './actionHttp';
 import {
     CANCELLED, POLL_INTERVAL_MS, POLL_TIMEOUT_MS, failureMessage, mergeAppEffects, readJson, showToast, sleep,
 } from './core';
 import type { RunOpts, RunnableAction } from './core';
-import { actionsUrl } from './runnerContext';
 import type { RunnerContext } from './runnerContext';
 
 type RunBody = Record<string, unknown> | null;
@@ -20,9 +19,7 @@ async function pollRun(ctx: RunnerContext, runId: unknown): Promise<RunBody> {
     while (Date.now() < deadline) {
         await sleep(POLL_INTERVAL_MS);
         if (!ctx.alive.current) throw CANCELLED;
-        const res = await authFetch(
-            `${API_BASE}${actionsUrl(appId)}/runs/${encodeURIComponent(String(runId))}`,
-        );
+        const res = await getAuthed(`${actionsUrl(appId)}/runs/${encodeURIComponent(String(runId))}`);
         const body = await readJson(res);
         if (!res.ok) throw new Error((body?.error as string) || tr('studio_apps_runtime.actions.check_run_failed', 'Could not check the run ({status})', { status: res.status }));
         const status = body?.status as string | undefined;
@@ -65,13 +62,9 @@ export async function runAutomationAction(ctx: RunnerContext, actionId: string, 
     setEntry(actionId, { status: 'running', result: undefined, error: null });
     try {
         const qs = draft ? '?draft=1' : '';
-        const res = await authFetch(
-            `${API_BASE}${actionsUrl(appId)}/${encodeURIComponent(actionId)}/run${qs}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ formValues: opts.formValues || {}, wait: true }),
-            },
+        const res = await postJson(
+            `${actionsUrl(appId)}/${encodeURIComponent(actionId)}/run${qs}`,
+            { formValues: opts.formValues || {}, wait: true },
         );
         const body = await settleRunResponse(ctx, res, await readJson(res));
         if (body === 'pending') {

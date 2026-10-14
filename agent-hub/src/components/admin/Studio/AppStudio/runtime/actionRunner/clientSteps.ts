@@ -4,11 +4,11 @@
  * confirm, set_variable and refresh. Control flow (condition/switch/loop)
  * lives with the coordinator in ./sequence.ts.
  */
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import toast from '../../../../../shared/Toast';
 import { closeAppModal, openAppModal } from '../components/AppModal';
 import { resetAppForm } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
+import { attachmentUrl, getAuthed } from './actionHttp';
 import { SEQ_ABORT, defaultConfirm, resolveNavParams, showToast } from './core';
 import type { RunStep } from './core';
 import type { RunnerContext } from './runnerContext';
@@ -35,10 +35,10 @@ async function downloadFile({ ctx, liveBag }: ClientStepEnv, step: RunStep, st: 
         ? resolveBinding(step.fileName, liveBag(st))
         : { value: null };
     const name = String(nameOverride || entry.name || 'download').trim() || 'download';
-    const href = `${API_BASE}/api/studio-apps/${encodeURIComponent(ctx.appId)}/data/attachments/${encodeURIComponent(entry.fileId)}`;
+    const href = attachmentUrl(ctx.appId, entry.fileId);
     // authFetch, not a bare <a href>: the route is authenticated,
     // and a plain link would navigate to a 401 instead of saving.
-    const res = await authFetch(href);
+    const res = await getAuthed(href);
     if (!res.ok) {
         toast.error(ctx.tr('studio_apps_runtime.actions.download_failed', 'That file could not be downloaded.'));
         return;

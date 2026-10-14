@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
 import { mailboxSyncPlan, proposalSyncPlan } from './syncModel';
 import type { SyncBlock, SyncPlan, SyncProposal, SyncTableDraft } from './syncModel';
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { studioAppsApi } from '../../studioAppsApi';
+import { getSyncStatus, postConnector } from '../connectors/connectorHttp';
 
 /** The connector as the sync panel reads it. */
 export interface SyncConnector {
@@ -64,7 +64,7 @@ export function useSyncActions({ connector, appId, tables, t, onCreateTable, onC
     useEffect(() => {
         if (!appId || !sync) return undefined;
         let alive = true;
-        authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/connectors/sync-status`)
+        getSyncStatus(appId)
             .then((r: Response) => (r.ok ? r.json() : null))
             .then((b: { syncs?: SyncStatus[] } | null) => {
                 if (!alive || !b) return;
@@ -78,10 +78,7 @@ export function useSyncActions({ connector, appId, tables, t, onCreateTable, onC
         setBusy(label);
         setError(null);
         try {
-            const res = await authFetch(
-                `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/connectors/${encodeURIComponent(connector.id)}/${path}`,
-                { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
-            );
+            const res = await postConnector(appId as string, connector.id, path, '{}');
             let body = null;
             try { body = await res.json(); } catch { body = null; }
             if (!res.ok) {
