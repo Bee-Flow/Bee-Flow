@@ -128,7 +128,9 @@ test('a kind that is not movable, a move that matched nothing, and a refusal a k
 
     fx.fileError = new Error('relation "x" does not exist');
     const broken = await call('PUT', '/p1/resources', 'bob', { kind: 'document', id: 'd9' });
-    assert.deepStrictEqual([broken.status, broken.body], [500, { error: 'Request failed' }], 'no SQL text reaches the client');
+    assert.strictEqual(broken.status, 500);
+    assert.strictEqual(broken.body.error, 'Internal server error', 'no SQL text reaches the client');
+    assert.doesNotMatch(JSON.stringify(broken.body), /does not exist/);
 
     assert.strictEqual((await call('PUT', '/p1/resources', 'carol', { kind: 'document', id: 'd1' })).status, 403);
 });

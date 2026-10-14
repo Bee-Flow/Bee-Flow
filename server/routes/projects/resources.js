@@ -170,8 +170,7 @@ function makeResourcesRouter(deps) {
             if (Number.isInteger(status) && status >= 400 && status < 500) {
                 return res.status(status).json({ error: err.message, code: err.code || undefined });
             }
-            log.error('[Projects] Resource update error:', err.message);
-            res.status(500).json({ error: 'Request failed' });
+            throw err;
         }
     });
 

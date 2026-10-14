@@ -188,70 +188,56 @@ const { requireProjectRole: requireRole } = require('../auth/projectAccess');
 // GET / — list user's projects (owned + shared). `?kind=` narrows the list to
 // one side of the split; a legacy (unclassified) project is on both sides.
 router.get('/', validate({ query: S.ListQuery }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const kind = req.query.kind || undefined;
-        const includeArchived = req.query.includeArchived === '1';
-        const projects = await projectStore.listUserProjects(userId, await getUserGroups(req), { kind, includeArchived });
-        res.json(projects);
-    } catch (err) {
-        log.error('[Projects] List error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const kind = req.query.kind || undefined;
+    const includeArchived = req.query.includeArchived === '1';
+    const projects = await projectStore.listUserProjects(userId, await getUserGroups(req), { kind, includeArchived });
+    res.json(projects);
 });
 
 // POST / — create project
 router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const { name, description, customInstructions, color, icon, knowledgeBaseIds, extractMemories } = req.body;
-        // A collaborative project unless the caller asks for a Solution (the
-        // Studio form does). Never NULL: only rows from before the split are.
-        const kind = req.body.kind || 'workspace';
-        if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+    const { name, description, customInstructions, color, icon, knowledgeBaseIds, extractMemories } = req.body;
+    // A collaborative project unless the caller asks for a Solution (the
+    // Studio form does). Never NULL: only rows from before the split are.
+    const kind = req.body.kind || 'workspace';
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
-        const lenError = validateLengths({ name, description, customInstructions });
-        if (lenError) return res.status(400).json({ error: lenError });
+    const lenError = validateLengths({ name, description, customInstructions });
+    if (lenError) return res.status(400).json({ error: lenError });
 
-        // The organisation the account acts in: the one on the session, else the one the account resolves to
-        // (a member whose organisation comes from a group has none on the session), else none.
-        const organizationId = req.session?.user?.organizationId || (await orgScope(req)).orgId || '';
+    // The organisation the account acts in: the one on the session, else the one the account resolves to
+    // (a member whose organisation comes from a group has none on the session), else none.
+    const organizationId = req.session?.user?.organizationId || (await orgScope(req)).orgId || '';
 
-        if (knowledgeBaseIds !== undefined) {
-            const kbCheck = await validateKnowledgeBaseIds(req, knowledgeBaseIds, organizationId);
-            if (kbCheck.tooMany) {
-                return res.status(400).json({ error: `At most ${MAX_KB_IDS} knowledge bases per project` });
-            }
-            if (!kbCheck.ok) {
-                return res.status(400).json({ error: 'Unknown, inaccessible or cross-organisation knowledge bases', invalid: kbCheck.invalid });
-            }
+    if (knowledgeBaseIds !== undefined) {
+        const kbCheck = await validateKnowledgeBaseIds(req, knowledgeBaseIds, organizationId);
+        if (kbCheck.tooMany) {
+            return res.status(400).json({ error: `At most ${MAX_KB_IDS} knowledge bases per project` });
         }
-
-        const project = await projectStore.createProject({
-            name: name.trim(),
-            description,
-            customInstructions,
-            color,
-            icon,
-            knowledgeBaseIds,
-            extractMemories,
-            ownerId: userId,
-            organizationId,
-            kind,
-        });
-        await recordProjectChange(project.id, userId, 'project_created', { name: project.name, kind: project.kind });
-        res.json(project);
-    } catch (err) {
-        log.error('[Projects] Create error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
+        if (!kbCheck.ok) {
+            return res.status(400).json({ error: 'Unknown, inaccessible or cross-organisation knowledge bases', invalid: kbCheck.invalid });
+        }
     }
+
+    const project = await projectStore.createProject({
+        name: name.trim(),
+        description,
+        customInstructions,
+        color,
+        icon,
+        knowledgeBaseIds,
+        extractMemories,
+        ownerId: userId,
+        organizationId,
+        kind,
+    });
+    await recordProjectChange(project.id, userId, 'project_created', { name: project.name, kind: project.kind });
+    res.json(project);
 });
 
 // ── Overview ─────────────────────────────────────────────
@@ -366,112 +352,93 @@ router.use('/', require('./projects/threads').makeThreadsRouter({
 
 // GET /:id — get project details + shares
 router.get('/:id', requireRole('viewer'), async (req, res) => {
-    try {
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
-        const shares = await projectStore.getProjectShares(project.id);
-        // The caller's own mute state; best-effort, a failing read must not hide the project.
-        const muted = await notificationPrefsStore.isMuted(getUserId(req), project.id).catch(() => false);
-        res.json({ ...project, shares, role: req.projectRole, muted: muted === true });
-    } catch (err) {
-        log.error('[Projects] Get error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Not found' });
+    const shares = await projectStore.getProjectShares(project.id);
+    // The caller's own mute state; best-effort, a failing read must not hide the project.
+    const muted = await notificationPrefsStore.isMuted(getUserId(req), project.id).catch(() => false);
+    res.json({ ...project, shares, role: req.projectRole, muted: muted === true });
 });
 
 // PUT /:id — update project (editor+)
 router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        const before = await projectStore.getProject(req.params.id);
-        if (!before) return res.status(404).json({ error: 'Not found' });
+    const userId = getUserId(req);
+    const before = await projectStore.getProject(req.params.id);
+    if (!before) return res.status(404).json({ error: 'Not found' });
 
-        const { name, description, customInstructions, color, icon, extractMemories, editorsCanInvite } = req.body;
-        let { knowledgeBaseIds } = req.body;
+    const { name, description, customInstructions, color, icon, extractMemories, editorsCanInvite } = req.body;
+    let { knowledgeBaseIds } = req.body;
 
-        // Who may invite is the owner's call, not an editor's.
-        if (editorsCanInvite !== undefined && req.projectRole !== 'owner') {
-            throw new HttpError(403, 'owner_only_setting', 'Only the owner can change who may invite people.');
-        }
-
-        const lenError = validateLengths({ name, description, customInstructions });
-        if (lenError) return res.status(400).json({ error: lenError });
-
-        if (knowledgeBaseIds !== undefined) {
-            // The project's own files base is skipped in the check and never
-            // dropped (projects/knowledgeBaseMembership.js explains why).
-            const kbCheck = await checkProjectKnowledgeBaseIds(req, knowledgeBaseIds, before);
-            if (kbCheck.tooMany) {
-                return res.status(400).json({ error: `At most ${MAX_KB_IDS} knowledge bases per project` });
-            }
-            if (!kbCheck.ok) {
-                return res.status(400).json({ error: 'Unknown, inaccessible or cross-organisation knowledge bases', invalid: kbCheck.invalid });
-            }
-            knowledgeBaseIds = kbCheck.ids;
-        }
-
-        // Optimistic concurrency. The client sends the whole form — including a
-        // whole-array knowledgeBaseIds replace — so without this two editors on
-        // the Knowledge tab silently overwrite each other and the activity feed
-        // records a kb_removed nobody performed. Clients that don't send a
-        // version keep the old last-write-wins behaviour.
-        const expectedVersion = req.body.version ?? req.get('If-Match');
-        const updated = await projectStore.updateProject(req.params.id, {
-            name, description, customInstructions, color, icon, knowledgeBaseIds, extractMemories, editorsCanInvite,
-        }, { expectedVersion: expectedVersion === undefined ? undefined : Number(expectedVersion) });
-
-        if (updated && updated.conflict) {
-            return res.status(409).json({
-                error: 'This project was changed by someone else while you were editing.',
-                current: updated.current,
-            });
-        }
-        // Deleted between the read above and the write: there is nothing left
-        // to update, and reading fields off `null` below would be a 500.
-        if (!updated) return res.status(404).json({ error: 'Not found' });
-
-        // Log activity — diff what changed.
-        const changes = {};
-        for (const key of ['name', 'description', 'color', 'icon', 'extractMemories', 'editorsCanInvite']) {
-            if (req.body[key] !== undefined && before[key] !== updated[key]) {
-                changes[key] = { from: before[key], to: updated[key] };
-            }
-        }
-        if (Object.keys(changes).length > 0) {
-            await recordProjectChange(req.params.id, userId, 'project_updated', { changes });
-        }
-        if (req.body.customInstructions !== undefined && before.customInstructions !== updated.customInstructions) {
-            await recordProjectChange(req.params.id, userId, 'instructions_updated', {});
-        }
-        if (knowledgeBaseIds !== undefined) {
-            const beforeKBs = new Set(before.knowledgeBaseIds || []);
-            const afterKBs = new Set(updated.knowledgeBaseIds || []);
-            for (const kb of afterKBs) {
-                if (!beforeKBs.has(kb)) {
-                    await recordProjectChange(req.params.id, userId, 'kb_added', { targetType: 'kb', targetId: kb });
-                }
-            }
-            for (const kb of beforeKBs) {
-                if (!afterKBs.has(kb)) {
-                    await recordProjectChange(req.params.id, userId, 'kb_removed', { targetType: 'kb', targetId: kb });
-                }
-            }
-        }
-
-        res.json(updated);
-    } catch (err) {
-        // A refusal the store raised on purpose (409 `managed_part` for the
-        // knowledge bases of a Solution stage) reaches the caller with its own
-        // status and code through the terminal error handler.
-        const status = Number(err?.status);
-        if (Number.isInteger(status) && status >= 400 && status < 500) throw err;
-        log.error('[Projects] Update error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
+    // Who may invite is the owner's call, not an editor's.
+    if (editorsCanInvite !== undefined && req.projectRole !== 'owner') {
+        throw new HttpError(403, 'owner_only_setting', 'Only the owner can change who may invite people.');
     }
+
+    const lenError = validateLengths({ name, description, customInstructions });
+    if (lenError) return res.status(400).json({ error: lenError });
+
+    if (knowledgeBaseIds !== undefined) {
+        // The project's own files base is skipped in the check and never
+        // dropped (projects/knowledgeBaseMembership.js explains why).
+        const kbCheck = await checkProjectKnowledgeBaseIds(req, knowledgeBaseIds, before);
+        if (kbCheck.tooMany) {
+            return res.status(400).json({ error: `At most ${MAX_KB_IDS} knowledge bases per project` });
+        }
+        if (!kbCheck.ok) {
+            return res.status(400).json({ error: 'Unknown, inaccessible or cross-organisation knowledge bases', invalid: kbCheck.invalid });
+        }
+        knowledgeBaseIds = kbCheck.ids;
+    }
+
+    // Optimistic concurrency. The client sends the whole form — including a
+    // whole-array knowledgeBaseIds replace — so without this two editors on
+    // the Knowledge tab silently overwrite each other and the activity feed
+    // records a kb_removed nobody performed. Clients that don't send a
+    // version keep the old last-write-wins behaviour.
+    const expectedVersion = req.body.version ?? req.get('If-Match');
+    const updated = await projectStore.updateProject(req.params.id, {
+        name, description, customInstructions, color, icon, knowledgeBaseIds, extractMemories, editorsCanInvite,
+    }, { expectedVersion: expectedVersion === undefined ? undefined : Number(expectedVersion) });
+
+    if (updated && updated.conflict) {
+        return res.status(409).json({
+            error: 'This project was changed by someone else while you were editing.',
+            current: updated.current,
+        });
+    }
+    // Deleted between the read above and the write: there is nothing left
+    // to update, and reading fields off `null` below would be a 500.
+    if (!updated) return res.status(404).json({ error: 'Not found' });
+
+    // Log activity — diff what changed.
+    const changes = {};
+    for (const key of ['name', 'description', 'color', 'icon', 'extractMemories', 'editorsCanInvite']) {
+        if (req.body[key] !== undefined && before[key] !== updated[key]) {
+            changes[key] = { from: before[key], to: updated[key] };
+        }
+    }
+    if (Object.keys(changes).length > 0) {
+        await recordProjectChange(req.params.id, userId, 'project_updated', { changes });
+    }
+    if (req.body.customInstructions !== undefined && before.customInstructions !== updated.customInstructions) {
+        await recordProjectChange(req.params.id, userId, 'instructions_updated', {});
+    }
+    if (knowledgeBaseIds !== undefined) {
+        const beforeKBs = new Set(before.knowledgeBaseIds || []);
+        const afterKBs = new Set(updated.knowledgeBaseIds || []);
+        for (const kb of afterKBs) {
+            if (!beforeKBs.has(kb)) {
+                await recordProjectChange(req.params.id, userId, 'kb_added', { targetType: 'kb', targetId: kb });
+            }
+        }
+        for (const kb of beforeKBs) {
+            if (!afterKBs.has(kb)) {
+                await recordProjectChange(req.params.id, userId, 'kb_removed', { targetType: 'kb', targetId: kb });
+            }
+        }
+    }
+
+    res.json(updated);
 });
 
 // PUT /:id/kind — classify a legacy project (or correct the backfill's guess,
@@ -624,77 +591,70 @@ router.use('/', require('./projects/packaging'));
 
 // PUT /:id/conversations — assign/unassign conversations (editor+)
 router.put('/:id/conversations', requireRole('editor'), validate({ body: S.ConversationsBody }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        const { assign, unassign } = req.body;
-        // assign: [{ id, type: 'direct'|'agent' }]
-        // unassign: [{ id, type: 'direct'|'agent' }]
+    const userId = getUserId(req);
+    const { assign, unassign } = req.body;
+    // assign: [{ id, type: 'direct'|'agent' }]
+    // unassign: [{ id, type: 'direct'|'agent' }]
 
-        // Each element costs an UPDATE plus an activity INSERT, so an unbounded
-        // array is an unbounded round-trip loop on a route with no rate limit.
-        if ((assign?.length || 0) + (unassign?.length || 0) > MAX_CONVERSATION_BATCH) {
-            return res.status(400).json({ error: `At most ${MAX_CONVERSATION_BATCH} conversations per request` });
+    // Each element costs an UPDATE plus an activity INSERT, so an unbounded
+    // array is an unbounded round-trip loop on a route with no rate limit.
+    if ((assign?.length || 0) + (unassign?.length || 0) > MAX_CONVERSATION_BATCH) {
+        return res.status(400).json({ error: `At most ${MAX_CONVERSATION_BATCH} conversations per request` });
+    }
+
+    // A chat shared into a project is sealed under THAT project's key and its shared scope requires a project:
+    // moving it would leave it unreadable in the new one, and detaching it would violate that constraint.
+    // Checked for the whole batch before anything is applied, so a refusal leaves nothing half done.
+    // Stopping the sharing (DELETE /conversations/:convId) is the way out.
+    for (const conv of [...(assign || []).map(c => ({ ...c, into: true })), ...(unassign || [])]) {
+        const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
+        const filing = await projectStore.getOwnConversationFiling(conv.id, userId, table);
+        if (filing?.shared && !(conv.into && filing.projectId === req.params.id)) {
+            return res.status(409).json({
+                error: 'A chat shared with a project cannot be moved or detached. Stop sharing it first.',
+                code: 'CONVERSATION_SHARED', conversationId: conv.id,
+            });
         }
+    }
 
-        // A chat shared into a project is sealed under THAT project's key and its shared scope requires a project:
-        // moving it would leave it unreadable in the new one, and detaching it would violate that constraint.
-        // Checked for the whole batch before anything is applied, so a refusal leaves nothing half done.
-        // Stopping the sharing (DELETE /conversations/:convId) is the way out.
-        for (const conv of [...(assign || []).map(c => ({ ...c, into: true })), ...(unassign || [])]) {
+    // Filing chats INTO a Solution is refused. Taking them out is not:
+    // a legacy project classified as a Solution may still hold some.
+    if (Array.isArray(assign) && assign.length > 0) {
+        const project = await projectStore.getProject(req.params.id);
+        if (!project) return res.status(404).json({ error: 'Not found' });
+        if (project.kind === 'solution') return res.status(409).json(SOLUTION_HOLDS_NO_CHATS);
+    }
+
+    const results = { assigned: 0, unassigned: 0 };
+
+    if (Array.isArray(assign)) {
+        for (const conv of assign) {
             const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
-            const filing = await projectStore.getOwnConversationFiling(conv.id, userId, table);
-            if (filing?.shared && !(conv.into && filing.projectId === req.params.id)) {
-                return res.status(409).json({
-                    error: 'A chat shared with a project cannot be moved or detached. Stop sharing it first.',
-                    code: 'CONVERSATION_SHARED', conversationId: conv.id,
+            // Pass userId so the store WHERE clause rejects conversations
+            // belonging to other users (IDOR guard).
+            const ok = await projectStore.assignConversation(conv.id, req.params.id, userId, table);
+            if (ok) {
+                results.assigned++;
+                await recordProjectChange(req.params.id, userId, 'conversation_assigned', {
+                    targetType: 'conversation', targetId: conv.id, conversationType: conv.type,
                 });
             }
         }
-
-        // Filing chats INTO a Solution is refused. Taking them out is not:
-        // a legacy project classified as a Solution may still hold some.
-        if (Array.isArray(assign) && assign.length > 0) {
-            const project = await projectStore.getProject(req.params.id);
-            if (!project) return res.status(404).json({ error: 'Not found' });
-            if (project.kind === 'solution') return res.status(409).json(SOLUTION_HOLDS_NO_CHATS);
-        }
-
-        const results = { assigned: 0, unassigned: 0 };
-
-        if (Array.isArray(assign)) {
-            for (const conv of assign) {
-                const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
-                // Pass userId so the store WHERE clause rejects conversations
-                // belonging to other users (IDOR guard).
-                const ok = await projectStore.assignConversation(conv.id, req.params.id, userId, table);
-                if (ok) {
-                    results.assigned++;
-                    await recordProjectChange(req.params.id, userId, 'conversation_assigned', {
-                        targetType: 'conversation', targetId: conv.id, conversationType: conv.type,
-                    });
-                }
-            }
-        }
-        if (Array.isArray(unassign)) {
-            for (const conv of unassign) {
-                const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
-                const ok = await projectStore.unassignConversation(conv.id, userId, table);
-                if (ok) {
-                    results.unassigned++;
-                    await recordProjectChange(req.params.id, userId, 'conversation_unassigned', {
-                        targetType: 'conversation', targetId: conv.id, conversationType: conv.type,
-                    });
-                }
-            }
-        }
-
-        res.json({ success: true, ...results });
-    } catch (err) {
-        log.error('[Projects] Assign conversations error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
     }
+    if (Array.isArray(unassign)) {
+        for (const conv of unassign) {
+            const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
+            const ok = await projectStore.unassignConversation(conv.id, userId, table);
+            if (ok) {
+                results.unassigned++;
+                await recordProjectChange(req.params.id, userId, 'conversation_unassigned', {
+                    targetType: 'conversation', targetId: conv.id, conversationType: conv.type,
+                });
+            }
+        }
+    }
+
+    res.json({ success: true, ...results });
 });
 
 // ── Collaborative project routers ────────────────────────
