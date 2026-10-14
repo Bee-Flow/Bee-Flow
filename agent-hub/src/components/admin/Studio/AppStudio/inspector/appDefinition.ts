@@ -35,6 +35,7 @@ export interface AppScreen {
 
 export interface AppDefinition {
     screens?: AppScreen[];
+    homeScreenId?: string | null;
     actions?: Record<string, AppAction>;
     [key: string]: unknown;
 }

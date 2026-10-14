@@ -29,7 +29,7 @@ type ClientStepHandler = (env: ClientStepEnv, step: RunStep, st: SeqState) => vo
 // parked on the screen to be reachable. Same attachment route file_preview
 // fetches, so the viewer's access is checked identically.
 async function downloadFile({ ctx, liveBag }: ClientStepEnv, step: RunStep, st: SeqState): Promise<void> {
-    const { value: entry } = resolveBinding(step.file, liveBag(st));
+    const entry = resolveBinding(step.file, liveBag(st)).value as { fileId?: string; name?: string } | null | undefined;
     if (!entry || typeof entry !== 'object' || !entry.fileId) return;
     const { value: nameOverride } = step.fileName
         ? resolveBinding(step.fileName, liveBag(st))

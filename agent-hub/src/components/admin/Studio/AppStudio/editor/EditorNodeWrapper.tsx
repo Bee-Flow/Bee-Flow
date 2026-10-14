@@ -115,23 +115,23 @@ function useNodeActions(node: AppNode, definition: AppDefinition | null, selecti
     const { dispatch } = useAppEditorState();
     const doRemove = () => {
         closeConfirm();
-        onCommit?.(removeNode(definition, node.id));
+        onCommit?.(removeNode(definition as AppDefinition, node.id));
     };
     const doDuplicate = () => {
-        const { def, nodeId } = duplicateNode(definition, node.id);
+        const { def, nodeId } = duplicateNode(definition as AppDefinition, node.id);
         if (!nodeId) return;
         onCommit?.(def);
         dispatch({ type: 'select_node', nodeId });
     };
     const doBulkRemove = () => {
         closeConfirm();
-        let def = definition;
+        let def = definition as AppDefinition;
         for (const id of selectionIds) def = removeNode(def, id);
         if (def !== definition && def) onCommit?.(def);
         dispatch({ type: 'clear_selection' });
     };
     const doBulkDuplicate = () => {
-        let def = definition;
+        let def = definition as AppDefinition;
         const newIds: string[] = [];
         for (const id of selectionIds) {
             const res = duplicateNode(def, id);

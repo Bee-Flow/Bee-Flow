@@ -107,7 +107,10 @@ export function useEditorSave({ appId, definition, version, enabled, dispatch, d
                 dispatch({ type: 'set_version', version: res.version });
                 markSaved(def, res.version);
             } else if (res.conflict) {
-                setConflict({ currentVersion: res.currentVersion, definition: res.definition });
+                setConflict({
+                    currentVersion: res.currentVersion as string | number | null,
+                    definition: res.definition as AppDefinition | null,
+                });
             } else if (res.invalid) {
                 const first = Array.isArray(res.errors) && res.errors.length ? res.errors[0] : null;
                 toast.error((typeof first === 'string' ? first : first?.message)
