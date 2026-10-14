@@ -48,6 +48,7 @@ const {
     MAX_SENTENCE_CHARS,
 } = require('../../core/skills/skillDraft');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 /**
  * A drafting call is one model call on somebody's keystroke. Ten a minute is
@@ -118,18 +119,15 @@ async function askForDraft({ messages, userId, userOrgId, source }) {
     return { structured: result?.structured || null, modelId };
 }
 
-function unavailable(res) {
-    return res.status(503).json({
-        error: 'No AI model is configured for this workspace.',
-        code: 'no_model',
-    });
+// Two failures the editor names rather than calling them a server fault: no
+// model to ask, and a model that answered with something unusable.
+function unavailable() {
+    return new HttpError(503, 'no_model', 'No AI model is configured for this workspace.');
 }
 
-function unusable(res) {
-    return res.status(502).json({
-        error: 'The model did not return a usable skill. Try again, or describe it more concretely.',
-        code: 'ai_unusable',
-    });
+function unusable() {
+    return new HttpError(502, 'ai_unusable',
+        'The model did not return a usable skill. Try again, or describe it more concretely.');
 }
 
 // ── POST /api/skills/ai/draft ────────────────────────────────────────
@@ -137,29 +135,24 @@ function unusable(res) {
 // keep, and a route that created a skill as a side effect of a suggestion
 // would leave a trail of half-written rows behind every abandoned attempt.
 async function draft(req, res) {
-    try {
-        const sentence = String(req.body?.sentence || '').trim().slice(0, MAX_SENTENCE_CHARS);
-        if (!sentence) {
-            return res.status(400).json({ error: 'Describe in one sentence what the skill should do.', code: 'no_sentence' });
-        }
-        const userId = req.session.user.id;
-        const userOrgId = await orgIdOf(req);
-
-        const answer = await askForDraft({
-            messages: buildDraftMessages(sentence),
-            userId,
-            userOrgId,
-            source: 'skill_ai_draft',
-        });
-        if (!answer) return unavailable(res);
-
-        const parsed = parseSkillDraft(answer.structured, { mode: 'draft' });
-        if (!parsed) return unusable(res);
-        return res.json({ draft: parsed });
-    } catch (err) {
-        log.error('[Skills] POST /ai/draft error:', err);
-        return res.status(500).json({ error: 'Could not draft this skill' });
+    const sentence = String(req.body?.sentence || '').trim().slice(0, MAX_SENTENCE_CHARS);
+    if (!sentence) {
+        return res.status(400).json({ error: 'Describe in one sentence what the skill should do.', code: 'no_sentence' });
     }
+    const userId = req.session.user.id;
+    const userOrgId = await orgIdOf(req);
+
+    const answer = await askForDraft({
+        messages: buildDraftMessages(sentence),
+        userId,
+        userOrgId,
+        source: 'skill_ai_draft',
+    });
+    if (!answer) throw unavailable();
+
+    const parsed = parseSkillDraft(answer.structured, { mode: 'draft' });
+    if (!parsed) throw unusable();
+    return res.json({ draft: parsed });
 }
 
 // ── POST /api/skills/:id/ai/improve ──────────────────────────────────
@@ -187,10 +180,10 @@ async function improve(req, res) {
             userOrgId: orgId,
             source: 'skill_ai_improve',
         });
-        if (!answer) return unavailable(res);
+        if (!answer) throw unavailable();
 
         const parsed = parseSkillDraft(answer.structured, { mode: 'improve', current: skill });
-        if (!parsed) return unusable(res);
+        if (!parsed) throw unusable();
 
         const updated = await skillStore.updateSkill(skill.id, userId, parsed, {
             // Exactly the widening PUT /:id uses: only ever to the CALLER'S
@@ -207,12 +200,9 @@ async function improve(req, res) {
         if (err instanceof SkillStructureError || err?.name === 'SkillStructureError') {
             // Our own validators refused the model's shape after the clamps —
             // a model failure, not the caller's malformed request.
-            return unusable(res);
+            throw unusable();
         }
-        // A refusal with a client status (a managed skill: 409) goes to the error handler.
-        if (Number.isInteger(err?.status) && err.status < 500) throw err;
-        log.error('[Skills] POST /:id/ai/improve error:', err);
-        return res.status(500).json({ error: 'Could not improve this skill' });
+        throw err;
     }
 }
 

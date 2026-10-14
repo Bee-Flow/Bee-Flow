@@ -87,6 +87,7 @@ const MAX_EXAMPLE_CHARS = 4000;
  */
 const { MAX_EXAMPLES } = require('../../core/skills/skillStructure');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 async function orgIdOf(req) {
     const userStore = require('../../stores/userStore');
@@ -252,53 +253,43 @@ function newExampleId() {
 // Owner-scoped by the store itself (`WHERE c.user_id = $1`) and narrowed
 // again in the mapping: only what a picker needs leaves the server.
 async function listConversations(req, res) {
-    try {
-        const agentStore = require('../../stores/agentStore');
-        const rows = await agentStore.listAllConversations(req.session.user.id);
-        res.json({
-            conversations: (rows || []).map(r => ({
-                id: r.id,
-                title: r.title || null,
-                agentId: r.agent_id || null,
-                agentName: r.agent_name || null,
-                updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
-            })),
-        });
-    } catch (err) {
-        log.error('[Skills] GET /examples/conversations error:', err);
-        res.status(500).json({ error: 'Failed to load conversations' });
-    }
+    const agentStore = require('../../stores/agentStore');
+    const rows = await agentStore.listAllConversations(req.session.user.id);
+    res.json({
+        conversations: (rows || []).map(r => ({
+            id: r.id,
+            title: r.title || null,
+            agentId: r.agent_id || null,
+            agentName: r.agent_name || null,
+            updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
+        })),
+    });
 }
 
 // ── GET /api/skills/examples/conversations/:id/messages ──────────
 async function listMessages(req, res) {
-    try {
-        const conv = await ownConversation(req, req.params.conversationId);
-        // "Not yours" is indistinguishable from "not there": a 403 here
-        // would confirm that an id exists in somebody else's account.
-        if (!conv) return res.status(404).json({ error: 'Conversation not found' });
-        // What the picker actually OFFERS: assistant turns only (a question is
-        // taken from the turn above the one that is picked, server-side), most
-        // recent first, bounded. Every message beyond this list is a guard scan
-        // paid for a row nobody can click.
-        const messages = readableMessages(conv)
-            .filter(m => m.role === 'assistant')
-            .slice(-PREVIEW_LIMIT);
-        const redacted = await Promise.all(messages.map(async (m) => {
-            const { text, checked } = await redact(m.text);
-            return { ...m, text, checked };
-        }));
-        // `piiChecked` is what the picker's promise is allowed to say. One
-        // unchecked message is enough to withdraw it: the person is about to
-        // choose from this list, and they cannot know which one it was.
-        return res.json({
-            messages: redacted.filter(m => m.text).map(({ checked, ...m }) => m),
-            piiChecked: redacted.every(m => m.checked),
-        });
-    } catch (err) {
-        log.error('[Skills] GET /examples/conversations/:id/messages error:', err);
-        return res.status(500).json({ error: 'Failed to load conversation' });
-    }
+    const conv = await ownConversation(req, req.params.conversationId);
+    // "Not yours" is indistinguishable from "not there": a 403 here
+    // would confirm that an id exists in somebody else's account.
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    // What the picker actually OFFERS: assistant turns only (a question is
+    // taken from the turn above the one that is picked, server-side), most
+    // recent first, bounded. Every message beyond this list is a guard scan
+    // paid for a row nobody can click.
+    const messages = readableMessages(conv)
+        .filter(m => m.role === 'assistant')
+        .slice(-PREVIEW_LIMIT);
+    const redacted = await Promise.all(messages.map(async (m) => {
+        const { text, checked } = await redact(m.text);
+        return { ...m, text, checked };
+    }));
+    // `piiChecked` is what the picker's promise is allowed to say. One
+    // unchecked message is enough to withdraw it: the person is about to
+    // choose from this list, and they cannot know which one it was.
+    return res.json({
+        messages: redacted.filter(m => m.text).map(({ checked, ...m }) => m),
+        piiChecked: redacted.every(m => m.checked),
+    });
 }
 
 // ── POST /api/skills/:id/examples/from-message ───────────────────
@@ -349,10 +340,8 @@ async function fromMessage(req, res) {
         // this path fails CLOSED. Typing the same sentence by hand is still
         // allowed: that is the person's own text, promised nothing.
         if (!good.checked || !question.checked) {
-            return res.status(503).json({
-                error: 'The personal-data check is unavailable, so this answer cannot be copied into an example right now.',
-                code: 'pii_unchecked',
-            });
+            throw new HttpError(503, 'pii_unchecked',
+                'The personal-data check is unavailable, so this answer cannot be copied into an example right now.');
         }
 
         const example = {
@@ -377,15 +366,12 @@ async function fromMessage(req, res) {
         return res.status(201).json({ example, examplesV2 });
     } catch (err) {
         // Same answer PUT /:id gives. A structure refusal from the store is a
-        // 400 with a `code` the client can act on; letting it fall through to
-        // the bare 500 below left the person with "Failed to create the
-        // example" and nothing to do about it.
+        // 400 with a `code` the client can act on, not a bare 500 that leaves
+        // the person with nothing to do about it. Everything else (a 409 on a
+        // managed skill, pii_unchecked, a real fault) goes to the error handler.
         const { answerStructureError } = require('../skills');
         if (typeof answerStructureError === 'function' && answerStructureError(res, err)) return;
-        // A refusal with a client status (a managed skill: 409) goes to the error handler.
-        if (Number.isInteger(err?.status) && err.status < 500) throw err;
-        log.error('[Skills] POST /:id/examples/from-message error:', err);
-        return res.status(500).json({ error: 'Failed to create the example' });
+        throw err;
     }
 }
 
