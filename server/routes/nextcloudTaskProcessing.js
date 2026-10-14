@@ -46,6 +46,7 @@ const crypto = require('crypto');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 // configStore and userStore are required lazily inside the handlers, not here:
 // importing configStore stands up the Postgres pool at module load, which makes
 // this file un-requireable in the infra-free unit tests (and in any tooling that
@@ -436,7 +437,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
     const text = typeof completion === 'string'
         ? completion
         : (completion?.content || completion?.text || '');
-    if (!text) return res.status(502).json({ error: 'The model returned no output' });
+    if (!text) throw new HttpError(502, 'empty_output', 'The model returned no output');
 
     return res.json({ output: { output: text } });
 });

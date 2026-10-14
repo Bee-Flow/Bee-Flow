@@ -12,6 +12,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
@@ -209,7 +210,7 @@ router.post('/post', requireSessionUser, validate({ body: PostBody }), async (re
             await configStore.deleteConfig(`linkedin_name_user_${userId}`);
             return res.status(401).json({ error: 'LinkedIn token expired. Please reconnect via Settings.' });
         }
-        return res.status(500).json({ error: 'Failed to post to LinkedIn' });
+        throw new HttpError(500, 'linkedin_post_failed', 'Failed to post to LinkedIn');
     }
 
     log.info(`[LinkedIn] Post published for user ${userId}`);

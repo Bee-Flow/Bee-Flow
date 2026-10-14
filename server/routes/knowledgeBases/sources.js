@@ -738,7 +738,7 @@ router.post('/:id/sources', requireAuth, requirePermission('manage_knowledge'), 
                     .listByTag(tag, userId, { orgIds: [...asker.orgIds], userGroupIds: asker.userGroups, limit: 1 });
             } catch (e) {
                 log.warn('[KB] meeting tag probe failed:', e.message);
-                return res.status(502).json({ error: 'Could not check that tag right now.', code: 'tag_probe_failed' });
+                throw new HttpError(502, 'tag_probe_failed', 'Could not check that tag right now.');
             }
             if (visible.length === 0) {
                 // Deliberately the same answer for "no such tag" and "not

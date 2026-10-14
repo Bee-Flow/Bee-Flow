@@ -46,6 +46,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
@@ -99,7 +100,7 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, re
             chunks = await quickKBSearch(userId, [kb.id], question, { topK: ASK_TOP_K, session: req.session }) || [];
         } catch (e) {
             log.warn('[KB/ask] search failed:', e.message);
-            return res.status(502).json({ error: 'Could not search this knowledge base right now.' });
+            throw new HttpError(502, 'kb_search_failed', 'Could not search this knowledge base right now.');
         }
 
         // Name the sources so a citation can say "Nextcloud · /Sales" and not
