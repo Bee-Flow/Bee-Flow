@@ -57,6 +57,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf } = require('../core/http/schemaParts');
@@ -484,7 +485,7 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
 
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'No file uploaded' });
-    if (!storageStore.isAvailable()) return res.status(503).json({ error: 'File storage is not available' });
+    if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'File storage is not available');
 
     try {
         await studioAppQuota.assertAttachmentQuota(found.app, file.size);

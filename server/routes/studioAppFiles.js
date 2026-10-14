@@ -48,6 +48,7 @@ const crypto = require('crypto');
 const { z } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
 const router = express.Router();
 
@@ -187,7 +188,7 @@ router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ para
     if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
     if (!storageStore.isAvailable()) {
-        return res.status(503).json({ error: 'File storage is not available' });
+        throw new HttpError(503, 'storage_unavailable', 'File storage is not available');
     }
 
     // Quota BEFORE we persist any bytes.
