@@ -56,6 +56,8 @@ const EXEMPT = new Map([
     // Idem: blueprintStore.js is sinds de opsplitsing (golf 1) een facade die
     // blueprint/schema.js' initDB doorgeeft.
     ['stores/blueprint/schema.js', 'gedekt via de blueprintStore-facade'],
+    // Same for the skill store: skillStore.js re-exports stores/skill/schema.js's initDB.
+    ['stores/skill/schema.js', 'covered via the skillStore facade'],
     // Idem voor de stores die in de tweede splitsgolf een facade werden: elke
     // facade hieronder staat in STORE_MODULES en exporteert de initDB van zijn
     // schema-module (makeStoreInit of rechtstreeks doorgegeven), dus de ladder

@@ -105,6 +105,7 @@ test('--dry-run writes nothing: no columns, no UPDATE, and it logs the plan per 
 test('it exports up() and is registered from the skill store, never from startupTasks', () => {
     assert.strictEqual(typeof mig.up, 'function');
     assert.match(SRC, /require\.main === module/);
-    const store = fs.readFileSync(path.join(__dirname, '..', 'stores', 'skillStore.js'), 'utf8');
-    assert.match(store, /migrations\/skills-structured-fields/, 'an unregistered migration never runs');
+    // The skill store's initDB lives in stores/skill/schema.js (skillStore.js re-exports it).
+    const store = fs.readFileSync(path.join(__dirname, '..', 'stores', 'skill', 'schema.js'), 'utf8');
+    assert.match(store, /require\('\.\.\/\.\.\/migrations\/skills-structured-fields'\)/, 'an unregistered migration never runs');
 });
