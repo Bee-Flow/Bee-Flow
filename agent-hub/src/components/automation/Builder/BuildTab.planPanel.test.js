@@ -15,9 +15,10 @@ import { describe, expect, it } from 'vitest';
  * DiagramPane as `cameraInsetLeft` and every shot frames in what is left.
  *
  * BuildTab has no render harness (it needs the whole builder around it), so
- * this pins the arrangement in the source.
+ * this pins the arrangement in the source of its canvas column
+ * (build/BuildCanvas.tsx, split out of BuildTab).
  */
-const SRC = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'BuildTab.jsx'), 'utf8');
+const SRC = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'build/BuildCanvas.tsx'), 'utf8');
 
 describe('BuildTab — the plan on the canvas', () => {
     it('draws it once, through the shared canvas panel (which folds to a pill when the build stops)', () => {

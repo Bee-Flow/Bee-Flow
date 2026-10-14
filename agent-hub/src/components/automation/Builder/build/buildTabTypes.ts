@@ -1,0 +1,155 @@
+/**
+ * The builder state as BuildTab and its pieces read it. Only the members read
+ * here are named; an index signature carries the rest through untouched —
+ * BuilderShell owns the full shape.
+ */
+import type { RefObject, UIEvent } from 'react';
+import type { BuilderWebSearchStatus } from '../../../../hooks/useAutomationBuilderStream';
+import type { BuilderHeaderProps } from '../BuilderHeader';
+import type { InlinePlan } from '../chat/PlanInlineCard';
+import type { PendingTable } from '../chat/pendingTables';
+import type { BuilderQuestion } from '../chat/QuestionsCard';
+import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
+
+/** One message of the builder chat. */
+export interface BuilderMessage {
+    role?: string;
+    content?: string | unknown[] | null;
+    thinkingParts?: unknown[] | null;
+    toolCalls?: unknown[] | null;
+    [key: string]: unknown;
+}
+
+/** The plan the agent wrote, as the review overlay and the inline card read it. */
+export interface BuilderPlan extends InlinePlan {
+    [key: string]: unknown;
+}
+
+/** A proposal waiting for Apply / Discard. */
+export interface BuilderProposal {
+    id?: string;
+    definition?: FlowDefinition;
+    pendingDatatables?: PendingTable[];
+    [key: string]: unknown;
+}
+
+export interface BuilderTabState {
+    messages: BuilderMessage[];
+    running?: boolean;
+    steps?: RunStepRow[];
+    summary?: string;
+    todos?: unknown[];
+    reviewPlan?: BuilderPlan | null;
+    reviewQuestions?: BuilderQuestion[] | null;
+    proposal?: BuilderProposal | null;
+    webSearch?: BuilderWebSearchStatus | null;
+    turn?: { firstEventAt?: unknown } | null;
+    dryRun?: { id?: string; status?: string } | null;
+    dryRunSeq?: unknown;
+    pendingExternalDraft?: unknown;
+    validation?: unknown;
+    executingStepId?: string | null;
+    aborted?: boolean;
+    automationId?: string | null;
+    [key: string]: unknown;
+}
+
+/** The step a chat mention or the assistant's context points at. */
+export interface AssistantContext {
+    id: string;
+    label: string;
+}
+
+/**
+ * The silence before the first token. The waiting card shows while the turn
+ * has produced NOTHING yet: the "nothing streamed" test of the old bare
+ * "Thinking…" line, plus the turn's own `firstEventAt`, which the stream hook
+ * stamps on the first reasoning / text / tool event. Either is enough to drop
+ * the card — once anything lands, the thinking block and the activity list
+ * render the live state instead.
+ */
+export function isWaitingForFirstToken(state: BuilderTabState): boolean {
+    const tailMsg = state.messages[state.messages.length - 1];
+    const nothingStreamedYet = !(tailMsg && tailMsg.role === 'assistant'
+        && ((tailMsg.content && tailMsg.content.length)
+            || (tailMsg.thinkingParts && tailMsg.thinkingParts.length)
+            || (tailMsg.toolCalls && tailMsg.toolCalls.length)));
+    return !!state.running && !state.turn?.firstEventAt && nothingStreamedYet;
+}
+
+type Fn<A extends unknown[] = [], R = void> = ((...args: A) => R) | null;
+
+/** BuildTab's props, as BuilderShell hands them down. */
+export interface BuildTabProps {
+    headerProps?: BuilderHeaderProps | null;
+    mode?: string;
+    /** An automation managed by a Solution stage: the canvas shows, nothing edits. */
+    readOnly?: boolean;
+    assistantOpen: boolean;
+    setAssistantOpen: (open: boolean) => void;
+    alwaysPlanLarge?: boolean;
+    setAlwaysPlanLarge?: Fn<[boolean]>;
+    workMode?: string;
+    setWorkMode?: Fn<[string]>;
+    assistantContext?: AssistantContext | null;
+    onClearAssistantContext?: Fn;
+    onAskAssistant?: Fn<[stepId?: string, field?: unknown]>;
+    onApplyProposal?: Fn;
+    onDiscardProposal?: Fn;
+    onApprovePlan?: Fn<[pauseAfterStep: boolean]>;
+    onRejectPlan?: Fn;
+    /** An Apply in flight. */
+    applyingProposal?: boolean;
+    /** Bumped by the shell after Apply created tables (refetch the catalog). */
+    catalogNonce?: number;
+    chatWidth: number;
+    onChatResizeStart: (event: unknown) => void;
+    /** The form-test overlay: `{ form, runId }` while open. */
+    formTest?: { form?: unknown; runId?: string | null } | null;
+    onFormTestRun?: Fn<[answers: unknown], unknown>;
+    onCloseFormTest?: Fn;
+    /** (runId) — open that form overlay attached to a run parked on a page. */
+    onOpenFormOverlay?: Fn<[runId: string]>;
+    state: BuilderTabState;
+    automation?: { id?: string | null; [key: string]: unknown } | null;
+    rootDef: FlowDefinition | null;
+    scopedDef: FlowDefinition | null;
+    scopeKey: string | null;
+    setScopeKey?: Fn<[key: string | null]>;
+    onVisualEditRoot?: Fn<[def: FlowDefinition]>;
+    chatInput: string;
+    setChatInput: (text: string) => void;
+    modelTiers: unknown;
+    selectedTier: unknown;
+    setSelectedTier: unknown;
+    user: unknown;
+    onSend: (text: string, attachments?: unknown[], opts?: { answers?: unknown }) => unknown;
+    onStopBuild?: Fn;
+    messagesContainerRef: RefObject<HTMLDivElement | null>;
+    messagesBodyRef?: RefObject<HTMLDivElement | null> | null;
+    messagesEndRef: RefObject<HTMLDivElement | null>;
+    onMessagesScroll?: (event: UIEvent<HTMLDivElement>) => void;
+    ndvStepId: string | null;
+    ndvDensity?: string;
+    setNdvDensity?: Fn<[density: string]>;
+    ndvMode?: string | null;
+    onNdvModeChange?: Fn<[mode: string | null]>;
+    openNdv: (id: string, density?: string) => void;
+    closeNdv: () => void;
+    stepById: (id: string | undefined) => FlowStep | null;
+    runStepById: (id: string) => RunStepRow | null;
+    onSaveStep: (graph: FlowDefinition, layerPatches?: Record<string, FlowDefinition>) => unknown;
+    onVisualEdit?: Fn<[def: FlowDefinition]>;
+    onExecuteStep: (...args: never[]) => unknown;
+    onRetryFromStep: (...args: never[]) => unknown;
+    onStopRun?: Fn<[runId: string], unknown>;
+    pollRunProgress?: Fn<[runId: string], unknown>;
+    fatalError: unknown;
+    onDismissFatal: () => void;
+    onDiagnose?: Fn;
+    acceptExternalDraft?: Fn;
+    dismissExternalDraft?: Fn;
+    onBuildLayer?: Fn<never[], unknown>;
+    onRefineLayer?: Fn<never[], unknown>;
+    layerAgentState?: unknown;
+}

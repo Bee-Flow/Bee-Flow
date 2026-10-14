@@ -212,10 +212,12 @@ const read = (rel) => fs.readFileSync(path.join(BUILDER, rel), 'utf8');
 
 describe('the chain that reaches this box', () => {
     it('BuildTab owns the graph edit and hands it to the node editor', () => {
-        const src = read('BuildTab.jsx');
-        expect(src).toMatch(/const onInsertStepBefore = useCallback\(\(targetId, newStep\) => \{/);
+        // BuildTab's graph edits live in build/useStepGraphEdits.ts, its step
+        // drawer in build/BuildCanvas.tsx (both split out of BuildTab).
+        const src = read('build/useStepGraphEdits.ts');
+        expect(src).toMatch(/const onInsertStepBefore = useCallback\(\(targetId: string, newStep: FlowStep\) => \{/);
         expect(src).toMatch(/insertStepBefore\(flatDef, targetId, newStep\)/);
-        expect(src).toMatch(/onInsertStepBefore=\{onInsertStepBefore\}/);
+        expect(read('build/BuildCanvas.tsx')).toMatch(/onInsertStepBefore=\{edits\.onInsertStepBefore\}/);
     });
 
     it('NodeDetailView narrows it to this step, and to the nodes it applies to', () => {
