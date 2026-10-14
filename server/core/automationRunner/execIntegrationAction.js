@@ -1,8 +1,9 @@
 /**
  * The integration-action step executor (moved verbatim out of execAi.js):
  * the safety gates, the permission re-check, connection lending, the run
- * memo / durable cross-run cache and the dispatch itself. execAi.js
- * re-exports it, so importers keep requiring './execAi'.
+ * memo / durable cross-run cache (./integrationActionMemo.js) and the
+ * dispatch itself. execAi.js re-exports it, so importers keep requiring
+ * './execAi'.
  *
  * `deps` (the last argument) carries what sits in the server's large import
  * cycle (safety, the ./shared result helpers, envFlagOn, and lazy getters
@@ -13,8 +14,7 @@
  */
 
 const { resolveInputs } = require('../automationModel/bind');
-const { isSideEffect, isMemoisable } = require('../automationModel/sideEffectMap');
-const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
+const { isSideEffect } = require('../automationModel/sideEffectMap');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 
@@ -22,35 +22,19 @@ const { runnerPort } = require('./featurePorts');
 const synthesizeDryRunOutput = (toolName, args) => runnerPort('outputSchemas').synthesizeDryRunOutput(toolName, args);
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
 const log = require('../../telemetry/log');
-const { assertStepToolPermitted, resolveLendingIdentity, resolveDurableTier } = require('./integrationActionGates');
+const { assertStepToolPermitted, resolveLendingIdentity } = require('./integrationActionGates');
+const { planReuse, readReuse, rememberAnswer } = require('./integrationActionMemo');
 
-// ── Step executors ──────────────────────────────────────
-
-async function execIntegrationAction(step, ctx, runState, mode, deps) {
-    // Safety/monitoring backbone — PII + regex guardrails + egress logging, mirroring
-    // the agent/direct-chat pipeline so automations stop bypassing those controls.
-    const {
-        safety,
-        envFlagOn,
-        isEmptyToolResult,
-        isToolErrorResult,
-        isEnvironmentToolError,
-        enrichNextcloudError,
-        stepInputsSynthetic,
-    } = deps;
-    // Tool arguments are data, not prose: a list in a `{{…}}` stays JSON.
-    let inputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' });
-    const sideEffect = isSideEffect(step.tool);
-
-    // ── Safety: scan resolved inputs (toolInput scope) before anything leaves ──
-    // the platform. On a `block` action this throws GuardrailBlockError, which
-    // flows through dispatchStep's catch → on_error edge or a fail-loud run.
+/**
+ * ── Safety: scan resolved inputs (toolInput scope) before anything leaves ──
+ * the platform. On a `block` action this throws GuardrailBlockError, which
+ * flows through dispatchStep's catch → on_error edge or a fail-loud run.
+ */
+async function guardInputs(step, ctx, mode, inputs, safety) {
     const policy = await safety.resolveAutomationPolicy(ctx);
     const auditBase = safety.buildAuditBase(ctx, step);
-    const { resolveIntegration } = require('../integrations/integrationToolMap');
-    let guardedIn;
     try {
-        guardedIn = await safety.guardToolInput(inputs, policy, auditBase, mode, ctx);
+        return { policy, auditBase, guardedIn: await safety.guardToolInput(inputs, policy, auditBase, mode, ctx) };
     } catch (err) {
         // A blocked call still belongs in the egress ledger: "we stopped this
         // from leaving" is exactly the evidence the Art-44 record needs, and
@@ -63,15 +47,19 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
         }
         throw err;
     }
+}
 
-    if (mode === 'dry_run' && sideEffect) {
+/** A dry run that must not dispatch: the synthesized answer, or null to go on. */
+function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedIn, inputs, stepInputsSynthetic }) {
+    if (mode !== 'dry_run') return null;
+    if (sideEffect) {
         // No real dispatch in a side-effect dry-run, so nothing egresses — but
         // still surface a "would block" annotation for the builder preview.
         const out = synthesizeDryRunOutput(step.tool, inputs);
         if (guardedIn.wouldBlock) out._guardrailWouldBlock = guardedIn.categories;
         return { output: out, dryRunSynthesised: true };
     }
-    if (mode === 'dry_run' && guardedIn.wouldBlock) {
+    if (guardedIn.wouldBlock) {
         // Read-only tool in a dry-run: a `block` action returns the payload
         // UNTRANSFORMED, and this used to fall straight through to a live
         // dispatch — so the one mode that must never leak sent the raw value to
@@ -80,7 +68,7 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
         out._guardrailWouldBlock = guardedIn.categories;
         return { output: out, dryRunSynthesised: true, dryRunFallback: 'guardrail_block' };
     }
-    if (mode === 'dry_run' && stepInputsSynthetic(step, runState, ctx)) {
+    if (stepInputsSynthetic(step, runState, ctx)) {
         // Read tool, but its inputs derive from SYNTHESIZED upstream data
         // (sample fallback / simulated side-effect / synthetic trigger).
         // Dispatching fake ids live guarantees a provider error per call —
@@ -88,249 +76,96 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
         const out = synthesizeDryRunOutput(step.tool, inputs);
         return { output: out, dryRunSynthesised: true, dryRunFallback: 'synthetic_input' };
     }
-    // What actually leaves the platform: placeholders, an irreversible mask, or
-    // real values — decided per DESTINATION (an on-box Nextcloud is not a third
-    // party) against the WHOLE run vault, so placeholders minted by an earlier
-    // node resolve here too.
-    const inMeta = resolveIntegration(step.tool, guardedIn.value, { nextcloudUrl: ctx.nextcloudUrl });
-    inputs = safety.prepareForEgress(guardedIn.value, policy, ctx, {
-        destination: inMeta && inMeta.isLocal ? 'internal' : 'external',
-    });
+    return null;
+}
 
-    // Defense-in-depth permission check (integrationActionGates.js).
-    await assertStepToolPermitted(step, ctx, sideEffect, deps);
-
-    const { executeTool } = deps.toolDispatcher();
-
-    // Connection lending (GATED, default off): see integrationActionGates.js.
-    const { stepUserId, stepOrgId, lentConnection } = await resolveLendingIdentity(step, ctx, deps);
-
-    // ── "Ask this app only once per run" (step.askOnce; absent = off) ──
-    //
-    // Placement is the security property. This sits AFTER the defence-in-depth
-    // permission re-check above and AFTER the lending identity swap, so a user
-    // whose access was revoked cannot be served from the memo, and a borrowed
-    // connection is part of the key rather than invisible to it.
-    //
-    // egressMode must be 'real': under 'tokenize' the outgoing args are run-vault
-    // placeholders and under 'redact' every person collapses to the literal
-    // [person]. Within one run those labels are stable, so this is belt and
-    // braces here — but it is DISQUALIFYING for anything durable, and having the
-    // line in now forecloses the whole class.
-    // envFlagOn, not bare truthiness: `AUTOMATION_ASK_ONCE_DISABLED=0` is a
-    // non-empty string, so `!process.env.X` read the operator's "leave it on"
-    // as "switch it off" — the same grammar the durable tier's kill switch
-    // already used, now shared so the two switches cannot drift.
-    const memo = ctx._toolMemo;
-    const memoEligible = !!memo
-        && !envFlagOn('AUTOMATION_ASK_ONCE_DISABLED')
-        && mode !== 'dry_run'
-        && !!step.askOnce
-        && isMemoisable(step.tool)
-        && safety.egressMode(policy, inMeta && inMeta.isLocal ? 'internal' : 'external') === 'real';
-    const callIdentity = memoEligible ? memoKeyParts({
-        toolName: step.tool,
-        stepUserId, stepOrgId,
-        connectionId: lentConnection?.connectionId,
-        grantId: lentConnection?.grantId,
-        integrationServer: inMeta?.server,
-        destination: inMeta && inMeta.isLocal ? 'internal' : 'external',
-        policyAction: policy?.action,
-        policyScope: policy?.privacyScope,
-        args: inputs,
-    }) : null;
-    const memoK = callIdentity === null ? null : memoKeyFromParts(callIdentity);
-    const memoTtlMs = (step.askOnce && typeof step.askOnce === 'object' && Number(step.askOnce.ttlSeconds))
-        ? Math.max(1, Math.min(900, Number(step.askOnce.ttlSeconds))) * 1000
-        : undefined;
-
-    // ── The DURABLE tier (step.askOnce.acrossRuns; absent = off) ──
-    // Resolved in integrationActionGates.js; null means "do not use it".
-    const durable = await resolveDurableTier({ memo, memoEligible, step, stepOrgId, callIdentity, memoTtlMs, deps });
-
-    let result;
-    let probe = null;
-    const dispatchT0 = Date.now();
-    // A hit skips the dispatch, the egress row and the shape cache — nothing
-    // left the box, so there is nothing to log and no new shape to learn. It
-    // then falls into the SAME tail below (guardToolOutput → restoreForRunState
-    // → buildPiiSummary), so tokens are minted into THIS run's vault and the
-    // step's PII summary is identical to a live call. The memo shortcuts the
-    // network and nothing else.
-    let memoHit = memoEligible ? memo.peek(memoK) : undefined;
-    // Provenance, not a boolean. "We asked once instead of two hundred times"
-    // and "we did not contact this app at all today" are different facts about
-    // a run, and only the second one explains an answer that predates the run.
-    // Without it the inspector renders a replayed answer identically to a live
-    // one, so a person debugging "why did this act on yesterday's data" has
-    // nothing to look at.
-    let reused = memoHit === undefined ? null : 'run';
-    // The durable tier is consulted only AFTER the run memo misses, and a hit
-    // is written back into the memo so the rest of this run answers from
-    // memory rather than the database.
-    if (memoHit === undefined && durable) {
-        // maxAgeSeconds is the window as it stands NOW. expires_at was stamped
-        // when the row was written, so an admin who shortened the org's window
-        // after noticing stale data would otherwise keep being served the old
-        // answers until the OLD expiry — up to an hour later.
-        //
-        // Wrapped because a broken cache must only ever be a MISS. The store
-        // swallows its own failures today, so this is the guarantee stated
-        // rather than assumed: nothing about a step's correctness may depend
-        // on the cache being reachable.
-        let row = null;
+/**
+ * The live dispatch, wrapped in runWithProbe so the global fetch shim captures
+ * the destination IP for the egress row. markLocal keeps on-host integrations
+ * honest. The inner fn never THROWS through runWithProbe — a throw used to
+ * discard the probe, and with it the audit row for a failed call whose bytes
+ * had already left the box.
+ */
+function dispatchTool(step, ctx, mode, { executeTool, inputs, identity, resolveIntegration }) {
+    const { stepUserId, stepOrgId, lentConnection } = identity;
+    return runWithProbe(async () => {
+        const meta = resolveIntegration(step.tool, inputs, { nextcloudUrl: ctx.nextcloudUrl });
+        if (meta && meta.isLocal) markLocal(meta.label || meta.integration);
         try {
-            row = await durable.store.get(durable.key, durable.organizationId, {
-                maxAgeSeconds: durable.ttlSeconds,
-            });
-        } catch (e) {
-            log.warn('[AutomationRunner] durable cache read failed:', e.message);
-        }
-        if (row) {
-            memoHit = row.value;
-            reused = 'stored';
-            memo.recordDurableHit();
-            memo.store(memoK, memoHit, memoTtlMs);
-        }
-    }
-    const servedFromMemo = memoHit !== undefined;
-    if (servedFromMemo) {
-        result = memoHit;
-    } else {
-        // Wrap in runWithProbe so the global fetch shim captures the destination
-        // IP for the egress row. markLocal keeps on-host integrations honest.
-        // The inner fn never THROWS through runWithProbe — a throw used to
-        // discard the probe, and with it the audit row for a failed call whose
-        // bytes had already left the box.
-        const ran = await runWithProbe(async () => {
-            const meta = resolveIntegration(step.tool, inputs, { nextcloudUrl: ctx.nextcloudUrl });
-            if (meta && meta.isLocal) markLocal(meta.label || meta.integration);
-            try {
-                return {
-                    ok: true,
-                    value: await executeTool(step.tool, inputs, {
-                        userId: stepUserId,
-                        // MCP dispatch reads the caller id from userAuth ONLY
-                        // (toolExecution.js: `userAuth?.userId || userAuth?.user_id`),
-                        // never from context.userId. Without this every mcp_*
-                        // step — and every declaration-driven trigger poll that
-                        // calls one — dies on "User ID required for MCP tool
-                        // calls" before it reaches the server.
-                        userAuth: { ...(ctx.userAuth || {}), userId: stepUserId },
-                        session: ctx.session,
-                        orgId: stepOrgId,
-                        userGroupIds: ctx.userGroupIds || [],
-                        // The automation this step belongs to — what lets a
-                        // self-scoped tool (automation_*) act on its own automation
-                        // and nothing else.
-                        automationId: ctx.automationId || null,
-                        userOrgIds: ctx.userOrgIds || [],
-                        // The run, for tools that push a file a document step
-                        // kept (sourceHandle kind generated_file).
-                        runScope: ctx.runId ? { runId: ctx.runId, rootRunId: ctx.rootRunId || ctx.runId } : null,
-                        // Tell email/ticket-style tools that there is NO user UI here to
-                        // approve a draft — emit the side effect immediately. Only set
-                        // for live mode (dry_run is handled above with synthesized output).
-                        autoSend: mode === 'live',
-                        ...(lentConnection ? { lentConnection } : {}),
-                    }),
-                };
-            } catch (err) {
-                return { ok: false, error: err };
-            }
-        });
-        probe = ran.probe;
-        if (!ran.result?.ok) {
-            const err = ran.result?.error || new Error('tool dispatch failed');
-            // Read-only tool fallback in dry-run: when a search/read tool fails
-            // (auth lapsed, query yielded nothing, transient API hiccup) the
-            // automation builder still needs a workable bind target downstream.
-            // Substitute the curated sample so the AI can keep planning.
-            // A REAL dispatch happened in both modes (dry-run dispatches
-            // read-only tools live) — the failed call's bytes already left the
-            // box, so both modes get a status='error' row. Dry-run rows carry
-            // is_dry_run=true, same as the success path at the bottom.
-            await safety.logEgress({
-                toolName: step.tool, toolArgs: inputs, error: err, probe, policy, auditBase, mode,
-                durationMs: Date.now() - dispatchT0,
-            });
-            if (mode === 'dry_run') {
-                const fallback = synthesizeDryRunOutput(step.tool, inputs);
-                // Dedupe the warning per (tool, message) — a fan-out used to spam
-                // dozens of identical lines per dry-run.
-                const logKey = `${step.tool}:${err.message}`;
-                ctx._dryRunFallbackLogged = ctx._dryRunFallbackLogged || new Set();
-                if (!ctx._dryRunFallbackLogged.has(logKey)) {
-                    ctx._dryRunFallbackLogged.add(logKey);
-                    log.warn(`[AutomationRunner] dry-run: live ${step.tool} failed, using sample (${err.message})`);
-                }
-                return { output: fallback, dryRunSynthesised: true, dryRunFallback: 'live_failed' };
-            }
-            throw enrichNextcloudError(step.tool, err);
-        }
-        result = ran.result.value;
-        // A tool that returns a SOFT `{ error }` object throws a few lines
-        // below (isToolErrorResult), so it is a failed step — but it did not
-        // throw HERE, which is how it slipped past "a failure is never
-        // stored". Caching it serves "not authorised" as this call's answer to
-        // every later run for the whole TTL, and each of those runs fails with
-        // no request to the app to explain why.
-        const softFailure = isToolErrorResult(result);
-        if (memoEligible && !softFailure) memo.store(memoK, result, memoTtlMs);
-        // Written AFTER the dispatch succeeded, so a failure is never stored:
-        // a transient 500 must not become the answer for the next hour. Not
-        // awaited on the critical path — a slow write must not slow the step,
-        // and a failed one is only a future miss.
-        if (durable && !softFailure) {
-            // The org policy is re-read WITHOUT the 30-second memo before the
-            // row is written. invalidateCachePolicy is in-process only, so a
-            // replica that has not seen the admin's "switch it off and delete
-            // everything" would otherwise refill the table right behind them.
-            // A durable write is rare next to the step hot path, so the extra
-            // config read is cheap; the READ above stays memoised.
-            (async () => {
-                const { resolveCachePolicyFresh } = deps.integrationCachePolicy();
-                const fresh = await resolveCachePolicyFresh(durable.organizationId);
-                if (!fresh.enabled || !fresh.scopes || fresh.scopes.integration !== true) return;
-                await durable.store.put({
-                    key: durable.key,
-                    organizationId: durable.organizationId,
+            return {
+                ok: true,
+                value: await executeTool(step.tool, inputs, {
                     userId: stepUserId,
-                    toolName: step.tool,
-                    value: result,
-                    // The fresh org window, still capped by the step's own.
-                    ttlSeconds: Math.min(fresh.ttlSeconds, durable.stepTtlSeconds ?? fresh.ttlSeconds),
-                    maxBytes: MAX_ENTRY_BYTES,
-                });
-            })().catch(() => { /* a cache write is never worth failing a step */ });
+                    // MCP dispatch reads the caller id from userAuth ONLY
+                    // (toolExecution.js: `userAuth?.userId || userAuth?.user_id`),
+                    // never from context.userId. Without this every mcp_*
+                    // step — and every declaration-driven trigger poll that
+                    // calls one — dies on "User ID required for MCP tool
+                    // calls" before it reaches the server.
+                    userAuth: { ...(ctx.userAuth || {}), userId: stepUserId },
+                    session: ctx.session,
+                    orgId: stepOrgId,
+                    userGroupIds: ctx.userGroupIds || [],
+                    // The automation this step belongs to — what lets a
+                    // self-scoped tool (automation_*) act on its own automation
+                    // and nothing else.
+                    automationId: ctx.automationId || null,
+                    userOrgIds: ctx.userOrgIds || [],
+                    // The run, for tools that push a file a document step
+                    // kept (sourceHandle kind generated_file).
+                    runScope: ctx.runId ? { runId: ctx.runId, rootRunId: ctx.rootRunId || ctx.runId } : null,
+                    // Tell email/ticket-style tools that there is NO user UI here to
+                    // approve a draft — emit the side effect immediately. Only set
+                    // for live mode (dry_run is handled above with synthesized output).
+                    autoSend: mode === 'live',
+                    ...(lentConnection ? { lentConnection } : {}),
+                }),
+            };
+        } catch (err) {
+            return { ok: false, error: err };
         }
-    }
+    });
+}
 
-    // ── Egress logging ── a real dispatch happened, so record where the data
-    // went and what type it was. dry-run read-only calls are logged with
-    // is_dry_run=true so Compliance Hub can exclude them.
-    //
-    // A MEMO HIT WRITES NO ROW, deliberately. integration_activity_log's
-    // invariant is "bytes crossed the boundary, or were stopped at it", and its
-    // two readers COUNT calls and take MAX(timestamp) — the Art. 44
-    // external-transfer check and the RoPA. A synthetic row would assert a
-    // transfer that did not happen and extend last_seen for a processor the org
-    // did not contact this time. The probe columns would all be null too,
-    // landing the row in "unknown" and making the ledger LESS accurate.
-    if (!servedFromMemo) {
-        await safety.logEgress({
-            toolName: step.tool, toolArgs: inputs, result, probe, policy, auditBase, mode,
-            durationMs: Date.now() - dispatchT0,
-        });
+/**
+ * A failed dispatch. A REAL dispatch happened in both modes (dry-run
+ * dispatches read-only tools live) — the failed call's bytes already left the
+ * box, so both modes get a status='error' row. Dry-run rows carry
+ * is_dry_run=true, same as the success path. In a dry run a read-only tool
+ * that failed (auth lapsed, query yielded nothing, transient API hiccup) is
+ * swapped for the curated sample, so the automation builder still has a
+ * workable bind target downstream; a live run throws.
+ */
+async function dispatchFailed(step, ctx, mode, { err, inputs, probe, policy, auditBase, t0, deps }) {
+    await deps.safety.logEgress({
+        toolName: step.tool, toolArgs: inputs, error: err, probe, policy, auditBase, mode,
+        durationMs: Date.now() - t0,
+    });
+    if (mode !== 'dry_run') throw deps.enrichNextcloudError(step.tool, err);
+    const fallback = synthesizeDryRunOutput(step.tool, inputs);
+    // Dedupe the warning per (tool, message) — a fan-out used to spam
+    // dozens of identical lines per dry-run.
+    const logKey = `${step.tool}:${err.message}`;
+    ctx._dryRunFallbackLogged = ctx._dryRunFallbackLogged || new Set();
+    if (!ctx._dryRunFallbackLogged.has(logKey)) {
+        ctx._dryRunFallbackLogged.add(logKey);
+        log.warn(`[AutomationRunner] dry-run: live ${step.tool} failed, using sample (${err.message})`);
     }
+    return { output: fallback, dryRunSynthesised: true, dryRunFallback: 'live_failed' };
+}
 
+/**
+ * The answer, checked: an empty dry-run read and an environment error in a dry
+ * run fall back to the sample; a soft `{ error }` fails the step. Returns a
+ * step result to hand back as-is, or null when `result` stands.
+ */
+function checkResult(step, mode, { result, inputs, deps }) {
     // Empty-result fallback: a live read-only call that returned no rows
     // teaches the AI nothing about field shapes. In dry-run, swap in the
     // sample so downstream binding decisions are made against realistic
     // data. (Live mode keeps the empty result — the user wanted truth.)
-    if (mode === 'dry_run' && isEmptyToolResult(result)) {
-        const fallback = synthesizeDryRunOutput(step.tool, inputs);
-        return { output: fallback, dryRunSynthesised: true, dryRunFallback: 'live_empty' };
+    if (mode === 'dry_run' && deps.isEmptyToolResult(result)) {
+        return { output: synthesizeDryRunOutput(step.tool, inputs), dryRunSynthesised: true, dryRunFallback: 'live_empty' };
     }
     // A tool call that returned a soft `{ error }` object must fail the step —
     // recording it as success masks misconfigured steps (they show green while
@@ -344,23 +179,86 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // not connected yet. An error about THIS STEP does not: "path is required"
     // reported as success is how an automation with `loop.f.path` refs and no
     // forEach at all passed its dry run and got finalised (2026-09-12).
-    if (isToolErrorResult(result)) {
-        if (mode === 'dry_run' && isEnvironmentToolError(result.error)) {
-            const fallback = synthesizeDryRunOutput(step.tool, inputs);
-            return { output: fallback, dryRunSynthesised: true, dryRunFallback: 'not_connected' };
-        }
-        const err = new Error(`${step.tool} failed: ${String(result.error)}`);
-        err.toolError = true;
-        throw enrichNextcloudError(step.tool, err, String(result.error));
+    if (!deps.isToolErrorResult(result)) return null;
+    if (mode === 'dry_run' && deps.isEnvironmentToolError(result.error)) {
+        return { output: synthesizeDryRunOutput(step.tool, inputs), dryRunSynthesised: true, dryRunFallback: 'not_connected' };
     }
+    const err = new Error(`${step.tool} failed: ${String(result.error)}`);
+    err.toolError = true;
+    throw deps.enrichNextcloudError(step.tool, err, String(result.error));
+}
+
+async function execIntegrationAction(step, ctx, runState, mode, deps) {
+    // Safety/monitoring backbone — PII + regex guardrails + egress logging, mirroring
+    // the agent/direct-chat pipeline so automations stop bypassing those controls.
+    const { safety, stepInputsSynthetic } = deps;
+    // Tool arguments are data, not prose: a list in a `{{…}}` stays JSON.
+    let inputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' });
+    const sideEffect = isSideEffect(step.tool);
+    const { policy, auditBase, guardedIn } = await guardInputs(step, ctx, mode, inputs, safety);
+    const { resolveIntegration } = require('../integrations/integrationToolMap');
+    const synthesized = dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedIn, inputs, stepInputsSynthetic });
+    if (synthesized) return synthesized;
+    // What actually leaves the platform: placeholders, an irreversible mask, or
+    // real values — decided per DESTINATION (an on-box Nextcloud is not a third
+    // party) against the WHOLE run vault, so placeholders minted by an earlier
+    // node resolve here too.
+    const inMeta = resolveIntegration(step.tool, guardedIn.value, { nextcloudUrl: ctx.nextcloudUrl });
+    inputs = safety.prepareForEgress(guardedIn.value, policy, ctx, {
+        destination: inMeta && inMeta.isLocal ? 'internal' : 'external',
+    });
+
+    // Defense-in-depth permission check (integrationActionGates.js).
+    await assertStepToolPermitted(step, ctx, sideEffect, deps);
+    const { executeTool } = deps.toolDispatcher();
+    // Connection lending (GATED, default off): see integrationActionGates.js.
+    const identity = await resolveLendingIdentity(step, ctx, deps);
+    // ── "Ask this app only once" (step.askOnce; absent = off) — see
+    // integrationActionMemo.js. A hit skips the dispatch, the egress row and
+    // the shape cache — nothing left the box — and then falls into the SAME
+    // tail below (guardToolOutput → restoreForRunState → buildPiiSummary), so
+    // tokens are minted into THIS run's vault and the step's PII summary is
+    // identical to a live call. The memo shortcuts the network and nothing else.
+    const plan = await planReuse({ step, ctx, mode, inputs, inMeta, policy, identity, deps });
+    const { hit, reused } = await readReuse(plan);
+    const servedFromMemo = hit !== undefined;
+
+    let result = hit;
+    let probe = null;
+    const dispatchT0 = Date.now();
+    if (!servedFromMemo) {
+        const ran = await dispatchTool(step, ctx, mode, { executeTool, inputs, identity, resolveIntegration });
+        probe = ran.probe;
+        if (!ran.result?.ok) {
+            const err = ran.result?.error || new Error('tool dispatch failed');
+            return dispatchFailed(step, ctx, mode, { err, inputs, probe, policy, auditBase, t0: dispatchT0, deps });
+        }
+        result = ran.result.value;
+        rememberAnswer(plan, { step, stepUserId: identity.stepUserId, result, softFailure: deps.isToolErrorResult(result), deps });
+        // ── Egress logging ── a real dispatch happened, so record where the data
+        // went and what type it was. dry-run read-only calls are logged with
+        // is_dry_run=true so Compliance Hub can exclude them.
+        //
+        // A MEMO HIT WRITES NO ROW, deliberately. integration_activity_log's
+        // invariant is "bytes crossed the boundary, or were stopped at it", and its
+        // two readers COUNT calls and take MAX(timestamp) — the Art. 44
+        // external-transfer check and the RoPA. A synthetic row would assert a
+        // transfer that did not happen and extend last_seen for a processor the org
+        // did not contact this time. The probe columns would all be null too,
+        // landing the row in "unknown" and making the ledger LESS accurate.
+        await safety.logEgress({
+            toolName: step.tool, toolArgs: inputs, result, probe, policy, auditBase, mode,
+            durationMs: Date.now() - dispatchT0,
+        });
+    }
+
+    const fallback = checkResult(step, mode, { result, inputs, deps });
+    if (fallback) return fallback;
     // Cache the actual output shape so the Builder agent gets ground-truth
     // bindings on its next turn (no more guessing items vs results).
     // Only for real runs — dry-run synth output would pollute the cache.
-    // A run-memo hit teaches nothing new — the shape was recorded when the
-    // answer was first fetched, moments ago in this same run. A DURABLE hit
-    // skips it too: the shape was recorded on the run that fetched it, and
-    // re-deriving one from a replayed payload would add nothing the builder
-    // does not already have.
+    // A memo hit (run or durable) teaches nothing new: the shape was
+    // recorded on the call that fetched it.
     if (mode !== 'dry_run' && !servedFromMemo) {
         try { await runnerPort('shapeCache').recordShape({ userId: ctx.userId, toolName: step.tool, output: result }); } catch (_) {}
     }
