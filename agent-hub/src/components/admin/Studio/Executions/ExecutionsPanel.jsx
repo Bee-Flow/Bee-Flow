@@ -30,6 +30,11 @@ import ExecutionView from './ExecutionView';
  *                 that only track the id
  *   onEditingChange(bool)  signal the studio shell to collapse chrome while a
  *                          run is open full-screen (global view only).
+ *
+ * @param {{ scope: string, automationId?: string, stepId?: string, runScope?: string,
+ *   onOpenEditor?: Function | null, initialRunId?: string | null, initialStepId?: string | null,
+ *   onRunIdChange?: Function | null, onRunStateChange?: Function | null, onEditingChange?: Function | null,
+ *   active?: boolean }} props
  */
 export default function ExecutionsPanel({
     scope, automationId, stepId, runScope = 'mine',

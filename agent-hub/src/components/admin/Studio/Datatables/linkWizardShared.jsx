@@ -98,6 +98,9 @@ export function suggestRelations(tables) {
  * — a relation the source declares itself, shown but not editable; the
  * wizard says where they come from with `lockedLabel`.
  */
+/**
+ * @param {{ t: Function, tables: Array<any>, locked?: Array<any>, lockedLabel?: string, suggestions: Array<any>, relations: Array<any>, hasRel: Function, onAdd: Function, onRemove: Function, intro?: string, needTwo?: string }} props
+ */
 export function RelationsStep({ t, tables, locked = [], lockedLabel = '', suggestions, relations, hasRel, onAdd, onRemove, intro, needTwo }) {
     const [draft, setDraft] = useState({ from: '', local: '', to: '', target: '' });
     const cols = (s) => ((s && s.columns) || []).filter(c => MATCHABLE.has(c.type));
@@ -183,6 +186,9 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
 }
 
 /** The relations as the review step lists them: the source's own first, then the person's. */
+/**
+ * @param {{ t: Function, locked?: Array<any>, relations: Array<any> }} props
+ */
 export function ReviewRelations({ t, locked = [], relations }) {
     if (locked.length + relations.length === 0) return null;
     return (

@@ -5,7 +5,7 @@ import type { ComponentType } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import IntegrationLogo from '../../../automation/Builder/flow/nodes/IntegrationLogo';
 import { StepIcon } from '../../../automation/Builder/flow/stepIcons';
-import { flowSummaryOf, stripModelOf } from './overviewModel';
+import { flowSummaryOf, stripModelOf, type OverviewAutomation } from './overviewModel';
 
 // The JS components declare `fallback` as null-only in JSDoc; they take any node.
 type WithFallback = ComponentType<Record<string, unknown>>;
@@ -51,7 +51,7 @@ function Glyph({ chip, size }: { chip: Chip; size: number }) {
  * icon chips, in order, with a "+N" for the rest. Each chip names itself on
  * hover; the whole strip reads as one sentence to a screen reader.
  */
-export default function StepStrip({ automation, small = false }: { automation: unknown; small?: boolean }) {
+export default function StepStrip({ automation, small = false }: { automation: OverviewAutomation; small?: boolean }) {
     const { t } = useTranslation();
     const { chips, more, empty } = stripModelOf(automation, t) as { chips: Chip[]; more: number; empty: boolean };
     if (empty) {

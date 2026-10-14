@@ -243,6 +243,12 @@ export function coerceCell(raw, field, t) {
  * can be pointed at. A field left empty is omitted rather than sent as null,
  * which lets the column's own default apply.
  */
+/**
+ * @param {{ header?: string[], rows?: string[][] }} [parsed]
+ * @param {string[]} [mapping]
+ * @param {unknown[]} [fields]
+ * @param {unknown} [t]
+ */
 export function buildImportRows({ header = [], rows = [] } = {}, mapping = [], fields = [], t) {
     const byKey = new Map(importableFields(fields).map((f) => [f.key, f]));
     return rows.map((cells, index) => {

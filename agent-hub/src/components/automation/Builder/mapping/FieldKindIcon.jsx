@@ -23,6 +23,9 @@ const ICON = {
     list: List, group: Folder, table: Table, file: Paperclip, unknown: CircleHelp,
 };
 
+/**
+ * @param {{ kind: string, size?: number, className?: string, style?: import('react').CSSProperties, title?: string }} props
+ */
 export default function FieldKindIcon({ kind, size = 14, className = '', style = undefined, title = undefined }) {
     const Icon = ICON[kind] || CircleHelp;
     return <Icon size={size} className={className} style={style} aria-label={title || KIND_WORD[kind]?.en || kind} data-kind={kind} />;

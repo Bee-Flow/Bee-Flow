@@ -142,6 +142,10 @@ export const datatablesApi = {
     // `cursor` is the keyset token the PREVIOUS page returned as `nextCursor`.
     // Not an offset: on a table two automations are writing to, an offset both
     // skips and repeats rows between pages.
+    /**
+     * @param {unknown} id
+     * @param {{ limit?: number, cursor?: string | null, filters?: Array<{ field: string, op: string, value?: unknown }> | null, match?: string | null, sort?: string | null, dir?: string | null, q?: string | null }} [opts]
+     */
     listRows: (id, { limit = 50, cursor = null, filters = null, match = null, sort = null, dir = null, q = null } = {}) => {
         const qs = new URLSearchParams();
         if (limit) qs.set('limit', String(limit));
@@ -242,8 +246,12 @@ export const datatablesApi = {
     // emoji, rowsCount, columnsCount, views:[{ncViewId,title,linkedAs}],
     // linkedAs:[datatableId]}]}` — `connected:false` carries the server's
     // reason code, which the dialog turns into a sentence.
+    /** @param {unknown} [scope] */
     linkable: (scope = null) => request(`${base}/nextcloud/linkable${scope ? `?scope=${enc(scope)}` : ''}`),
     /** The columns a link would arrive with: `{ncTableId, ncViewId, columns:[…]}`. */
+    /**
+     * @param {{ ncTableId?: number | null, ncViewId?: number | null, scope?: unknown }} [args]
+     */
     describeNc: ({ ncTableId = null, ncViewId = null, scope = null } = {}) => {
         const qs = new URLSearchParams();
         if (ncViewId) qs.set('ncViewId', String(ncViewId)); else qs.set('ncTableId', String(ncTableId));
@@ -290,6 +298,7 @@ export const datatablesApi = {
     // reason?}]}` for ONLY the storages this account has a credential or
     // binding for — cheap, no call to any provider — so the create dialog can
     // gate its card on one probe. An empty list means no card at all.
+    /** @param {unknown} [scope] */
     spreadsheetProviders: (scope = null) => request(`${base}/spreadsheets/providers${scope ? `?scope=${enc(scope)}` : ''}`),
     /**
      * One folder of one storage: `{provider, folder:{id,name,path:[…]},
@@ -316,6 +325,9 @@ export const datatablesApi = {
      * `letter` for display only), a five-row preview, which columns could be
      * the key, and how the file can be written back (`write:{mode, reason?,
      * caveats}`). Without `sheet` the first sheet at header row 1.
+     */
+    /**
+     * @param {{ provider: string, fileId: string, sheet?: string | null, headerRow?: number | null, scope?: unknown }} args
      */
     describeSpreadsheet: ({ provider, fileId, sheet = null, headerRow = null, scope = null }) => {
         const qs = new URLSearchParams();

@@ -92,6 +92,9 @@ function isTextEntry(el) {
     return el.isContentEditable || !!el.closest('[contenteditable=""], [contenteditable="true"]');
 }
 
+/**
+ * @param {{ open?: boolean, onClose: Function, anchorRef: { current: HTMLElement | null } | null | undefined, align?: string, width?: number | null, minWidth?: number, maxHeight?: number | null, closeOnEscape?: boolean, className?: string, style?: object | null, role?: string, children?: unknown, [key: string]: unknown }} props
+ */
 export default function AnchoredMenu({
     open = false,
     onClose,

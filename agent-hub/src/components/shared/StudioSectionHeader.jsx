@@ -371,6 +371,9 @@ function ActionCluster({ capsule, primary, extras }) {
 // Slot props deliberately carry no defaults: every child below treats
 // `undefined` as "not given", and each default would count against the
 // lint complexity budget without changing behaviour.
+/**
+ * @param {{ kind?: string, icon?: unknown, title?: string | null, onRename?: Function, renameRequest?: number, statusChip?: unknown, tabs?: unknown[], activeTab?: string, onTab?: Function, tabsFold?: unknown, titleMin?: unknown, capsule?: unknown, primary?: unknown, extras?: unknown, onBack?: Function, backLabel?: string, className?: string, testId?: string }} props
+ */
 export default function StudioSectionHeader({
     kind,
     icon,

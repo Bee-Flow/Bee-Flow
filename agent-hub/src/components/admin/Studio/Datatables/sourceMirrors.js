@@ -305,6 +305,11 @@ export function ssErrorMessage(t, err, storage = null, { linked = false } = {}) 
  * A spreadsheet table that exists is `linked`: its refusals are about the
  * account that linked it, not about whoever is looking.
  */
+/**
+ * @param {unknown} t
+ * @param {unknown} err
+ * @param {Record<string, unknown> | null} [table]
+ */
 export function sourceErrorMessage(t, err, table = null) {
     if (isNcMirror(table)) return ncErrorMessage(t, err);
     if (isSpreadsheetMirror(table)) return ssErrorMessage(t, err, sourceNameOf(table), { linked: true });

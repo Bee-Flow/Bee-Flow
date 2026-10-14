@@ -255,7 +255,7 @@ export function useLicenseContext() {
  * via lock icons (see <LockedIfBelow />).
  */
 export function RequireTier({
-    tier = 'enterprise', feature = null, children, fallback = null,
+    tier = 'enterprise', feature = /** @type {string | null} */ (null), children, fallback = null,
     onNavigateToLicense = null, onNavigateToBilling = null,
 }) {
     const ctx = useLicenseContext();

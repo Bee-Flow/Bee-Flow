@@ -46,6 +46,11 @@ export function joinNames(names, t) {
  * reason they are is that publishing a table must never be the thing that made
  * it writable by everyone.
  */
+/**
+ * @param {Record<string, unknown>} table
+ * @param {Map<string, string>} [groupNames]
+ * @param {unknown} [t]
+ */
 export function describeAccess(table, groupNames = new Map(), t = null) {
     const tr = (key, en, params) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
     const audience = audienceOf(table);

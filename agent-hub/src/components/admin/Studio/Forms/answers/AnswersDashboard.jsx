@@ -38,6 +38,9 @@ function bucketLabel(bucket, kind) {
  * full responses table with its export. Used by the Form page and by the
  * answers table's Dashboard tab alike.
  */
+/**
+ * @param {{ datatableId?: string, grade?: string | null, mine?: boolean, automationId?: string | null, onNavigate?: Function | null, onCopyLink?: Function | null, testId?: string }} props
+ */
 export default function AnswersDashboard({ datatableId, grade = null, mine = false, automationId = null, onNavigate = null, onCopyLink = null, testId = 'answers-dashboard' }) {
     const { t } = useTranslation();
     const rel = useRelativeTime();

@@ -85,6 +85,9 @@ export function inUsePayload(x) {
  *                                           host closes itself here instead of dropping the
  *                                           person back onto the collapsed link
  */
+/**
+ * @param {{ entityName?: string, usage?: Array<any> | null, onDelete?: (confirmedBreaking: boolean) => any, kindLabel?: string, currentUserId?: string | null, onNavigate?: Function | null, adapt?: Function, notice?: unknown, openLabel?: string, requireName?: boolean, unchecked?: Array<any>, defaultArmed?: boolean, onCancel?: Function | null, className?: string, question?: string | null, confirmLabel?: string | null }} props
+ */
 export default function DangerZone({
     entityName,
     usage,
