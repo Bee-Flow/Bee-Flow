@@ -54,9 +54,9 @@ const { LOOSE_MIGRATIONS, NL_TRANSLATIONS, MANUAL_MIGRATIONS } = require('./boot
  * marker daar, dan is de claim vals en hoort de migratie alsnog in een lijst.
  */
 const ABSORBED = new Map([
-    ['nc-pending-bindings-2026-05', { into: 'stores/user/schema.js', marker: 'CREATE TABLE IF NOT EXISTS pending_nc_bindings' }],
-    ['nc-pending-bindings-pairing-code-2026-05', { into: 'stores/user/schema.js', marker: 'pairing_code' }],
-    ['stripe-cancel-and-period-end-2026-05', { into: 'stores/user/schema.js', marker: 'cancel_at_period_end' }],
+    ['nc-pending-bindings-2026-05', { into: 'stores/user/schemaMigrations.js', marker: 'CREATE TABLE IF NOT EXISTS pending_nc_bindings' }],
+    ['nc-pending-bindings-pairing-code-2026-05', { into: 'stores/user/schemaMigrations.js', marker: 'pairing_code' }],
+    ['stripe-cancel-and-period-end-2026-05', { into: 'stores/user/planMigrations.js', marker: 'cancel_at_period_end' }],
 ]);
 
 /**
