@@ -35,6 +35,7 @@ const EXEMPT = new Map([
     // Het schema van projectChatStore, eruit gesplitst; de store zelf staat in de ladder en draait het bij boot.
     ['stores/lib/projectChatSchema.js', 'schema van projectChatStore — DDL draait via die store (ladder)'],
     ['stores/lib/sqliteBlobEngine.js', 'per-tenant engine — sqlite-blob per app, geen Postgres-DDL'],
+    ['stores/lib/sqliteBlobStatements.js', 'statement API of the sqlite-blob engine — names CREATE TABLE only in a comment'],
     // The user store's statement lists, split out of stores/user/schema.js:
     // that file's initDB runs them, reached through the userStore facade.
     ['stores/user/schemaTables.js', 'DDL of stores/user/schema.js — run by its initDB (userStore facade)'],
