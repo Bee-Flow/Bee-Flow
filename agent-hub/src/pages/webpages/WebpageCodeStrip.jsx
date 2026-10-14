@@ -336,8 +336,13 @@ function Legend({ t, marksState, readOnly, stale }) {
 /**
  * @param {object} props
  * @param {string} [props.framework]      'vanilla' | 'react-mui' | …
+ * @param {string} [props.html]
+ * @param {string} [props.css]
+ * @param {string} [props.js]
+ * @param {Array<import('./webpageEditorTypes').ExtraFileMeta>} [props.extraFiles]
+ * @param {import('./webpageEditorTypes').ExtraContents} [props.extraContents]
  * @param {object} props.marksState       de uitslag van `useBfMarks`
- * @param {string} [props.activeKey]      het bestand dat de editor toont
+ * @param {string | null} [props.activeKey]  het bestand dat de editor toont
  * @param {function} [props.onOpen]       (key) => void — open dit bestand
  * @param {object} [props.dirtyFiles]     editor-sleutel → onopgeslagen?
  * @param {boolean} [props.readOnly]      geen eigenaar: /bindings is eigenaar-only

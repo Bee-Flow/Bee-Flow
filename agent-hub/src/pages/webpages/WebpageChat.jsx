@@ -15,6 +15,31 @@ import useTranslation from '../../hooks/useTranslation';
  * messages from useChatEngine and forwards them to MessageItem; the parent
  * WebpagesPage owns the chat-engine wiring and the SSE event handling for
  * webpage_doc_update / webpage_source_added.
+ *
+ * @typedef {object} WebpageChatProps
+ * @property {Array<import('../../hooks/useChatEngine/types').ChatMessage>} [messages]
+ * @property {boolean} [isLoading]
+ * @property {(text: string, attachments: Array<import('../../hooks/useChatEngine/historyAttachment').ChatAttachment>) => void} [onSend]
+ * @property {() => void} [onStop]
+ * @property {Function} [onRetry]
+ * @property {Function} [onEdit]
+ * @property {unknown} [modelTiers]
+ * @property {string} [selectedTier]
+ * @property {(tier: string) => void} [onTierChange]
+ * @property {(planId: string) => void} [onPlanApprove]
+ * @property {(planId: string) => void} [onPlanReject]
+ * @property {() => unknown} [onNewChat]
+ * @property {string} [chatMode]
+ * @property {(mode: string) => void} [onChatModeChange]
+ * @property {{ text: string } | null} [attachedSelection]
+ * @property {() => void} [onSelectionClear]
+ * @property {(msgId: string) => { canUndo: boolean, undone: boolean, kept: boolean }} [turnState]
+ * @property {(msgId: string) => void} [onKeepTurn]
+ * @property {(msgId: string) => void} [onUndoTurn]
+ * @property {(file: string) => void} [onShowInCode]
+ * @property {string} [placeholder]
+ *
+ * @param {WebpageChatProps} props
  */
 export default function WebpageChat({
     messages, isLoading, onSend, onStop, onRetry, onEdit,

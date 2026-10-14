@@ -68,6 +68,17 @@ function useDecorations(editorRef, decorations, monacoFailed) {
  * van de server (`core/webpages/webpageBindings.js`) en wordt door
  * `WebpageCodeStrip.fileDecorations` in deze vorm gebracht. Zo hoeft hier geen
  * tweede lezing van het vocabulaire te bestaan.
+ *
+ * @typedef {object} WebpageEditorProps
+ * @property {string} [value]
+ * @property {string} [language]
+ * @property {(value: string) => void} [onChange]
+ * @property {boolean} [readOnly]
+ * @property {string} [theme]
+ * @property {(cursor: { line: number, col: number }) => void} [onCursorChange]
+ * @property {unknown} [decorations]
+ *
+ * @param {WebpageEditorProps} props
  */
 export default function WebpageEditor({
     value = '',

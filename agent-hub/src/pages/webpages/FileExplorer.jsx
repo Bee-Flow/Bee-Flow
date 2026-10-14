@@ -237,6 +237,21 @@ function FileNode({ node, depth, activePath, onFileSelect, actions }) {
     );
 }
 
+/**
+ * @typedef {object} FileExplorerProps
+ * @property {string | { path: string } | null} [activeFile]
+ * @property {(file: string | { path: string }) => void} [onFileSelect]
+ * @property {Record<string, boolean>} [dirtyFiles]
+ * @property {Array<import('./webpageEditorTypes').ExtraFileMeta>} [extraFiles]
+ * @property {string} [framework]
+ * @property {(path: string) => unknown} [onCreateFile]
+ * @property {(oldPath: string, newPath: string) => unknown} [onRename]
+ * @property {(path: string) => unknown} [onDelete]
+ * @property {(file: File, folder?: string) => unknown} [onUploadAsset]
+ * @property {boolean} [readOnly]
+ *
+ * @param {FileExplorerProps} props
+ */
 export default function FileExplorer({
     activeFile,
     onFileSelect,
