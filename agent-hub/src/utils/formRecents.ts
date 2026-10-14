@@ -22,15 +22,24 @@ const KEY = 'formRecents';
 // as being forgotten — reopening an older form should restore its place.
 const REMEMBERED = 12;
 
+export interface FormRecord {
+    id?: string | null;
+    createdAt?: string | number | null;
+}
+
 /** `{ [formId]: epochMs }`, never throwing on absent or corrupt storage. */
-export function readFormRecents() {
+export function readFormRecents(): Record<string, number> {
     try {
-        const parsed = JSON.parse(scopedStorage.getItem(KEY) || 'null');
+        const parsed: unknown = JSON.parse(scopedStorage.getItem(KEY) || 'null');
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
         // Drop anything that is not a usable timestamp rather than letting it
         // sort unpredictably later.
         return Object.fromEntries(
-            Object.entries(parsed).filter(([, at]) => Number.isFinite(at) && at > 0),
+            Object.entries(parsed as Record<string, unknown>)
+                .filter((entry): entry is [string, number] => {
+                    const at = entry[1];
+                    return typeof at === 'number' && Number.isFinite(at) && at > 0;
+                }),
         );
     } catch {
         return {};
@@ -38,7 +47,7 @@ export function readFormRecents() {
 }
 
 /** Stamp a form as opened by this user, now. */
-export function rememberFormOpened(id, now = Date.now()) {
+export function rememberFormOpened(id: string | null | undefined, now = Date.now()): void {
     if (!id) return;
     const next = { ...readFormRecents(), [id]: now };
     const trimmed = Object.fromEntries(
@@ -55,10 +64,14 @@ export function rememberFormOpened(id, now = Date.now()) {
  * The `limit` forms to offer, most relevant first: the ones this user has
  * opened (most recent first), then the rest newest-published first.
  */
-export function recentForms(forms, limit = 5, recents = readFormRecents()) {
-    const list = Array.isArray(forms) ? forms : [];
-    const openedAt = (f) => recents[f?.id] || 0;
-    const publishedAt = (f) => {
+export function recentForms<T extends FormRecord>(
+    forms: T[] | null | undefined,
+    limit = 5,
+    recents: Record<string, number> = readFormRecents(),
+): T[] {
+    const list: T[] = Array.isArray(forms) ? forms : [];
+    const openedAt = (f: T | null | undefined) => recents[String(f?.id)] || 0;
+    const publishedAt = (f: T | null | undefined) => {
         const t = new Date(f?.createdAt || 0).getTime();
         return Number.isFinite(t) ? t : 0;
     };

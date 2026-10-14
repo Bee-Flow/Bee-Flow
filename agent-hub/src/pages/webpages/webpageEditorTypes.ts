@@ -21,6 +21,7 @@ export function isPrimaryFile(file: unknown): file is PrimaryFile {
 /** Metadata of one extra file in a multi-file project. */
 export interface ExtraFileMeta {
     path: string;
+    isText?: boolean;
     mimeType?: string;
     size?: number;
     [key: string]: unknown;

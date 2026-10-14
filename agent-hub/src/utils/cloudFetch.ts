@@ -1,5 +1,15 @@
 import { authFetch } from './helpers';
 
+type AuthFetchResponse = Awaited<ReturnType<typeof authFetch>>;
+
+export interface SkippedFetchResponse {
+    ok: false;
+    status: 0;
+    skipped: true;
+    json: () => Promise<null>;
+    text: () => Promise<string>;
+}
+
 /**
  * Wrapper around authFetch for endpoints the SaaS only mounts in cloud mode
  * (anything behind `requireCloud` on the server — stripe, subscriptions).
@@ -18,7 +28,10 @@ import { authFetch } from './helpers';
  *   if (!res?.ok) return;   // covers both self-hosted skip AND real failures
  *   const data = await res.json();
  */
-export async function cloudFetch(deploymentMode, ...args) {
+export async function cloudFetch(
+    deploymentMode: string | null | undefined,
+    ...args: Parameters<typeof authFetch>
+): Promise<AuthFetchResponse | SkippedFetchResponse> {
     if (deploymentMode !== 'cloud') {
         return { ok: false, status: 0, skipped: true, json: async () => null, text: async () => '' };
     }

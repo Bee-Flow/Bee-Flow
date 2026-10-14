@@ -20,18 +20,26 @@
 
 import { authFetch } from './helpers';
 
+export interface WorkspaceResponse {
+    content?: string | null;
+    notebookId?: string | null;
+}
+
+export interface NotebookSetters {
+    setNotebookLinkedId: (id: string | null) => void;
+    setNotebookContent: (content: string) => void;
+    setShowNotebook: (show: boolean) => void;
+}
+
 /**
  * Applies a parsed /workspace response to the notebook UI state. Shows the
  * pane with its content when the workspace is non-empty; otherwise clears the
  * editor and hides the pane. Always syncs the linked notebook id.
- *
- * @param {{ content?: string, notebookId?: string|null }} wsData Parsed response body.
- * @param {object} setters
- * @param {(id: string|null) => void} setters.setNotebookLinkedId
- * @param {(content: string) => void} setters.setNotebookContent
- * @param {(show: boolean) => void} setters.setShowNotebook
  */
-export function applyWorkspaceResponse(wsData, { setNotebookLinkedId, setNotebookContent, setShowNotebook }) {
+export function applyWorkspaceResponse(
+    wsData: WorkspaceResponse | null | undefined,
+    { setNotebookLinkedId, setNotebookContent, setShowNotebook }: NotebookSetters,
+): void {
     const convContent = wsData?.content || '';
     setNotebookLinkedId(wsData?.notebookId || null);
     if (convContent.trim().length > 0) {
@@ -50,17 +58,16 @@ export function applyWorkspaceResponse(wsData, { setNotebookLinkedId, setNoteboo
  * Fetch/parse errors are logged (using `logLabel`) and swallowed so a failed
  * workspace load never breaks conversation loading; the existing notebook is
  * left untouched on error.
- *
- * @param {string} url Full /workspace endpoint URL.
- * @param {object} setters See applyWorkspaceResponse.
- * @param {{ logLabel?: string }} [options]
- * @returns {Promise<void>}
  */
-export async function loadWorkspaceNotebook(url, setters, { logLabel = 'Failed to fetch notebook' } = {}) {
+export async function loadWorkspaceNotebook(
+    url: string,
+    setters: NotebookSetters,
+    { logLabel = 'Failed to fetch notebook' }: { logLabel?: string } = {},
+): Promise<void> {
     try {
         const wsRes = await authFetch(url);
         if (!wsRes.ok) return;
-        const wsData = await wsRes.json();
+        const wsData: WorkspaceResponse = await wsRes.json();
         applyWorkspaceResponse(wsData, setters);
     } catch (err) {
         console.error(logLabel, err);

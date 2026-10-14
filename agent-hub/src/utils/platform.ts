@@ -7,13 +7,17 @@
  * majority case and never claims a key that does not exist.
  */
 
-export function isMac() {
+interface NavigatorWithUAData extends Navigator {
+    userAgentData?: { platform?: string };
+}
+
+export function isMac(): boolean {
     if (typeof navigator === 'undefined' || !navigator) return false;
-    const platform = navigator.userAgentData?.platform || navigator.platform || navigator.userAgent || '';
+    const platform = (navigator as NavigatorWithUAData).userAgentData?.platform || navigator.platform || navigator.userAgent || '';
     return /mac/i.test(platform);
 }
 
 /** The modifier to print in a shortcut hint: '⌘' on macOS, 'Ctrl' elsewhere. */
-export function modKeyLabel() {
+export function modKeyLabel(): string {
     return isMac() ? '⌘' : 'Ctrl';
 }

@@ -10,7 +10,7 @@ import { API_BASE } from './helpers';
 
 export const DEFAULT_AGENT_EMOJI = '🤖';
 
-export function isImageAvatar(value) {
+export function isImageAvatar(value: unknown): boolean {
     return !!value
         && typeof value === 'string'
         && (value.startsWith('data:') || value.startsWith('http') || value.startsWith('/'));
@@ -19,16 +19,21 @@ export function isImageAvatar(value) {
 // For server-relative paths we prefix API_BASE so dev (Vite on a different
 // port than the API server) and embed iframes resolve the same as production
 // nginx. data: and http(s) URLs are returned unchanged.
-export function resolveAvatarSrc(value) {
+export function resolveAvatarSrc(value: string | null | undefined): string {
     if (!value) return '';
     if (value.startsWith('/')) return `${API_BASE}${value}`;
     return value;
 }
 
+export interface AvatarSource {
+    avatar?: string | null;
+    config?: { avatar?: string | null } | null;
+}
+
 // During the migration window an older agent may only have its avatar in
 // `config.avatar`. New writes go to the top-level column; reads fall through
 // to config so existing pictures don't disappear.
-export function pickAgentAvatar(agent) {
+export function pickAgentAvatar(agent: AvatarSource | null | undefined): string | null {
     if (!agent) return null;
     return agent.avatar || agent.config?.avatar || null;
 }

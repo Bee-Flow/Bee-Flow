@@ -8,10 +8,10 @@ import { lazy } from '../utils/lazyWithReload';
 // Both pages are lazy: most sessions never open a project, and the workspace
 // pulls in the team chat, the document editor and the meeting views. The casts
 // only restore the prop types the untyped reload-safe `lazy` drops.
-const ProjectsHome = lazy(() => import('../components/projects/ProjectsHome')) as LazyExoticComponent<typeof ProjectsHomePage>;
+const ProjectsHome = lazy(() => import('../components/projects/ProjectsHome')) as unknown as LazyExoticComponent<typeof ProjectsHomePage>;
 const ProjectWorkspacePage = lazy(
     () => import('../components/projects/workspace/ProjectWorkspacePage'),
-) as LazyExoticComponent<typeof WorkspacePage>;
+) as unknown as LazyExoticComponent<typeof WorkspacePage>;
 
 /** Which projects page is on screen: `projectId` null is the list, `''` the
  *  create form, anything else one project, on `tab` and optionally `sub`. */

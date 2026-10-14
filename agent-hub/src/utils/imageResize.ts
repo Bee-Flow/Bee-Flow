@@ -6,18 +6,38 @@
 const MAX_LONGEST_EDGE = 1568;
 const JPEG_QUALITY = 0.92;
 const SKIP_IF_BYTES_UNDER = 1024 * 1024; // 1 MB — already small, don't recompress
-const PASSTHROUGH_TYPES = new Set(['image/gif', 'image/svg+xml']);
+const PASSTHROUGH_TYPES = new Set<string>(['image/gif', 'image/svg+xml']);
 
-export function readAsDataUrl(file) {
+export interface ResizedImage {
+    blob: Blob;
+    dataUrl: string;
+    mimeType: string;
+    width: number | null;
+    height: number | null;
+    originalSize: number;
+    resizedSize: number;
+    resized: boolean;
+}
+
+type Drawable = ImageBitmap | HTMLImageElement;
+
+interface Canvas2DContext {
+    imageSmoothingEnabled: boolean;
+    imageSmoothingQuality: ImageSmoothingQuality;
+    drawImage(image: CanvasImageSource, dx: number, dy: number, dw?: number, dh?: number): void;
+    getImageData(sx: number, sy: number, sw: number, sh: number): ImageData;
+}
+
+export function readAsDataUrl(file: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
+        reader.onload = () => resolve(reader.result as string);
         reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
         reader.readAsDataURL(file);
     });
 }
 
-async function loadBitmap(file) {
+async function loadBitmap(file: Blob): Promise<Drawable> {
     if (typeof createImageBitmap === 'function') {
         try {
             return await createImageBitmap(file);
@@ -27,7 +47,7 @@ async function loadBitmap(file) {
     }
     const url = URL.createObjectURL(file);
     try {
-        return await new Promise((resolve, reject) => {
+        return await new Promise<HTMLImageElement>((resolve, reject) => {
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = () => reject(new Error('Image decode failed'));
@@ -41,7 +61,7 @@ async function loadBitmap(file) {
     }
 }
 
-function hasAlphaPixels(ctx, width, height) {
+function hasAlphaPixels(ctx: Pick<Canvas2DContext, 'getImageData'>, width: number, height: number): boolean {
     const stride = Math.max(1, Math.floor(Math.min(width, height) / 32));
     try {
         const sample = ctx.getImageData(0, 0, width, height);
@@ -58,11 +78,11 @@ function hasAlphaPixels(ctx, width, height) {
     return false;
 }
 
-function canvasToBlob(canvas, type, quality) {
-    if (typeof canvas.convertToBlob === 'function') {
+function canvasToBlob(canvas: OffscreenCanvas | HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+    if ('convertToBlob' in canvas) {
         return canvas.convertToBlob({ type, quality });
     }
-    return new Promise((resolve, reject) => {
+    return new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
             (blob) => (blob ? resolve(blob) : reject(new Error('Canvas toBlob returned null'))),
             type,
@@ -71,7 +91,7 @@ function canvasToBlob(canvas, type, quality) {
     });
 }
 
-function makeCanvas(width, height) {
+function makeCanvas(width: number, height: number): OffscreenCanvas | HTMLCanvasElement {
     if (typeof OffscreenCanvas === 'function') {
         try {
             return new OffscreenCanvas(width, height);
@@ -85,7 +105,7 @@ function makeCanvas(width, height) {
     return canvas;
 }
 
-async function passthrough(file) {
+async function passthrough(file: Blob): Promise<ResizedImage> {
     const dataUrl = await readAsDataUrl(file);
     return {
         blob: file,
@@ -99,7 +119,7 @@ async function passthrough(file) {
     };
 }
 
-export async function resizeImageForUpload(file) {
+export async function resizeImageForUpload(file: File): Promise<ResizedImage> {
     if (!file || !file.type || !file.type.startsWith('image/')) {
         return passthrough(file);
     }
@@ -107,7 +127,7 @@ export async function resizeImageForUpload(file) {
         return passthrough(file);
     }
 
-    let bitmap;
+    let bitmap: Drawable;
     try {
         bitmap = await loadBitmap(file);
     } catch {
@@ -119,7 +139,7 @@ export async function resizeImageForUpload(file) {
     const longest = Math.max(srcWidth, srcHeight);
 
     if (longest <= MAX_LONGEST_EDGE && file.size <= SKIP_IF_BYTES_UNDER) {
-        if (bitmap.close) bitmap.close();
+        if ('close' in bitmap) bitmap.close();
         return passthrough(file);
     }
 
@@ -130,20 +150,20 @@ export async function resizeImageForUpload(file) {
     const canvas = makeCanvas(targetWidth, targetHeight);
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-        if (bitmap.close) bitmap.close();
+        if ('close' in bitmap) bitmap.close();
         return passthrough(file);
     }
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
-    if (bitmap.close) bitmap.close();
+    if ('close' in bitmap) bitmap.close();
 
     const sourceLikelyHasAlpha = file.type === 'image/png' || file.type === 'image/webp';
     const keepAlpha = sourceLikelyHasAlpha && hasAlphaPixels(ctx, targetWidth, targetHeight);
     const outType = keepAlpha ? 'image/png' : 'image/jpeg';
     const outQuality = keepAlpha ? undefined : JPEG_QUALITY;
 
-    let blob;
+    let blob: Blob;
     try {
         blob = await canvasToBlob(canvas, outType, outQuality);
     } catch {

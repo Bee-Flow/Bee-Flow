@@ -18,7 +18,13 @@ import { useIconPack } from '../hooks/useIconPack';
  * by the server's resolveIntegration() so palette chips and nodes line up
  * with /api/automation/catalog responses.
  */
-export const INTEGRATION_META = {
+export interface IntegrationMeta {
+    label: string;
+    color: string;
+    mark: string;
+}
+
+export const INTEGRATION_META: Record<string, IntegrationMeta> = {
     gmail:                  { label: 'Gmail',                color: '#EA4335', mark: 'G' },
     google_calendar:        { label: 'Google Calendar',      color: '#4285F4', mark: 'GC' },
     google_drive:           { label: 'Google Drive',         color: '#1FA463', mark: 'GD' },
@@ -78,7 +84,7 @@ export const INTEGRATION_META = {
  * before `ms_`. Mirrors INTEGRATION_PREFIXES in
  * server/core/integrationToolMap.js — keep in sync when adding tools.
  */
-const PREFIX_TO_INTEGRATION = [
+const PREFIX_TO_INTEGRATION = ([
     ['nextcloud_calendar_', 'nextcloud_calendar'],
     ['nextcloud_contacts_', 'nextcloud_contacts'],
     ['nextcloud_deck_', 'nextcloud_deck'],
@@ -118,9 +124,9 @@ const PREFIX_TO_INTEGRATION = [
     ['memory_', 'memory'],
     ['webpage_', 'webpages'],
     ['webpages_', 'webpages'],
-].sort((a, b) => b[0].length - a[0].length);
+] satisfies Array<[string, string]>).sort((a, b) => b[0].length - a[0].length);
 
-const STATIC_TOOL_TO_INTEGRATION = {
+const STATIC_TOOL_TO_INTEGRATION: Record<string, string> = {
     agent_search: 'web_search',
     web_search: 'web_search',
     kb_search: 'kb_search',
@@ -152,7 +158,7 @@ const STATIC_TOOL_TO_INTEGRATION = {
  * roundtrip. Returns null when the name doesn't belong to a known
  * integration (e.g. internal `regex_*` / `notebook_*` tools).
  */
-export function resolveIntegrationFromTool(toolName) {
+export function resolveIntegrationFromTool(toolName: string | null | undefined): string | null {
     if (!toolName) return null;
     if (STATIC_TOOL_TO_INTEGRATION[toolName]) return STATIC_TOOL_TO_INTEGRATION[toolName];
     for (const [prefix, id] of PREFIX_TO_INTEGRATION) {
@@ -160,6 +166,12 @@ export function resolveIntegrationFromTool(toolName) {
     }
     if (toolName.startsWith('mcp__') || toolName.startsWith('mcp_')) return 'mcp';
     return null;
+}
+
+export interface IntegrationIcon {
+    kind: 'image' | 'emoji' | 'mark';
+    value: string;
+    meta: IntegrationMeta | null;
 }
 
 /**
@@ -172,7 +184,7 @@ export function resolveIntegrationFromTool(toolName) {
  * Consumed by <IntegrationLogo>. Returns null when no integration id is
  * provided so callers can render their own generic icon.
  */
-export function useIntegrationIcon(integrationId) {
+export function useIntegrationIcon(integrationId: string | null | undefined): IntegrationIcon | null {
     const { getCustomIcon } = useIconPack();
     if (!integrationId) return null;
     // INTEGRATION_META keys use underscore form (`google_drive`) but

@@ -14,7 +14,7 @@
  * for the app chunk depended on the customer's rewrite config ("sometimes
  * slow"). Matching all three makes the warm-up deterministic.
  */
-export function shouldWarmAuthedApp(pathname) {
+export function shouldWarmAuthedApp(pathname: unknown): boolean {
     if (typeof pathname !== 'string') return false;
     if (pathname.startsWith('/app')) return true;
     return pathname.includes('/apps/app_api/proxy/') || pathname.startsWith('/exapps/');

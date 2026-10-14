@@ -8,7 +8,7 @@ import { Sparkles, Clock, BookOpen, Globe, Workflow, Brain, Zap } from 'lucide-r
 // Originally lived inside OrgFeatureTogglesPanel; lifted out so the
 // consumer Beta-features panel can use the same picker without importing
 // the whole org-admin component.
-export function pickBetaIcon(idOrName) {
+export function pickBetaIcon(idOrName: string | null | undefined): React.ReactElement {
     const s = (idOrName || '').toLowerCase();
     if (s.includes('skill')) return <Sparkles className="w-4 h-4" />;
     if (s.includes('automation')) return <Clock className="w-4 h-4" />;

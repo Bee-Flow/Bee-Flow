@@ -43,9 +43,28 @@ import { buildBfElementsScript } from './bfElementsRuntime';
 // previewInline.mjs; these are their generated mirrors).
 export { defangScriptClose, buildSelectionBridgeScript, buildBridgeHeadScripts };
 
-const toBase64 = (text) => btoa(unescape(encodeURIComponent(text)));
+const toBase64 = (text: string): string => btoa(unescape(encodeURIComponent(text)));
 
-export function composeWebpageDocument({ html, css, js }, options = {}) {
+export interface WebpageExtraFile {
+    path: string;
+    isText?: boolean;
+    mimeType?: string;
+    content?: string;
+    dataUrl?: string;
+}
+
+export interface ComposeWebpageOptions {
+    selectionBridge?: boolean;
+    extraFiles?: WebpageExtraFile[];
+    dbToken?: string | null;
+    dbApiBase?: string | null;
+    dbWebpageId?: string | null;
+}
+
+export function composeWebpageDocument(
+    { html, css, js }: { html?: string | null; css?: string | null; js?: string | null },
+    options: ComposeWebpageOptions = {},
+): string {
     const { selectionBridge = false, extraFiles = [], dbToken = null, dbApiBase = null, dbWebpageId = null } = options;
     const safeHtml = html && html.trim()
         ? html

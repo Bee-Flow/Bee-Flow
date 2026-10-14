@@ -6,11 +6,15 @@
  * is the same `event:`/`data:` line-buffer loop used inline in
  * useAutomationBuilderStream.js, extracted so callers don't re-implement it.
  *
- * @param {ReadableStream} body  - response.body from a fetch
- * @param {(event: string, data: any) => void} onEvent - called per parsed event
- * @param {AbortSignal} [signal] - stop reading when aborted
+ * @param body  - response.body from a fetch
+ * @param onEvent - called per parsed event
+ * @param signal - stop reading when aborted
  */
-export async function readEventStream(body, onEvent, signal) {
+export async function readEventStream<T = unknown>(
+    body: ReadableStream<Uint8Array> | null | undefined,
+    onEvent: (event: string, data: T) => void,
+    signal?: AbortSignal | null,
+): Promise<void> {
     if (!body || typeof body.getReader !== 'function') {
         throw new Error('readEventStream: response has no readable body');
     }
@@ -25,13 +29,13 @@ export async function readEventStream(body, onEvent, signal) {
             if (done) break;
             buf += decoder.decode(value, { stream: true });
             const lines = buf.split('\n');
-            buf = lines.pop(); // keep the trailing partial line for the next chunk
+            buf = lines.pop() ?? ''; // keep the trailing partial line for the next chunk
             for (const line of lines) {
                 if (line.startsWith('event: ')) {
                     currentEvent = line.slice(7).trim();
                 } else if (line.startsWith('data: ')) {
-                    let data;
-                    try { data = JSON.parse(line.slice(6)); } catch { continue; }
+                    let data: T;
+                    try { data = JSON.parse(line.slice(6)) as T; } catch { continue; }
                     if (currentEvent === 'ping') continue; // heartbeat — ignore
                     onEvent(currentEvent, data);
                 }

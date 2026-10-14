@@ -20,6 +20,35 @@
  * null timestamps by hiding the "Thought for Ns" label.
  */
 
+export interface ContentBlock {
+    type?: string;
+    text?: string;
+    image_url?: string | { url?: string };
+}
+
+export interface ThinkingPart {
+    id: string;
+    text: string;
+    startedAt: number | null;
+    endedAt: number | null;
+    signature?: string;
+    redacted?: boolean;
+}
+
+export interface ChatMessage {
+    role?: string;
+    content?: unknown;
+    thinking?: unknown;
+    thinkingParts?: unknown;
+    thinkingStartedAt?: number | null;
+    thinkingEndedAt?: number | null;
+    attachments?: unknown[];
+    images?: unknown[];
+    isDeleted?: boolean;
+    contentWasBlocks?: boolean;
+    [key: string]: unknown;
+}
+
 /**
  * Message content, as displayable text.
  *
@@ -35,29 +64,30 @@
  * object is JSON-stringified so shape drift stays diagnosable instead of
  * silently rendering as [object Object] again.
  */
-export function messageContentToText(content) {
+export function messageContentToText(content: unknown): string {
     if (typeof content === 'string') return content;          // 99% path, no allocation
     if (content === null || content === undefined) return '';
     if (Array.isArray(content)) {
-        return content
+        return (content as ContentBlock[])
             .filter(b => b && b.type === 'text' && typeof b.text === 'string')
             .map(b => b.text)
             .join('\n\n');
     }
     if (typeof content === 'object') {
-        if (content.type === 'text' && typeof content.text === 'string') return content.text;
+        const block = content as ContentBlock;
+        if (block.type === 'text' && typeof block.text === 'string') return block.text;
         try { return JSON.stringify(content); } catch { return ''; }
     }
     return String(content);   // number / boolean — a JSON round-trip can produce these
 }
 
 /** Image URLs carried inside block content (both shapes providers emit). */
-export function messageContentImages(content) {
+export function messageContentImages(content: unknown): Array<{ url: string }> {
     if (!Array.isArray(content)) return [];
-    return content
+    return (content as ContentBlock[])
         .filter(b => b && b.type === 'image_url')
         .map(b => (typeof b.image_url === 'string' ? b.image_url : b.image_url?.url))
-        .filter(Boolean)
+        .filter((url): url is string => Boolean(url))
         .map(url => ({ url }));
 }
 
@@ -87,7 +117,7 @@ const RENDERABLE_PAYLOAD_KEYS = [
     'linkedInDrafts', 'keepDrafts',
 ];
 
-export function hasRenderableContent(msg) {
+export function hasRenderableContent(msg: ChatMessage | null | undefined): boolean {
     if (!msg || typeof msg !== 'object') return false;
     if (messageContentToText(msg.content).trim().length > 0) return true;
     if (messageContentImages(msg.content).length > 0) return true;
@@ -103,7 +133,7 @@ export function hasRenderableContent(msg) {
  * agent conversations; this is the belt to that braces and also covers the
  * embed / notebook / legal surfaces, which read the store directly.
  */
-function flattenBlockContent(msg) {
+function flattenBlockContent(msg: ChatMessage): ChatMessage {
     const images = messageContentImages(msg.content);
     const out = { ...msg, content: messageContentToText(msg.content), contentWasBlocks: true };
     if (images.length === 0) return out;
@@ -119,7 +149,7 @@ function flattenBlockContent(msg) {
     return out;
 }
 
-function partsFromRaw(raw) {
+function partsFromRaw(raw: unknown): ThinkingPart[] {
     // Array already — trust it (already the canonical shape).
     if (Array.isArray(raw)) return raw;
     // Legacy string — lift into a single untimed part.
@@ -133,7 +163,7 @@ function partsFromRaw(raw) {
  * Normalise a single message loaded from a persistence endpoint.
  * Safe to call on user/tool/system messages too — it's a no-op for them.
  */
-export function normalizeLoadedMessage(msg) {
+export function normalizeLoadedMessage(msg: ChatMessage): ChatMessage {
     if (!msg || typeof msg !== 'object') return msg;
 
     // BFSF-307: flatten block content to text FIRST, so every downstream
@@ -158,10 +188,10 @@ export function normalizeLoadedMessage(msg) {
     // parts.length early-return below — leaked messages typically have no
     // thinking parts at all. Cheap indexOf pre-check keeps the render path
     // fast for the 99% of messages without tags.
-    let extractedParts = [];
+    let extractedParts: ThinkingPart[] = [];
     if (typeof msg.content === 'string' && msg.content.indexOf('<think') !== -1) {
         const pairRe = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi;
-        const collected = [];
+        const collected: string[] = [];
         let cleaned = msg.content.replace(pairRe, (_, inner) => { collected.push(inner); return ''; });
         const leading = cleaned.match(/^\s*<think(?:ing)?>([\s\S]*)$/i);
         if (leading) { collected.push(leading[1]); cleaned = ''; }
@@ -180,8 +210,8 @@ export function normalizeLoadedMessage(msg) {
     if (parts.length === 0) return msg;
 
     const thinkingString = parts.map(p => p.text || '').join('\n\n');
-    const starts = parts.map(p => p.startedAt).filter(n => typeof n === 'number');
-    const ends = parts.map(p => p.endedAt).filter(n => typeof n === 'number');
+    const starts = parts.map(p => p.startedAt).filter((n): n is number => typeof n === 'number');
+    const ends = parts.map(p => p.endedAt).filter((n): n is number => typeof n === 'number');
 
     return {
         ...msg,
@@ -196,7 +226,7 @@ export function normalizeLoadedMessage(msg) {
  * Apply `normalizeLoadedMessage` to each element of an array. Convenience
  * wrapper for hydration sites.
  */
-export function normalizeLoadedMessages(messages) {
+export function normalizeLoadedMessages(messages: ChatMessage[] | null | undefined): ChatMessage[] {
     if (!Array.isArray(messages)) return [];
     return messages.map(normalizeLoadedMessage);
 }

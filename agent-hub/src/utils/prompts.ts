@@ -5,7 +5,18 @@
 // `starter.prompt_*` keys can't bring the generic prompts back; the `text`
 // field is passed to t() as the fallback so they render even before any
 // translation exists.
-export const ALL_PROMPTS = [
+export interface StarterPrompt {
+    text: string;
+    icon: string;
+    i18nKey: string;
+}
+
+export interface WelcomeMessage {
+    text: string;
+    i18nKey: string;
+}
+
+export const ALL_PROMPTS: StarterPrompt[] = [
     { text: "Summarize my latest meeting notes into action items", icon: "📝", i18nKey: "starter.sp_0" },
     { text: "Draft a project proposal for a new client", icon: "📋", i18nKey: "starter.sp_1" },
     { text: "Help me design an AI agent for customer support", icon: "🤖", i18nKey: "starter.sp_2" },
@@ -32,7 +43,7 @@ export const ALL_PROMPTS = [
     { text: "Help me get started with Bee Flow", icon: "🐝", i18nKey: "starter.sp_23" }
 ];
 
-export const WELCOME_MESSAGES = [
+export const WELCOME_MESSAGES: WelcomeMessage[] = [
     { text: "Where should we start?", i18nKey: "starter.welcome_0" },
     { text: "How can I help you today?", i18nKey: "starter.welcome_1" },
     { text: "What's on your mind?", i18nKey: "starter.welcome_2" },

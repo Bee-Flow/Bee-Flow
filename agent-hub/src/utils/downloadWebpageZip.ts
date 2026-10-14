@@ -1,5 +1,28 @@
 import JSZip from 'jszip';
 
+export interface ExtraFileMeta {
+    path: string;
+    isText?: boolean;
+    mimeType?: string;
+}
+
+export interface ExtraContent {
+    isText?: boolean;
+    content?: string;
+    dataUrl?: string;
+    mimeType?: string;
+}
+
+export interface DownloadWebpageZipOptions {
+    name?: string | null;
+    html?: string | null;
+    css?: string | null;
+    js?: string | null;
+    extraFiles?: ExtraFileMeta[];
+    extraContents?: Record<string, ExtraContent | undefined>;
+    framework?: string;
+}
+
 /**
  * Build a zip with `index.html`, `style.css`, `script.js`, and any extra
  * files in the project (preserving their relative paths and folders), then
@@ -14,7 +37,7 @@ import JSZip from 'jszip';
  *   decode back to bytes for the zip.
  */
 /** Add every extra file to the zip at its declared path (text or decoded binary). */
-function addExtras(zip, extraFiles, extraContents) {
+function addExtras(zip: JSZip, extraFiles: ExtraFileMeta[], extraContents: Record<string, ExtraContent | undefined>): void {
     for (const meta of extraFiles) {
         const c = extraContents[meta.path];
         if (!c) continue;
@@ -27,7 +50,7 @@ function addExtras(zip, extraFiles, extraContents) {
     }
 }
 
-function triggerDownload(blob, name) {
+function triggerDownload(blob: Blob, name: string | null | undefined): void {
     const safeName = (name || 'webpage').replace(/[^a-zA-Z0-9.\-_ ]/g, '_').trim() || 'webpage';
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -49,7 +72,7 @@ function triggerDownload(blob, name) {
  * @param {Record<string, { isText?: boolean, content?: string, dataUrl?: string, mimeType?: string }>} [opts.extraContents]
  * @param {string} [opts.framework]
  */
-export async function downloadWebpageZip({ name, html, css, js, extraFiles = [], extraContents = {}, framework = 'vanilla' }) {
+export async function downloadWebpageZip({ name, html, css, js, extraFiles = [], extraContents = {}, framework = 'vanilla' }: DownloadWebpageZipOptions): Promise<void> {
     // React + Material UI: ship a self-contained built index.html (the same
     // esbuild-bundled module + esm.sh import map the preview uses) plus the
     // original src/ files. The build needs no local toolchain; the index.html
@@ -63,11 +86,11 @@ export async function downloadWebpageZip({ name, html, css, js, extraFiles = [],
                 ? { path: meta.path, isText: c.isText, mimeType: c.mimeType, content: c.content, dataUrl: c.dataUrl }
                 : { path: meta.path };
         });
-        let indexHtml;
+        let indexHtml: string;
         try {
             indexHtml = await composeReactPreview({}, { extraFiles: extras });
         } catch (err) {
-            indexHtml = `<!DOCTYPE html><html><body><pre>Build failed: ${String(err?.message || err)}</pre></body></html>`;
+            indexHtml = `<!DOCTYPE html><html><body><pre>Build failed: ${String((err as { message?: unknown } | null)?.message || err)}</pre></body></html>`;
         }
         zip.file('index.html', indexHtml);
         addExtras(zip, extraFiles, extraContents);

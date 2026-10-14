@@ -1,4 +1,5 @@
 import { lazy as reactLazy } from 'react';
+import type { ComponentType, LazyExoticComponent } from 'react';
 import { ensureI18nDefaults } from '../hooks/useTranslation';
 
 // After a redeploy, browsers that loaded the old index.html still hold
@@ -18,8 +19,13 @@ import { ensureI18nDefaults } from '../hooks/useTranslation';
 //      can show a real message instead of reloading forever.
 const RELOAD_FLAG = 'beeflow-chunk-reload';
 
-const isChunkLoadError = (err) => {
-    const msg = String(err?.message || err);
+// Props are erased on purpose: the lazy boundary was untyped before, and a typed
+// importer here would re-check every consumer's props against the loaded component.
+type LazyProps = Record<string, unknown>;
+type LazyLoaded = { default: ComponentType<LazyProps> };
+
+const isChunkLoadError = (err: unknown): boolean => {
+    const msg = String((err as { message?: unknown } | null)?.message || err);
     return /Failed to fetch dynamically imported module|Loading chunk|Loading CSS chunk|Importing a module script failed|error loading dynamically imported module/i.test(msg);
 };
 
@@ -34,14 +40,14 @@ const isChunkLoadError = (err) => {
  * catalogue is slower than the component chunk, which same-origin never is
  * by more than the difference in file size.
  */
-export function lazyWithI18n(importer) {
+export function lazyWithI18n(importer: () => Promise<{ default: unknown }>): LazyExoticComponent<ComponentType<LazyProps>> {
     return lazy(() => Promise.all([importer(), ensureI18nDefaults()]).then(([m]) => m));
 }
 
-export function lazy(importer) {
+export function lazy(importer: () => Promise<{ default: unknown }>): LazyExoticComponent<ComponentType<LazyProps>> {
     return reactLazy(async () => {
         try {
-            const mod = await importer();
+            const mod = (await importer()) as LazyLoaded;
             try { sessionStorage.removeItem(RELOAD_FLAG); } catch (_) { /* private mode */ }
             return mod;
         } catch (err) {
@@ -50,7 +56,7 @@ export function lazy(importer) {
             // One in-process retry before reaching for the reload hammer.
             try {
                 await new Promise(res => setTimeout(res, 250));
-                const mod = await importer();
+                const mod = (await importer()) as LazyLoaded;
                 try { sessionStorage.removeItem(RELOAD_FLAG); } catch (_) { /* ignore */ }
                 return mod;
             } catch (retryErr) {
@@ -68,7 +74,7 @@ export function lazy(importer) {
                 if (typeof window !== 'undefined') window.location.reload();
                 // Hang the Suspense promise so the user sees the existing
                 // fallback (not an error flash) while the reload runs.
-                return new Promise(() => {});
+                return new Promise<never>(() => {});
             }
         }
     });

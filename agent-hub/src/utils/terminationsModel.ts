@@ -3,13 +3,21 @@
 // i18n, but this domain logic is identical and lives here as the single source.
 
 /** Termination-type render order (shared by both panels). */
-export const TYPE_ORDER = ['max_tokens', 'max_iterations', 'error', 'aborted'];
+export const TYPE_ORDER: readonly string[] = ['max_tokens', 'max_iterations', 'error', 'aborted'];
 
 export const LARGE_INPUT_TOKEN_THRESHOLD = 8000;
 export const LARGE_ATTACHMENT_BYTES_THRESHOLD = 256 * 1024; // 256 KB
 
 // error_code values (server/core/privacy/errorSanitizer.js) that mean the input was too big.
-const CONTEXT_OVERFLOW_ERROR_CODES = new Set(['payload_too_large', 'context_overflow']);
+const CONTEXT_OVERFLOW_ERROR_CODES = new Set<string | null | undefined>(['payload_too_large', 'context_overflow']);
+
+export interface TerminationRow {
+    termination_type?: string | null;
+    error_code?: string | null;
+    attachment_bytes?: number | null;
+    prompt_tokens?: number | null;
+    completion_tokens?: number | null;
+}
 
 /**
  * Heuristic: a stop is "input-driven" when the prompt/attachment was unusually
@@ -20,7 +28,7 @@ const CONTEXT_OVERFLOW_ERROR_CODES = new Set(['payload_too_large', 'context_over
  * attachment-driven only and never leaks token magnitude. The admin panel
  * omits the argument (defaults true) → all checks, as before.
  */
-export function isLargeInput(row, showTokens = true) {
+export function isLargeInput(row: TerminationRow, showTokens = true): boolean {
     // An error row is not "the input was big" unless the error says so: a 400
     // on a bad request body carries the prompt size of the request that failed.
     if (row.termination_type === 'error' && !CONTEXT_OVERFLOW_ERROR_CODES.has(row.error_code)) return false;
@@ -28,6 +36,6 @@ export function isLargeInput(row, showTokens = true) {
     if (!showTokens) return false;
     if ((row.prompt_tokens || 0) >= LARGE_INPUT_TOKEN_THRESHOLD) return true;
     const total = (row.prompt_tokens || 0) + (row.completion_tokens || 0);
-    if (total > 0 && (row.prompt_tokens / total) >= 0.85 && row.termination_type === 'max_tokens') return true;
+    if (total > 0 && ((row.prompt_tokens || 0) / total) >= 0.85 && row.termination_type === 'max_tokens') return true;
     return false;
 }

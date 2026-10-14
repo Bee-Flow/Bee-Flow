@@ -34,19 +34,26 @@ const KEY = 'studioRecents';
 // as being forgotten — reopening an older item should restore its place.
 const REMEMBERED = 12;
 
+type RecentsRecord = Record<string, Record<string, number>>;
+
+export interface StudioItem {
+    id?: string | null;
+    updatedAt?: string | number | null;
+}
+
 /** The whole record, `{ [section]: { [id]: epochMs } }`, never throwing. */
-function readAll() {
+function readAll(): RecentsRecord {
     try {
-        const parsed = JSON.parse(scopedStorage.getItem(KEY) || 'null');
+        const parsed: unknown = JSON.parse(scopedStorage.getItem(KEY) || 'null');
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-        return parsed;
+        return parsed as RecentsRecord;
     } catch {
         return {};
     }
 }
 
 /** `{ [itemId]: epochMs }` for one section, never throwing on absent or corrupt storage. */
-export function readStudioRecents(section) {
+export function readStudioRecents(section: string | null | undefined): Record<string, number> {
     if (!section) return {};
     const bucket = readAll()[section];
     if (!bucket || typeof bucket !== 'object' || Array.isArray(bucket)) return {};
@@ -58,7 +65,7 @@ export function readStudioRecents(section) {
 }
 
 /** Stamp a Studio item as opened by this user, now. */
-export function rememberStudioItem(section, id, now = Date.now()) {
+export function rememberStudioItem(section: string | null | undefined, id: string | null | undefined, now = Date.now()): void {
     if (!section || !id) return;
     const all = readAll();
     const next = { ...readStudioRecents(section), [id]: now };
@@ -76,10 +83,15 @@ export function rememberStudioItem(section, id, now = Date.now()) {
  * The `limit` items to offer for a section, most relevant first: the ones this
  * user opened (most recent first), then the rest by their own last-updated.
  */
-export function rankStudioItems(items, section, limit = 5, recents = readStudioRecents(section)) {
-    const list = Array.isArray(items) ? items : [];
-    const openedAt = (item) => recents[item?.id] || 0;
-    const updatedAt = (item) => {
+export function rankStudioItems<T extends StudioItem>(
+    items: T[] | null | undefined,
+    section: string,
+    limit = 5,
+    recents: Record<string, number> = readStudioRecents(section),
+): T[] {
+    const list: T[] = Array.isArray(items) ? items : [];
+    const openedAt = (item: T | null | undefined) => recents[String(item?.id)] || 0;
+    const updatedAt = (item: T | null | undefined) => {
         const t = new Date(item?.updatedAt || 0).getTime();
         return Number.isFinite(t) ? t : 0;
     };

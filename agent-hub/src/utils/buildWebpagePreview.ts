@@ -41,10 +41,31 @@ export { buildImportMap };
 
 // ── esbuild-wasm lazy singleton ────────────────────────────────────────────
 
-let _esbuild = null;
-let _initPromise = null;
+export interface PreviewFile {
+    isText: boolean;
+    content?: string;
+    dataUrl?: string;
+}
 
-async function getEsbuild() {
+export interface PreviewExtraFile {
+    path: string;
+    isText?: boolean;
+    mimeType?: string;
+    content?: string;
+    dataUrl?: string;
+}
+
+type ImportMap = ReturnType<typeof buildImportMap>;
+
+// reactPreview.mjs defaults extraScripts to [] in JS, which types the parameter as never[]; its real contract is string[].
+type ReactBodyHtml = (opts: { bundle: string; assetMap: Record<string, string>; extraScripts?: string[] }) => string;
+
+type EsbuildModule = typeof import('esbuild-wasm');
+
+let _esbuild: EsbuildModule | null = null;
+let _initPromise: Promise<EsbuildModule> | null = null;
+
+async function getEsbuild(): Promise<EsbuildModule> {
     if (_esbuild) return _esbuild;
     if (!_initPromise) {
         _initPromise = (async () => {
@@ -65,18 +86,18 @@ async function getEsbuild() {
  * Bundle the react-mui project into a single ESM string. Throws an Error whose
  * `.formatted` carries readable esbuild diagnostics on failure.
  */
-export async function buildReactBundle({ entry = REACT_ENTRY, files }) {
+export async function buildReactBundle({ entry = REACT_ENTRY, files }: { entry?: string; files: Record<string, PreviewFile> }) {
     return bundleReact(await getEsbuild(), { entry, files });
 }
 
 // ── Document assembly ──────────────────────────────────────────────────────
 
-function escapeHtml(s) {
+function escapeHtml(s: unknown): string {
     return String(s || '')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function overlayDoc({ headBridges, importMap, message, isInfo }) {
+function overlayDoc({ headBridges, importMap, message, isInfo }: { headBridges: string; importMap: ImportMap; message: string; isInfo: boolean }): string {
     const bg = isInfo ? '#f8fafc' : '#fef2f2';
     const fg = isInfo ? '#334155' : '#b91c1c';
     const title = isInfo ? 'React preview' : 'Build error';
@@ -96,7 +117,7 @@ function overlayDoc({ headBridges, importMap, message, isInfo }) {
  * is the first thing a non-technical user sees, so it just points them at the
  * chat. (Build errors still get the developer overlay above.)
  */
-function emptyStateDoc({ hasSource }) {
+function emptyStateDoc({ hasSource }: { hasSource: boolean }): string {
     const heading = hasSource ? 'Almost there…' : 'Your webpage will appear here';
     const sub = hasSource
         ? 'Ask the assistant in the chat to finish setting up your page.'
@@ -112,13 +133,28 @@ function emptyStateDoc({ hasSource }) {
 }
 
 /** "Building…" placeholder shown while the AI is still streaming files in. */
-function buildingDoc() {
+function buildingDoc(): string {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;color:#64748b;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
   <div style="width:34px;height:34px;border:3px solid #e2e8f0;border-top-color:#94a3b8;border-radius:50%;animation:spin 0.8s linear infinite"></div>
   <div style="font-size:13.5px;margin-top:14px">Building your app…</div>
   <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 </body></html>`;
+}
+
+function buildErrorText(e: unknown): string {
+    const err = e as { formatted?: string; message?: string };
+    return err.formatted || err.message || String(e);
+}
+
+export interface ComposeReactPreviewOptions {
+    extraFiles?: PreviewExtraFile[];
+    dbToken?: string | null;
+    dbApiBase?: string | null;
+    dbWebpageId?: string | null;
+    selectionBridge?: boolean;
+    isStreaming?: boolean;
+    runtime?: unknown;
 }
 
 /**
@@ -128,7 +164,7 @@ function buildingDoc() {
  * options mirrors composeWebpageDocument's: { extraFiles, dbToken, dbApiBase,
  * dbWebpageId, selectionBridge, runtime }.
  */
-export async function composeReactPreview(_slots, options = {}) {
+export async function composeReactPreview(_slots: unknown, options: ComposeReactPreviewOptions = {}): Promise<string> {
     const {
         extraFiles = [],
         dbToken = null,
@@ -138,8 +174,8 @@ export async function composeReactPreview(_slots, options = {}) {
         isStreaming = false,
     } = options;
 
-    const files = {};
-    const assetMap = {};
+    const files: Record<string, PreviewFile> = {};
+    const assetMap: Record<string, string> = {};
     for (const f of extraFiles) {
         if (!f || !f.path) continue;
         if (f.isText && typeof f.content === 'string') files[f.path] = { isText: true, content: f.content };
@@ -169,7 +205,7 @@ export async function composeReactPreview(_slots, options = {}) {
         return emptyStateDoc({ hasSource });
     }
 
-    let bundle;
+    let bundle: string;
     try {
         const r = await buildReactBundle({ entry: REACT_ENTRY, files });
         bundle = r.code;
@@ -178,11 +214,11 @@ export async function composeReactPreview(_slots, options = {}) {
         // keep "Building…" instead of flashing a red error. Show the real error
         // only once the AI has finished.
         if (isStreaming) return buildingDoc();
-        return overlayDoc({ headBridges, importMap, isInfo: false, message: e.formatted || e.message || String(e) });
+        return overlayDoc({ headBridges, importMap, isInfo: false, message: buildErrorText(e) });
     }
 
     const selBridge = selectionBridge ? buildSelectionBridgeScript() : '';
-    const bodyHtml = reactBodyHtml({ bundle, assetMap, extraScripts: [selBridge] });
+    const bodyHtml = (reactBodyHtml as ReactBodyHtml)({ bundle, assetMap, extraScripts: [selBridge] });
     return shellDoc({ headScripts: headBridges, importMap, bodyHtml });
 }
 

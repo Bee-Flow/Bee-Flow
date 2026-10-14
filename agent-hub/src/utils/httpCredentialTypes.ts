@@ -8,7 +8,32 @@
 // into the plaintext display metadata (never put secret values there).
 // `nameKey` / `labelKey` are i18n keys; `name` / `label` stay as the English
 // fallback so a missing translation still renders something sensible.
-export const HTTP_AUTH_TYPES = [
+
+export type HttpAuthTarget = 'secret' | 'meta';
+
+export interface HttpAuthField {
+    key: string;
+    label: string;
+    labelKey: string;
+    type: 'text' | 'password';
+    target: HttpAuthTarget;
+    optional?: boolean;
+}
+
+export interface HttpAuthType {
+    id: string;
+    kind: string;
+    name: string;
+    nameKey: string;
+    fields: HttpAuthField[];
+}
+
+export interface HttpAuthSplit {
+    secret: Record<string, string>;
+    secretMeta: Record<string, string>;
+}
+
+export const HTTP_AUTH_TYPES: HttpAuthType[] = [
     {
         id: 'bearer', kind: 'bearer', name: 'Bearer token', nameKey: 'connections.http_bearer',
         fields: [
@@ -40,11 +65,11 @@ export const HTTP_AUTH_TYPES = [
     },
 ];
 
-export const HTTP_AUTH_TYPE_BY_ID = Object.fromEntries(HTTP_AUTH_TYPES.map(t => [t.id, t]));
-export const HTTP_AUTH_TYPE_BY_KIND = Object.fromEntries(HTTP_AUTH_TYPES.map(t => [t.kind, t]));
+export const HTTP_AUTH_TYPE_BY_ID: Record<string, HttpAuthType> = Object.fromEntries(HTTP_AUTH_TYPES.map(t => [t.id, t]));
+export const HTTP_AUTH_TYPE_BY_KIND: Record<string, HttpAuthType> = Object.fromEntries(HTTP_AUTH_TYPES.map(t => [t.kind, t]));
 
 /** Short human label for a connection's kind ("Bearer token", …). */
-export function httpKindName(kind) {
+export function httpKindName(kind: string): string {
     return HTTP_AUTH_TYPE_BY_KIND[kind]?.name || kind;
 }
 
@@ -53,9 +78,9 @@ export function httpKindName(kind) {
  * connections API expects. Text fields are trimmed; password fields are sent
  * as typed (a legit password may contain edge whitespace).
  */
-export function splitHttpAuthValues(authType, values = {}) {
-    const secret = {};
-    const secretMeta = {};
+export function splitHttpAuthValues(authType: HttpAuthType, values: Record<string, unknown> = {}): HttpAuthSplit {
+    const secret: Record<string, string> = {};
+    const secretMeta: Record<string, string> = {};
     for (const f of authType.fields) {
         const raw = values[f.key];
         if (typeof raw !== 'string') continue;
@@ -68,6 +93,6 @@ export function splitHttpAuthValues(authType, values = {}) {
 }
 
 /** Required fields the user has not filled in yet (for submit gating). */
-export function missingHttpAuthFields(authType, values = {}) {
+export function missingHttpAuthFields(authType: HttpAuthType, values: Record<string, unknown> = {}): HttpAuthField[] {
     return authType.fields.filter(f => !f.optional && !String(values[f.key] || '').trim());
 }

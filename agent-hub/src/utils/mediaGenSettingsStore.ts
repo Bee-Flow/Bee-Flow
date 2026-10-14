@@ -12,32 +12,37 @@
 
 import scopedStorage from './scopedStorage';
 
+export type SettingsObject = Record<string, unknown>;
+
+export interface SettingsStoreOptions {
+    /** called when the key is empty; may return an initial settings object recovered from a legacy key */
+    migrate?: () => SettingsObject | null;
+    /** called after every persist — e.g. to mirror a section into a legacy key */
+    onSave?: (settings: SettingsObject) => void;
+}
+
 /**
  * Build a sectioned settings store on top of a scopedStorage JSON key.
  *
- * @param {string} storageKey scopedStorage key holding the settings object
- * @param {object} [options]
- * @param {() => (object|null)} [options.migrate] called when the key is empty;
- *        may return an initial settings object recovered from a legacy key
- * @param {(settings: object) => void} [options.onSave] called after every
- *        persist — e.g. to mirror a section into a legacy key
+ * @param storageKey scopedStorage key holding the settings object
+ * @param [options]
  */
-export function createSettingsStore(storageKey, { migrate, onSave } = {}) {
-    const getAll = () => {
-        const stored = scopedStorage.getJSON(storageKey, null);
+export function createSettingsStore(storageKey: string, { migrate, onSave }: SettingsStoreOptions = {}) {
+    const getAll = (): SettingsObject => {
+        const stored = scopedStorage.getJSON<SettingsObject>(storageKey, null);
         if (stored) return stored;
         return (migrate && migrate()) || {};
     };
 
-    const saveAll = (settings) => {
+    const saveAll = (settings: SettingsObject): SettingsObject => {
         scopedStorage.setJSON(storageKey, settings);
         if (onSave) onSave(settings);
         return settings;
     };
 
-    const getSection = (section) => getAll()[section] || {};
+    const getSection = <T = SettingsObject>(section: string): T => (getAll()[section] as T | undefined) || ({} as T);
 
-    const saveSection = (section, data) => saveAll({ ...getAll(), [section]: data });
+    const saveSection = (section: string, data: unknown): SettingsObject => saveAll({ ...getAll(), [section]: data });
 
     return { getAll, saveAll, getSection, saveSection };
 }

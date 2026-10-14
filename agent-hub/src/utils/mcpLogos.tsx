@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
 /**
- * mcpLogos.jsx — official logo resolution for MCP marketplace cards.
+ * mcpLogos.tsx — official logo resolution for MCP marketplace cards.
  *
  * Fully open-source and keyless — NO third-party logo SaaS (no Smithery,
  * no logo.dev/Brandfetch). Logos come from sources we don't depend on a
@@ -22,12 +22,26 @@ import React, { useState, useEffect, useMemo } from 'react';
  * bundled SVGs).
  */
 
-const isUrl = (s) => typeof s === 'string' && /^https?:\/\//i.test(s.trim());
+export interface McpServerLike {
+    id?: string | null;
+    name?: string | null;
+    icon?: string | null;
+    logo?: string | null;
+    iconUrl?: string | null;
+    repository?: string | null;
+}
+
+export interface UrlCandidate { kind: 'url'; src: string }
+export interface EmojiCandidate { kind: 'emoji'; value: string }
+export interface LetterCandidate { kind: 'letter'; char: string; color: string }
+export type LogoCandidate = UrlCandidate | EmojiCandidate | LetterCandidate;
+
+const isUrl = (s: unknown): s is string => typeof s === 'string' && /^https?:\/\//i.test(s.trim());
 
 // Non-purple palette (project rule: never use violet/indigo).
 const LETTER_PALETTE = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#14b8a6', '#f97316', '#ec4899', '#06b6d4', '#64748b', '#eab308'];
 
-function letterColor(key) {
+function letterColor(key: string | null | undefined): string {
     const s = String(key || '');
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -39,7 +53,7 @@ function letterColor(key) {
  * org's official logo for the large majority of MCP servers (they live in a
  * brand-owned GitHub org: stripe/, supabase/, getsentry/, …).
  */
-export function githubAvatarFromRepo(repo) {
+export function githubAvatarFromRepo(repo: string | null | undefined): string | null {
     const m = /github\.com\/([^/#?]+)/i.exec(String(repo || ''));
     if (!m) return null;
     const owner = m[1].trim();
@@ -52,8 +66,8 @@ export function githubAvatarFromRepo(repo) {
  * come before the emoji/letter terminals so stepping forward always moves
  * toward a safe fallback.
  */
-export function mcpLogoCandidates(server = {}) {
-    const out = [];
+export function mcpLogoCandidates(server: McpServerLike = {}): LogoCandidate[] {
+    const out: LogoCandidate[] = [];
     if (isUrl(server.logo)) out.push({ kind: 'url', src: server.logo });
     if (isUrl(server.iconUrl)) out.push({ kind: 'url', src: server.iconUrl });
     if (isUrl(server.icon)) out.push({ kind: 'url', src: server.icon });
@@ -66,19 +80,23 @@ export function mcpLogoCandidates(server = {}) {
 }
 
 /** First resolvable logo URL for a server, or null — used to persist a logo at install. */
-export function bestLogoUrl(server) {
-    const c = mcpLogoCandidates(server).find(x => x.kind === 'url');
+export function bestLogoUrl(server: McpServerLike): string | null {
+    const c = mcpLogoCandidates(server).find((x): x is UrlCandidate => x.kind === 'url');
     return c ? c.src : null;
 }
 
-export function McpLogo({ server, size = 32, className = '' }) {
+export function McpLogo({ server, size = 32, className = '' }: {
+    server?: McpServerLike;
+    size?: number;
+    className?: string;
+}) {
     const candidates = useMemo(() => mcpLogoCandidates(server), [server]);
     const [idx, setIdx] = useState(0);
 
     // Reset to the best candidate whenever the underlying server changes.
     useEffect(() => { setIdx(0); }, [server?.id, server?.name, server?.icon, server?.logo, server?.iconUrl, server?.repository]);
 
-    const cand = candidates[Math.min(idx, candidates.length - 1)] || { kind: 'letter', char: '?', color: '#64748b' };
+    const cand: LogoCandidate = candidates[Math.min(idx, candidates.length - 1)] || { kind: 'letter', char: '?', color: '#64748b' };
 
     if (cand.kind === 'url') {
         return (

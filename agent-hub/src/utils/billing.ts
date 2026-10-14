@@ -16,14 +16,20 @@
  * still-active subscription must not lock a paying customer out of billing.
  */
 
-export const PORTAL_ELIGIBLE_PAYMENT_STATUSES = ['paid', 'past_due', 'paused', 'disputed', 'failed', 'refunded'];
+export const PORTAL_ELIGIBLE_PAYMENT_STATUSES: readonly string[] = ['paid', 'past_due', 'paused', 'disputed', 'failed', 'refunded'];
+
+export interface BillingSubscription {
+    stripe_customer_id?: string | null;
+    payment_status?: string | null;
+}
 
 /**
  * True when the subscription represents a real (paid-ish) billing
  * relationship: a Stripe customer exists AND the payment status indicates
  * money has moved or is actively being collected.
  */
-export function hasPaidBillingRelationship(sub) {
+export function hasPaidBillingRelationship(sub: BillingSubscription | null | undefined): boolean {
     if (!sub?.stripe_customer_id) return false;
-    return PORTAL_ELIGIBLE_PAYMENT_STATUSES.includes(sub.payment_status);
+    const status = sub.payment_status;
+    return typeof status === 'string' && PORTAL_ELIGIBLE_PAYMENT_STATUSES.includes(status);
 }
