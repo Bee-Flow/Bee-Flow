@@ -311,61 +311,51 @@ async function ownsConnection(req, conn) {
 // ?includeShared=1 (with ?provider=) also returns connections LENT to the
 // caller; each entry then carries `access: 'own' | 'lent'`.
 router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
-    try {
-        const provider = req.query.provider ? String(req.query.provider) : null;
-        if (req.query.includeShared === true && provider) {
-            const { userId, orgId, groups } = await callerContext(req);
-            const connections = await store.listAccessibleConnections({ userId, orgId, groups, provider });
-            return res.json({ connections });
-        }
-        const connections = await store.listConnectionsForUser(req.session.user.id, provider);
-        res.json({ connections });
-    } catch (err) {
-        log.error('[ConnectionsAPI] list error:', err.message);
-        res.status(500).json({ error: 'Could not load connections' });
+    const provider = req.query.provider ? String(req.query.provider) : null;
+    if (req.query.includeShared === true && provider) {
+        const { userId, orgId, groups } = await callerContext(req);
+        const connections = await store.listAccessibleConnections({ userId, orgId, groups, provider });
+        return res.json({ connections });
     }
+    const connections = await store.listConnectionsForUser(req.session.user.id, provider);
+    res.json({ connections });
 });
 
 // Pre-flight for a recipient: which providers must they connect (BYO) vs are
 // lent to them. Phase 2 takes an explicit `?providers=a,b`; Phase 3 derives the
 // provider list from the resource server-side.
 router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (req, res) => {
-    try {
-        const { userId, orgId, groups } = await callerContext(req);
-        const providers = String(req.query.providers || '')
-            .split(',').map(s => s.trim()).filter(Boolean);
-        const resourceType = req.query.resourceType ? String(req.query.resourceType) : null;
-        const resourceId = req.query.resourceId ? String(req.query.resourceId) : null;
-        const requiresConnection = [];
-        const lent = [];
-        for (const provider of providers) {
-            const r = await store.resolveConnectionForRun({
-                runningUserId: userId, runningUserOrgId: orgId, runningUserGroups: groups,
-                provider, resourceType, resourceId,
-            });
-            if (r.mode === 'delegated') lent.push({ provider, connectionLabel: r.connectionLabel });
-            else if (!r.available) {
-                // The connections registry is the NEW credential store; most
-                // Google/Microsoft users hold their credential in the LEGACY
-                // per-user integration layer (SSO token/vault) — the layer the
-                // runtime itself consults first (mailboxIdentity's ladder). A
-                // pre-flight that only read the new store told those users to
-                // "Connect gmail" above an app whose data was loading fine.
-                // Lazy require: this route must stay loadable where the
-                // appStudio layer is mocked away (its own tests).
-                let legacyOk = false;
-                try {
-                    const { viewerHasIntegration } = require('../../appStudio/mailboxIdentity');
-                    legacyOk = await viewerHasIntegration(provider, { userId, orgId });
-                } catch { /* no legacy layer → the connection really is missing */ }
-                if (!legacyOk) requiresConnection.push({ provider });
-            }
+    const { userId, orgId, groups } = await callerContext(req);
+    const providers = String(req.query.providers || '')
+        .split(',').map(s => s.trim()).filter(Boolean);
+    const resourceType = req.query.resourceType ? String(req.query.resourceType) : null;
+    const resourceId = req.query.resourceId ? String(req.query.resourceId) : null;
+    const requiresConnection = [];
+    const lent = [];
+    for (const provider of providers) {
+        const r = await store.resolveConnectionForRun({
+            runningUserId: userId, runningUserOrgId: orgId, runningUserGroups: groups,
+            provider, resourceType, resourceId,
+        });
+        if (r.mode === 'delegated') lent.push({ provider, connectionLabel: r.connectionLabel });
+        else if (!r.available) {
+            // The connections registry is the NEW credential store; most
+            // Google/Microsoft users hold their credential in the LEGACY
+            // per-user integration layer (SSO token/vault) — the layer the
+            // runtime itself consults first (mailboxIdentity's ladder). A
+            // pre-flight that only read the new store told those users to
+            // "Connect gmail" above an app whose data was loading fine.
+            // Lazy require: this route must stay loadable where the
+            // appStudio layer is mocked away (its own tests).
+            let legacyOk = false;
+            try {
+                const { viewerHasIntegration } = require('../../appStudio/mailboxIdentity');
+                legacyOk = await viewerHasIntegration(provider, { userId, orgId });
+            } catch { /* no legacy layer → the connection really is missing */ }
+            if (!legacyOk) requiresConnection.push({ provider });
         }
-        res.json({ requiresConnection, lent });
-    } catch (err) {
-        log.error('[ConnectionsAPI] required error:', err.message);
-        res.status(500).json({ error: 'Could not check required connections' });
     }
+    res.json({ requiresConnection, lent });
 });
 
 // List grants — outgoing (I lent) or incoming (lent to me).
@@ -377,22 +367,17 @@ router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (
 // reached listGrants with an empty filter and returned every grant in the
 // deployment, across all tenants.
 router.get('/grants', requireAuth, validate({ query: GrantsQuery }), async (req, res) => {
-    try {
-        const { userId, orgId } = await callerContext(req);
-        const mine = req.query.mine || 'outgoing';
-        // Principal scope first — the remaining params only narrow it further.
-        const filter = mine === 'incoming'
-            ? { granteeId: userId, orgId }
-            : { grantorUserId: userId };
-        if (req.query.resourceType) filter.resourceType = String(req.query.resourceType);
-        if (req.query.resourceId) filter.resourceId = String(req.query.resourceId);
-        if (req.query.connectionId) filter.connectionId = String(req.query.connectionId);
-        const grants = await store.listGrants(filter);
-        res.json({ grants: await decorateGrantees(grants) });
-    } catch (err) {
-        log.error('[ConnectionsAPI] grants list error:', err.message);
-        res.status(500).json({ error: 'Could not load shares' });
-    }
+    const { userId, orgId } = await callerContext(req);
+    const mine = req.query.mine || 'outgoing';
+    // Principal scope first — the remaining params only narrow it further.
+    const filter = mine === 'incoming'
+        ? { granteeId: userId, orgId }
+        : { grantorUserId: userId };
+    if (req.query.resourceType) filter.resourceType = String(req.query.resourceType);
+    if (req.query.resourceId) filter.resourceId = String(req.query.resourceId);
+    if (req.query.connectionId) filter.connectionId = String(req.query.connectionId);
+    const grants = await store.listGrants(filter);
+    res.json({ grants: await decorateGrantees(grants) });
 });
 
 // Revoke a grant — only the grantor, or an admin of the grant's OWN org.
@@ -400,56 +385,46 @@ router.get('/grants', requireAuth, validate({ query: GrantsQuery }), async (req,
 // ownsConnection; a global isAdmin() check would let an admin of org A revoke
 // org B's grants.
 router.delete('/grants/:grantId', requireAuth, async (req, res) => {
-    try {
-        const grant = await store.getGrant(req.params.grantId);
-        if (!grant) return res.status(404).json({ error: 'Grant not found' });
-        if (grant.grantor_user_id !== req.session.user.id) {
-            if (!isAdmin(req)) return res.status(403).json({ error: 'Only the grantor can revoke this grant' });
-            const { orgId } = await callerContext(req);
-            if (store.resolveOrgId(grant.org_id) !== orgId) {
-                return res.status(403).json({ error: 'Only the grantor can revoke this grant' });
-            }
+    const grant = await store.getGrant(req.params.grantId);
+    if (!grant) return res.status(404).json({ error: 'Grant not found' });
+    if (grant.grantor_user_id !== req.session.user.id) {
+        if (!isAdmin(req)) return res.status(403).json({ error: 'Only the grantor can revoke this grant' });
+        const { orgId } = await callerContext(req);
+        if (store.resolveOrgId(grant.org_id) !== orgId) {
+            return res.status(403).json({ error: 'Only the grantor can revoke this grant' });
         }
-        const ok = await store.revokeGrant(req.params.grantId);
-        res.json({ revoked: ok });
-    } catch (err) {
-        log.error('[ConnectionsAPI] revoke error:', err.message);
-        res.status(500).json({ error: 'Could not revoke this share' });
     }
+    const ok = await store.revokeGrant(req.params.grantId);
+    res.json({ revoked: ok });
 });
 
 // Create a named connection.
 router.post('/', requireAuth, writeLimit, validate({ body: CreateBody }), async (req, res) => {
-    try {
-        const { provider, label, kind = 'api_key', secret = null, secretMeta = null, makeDefault = false } = req.body;
+    const { provider, label, kind = 'api_key', secret = null, secretMeta = null, makeDefault = false } = req.body;
 
-        let secretObject = secret;
-        let meta = (secretMeta && typeof secretMeta === 'object' && !Array.isArray(secretMeta)) ? secretMeta : {};
-        if (String(provider) === 'http') {
-            // Strict per-kind contract: exact secret fields, meta allowlist,
-            // header-name/token-URL validation, derived clientIdHint.
-            const s = sanitizeHttpSecret(kind, secret);
-            if (s.error) return res.status(400).json({ error: s.error });
-            const m = sanitizeHttpMeta(kind, secretMeta);
-            if (m.error) return res.status(400).json({ error: m.error });
-            secretObject = s.secret;
-            meta = m.secretMeta;
-            if (kind === 'oauth2_cc') meta.clientIdHint = clientIdHintFor(secretObject.client_id);
-            if (kind === 'basic' && !meta.username) meta.username = secretObject.username;
-        }
-
-        const { orgId } = await callerContext(req);
-        const conn = await store.createConnection({
-            ownerUserId: req.session.user.id, orgId, provider: String(provider),
-            label: label ? label.slice(0, 120) : 'Default', kind,
-            secretObject, secretMeta: meta, makeDefault: makeDefault === true,
-        });
-        auditConnectionChange('create', conn, req.session.user.id).catch(() => {});
-        res.status(201).json({ connection: conn });
-    } catch (err) {
-        log.error('[ConnectionsAPI] create error:', err.message);
-        res.status(500).json({ error: 'Could not create this connection' });
+    let secretObject = secret;
+    let meta = (secretMeta && typeof secretMeta === 'object' && !Array.isArray(secretMeta)) ? secretMeta : {};
+    if (String(provider) === 'http') {
+        // Strict per-kind contract: exact secret fields, meta allowlist,
+        // header-name/token-URL validation, derived clientIdHint.
+        const s = sanitizeHttpSecret(kind, secret);
+        if (s.error) return res.status(400).json({ error: s.error });
+        const m = sanitizeHttpMeta(kind, secretMeta);
+        if (m.error) return res.status(400).json({ error: m.error });
+        secretObject = s.secret;
+        meta = m.secretMeta;
+        if (kind === 'oauth2_cc') meta.clientIdHint = clientIdHintFor(secretObject.client_id);
+        if (kind === 'basic' && !meta.username) meta.username = secretObject.username;
     }
+
+    const { orgId } = await callerContext(req);
+    const conn = await store.createConnection({
+        ownerUserId: req.session.user.id, orgId, provider: String(provider),
+        label: label ? label.slice(0, 120) : 'Default', kind,
+        secretObject, secretMeta: meta, makeDefault: makeDefault === true,
+    });
+    auditConnectionChange('create', conn, req.session.user.id).catch(() => {});
+    res.status(201).json({ connection: conn });
 });
 
 // Rename / set-default / update secret (write-only: secret in, never out).
@@ -457,50 +432,45 @@ router.post('/', requireAuth, writeLimit, validate({ body: CreateBody }), async 
 // same per-kind contract as create; `secretMeta` may also be updated alone
 // (allowlist-validated; derived fields like clientIdHint are preserved).
 router.patch('/:id', requireAuth, writeLimit, validate({ body: PatchBody }), async (req, res) => {
-    try {
-        const conn = await store.getConnection(req.params.id);
-        if (!conn) return res.status(404).json({ error: 'Connection not found' });
-        if (!(await ownsConnection(req, conn))) return res.status(403).json({ error: 'Forbidden' });
+    const conn = await store.getConnection(req.params.id);
+    if (!conn) return res.status(404).json({ error: 'Connection not found' });
+    if (!(await ownsConnection(req, conn))) return res.status(403).json({ error: 'Forbidden' });
 
-        const { label, makeDefault, secret, secretMeta } = req.body;
-        if (label !== undefined) await store.renameConnection(conn.id, label.slice(0, 120));
+    const { label, makeDefault, secret, secretMeta } = req.body;
+    if (label !== undefined) await store.renameConnection(conn.id, label.slice(0, 120));
 
-        const hasSecret = !!secret;
-        if (conn.provider === 'http') {
-            let newMeta = null;
-            if (secretMeta !== undefined) {
-                const m = sanitizeHttpMeta(conn.kind, secretMeta);
-                if (m.error) return res.status(400).json({ error: m.error });
-                newMeta = m.secretMeta;
-            }
-            if (hasSecret) {
-                const s = sanitizeHttpSecret(conn.kind, secret);
-                if (s.error) return res.status(400).json({ error: s.error });
-                const meta = { ...(newMeta ?? conn.secretMeta ?? {}) };
-                if (conn.kind === 'oauth2_cc') meta.clientIdHint = clientIdHintFor(s.secret.client_id);
-                if (conn.kind === 'basic') meta.username = s.secret.username;
-                await store.updateConnectionSecret(conn.id, s.secret, meta);
-                auditConnectionChange('rotate', conn, req.session.user.id).catch(() => {});
-            } else if (newMeta) {
-                // Meta-only update keeps server-derived display fields. Audited:
-                // for oauth2_cc a tokenUrl change redirects where the client
-                // credentials get POSTed, so it must be traceable.
-                if (conn.kind === 'oauth2_cc' && conn.secretMeta?.clientIdHint) newMeta.clientIdHint = conn.secretMeta.clientIdHint;
-                if (conn.kind === 'basic' && !newMeta.username && conn.secretMeta?.username) newMeta.username = conn.secretMeta.username;
-                await store.updateConnectionMeta(conn.id, newMeta);
-                auditConnectionChange('update_meta', conn, req.session.user.id).catch(() => {});
-            }
-        } else if (hasSecret) {
-            await store.updateConnectionSecret(conn.id, secret);
-            auditConnectionChange('rotate', conn, req.session.user.id).catch(() => {});
+    const hasSecret = !!secret;
+    if (conn.provider === 'http') {
+        let newMeta = null;
+        if (secretMeta !== undefined) {
+            const m = sanitizeHttpMeta(conn.kind, secretMeta);
+            if (m.error) return res.status(400).json({ error: m.error });
+            newMeta = m.secretMeta;
         }
-        if (makeDefault === true) await store.setDefault(conn.id);
-
-        res.json({ connection: await store.getConnection(conn.id) });
-    } catch (err) {
-        log.error('[ConnectionsAPI] patch error:', err.message);
-        res.status(500).json({ error: 'Could not update this connection' });
+        if (hasSecret) {
+            const s = sanitizeHttpSecret(conn.kind, secret);
+            if (s.error) return res.status(400).json({ error: s.error });
+            const meta = { ...(newMeta ?? conn.secretMeta ?? {}) };
+            if (conn.kind === 'oauth2_cc') meta.clientIdHint = clientIdHintFor(s.secret.client_id);
+            if (conn.kind === 'basic') meta.username = s.secret.username;
+            await store.updateConnectionSecret(conn.id, s.secret, meta);
+            auditConnectionChange('rotate', conn, req.session.user.id).catch(() => {});
+        } else if (newMeta) {
+            // Meta-only update keeps server-derived display fields. Audited:
+            // for oauth2_cc a tokenUrl change redirects where the client
+            // credentials get POSTed, so it must be traceable.
+            if (conn.kind === 'oauth2_cc' && conn.secretMeta?.clientIdHint) newMeta.clientIdHint = conn.secretMeta.clientIdHint;
+            if (conn.kind === 'basic' && !newMeta.username && conn.secretMeta?.username) newMeta.username = conn.secretMeta.username;
+            await store.updateConnectionMeta(conn.id, newMeta);
+            auditConnectionChange('update_meta', conn, req.session.user.id).catch(() => {});
+        }
+    } else if (hasSecret) {
+        await store.updateConnectionSecret(conn.id, secret);
+        auditConnectionChange('rotate', conn, req.session.user.id).catch(() => {});
     }
+    if (makeDefault === true) await store.setDefault(conn.id);
+
+    res.json({ connection: await store.getConnection(conn.id) });
 });
 
 // Delete — blocked if it backs an active grant unless ?force=1.
@@ -513,111 +483,101 @@ router.patch('/:id', requireAuth, writeLimit, validate({ body: PatchBody }), asy
 // An ADMIN deleting someone else's row only removes the row — revoking another
 // user's live third-party access is not what "tidy up a connection" means.
 router.delete('/:id', requireAuth, writeLimit, validate({ query: DeleteQuery }), async (req, res) => {
-    try {
-        const conn = await store.getConnection(req.params.id);
-        if (!conn) return res.status(404).json({ error: 'Connection not found' });
-        if (!(await ownsConnection(req, conn))) return res.status(403).json({ error: 'Forbidden' });
+    const conn = await store.getConnection(req.params.id);
+    if (!conn) return res.status(404).json({ error: 'Connection not found' });
+    if (!(await ownsConnection(req, conn))) return res.status(403).json({ error: 'Forbidden' });
 
-        const activeGrants = await store.listGrants({ connectionId: conn.id });
-        if (activeGrants.length > 0 && req.query.force !== true) {
-            return res.status(409).json({ error: 'Connection is shared', grants: activeGrants.length });
-        }
-
-        const isOwner = conn.ownerUserId === req.session.user.id;
-        const isOAuthRow = conn.kind === 'oauth'
-            && !!store._internals?.OAUTH_AUTOMATION_PROVIDERS?.has?.(conn.provider);
-        let revoked = false;
-        if (isOwner && isOAuthRow) {
-            try {
-                const { revokeProviderCredential } = require('../../auth/oauthRoutes');
-                const result = await revokeProviderCredential(req.session.user.id, conn.provider);
-                revoked = !!result.found;
-            } catch (e) {
-                // A provider-side failure must not strand the row: log and
-                // continue so the user can still remove the connection.
-                log.warn(`[ConnectionsAPI] provider revoke failed for ${conn.provider}: ${e.message}`);
-            }
-            if (req.session.oauthProvider === conn.provider) {
-                delete req.session.accessToken;
-                delete req.session.refreshToken;
-                delete req.session.oauthProvider;
-                delete req.session.oauthTokenSource;
-                req.session.save?.();
-            }
-        }
-
-        const ok = await store.deleteConnection(conn.id); // ON DELETE CASCADE drops grants
-        if (ok) auditConnectionChange('delete', conn, req.session.user.id).catch(() => {});
-        res.json({ deleted: ok, credentialRevoked: revoked });
-    } catch (err) {
-        log.error('[ConnectionsAPI] delete error:', err.message);
-        res.status(500).json({ error: 'Could not delete this connection' });
+    const activeGrants = await store.listGrants({ connectionId: conn.id });
+    if (activeGrants.length > 0 && req.query.force !== true) {
+        return res.status(409).json({ error: 'Connection is shared', grants: activeGrants.length });
     }
+
+    const isOwner = conn.ownerUserId === req.session.user.id;
+    const isOAuthRow = conn.kind === 'oauth'
+        && !!store._internals?.OAUTH_AUTOMATION_PROVIDERS?.has?.(conn.provider);
+    let revoked = false;
+    if (isOwner && isOAuthRow) {
+        try {
+            const { revokeProviderCredential } = require('../../auth/oauthRoutes');
+            const result = await revokeProviderCredential(req.session.user.id, conn.provider);
+            revoked = !!result.found;
+        } catch (e) {
+            // A provider-side failure must not strand the row: log and
+            // continue so the user can still remove the connection.
+            log.warn(`[ConnectionsAPI] provider revoke failed for ${conn.provider}: ${e.message}`);
+        }
+        if (req.session.oauthProvider === conn.provider) {
+            delete req.session.accessToken;
+            delete req.session.refreshToken;
+            delete req.session.oauthProvider;
+            delete req.session.oauthTokenSource;
+            req.session.save?.();
+        }
+    }
+
+    const ok = await store.deleteConnection(conn.id); // ON DELETE CASCADE drops grants
+    if (ok) auditConnectionChange('delete', conn, req.session.user.id).catch(() => {});
+    res.json({ deleted: ok, credentialRevoked: revoked });
 });
 
 // Share (lend) a connection — org isolation enforced.
 router.post('/:id/grants', requireAuth, shareLimit, validate({ body: GrantBody }), async (req, res) => {
-    try {
-        const conn = await store.getConnection(req.params.id);
-        if (!conn) return res.status(404).json({ error: 'Connection not found' });
-        if (!(await ownsConnection(req, conn))) return res.status(403).json({ error: 'Forbidden' });
+    const conn = await store.getConnection(req.params.id);
+    if (!conn) return res.status(404).json({ error: 'Connection not found' });
+    if (!(await ownsConnection(req, conn))) return res.status(403).json({ error: 'Forbidden' });
 
-        let { granteeId = null, expiresAt = null } = req.body;
-        const { granteeType, granteeEmail = null, resourceType = null, resourceId = null } = req.body;
+    let { granteeId = null, expiresAt = null } = req.body;
+    const { granteeType, granteeEmail = null, resourceType = null, resourceId = null } = req.body;
 
-        // Lookup is deployment-global, so "no such account" and "account in
-        // another tenant" MUST be indistinguishable — otherwise this endpoint
-        // answers "does <email> have an account here?" for any address.
-        // A directly-supplied granteeId keeps the explicit cross-org 403: the
-        // caller already holds the id, so there is nothing left to disclose.
-        const emailLookupUsed = granteeType === 'user' && !granteeId && !!granteeEmail;
-        const NO_SUCH_TEAMMATE = 'No teammate with that email in your organization';
-        if (emailLookupUsed) {
-            const byEmail = await userStore.getUserByEmail(granteeEmail).catch(() => null);
-            if (!byEmail) return res.status(404).json({ error: NO_SUCH_TEAMMATE });
-            granteeId = byEmail.id;
-        }
-        // Shape, pairing and date are the schema's job now; what is left is
-        // normalising the one it cannot: '' and null both mean "no expiry".
-        expiresAt = expiresAt ? new Date(expiresAt).toISOString() : null;
-
-        const ownerOrg = conn.orgId; // authoritative owner org (sentinel-normalized at create)
-
-        // ── Org isolation: the grantee must live in the connection's org ──
-        if (granteeType === 'user') {
-            if (!granteeId) return res.status(400).json({ error: 'granteeId required for a user grant' });
-            const grantee = await userStore.getUser(granteeId).catch(() => null);
-            if (!grantee) {
-                return res.status(404).json({ error: emailLookupUsed ? NO_SUCH_TEAMMATE : 'Grantee user not found' });
-            }
-            if (store.resolveOrgId(grantee.organizationId) !== ownerOrg) {
-                return emailLookupUsed
-                    ? res.status(404).json({ error: NO_SUCH_TEAMMATE })
-                    : res.status(403).json({ error: 'Cross-org sharing is not allowed' });
-            }
-        } else if (granteeType === 'group') {
-            if (!granteeId) return res.status(400).json({ error: 'granteeId required for a group grant' });
-            const groups = await userStore.getAllGroups().catch(() => []);
-            const group = groups.find(g => g.id === granteeId);
-            if (!group) return res.status(404).json({ error: 'Grantee group not found' });
-            if (store.resolveOrgId(group.organizationId) !== ownerOrg) {
-                return res.status(403).json({ error: 'Cross-org sharing is not allowed' });
-            }
-        } else if (granteeType === 'org') {
-            // Only the owner's own org. granteeId is the org id (or null = own org).
-            granteeId = null;
-        }
-
-        const grant = await store.shareConnection({
-            connectionId: conn.id, grantorUserId: req.session.user.id,
-            granteeType, granteeId, resourceType, resourceId, expiresAt,
-        });
-        auditConnectionChange('share', conn, req.session.user.id).catch(() => {});
-        res.status(201).json({ grant });
-    } catch (err) {
-        log.error('[ConnectionsAPI] share error:', err.message);
-        res.status(500).json({ error: 'Could not share this connection' });
+    // Lookup is deployment-global, so "no such account" and "account in
+    // another tenant" MUST be indistinguishable — otherwise this endpoint
+    // answers "does <email> have an account here?" for any address.
+    // A directly-supplied granteeId keeps the explicit cross-org 403: the
+    // caller already holds the id, so there is nothing left to disclose.
+    const emailLookupUsed = granteeType === 'user' && !granteeId && !!granteeEmail;
+    const NO_SUCH_TEAMMATE = 'No teammate with that email in your organization';
+    if (emailLookupUsed) {
+        const byEmail = await userStore.getUserByEmail(granteeEmail).catch(() => null);
+        if (!byEmail) return res.status(404).json({ error: NO_SUCH_TEAMMATE });
+        granteeId = byEmail.id;
     }
+    // Shape, pairing and date are the schema's job now; what is left is
+    // normalising the one it cannot: '' and null both mean "no expiry".
+    expiresAt = expiresAt ? new Date(expiresAt).toISOString() : null;
+
+    const ownerOrg = conn.orgId; // authoritative owner org (sentinel-normalized at create)
+
+    // ── Org isolation: the grantee must live in the connection's org ──
+    if (granteeType === 'user') {
+        if (!granteeId) return res.status(400).json({ error: 'granteeId required for a user grant' });
+        const grantee = await userStore.getUser(granteeId).catch(() => null);
+        if (!grantee) {
+            return res.status(404).json({ error: emailLookupUsed ? NO_SUCH_TEAMMATE : 'Grantee user not found' });
+        }
+        if (store.resolveOrgId(grantee.organizationId) !== ownerOrg) {
+            return emailLookupUsed
+                ? res.status(404).json({ error: NO_SUCH_TEAMMATE })
+                : res.status(403).json({ error: 'Cross-org sharing is not allowed' });
+        }
+    } else if (granteeType === 'group') {
+        if (!granteeId) return res.status(400).json({ error: 'granteeId required for a group grant' });
+        const groups = await userStore.getAllGroups().catch(() => []);
+        const group = groups.find(g => g.id === granteeId);
+        if (!group) return res.status(404).json({ error: 'Grantee group not found' });
+        if (store.resolveOrgId(group.organizationId) !== ownerOrg) {
+            return res.status(403).json({ error: 'Cross-org sharing is not allowed' });
+        }
+    } else if (granteeType === 'org') {
+        // Only the owner's own org. granteeId is the org id (or null = own org).
+        granteeId = null;
+    }
+
+    const grant = await store.shareConnection({
+        connectionId: conn.id, grantorUserId: req.session.user.id,
+        granteeType, granteeId, resourceType, resourceId, expiresAt,
+    });
+    auditConnectionChange('share', conn, req.session.user.id).catch(() => {});
+    res.status(201).json({ grant });
 });
 
 module.exports = router;

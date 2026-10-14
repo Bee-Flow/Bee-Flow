@@ -238,30 +238,20 @@ function pickStructured(body) {
 
 // ── GET /api/skills — list available skills ──────────────────
 router.get('/', validate({ query: NoQuery }), async (req, res) => {
-    try {
-        // orgId may be null — getAvailableSkills then returns the user's personal
-        // (org-less) skills.
-        const orgId = await getOrgId(req);
-        const viewer = await viewerOf(req);
-        const skills = await skillStore.getAvailableSkills(orgId, req.session.user.id, { ...viewer, withLastTest: true });
-        res.json(skills);
-    } catch (err) {
-        log.error('[Skills] GET / error:', err);
-        res.status(500).json({ error: 'Failed to load skills' });
-    }
+    // orgId may be null — getAvailableSkills then returns the user's personal
+    // (org-less) skills.
+    const orgId = await getOrgId(req);
+    const viewer = await viewerOf(req);
+    const skills = await skillStore.getAvailableSkills(orgId, req.session.user.id, { ...viewer, withLastTest: true });
+    res.json(skills);
 });
 
 // ── GET /api/skills/usage-summary — counts per skill (before /:id) ──
 router.get('/usage-summary', validate({ query: NoQuery }), async (req, res) => {
-    try {
-        const orgId = await getOrgId(req);
-        const skills = await skillStore.getAvailableSkills(orgId, req.session.user.id);
-        const summary = await skillStore.getUsageSummary(orgId, skills.map(s => s.id));
-        res.json({ summary });
-    } catch (err) {
-        log.error('[Skills] GET /usage-summary error:', err);
-        res.status(500).json({ error: 'Failed to load skill usage' });
-    }
+    const orgId = await getOrgId(req);
+    const skills = await skillStore.getAvailableSkills(orgId, req.session.user.id);
+    const summary = await skillStore.getUsageSummary(orgId, skills.map(s => s.id));
+    res.json({ summary });
 });
 
 // ── POST /api/skills — create a new skill ────────────────────
@@ -328,37 +318,27 @@ function isClientError(err) {
 
 // ── GET /api/skills/:id — get skill details ──────────────────
 router.get('/:id', validate({ query: NoQuery }), async (req, res) => {
-    try {
-        // orgId may be null → getSkill resolves the caller's personal skill.
-        const orgId = await getOrgId(req);
-        const viewer = await viewerOf(req);
-        const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, viewer);
-        if (!skill) return res.status(404).json({ error: 'Skill not found' });
-        res.json({ ...skill, managed: await managedOf(skill) });
-    } catch (err) {
-        log.error('[Skills] GET /:id error:', err);
-        res.status(500).json({ error: 'Failed to load skill' });
-    }
+    // orgId may be null → getSkill resolves the caller's personal skill.
+    const orgId = await getOrgId(req);
+    const viewer = await viewerOf(req);
+    const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, viewer);
+    if (!skill) return res.status(404).json({ error: 'Skill not found' });
+    res.json({ ...skill, managed: await managedOf(skill) });
 });
 
 // ── GET /api/skills/:id/usage — who uses this skill ──────────
 router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
-    try {
-        const orgId = await getOrgId(req);
-        const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id);
-        if (!skill) return res.status(404).json({ error: 'Skill not found' });
-        // `unchecked` names the kinds the scan could NOT look at (an install
-        // with no automations table). The client already reads it — useUsage's
-        // `normaliseUnchecked`, UsedByTab's narrower empty line, DangerZone's
-        // narrower delete line — and answering `{usage}` alone was the reason
-        // none of that could ever fire: the tab said "nothing uses this" for a
-        // kind nobody had scanned.
-        const { rows, unchecked } = await skillStore.listSkillUsage(skill.id, skill.orgId);
-        res.json({ usage: rows, unchecked });
-    } catch (err) {
-        log.error('[Skills] GET /:id/usage error:', err);
-        res.status(500).json({ error: 'Failed to load skill usage' });
-    }
+    const orgId = await getOrgId(req);
+    const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id);
+    if (!skill) return res.status(404).json({ error: 'Skill not found' });
+    // `unchecked` names the kinds the scan could NOT look at (an install
+    // with no automations table). The client already reads it — useUsage's
+    // `normaliseUnchecked`, UsedByTab's narrower empty line, DangerZone's
+    // narrower delete line — and answering `{usage}` alone was the reason
+    // none of that could ever fire: the tab said "nothing uses this" for a
+    // kind nobody had scanned.
+    const { rows, unchecked } = await skillStore.listSkillUsage(skill.id, skill.orgId);
+    res.json({ usage: rows, unchecked });
 });
 
 // ── GET /api/skills/:id/test-runs — the last 20 Test-tab runs ──
@@ -373,18 +353,13 @@ router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
 // 403, not 404: the skill itself is visible, so a 404 would lie about it —
 // the same answer POST /:id/ai/improve gives (routes/skills/ai.js).
 router.get('/:id/test-runs', requirePermission('manage_skills'), validate({ query: NoQuery }), async (req, res) => {
-    try {
-        const orgId = await getOrgId(req);
-        const viewer = await viewerOf(req);
-        const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, viewer);
-        if (!skill) return res.status(404).json({ error: 'Skill not found' });
-        if (!skill.canEdit) return res.status(403).json({ error: 'You cannot see the test history of this skill', code: 'not_editable' });
-        const runs = await skillStore.listTestRuns(skill.id);
-        res.json({ runs });
-    } catch (err) {
-        log.error('[Skills] GET /:id/test-runs error:', err);
-        res.status(500).json({ error: 'Failed to load test runs' });
-    }
+    const orgId = await getOrgId(req);
+    const viewer = await viewerOf(req);
+    const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, viewer);
+    if (!skill) return res.status(404).json({ error: 'Skill not found' });
+    if (!skill.canEdit) return res.status(403).json({ error: 'You cannot see the test history of this skill', code: 'not_editable' });
+    const runs = await skillStore.listTestRuns(skill.id);
+    res.json({ runs });
 });
 
 /**

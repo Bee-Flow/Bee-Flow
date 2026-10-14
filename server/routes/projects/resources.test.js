@@ -152,5 +152,7 @@ test('the graph and completeness answer over the loader, and completeness fails 
     assert.deepStrictEqual(failed.body, {
         error: 'Request failed', blocked: true, complete: false, findings: [], unavailable: ['all'],
     });
-    assert.deepStrictEqual((await call('GET', '/p1/graph', 'carol')).body, { error: 'Request failed' });
+    const graphFailed = await call('GET', '/p1/graph', 'carol');
+    assert.strictEqual(graphFailed.status, 500);
+    assert.strictEqual(graphFailed.body.error, 'Internal server error');
 });

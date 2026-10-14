@@ -352,16 +352,11 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
 // ── List Sources ────────────────────────────────────────────────
 
 router.get('/:id/sources', requireAuth, asViewer, async (req, res) => {
-    try {
-        const nb = req.notebook;
+    const nb = req.notebook;
 
-        await notebookStore.timeoutStuckSources(nb.id).catch(() => {});
-        const sources = await notebookStore.getSources(nb.id);
-        res.json({ sources });
-    } catch (err) {
-        log.error('[Notebooks] List sources failed:', err);
-        res.status(500).json({ error: 'Failed to list sources' });
-    }
+    await notebookStore.timeoutStuckSources(nb.id).catch(() => {});
+    const sources = await notebookStore.getSources(nb.id);
+    res.json({ sources });
 });
 
 // ── Retry Source Ingestion ──────────────────────────────────────
@@ -433,28 +428,23 @@ router.post('/:id/sources/:sid/retry', requireAuth, asEditor, async (req, res) =
 // can dismiss without losing the uploaded bytes (retry remains available).
 
 router.post('/:id/sources/:sid/cancel', requireAuth, asEditor, async (req, res) => {
-    try {
-        const nb = req.notebook;
+    const nb = req.notebook;
 
-        const source = await notebookStore.getSource(req.params.sid);
-        if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
+    const source = await notebookStore.getSource(req.params.sid);
+    if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
 
-        // Only a source that is still being worked on (or already failed) can be
-        // cancelled; a finished one must not be flipped to error. The running
-        // ingestion notices the change before it embeds / marks ready and
-        // discards what it wrote (agents/notebooks/sourceIngestion.js).
-        if (source.status === 'processing') {
-            await notebookStore.updateSource(source.id, {
-                status: 'error',
-                stage: 'error',
-                error: 'Cancelled by user',
-            }, { onlyIfProcessing: true });
-        }
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Notebooks] Cancel source failed:', err);
-        res.status(500).json({ error: 'Failed to cancel source' });
+    // Only a source that is still being worked on (or already failed) can be
+    // cancelled; a finished one must not be flipped to error. The running
+    // ingestion notices the change before it embeds / marks ready and
+    // discards what it wrote (agents/notebooks/sourceIngestion.js).
+    if (source.status === 'processing') {
+        await notebookStore.updateSource(source.id, {
+            status: 'error',
+            stage: 'error',
+            error: 'Cancelled by user',
+        }, { onlyIfProcessing: true });
     }
+    res.json({ success: true });
 });
 
 // Shared cleanup for a deleted source: storage bytes + KB document chunks.
@@ -466,85 +456,60 @@ const { cleanupSourceArtifacts } = require('../core/kb/notebookCascade');
 
 // ── Source content (preview) ────────────────────────────────────
 router.get('/:id/sources/:sid/content', requireAuth, asViewer, async (req, res) => {
-    try {
-        const nb = req.notebook;
-        const source = await notebookStore.getSource(req.params.sid);
-        if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
-        const content = await notebookStore.getSourceContent(source.id);
-        res.json({ content: content || '', name: source.name, type: source.type });
-    } catch (err) {
-        log.error('[Notebooks] Get source content failed:', err);
-        res.status(500).json({ error: 'Failed to load source content' });
-    }
+    const nb = req.notebook;
+    const source = await notebookStore.getSource(req.params.sid);
+    if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
+    const content = await notebookStore.getSourceContent(source.id);
+    res.json({ content: content || '', name: source.name, type: source.type });
 });
 
 // ── Reorder sources (must precede the /:sid rename route) ────────
 router.patch('/:id/sources/reorder', requireAuth, validate({ body: ReorderBody }), asEditor, async (req, res) => {
-    try {
-        const nb = req.notebook;
-        const { orderedIds } = req.body || {};
-        if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds must be an array' });
-        await notebookStore.reorderSources(nb.id, orderedIds);
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Notebooks] Reorder sources failed:', err);
-        res.status(500).json({ error: 'Failed to reorder sources' });
-    }
+    const nb = req.notebook;
+    const { orderedIds } = req.body || {};
+    if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds must be an array' });
+    await notebookStore.reorderSources(nb.id, orderedIds);
+    res.json({ success: true });
 });
 
 // ── Rename a source ─────────────────────────────────────────────
 router.patch('/:id/sources/:sid', requireAuth, validate({ body: RenameBody }), asEditor, async (req, res) => {
-    try {
-        const nb = req.notebook;
-        const source = await notebookStore.getSource(req.params.sid);
-        if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
-        const name = String(req.body?.name || '').replace(/\s+/g, ' ').trim().slice(0, 200);
-        if (!name) return res.status(400).json({ error: 'Name is required' });
-        await notebookStore.updateSource(source.id, { name });
-        res.json({ success: true, name });
-    } catch (err) {
-        log.error('[Notebooks] Rename source failed:', err);
-        res.status(500).json({ error: 'Failed to rename source' });
-    }
+    const nb = req.notebook;
+    const source = await notebookStore.getSource(req.params.sid);
+    if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
+    const name = String(req.body?.name || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    await notebookStore.updateSource(source.id, { name });
+    res.json({ success: true, name });
 });
 
 // ── Bulk delete sources ─────────────────────────────────────────
 router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDeleteBody }), asEditor, async (req, res) => {
-    try {
-        const nb = req.notebook;
-        const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
-        if (ids.length > MAX_BULK_DELETE_IDS) {
-            return res.status(400).json({ error: `Too many sources — delete at most ${MAX_BULK_DELETE_IDS} at a time` });
-        }
-        // One scoped DELETE ... WHERE id = ANY: a foreign sid simply doesn't match,
-        // so a caller can't destroy another notebook's source by mixing ids in.
-        const removed = await notebookStore.deleteSources(ids, nb.id);
-        // Chunks live under the notebook owner's tenant (sourceIngestion.js).
-        await mapWithConcurrency(removed, SOURCE_CLEANUP_CONCURRENCY, (source) => cleanupSourceArtifacts(nb, source, nb.userId));
-        const deleted = removed.length;
-        res.json({ success: true, deleted });
-    } catch (err) {
-        log.error('[Notebooks] Bulk delete sources failed:', err);
-        res.status(500).json({ error: 'Failed to delete sources' });
+    const nb = req.notebook;
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    if (ids.length > MAX_BULK_DELETE_IDS) {
+        return res.status(400).json({ error: `Too many sources — delete at most ${MAX_BULK_DELETE_IDS} at a time` });
     }
+    // One scoped DELETE ... WHERE id = ANY: a foreign sid simply doesn't match,
+    // so a caller can't destroy another notebook's source by mixing ids in.
+    const removed = await notebookStore.deleteSources(ids, nb.id);
+    // Chunks live under the notebook owner's tenant (sourceIngestion.js).
+    await mapWithConcurrency(removed, SOURCE_CLEANUP_CONCURRENCY, (source) => cleanupSourceArtifacts(nb, source, nb.userId));
+    const deleted = removed.length;
+    res.json({ success: true, deleted });
 });
 
 // ── Delete Source ───────────────────────────────────────────────
 
 router.delete('/:id/sources/:sid', requireAuth, asEditor, async (req, res) => {
-    try {
-        const nb = req.notebook;
+    const nb = req.notebook;
 
-        const source = await notebookStore.deleteSource(req.params.sid, nb.id);
-        if (!source) return res.status(404).json({ error: 'Source not found' });
+    const source = await notebookStore.deleteSource(req.params.sid, nb.id);
+    if (!source) return res.status(404).json({ error: 'Source not found' });
 
-        // Chunks live under the notebook owner's tenant (sourceIngestion.js).
-        await cleanupSourceArtifacts(nb, source, nb.userId);
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Notebooks] Delete source failed:', err);
-        res.status(500).json({ error: 'Failed to delete source' });
-    }
+    // Chunks live under the notebook owner's tenant (sourceIngestion.js).
+    await cleanupSourceArtifacts(nb, source, nb.userId);
+    res.json({ success: true });
 });
 
 module.exports = router;

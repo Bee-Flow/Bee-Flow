@@ -63,20 +63,15 @@ const { requireAuth } = require('../auth/permissions');
  * is what ties an export to a real, owned document.
  */
 async function requireNotebookOwner(req, res, next) {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) {
-            log.warn('[Export] refused export for a notebook the caller does not own:', { notebookId: req.params.id, userId });
-            return res.status(404).json({ error: 'Notebook not found' });
-        }
-        req.notebook = nb;
-        next();
-    } catch (err) {
-        log.error('[Export] ownership check failed:', err);
-        res.status(500).json({ error: 'Export failed' });
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const nb = await notebookStore.getNotebook(req.params.id, userId);
+    if (!nb) {
+        log.warn('[Export] refused export for a notebook the caller does not own:', { notebookId: req.params.id, userId });
+        return res.status(404).json({ error: 'Notebook not found' });
     }
+    req.notebook = nb;
+    next();
 }
 
 // ── Request schemas (see the header) ────────────────────────────────

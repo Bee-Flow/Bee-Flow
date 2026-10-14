@@ -133,50 +133,34 @@ function presentScope(doc) {
 }
 
 router.get('/', requireAuth, async (req, res) => {
-    try {
-        const doc = await ncScope.getUserScopeDoc(req.session.user.id);
-        res.json({ integrations: presentScope(doc), updatedAt: doc?.updatedAt || null });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to load Nextcloud access settings' });
-    }
+    const doc = await ncScope.getUserScopeDoc(req.session.user.id);
+    res.json({ integrations: presentScope(doc), updatedAt: doc?.updatedAt || null });
 });
 
 router.put('/', requireAuth, express.json({ limit: '256kb' }), validate({ body: ScopeBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const doc = await ncScope.saveUserScope(userId, { integrations: req.body.integrations }, {
-            orgId: callerOrgId(req),
-            updatedBy: userId,
-        });
-        _invalidateGuardCache(userId);
-        res.json({ integrations: presentScope(doc), updatedAt: doc.updatedAt });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to save Nextcloud access settings' });
-    }
+    const userId = req.session.user.id;
+    const doc = await ncScope.saveUserScope(userId, { integrations: req.body.integrations }, {
+        orgId: callerOrgId(req),
+        updatedBy: userId,
+    });
+    _invalidateGuardCache(userId);
+    res.json({ integrations: presentScope(doc), updatedAt: doc.updatedAt });
 });
 
 // One-click offboarding: every integration explicitly off.
 router.post('/revoke-all', requireAuth, validate({ body: NoBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const doc = await ncScope.revokeAll(userId, { orgId: callerOrgId(req), updatedBy: userId });
-        _invalidateGuardCache(userId);
-        res.json({ integrations: presentScope(doc), updatedAt: doc.updatedAt, revoked: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to revoke Nextcloud access' });
-    }
+    const userId = req.session.user.id;
+    const doc = await ncScope.revokeAll(userId, { orgId: callerOrgId(req), updatedBy: userId });
+    _invalidateGuardCache(userId);
+    res.json({ integrations: presentScope(doc), updatedAt: doc.updatedAt, revoked: true });
 });
 
 // Back to the allow-all default (delete the doc).
 router.post('/reset', requireAuth, validate({ body: NoBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const doc = await ncScope.resetToDefault(userId, { orgId: callerOrgId(req), updatedBy: userId });
-        _invalidateGuardCache(userId);
-        res.json({ integrations: presentScope(doc), updatedAt: null, reset: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to reset Nextcloud access settings' });
-    }
+    const userId = req.session.user.id;
+    const doc = await ncScope.resetToDefault(userId, { orgId: callerOrgId(req), updatedBy: userId });
+    _invalidateGuardCache(userId);
+    res.json({ integrations: presentScope(doc), updatedAt: null, reset: true });
 });
 
 function _invalidateGuardCache(userId) {

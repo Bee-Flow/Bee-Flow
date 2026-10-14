@@ -103,100 +103,85 @@ function envelope(policy, extra = {}) {
 
 // GET /:orgId — current policy (any member of the org may read it)
 router.get('/:orgId', requireAuth, async (req, res) => {
-    try {
-        const { orgId } = req.params;
-        const orgIds = await resolveUserOrgIds(req);
-        const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
-        if (!isMember) return res.status(403).json({ error: 'Not a member of this organization' });
+    const { orgId } = req.params;
+    const orgIds = await resolveUserOrgIds(req);
+    const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
+    if (!isMember) return res.status(403).json({ error: 'Not a member of this organization' });
 
-        const stored = await configStore.getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
-        const stats = await integrationCacheStore.statsForOrg(orgId);
-        res.json(envelope(normalizePolicy(stored), {
-            // Lets the screen distinguish "never configured" from "explicitly off".
-            configured: !!stored,
-            entries: stats.entries,
-            // Expired-but-not-yet-pruned rows are still ROWS. The prune runs
-            // hourly, so reporting only live entries told an org it held
-            // nothing while thousands sat in the table between passes.
-            expiredEntries: stats.expiredEntries,
-            bytes: stats.bytes,
-        }));
-    } catch (err) {
-        log.error('[OrgIntegrationCache] GET failed:', err.message);
-        res.status(500).json({ error: 'Failed to load the setting' });
-    }
+    const stored = await configStore.getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
+    const stats = await integrationCacheStore.statsForOrg(orgId);
+    res.json(envelope(normalizePolicy(stored), {
+        // Lets the screen distinguish "never configured" from "explicitly off".
+        configured: !!stored,
+        entries: stats.entries,
+        // Expired-but-not-yet-pruned rows are still ROWS. The prune runs
+        // hourly, so reporting only live entries told an org it held
+        // nothing while thousands sat in the table between passes.
+        expiredEntries: stats.expiredEntries,
+        bytes: stats.bytes,
+    }));
 });
 
 // PUT /:orgId — save (org admin or super admin only)
 router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, res) => {
-    try {
-        const { orgId } = req.params;
-        if (!(await isOrgAdmin(req, orgId))) {
-            return res.status(403).json({ error: 'Only organization admins can change this setting' });
-        }
-
-        const { enabled, ttlSeconds, scopes } = req.body;
-        // normalizePolicy clamps and resolves the default of an absent field,
-        // so a hand-rolled body can never write an unusable row. `scopes`
-        // decides WHICH outbound answers the consent covers (app look-ups /
-        // outbound HTTP); normalizeScopes only ever reads a literal true as a
-        // yes for http.
-        const policy = normalizePolicy({ enabled, ttlSeconds, scopes });
-
-        await configStore.setConfig(`${CONFIG_KEY_PREFIX}${orgId}`, {
-            ...policy,
-            updatedAt: new Date().toISOString(),
-            updatedBy: req.session?.user?.id || null,
-        });
-        invalidateCachePolicy(orgId);
-
-        // Turning it off is also an instruction to forget.
-        let purged = 0;
-        if (!policy.enabled) purged = await integrationCacheStore.purgeForOrg(orgId);
-
-        // A SHORTER window has to reach the rows already stored. expires_at is
-        // stamped at write time, so lowering it from 60 minutes to 5 used to
-        // change nothing for another 59 — the admin doing that has just seen
-        // stale data and means now. Only ever shortens, so it is a no-op when
-        // the window is widened or unchanged.
-        let shrunk = 0;
-        if (policy.enabled) shrunk = await integrationCacheStore.shrinkTtlForOrg(orgId, policy.ttlSeconds);
-
-        log.info(`[OrgIntegrationCache] org ${orgId}: ${policy.enabled ? 'ENABLED' : 'disabled'}`
-            + ` (ttl ${policy.ttlSeconds}s, scopes app=${policy.scopes.integration} http=${policy.scopes.http}`
-            + `${purged ? `, purged ${purged} entries` : ''}`
-            + `${shrunk ? `, shortened ${shrunk} stored entries` : ''})`);
-
-        const stats = await integrationCacheStore.statsForOrg(orgId);
-        res.json(envelope(policy, {
-            configured: true,
-            entries: stats.entries,
-            expiredEntries: stats.expiredEntries,
-            bytes: stats.bytes,
-            purged,
-            shrunk,
-        }));
-    } catch (err) {
-        log.error('[OrgIntegrationCache] PUT failed:', err.message);
-        res.status(500).json({ error: 'Failed to save the setting' });
+    const { orgId } = req.params;
+    if (!(await isOrgAdmin(req, orgId))) {
+        return res.status(403).json({ error: 'Only organization admins can change this setting' });
     }
+
+    const { enabled, ttlSeconds, scopes } = req.body;
+    // normalizePolicy clamps and resolves the default of an absent field,
+    // so a hand-rolled body can never write an unusable row. `scopes`
+    // decides WHICH outbound answers the consent covers (app look-ups /
+    // outbound HTTP); normalizeScopes only ever reads a literal true as a
+    // yes for http.
+    const policy = normalizePolicy({ enabled, ttlSeconds, scopes });
+
+    await configStore.setConfig(`${CONFIG_KEY_PREFIX}${orgId}`, {
+        ...policy,
+        updatedAt: new Date().toISOString(),
+        updatedBy: req.session?.user?.id || null,
+    });
+    invalidateCachePolicy(orgId);
+
+    // Turning it off is also an instruction to forget.
+    let purged = 0;
+    if (!policy.enabled) purged = await integrationCacheStore.purgeForOrg(orgId);
+
+    // A SHORTER window has to reach the rows already stored. expires_at is
+    // stamped at write time, so lowering it from 60 minutes to 5 used to
+    // change nothing for another 59 — the admin doing that has just seen
+    // stale data and means now. Only ever shortens, so it is a no-op when
+    // the window is widened or unchanged.
+    let shrunk = 0;
+    if (policy.enabled) shrunk = await integrationCacheStore.shrinkTtlForOrg(orgId, policy.ttlSeconds);
+
+    log.info(`[OrgIntegrationCache] org ${orgId}: ${policy.enabled ? 'ENABLED' : 'disabled'}`
+        + ` (ttl ${policy.ttlSeconds}s, scopes app=${policy.scopes.integration} http=${policy.scopes.http}`
+        + `${purged ? `, purged ${purged} entries` : ''}`
+        + `${shrunk ? `, shortened ${shrunk} stored entries` : ''})`);
+
+    const stats = await integrationCacheStore.statsForOrg(orgId);
+    res.json(envelope(policy, {
+        configured: true,
+        entries: stats.entries,
+        expiredEntries: stats.expiredEntries,
+        bytes: stats.bytes,
+        purged,
+        shrunk,
+    }));
 });
 
 // DELETE /:orgId/entries — forget everything cached, without changing the policy.
 // The button an admin wants after a data-correction incident: the answers on
 // hand are wrong, and waiting out the TTL is not an answer.
 router.delete('/:orgId/entries', requireAuth, validate({ body: NoBody }), async (req, res) => {
-    try {
-        const { orgId } = req.params;
-        if (!(await isOrgAdmin(req, orgId))) {
-            return res.status(403).json({ error: 'Only organization admins can clear this' });
-        }
-        const purged = await integrationCacheStore.purgeForOrg(orgId);
-        res.json({ purged });
-    } catch (err) {
-        log.error('[OrgIntegrationCache] purge failed:', err.message);
-        res.status(500).json({ error: 'Failed to clear the stored answers' });
+    const { orgId } = req.params;
+    if (!(await isOrgAdmin(req, orgId))) {
+        return res.status(403).json({ error: 'Only organization admins can clear this' });
     }
+    const purged = await integrationCacheStore.purgeForOrg(orgId);
+    res.json({ purged });
 });
 
 module.exports = router;

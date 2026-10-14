@@ -236,13 +236,8 @@ function makeResourcesRouter(deps) {
      *     agent's instructions or its tool grants.
      */
     router.get('/:id/graph', requireRole('viewer'), async (req, res) => {
-        try {
-            const { graph } = await buildGraphForProject(req.params.id);
-            res.json({ ...graph, role: req.projectRole });
-        } catch (err) {
-            log.error('[Projects] Graph build error:', err.message);
-            res.status(500).json({ error: 'Request failed' });
-        }
+        const { graph } = await buildGraphForProject(req.params.id);
+        res.json({ ...graph, role: req.projectRole });
     });
 
     /**

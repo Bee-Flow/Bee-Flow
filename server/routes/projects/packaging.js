@@ -625,50 +625,45 @@ router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjec
  * in de 500 hieronder — het scherm zegt dan "niet te lezen", niet "nul".
  */
 router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owner'), requireSolutionProject, async (req, res) => {
-    try {
-        const projectStore = require('../../stores/projectStore');
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
+    const projectStore = require('../../stores/projectStore');
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Not found' });
 
-        const store = require('../../stores/blueprintStore');
-        const readable = await store.listBlueprintsFor({
-            userId: req.session?.user?.id,
-            organizationId: req.session?.user?.organizationId || null,
-        });
-        // De Blueprints die uit DIT project komen. `solution_key` is
-        // `sol_<projectId>` (packaging/manifest.buildManifest), en de serie loopt
-        // per maker — twee collega's die hetzelfde project publiceren hebben elk
-        // hun eigen rij, en beide tellen mee.
-        const ids = new Set((readable || [])
-            .filter(b => b?.solutionKey === `sol_${project.id}`)
-            .map(b => b.id));
+    const store = require('../../stores/blueprintStore');
+    const readable = await store.listBlueprintsFor({
+        userId: req.session?.user?.id,
+        organizationId: req.session?.user?.organizationId || null,
+    });
+    // De Blueprints die uit DIT project komen. `solution_key` is
+    // `sol_<projectId>` (packaging/manifest.buildManifest), en de serie loopt
+    // per maker — twee collega's die hetzelfde project publiceren hebben elk
+    // hun eigen rij, en beide tellen mee.
+    const ids = new Set((readable || [])
+        .filter(b => b?.solutionKey === `sol_${project.id}`)
+        .map(b => b.id));
 
-        // …plus elke Blueprint waaronder dit project ooit gepubliceerd heeft.
-        // Zonder deze tweede bron leest een verwijderde galerijrij als "nul
-        // installaties". GEEN catch: kan de geschiedenis niet gelezen worden,
-        // dan is de telling onbekend en hoort dat als 500 op het scherm te
-        // komen, niet als nul.
-        for (const release of (await store.listReleases(project.id)) || []) {
-            if (typeof release?.blueprintId === 'string' && release.blueprintId) ids.add(release.blueprintId);
-        }
-
-        // "Hier" is de organisatie van de Blueprint zelf, en dat is die van het
-        // project waar hij uit komt — niet die van de sessie. Voor de eigenaar
-        // van dit project zijn dat dezelfde, behalve wanneer het project ooit
-        // van organisatie is gewisseld; dan is de vraag "hoeveel bij ons" een
-        // vraag over waar de Oplossing nú thuishoort.
-        const counted = await store.countInstallsFor([...ids], { organizationId: project.organizationId || null });
-
-        // Twee velden, met de hand opgeschreven. Niets van een projectrij en
-        // niets van een galerijrij reist mee.
-        res.json({
-            installsHere: counted ? counted.here : null,
-            installsElsewhere: counted ? counted.elsewhere : null,
-        });
-    } catch (err) {
-        log.error('[Projects] Blueprint install count failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
+    // …plus elke Blueprint waaronder dit project ooit gepubliceerd heeft.
+    // Zonder deze tweede bron leest een verwijderde galerijrij als "nul
+    // installaties". GEEN catch: kan de geschiedenis niet gelezen worden,
+    // dan is de telling onbekend en hoort dat als 500 op het scherm te
+    // komen, niet als nul.
+    for (const release of (await store.listReleases(project.id)) || []) {
+        if (typeof release?.blueprintId === 'string' && release.blueprintId) ids.add(release.blueprintId);
     }
+
+    // "Hier" is de organisatie van de Blueprint zelf, en dat is die van het
+    // project waar hij uit komt — niet die van de sessie. Voor de eigenaar
+    // van dit project zijn dat dezelfde, behalve wanneer het project ooit
+    // van organisatie is gewisseld; dan is de vraag "hoeveel bij ons" een
+    // vraag over waar de Oplossing nú thuishoort.
+    const counted = await store.countInstallsFor([...ids], { organizationId: project.organizationId || null });
+
+    // Twee velden, met de hand opgeschreven. Niets van een projectrij en
+    // niets van een galerijrij reist mee.
+    res.json({
+        installsHere: counted ? counted.here : null,
+        installsElsewhere: counted ? counted.elsewhere : null,
+    });
 });
 
 /**
@@ -724,17 +719,12 @@ router.post('/package/install', blueprintPackaging, validate({ body: S.InstallBo
  * multi-megabyte JSONB and nothing on the list screen reads them.
  */
 router.get('/package/blueprints', blueprintPackaging, async (req, res) => {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const blueprints = await require('../../stores/blueprintStore').listBlueprintsFor({
-            userId, organizationId: req.session?.user?.organizationId || null,
-        });
-        res.json({ blueprints });
-    } catch (err) {
-        log.error('[Projects] Blueprint list failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const blueprints = await require('../../stores/blueprintStore').listBlueprintsFor({
+        userId, organizationId: req.session?.user?.organizationId || null,
+    });
+    res.json({ blueprints });
 });
 
 /**
@@ -752,38 +742,28 @@ router.get('/package/blueprints', blueprintPackaging, async (req, res) => {
  * you may install is not a wider permission than installing it.
  */
 router.get('/package/blueprints/:blueprintId', blueprintPackaging, async (req, res) => {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const store = require('../../stores/blueprintStore');
-        const found = await store.getBlueprintById(req.params.blueprintId);
-        const readable = store.canRead(found, {
-            userId, organizationId: req.session?.user?.organizationId || null,
-        });
-        // One answer for "no such Blueprint" and "not yours to read", so this
-        // route cannot be used to discover which ids exist in other orgs.
-        if (!found || !readable) return res.status(404).json({ error: 'Not found' });
+    const store = require('../../stores/blueprintStore');
+    const found = await store.getBlueprintById(req.params.blueprintId);
+    const readable = store.canRead(found, {
+        userId, organizationId: req.session?.user?.organizationId || null,
+    });
+    // One answer for "no such Blueprint" and "not yours to read", so this
+    // route cannot be used to discover which ids exist in other orgs.
+    if (!found || !readable) return res.status(404).json({ error: 'Not found' });
 
-        res.json({ blueprint: found });
-    } catch (err) {
-        log.error('[Projects] Blueprint read failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    res.json({ blueprint: found });
 });
 
 /** DELETE /package/blueprints/:blueprintId — creator only. */
 router.delete('/package/blueprints/:blueprintId', blueprintPackaging, async (req, res) => {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const ok = await require('../../stores/blueprintStore').deleteBlueprint(req.params.blueprintId, userId);
-        if (!ok) return res.status(404).json({ error: 'Not found, or not yours to delete' });
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Projects] Blueprint delete failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const ok = await require('../../stores/blueprintStore').deleteBlueprint(req.params.blueprintId, userId);
+    if (!ok) return res.status(404).json({ error: 'Not found, or not yours to delete' });
+    res.json({ success: true });
 });
 
 module.exports = router;

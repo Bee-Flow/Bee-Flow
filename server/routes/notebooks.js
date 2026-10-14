@@ -121,43 +121,33 @@ router.use(requirePermission('use_notebooks'));
 // ── Notebook CRUD ──────────────────────────────────────────────────
 
 router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const { name, description, instructions } = req.body;
-        // Stamped at birth: without it the row stayed org-less until the next
-        // boot's backfill, and the cross-tenant checks had nothing to compare.
-        const organizationId = req.session.user.organizationId || null;
-        const notebook = await notebookStore.createNotebook({ userId, name, description, instructions, organizationId });
-        res.json({ success: true, notebook });
-    } catch (err) {
-        log.error('[Notebooks] Create failed:', err);
-        res.status(500).json({ error: 'Failed to create notebook' });
-    }
+    const userId = req.session.user.id;
+    const { name, description, instructions } = req.body;
+    // Stamped at birth: without it the row stayed org-less until the next
+    // boot's backfill, and the cross-tenant checks had nothing to compare.
+    const organizationId = req.session.user.organizationId || null;
+    const notebook = await notebookStore.createNotebook({ userId, name, description, instructions, organizationId });
+    res.json({ success: true, notebook });
 });
 
 router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        // Paginate. This called getNotebooks(userId) with no options, which fell
-        // back to the store's default LIMIT 50 — so a user with more than 50
-        // notebooks silently lost access to the older ones (the sidebar never
-        // listed them, and the deep-link path resolves ids out of this list).
-        // Clamp to the store's cap so hasMore (length === limit) is truthful.
-        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 200, 1), notebookStore.MAX_CARD_LIMIT);
-        const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
-        // Card projection — counts + cached preview, never document bodies.
-        // `type` is hardcoded so only plain notebooks appear in this list
-        // (or can be cascade-deleted through it). Sort/filter are whitelisted
-        // here AND in the store; unknown values fall back to the defaults.
-        const search = String(req.query.search || '').trim().slice(0, 200);
-        const sort = ['activity', 'name', 'created', 'words'].includes(req.query.sort) ? req.query.sort : 'activity';
-        const filter = ['all', 'pinned', 'sources', 'chat', 'empty', 'processing'].includes(req.query.filter) ? req.query.filter : 'all';
-        const notebooks = await notebookStore.listNotebookCards(userId, { limit, offset, type: 'notebook', search, sort, filter });
-        res.json({ notebooks, limit, offset, hasMore: notebooks.length === limit });
-    } catch (err) {
-        log.error('[Notebooks] List failed:', err);
-        res.status(500).json({ error: 'Failed to list notebooks' });
-    }
+    const userId = req.session.user.id;
+    // Paginate. This called getNotebooks(userId) with no options, which fell
+    // back to the store's default LIMIT 50 — so a user with more than 50
+    // notebooks silently lost access to the older ones (the sidebar never
+    // listed them, and the deep-link path resolves ids out of this list).
+    // Clamp to the store's cap so hasMore (length === limit) is truthful.
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 200, 1), notebookStore.MAX_CARD_LIMIT);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+    // Card projection — counts + cached preview, never document bodies.
+    // `type` is hardcoded so only plain notebooks appear in this list
+    // (or can be cascade-deleted through it). Sort/filter are whitelisted
+    // here AND in the store; unknown values fall back to the defaults.
+    const search = String(req.query.search || '').trim().slice(0, 200);
+    const sort = ['activity', 'name', 'created', 'words'].includes(req.query.sort) ? req.query.sort : 'activity';
+    const filter = ['all', 'pinned', 'sources', 'chat', 'empty', 'processing'].includes(req.query.filter) ? req.query.filter : 'all';
+    const notebooks = await notebookStore.listNotebookCards(userId, { limit, offset, type: 'notebook', search, sort, filter });
+    res.json({ notebooks, limit, offset, hasMore: notebooks.length === limit });
 });
 
 router.get('/:id', requireAuth, asViewer, async (req, res) => {
@@ -184,54 +174,44 @@ router.get('/:id', requireAuth, asViewer, async (req, res) => {
 // so the chat panel can rehydrate on page load / notebook switch instead of
 // starting from an empty React state. Ownership is enforced via getNotebook.
 router.get('/:id/conversation', requireAuth, asViewer, async (req, res) => {
+    const userId = req.session.user.id;
+    const encryptionKey = req.session.encryptionKey || null;
+    // `locked` = encrypted history we can't decode with this session's DEK —
+    // the UI shows "history unavailable" instead of a silently empty chat.
+    const { messages, locked } = await notebookConversationStore.getMessagesWithMeta(req.params.id, userId, encryptionKey);
+    // Stored assistant content is TOKENIZED (defense-in-depth inside the
+    // encrypted blob); restore `[person_1]` → real values for display, using
+    // the notebook's persisted PII token map (hydrated from notebooks.pii_token_map).
+    // User messages are stored real, so restore is a no-op for them.
+    let outMessages = messages;
     try {
-        const userId = req.session.user.id;
-        const encryptionKey = req.session.encryptionKey || null;
-        // `locked` = encrypted history we can't decode with this session's DEK —
-        // the UI shows "history unavailable" instead of a silently empty chat.
-        const { messages, locked } = await notebookConversationStore.getMessagesWithMeta(req.params.id, userId, encryptionKey);
-        // Stored assistant content is TOKENIZED (defense-in-depth inside the
-        // encrypted blob); restore `[person_1]` → real values for display, using
-        // the notebook's persisted PII token map (hydrated from notebooks.pii_token_map).
-        // User messages are stored real, so restore is a no-op for them.
-        let outMessages = messages;
-        try {
-            const dlpRunner = require('../core/dlp/dlpRunner');
-            const map = await dlpRunner.getConversationTokenMapAsync(req.params.id);
-            if (map && Object.keys(map).length) {
-                const { restoreTokens } = require('../core/privacy/piiDetection');
-                outMessages = messages.map(m => (typeof m.content === 'string'
-                    ? { ...m, content: restoreTokens(m.content, map) }
-                    : m));
-            }
-        } catch (e) {
-            log.warn('[Notebooks] token restore on conversation load failed:', e.message);
+        const dlpRunner = require('../core/dlp/dlpRunner');
+        const map = await dlpRunner.getConversationTokenMapAsync(req.params.id);
+        if (map && Object.keys(map).length) {
+            const { restoreTokens } = require('../core/privacy/piiDetection');
+            outMessages = messages.map(m => (typeof m.content === 'string'
+                ? { ...m, content: restoreTokens(m.content, map) }
+                : m));
         }
-        res.json({ messages: outMessages, locked });
-    } catch (err) {
-        log.error('[Notebooks] Get conversation failed:', err);
-        res.status(500).json({ error: 'Failed to load conversation' });
+    } catch (e) {
+        log.warn('[Notebooks] token restore on conversation load failed:', e.message);
     }
+    res.json({ messages: outMessages, locked });
 });
 
 // Clear the persisted in-notebook conversation ("new chat" in the panel).
 router.delete('/:id/conversation', requireAuth, asViewer, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        await notebookConversationStore.deleteForNotebook(req.params.id, userId);
-        // Drop the accumulated PII token map too, so a fresh chat doesn't inherit
-        // stale `[person_1]` → value mappings from the cleared conversation.
-        // Not for a project notebook: the map is the notebook's, shared by every
-        // member's private chat, and one person starting over must not leave
-        // the others' histories unreadable.
-        if (!req.notebook.projectId) {
-            try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (_) { /* best-effort */ }
-        }
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Notebooks] Clear conversation failed:', err);
-        res.status(500).json({ error: 'Failed to clear conversation' });
+    const userId = req.session.user.id;
+    await notebookConversationStore.deleteForNotebook(req.params.id, userId);
+    // Drop the accumulated PII token map too, so a fresh chat doesn't inherit
+    // stale `[person_1]` → value mappings from the cleared conversation.
+    // Not for a project notebook: the map is the notebook's, shared by every
+    // member's private chat, and one person starting over must not leave
+    // the others' histories unreadable.
+    if (!req.notebook.projectId) {
+        try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (_) { /* best-effort */ }
     }
+    res.json({ success: true });
 });
 
 /**
@@ -344,25 +324,20 @@ router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, async 
 });
 
 router.delete('/:id', requireAuth, asOwner, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        // Full cascade: per-source storage blobs and derived chunks/embeddings,
-        // then the row (sources + versions cascade via FK), then the KBs this
-        // notebook created, then the persisted chat. Deleting only the row left
-        // the actual bytes behind — see core/notebookCascade.js.
-        const { deleteNotebookCascade } = require('../core/kb/notebookCascade');
-        const result = await deleteNotebookCascade(req.params.id, userId);
-        if (!result.deleted) return res.status(404).json({ error: 'Notebook not found' });
-        log.info(`[Notebooks] deleted ${req.params.id} (${result.sources} sources, ${result.kbs} auto-KBs)`);
-        // Drop the in-process PII token map (the row's pii_token_map goes away with
-        // the cascading notebook delete; this clears the cached copy + flag).
-        try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (_) { /* best-effort */ }
+    const userId = req.session.user.id;
+    // Full cascade: per-source storage blobs and derived chunks/embeddings,
+    // then the row (sources + versions cascade via FK), then the KBs this
+    // notebook created, then the persisted chat. Deleting only the row left
+    // the actual bytes behind — see core/notebookCascade.js.
+    const { deleteNotebookCascade } = require('../core/kb/notebookCascade');
+    const result = await deleteNotebookCascade(req.params.id, userId);
+    if (!result.deleted) return res.status(404).json({ error: 'Notebook not found' });
+    log.info(`[Notebooks] deleted ${req.params.id} (${result.sources} sources, ${result.kbs} auto-KBs)`);
+    // Drop the in-process PII token map (the row's pii_token_map goes away with
+    // the cascading notebook delete; this clears the cached copy + flag).
+    try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (_) { /* best-effort */ }
 
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Notebooks] Delete failed:', err);
-        res.status(500).json({ error: 'Failed to delete notebook' });
-    }
+    res.json({ success: true });
 });
 
 // ── Sources ─────────────────────────────────────────────────────────
@@ -397,47 +372,37 @@ const imageUpload = multer({
 const asEditorUnlessWorkspace = (req, res, next) => (req.params.id === 'workspace' ? next() : asEditor(req, res, next));
 
 router.post('/:id/images', requireAuth, asEditorUnlessWorkspace, imageUpload.single('image'), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+    const userId = req.session.user.id;
+    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
 
-        const { buffer, mimetype, originalname } = req.file;
-        const ext = originalname.split('.').pop().toLowerCase();
-        const safeFilename = `${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
+    const { buffer, mimetype, originalname } = req.file;
+    const ext = originalname.split('.').pop().toLowerCase();
+    const safeFilename = `${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
 
-        if (storageStore.isAvailable()) {
-            // Store in RustFS and return a proxy URL (token-free, routed through Express)
-            const key = storageStore.buildKey(userId, 'notebook-images', safeFilename);
-            await storageStore.uploadFile(key, buffer, mimetype);
-            const url = storageStore.buildProxyUrl(key);
-            return res.json({ url });
-        }
-
-        // Fallback: base64 data-URL (works in local dev without RustFS)
-        const b64 = buffer.toString('base64');
-        const url = `data:${mimetype};base64,${b64}`;
+    if (storageStore.isAvailable()) {
+        // Store in RustFS and return a proxy URL (token-free, routed through Express)
+        const key = storageStore.buildKey(userId, 'notebook-images', safeFilename);
+        await storageStore.uploadFile(key, buffer, mimetype);
+        const url = storageStore.buildProxyUrl(key);
         return res.json({ url });
-
-    } catch (err) {
-        log.error('[Notebooks] Image upload failed:', err);
-        res.status(500).json({ error: 'Image upload failed' });
     }
+
+    // Fallback: base64 data-URL (works in local dev without RustFS)
+    const b64 = buffer.toString('base64');
+    const url = `data:${mimetype};base64,${b64}`;
+    return res.json({ url });
+
 });
 
 // ── Import File to Editor (PDF, DOCX, TXT...) ────────────────────
 
 router.post('/:id/import-file', requireAuth, asEditor, upload.single('file'), async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        const { parseDocument } = require('../core/documents/documentParser');
-        const text = await parseDocument(req.file.buffer, req.file.mimetype, req.file.originalname, { returnHtml: true });
+    const { parseDocument } = require('../core/documents/documentParser');
+    const text = await parseDocument(req.file.buffer, req.file.mimetype, req.file.originalname, { returnHtml: true });
 
-        res.json({ success: true, text });
-    } catch (err) {
-        log.error('[Notebooks] Import file failed:', err);
-        res.status(500).json({ error: 'Failed to parse file for import' });
-    }
+    res.json({ success: true, text });
 });
 
 // ── Versions ────────────────────────────────────────────────────────
