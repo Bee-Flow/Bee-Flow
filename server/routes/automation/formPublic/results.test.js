@@ -367,9 +367,8 @@ test('saves the result as a new webpage: a complete page plus its stylesheet', a
 test('no file storage: refused before an empty webpage is made', async () => {
     const sid = await finishedSession();
     state.storageAvailable = false;
-    const res = makeRes();
-    await saveAsWebpage(makeReq({ sid }), res);
-    assert.strictEqual(res.statusCode, 503);
+    await assert.rejects(saveAsWebpage(makeReq({ sid }), makeRes()),
+        (err) => err.status === 503 && err.code === 'storage_unavailable');
     assert.strictEqual(state.webpages.length, 0);
 });
 

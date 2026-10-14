@@ -20,6 +20,7 @@
 const express = require('express');
 const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 
 const MAX_CODE = 200 * 1024;
 
@@ -96,7 +97,7 @@ function makeCodeToolsRouter(overrides = {}) {
         }
         const sb = sandbox();
         if (!sb.isAvailable()) {
-            return res.status(503).json({ error: 'This server was installed without the code sandbox.', code: 'code_sandbox_missing' });
+            throw new HttpError(503, 'code_sandbox_missing', 'This server was installed without the code sandbox.');
         }
         const started = now();
         const orgId = (a && a.organizationId) || req.session?.user?.organizationId || req.session?.user?.id || null;

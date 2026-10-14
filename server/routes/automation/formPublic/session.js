@@ -123,65 +123,60 @@ function progressTrail(definition, steps) {
 }
 
 async function pollSession(req, res) {
-    try {
-        privateHeaders(res);
-        const found = await loadForm(req, res);
-        if (!found) return undefined;
-        const loaded = await loadSession(found, req.params.sid);
-        if (!loaded) return res.status(404).json({ error: 'Not found' });
-        if (loaded.expired) return res.json({ state: 'expired' });
+    privateHeaders(res);
+    const found = await loadForm(req, res);
+    if (!found) return undefined;
+    const loaded = await loadSession(found, req.params.sid);
+    if (!loaded) return res.status(404).json({ error: 'Not found' });
+    if (loaded.expired) return res.json({ state: 'expired' });
 
-        const { session } = loaded;
-        await automationStore.touchFormSession(session.id).catch(() => {});
+    const { session } = loaded;
+    await automationStore.touchFormSession(session.id).catch(() => {});
 
-        // Queued behind other submissions, or the run row is not written yet.
-        if (!session.runId) return res.json({ state: 'working' });
-        const run = await currentRunFor(session);
-        if (!run) return res.json({ state: 'working' });
+    // Queued behind other submissions, or the run row is not written yet.
+    if (!session.runId) return res.json({ state: 'working' });
+    const run = await currentRunFor(session);
+    if (!run) return res.json({ state: 'working' });
 
-        if (run.status === 'awaiting_form') {
-            const pending = await pendingPageFor(session, run);
-            // The run says it is paused but the step row has not landed yet —
-            // a sub-second window the poll should simply retry through.
-            if (!pending) return res.json({ state: 'working' });
-            return res.json({
-                state: 'form',
-                stepId: pending.stepId,
-                form: await resolveDownloadFields(pending.form, session),
-                csrf: issueCsrf(`${found.token}:${session.id}`),
-                issuedAt: Date.now(),
-            });
-        }
-        if (run.status === 'queued' || run.status === 'running' || run.status === 'awaiting_approval') {
-            // awaiting_approval is a human the VISITOR cannot help with, so it
-            // reads as "still working" rather than exposing the internal gate.
-            const at = run.status === 'running'
-                ? progressTrail(found.automation.definition || {}, await automationStore.getRunSteps(run.id))
-                : null;
-            return res.json({
-                state: 'working',
-                ...(at ? { progress: at.trail } : {}),
-                ...(at?.note ? { progressNote: at.note } : {}),
-            });
-        }
-        if (run.status === 'success') {
-            const steps = await automationStore.getRunSteps(run.id);
-            const ending = endingFrom(steps);
-            // The closing page is where a download usually lives — "here is the
-            // document the automation just made".
-            return res.json({ state: 'done', ending: ending ? await resolveDownloadFields(ending, session) : null });
-        }
-        // A run that lost the per-automation race did nothing at all, and
-        // runQueued is backing off to try it again. Reporting that as a failure
-        // would end the visitor's journey over a collision they never caused.
-        if (lostToConcurrency(run)) return res.json({ state: 'working' });
-        // error / cancelled. Never surface run.error — it is written for the
-        // owner's diagnostics and can carry upstream API detail.
-        return res.json({ state: 'error' });
-    } catch (e) {
-        log.error('[automation/form] poll error:', e.message);
-        return res.status(500).json({ error: 'Could not check this form' });
+    if (run.status === 'awaiting_form') {
+        const pending = await pendingPageFor(session, run);
+        // The run says it is paused but the step row has not landed yet —
+        // a sub-second window the poll should simply retry through.
+        if (!pending) return res.json({ state: 'working' });
+        return res.json({
+            state: 'form',
+            stepId: pending.stepId,
+            form: await resolveDownloadFields(pending.form, session),
+            csrf: issueCsrf(`${found.token}:${session.id}`),
+            issuedAt: Date.now(),
+        });
     }
+    if (run.status === 'queued' || run.status === 'running' || run.status === 'awaiting_approval') {
+        // awaiting_approval is a human the VISITOR cannot help with, so it
+        // reads as "still working" rather than exposing the internal gate.
+        const at = run.status === 'running'
+            ? progressTrail(found.automation.definition || {}, await automationStore.getRunSteps(run.id))
+            : null;
+        return res.json({
+            state: 'working',
+            ...(at ? { progress: at.trail } : {}),
+            ...(at?.note ? { progressNote: at.note } : {}),
+        });
+    }
+    if (run.status === 'success') {
+        const steps = await automationStore.getRunSteps(run.id);
+        const ending = endingFrom(steps);
+        // The closing page is where a download usually lives — "here is the
+        // document the automation just made".
+        return res.json({ state: 'done', ending: ending ? await resolveDownloadFields(ending, session) : null });
+    }
+    // A run that lost the per-automation race did nothing at all, and
+    // runQueued is backing off to try it again. Reporting that as a failure
+    // would end the visitor's journey over a collision they never caused.
+    if (lostToConcurrency(run)) return res.json({ state: 'working' });
+    // error / cancelled. Never surface run.error — it is written for the
+    // owner's diagnostics and can carry upstream API detail.
+    return res.json({ state: 'error' });
 }
 
 /**
@@ -197,44 +192,39 @@ async function pollSession(req, res) {
  * one and a deleted blob are deliberately indistinguishable.
  */
 async function downloadFile(req, res) {
+    privateHeaders(res);
+    const found = await loadForm(req, res);
+    if (!found) return undefined;
+    const loaded = await loadSession(found, req.params.sid);
+    if (!loaded || loaded.expired) return res.status(404).json({ error: 'Not found' });
+
+    const runIds = await journeyRunIds(loaded.session);
+    if (runIds.length === 0) return res.status(404).json({ error: 'Not found' });
+    const file = await automationStore.getGeneratedFileForRuns(req.params.fileId, runIds);
+    if (!file) return res.status(404).json({ error: 'Not found' });
+
+    let streamed;
     try {
-        privateHeaders(res);
-        const found = await loadForm(req, res);
-        if (!found) return undefined;
-        const loaded = await loadSession(found, req.params.sid);
-        if (!loaded || loaded.expired) return res.status(404).json({ error: 'Not found' });
-
-        const runIds = await journeyRunIds(loaded.session);
-        if (runIds.length === 0) return res.status(404).json({ error: 'Not found' });
-        const file = await automationStore.getGeneratedFileForRuns(req.params.fileId, runIds);
-        if (!file) return res.status(404).json({ error: 'Not found' });
-
-        let streamed;
-        try {
-            streamed = await storageStore.streamFile(file.storageKey);
-        } catch (e) {
-            // The reaper deletes blobs before rows, so a live row with no bytes
-            // is a normal race rather than a server fault.
-            log.warn(`[automation/form] generated file ${file.id} has no bytes: ${e.message}`);
-            return res.status(404).json({ error: 'Not found' });
-        }
-
-        res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
-        // nosniff + attachment: this is author-influenced content on a public
-        // origin, so it must download rather than render in the page.
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.setHeader('Content-Disposition', contentDisposition(file.filename));
-        if (streamed.contentLength != null) res.setHeader('Content-Length', streamed.contentLength);
-        streamed.stream.on('error', (e) => {
-            log.error(`[automation/form] download stream failed: ${e.message}`);
-            if (!res.headersSent) res.status(500).end();
-            else res.destroy();
-        });
-        return streamed.stream.pipe(res);
+        streamed = await storageStore.streamFile(file.storageKey);
     } catch (e) {
-        log.error('[automation/form] download error:', e.message);
-        return res.status(500).json({ error: 'Could not fetch this file' });
+        // The reaper deletes blobs before rows, so a live row with no bytes
+        // is a normal race rather than a server fault.
+        log.warn(`[automation/form] generated file ${file.id} has no bytes: ${e.message}`);
+        return res.status(404).json({ error: 'Not found' });
     }
+
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+    // nosniff + attachment: this is author-influenced content on a public
+    // origin, so it must download rather than render in the page.
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', contentDisposition(file.filename));
+    if (streamed.contentLength != null) res.setHeader('Content-Length', streamed.contentLength);
+    streamed.stream.on('error', (e) => {
+        log.error(`[automation/form] download stream failed: ${e.message}`);
+        if (!res.headersSent) res.status(500).end();
+        else res.destroy();
+    });
+    return streamed.stream.pipe(res);
 }
 
 /** GET /form/:token/s/:sid, GET /form/:token/s/:sid/file/:fileId — in that order. */

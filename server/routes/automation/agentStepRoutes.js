@@ -113,7 +113,7 @@ function registerAgentStepRoutes(router) {
         // agent cannot be used by this automation", which sends the author to a
         // publish button that changes nothing.
         if (principal.identityError) {
-            return res.status(503).json({ error: `identity unavailable (${principal.identityError})` });
+            throw new HttpError(503, 'identity_unavailable', `identity unavailable (${principal.identityError})`);
         }
         // The same ctx shape the runner builds (core/automationRunner/execution.js),
         // asked of the person editing — who is the automation owner in every path

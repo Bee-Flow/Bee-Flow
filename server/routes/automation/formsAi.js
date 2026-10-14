@@ -28,6 +28,7 @@
 
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
+const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { DRAFT_TOOL, MAX_BRIEF_CHARS, MAX_NOTE_CHARS, buildDraftMessages, parseFormDraft } = require('../../automation/formDraft');
 const log = require('../../telemetry/log');
@@ -115,46 +116,38 @@ const DraftBody = z.preprocess(
 
 // ── POST /api/automation/forms/ai/draft ──────────────────────────────
 async function draft(req, res) {
-    try {
-        const body = req.body;
-        const mode = body.mode;
-        const brief = String(body.brief || '').trim().slice(0, MAX_BRIEF_CHARS);
-        const note = String(body.note || '').trim().slice(0, MAX_NOTE_CHARS);
-        const current = readCurrent(body.current);
-        if (mode === 'create' && !brief) {
-            return res.status(400).json({ error: 'Describe the form, or paste what it should be based on.', code: 'no_brief' });
-        }
-        if (mode === 'revise' && !note && !brief) {
-            return res.status(400).json({ error: 'Say what should change.', code: 'no_note' });
-        }
-        if (mode === 'revise' && !current) {
-            return res.status(400).json({ error: 'Revising needs the current questions.', code: 'no_current' });
-        }
-        const userId = req.session.user.id;
-        const userOrgId = await orgIdOf(req);
-        const modelId = await resolveModel({ userId, userOrgId });
-        if (!modelId) {
-            return res.status(503).json({ error: 'No AI model is configured for this workspace.', code: 'no_model' });
-        }
-        const llmClient = require('../../core/llm/llmClient');
-        const startMs = Date.now();
-        const result = await llmClient.chatForcedTool(modelId, buildDraftMessages({ mode, brief, note, current }), DRAFT_TOOL, {
-            maxTokens: MAX_TOKENS,
-            temperature: 0.3,
-        });
-        await logDraftUsage({ userId, userOrgId, modelId, usage: result?.usage, startMs });
-        const parsed = parseFormDraft(result?.structured || null, { mode, current });
-        if (!parsed) {
-            return res.status(502).json({
-                error: 'The model did not return a usable form. Try again, or describe it more concretely.',
-                code: 'ai_unusable',
-            });
-        }
-        return res.json({ draft: parsed, mode });
-    } catch (err) {
-        log.error('[Forms] POST /forms/ai/draft error:', err);
-        return res.status(500).json({ error: 'Could not draft this form' });
+    const body = req.body;
+    const mode = body.mode;
+    const brief = String(body.brief || '').trim().slice(0, MAX_BRIEF_CHARS);
+    const note = String(body.note || '').trim().slice(0, MAX_NOTE_CHARS);
+    const current = readCurrent(body.current);
+    if (mode === 'create' && !brief) {
+        return res.status(400).json({ error: 'Describe the form, or paste what it should be based on.', code: 'no_brief' });
     }
+    if (mode === 'revise' && !note && !brief) {
+        return res.status(400).json({ error: 'Say what should change.', code: 'no_note' });
+    }
+    if (mode === 'revise' && !current) {
+        return res.status(400).json({ error: 'Revising needs the current questions.', code: 'no_current' });
+    }
+    const userId = req.session.user.id;
+    const userOrgId = await orgIdOf(req);
+    const modelId = await resolveModel({ userId, userOrgId });
+    if (!modelId) {
+        throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace.');
+    }
+    const llmClient = require('../../core/llm/llmClient');
+    const startMs = Date.now();
+    const result = await llmClient.chatForcedTool(modelId, buildDraftMessages({ mode, brief, note, current }), DRAFT_TOOL, {
+        maxTokens: MAX_TOKENS,
+        temperature: 0.3,
+    });
+    await logDraftUsage({ userId, userOrgId, modelId, usage: result?.usage, startMs });
+    const parsed = parseFormDraft(result?.structured || null, { mode, current });
+    if (!parsed) {
+        throw new HttpError(502, 'ai_unusable', 'The model did not return a usable form. Try again, or describe it more concretely.');
+    }
+    return res.json({ draft: parsed, mode });
 }
 
 module.exports = { draft, limiter, resolveModel, orgIdOf, DraftBody };

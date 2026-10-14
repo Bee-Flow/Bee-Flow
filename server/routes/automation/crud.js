@@ -21,6 +21,7 @@ const { deactivateCore, editedPinRefusal, capturedPinWarnings } = require('../..
 const automationStore = require('../../stores/automationStore');
 const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const cron = require('../../automation/cron');
 const { validateDefinition } = require('../../automation/validate');
 const { topicClassifierFor } = require('../../core/classify/classifierClient');
@@ -231,7 +232,7 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
         // The registry itself is unavailable. Refusing is the only honest
         // answer: an unfiltered list here is the exact failure above.
         log.warn('[automation list] trigger-source registry unavailable:', e.message);
-        return res.status(503).json({ error: 'Trigger sources are unavailable' });
+        throw new HttpError(503, 'trigger_sources_unavailable', 'Trigger sources are unavailable');
     }
     if (!known) return res.status(400).json({ error: `Unknown trigger provider "${triggerProvider}"` });
     if (triggerEvent !== undefined && !(known.events || []).some(ev => ev.id === triggerEvent)) {

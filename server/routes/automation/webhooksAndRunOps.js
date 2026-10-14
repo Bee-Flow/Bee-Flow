@@ -576,24 +576,19 @@ router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody
  * the form is not saved yet.
  */
 router.post('/:id/form-pick', runTriggerLimiter, validate({ body: FormPickBody }), async (req, res) => {
-    try {
-        const a = await automationStore.getAutomation(req.params.id);
-        if (!a) return res.status(404).json({ error: 'Not found' });
-        // Searches as the CALLER (their own connected account), so starting it
-        // is enough: the picker is part of testing the form.
-        if (!await automationAccess.guard(req, res, a, 'run')) return;
+    const a = await automationStore.getAutomation(req.params.id);
+    if (!a) return res.status(404).json({ error: 'Not found' });
+    // Searches as the CALLER (their own connected account), so starting it
+    // is enough: the picker is part of testing the form.
+    if (!await automationAccess.guard(req, res, a, 'run')) return;
 
-        const { searchRecords } = require('../../automation/formPickRecord');
-        const caller = await formPickCaller(req);
-        if (!caller) return res.status(403).json({ error: 'Forbidden' });
-        const out = await searchRecords(req.body.source, req.body.query, caller, { limit: req.body.limit });
-        // A refusal is a 200 with a reason — "Fireflies is not connected for
-        // your account" is something the picker prints beside its search box.
-        return res.json({ results: out.results || [], ...(out.error ? { error: out.error } : {}) });
-    } catch (e) {
-        log.error('[automation/form-pick] error:', e.message);
-        res.status(500).json({ error: 'That app could not be searched' });
-    }
+    const { searchRecords } = require('../../automation/formPickRecord');
+    const caller = await formPickCaller(req);
+    if (!caller) return res.status(403).json({ error: 'Forbidden' });
+    const out = await searchRecords(req.body.source, req.body.query, caller, { limit: req.body.limit });
+    // A refusal is a 200 with a reason — "Fireflies is not connected for
+    // your account" is something the picker prints beside its search box.
+    return res.json({ results: out.results || [], ...(out.error ? { error: out.error } : {}) });
 });
 
 /** Who the picker searches as: the signed-in owner testing their own automation. */
