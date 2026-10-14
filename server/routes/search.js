@@ -53,6 +53,7 @@ const { rerankCpu, CPU_RERANK_MODEL_ID } = require('../core/rerank/cpuCrossEncod
 const { ingestLocally, searchLocally, getDocumentContent, deleteChunksLocally } = require('../core/kb/localKBIngest');
 const configStore = require('../stores/configStore');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
 
@@ -185,7 +186,7 @@ router.post('/embed', validate({ body: EmbedBody }), async (req, res) => {
     const { texts, kind = 'passage' } = req.body;
     const vectors = await cpuEmbed(texts, { kind });
     if (vectors.length === 0) {
-        return res.status(503).json({ error: 'embedding model not available' });
+        throw new HttpError(503, 'embedding_unavailable', 'embedding model not available');
     }
     res.json({ vectors, dim: vectors[0].length, model: CPU_EMBED_MODEL_ID });
 });
@@ -197,7 +198,7 @@ router.post('/rerank', validate({ body: RerankBody }), async (req, res) => {
     const { query, documents, top_n } = req.body;
     const reranked = await rerankCpu(query, documents, top_n || null);
     if (reranked.length === 0) {
-        return res.status(503).json({ error: 'reranker not available' });
+        throw new HttpError(503, 'reranker_unavailable', 'reranker not available');
     }
     res.json({ reranked, model: CPU_RERANK_MODEL_ID });
 });
@@ -296,7 +297,7 @@ router.post('/tools/search', validate({ body: SearchBody }), async (req, res) =>
     // Web modes: Serper.dev snippets
     const serperKey = await resolveSerperKey(req);
     if (!serperKey) {
-        return res.status(503).json({ error: 'serper_api_key not configured (set via Admin → AI Config or SERPER_API_KEY env)' });
+        throw new HttpError(503, 'serper_not_configured', 'serper_api_key not configured (set via Admin → AI Config or SERPER_API_KEY env)');
     }
     const results = await serperSearch(query, maxResults, serperKey);
     // NOTE: this is the "web_fast" wire shape — snippets only, no full-page

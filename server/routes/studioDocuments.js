@@ -74,6 +74,7 @@ const { extractSection, insertSection } = require('../core/documents/documentSec
 const { houseStyleCssFor: houseStyleCssForDocument } = require('../core/documents/renderFilledDocument');
 const { isDeckDocument, renderDeckDocument } = require('../core/documents/deckDocument');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
 const { forCompose } = require('../core/documents/pageDocument');
 const { mergeBodies } = require('../core/documents/sectionMerge');
@@ -318,7 +319,7 @@ router.post('/house-style/deck-template', requireAuth, validate({ body: bodies.d
         // else is an internal failure whose text stays in the log.
         if (status === 500) {
             log.error('[StudioDocuments] deck template failed:', err && err.message);
-            return res.status(500).json({ error: 'The template deck could not be read.', code: 'template_failed' });
+            throw new HttpError(500, 'template_failed', 'The template deck could not be read.');
         }
         res.status(status).json({ error: err.message, code: err.errorClass || 'template_failed' });
     }

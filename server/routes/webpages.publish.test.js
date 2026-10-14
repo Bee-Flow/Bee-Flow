@@ -47,6 +47,7 @@ const webpageDbStore = require('../stores/webpageDbStore');
 const publicShareStore = require('../stores/webpagePublicShareStore');
 
 const webpagesRouter = require('./webpages');
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 const OWNER = { id: 'alice', organizationId: 'org1' };
 const READER = { id: 'bob', organizationId: 'org1' };
@@ -70,6 +71,7 @@ async function withServer(t, sessionUser, fn) {
     app.use(express.json());
     app.use((req, res, next) => { req.session = { user: { ...sessionUser } }; next(); });
     app.use(webpagesRouter);
+    app.use(terminalErrorHandler);
     const server = await new Promise((resolve) => {
         const s = app.listen(0, '127.0.0.1', () => resolve(s));
     });

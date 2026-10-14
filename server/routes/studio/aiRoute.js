@@ -92,6 +92,7 @@ const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { z, typeError } = require('../../utils/zod');
 
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 
 // The gate helpers and the lazy dependency factory are shared with the other
@@ -437,10 +438,7 @@ function createAiRouteRouter(deps = null) {
 
         const modelId = await resolveModel(d, { userId, userOrgId: orgIdOf(req) });
         if (!modelId) {
-            return res.status(503).json({
-                error: 'No AI model is configured for this workspace.',
-                code: 'no_model',
-            });
+            throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace.');
         }
 
         const startMs = Date.now();
@@ -454,10 +452,8 @@ function createAiRouteRouter(deps = null) {
 
         const parsed = parseRouteAnswer(result?.structured || null, { available });
         if (!parsed) {
-            return res.status(502).json({
-                error: 'The model did not return a usable answer. Try again, or describe it more concretely.',
-                code: 'ai_unusable',
-            });
+            throw new HttpError(502, 'ai_unusable',
+                'The model did not return a usable answer. Try again, or describe it more concretely.');
         }
         return res.json({ ...parsed, available, undecided });
     });

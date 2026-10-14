@@ -19,7 +19,6 @@
 // or shorter than 16 characters is the same not-found as an unknown token.
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 
 const certStore = require('../stores/certificateStore');
@@ -62,34 +61,24 @@ function notFoundPage(res) {
 router.get('/:token/image.png', limiter, async (req, res) => {
     const record = await resolve(req.params.token);
     if (!record || !record.isPublic) { res.status(404).end(); return; }
-    try {
-        const base = getPublicBaseUrl();
-        const verifyUrl = base ? `${base}/verify/${req.params.token}` : null;
-        const png = await renderCertificatePng(record, { verifyUrl });
-        res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Cache-Control', 'public, max-age=3600');
-        res.send(png);
-    } catch (e) {
-        log.error('[verify image] failed:', e.message);
-        res.status(500).end();
-    }
+    const base = getPublicBaseUrl();
+    const verifyUrl = base ? `${base}/verify/${req.params.token}` : null;
+    const png = await renderCertificatePng(record, { verifyUrl });
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(png);
 });
 
 // ── PDF ───────────────────────────────────────────────────────────────────────
 router.get('/:token/certificate.pdf', limiter, async (req, res) => {
     const record = await resolve(req.params.token);
     if (!record || !record.isPublic) { res.status(404).end(); return; }
-    try {
-        const base = getPublicBaseUrl();
-        const verifyUrl = base ? `${base}/verify/${req.params.token}` : null;
-        const pdf = await renderCertificatePdf(record, { verifyUrl });
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="beeflow-certificate-${record.serial}.pdf"`);
-        res.send(pdf);
-    } catch (e) {
-        log.error('[verify pdf] failed:', e.message);
-        res.status(500).end();
-    }
+    const base = getPublicBaseUrl();
+    const verifyUrl = base ? `${base}/verify/${req.params.token}` : null;
+    const pdf = await renderCertificatePdf(record, { verifyUrl });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="beeflow-certificate-${record.serial}.pdf"`);
+    res.send(pdf);
 });
 
 // ── Verify page (HTML + og: meta) ───────────────────────────────────────────────

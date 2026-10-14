@@ -16,6 +16,7 @@ const { validate } = require('../../core/http/validate');
 const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const { bodyOf, idList, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 // ── Wat een publicatie mag dragen ───────────────────────────────────
 //
@@ -55,49 +56,43 @@ function register(router) {
     // ── Thumbnail (rendered preview) ────────────────────────────────────
 
     router.get('/:id/thumbnail', requireAuth, validate({ query: ThumbnailQuery }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            // Same visibility logic as GET /:id — owner OR org/group-published.
-            let webpage = await webpageStore.getWebpage(req.params.id, userId);
-            if (!webpage) {
-                const raw = await webpageStore.getWebpageRaw(req.params.id);
-                const { orgIds, userGroups } = await resolveAudienceContext(req);
-                const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
-                if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) {
-                    webpage = raw;
-                }
+        const userId = req.session.user.id;
+        // Same visibility logic as GET /:id — owner OR org/group-published.
+        let webpage = await webpageStore.getWebpage(req.params.id, userId);
+        if (!webpage) {
+            const raw = await webpageStore.getWebpageRaw(req.params.id);
+            const { orgIds, userGroups } = await resolveAudienceContext(req);
+            const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+            if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) {
+                webpage = raw;
             }
-            if (!webpage) return res.status(404).end();
-            if (!webpage.thumbnailSha) return res.status(404).end();
-            // The thumbnail is a screenshot of the LIVE page — versions do not
-            // snapshot one. So a non-owner may only see it while the live files
-            // still ARE the published files; the moment the owner edits on, the
-            // image would show unpublished work. Nothing to show beats a picture
-            // of something that was never published (404 → the card's own icon).
-            if (webpage.userId !== userId) {
-                const { versionId } = webpageStore.resolveReadVersion(webpage, userId);
-                if (versionId) {
-                    const meta = await webpageStore.getVersionMeta(versionId);
-                    if (!liveMatchesPin(webpage, meta)) return res.status(404).end();
-                }
-            }
-            const bytes = await webpageStore.readThumbnail(webpage.userId, webpage.id);
-            if (!bytes) return res.status(404).end();
-            // We may have written a JPEG (sharp path) or a raw PNG (no-sharp
-            // fallback). Sniff the first byte to pick the right Content-Type.
-            const isJpeg = bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8;
-            res.setHeader('Content-Type', isJpeg ? 'image/jpeg' : 'image/png');
-            res.setHeader('Cache-Control', 'private, max-age=60');
-            res.setHeader('ETag', `"${webpage.thumbnailSha}"`);
-            if (req.headers['if-none-match'] === `"${webpage.thumbnailSha}"`) {
-                return res.status(304).end();
-            }
-            return res.end(bytes);
-        } catch (err) {
-            if (err?.status && err.status < 500) throw err;
-            log.error('[Webpages] Thumbnail fetch failed:', err);
-            return res.status(500).end();
         }
+        if (!webpage) return res.status(404).end();
+        if (!webpage.thumbnailSha) return res.status(404).end();
+        // The thumbnail is a screenshot of the LIVE page — versions do not
+        // snapshot one. So a non-owner may only see it while the live files
+        // still ARE the published files; the moment the owner edits on, the
+        // image would show unpublished work. Nothing to show beats a picture
+        // of something that was never published (404 → the card's own icon).
+        if (webpage.userId !== userId) {
+            const { versionId } = webpageStore.resolveReadVersion(webpage, userId);
+            if (versionId) {
+                const meta = await webpageStore.getVersionMeta(versionId);
+                if (!liveMatchesPin(webpage, meta)) return res.status(404).end();
+            }
+        }
+        const bytes = await webpageStore.readThumbnail(webpage.userId, webpage.id);
+        if (!bytes) return res.status(404).end();
+        // We may have written a JPEG (sharp path) or a raw PNG (no-sharp
+        // fallback). Sniff the first byte to pick the right Content-Type.
+        const isJpeg = bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8;
+        res.setHeader('Content-Type', isJpeg ? 'image/jpeg' : 'image/png');
+        res.setHeader('Cache-Control', 'private, max-age=60');
+        res.setHeader('ETag', `"${webpage.thumbnailSha}"`);
+        if (req.headers['if-none-match'] === `"${webpage.thumbnailSha}"`) {
+            return res.status(304).end();
+        }
+        return res.end(bytes);
     });
 
     // ── Publish (org/group visibility) ──────────────────────────────────
@@ -236,14 +231,14 @@ function register(router) {
             if (!publishedVersionId) {
                 // Nothing has been published yet, so this is a clean refusal:
                 // the page is exactly as the caller found it.
-                return res.status(500).json({ error: 'Could not freeze a snapshot — nothing was published' });
+                throw new HttpError(500, 'snapshot_failed', 'Could not freeze a snapshot — nothing was published');
             }
         }
 
         const ok = await webpageStore.setWebpagePublished(
             req.params.id, isPublished, wp.userId, cleanedGroups, organizationId
         );
-        if (!ok) return res.status(500).json({ error: 'Failed to update published status' });
+        if (!ok) throw new HttpError(500, 'publish_failed', 'Failed to update published status');
 
         if (!isPublished && !managed) {
             // Tidy-up, not a gate: the page is already invisible, so a failure
