@@ -1,6 +1,12 @@
+import type { RuntimeNode } from './runtimeNode.types';
+
 /** App Studio runtime — 'divider'. Spec: server/appStudio/componentSpecs.js. */
 
-export default function AppDivider({ node } = {}) {
+interface AppDividerProps {
+    node?: RuntimeNode<{ orientation?: string }>;
+}
+
+export default function AppDivider({ node }: AppDividerProps = {}) {
     // 'vertical': a 1px upright rule for flex rows (a page_header's action
     // area, a horizontal pane). The wrapper cell is the flex item, so
     // runtime.css stretches it (align-self) and this hr fills it; min-height

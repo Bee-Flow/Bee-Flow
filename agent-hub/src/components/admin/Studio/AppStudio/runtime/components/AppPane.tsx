@@ -1,4 +1,6 @@
 import { spaceSteps } from '../styleResolver';
+import type { ReactNode } from 'react';
+import type { RuntimeNode } from './runtimeNode.types';
 
 /**
  * App Studio runtime — 'pane' (container). Spec: server/appStudio/componentSpecs.js.
@@ -17,9 +19,14 @@ import { spaceSteps } from '../styleResolver';
  * min-h-0 / min-w-0 are load-bearing: without them a flex child refuses to
  * shrink below its content size and the pane's own scrollbar never appears.
  */
-export default function AppPane({ node, children }) {
+interface AppPaneProps {
+    node: RuntimeNode<{ direction?: string; scroll?: string }>;
+    children?: ReactNode;
+}
+
+export default function AppPane({ node, children }: AppPaneProps) {
     const { direction = 'vertical', scroll = 'none' } = node.props || {};
-    const gap = Number.isFinite(node.style?.gap) ? node.style.gap : 3;
+    const gap = Number.isFinite(node.style?.gap) ? (node.style.gap as number) : 3;
     const horizontal = direction === 'horizontal';
 
     return (

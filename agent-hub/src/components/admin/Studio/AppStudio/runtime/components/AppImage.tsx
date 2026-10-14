@@ -1,14 +1,19 @@
 import { ImageOff } from 'lucide-react';
 import { useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { RuntimeNode } from './runtimeNode.types';
 
 /** App Studio runtime — 'image'. Spec: server/appStudio/componentSpecs.js. */
 
-function isHttps(url) {
+function isHttps(url: unknown): url is string {
     return typeof url === 'string' && url.trim().toLowerCase().startsWith('https://');
 }
 
-export default function AppImage({ node }) {
+interface AppImageProps {
+    node: RuntimeNode<{ src?: string | null; alt?: string; fit?: string }>;
+}
+
+export default function AppImage({ node }: AppImageProps) {
     const { t } = useTranslation();
     const { src = null, alt = '', fit = 'cover' } = node.props || {};
     const [failed, setFailed] = useState(false);

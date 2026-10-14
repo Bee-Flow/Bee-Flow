@@ -3,6 +3,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
+import type { RuntimeNode } from './runtimeNode.types';
 
 /**
  * App Studio runtime — 'table'. Spec: server/appStudio/componentSpecs.js.
@@ -13,7 +14,27 @@ import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits
  * table exists in both.
  */
 
-export default function AppTable({ node }) {
+/** One column of a table definition. `label`/`key` are the minimum. */
+export interface TableColumn {
+    key: string;
+    label?: string;
+    format?: string;
+    hidden?: boolean;
+    truncate?: boolean;
+    [key: string]: unknown;
+}
+
+interface AppTableProps {
+    node: RuntimeNode<{
+        columns?: TableColumn[];
+        emptyText?: string;
+        rowLimit?: number;
+        look?: string;
+        source?: unknown;
+    }>;
+}
+
+export default function AppTable({ node }: AppTableProps) {
     const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
     const { columns = [], emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'), rowLimit = 25 } = node.props || {};
@@ -34,7 +55,7 @@ export default function AppTable({ node }) {
     // No configured columns → derive from the first row (max 12, like the spec).
     // `hidden` keeps a column in the definition — so a toneFrom or labelFrom can
     // still point at it — without giving it a place on screen.
-    const cols = columns.length
+    const cols: TableColumn[] = columns.length
         ? columns.filter((c) => c && !c.hidden)
         : Object.keys(rows[0] || {}).slice(0, 12).map((key) => ({ key, label: key, format: 'text' }));
 

@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react';
 import { fillRowTemplate, isFill, spaceSteps } from '../styleResolver';
+import type { RuntimeNode } from './runtimeNode.types';
 
 /**
  * App Studio runtime — 'tab' (container). Spec: server/appStudio/componentSpecs.js.
@@ -10,9 +12,14 @@ import { fillRowTemplate, isFill, spaceSteps } from '../styleResolver';
  * gridTemplateRows the panel would stretch while nothing inside it did.
  */
 
-export default function AppTab({ node, children }) {
-    const gap = Number.isFinite(node.style?.gap) ? node.style.gap : 3;
-    const padding = Number.isFinite(node.style?.padding) ? node.style.padding : 0;
+interface AppTabProps {
+    node: RuntimeNode;
+    children?: ReactNode;
+}
+
+export default function AppTab({ node, children }: AppTabProps) {
+    const gap = Number.isFinite(node.style?.gap) ? (node.style.gap as number) : 3;
+    const padding = Number.isFinite(node.style?.padding) ? (node.style.padding as number) : 0;
     const fill = isFill(node);
     return (
         <div

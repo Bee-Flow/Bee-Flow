@@ -1,8 +1,13 @@
 import renderInlineMarkdown from '../markdownInline';
+import type { RuntimeNode } from './runtimeNode.types';
 
 /** App Studio runtime — 'text'. Spec: server/appStudio/componentSpecs.js. */
 
-export default function AppText({ node }) {
+interface AppTextProps {
+    node: RuntimeNode<{ text?: string; muted?: boolean }>;
+}
+
+export default function AppText({ node }: AppTextProps) {
     const { text = '', muted = false } = node.props || {};
     return (
         <p

@@ -1,200 +1,19 @@
 import { Check, Minus } from 'lucide-react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import { makeValueFormatter } from '../chartPalette';
 import { hoverable } from '../hoverable';
 import { ROLE_COLORS, roleTextColor } from '../styleResolver';
 import CadThumb from './CadThumb';
 import { EM_DASH, displayValue } from '../uiBits';
-
-/**
- * One table cell, for BOTH `data_grid` and `table`.
- *
- * These two components used to carry a private copy of this switch each
- * (AppDataGrid's `CellValue` and AppTable's `Cell`), and the copies had already
- * drifted: the grid understood `boolean` and `relation` and the table did not,
- * and an empty cell rendered muted in one and unstyled in the other. Any format
- * added to one would have had to be remembered into the other. One module, two
- * importers.
- *
- * NO LITERAL COLOURS. Every colour here is a token or a ROLE_COLORS role, so a
- * cell follows the app's theme and the high-contrast appearance. cellValue.test
- * asserts this over the source text — the same guard AppDataGrid and AppTable
- * carry, moved here with the code it protects.
- */
+import { Monogram, Pill } from './cellPills';
+import { ROLE_HEX, isHttpUrl, labelForCell, textToneStyle, toneForCell } from './cellTone';
+import type { CellColumn, CellRow } from './cellValue.types';
 
 const fmtNumber = makeValueFormatter('number');
 const fmtPercent = makeValueFormatter('percent');
 const fmtCurrency = makeValueFormatter('currency');
-
-/** Formats whose natural home is the right edge of the column. */
-const NUMERIC_FORMATS = new Set(['number', 'currency', 'percent', 'progress']);
-
-/**
- * The resolved text alignment for a column.
- *
- * 'auto' (the default) right-aligns numerics and left-aligns everything else —
- * a column of figures that does not line up on its last digit is the clearest
- * single tell that a table was not designed. An explicit align always wins.
- */
-export function alignFor(col) {
-    const explicit = col && col.align;
-    if (explicit === 'left' || explicit === 'right' || explicit === 'center') return explicit;
-    return NUMERIC_FORMATS.has(col?.format) ? 'right' : 'left';
-}
-
-export const ALIGN_CLASS = { left: 'text-left', right: 'text-right', center: 'text-center' };
-
-export function isHttpUrl(value) {
-    const v = String(value || '').trim().toLowerCase();
-    return v.startsWith('https://') || v.startsWith('http://');
-}
-
-/**
- * The tone for one cell, from the column's own configuration.
- *
- * `toneMap` is the author naming tones value by value (the shape `list` and
- * `kanban` already use). `toneFrom` names a SIBLING column whose value IS the
- * tone — which is what finally uses the `color` every config table in a
- * template already stores next to its rows, and what stopped every status pill
- * on every screen from being the same grey.
- */
-export function toneForCell({ col, row, value }) {
-    if (!col) return null;
-    const map = Array.isArray(col.toneMap) ? col.toneMap : null;
-    if (col.toneFrom && row && typeof row === 'object') {
-        const raw = row[col.toneFrom];
-        if (raw != null && raw !== '') {
-            // The sibling's value goes through the column's toneMap first, the
-            // way subtextToneFor already did: a status column holds "open",
-            // not "warning", and mapping it is the only way that status can
-            // colour a cell in another column. A value the map does not name
-            // is taken as a tone name itself - the config-table case.
-            const hit = map ? map.find((m) => m && String(m.value) === String(raw)) : null;
-            if (hit && hit.tone) return hit.tone;
-            return String(raw);
-        }
-    }
-    if (!map || value == null) return null;
-    const hit = map.find((m) => m && String(m.value) === String(value));
-    return hit ? (hit.tone || null) : null;
-}
-
-/** The label for one cell — a toneMap entry may relabel the stored value. */
-export function labelForCell({ col, value }) {
-    const map = col && Array.isArray(col.toneMap) ? col.toneMap : null;
-    if (!map || value == null) return value;
-    const hit = map.find((m) => m && String(m.value) === String(value));
-    return hit && hit.label != null ? hit.label : value;
-}
-
-/** A soft wash in the role's hue, with text readable on it. Mirrors AppList. */
-function pillStyle(tone) {
-    if (!tone || tone === 'neutral' || !ROLE_COLORS[tone]) {
-        return { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' };
-    }
-    return {
-        background: `color-mix(in srgb, ${ROLE_COLORS[tone]} 16%, transparent)`,
-        color: roleTextColor(tone),
-    };
-}
-
-function Pill({ children, tone, dot = false }) {
-    return (
-        <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium${dot ? ' gap-1' : ''}`}
-            style={pillStyle(tone)}
-            data-app-cell-tone={tone || 'neutral'}
-        >
-            {/* badgeStyle:'dot' — the pill keeps its wash, the dot carries the
-                tone at full strength (a 16% wash alone is hard to tell apart
-                across a column of pills). */}
-            {dot ? (
-                <span
-                    aria-hidden="true"
-                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                    style={{ background: (tone && tone !== 'neutral' && ROLE_COLORS[tone]) || 'var(--text-muted)' }}
-                    data-app-cell-dot={tone || 'neutral'}
-                />
-            ) : null}
-            {children}
-        </span>
-    );
-}
-
-/**
- * A small uppercase marker beside the main text (spec: columns[].flagFrom) —
- * the SPOED case: one word that must be seen before the description is read,
- * without spending a whole column on it.
- */
-function CellFlag({ text, tone }) {
-    const t = ROLE_COLORS[tone] ? tone : 'warning';
-    return (
-        <span
-            className="inline-flex shrink-0 items-center rounded px-1 font-semibold uppercase tracking-wide"
-            style={{
-                fontSize: 10.5,
-                background: `color-mix(in srgb, ${ROLE_COLORS[t]} 16%, transparent)`,
-                color: roleTextColor(t),
-            }}
-            data-app-cell-flag={t}
-        >
-            {text}
-        </span>
-    );
-}
-
-/**
- * The tone for a cell's SUBTEXT line: `subtextToneFrom` names a sibling whose
- * value maps through the column's toneMap (value→tone), or is a tone name
- * itself. Null means the default muted subtext.
- */
-function subtextToneFor(col, row) {
-    const key = col?.subtextToneFrom;
-    if (!key || !row || typeof row !== 'object') return null;
-    const raw = row[key];
-    if (raw == null || raw === '') return null;
-    const map = Array.isArray(col.toneMap) ? col.toneMap : null;
-    const hit = map ? map.find((m) => m && String(m.value) === String(raw)) : null;
-    if (hit && hit.tone) return hit.tone;
-    return ROLE_COLORS[raw] ? String(raw) : null;
-}
-
-/** Up to two initials — "Anna de Vries" → AV, "chidi" → C. */
-export function initialsOf(name) {
-    const parts = String(name ?? '').trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return '?';
-    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-    return (parts[0].slice(0, 1) + parts[parts.length - 1].slice(0, 1)).toUpperCase();
-}
-
-const MONOGRAM_TONES = ['primary', 'info', 'success', 'warning', 'danger'];
-
-/**
- * A person's face without a photo.
- *
- * The tone is picked from the NAME, not at random, so the same colleague keeps
- * the same colour on every screen and across reloads — a monogram that changed
- * hue per render would be worse than no colour at all.
- */
-export function Monogram({ name, size = 20 }) {
-    const label = String(name ?? '');
-    let hash = 0;
-    for (let i = 0; i < label.length; i += 1) hash = (hash * 31 + label.charCodeAt(i)) % 997;
-    const tone = MONOGRAM_TONES[hash % MONOGRAM_TONES.length];
-    return (
-        <span
-            aria-hidden="true"
-            className="inline-flex shrink-0 items-center justify-center rounded-full font-medium"
-            style={{ ...pillStyle(tone), width: size, height: size, fontSize: Math.round(size * 0.45) }}
-            data-app-cell-monogram={tone}
-        >
-            {initialsOf(label)}
-        </span>
-    );
-}
-
-function relativeFrom(value, now, t) {
-    const then = new Date(value).getTime();
+function relativeFrom(value: unknown, now: number, t: TranslateFn): string | null {
+    const then = new Date(value as string).getTime();
     if (Number.isNaN(then)) return null;
     const mins = Math.round((now - then) / 60000);
     const abs = Math.abs(mins);
@@ -228,7 +47,7 @@ function relativeFrom(value, now, t) {
  * content. Parse it first, and fall through to the comma split when it is not
  * JSON after all.
  */
-function asTags(value) {
+function asTags(value: unknown): unknown[] {
     if (Array.isArray(value)) return value.filter((v) => v != null && v !== '');
     const str = String(value).trim();
     if (str.startsWith('[')) {
@@ -243,9 +62,16 @@ function asTags(value) {
     }
     return str.split(',').map((s) => s.trim()).filter(Boolean);
 }
-
 /** The format switch — one cell's MAIN content, before any decorations. */
-function renderMainValue({ value, format, col, row, now, t }) {
+interface RenderMainValueArgs {
+    value: unknown;
+    format: string;
+    col: CellColumn | null;
+    row: CellRow | null;
+    now: number | null;
+    t: TranslateFn;
+}
+export function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArgs) {
     // An empty cell is muted everywhere. AppTable used to render a bare em-dash
     // at full text colour, which read as content rather than as absence.
     if (value == null || value === '') {
@@ -254,7 +80,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
             // ...unless the column says a gap here is a DEFECT (spec:
             // columns[].emptyTone): the material a part cannot be cut without
             // shows its dash in the colour of a problem, not of an absence.
-            const gapTone = col?.emptyTone && ROLE_COLORS[col.emptyTone] ? col.emptyTone : null;
+            const gapTone = col?.emptyTone && ROLE_HEX[col.emptyTone] ? col.emptyTone : null;
             return (
                 <span
                     style={{ color: gapTone ? roleTextColor(gapTone) : 'var(--text-muted)' }}
@@ -282,11 +108,11 @@ function renderMainValue({ value, format, col, row, now, t }) {
             return <span className="tabular-nums">{Number.isFinite(n) ? fmtPercent(n) : displayValue(value)}</span>;
         }
         case 'date': {
-            const d = new Date(value);
+            const d = new Date(value as string);
             return <>{Number.isNaN(d.getTime()) ? displayValue(value) : d.toLocaleDateString()}</>;
         }
         case 'datetime': {
-            const d = new Date(value);
+            const d = new Date(value as string);
             return <>{Number.isNaN(d.getTime()) ? displayValue(value) : d.toLocaleString()}</>;
         }
         case 'relative': {
@@ -298,7 +124,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
             // to the timestamp itself rather than invent one.
             const rel = now == null ? null : relativeFrom(value, now, t);
             if (rel != null) return <>{rel}</>;
-            const d = new Date(value);
+            const d = new Date(value as string);
             return <>{Number.isNaN(d.getTime()) ? displayValue(value) : d.toLocaleString()}</>;
         }
         case 'boolean':
@@ -375,7 +201,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
         case 'progress': {
             const n = Number(value);
             if (!Number.isFinite(n)) return <>{displayValue(value)}</>;
-            const max = Number.isFinite(col?.max) ? col.max : 100;
+            const max = Number.isFinite(col?.max) ? col?.max as number : 100;
             const pct = max > 0 ? Math.max(0, Math.min(100, (n / max) * 100)) : 0;
             return (
                 <span className="inline-flex items-center gap-1.5 w-full">
@@ -387,7 +213,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
                     >
                         <span
                             className="absolute inset-y-0 left-0"
-                            style={{ width: `${pct}%`, background: ROLE_COLORS[col?.tone] || 'var(--app-primary)' }}
+                            style={{ width: `${pct}%`, background: ROLE_HEX[col?.tone as string] || 'var(--app-primary)' }}
                         />
                     </span>
                     <span className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>{fmtNumber(n)}</span>
@@ -427,59 +253,4 @@ function renderMainValue({ value, format, col, row, now, t }) {
             return style ? <span style={style}>{displayValue(value)}</span> : <>{displayValue(value)}</>;
         }
     }
-}
-
-/**
- * A text or number cell has no pill to carry a tone, so the tone colours the
- * text itself. Only a tone the column actually resolves - through toneFrom or
- * a toneMap hit - changes anything; a column without either renders exactly as
- * before, which is every text column that exists today.
- */
-function textToneStyle(col, row, value) {
-    if (!col || (!col.toneFrom && !Array.isArray(col.toneMap))) return undefined;
-    const tone = toneForCell({ col, row, value });
-    if (!tone || tone === 'neutral' || !ROLE_COLORS[tone]) return undefined;
-    return { color: roleTextColor(tone) };
-}
-
-export default function CellValue({ value, format = 'text', col = null, row = null, now = null }) {
-    const { t } = useTranslation();
-    const main = renderMainValue({ value, format, col, row, now, t });
-
-    // Decorations (spec: columns[].flagFrom / subtextFrom). A column without
-    // them returns the main content verbatim — the identity path.
-    const flagRaw = col?.flagFrom && row && typeof row === 'object' ? row[col.flagFrom] : null;
-    const hasFlag = !!flagRaw;
-    const subRaw = col?.subtextFrom && row && typeof row === 'object' ? row[col.subtextFrom] : null;
-    const hasSub = subRaw != null && subRaw !== '';
-    if (!hasFlag && !hasSub) return main;
-
-    // The flag sits INLINE beside the main text; with the column's truncate on,
-    // the text gives way and the flag stays whole — a marker that truncates to
-    // "SPO…" has stopped being a marker.
-    const mainLine = hasFlag ? (
-        <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
-            <span className={col?.truncate ? 'min-w-0 truncate' : 'min-w-0'}>{main}</span>
-            <CellFlag text={String(flagRaw)} tone={col?.flagTone || 'warning'} />
-        </span>
-    ) : main;
-    if (!hasSub) return mainLine;
-
-    const subTone = subtextToneFor(col, row);
-    return (
-        <span className="block min-w-0">
-            <span className={`block min-w-0${col?.truncate ? ' truncate' : ''}`}>{mainLine}</span>
-            {/* Always truncated: the subtext is a one-line annotation, and a
-                td-level nowrap would otherwise hide its overflow with no
-                ellipsis. roleTextColor keeps the tone readable in dark mode. */}
-            <span
-                className="block truncate text-xs"
-                {...hoverable(String(subRaw))}
-                style={{ color: subTone ? roleTextColor(subTone) : 'var(--text-muted)' }}
-                data-app-cell-subtext={subTone || 'muted'}
-            >
-                {String(subRaw)}
-            </span>
-        </span>
-    );
 }

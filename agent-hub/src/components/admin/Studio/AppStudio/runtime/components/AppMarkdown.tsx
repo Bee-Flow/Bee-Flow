@@ -4,6 +4,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
+import type { RuntimeNode } from './runtimeNode.types';
 
 /**
  * App Studio runtime — 'markdown'. Spec: server/appStudio/componentSpecs.js.
@@ -15,7 +16,7 @@ import { useRuntime } from '../RuntimeContext';
  * raw HTML) — everything here emits escaped React elements only.
  */
 
-const HEADING_CLS = {
+const HEADING_CLS: Record<number, string> = {
     1: 'text-2xl font-semibold',
     2: 'text-xl font-semibold',
     3: 'text-lg font-semibold',
@@ -24,10 +25,20 @@ const HEADING_CLS = {
     6: 'text-sm font-medium',
 };
 
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+/** One block of parsed markdown. */
+export type MarkdownBlock =
+    | { kind: 'code'; lang: string | null; code: string }
+    | { kind: 'heading'; level: number; text: string }
+    | { kind: 'ul'; items: string[] }
+    | { kind: 'ol'; items: string[] }
+    | { kind: 'p'; text: string };
+
 /** Parse markdown text into a flat list of block tokens. */
-export function parseBlocks(text) {
+export function parseBlocks(text: unknown): MarkdownBlock[] {
     const lines = String(text ?? '').split(/\r?\n/);
-    const blocks = [];
+    const blocks: MarkdownBlock[] = [];
     let i = 0;
     while (i < lines.length) {
         const line = lines[i];
@@ -37,7 +48,7 @@ export function parseBlocks(text) {
         // fenced code block
         const fence = line.match(/^```(\w*)\s*$/);
         if (fence) {
-            const code = [];
+            const code: string[] = [];
             i += 1;
             while (i < lines.length && !/^```\s*$/.test(lines[i])) { code.push(lines[i]); i += 1; }
             i += 1; // skip closing fence (or EOF)
@@ -55,7 +66,7 @@ export function parseBlocks(text) {
 
         // unordered list
         if (/^\s*[-*]\s+/.test(line)) {
-            const items = [];
+            const items: string[] = [];
             while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
                 items.push(lines[i].replace(/^\s*[-*]\s+/, ''));
                 i += 1;
@@ -66,7 +77,7 @@ export function parseBlocks(text) {
 
         // ordered list
         if (/^\s*\d+[.)]\s+/.test(line)) {
-            const items = [];
+            const items: string[] = [];
             while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) {
                 items.push(lines[i].replace(/^\s*\d+[.)]\s+/, ''));
                 i += 1;
@@ -76,7 +87,7 @@ export function parseBlocks(text) {
         }
 
         // paragraph — greedy until a blank line or another block start
-        const para = [line];
+        const para: string[] = [line];
         i += 1;
         while (
             i < lines.length && lines[i].trim()
@@ -103,7 +114,7 @@ export function parseBlocks(text) {
  * navigator.clipboard is absent on http origins and in some embeddings, so the
  * button hides itself rather than failing on click.
  */
-export function CodeBlock({ code }) {
+export function CodeBlock({ code }: { code: string }) {
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
     const canCopy = typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
@@ -156,10 +167,10 @@ export function CodeBlock({ code }) {
     );
 }
 
-function Block({ block }) {
+function Block({ block }: { block: MarkdownBlock }) {
     switch (block.kind) {
         case 'heading': {
-            const Tag = `h${block.level}`;
+            const Tag = `h${block.level}` as HeadingTag;
             return <Tag className={HEADING_CLS[block.level]}>{renderInlineMarkdown(block.text)}</Tag>;
         }
         case 'ul':
@@ -187,12 +198,16 @@ function Block({ block }) {
  * AI chat component so model output renders through the same escaped, no-raw-HTML
  * subset the markdown component uses.
  */
-export function MarkdownBlocks({ text }) {
+export function MarkdownBlocks({ text }: { text: unknown }) {
     const blocks = parseBlocks(text);
     return <>{blocks.map((block, i) => <Block key={i} block={block} />)}</>;
 }
 
-export default function AppMarkdown({ node }) {
+interface AppMarkdownProps {
+    node: RuntimeNode<{ content?: string; contentFrom?: unknown }>;
+}
+
+export default function AppMarkdown({ node }: AppMarkdownProps) {
     const { actionState, dataState, scope } = useRuntime();
     const { content = '' } = node.props || {};
     // `contentFrom` wins when it has text — the same shape as `valueFrom` on the

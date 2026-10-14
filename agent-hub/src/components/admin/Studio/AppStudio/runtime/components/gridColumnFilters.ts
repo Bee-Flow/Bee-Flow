@@ -32,7 +32,7 @@ const BOOLEAN_FORMATS = new Set(['boolean', 'check']);
 const FACET_FORMATS = new Set(['badge', 'tags', 'relation']);
 
 /** Which control (and matcher) a column of this format gets. */
-export function filterKindFor(format, { hasOptions = false } = {}) {
+export function filterKindFor(format: string | null | undefined, { hasOptions = false }: { hasOptions?: boolean } = {}): string {
     const f = format || 'text';
     if (NUMBER_FORMATS.has(f)) return FILTER_KIND.number;
     if (DATE_FORMATS.has(f)) return FILTER_KIND.date;
@@ -42,8 +42,21 @@ export function filterKindFor(format, { hasOptions = false } = {}) {
 }
 
 /** Whether a column of this format may offer its distinct values as a pick list. */
-export function canFacet(format) {
+export function canFacet(format: string | null | undefined): boolean {
     return FACET_FORMATS.has(format || 'text');
+}
+
+/** The label-bearing shape a select cell may hold: a tag, a relation, a badge. */
+interface LabelledCell {
+    label?: unknown;
+    name?: unknown;
+    id?: unknown;
+}
+
+/** One pick-list option. */
+export interface FacetOption {
+    value: string;
+    label: string;
 }
 
 /**
@@ -51,14 +64,14 @@ export function canFacet(format) {
  * when there are none or too many to be a dropdown. A `tags` cell holds an
  * array; every tag counts on its own.
  */
-export function facetValues(rows, key, limit = FACET_LIMIT) {
-    const seen = new Map();
+export function facetValues(rows: Record<string, unknown>[] | null | undefined, key: string, limit = FACET_LIMIT): FacetOption[] | null {
+    const seen = new Map<string, string>();
     for (const row of rows || []) {
         const raw = row?.[key];
-        const items = Array.isArray(raw) ? raw : [raw];
+        const items: unknown[] = Array.isArray(raw) ? raw : [raw];
         for (const item of items) {
             if (item == null || item === '') continue;
-            const value = typeof item === 'object' ? (item.label ?? item.name ?? item.id ?? '') : item;
+            const value = typeof item === 'object' ? ((item as LabelledCell).label ?? (item as LabelledCell).name ?? (item as LabelledCell).id ?? '') : item;
             const s = String(value);
             if (!s) continue;
             if (!seen.has(s)) seen.set(s, s);
@@ -72,14 +85,22 @@ export function facetValues(rows, key, limit = FACET_LIMIT) {
 }
 
 /** True when a filter value narrows anything (a range with both ends empty does not). */
-export function isActiveFilter(value) {
+export function isActiveFilter(value: unknown): boolean {
     if (value == null) return false;
     if (typeof value === 'string') return value !== '';
     if (typeof value === 'object') return Object.values(value).some((v) => v != null && v !== '');
     return true;
 }
 
-const toNumber = (v) => {
+/** A number range's ends, or a date range's. Each end may be blank. */
+interface RangeFilter {
+    min?: unknown;
+    max?: unknown;
+    from?: unknown;
+    to?: unknown;
+}
+
+const toNumber = (v: unknown): number | null => {
     if (v == null || v === '') return null;
     if (typeof v === 'number') return Number.isFinite(v) ? v : null;
     // "€1.234,50" and "1,234.50" both have to read as a number: strip the
@@ -94,7 +115,7 @@ const toNumber = (v) => {
     return Number.isFinite(n) ? n : null;
 };
 
-const toTime = (v) => {
+const toTime = (v: unknown): number | null => {
     if (v == null || v === '') return null;
     if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.getTime();
     if (typeof v === 'number') return v;
@@ -103,30 +124,37 @@ const toTime = (v) => {
 };
 
 // The end of a from–to range is inclusive: "to 19 Sep" means the whole day.
-const endOfDay = (t) => {
+const endOfDay = (t: number): number => {
     const d = new Date(t);
     d.setHours(23, 59, 59, 999);
     return d.getTime();
 };
 
 const TRUE_WORDS = new Set(['true', '1', 'yes', 'ja', 'y', 'on', 'x', '✓']);
-const toBool = (v) => {
+const toBool = (v: unknown): boolean | null => {
     if (v == null || v === '') return null;
     if (typeof v === 'boolean') return v;
     if (typeof v === 'number') return v !== 0;
     return TRUE_WORDS.has(String(v).trim().toLowerCase());
 };
 
-const cellText = (v) => {
+const cellText = (v: unknown): string => {
     if (v == null) return '';
     if (Array.isArray(v)) return v.map(cellText).join(' ');
-    if (typeof v === 'object') return String(v.label ?? v.name ?? v.title ?? v.id ?? '');
+    if (typeof v === 'object') {
+        const cell = v as LabelledCell & { title?: unknown };
+        return String(cell.label ?? cell.name ?? cell.title ?? cell.id ?? '');
+    }
     return String(v);
 };
 
-const MATCHERS = {
+/** A matcher takes the cell's value and the filter value it is tested against. */
+type Matcher = (cell: unknown, filter: unknown) => boolean;
+
+const MATCHERS: Record<string, Matcher> = {
     [FILTER_KIND.text]: (cell, q) => cellText(cell).toLowerCase().includes(String(q).toLowerCase()),
-    [FILTER_KIND.number]: (cell, range) => {
+    [FILTER_KIND.number]: (cell, filter) => {
+        const range = filter as RangeFilter | undefined;
         const n = toNumber(cell);
         const min = toNumber(range?.min); const max = toNumber(range?.max);
         // A blank cell never sits inside a range someone typed.
@@ -135,7 +163,8 @@ const MATCHERS = {
         if (max != null && n > max) return false;
         return true;
     },
-    [FILTER_KIND.date]: (cell, range) => {
+    [FILTER_KIND.date]: (cell, filter) => {
+        const range = filter as RangeFilter | undefined;
         const t = toTime(cell);
         const from = toTime(range?.from); const to = toTime(range?.to);
         if (t == null) return false;
@@ -148,7 +177,7 @@ const MATCHERS = {
         return want === 'true' ? b === true : b !== true;
     },
     [FILTER_KIND.select]: (cell, pick) => {
-        const items = Array.isArray(cell) ? cell : [cell];
+        const items: unknown[] = Array.isArray(cell) ? cell : [cell];
         return items.some((item) => cellText(item) === String(pick));
     },
 };
@@ -157,41 +186,52 @@ const MATCHERS = {
  * A TanStack filterFn for this kind. `autoRemove` is what lets a half-cleared
  * range drop out of the filter list instead of matching nothing forever.
  */
-export function makeFilterFn(kind) {
+export function makeFilterFn(kind: string) {
     const match = MATCHERS[kind] || MATCHERS[FILTER_KIND.text];
-    const fn = (row, columnId, filterValue) => {
+    const fn = (row: { getValue: (columnId: string) => unknown }, columnId: string, filterValue: unknown): boolean => {
         if (!isActiveFilter(filterValue)) return true;
         return match(row.getValue(columnId), filterValue);
     };
-    fn.autoRemove = (value) => !isActiveFilter(value);
+    fn.autoRemove = (value: unknown) => !isActiveFilter(value);
     return fn;
 }
+
+/** The caller's translate function, or the English fallback with its {name} params filled in. */
+type DescribeTranslate = (key: string, fallback: string, params?: Record<string, unknown>) => string;
 
 /**
  * The chip text for an active filter: what is narrowed and to what, in the
  * reader's words — "Amount 500 – 2,000", "Date from 1 Sep", "Paid: yes".
  */
-export function describeFilter(kind, value, { options = null, locale = undefined, t = null } = {}) {
+export function describeFilter(
+    kind: string,
+    value: unknown,
+    { options = null, locale = undefined, t = null }: {
+        options?: FacetOption[] | null;
+        locale?: string;
+        t?: DescribeTranslate | null;
+    } = {},
+): string {
     if (!isActiveFilter(value)) return '';
     // `t` is the caller's translate function; without one the English default is used.
-    const tx = t || ((_key, fallback, params) => fallback.replace(/\{(\w+)\}/g, (_m, name) => String(params?.[name] ?? '')));
-    const num = (v) => {
+    const tx: DescribeTranslate = t || ((_key: string, fallback: string, params?: Record<string, unknown>) => fallback.replace(/\{(\w+)\}/g, (_m: string, name: string) => String(params?.[name] ?? '')));
+    const num = (v: unknown) => {
         const n = toNumber(v);
         return n == null ? String(v) : n.toLocaleString(locale);
     };
-    const day = (v) => {
+    const day = (v: unknown) => {
         const t = toTime(v);
         return t == null ? String(v) : new Date(t).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
     };
     switch (kind) {
     case FILTER_KIND.number: {
-        const { min, max } = value;
+        const { min, max } = value as RangeFilter;
         if (min !== '' && min != null && max !== '' && max != null) return `${num(min)} – ${num(max)}`;
         if (min !== '' && min != null) return `≥ ${num(min)}`;
         return `≤ ${num(max)}`;
     }
     case FILTER_KIND.date: {
-        const { from, to } = value;
+        const { from, to } = value as RangeFilter;
         if (from && to) return `${day(from)} – ${day(to)}`;
         if (from) return tx('studio_apps_runtime.grid.filter_from', 'from {date}', { date: day(from) });
         return tx('studio_apps_runtime.grid.filter_until', 'until {date}', { date: day(to) });

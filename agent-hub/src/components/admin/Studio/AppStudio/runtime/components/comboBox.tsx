@@ -1,9 +1,38 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useAppDataSource from '../useAppDataSource';
+
+/** One pickable row of the combobox. `pinned` marks the viewer's own entry ("Me"). */
+export interface ComboOption {
+    id: unknown;
+    label: string;
+    pinned?: boolean;
+}
+
+interface ComboBoxProps {
+    id: string;
+    label: string;
+    required?: boolean;
+    error?: string | null;
+    options: ComboOption[];
+    selectedIds: unknown[];
+    onPick: (cid: unknown) => void;
+    onRemove: (cid: unknown) => void;
+    multiple?: boolean;
+    disabled?: boolean;
+    placeholder?: string | null;
+    isLoading?: boolean;
+    loadError?: unknown;
+    emptyText?: string | null;
+    disabledText?: string | null;
+    renderOption?: ((option: ComboOption) => ReactNode) | null;
+    renderChip?: ((option: ComboOption) => ReactNode) | null;
+    pinned?: ComboOption | null;
+}
 
 /**
  * The searchable picker, shared by `input_relation` and `input_person`.
@@ -35,7 +64,7 @@ export function useHasQueryClient() {
  * see a binding built from props at render time. Both land on the same cache
  * key, so this is one query, not two.
  */
-export function BindingLoader({ binding, sample }) {
+export function BindingLoader({ binding, sample }: { binding: unknown; sample: boolean }) {
     useAppDataSource(binding, { sample });
     return null;
 }
@@ -57,7 +86,7 @@ export default function ComboBox({
     emptyText = null, disabledText = null,
     renderOption = null, renderChip = null,
     pinned = null,
-}) {
+}: ComboBoxProps) {
     const { t } = useTranslation();
     const placeholderText = placeholder ?? t('studio_apps_runtime.inputs.combo_search', 'Search…');
     const emptyMessage = emptyText ?? t('studio_apps_runtime.inputs.combo_no_matches', 'No matches.');
@@ -68,8 +97,8 @@ export default function ComboBox({
     // nothing can be picked from the keyboard at all.
     const [activeIndex, setActiveIndex] = useState(-1);
 
-    const byId = useMemo(() => new Map(options.map((c) => [c.id, c])), [options]);
-    const labelFor = (cid) => byId.get(cid)?.label ?? String(cid);
+    const byId = useMemo(() => new Map(options.map((c): [unknown, ComboOption] => [c.id, c])), [options]);
+    const labelFor = (cid: unknown) => byId.get(cid)?.label ?? String(cid);
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -84,13 +113,13 @@ export default function ComboBox({
         return [...head, ...rest];
     }, [options, query, selectedIds, pinned]);
 
-    const pick = (cid) => {
+    const pick = (cid: unknown) => {
         onPick(cid);
         setQuery('');
         if (!multiple) setOpen(false);
     };
 
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault();
             if (!open) { setOpen(true); return; }
@@ -120,7 +149,7 @@ export default function ComboBox({
                     <ul className="flex flex-wrap gap-1.5" aria-label={`${label} selected`}>
                         {selectedIds.map((cid) => (
                             <li
-                                key={cid}
+                                key={String(cid)}
                                 className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs font-medium"
                                 style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)', borderRadius: 'var(--app-radius)' }}
                             >
@@ -183,7 +212,7 @@ export default function ComboBox({
                             ) : filtered.length ? (
                                 filtered.map((c, i) => (
                                     <button
-                                        key={c.id}
+                                        key={String(c.id)}
                                         id={`${id}-opt-${c.id}`}
                                         type="button"
                                         role="option"

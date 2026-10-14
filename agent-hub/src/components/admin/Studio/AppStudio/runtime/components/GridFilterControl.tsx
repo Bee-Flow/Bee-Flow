@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { FILTER_KIND } from './gridColumnFilters';
 import useTranslation from '../../../../../../hooks/useTranslation';
 
@@ -15,7 +16,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
  */
 
 const BOX = 'flex items-center w-full min-w-0 border text-xs transition-colors focus-within:border-[var(--app-primary)]';
-const boxStyle = (active) => ({
+const boxStyle = (active: boolean): CSSProperties => ({
     background: 'var(--bg-primary)',
     borderColor: active ? 'var(--app-primary)' : 'var(--border-default)',
     borderRadius: 'var(--app-radius)',
@@ -34,10 +35,32 @@ function Arrow() {
     return <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-1.5 h-3 w-3" style={{ color: 'var(--text-muted)' }} />;
 }
 
-export default function GridFilterControl({ kind, name, value, options, active, onChange }) {
+/** A range filter's two ends. Only the keys a kind uses are ever set. */
+interface RangeValue {
+    min?: string;
+    max?: string;
+    from?: string;
+    to?: string;
+}
+
+interface SelectItem {
+    value: string;
+    label?: string;
+}
+
+interface GridFilterControlProps {
+    kind?: string | null;
+    name: string;
+    value: unknown;
+    options?: unknown[] | null;
+    active: boolean;
+    onChange: (next: unknown) => void;
+}
+
+export default function GridFilterControl({ kind, name, value, options, active, onChange }: GridFilterControlProps) {
     const { t } = useTranslation();
-    const range = value && typeof value === 'object' ? value : {};
-    const setPart = (part, v) => {
+    const range: RangeValue = value && typeof value === 'object' ? (value as RangeValue) : {};
+    const setPart = (part: keyof RangeValue, v: string) => {
         const next = { ...range, [part]: v };
         // Both ends blank → no filter at all, not an empty object that
         // still counts as one.
@@ -91,11 +114,11 @@ export default function GridFilterControl({ kind, name, value, options, active, 
     if (kind === FILTER_KIND.boolean || kind === FILTER_KIND.select) {
         const items = kind === FILTER_KIND.boolean
             ? [{ value: 'true', label: t('studio_apps_runtime.grid.filter_yes_label', 'Yes') }, { value: 'false', label: t('studio_apps_runtime.grid.filter_no_label', 'No') }]
-            : (options || []);
+            : ((options || []) as SelectItem[]);
         return (
             <div className={`${BOX} relative`} style={boxStyle(active)}>
                 <select
-                    value={value ?? ''}
+                    value={String(value ?? '')}
                     onChange={(e) => onChange(e.target.value || undefined)}
                     aria-label={name}
                     className={SELECT}
@@ -112,7 +135,7 @@ export default function GridFilterControl({ kind, name, value, options, active, 
     return (
         <div className={BOX} style={boxStyle(active)}>
             <input
-                value={value ?? ''}
+                value={String(value ?? '')}
                 onChange={(e) => onChange(e.target.value || undefined)}
                 placeholder={t('studio_apps_runtime.grid.filter_contains', 'Contains…')}
                 aria-label={name}
