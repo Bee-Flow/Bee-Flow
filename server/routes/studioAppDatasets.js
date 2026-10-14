@@ -116,6 +116,7 @@ const crypto = require('crypto');
 const { z } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 
 const studioAppStore = require('../stores/studioAppStore');
@@ -276,7 +277,7 @@ router.post('/:id/large-datasets', largeDatasets, requireAuth, datasetInitLimite
         return res.status(404).json({ error: 'App not found' }); // uniform — never leaks
     }
     if (!storageStore.isAvailable()) {
-        return res.status(503).json({ error: 'File storage is temporarily unavailable. Try again shortly.' });
+        throw new HttpError(503, 'storage_unavailable', 'File storage is temporarily unavailable. Try again shortly.');
     }
     const { name, bytes } = req.body;
     const kind = req.body.kind || 'vcf';

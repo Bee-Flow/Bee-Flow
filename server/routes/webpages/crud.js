@@ -105,8 +105,7 @@ function register(router) {
         const { executeBuilderTool } = require('../../integrations/webpageBuilderTools');
         const { result } = await executeBuilderTool('create_webpage', { name: chosenName, description }, { userId });
         if (!result || result.error || !result.webpageId) {
-            log.error('[Webpages] Create failed:', result?.error || 'no webpageId');
-            return res.status(500).json({ error: 'Failed to create webpage' });
+            throw new Error(`create_webpage failed: ${result?.error || 'no webpageId'}`);
         }
         const webpageId = result.webpageId;
 

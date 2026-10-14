@@ -51,6 +51,7 @@ const express = require('express');
 const { z } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const multer = require('multer');
@@ -274,7 +275,7 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
         res.json({ status: 'ready', voiceprint: meta, enrolled: true });
     } catch (e) {
         log.error('[Voiceprints] POST /me error:', e.message);
-        res.status(500).json({ error: 'Could not record your voice profile', code: 'enroll_failed' });
+        throw new HttpError(500, 'enroll_failed', 'Could not record your voice profile');
     } finally {
         // Unconditional: the enrollment recording must not survive the request.
         if (tempPath) { try { await fs.promises.unlink(tempPath); } catch (_) {} }

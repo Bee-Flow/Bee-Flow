@@ -152,8 +152,10 @@ function appRef(app) {
 }
 
 // Map a connector/sync failure onto a response. connectors.js and
-// connectorSync.js both throw structured errors carrying status/code.
-function sendConnectorError(res, err, logLabel) {
+// connectorSync.js both throw structured errors carrying status/code; those
+// are answered here. Anything else is rethrown to the terminal error handler,
+// which logs it and answers a generic 500.
+function sendConnectorError(res, err) {
     const status = Number.isInteger(err.status) ? err.status : 500;
     if (status >= 400 && status < 600 && status !== 500) {
         return res.status(status).json({
@@ -162,8 +164,7 @@ function sendConnectorError(res, err, logLabel) {
             ...(typeof err.provider === 'string' && err.provider ? { provider: err.provider } : {}),
         });
     }
-    log.error(`[StudioAppConnectors/${logLabel}] ${err.message}`);
-    return res.status(500).json({ error: 'Connector failed to run' });
+    throw err;
 }
 
 // ── GET /:id/data/connectors ────────────────────────────────────────
@@ -349,7 +350,7 @@ router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorS
             ...(result?.partial ? { partial: true } : {}),
         });
     } catch (err) {
-        return sendConnectorError(res, err, 'inspect');
+        return sendConnectorError(res, err);
     }
 });
 
@@ -368,7 +369,7 @@ router.post('/:id/data/connectors/:connectorId/sync', requireAuth, connectorSync
         }
         return res.json(result);
     } catch (err) {
-        return sendConnectorError(res, err, 'sync');
+        return sendConnectorError(res, err);
     }
 });
 
@@ -442,7 +443,7 @@ router.post('/:id/data/connectors/:connectorId/verify', requireAuth, connectorSy
             hint: probe.reason ? (HINTS[probe.reason] || null) : null,
         });
     } catch (err) {
-        return sendConnectorError(res, err, 'verify');
+        return sendConnectorError(res, err);
     }
 });
 
@@ -575,7 +576,7 @@ router.post('/:id/runtime/connectors/:connectorId/refresh', requireAuth, connect
         }
         return res.json({ ok: !result.error, rowsWritten: result.rowsWritten || 0 });
     } catch (err) {
-        return sendConnectorError(res, err, 'runtime-refresh');
+        return sendConnectorError(res, err);
     }
 });
 

@@ -177,8 +177,7 @@ function register(router) {
                 // Roll back the share row so we don't leave a token pointing at
                 // a missing snapshot.
                 await publicShareStore.deleteShare(share.id, userId).catch(() => {});
-                log.error('[Webpages] Snapshot failed:', snapErr);
-                return res.status(500).json({ error: 'Failed to snapshot webpage' });
+                throw snapErr;
             }
 
             res.json({
