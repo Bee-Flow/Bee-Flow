@@ -69,7 +69,7 @@ describe('the builder stream vocabulary', () => {
         expect(streamWriters()).toEqual(expect.arrayContaining(['chatStream.js', 'modelStream.js', 'thoughtNarrator.js', 'layerDelegation.js']));
         const hook = fs.readFileSync(WEB_HOOK, 'utf8');
         expect(hook).toContain("import { handle } from './automationBuilder/reducer';");
-        expect(hook).toContain('handle(setState, currentEvent, data);');
+        expect(hook).toContain('handle(setState, event, data);');
     });
 
     it('accounts for every event the server writes onto the stream', () => {

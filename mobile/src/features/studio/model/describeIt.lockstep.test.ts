@@ -52,7 +52,10 @@ describe('the route (server/routes/studio/aiRoute.js)', () => {
     });
 
     it('refuses with the statuses and codes the phone reads', () => {
-        const refusals = [...ROUTE.matchAll(/status\((\d{3})\)\.json\(\{[^}]*?code: '(\w+)'/g)].map((m) => [Number(m[1]), m[2]]);
+        // A refusal is a hand-written `res.status(4xx).json({ ..., code })` or a thrown
+        // `HttpError(5xx, code, ...)`, which the terminal handler answers with the same body.
+        const refusals = [...ROUTE.matchAll(/status\((\d{3})\)\.json\(\{[^}]*?code: '(\w+)'|new HttpError\((\d{3}), '(\w+)'/g)]
+            .map((m) => (m[1] ? [Number(m[1]), m[2]] : [Number(m[3]), m[4]]));
         expect(refusals).toEqual([
             [400, 'no_text'],
             [503, 'no_model'],
