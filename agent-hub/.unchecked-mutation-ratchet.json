@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of non-GET authFetch calls whose Response is not checked agent-hub/src may still carry. Lower it with `node scripts/count-ratchet.mjs unchecked-mutation agent-hub --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-13",
-  "count": 36
+  "_generated": "2026-10-14",
+  "count": 35
 }
