@@ -99,6 +99,7 @@ const MOCKS = {
         resolveMemoryPolicy: async (opts) => { fx.memoryPolicyCalls.push(opts); return fx.memoryPolicy; },
     },
     '../../../core/memory/scrubMemoryContext': { scrubMemoryContext: async (t) => ({ scrubbed: t, replacedCategories: [] }) },
+    './memoryProtection': { protectMemoryContext: async ({ memoryContext }) => ({ memoryContext, memorySwap: null }) },
     '../../../stores/houseStyleStore': { getDefaultForOrg: async () => null },
     '../../../core/webpages/sidePanelWebpageContext': { buildSidePanelWebpageContext: async () => '' },
     '../../../core/documents/sidePanelDocumentContext': {
