@@ -190,7 +190,7 @@ function ParamRow({ param, connector, onChange, disabled }) {
                     <span className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-sm font-medium text-[var(--text-primary)]">{key}</span>
                         {required ? <span className="text-xs" style={{ color: '#d97706' }} aria-label={t('studio_apps_bi.params.required', 'required')}>{t('studio_apps_bi.params.required', 'required')}</span> : null}
-                        <span className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
+                        <span className="text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">
                             {Array.isArray(spec.enum) ? t('studio_apps_bi.params.type_choice', 'choice') : (spec.type || t('studio_apps_bi.params.type_text', 'text'))}
                         </span>
                     </span>

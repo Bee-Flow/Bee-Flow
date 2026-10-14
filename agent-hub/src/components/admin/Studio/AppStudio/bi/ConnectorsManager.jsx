@@ -1003,10 +1003,10 @@ export default function ConnectorsManager({
                             <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
                                 {group.appId !== 'other' ? getIntegrationIcon(group.appId) : <Workflow className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} />}
                             </div>
-                            <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
+                            <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                                 {group.label}
                             </span>
-                            <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{group.items.length}</span>
+                            <span className="ml-auto text-[10px] text-[var(--text-secondary)]">{group.items.length}</span>
                         </div>
                         {group.items.map((c) => (
                             <div key={c.id} className="group flex items-center gap-1">

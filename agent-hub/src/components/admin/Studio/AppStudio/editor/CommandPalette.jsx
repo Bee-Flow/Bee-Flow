@@ -84,7 +84,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                         className="flex-1 bg-transparent text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         style={{ color: 'var(--text-primary)' }}
                     />
-                    <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]">
+                    <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)]">
                         <Command size={10} aria-hidden="true" /> K
                     </span>
                     <button
@@ -109,7 +109,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                             <React.Fragment key={a.id}>
                                 {showGroup ? (
                                     <div
-                                        className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                                        className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]"
                                     >
                                         {a.group}
                                     </div>
@@ -127,7 +127,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                                 >
                                     <span>{a.label}</span>
                                     {a.hint ? (
-                                        <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">
+                                        <span className="ml-auto text-[10px] text-[var(--text-secondary)]">
                                             {a.hint}
                                         </span>
                                     ) : null}

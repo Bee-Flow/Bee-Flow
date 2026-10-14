@@ -322,7 +322,7 @@ function Row({ value, placeholder, ariaLabel, subtitle, small = false, disabled,
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
             />
             {subtitle ? (
-                <span className="shrink-0 truncate text-[10px] text-[var(--text-tertiary)]" title={subtitle}>{subtitle}</span>
+                <span className="shrink-0 truncate text-[10px] text-[var(--text-secondary)]" title={subtitle}>{subtitle}</span>
             ) : null}
             <button
                 type="button"

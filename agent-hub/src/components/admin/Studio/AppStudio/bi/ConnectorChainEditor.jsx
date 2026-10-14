@@ -87,7 +87,7 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
     return (
         <div className="rounded-lg border px-3 py-2.5 border-[var(--border-default)]">
             <div className="flex items-start gap-2">
-                <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
+                <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     {t('studio_apps_bi.chain.step_n', 'Step {n}', { n: index + 2 })}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -219,7 +219,7 @@ export default function ConnectorChainEditor({
             </div>
 
             <div className="rounded-lg border px-3 py-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{t('studio_apps_bi.chain.step_n', 'Step {n}', { n: 1 })}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{t('studio_apps_bi.chain.step_n', 'Step {n}', { n: 1 })}</span>
                 <p className="text-sm font-medium text-[var(--text-primary)]">
                     {baseAction?.label || connector.tool}
                 </p>

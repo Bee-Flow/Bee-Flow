@@ -342,7 +342,7 @@ export function CompactComponentBar({ onCommit }) {
     return (
         <>
             <span
-                className="shrink-0 select-none text-[10px] font-semibold uppercase tracking-[.08em] text-[var(--text-tertiary)]"
+                className="shrink-0 select-none text-[10px] font-semibold uppercase tracking-[.08em] text-[var(--text-secondary)]"
                 data-testid="palette-kicker"
             >
                 {t('app_studio.palette.kicker', 'Components')}
