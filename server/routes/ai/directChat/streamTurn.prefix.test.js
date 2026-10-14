@@ -115,7 +115,7 @@ function installMocks(tag, ownerRe, mocks) {
 
 const INSTALLED = [
     installMocks('prefix-assembly', /directChat[\\/]promptAssembly\.js$/, ASSEMBLY_MOCKS),
-    installMocks('prefix-gates', /directChat[\\/]inputGates\.js$/, GATE_MOCKS),
+    installMocks('prefix-gates', /directChat[\\/](inputGates|inputShield|inputPrivacyGates|inputRegexGate)\.js$/, GATE_MOCKS),
 ];
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
