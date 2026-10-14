@@ -51,7 +51,6 @@ const EXPECTED = {
     runOutcome: ['resolveRunOutcome', 'storeOutcomeDeps'],
     stepTypes: ['isBuiltinStepType'],
     toolRegistry: ['availabilityFor', 'allToolApps'],
-    agents: ['servesPublishedConfig'],
     nextcloudAdmin: ['sendAdminNotification'],
     knowledgeBase: ['executeKbIngestTool'],
     customIntegrations: ['renderAuthValue'],

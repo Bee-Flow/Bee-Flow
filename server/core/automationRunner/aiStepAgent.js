@@ -17,7 +17,7 @@
  *
  * Die live-terugval geldt alleen voor de EIGENAAR. De agent van een ander mag
  * hier uitsluitend draaien als hij ook echt een gepubliceerde VERSIE serveert —
- * `automation/agentCatalog.js: servesPublishedConfig`. `is_published` is de
+ * `core/automationModel/agentPublication.js: servesPublishedConfig`. `is_published` is de
  * deel-schakelaar, `published_version > 0` beslist welke config draait, en die
  * twee staan los van elkaar; zonder deze regel draait de onbewaakte automatisering van
  * de één op het levende klad van de ander.
@@ -106,7 +106,8 @@
 'use strict';
 
 const toolPolicy = require('../agentRuntime/toolPolicy');
-// The agent catalogue and tool registry are automation/'s, reached through ./featurePorts.js.
+const { servesPublishedConfig } = require('../automationModel/agentPublication');
+// The tool registry is automation/'s, reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const log = require('../../telemetry/log');
 
@@ -188,7 +189,7 @@ function _mayUseAgent(agent, ctx) {
     // Gedeeld is nog niet gepubliceerd: zonder een gepubliceerde VERSIE
     // serveert `getForRuntime` het levende klad van de eigenaar, en daar mag de
     // onbewaakte automatisering van een ander niet op draaien.
-    if (!runnerPort('agents').servesPublishedConfig(agent)) return false;
+    if (!servesPublishedConfig(agent)) return false;
     // Een identiteitslezing die niet lukte is geen antwoord. `userHomeOrgId`,
     // `orgRole` en `userGroupIds` komen uit dezelfde lezing (execution.js), dus
     // met `identityError` gezet zijn zowel de org- als de groepsvraag

@@ -90,7 +90,4 @@ registerRunnerPorts({
         availabilityFor: (...args) => toolRegistry().availabilityFor(...args),
         allToolApps: () => toolRegistry().ALL_TOOL_APPS,
     },
-    agents: {
-        servesPublishedConfig: (...args) => require('./agentCatalog').servesPublishedConfig(...args),
-    },
 });

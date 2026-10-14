@@ -38,6 +38,9 @@
  * nooit stilletjes goedgekeurd. Dan is er gewoon geen catalogus.
  */
 const log = require('../telemetry/log');
+// Does this row run on its PUBLISHED config? Pure, so it lives below the
+// features: core/automationModel/agentPublication.js (the whole argument is there).
+const { servesPublishedConfig } = require('../core/automationModel/agentPublication');
 
 const isObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
 
@@ -104,38 +107,6 @@ function collectAgentIds(definition) {
  * @param {object} agent   een rij zoals `agentStore.getForRuntime` hem geeft
  * @param {object} p       { userId, orgId, groups } van de AUTOMATION-EIGENAAR
  */
-/**
- * Draait deze rij op zijn GEPUBLICEERDE config?
- *
- * ── TWEE SCHAKELAARS, ÉÉN BEWERING ──────────────────────────────────
- * `is_published` is de DEEL-schakelaar: hij zet de agent in de bibliotheek
- * (`setAgentPublished`, stores/agent/agentCrud.js). WELKE config draait wordt
- * elders beslist — `isSplitActive`: `published_version > 0` én een
- * `published_config` die er is. Die twee zijn onafhankelijk: publiceren naar de
- * bibliotheek raakt `published_version` niet aan, `publishAgentVersion` is een
- * aparte handeling, en de backfill draait bewust niet bij boot. `is_published
- * = TRUE` met `published_version = 0` is dus een gewone toestand, en dan
- * serveert `getForRuntime` de LIVE conceptconfig (`runtimeSource: 'live'`).
- *
- * Voor de EIGENAAR is dat prima — die kent zijn eigen klad. Voor een ander
- * niet: dan draait een onbewaakte automatisering op de nog-in-bewerking `config.tools`
- * van een collega (precies de per-actie-grants waarop de hele aftrek in
- * `core/automationRunner/aiStepAgent.js` rust), zijn concept-kennisbanken en
- * zijn conceptprompt — en verandert élke autosave in de agent-editor per direct
- * wat er vannacht in andermans account gebeurt, zonder versie en zonder review.
- * Publiceren is wat een agent tot iets maakt waar een ander op kan bouwen; dan
- * moet het ook de gepubliceerde config zijn die draait.
- *
- * `runtimeSource` is het antwoord dat `getForRuntime` en
- * `getPublishedAgentsForUser` zelf meesturen. Een rij uit `getAgents` draagt
- * dat veld niet maar wel `published_version`; die telt dan. Ontbreken ze
- * allebei, dan is er geen bewijs van een publicatie — en onbekend versmalt.
- */
-function servesPublishedConfig(agent) {
-    if (!agent) return false;
-    if (typeof agent.runtimeSource === 'string') return agent.runtimeSource === 'published';
-    return Number(agent.published_version) > 0;
-}
 
 function mayAutomationUseAgent(agent, { userId = null, orgId = null, groups = [] } = {}) {
     if (!agent) return false;
