@@ -35,6 +35,11 @@ const EXEMPT = new Map([
     // Het schema van projectChatStore, eruit gesplitst; de store zelf staat in de ladder en draait het bij boot.
     ['stores/lib/projectChatSchema.js', 'schema van projectChatStore — DDL draait via die store (ladder)'],
     ['stores/lib/sqliteBlobEngine.js', 'per-tenant engine — sqlite-blob per app, geen Postgres-DDL'],
+    // The user store's statement lists, split out of stores/user/schema.js:
+    // that file's initDB runs them, reached through the userStore facade.
+    ['stores/user/schemaTables.js', 'DDL of stores/user/schema.js — run by its initDB (userStore facade)'],
+    ['stores/user/schemaMigrations.js', 'DDL of stores/user/schema.js — run by its initDB (userStore facade)'],
+    ['stores/user/planMigrations.js', 'DDL of stores/user/schema.js — run by its initDB (userStore facade)'],
     // Bereikt via de automationStore-facade in de lijst: die exporteert core's
     // initDB, en de integratietest bewijst dat automations/automation_runs
     // na de ladder bestaan.
