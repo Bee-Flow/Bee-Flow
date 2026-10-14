@@ -13,6 +13,7 @@ const userStore = require('../../stores/userStore');
 const { loadConfig, requireAuth } = require('../permissions');
 const { assertAllowedNextcloudHost, nextcloudFetch, MAX_URL_LENGTH: NEXTCLOUD_MAX_URL_LENGTH } = require('../../integrations/nextcloudTarget');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
@@ -125,18 +126,18 @@ router.post('/create-app-password', requireAuth, async (req, res) => {
 
     if (!response.ok) {
         log.warn(`[Nextcloud] getapppassword failed (${response.status})`);
-        return res.status(response.status === 403 ? 403 : 502).json({
-            error: response.status === 403
-                ? 'Already authenticated with an app password — generate a new one in Nextcloud Settings → Security.'
-                : 'Failed to create app password from Nextcloud'
-        });
+        if (response.status === 403) {
+            throw new HttpError(403, 'nextcloud_app_password_session',
+                'Already authenticated with an app password — generate a new one in Nextcloud Settings → Security.');
+        }
+        throw new HttpError(502, 'nextcloud_app_password_failed', 'Failed to create app password from Nextcloud');
     }
 
     const data = /** @type {{ ocs?: { data?: { apppassword?: string } } }} */ (await response.json());
     const appPassword = data.ocs?.data?.apppassword;
 
     if (!appPassword) {
-        return res.status(502).json({ error: 'No app password returned by Nextcloud' });
+        throw new HttpError(502, 'nextcloud_no_app_password', 'No app password returned by Nextcloud');
     }
 
     await userStore.storeAppPassword(userId, nextcloudUsername, appPassword);
