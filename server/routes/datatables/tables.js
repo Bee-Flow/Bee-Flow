@@ -94,33 +94,28 @@ function register(router) {
      * to read, export or erase it. `scope` describes where a NEW table would go.
      */
     router.get('/', async (req, res) => {
-        try {
-            const principal = await resolveDatatablePrincipal(req);
-            const scopes = datatableScopesFor(principal);
-            if (!scopes.length) {
-                // No session at all — the mount's requireAuthedUser makes this
-                // unreachable in practice, and an empty list with no scope is the
-                // only honest answer if it ever is.
-                return res.json({ datatables: [], scope: null, reason: 'no_scope' });
-            }
-            const all = [];
-            for (const scope of scopes) {
-                all.push(...await datatableStore.listDatatablesForScope(scope));
-            }
-            const grantsByTable = await datatableStore.listGrantsForTables(all.map(t => t.id));
-            // "2 automations" on the row — distinct consumers of any kind, one
-            // GROUP BY for the whole list rather than one usage read per table.
-            const usageByTable = await datatableStore.listUsageCounts(all.map(t => t.id));
-            const visible = [];
-            for (const t of all) {
-                const grade = gradeForPrincipal(t, grantsByTable.get(t.id) || [], principal);
-                if (grade) visible.push({ ...publicTable(t, grade), usageCount: usageByTable.get(t.id) || 0 });
-            }
-            res.json({ datatables: visible, scope: scopeDescriptor(defaultCreateScope(principal)) });
-        } catch (e) {
-            log.error('[datatables] list failed:', e.message);
-            res.status(500).json({ error: 'Could not load your datatables' });
+        const principal = await resolveDatatablePrincipal(req);
+        const scopes = datatableScopesFor(principal);
+        if (!scopes.length) {
+            // No session at all — the mount's requireAuthedUser makes this
+            // unreachable in practice, and an empty list with no scope is the
+            // only honest answer if it ever is.
+            return res.json({ datatables: [], scope: null, reason: 'no_scope' });
         }
+        const all = [];
+        for (const scope of scopes) {
+            all.push(...await datatableStore.listDatatablesForScope(scope));
+        }
+        const grantsByTable = await datatableStore.listGrantsForTables(all.map(t => t.id));
+        // "2 automations" on the row — distinct consumers of any kind, one
+        // GROUP BY for the whole list rather than one usage read per table.
+        const usageByTable = await datatableStore.listUsageCounts(all.map(t => t.id));
+        const visible = [];
+        for (const t of all) {
+            const grade = gradeForPrincipal(t, grantsByTable.get(t.id) || [], principal);
+            if (grade) visible.push({ ...publicTable(t, grade), usageCount: usageByTable.get(t.id) || 0 });
+        }
+        res.json({ datatables: visible, scope: scopeDescriptor(defaultCreateScope(principal)) });
     });
 
     /**

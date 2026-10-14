@@ -185,12 +185,7 @@ function register(router) {
             // Deliberately NOT licence-gated, and deliberately NOT refused on a
             // personal table either: removing access must always be possible, and a
             // table that holds no grants answers this with an empty list anyway.
-            try {
-                res.json({ grants: await datatableStore.removeGrant(req.datatable.id, req.params.grantId) });
-            } catch (e) {
-                log.error('[datatables] grant removal failed:', e.message);
-                res.status(500).json({ error: 'Could not remove the share' });
-            }
+            res.json({ grants: await datatableStore.removeGrant(req.datatable.id, req.params.grantId) });
         });
 
     router.get('/:id/grants', requireDatatableGrade('viewer'), async (req, res) => {
@@ -200,12 +195,7 @@ function register(router) {
     // ── Who else uses this table ────────────────────────────────────────────────
 
     router.get('/:id/usage', requireDatatableGrade('viewer'), async (req, res) => {
-        try {
-            res.json({ usage: await datatableStore.listUsage(req.datatable.id) });
-        } catch (e) {
-            log.error('[datatables] usage read failed:', e.message);
-            res.status(500).json({ error: 'Could not load who uses this datatable' });
-        }
+        res.json({ usage: await datatableStore.listUsage(req.datatable.id) });
     });
 }
 

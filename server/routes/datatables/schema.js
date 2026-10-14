@@ -56,14 +56,9 @@ const SchemaQuery = z.object({ confirmBreaking: flag(CONFIRM_TEXT) }).strict();
 
 function register(router) {
     router.get('/:id/schema', requireDatatableGrade('viewer'), async (req, res) => {
-        try {
-            const meta = await datatableStore.getTableMeta(req.datatableScope, req.datatable.id);
-            const { modelVersion } = await datatableStore.getModel(req.datatableScope);
-            res.json({ fields: meta?.fields || [], modelVersion });
-        } catch (e) {
-            log.error('[datatables] schema read failed:', e.message);
-            res.status(500).json({ error: 'Could not load the columns' });
-        }
+        const meta = await datatableStore.getTableMeta(req.datatableScope, req.datatable.id);
+        const { modelVersion } = await datatableStore.getModel(req.datatableScope);
+        res.json({ fields: meta?.fields || [], modelVersion });
     });
 
     router.put('/:id/schema',

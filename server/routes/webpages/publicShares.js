@@ -110,37 +110,32 @@ function register(router) {
     // links and their status, but not the owner's chosen recipient emails (BFSF-188).
     // Creating/refreshing/revoking links stays owner-only (handlers below).
     router.get('/:id/public-shares', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            // Owner-scoped first (preserves owner-only semantics); fall back to the
-            // same read-visibility check used by GET /:id for published pages.
-            let wp = await webpageStore.getWebpage(req.params.id, userId);
-            let isOwner = !!wp;
-            if (!wp) {
-                const raw = await webpageStore.getWebpageRaw(req.params.id);
-                const { orgIds, userGroups } = await resolveAudienceContext(req);
-                const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
-                if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) wp = raw;
-            }
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            // The exposure rules live in ./webpageShareUrls so they can be tested
-            // without loading this router (BFSF-186). Non-owners list EVERY share
-            // on the page — scoping to the caller is what made a colleague's link
-            // invisible — but never see the owner's recipient allow-list.
-            const shares = await publicShareStore.listSharesForWebpage(
-                req.params.id, shareUrls.listingCreatorScope(isOwner, userId));
-            const safeShares = shareUrls.stripOwnerOnlyFields(shares, isOwner);
-            // Attach the share URL where the raw token is recoverable (encrypted
-            // at rest, BFSF-188). Legacy/revoked/expired shares get url: null —
-            // findByToken independently rejects dead tokens at view time anyway.
-            const tokens = await publicShareStore.getRetrievableTokens(req.params.id);
-            const withUrls = shareUrls.attachShareUrls(
-                safeShares, tokens, (rawToken) => buildShareUrl(req, rawToken));
-            res.json({ shares: withUrls });
-        } catch (err) {
-            log.error('[Webpages] List public shares failed:', err);
-            res.status(500).json({ error: 'Failed to list public shares' });
+        const userId = req.session.user.id;
+        // Owner-scoped first (preserves owner-only semantics); fall back to the
+        // same read-visibility check used by GET /:id for published pages.
+        let wp = await webpageStore.getWebpage(req.params.id, userId);
+        let isOwner = !!wp;
+        if (!wp) {
+            const raw = await webpageStore.getWebpageRaw(req.params.id);
+            const { orgIds, userGroups } = await resolveAudienceContext(req);
+            const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+            if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) wp = raw;
         }
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        // The exposure rules live in ./webpageShareUrls so they can be tested
+        // without loading this router (BFSF-186). Non-owners list EVERY share
+        // on the page — scoping to the caller is what made a colleague's link
+        // invisible — but never see the owner's recipient allow-list.
+        const shares = await publicShareStore.listSharesForWebpage(
+            req.params.id, shareUrls.listingCreatorScope(isOwner, userId));
+        const safeShares = shareUrls.stripOwnerOnlyFields(shares, isOwner);
+        // Attach the share URL where the raw token is recoverable (encrypted
+        // at rest, BFSF-188). Legacy/revoked/expired shares get url: null —
+        // findByToken independently rejects dead tokens at view time anyway.
+        const tokens = await publicShareStore.getRetrievableTokens(req.params.id);
+        const withUrls = shareUrls.attachShareUrls(
+            safeShares, tokens, (rawToken) => buildShareUrl(req, rawToken));
+        res.json({ shares: withUrls });
     });
 
     // Create a new external share. Body: { accessMode, password?, allowedEmails?, expiresAt?, title? }
@@ -203,73 +198,58 @@ function register(router) {
     // Re-snapshot an existing share so it reflects the current webpage. Keeps
     // the same token (recipients' links stay valid) but refreshes the bytes.
     router.post('/:id/public-shares/:shareId/refresh', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            const wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            const share = await publicShareStore.getShareById(req.params.shareId);
-            if (!share || share.webpageId !== wp.id || share.createdBy !== userId) {
-                return res.status(404).json({ error: 'Share not found' });
-            }
-            if (share.revokedAt) return res.status(400).json({ error: 'Cannot refresh a revoked share' });
-            await webpageSnapshot.writeSnapshot({
-                shareId: share.id,
-                webpageId: wp.id,
-                ownerId: wp.userId,
-            });
-            res.json({ success: true });
-        } catch (err) {
-            log.error('[Webpages] Refresh public share failed:', err);
-            res.status(500).json({ error: 'Failed to refresh share' });
+        const userId = req.session.user.id;
+        const wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        const share = await publicShareStore.getShareById(req.params.shareId);
+        if (!share || share.webpageId !== wp.id || share.createdBy !== userId) {
+            return res.status(404).json({ error: 'Share not found' });
         }
+        if (share.revokedAt) return res.status(400).json({ error: 'Cannot refresh a revoked share' });
+        await webpageSnapshot.writeSnapshot({
+            shareId: share.id,
+            webpageId: wp.id,
+            ownerId: wp.userId,
+        });
+        res.json({ success: true });
     });
 
     // Update expiry. PATCH body: { expiresAt: ISO|null }
     router.patch('/:id/public-shares/:shareId', requireAuth, validate({ body: ExpiryBody, query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            const wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            const share = await publicShareStore.getShareById(req.params.shareId);
-            if (!share || share.webpageId !== wp.id || share.createdBy !== userId) {
-                return res.status(404).json({ error: 'Share not found' });
-            }
-            let expiry;
-            try { expiry = parseExpiresAt(req.body.expiresAt); }
-            catch (e) { return res.status(400).json({ error: e.message }); }
-            await publicShareStore.updateExpiry(share.id, userId, expiry);
-            const updated = await publicShareStore.getShareById(share.id);
-            res.json({ success: true, share: updated });
-        } catch (err) {
-            log.error('[Webpages] Update public share failed:', err);
-            res.status(500).json({ error: 'Failed to update share' });
+        const userId = req.session.user.id;
+        const wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        const share = await publicShareStore.getShareById(req.params.shareId);
+        if (!share || share.webpageId !== wp.id || share.createdBy !== userId) {
+            return res.status(404).json({ error: 'Share not found' });
         }
+        let expiry;
+        try { expiry = parseExpiresAt(req.body.expiresAt); }
+        catch (e) { return res.status(400).json({ error: e.message }); }
+        await publicShareStore.updateExpiry(share.id, userId, expiry);
+        const updated = await publicShareStore.getShareById(share.id);
+        res.json({ success: true, share: updated });
     });
 
     // Revoke (soft-delete: marks revoked_at, snapshot is also purged).
     router.delete('/:id/public-shares/:shareId', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            const wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            const share = await publicShareStore.getShareById(req.params.shareId);
-            if (!share || share.webpageId !== wp.id || share.createdBy !== userId) {
-                return res.status(404).json({ error: 'Share not found' });
-            }
-            // Always revoke the row first so the token stops working immediately,
-            // even if the snapshot purge takes time / fails.
-            await publicShareStore.revokeShare(share.id, userId);
-            // Was dit DE canonieke share, dan is /w/<slug> nu een adres zonder
-            // pagina. De wijzer moet mee weg — anders blijft het scherm "openbaar"
-            // zeggen over een link die 404 geeft. Op share-id, dus het intrekken
-            // van een lósse share raakt het adres niet.
-            await publicAddress.clearCanonicalShare(share.id).catch(() => {});
-            await publicShareStore.deleteShare(share.id, userId).catch(() => {});
-            res.json({ success: true });
-        } catch (err) {
-            log.error('[Webpages] Revoke public share failed:', err);
-            res.status(500).json({ error: 'Failed to revoke share' });
+        const userId = req.session.user.id;
+        const wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        const share = await publicShareStore.getShareById(req.params.shareId);
+        if (!share || share.webpageId !== wp.id || share.createdBy !== userId) {
+            return res.status(404).json({ error: 'Share not found' });
         }
+        // Always revoke the row first so the token stops working immediately,
+        // even if the snapshot purge takes time / fails.
+        await publicShareStore.revokeShare(share.id, userId);
+        // Was dit DE canonieke share, dan is /w/<slug> nu een adres zonder
+        // pagina. De wijzer moet mee weg — anders blijft het scherm "openbaar"
+        // zeggen over een link die 404 geeft. Op share-id, dus het intrekken
+        // van een lósse share raakt het adres niet.
+        await publicAddress.clearCanonicalShare(share.id).catch(() => {});
+        await publicShareStore.deleteShare(share.id, userId).catch(() => {});
+        res.json({ success: true });
     });
 }
 

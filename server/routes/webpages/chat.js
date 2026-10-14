@@ -9,7 +9,6 @@ const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { bodyOf, NO_QUERY, NOTHING } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // ── Wat een chat-save mag dragen ────────────────────────────────────
 //
@@ -34,30 +33,20 @@ function register(router) {
     // Decoupled from the file-update PUT so frequent chat saves don't trigger
     // the file-PUT's sha256 + auto-versioning logic.
     router.put('/:id/chat', requireAuth, validate({ body: ChatBody, query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            const wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            const { messages } = req.body;
-            await webpageStore.setChatMessages(req.params.id, userId, messages);
-            res.json({ success: true, count: messages.length });
-        } catch (err) {
-            log.error('[Webpages] Chat save failed:', err);
-            res.status(500).json({ error: 'Failed to save chat history' });
-        }
+        const userId = req.session.user.id;
+        const wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        const { messages } = req.body;
+        await webpageStore.setChatMessages(req.params.id, userId, messages);
+        res.json({ success: true, count: messages.length });
     });
 
     router.delete('/:id/chat', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            const wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            await webpageStore.setChatMessages(req.params.id, userId, []);
-            res.json({ success: true });
-        } catch (err) {
-            log.error('[Webpages] Chat clear failed:', err);
-            res.status(500).json({ error: 'Failed to clear chat history' });
-        }
+        const userId = req.session.user.id;
+        const wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        await webpageStore.setChatMessages(req.params.id, userId, []);
+        res.json({ success: true });
     });
 }
 
