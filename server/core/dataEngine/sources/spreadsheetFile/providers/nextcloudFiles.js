@@ -126,6 +126,129 @@ function scopeDenied(source, verb) {
         { ref: refOf(source) });
 }
 
+// ─── The FileApi's operations ───────────────────────────────────────────
+//
+// They take the context `n` makeApi builds:
+//   { d, auth, baseUrl, uid, root, guardCtx, linkBase(), propfind(), assertScope(), stat(), probe() }
+
+/** One folder, listed whole through the scope guard (WebDAV has no pages). */
+async function listFolder(n, { view = 'mine', path = '/', parentId = null, q = null, pageToken = null } = {}) {
+    void pageToken;   // WebDAV lists a folder whole
+    if (view === 'shared') {
+        throw new SpreadsheetSourceError(400, 'no_shared_root', 'Nextcloud has no "shared with me" root — shared folders appear in your files.');
+    }
+    if (view === 'search') {
+        return searchFiles(n, q);
+    }
+    const folder = normalizePath(parentId || path);
+    const answer = await n.d.guard.guardedNcCall('nextcloud_list_files', { path: folder }, n.guardCtx, async () => {
+        const res = await n.propfind(folder, '1');
+        if (res.status === 404) throw new SpreadsheetSourceError(404, 'spreadsheet_not_found', `Nextcloud has no folder ${folder}.`, { ref: { provider, path: folder } });
+        if (!res.ok) throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'folder', { ref: { provider, path: folder } });
+        const all = n.d.webdav.parsePropfind(await res.text(), n.baseUrl, n.uid);
+        // The first entry is the folder itself — the same shape as the
+        // list tool, so the guard's filter finds `items` and each `path`.
+        const items = all.filter((e) => normalizePath(e.path) !== folder);
+        return { path: folder, count: items.length, items };
+    });
+    if (answer && answer.error) {
+        if (answer.nc_scope_denied) throw scopeDenied({ path: folder }, 'read');
+        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', String(answer.error).slice(0, 200), { ref: { provider, path: folder } });
+    }
+    const base = await n.linkBase();
+    const items = (answer.items || []).map((e) => toFileRef(e, { baseUrl: n.baseUrl, uid: n.uid, linkBase: base })).filter(Boolean);
+    items.sort((a, b) => (a.isFolder === b.isFolder ? a.name.localeCompare(b.name) : (a.isFolder ? -1 : 1)));
+    return { items, nextPageToken: null };
+}
+
+/** The files search provider, through the scope guard; spreadsheets only. */
+async function searchFiles(n, q) {
+    const term = String(q || '').trim();
+    if (!term) return { items: [], nextPageToken: null };
+    const answer = await n.d.guard.guardedNcCall('nextcloud_search_files', { query: term }, n.guardCtx, async () => {
+        const url = `${n.baseUrl}/ocs/v2.php/search/providers/files/search?term=${encodeURIComponent(term)}&limit=${SEARCH_LIMIT}&format=json`;
+        const res = await n.auth.fetch(url, { headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' } });
+        if (!res.ok) throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'search');
+        const data = await res.json().catch(() => null);
+        const entries = (data && data.ocs && data.ocs.data && data.ocs.data.entries) || [];
+        const items = entries.map((e) => ({
+            name: e.title || '',
+            path: (e.attributes && e.attributes.path) || null,
+            fileId: (e.attributes && e.attributes.fileId) || null,
+        })).filter((e) => e.path && isSpreadsheetName(e.name));
+        return { query: term, count: items.length, items };
+    });
+    if (answer && answer.error) {
+        if (answer.nc_scope_denied) throw scopeDenied({ path: '/' }, 'read');
+        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', String(answer.error).slice(0, 200));
+    }
+    const base = await n.linkBase();
+    const items = (answer.items || []).map((e) => {
+        const path = normalizePath(e.path);
+        return {
+            provider, fileId: e.fileId != null ? String(e.fileId) : null, driveId: null, path,
+            name: e.name || path.split('/').pop(), mimeType: null, format: formatOf({ name: e.name }),
+            size: null, modifiedAt: null, etag: null,
+            webUrl: base && e.fileId != null ? `${base}/f/${e.fileId}` : null,
+            parentId: path.slice(0, path.lastIndexOf('/')) || '/', isFolder: false, owned: false,
+        };
+    });
+    return { items, nextPageToken: null };
+}
+
+async function downloadFile(n, file, { maxBytes = null } = {}) {
+    const p = await n.probe(file);
+    if (maxBytes && p.size != null && p.size > maxBytes) {
+        throw new SpreadsheetSourceError(413, 'spreadsheet_too_large', `"${p.name}" is ${Math.round(p.size / 1048576)} MB; the limit is ${Math.round(maxBytes / 1048576)} MB.`, { ref: refOf(file) });
+    }
+    let res;
+    try {
+        res = await n.auth.fetch(n.d.webdav.joinDavPath(n.root, p.path), { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
+    } catch (e) {
+        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `Nextcloud did not deliver the file (${e && e.name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: refOf(file) });
+    }
+    if (res.status === 404) throw new SpreadsheetSourceError(404, 'spreadsheet_not_found', `Nextcloud no longer has ${p.path}.`, { ref: refOf(file) });
+    if (!res.ok) throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'file', { ref: refOf(file) });
+    const buffer = Buffer.from(await res.arrayBuffer());
+    if (maxBytes && buffer.length > maxBytes) {
+        throw new SpreadsheetSourceError(413, 'spreadsheet_too_large', `"${p.name}" is larger than ${Math.round(maxBytes / 1048576)} MB.`, { ref: refOf(file) });
+    }
+    return { buffer, marker: p.marker };
+}
+
+/**
+ * PUT the new bytes over the file, guarded by `If-Match: <etag>`. The
+ * new etag comes from the response header; Nextcloud omits it on some
+ * paths (the connector hop, older Sabre), then one PROPFIND fetches it.
+ */
+async function uploadFile(n, file, buffer, { ifMatch = null, contentType = null } = {}) {
+    const path = normalizePath(file && file.path);
+    if (!file || !file.path) throw new SpreadsheetSourceError(422, 'spreadsheet_rejected', 'A Nextcloud file needs a path.');
+    await n.assertScope('nextcloud_upload_file', path, file);
+    const format = file.format || formatOf({ name: file.name || path });
+    const headers = {
+        'Content-Type': contentType || n.d.officegen.CONTENT_TYPES[format] || 'application/octet-stream',
+        'OC-Total-Length': String(buffer.length),
+    };
+    if (ifMatch && ifMatch.etag) headers['If-Match'] = ifMatch.etag;
+    let res;
+    try {
+        res = await n.auth.fetch(n.d.webdav.joinDavPath(n.root, path), {
+            method: 'PUT', headers, body: buffer, signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+        });
+    } catch (e) {
+        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `Nextcloud did not take the upload (${e && e.name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: refOf(file) });
+    }
+    if (!res.ok && res.status !== 201 && res.status !== 204) {
+        throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'file', { ref: refOf(file) });
+    }
+    const etag = (res.headers && (res.headers.get('oc-etag') || res.headers.get('etag'))) || null;
+    if (etag) {
+        return { marker: { etag, modified: new Date().toISOString(), size: buffer.length, fileId: (ifMatch && ifMatch.fileId) || file.fileId || null } };
+    }
+    return { marker: markerOf(await n.stat(file)) };
+}
+
 // ─── The FileApi ────────────────────────────────────────────────────────
 
 /**
@@ -178,69 +301,6 @@ function makeApi(auth, ctx = {}) {
         });
     }
 
-    async function list({ view = 'mine', path = '/', parentId = null, q = null, pageToken = null } = {}) {
-        void pageToken;   // WebDAV lists a folder whole
-        if (view === 'shared') {
-            throw new SpreadsheetSourceError(400, 'no_shared_root', 'Nextcloud has no "shared with me" root — shared folders appear in your files.');
-        }
-        if (view === 'search') {
-            return search(q);
-        }
-        const folder = normalizePath(parentId || path);
-        const answer = await d.guard.guardedNcCall('nextcloud_list_files', { path: folder }, guardCtx, async () => {
-            const res = await propfind(folder, '1');
-            if (res.status === 404) throw new SpreadsheetSourceError(404, 'spreadsheet_not_found', `Nextcloud has no folder ${folder}.`, { ref: { provider, path: folder } });
-            if (!res.ok) throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'folder', { ref: { provider, path: folder } });
-            const all = d.webdav.parsePropfind(await res.text(), baseUrl, uid);
-            // The first entry is the folder itself — the same shape as the
-            // list tool, so the guard's filter finds `items` and each `path`.
-            const items = all.filter((e) => normalizePath(e.path) !== folder);
-            return { path: folder, count: items.length, items };
-        });
-        if (answer && answer.error) {
-            if (answer.nc_scope_denied) throw scopeDenied({ path: folder }, 'read');
-            throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', String(answer.error).slice(0, 200), { ref: { provider, path: folder } });
-        }
-        const base = await linkBase();
-        const items = (answer.items || []).map((e) => toFileRef(e, { baseUrl, uid, linkBase: base })).filter(Boolean);
-        items.sort((a, b) => (a.isFolder === b.isFolder ? a.name.localeCompare(b.name) : (a.isFolder ? -1 : 1)));
-        return { items, nextPageToken: null };
-    }
-
-    async function search(q) {
-        const term = String(q || '').trim();
-        if (!term) return { items: [], nextPageToken: null };
-        const answer = await d.guard.guardedNcCall('nextcloud_search_files', { query: term }, guardCtx, async () => {
-            const url = `${baseUrl}/ocs/v2.php/search/providers/files/search?term=${encodeURIComponent(term)}&limit=${SEARCH_LIMIT}&format=json`;
-            const res = await auth.fetch(url, { headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' } });
-            if (!res.ok) throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'search');
-            const data = await res.json().catch(() => null);
-            const entries = (data && data.ocs && data.ocs.data && data.ocs.data.entries) || [];
-            const items = entries.map((e) => ({
-                name: e.title || '',
-                path: (e.attributes && e.attributes.path) || null,
-                fileId: (e.attributes && e.attributes.fileId) || null,
-            })).filter((e) => e.path && isSpreadsheetName(e.name));
-            return { query: term, count: items.length, items };
-        });
-        if (answer && answer.error) {
-            if (answer.nc_scope_denied) throw scopeDenied({ path: '/' }, 'read');
-            throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', String(answer.error).slice(0, 200));
-        }
-        const base = await linkBase();
-        const items = (answer.items || []).map((e) => {
-            const path = normalizePath(e.path);
-            return {
-                provider, fileId: e.fileId != null ? String(e.fileId) : null, driveId: null, path,
-                name: e.name || path.split('/').pop(), mimeType: null, format: formatOf({ name: e.name }),
-                size: null, modifiedAt: null, etag: null,
-                webUrl: base && e.fileId != null ? `${base}/f/${e.fileId}` : null,
-                parentId: path.slice(0, path.lastIndexOf('/')) || '/', isFolder: false, owned: false,
-            };
-        });
-        return { items, nextPageToken: null };
-    }
-
     /** PROPFIND Depth 0 → the entry, or a spreadsheet_not_found. */
     async function stat(file) {
         const path = normalizePath(file && file.path);
@@ -284,60 +344,15 @@ function makeApi(auth, ctx = {}) {
         }
     }
 
-    async function download(file, { maxBytes = null } = {}) {
-        const p = await probe(file);
-        if (maxBytes && p.size != null && p.size > maxBytes) {
-            throw new SpreadsheetSourceError(413, 'spreadsheet_too_large', `"${p.name}" is ${Math.round(p.size / 1048576)} MB; the limit is ${Math.round(maxBytes / 1048576)} MB.`, { ref: refOf(file) });
-        }
-        let res;
-        try {
-            res = await auth.fetch(d.webdav.joinDavPath(root, p.path), { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
-        } catch (e) {
-            throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `Nextcloud did not deliver the file (${e && e.name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: refOf(file) });
-        }
-        if (res.status === 404) throw new SpreadsheetSourceError(404, 'spreadsheet_not_found', `Nextcloud no longer has ${p.path}.`, { ref: refOf(file) });
-        if (!res.ok) throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'file', { ref: refOf(file) });
-        const buffer = Buffer.from(await res.arrayBuffer());
-        if (maxBytes && buffer.length > maxBytes) {
-            throw new SpreadsheetSourceError(413, 'spreadsheet_too_large', `"${p.name}" is larger than ${Math.round(maxBytes / 1048576)} MB.`, { ref: refOf(file) });
-        }
-        return { buffer, marker: p.marker };
-    }
-
-    /**
-     * PUT the new bytes over the file, guarded by `If-Match: <etag>`. The
-     * new etag comes from the response header; Nextcloud omits it on some
-     * paths (the connector hop, older Sabre), then one PROPFIND fetches it.
-     */
-    async function upload(file, buffer, { ifMatch = null, contentType = null } = {}) {
-        const path = normalizePath(file && file.path);
-        if (!file || !file.path) throw new SpreadsheetSourceError(422, 'spreadsheet_rejected', 'A Nextcloud file needs a path.');
-        await assertScope('nextcloud_upload_file', path, file);
-        const format = file.format || formatOf({ name: file.name || path });
-        const headers = {
-            'Content-Type': contentType || d.officegen.CONTENT_TYPES[format] || 'application/octet-stream',
-            'OC-Total-Length': String(buffer.length),
-        };
-        if (ifMatch && ifMatch.etag) headers['If-Match'] = ifMatch.etag;
-        let res;
-        try {
-            res = await auth.fetch(d.webdav.joinDavPath(root, path), {
-                method: 'PUT', headers, body: buffer, signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
-            });
-        } catch (e) {
-            throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `Nextcloud did not take the upload (${e && e.name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: refOf(file) });
-        }
-        if (!res.ok && res.status !== 201 && res.status !== 204) {
-            throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'file', { ref: refOf(file) });
-        }
-        const etag = (res.headers && (res.headers.get('oc-etag') || res.headers.get('etag'))) || null;
-        if (etag) {
-            return { marker: { etag, modified: new Date().toISOString(), size: buffer.length, fileId: (ifMatch && ifMatch.fileId) || file.fileId || null } };
-        }
-        return { marker: markerOf(await stat(file)) };
-    }
-
-    return { provider, list, probe, download, upload, markerEquals, resolveByPath, root, baseUrl, uid };
+    const n = { d, auth, baseUrl, uid, root, guardCtx, linkBase, propfind, assertScope, stat, probe };
+    return {
+        provider,
+        list: (opts) => listFolder(n, opts),
+        probe,
+        download: (file, opts) => downloadFile(n, file, opts),
+        upload: (file, buffer, opts) => uploadFile(n, file, buffer, opts),
+        markerEquals, resolveByPath, root, baseUrl, uid,
+    };
 }
 
 /** Cheap and network-free: connector binding, OAuth session or app password. */
