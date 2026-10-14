@@ -1,5 +1,5 @@
 {
   "_comment": "Number of files the largest import cycle (strongly connected component, lazy requires included, type-only imports excluded) under server may still have. Lower it with `node scripts/scc-ratchet.mjs server --update` after a split; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-13",
-  "size": 569
+  "_generated": "2026-10-14",
+  "size": 567
 }
