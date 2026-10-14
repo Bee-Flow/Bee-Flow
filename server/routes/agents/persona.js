@@ -34,6 +34,7 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
@@ -139,10 +140,7 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
         orgIds = await resolveUserOrgIds(req, { strict: true });
     } catch (e) {
         log.error('[agents/persona/parse] could not resolve the workspace:', e.message);
-        return res.status(503).json({
-            error: 'Could not check your workspace right now. Try again.',
-            code: 'org_check_failed',
-        });
+        throw new HttpError(503, 'org_check_failed', 'Could not check your workspace right now. Try again.');
     }
     const userOrgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
 
@@ -156,16 +154,10 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
         modelId = await resolveModelForTierName('fast', { userOrgId, userId });
     } catch (e) {
         log.error('[agents/persona/parse] model tier unreadable:', e.message);
-        return res.status(503).json({
-            error: 'Could not look up which model reads these instructions. Try again.',
-            code: 'persona_model_unavailable',
-        });
+        throw new HttpError(503, 'persona_model_unavailable', 'Could not look up which model reads these instructions. Try again.');
     }
     if (!modelId) {
-        return res.status(503).json({
-            error: 'No AI model is configured to read these instructions.',
-            code: 'no_persona_model',
-        });
+        throw new HttpError(503, 'no_persona_model', 'No AI model is configured to read these instructions.');
     }
 
     let structured;
@@ -176,7 +168,7 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
         ], PERSONA_TOOL, { maxTokens: 1500, temperature: 0.1, reasoningEffort: 'none', budgetTokens: 0 }));
     } catch (e) {
         log.error('[agents/persona/parse] inference failed:', e.message);
-        return res.status(502).json({ error: 'Could not read the instructions right now.', code: 'persona_parse_failed' });
+        throw new HttpError(502, 'persona_parse_failed', 'Could not read the instructions right now.');
     }
     if (!structured || typeof structured !== 'object') {
         return res.status(422).json({ error: 'The model did not return usable fields.', code: 'persona_parse_failed' });

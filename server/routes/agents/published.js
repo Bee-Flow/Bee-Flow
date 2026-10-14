@@ -291,7 +291,7 @@ router.patch('/:id/publish', validate({ body: PublishBody }), async (req, res) =
     const success = await agentStore.setAgentPublished(req.params.id, isPublished, agent.owner_id, cleanedGroups);
 
     if (!success) {
-        return res.status(500).json({ error: 'Failed to update published status' });
+        throw new Error('Failed to update published status');
     }
 
     // Publishing changes the org's compliance surface (Art-50 AI disclosure,

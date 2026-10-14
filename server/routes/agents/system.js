@@ -10,6 +10,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
+const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
@@ -90,7 +91,7 @@ function createHandler({ agentId, tier, maxTokens, buildPrompt, parseResult }) {
             }
 
             if (!model) {
-                return res.status(500).json({ error: 'No model configured. Check your model tier configuration.' });
+                throw new HttpError(500, 'no_model_configured', 'No model configured. Check your model tier configuration.');
             }
 
             // Build messages and call LLM
@@ -144,7 +145,7 @@ router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, 
         const modelId = thinkingTier.modelId;
 
         if (!modelId) {
-            return res.status(500).json({ error: 'No thinking/smart/fast tier model configured. Check your model tier configuration.' });
+            throw new HttpError(500, 'no_model_configured', 'No thinking/smart/fast tier model configured. Check your model tier configuration.');
         }
 
         log.info(`[PromptDesigner] Using thinking tier model: ${modelId}`);

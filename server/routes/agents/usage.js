@@ -176,35 +176,30 @@ async function gatherUsage(agent, askerId) {
 const NoQuery = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 
 router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
-    try {
-        const userId = getEffectiveUserId(req);
-        const agent = await agentStore.getAgent(req.params.id);
-        if (!agent) return res.status(404).json({ error: 'Agent not found' });
-        // Same 404 as GET /:id for someone who may not see the agent at all —
-        // "you may not" and "it is not there" must not be distinguishable.
-        if (!(await canReadAgent(agent, userId, req))) {
-            return res.status(404).json({ error: 'Agent not found' });
-        }
-        if (!(await canModifyAgent(agent, userId, req))) {
-            return res.status(403).json({
-                error: 'You do not have permission to edit this agent.',
-                code: 'agent_not_editable',
-            });
-        }
-
-        const { rows, counts, chat, testChats, unchecked, audience } = await gatherUsage(agent, userId);
-        res.json({
-            usage: redactForeign(rows, userId),
-            counts,
-            chat,
-            testChats,
-            audience,
-            unchecked,
-        });
-    } catch (e) {
-        log.error('[agents] usage read failed:', e.message);
-        res.status(500).json({ error: 'Could not load who uses this agent' });
+    const userId = getEffectiveUserId(req);
+    const agent = await agentStore.getAgent(req.params.id);
+    if (!agent) return res.status(404).json({ error: 'Agent not found' });
+    // Same 404 as GET /:id for someone who may not see the agent at all —
+    // "you may not" and "it is not there" must not be distinguishable.
+    if (!(await canReadAgent(agent, userId, req))) {
+        return res.status(404).json({ error: 'Agent not found' });
     }
+    if (!(await canModifyAgent(agent, userId, req))) {
+        return res.status(403).json({
+            error: 'You do not have permission to edit this agent.',
+            code: 'agent_not_editable',
+        });
+    }
+
+    const { rows, counts, chat, testChats, unchecked, audience } = await gatherUsage(agent, userId);
+    res.json({
+        usage: redactForeign(rows, userId),
+        counts,
+        chat,
+        testChats,
+        audience,
+        unchecked,
+    });
 });
 
 module.exports = router;

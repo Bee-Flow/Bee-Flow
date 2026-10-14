@@ -397,7 +397,7 @@ router.delete('/:id', async (req, res) => {
     if (deleted) {
         res.json({ success: true });
     } else {
-        res.status(500).json({ error: 'Failed to delete agent' });
+        throw new Error('Failed to delete agent');
     }
 });
 
@@ -1017,7 +1017,7 @@ router.put('/:id', requirePermission('manage_agents'), validate({ body: AgentUpd
         });
     }
     if (!result.ok) {
-        return res.status(500).json({ error: 'Failed to update agent' });
+        throw new Error('Failed to update agent');
     }
 
     // Update tools if provided (also pass toolParams)
@@ -1110,7 +1110,7 @@ router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body:
     }
 
     const success = await agentStore.transferAgentOwner(agent.id, newOwnerId, agent.organization_id);
-    if (!success) return res.status(500).json({ error: 'Transfer failed' });
+    if (!success) throw new Error('Transfer failed');
 
     await userStore.logAccessAudit(
         'agent.transfer',

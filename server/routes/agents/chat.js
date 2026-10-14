@@ -589,15 +589,10 @@ router.post('/thread/title', requireAuth, helperLimiter, validate({ body: TitleB
         return res.status(413).json({ error: 'Content too large' });
     }
 
-    try {
-        const threadOrgIds = await resolveUserOrgIds(req);
-        const threadOrgId = threadOrgIds && threadOrgIds.size > 0 ? Array.from(threadOrgIds)[0] : null;
-        const title = await agentRuntime.generateChatTitle(content, null, threadOrgId, req.session?.user?.id || null);
-        res.json({ title });
-    } catch (error) {
-        log.error('Thread title generation error:', error);
-        res.status(500).json({ error: 'Failed to generate title' });
-    }
+    const threadOrgIds = await resolveUserOrgIds(req);
+    const threadOrgId = threadOrgIds && threadOrgIds.size > 0 ? Array.from(threadOrgIds)[0] : null;
+    const title = await agentRuntime.generateChatTitle(content, null, threadOrgId, req.session?.user?.id || null);
+    res.json({ title });
 });
 
 // Describe what's being built from partial code (uses fast model)
