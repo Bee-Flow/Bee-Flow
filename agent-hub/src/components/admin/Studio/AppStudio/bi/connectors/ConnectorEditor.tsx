@@ -20,7 +20,8 @@ export interface SyncTable {
 /** Adds the tables a connector proposed and points its sync at them, in one model update. */
 export type CreateTables = (connectorId: string, tables: SyncTable[], sync: Connector['sync']) => void;
 
-// ConnectorSyncPanel.jsx defaults `onSave` to null and `tables` to [].
+// ConnectorSyncPanel types the tables it creates (SyncTableDraft) narrower than
+// the model rows this editor hands on.
 const ConnectorSyncPanel = ConnectorSyncPanelJs as unknown as ComponentType<{
     connector: Connector;
     tables: SyncTable[];
