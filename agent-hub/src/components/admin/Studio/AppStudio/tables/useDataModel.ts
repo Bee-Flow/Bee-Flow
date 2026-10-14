@@ -15,7 +15,8 @@ import { studioAppsApi } from '../studioAppsApi';
 /** 'tables' | 'rows' | 'connectors' | 'relations' | 'people' */
 export type ManagerTab = 'tables' | 'rows' | 'connectors' | 'relations' | 'people';
 
-// ConnectorsManager.jsx defaults `action` to null, which would type it as null-only.
+// The model's connector rows are read looser than the editor's own Connector
+// type (their kind is optional on a row the server sent).
 const connectorProblem = connectorProblemJs as unknown as (connector: ModelConnector) => string | null;
 
 /**

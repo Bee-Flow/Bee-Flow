@@ -42,11 +42,13 @@ import { buildFormForTable as buildFormJs, buildGridForTable as buildGridJs } fr
 // the modal can paint. Loaded when the tab is actually opened.
 const RelationshipsTab = lazy(() => import('./RelationshipsTab'));
 
-// Typed views of .jsx/.js siblings whose `= null` / `= []` defaults (or
-// branch-shaped returns) would otherwise mistype what this module passes.
+// Typed views of .js siblings whose branch-shaped returns would otherwise
+// mistype what this module passes.
 type Generated = { node: unknown; actions?: Record<string, AppAction> };
 const buildFormForTable = buildFormJs as unknown as (table: ModelTable, opts: { taken: unknown }) => Generated;
 const buildGridForTable = buildGridJs as unknown as (table: ModelTable, opts: { taken: unknown }) => Generated;
+// ConnectorsManager speaks the editor's own Connector/SyncTable shapes; the
+// model's rows are read looser (an optional kind, a required table key).
 const ConnectorsManager = ConnectorsManagerJs as unknown as ComponentType<{
     connectors: ModelConnector[] | undefined;
     onChange: (connectors: ModelConnector[]) => void;
