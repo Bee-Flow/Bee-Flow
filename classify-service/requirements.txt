@@ -13,7 +13,7 @@ pydantic-settings==2.15.0
 # floating version could move every score underneath them. Bump them together,
 # with an eval run.
 gliclass==0.1.20
-transformers==5.18.0
+transformers==5.19.0
 tokenizers==0.23.3
 huggingface_hub==1.33.0
 # gliclass requires both (numpy>=2, scikit-learn>=1).

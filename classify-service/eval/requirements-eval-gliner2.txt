@@ -3,8 +3,8 @@
 # client only and has no torch; AutoExtractor needs [local].
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.14.1+cpu
-transformers==5.18.0
-gliner2[local]==2.0.0
+transformers==5.19.0
+gliner2[local]==2.1.0
 # Not a gliner2 dependency, but required to load this checkpoint: its
 # tokenizer_config.json was written by transformers 5 (list-valued
 # extra_special_tokens). gliner2 retries on the AttributeError that causes, but
