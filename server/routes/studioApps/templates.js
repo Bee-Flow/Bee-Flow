@@ -107,47 +107,42 @@ router.delete('/templates/:templateId', requireAuth, requireManageApps, async (r
 router.get('/templates/:templateId/export', requireAuth, requireManageApps, validate({ query: DownloadQuery }),
     require('../../compliance/dataPortability/stampExport')('app_templates'),
     async (req, res) => {
-        try {
-            const { userId, orgIdArr } = await audienceFor(req);
-            const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
-            if (!template) return res.status(404).json({ error: 'Template not found' });
+        const { userId, orgIdArr } = await audienceFor(req);
+        const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
+        if (!template) return res.status(404).json({ error: 'Template not found' });
 
-            // The organisation NAME is read here rather than in buildExport for
-            // the reason manifest.withSource gives: a capture knows the thing it
-            // captured, not the tenant it sat in, and the name is a courtesy to
-            // the recipient ("this came from Acme") rather than anything the
-            // format depends on.
-            let orgName = null;
-            // resolveOwnerOrgId, not `session.user.organizationId`: it is the
-            // same answer for most people and the right one for a member whose
-            // organisation comes from a group rather than the user row — and it
-            // is what the import route on the other side uses to decide where a
-            // template lands, so the two halves agree on what "your
-            // organisation" means.
-            const orgId = await resolveOwnerOrgId(userId);
-            if (orgId) {
-                try {
-                    const org = await userStore.getOrganization(orgId);
-                    orgName = (org && typeof org.name === 'string') ? org.name : null;
-                } catch { /* a missing name is a missing courtesy, not a failed export */ }
-            }
-
-            const { envelope, warnings } = buildExport(template, {
-                exportedAt: new Date().toISOString(),
-                source: { templateId: template.id, orgId, orgName, version: templateVersion(template) },
-            });
-            if (!envelope) return res.status(500).json({ error: 'Failed to export template' });
-
-            if (req.query.download === '1') {
-                res.setHeader('Content-Type', 'application/json; charset=utf-8');
-                res.setHeader('Content-Disposition', `attachment; filename="${exportFilename(template)}"`);
-                return res.send(JSON.stringify(envelope, null, 2));
-            }
-            res.json({ envelope, warnings, filename: exportFilename(template) });
-        } catch (err) {
-            log.error('[StudioApps] Template export failed:', err);
-            res.status(500).json({ error: 'Failed to export template' });
+        // The organisation NAME is read here rather than in buildExport for
+        // the reason manifest.withSource gives: a capture knows the thing it
+        // captured, not the tenant it sat in, and the name is a courtesy to
+        // the recipient ("this came from Acme") rather than anything the
+        // format depends on.
+        let orgName = null;
+        // resolveOwnerOrgId, not `session.user.organizationId`: it is the
+        // same answer for most people and the right one for a member whose
+        // organisation comes from a group rather than the user row — and it
+        // is what the import route on the other side uses to decide where a
+        // template lands, so the two halves agree on what "your
+        // organisation" means.
+        const orgId = await resolveOwnerOrgId(userId);
+        if (orgId) {
+            try {
+                const org = await userStore.getOrganization(orgId);
+                orgName = (org && typeof org.name === 'string') ? org.name : null;
+            } catch { /* a missing name is a missing courtesy, not a failed export */ }
         }
+
+        const { envelope, warnings } = buildExport(template, {
+            exportedAt: new Date().toISOString(),
+            source: { templateId: template.id, orgId, orgName, version: templateVersion(template) },
+        });
+        if (!envelope) return res.status(500).json({ error: 'Failed to export template' });
+
+        if (req.query.download === '1') {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="${exportFilename(template)}"`);
+            return res.send(JSON.stringify(envelope, null, 2));
+        }
+        res.json({ envelope, warnings, filename: exportFilename(template) });
     });
 
 /**

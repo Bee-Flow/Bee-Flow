@@ -426,45 +426,40 @@ function createAiRouteRouter(deps = null) {
             return res.status(400).json({ error: 'Describe what you want to build.', code: 'no_text' });
         }
 
-        try {
-            const { available, undecided } = await resolveAvailability(req, d);
-            if (available.length === 0) {
-                // Nothing to route to, so there is no question to ask. The
-                // client can still tell the two cases apart: an empty
-                // `undecided` means "you may build none of these", a filled
-                // one means "we could not find out".
-                return res.json({ kind: null, name: null, seed: null, companions: [], available, undecided });
-            }
-
-            const modelId = await resolveModel(d, { userId, userOrgId: orgIdOf(req) });
-            if (!modelId) {
-                return res.status(503).json({
-                    error: 'No AI model is configured for this workspace.',
-                    code: 'no_model',
-                });
-            }
-
-            const startMs = Date.now();
-            const result = await d.llmClient.chatForcedTool(
-                modelId,
-                buildRouteMessages(text, available),
-                buildRouteTool(available),
-                { maxTokens: MAX_TOKENS, temperature: TEMPERATURE },
-            );
-            await logRouteUsage(d, { userId, userOrgId: orgIdOf(req), modelId, usage: result?.usage, startMs });
-
-            const parsed = parseRouteAnswer(result?.structured || null, { available });
-            if (!parsed) {
-                return res.status(502).json({
-                    error: 'The model did not return a usable answer. Try again, or describe it more concretely.',
-                    code: 'ai_unusable',
-                });
-            }
-            return res.json({ ...parsed, available, undecided });
-        } catch (err) {
-            log.error('[StudioAiRoute] failed:', err?.message || err);
-            return res.status(500).json({ error: 'Could not route this request' });
+        const { available, undecided } = await resolveAvailability(req, d);
+        if (available.length === 0) {
+            // Nothing to route to, so there is no question to ask. The
+            // client can still tell the two cases apart: an empty
+            // `undecided` means "you may build none of these", a filled
+            // one means "we could not find out".
+            return res.json({ kind: null, name: null, seed: null, companions: [], available, undecided });
         }
+
+        const modelId = await resolveModel(d, { userId, userOrgId: orgIdOf(req) });
+        if (!modelId) {
+            return res.status(503).json({
+                error: 'No AI model is configured for this workspace.',
+                code: 'no_model',
+            });
+        }
+
+        const startMs = Date.now();
+        const result = await d.llmClient.chatForcedTool(
+            modelId,
+            buildRouteMessages(text, available),
+            buildRouteTool(available),
+            { maxTokens: MAX_TOKENS, temperature: TEMPERATURE },
+        );
+        await logRouteUsage(d, { userId, userOrgId: orgIdOf(req), modelId, usage: result?.usage, startMs });
+
+        const parsed = parseRouteAnswer(result?.structured || null, { available });
+        if (!parsed) {
+            return res.status(502).json({
+                error: 'The model did not return a usable answer. Try again, or describe it more concretely.',
+                code: 'ai_unusable',
+            });
+        }
+        return res.json({ ...parsed, available, undecided });
     });
 
     return router;

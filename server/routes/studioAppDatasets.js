@@ -115,7 +115,6 @@ const express = require('express');
 const crypto = require('crypto');
 const { z } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
-const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const router = express.Router();
 
@@ -271,55 +270,50 @@ async function deleteArtifacts(app, ds) {
 // ── POST /:id/large-datasets — init ──────────────────────────────────
 router.post('/:id/large-datasets', largeDatasets, requireAuth, datasetInitLimiter, express.json({ limit: '16kb' }),
     validate({ params: AppParams, query: NoQuery, body: InitBody }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        if (!(await viewerMayUpload(req, app))) {
-            return res.status(404).json({ error: 'App not found' }); // uniform — never leaks
-        }
-        if (!storageStore.isAvailable()) {
-            return res.status(503).json({ error: 'File storage is temporarily unavailable. Try again shortly.' });
-        }
-        const { name, bytes } = req.body;
-        const kind = req.body.kind || 'vcf';
-        if (bytes > MAX_FILE_BYTES) {
-            return res.status(413).json({ error: `the file is ${bytes} bytes; the per-file ceiling is ${MAX_FILE_BYTES}` });
-        }
-
-        // Quotas BEFORE any bytes move. The file ceiling is per person (the
-        // header says why); the byte ceiling is the owner's storage.
-        const count = await datasetFileStore.countForUploader(app.id, req.session.user.id);
-        if (count >= MAX_FILES_PER_APP) {
-            return res.status(409).json({ error: `you already have ${count} datasets in this app (max ${MAX_FILES_PER_APP}) — delete one first` });
-        }
-        const used = await datasetFileStore.sumBytesForOwner(app.userId);
-        if (used + bytes > TOTAL_BYTES_PER_OWNER) {
-            return res.status(409).json({ error: 'dataset storage quota exceeded for this workspace' });
-        }
-
-        const datasetId = crypto.randomUUID();
-        const rawKey = storageStore.buildStudioAppDatasetKey(app.userId, app.id, datasetId, 'raw');
-        const { uploadId } = await storageStore.beginMultipartUpload(rawKey, 'application/octet-stream');
-        const partsTotal = Math.ceil(bytes / PART_BYTES);
-        const ds = await datasetFileStore.createDataset({
-            id: datasetId,
-            appId: app.id,
-            ownerId: app.userId,
-            orgId: app.organizationId || null,
-            uploaderId: req.session.user.id,
-            name,
-            kind,
-            declaredBytes: bytes,
-            partSize: PART_BYTES,
-            partsTotal,
-            uploadState: { s3UploadId: uploadId, etags: {} },
-            rawKey,
-        });
-        res.json({ datasetId: ds.id, partSize: PART_BYTES, partsTotal });
-    } catch (err) {
-        log.error('[StudioAppDatasets] init failed:', err.message);
-        res.status(500).json({ error: 'Could not start the upload' });
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    if (!(await viewerMayUpload(req, app))) {
+        return res.status(404).json({ error: 'App not found' }); // uniform — never leaks
     }
+    if (!storageStore.isAvailable()) {
+        return res.status(503).json({ error: 'File storage is temporarily unavailable. Try again shortly.' });
+    }
+    const { name, bytes } = req.body;
+    const kind = req.body.kind || 'vcf';
+    if (bytes > MAX_FILE_BYTES) {
+        return res.status(413).json({ error: `the file is ${bytes} bytes; the per-file ceiling is ${MAX_FILE_BYTES}` });
+    }
+
+    // Quotas BEFORE any bytes move. The file ceiling is per person (the
+    // header says why); the byte ceiling is the owner's storage.
+    const count = await datasetFileStore.countForUploader(app.id, req.session.user.id);
+    if (count >= MAX_FILES_PER_APP) {
+        return res.status(409).json({ error: `you already have ${count} datasets in this app (max ${MAX_FILES_PER_APP}) — delete one first` });
+    }
+    const used = await datasetFileStore.sumBytesForOwner(app.userId);
+    if (used + bytes > TOTAL_BYTES_PER_OWNER) {
+        return res.status(409).json({ error: 'dataset storage quota exceeded for this workspace' });
+    }
+
+    const datasetId = crypto.randomUUID();
+    const rawKey = storageStore.buildStudioAppDatasetKey(app.userId, app.id, datasetId, 'raw');
+    const { uploadId } = await storageStore.beginMultipartUpload(rawKey, 'application/octet-stream');
+    const partsTotal = Math.ceil(bytes / PART_BYTES);
+    const ds = await datasetFileStore.createDataset({
+        id: datasetId,
+        appId: app.id,
+        ownerId: app.userId,
+        orgId: app.organizationId || null,
+        uploaderId: req.session.user.id,
+        name,
+        kind,
+        declaredBytes: bytes,
+        partSize: PART_BYTES,
+        partsTotal,
+        uploadState: { s3UploadId: uploadId, etags: {} },
+        rawKey,
+    });
+    res.json({ datasetId: ds.id, partSize: PART_BYTES, partsTotal });
 });
 
 // ── PUT /:id/large-datasets/:datasetId/parts/:n — one raw part ──────
@@ -327,130 +321,105 @@ router.post('/:id/large-datasets', largeDatasets, requireAuth, datasetInitLimite
 // is refused without buffering up to a part's worth of bytes first.
 router.put('/:id/large-datasets/:datasetId/parts/:n', largeDatasets, requireAuth, datasetPartLimiter,
     validate({ params: PartParams, query: NoQuery }), datasetPartBody(PART_BYTES), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        const ds = await datasetFileStore.getDataset(req.params.datasetId, app.id, app.userId);
-        if (!ds || !isMine(req, ds)) return res.status(404).json({ error: 'Dataset not found' });
-        if (ds.status !== 'uploading') return res.status(409).json({ error: `the upload is ${ds.status}, not accepting parts` });
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    const ds = await datasetFileStore.getDataset(req.params.datasetId, app.id, app.userId);
+    if (!ds || !isMine(req, ds)) return res.status(404).json({ error: 'Dataset not found' });
+    if (ds.status !== 'uploading') return res.status(409).json({ error: `the upload is ${ds.status}, not accepting parts` });
 
-        const { n } = req.params;
-        if (n >= ds.partsTotal) {
-            return res.status(400).json({ error: `part number must be 0..${ds.partsTotal - 1}` });
-        }
-        // Cheap sequence pre-check so a gap/duplicate is refused BEFORE the
-        // bytes hit storage. Advisory only — the authoritative arbiter is the
-        // conditional UPDATE in recordPart below (two concurrent same-n
-        // requests both pass here; exactly one wins the ledger).
-        if (n !== ds.partsDone) {
-            return res.status(409).json({ error: 'part out of sequence', expected: ds.partsDone });
-        }
-        const body = req.body;
-        if (!Buffer.isBuffer(body) || body.length === 0) return res.status(400).json({ error: 'empty part body' });
-        const expectedSize = n === ds.partsTotal - 1
-            ? ds.declaredBytes - PART_BYTES * (ds.partsTotal - 1)
-            : PART_BYTES;
-        if (body.length !== expectedSize) {
-            return res.status(400).json({ error: `part ${n} must be exactly ${expectedSize} bytes (got ${body.length})` });
-        }
-
-        // Part 0 carries the head — the only part whose CONTENT is inspected here.
-        if (n === 0) {
-            const sniff = sniffDatasetHead(body);
-            if (!sniff.ok) {
-                await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId).catch(() => {});
-                await datasetFileStore.deleteDataset(ds.id, app.id, app.userId).catch(() => {});
-                return res.status(415).json({ error: sniff.reason });
-            }
-        }
-
-        const { etag } = await storageStore.uploadPartBuffer(ds.rawKey, ds.uploadState?.s3UploadId, n + 1, body);
-        const recorded = await datasetFileStore.recordPart(ds.id, app.id, app.userId, n, etag, body.length);
-        if (!recorded.ok) {
-            // Out-of-order or duplicate — tell the client where to resume.
-            return res.status(409).json({ error: 'part out of sequence', expected: recorded.expected });
-        }
-        res.json({ ok: true, partsDone: recorded.partsDone });
-    } catch (err) {
-        log.error('[StudioAppDatasets] part failed:', err.message);
-        res.status(500).json({ error: 'Could not store the part' });
+    const { n } = req.params;
+    if (n >= ds.partsTotal) {
+        return res.status(400).json({ error: `part number must be 0..${ds.partsTotal - 1}` });
     }
+    // Cheap sequence pre-check so a gap/duplicate is refused BEFORE the
+    // bytes hit storage. Advisory only — the authoritative arbiter is the
+    // conditional UPDATE in recordPart below (two concurrent same-n
+    // requests both pass here; exactly one wins the ledger).
+    if (n !== ds.partsDone) {
+        return res.status(409).json({ error: 'part out of sequence', expected: ds.partsDone });
+    }
+    const body = req.body;
+    if (!Buffer.isBuffer(body) || body.length === 0) return res.status(400).json({ error: 'empty part body' });
+    const expectedSize = n === ds.partsTotal - 1
+        ? ds.declaredBytes - PART_BYTES * (ds.partsTotal - 1)
+        : PART_BYTES;
+    if (body.length !== expectedSize) {
+        return res.status(400).json({ error: `part ${n} must be exactly ${expectedSize} bytes (got ${body.length})` });
+    }
+
+    // Part 0 carries the head — the only part whose CONTENT is inspected here.
+    if (n === 0) {
+        const sniff = sniffDatasetHead(body);
+        if (!sniff.ok) {
+            await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId).catch(() => {});
+            await datasetFileStore.deleteDataset(ds.id, app.id, app.userId).catch(() => {});
+            return res.status(415).json({ error: sniff.reason });
+        }
+    }
+
+    const { etag } = await storageStore.uploadPartBuffer(ds.rawKey, ds.uploadState?.s3UploadId, n + 1, body);
+    const recorded = await datasetFileStore.recordPart(ds.id, app.id, app.userId, n, etag, body.length);
+    if (!recorded.ok) {
+        // Out-of-order or duplicate — tell the client where to resume.
+        return res.status(409).json({ error: 'part out of sequence', expected: recorded.expected });
+    }
+    res.json({ ok: true, partsDone: recorded.partsDone });
 });
 
 // ── POST /:id/large-datasets/:datasetId/complete ────────────────────
 router.post('/:id/large-datasets/:datasetId/complete', largeDatasets, requireAuth, datasetCompleteLimiter, express.json({ limit: '4kb' }),
     validate({ params: DatasetParams, query: NoQuery, body: CompleteBody }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        const ds = await datasetFileStore.getDataset(req.params.datasetId, app.id, app.userId);
-        if (!ds || !isMine(req, ds)) return res.status(404).json({ error: 'Dataset not found' });
-        if (ds.status !== 'uploading') return res.status(409).json({ error: `the upload is already ${ds.status}` });
-        if (ds.partsDone !== ds.partsTotal) {
-            return res.status(409).json({ error: `only ${ds.partsDone} of ${ds.partsTotal} parts have arrived`, partsDone: ds.partsDone });
-        }
-
-        const etags = ds.uploadState?.etags || {};
-        const parts = Array.from({ length: ds.partsTotal }, (_, i) => ({ partNumber: i + 1, etag: etags[String(i)] }));
-        if (parts.some((p) => !p.etag)) {
-            return res.status(409).json({ error: 'the part ledger is incomplete — restart the upload' });
-        }
-        await storageStore.completeMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId, parts);
-        await datasetFileStore.markUploaded(ds.id, app.id, app.userId);
-        res.json({ ok: true, status: 'uploaded' });
-    } catch (err) {
-        log.error('[StudioAppDatasets] complete failed:', err.message);
-        res.status(500).json({ error: 'Could not finish the upload' });
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    const ds = await datasetFileStore.getDataset(req.params.datasetId, app.id, app.userId);
+    if (!ds || !isMine(req, ds)) return res.status(404).json({ error: 'Dataset not found' });
+    if (ds.status !== 'uploading') return res.status(409).json({ error: `the upload is already ${ds.status}` });
+    if (ds.partsDone !== ds.partsTotal) {
+        return res.status(409).json({ error: `only ${ds.partsDone} of ${ds.partsTotal} parts have arrived`, partsDone: ds.partsDone });
     }
+
+    const etags = ds.uploadState?.etags || {};
+    const parts = Array.from({ length: ds.partsTotal }, (_, i) => ({ partNumber: i + 1, etag: etags[String(i)] }));
+    if (parts.some((p) => !p.etag)) {
+        return res.status(409).json({ error: 'the part ledger is incomplete — restart the upload' });
+    }
+    await storageStore.completeMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId, parts);
+    await datasetFileStore.markUploaded(ds.id, app.id, app.userId);
+    res.json({ ok: true, status: 'uploaded' });
 });
 
 // ── GET /:id/large-datasets — list (polling target) ──────────────────
 router.get('/:id/large-datasets', largeDatasets, requireAuth, datasetStatusLimiter, validate({ params: AppParams, query: NoQuery }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        if (!(await viewerMayRead(req, app))) return res.status(404).json({ error: 'App not found' });
-        const list = await datasetFileStore.listDatasets(app.id, app.userId);
-        res.json({ datasets: list.filter((ds) => isMine(req, ds)).map(publicDataset) });
-    } catch (err) {
-        log.error('[StudioAppDatasets] list failed:', err.message);
-        res.status(500).json({ error: 'Could not list datasets' });
-    }
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    if (!(await viewerMayRead(req, app))) return res.status(404).json({ error: 'App not found' });
+    const list = await datasetFileStore.listDatasets(app.id, app.userId);
+    res.json({ datasets: list.filter((ds) => isMine(req, ds)).map(publicDataset) });
 });
 
 // ── GET /:id/large-datasets/:datasetId — single (polling target) ────
 router.get('/:id/large-datasets/:datasetId', largeDatasets, requireAuth, datasetStatusLimiter, validate({ params: DatasetParams, query: NoQuery }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        if (!(await viewerMayRead(req, app))) return res.status(404).json({ error: 'App not found' });
-        const ds = await datasetFileStore.getDataset(req.params.datasetId, app.id, app.userId);
-        if (!ds || !isMine(req, ds)) return res.status(404).json({ error: 'Dataset not found' });
-        res.json(publicDataset(ds));
-    } catch (err) {
-        log.error('[StudioAppDatasets] get failed:', err.message);
-        res.status(500).json({ error: 'Could not read the dataset' });
-    }
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    if (!(await viewerMayRead(req, app))) return res.status(404).json({ error: 'App not found' });
+    const ds = await datasetFileStore.getDataset(req.params.datasetId, app.id, app.userId);
+    if (!ds || !isMine(req, ds)) return res.status(404).json({ error: 'Dataset not found' });
+    res.json(publicDataset(ds));
 });
 
 // ── DELETE /:id/large-datasets/:datasetId ────────────────────────────
 router.delete('/:id/large-datasets/:datasetId', largeDatasets, requireAuth, datasetCompleteLimiter, validate({ params: DatasetParams, query: NoQuery }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        const ds = await datasetFileStore.getDataset(req.params.datasetId, app.id, app.userId);
-        if (!ds || !mayDelete(req, app, ds)) return res.status(404).json({ error: 'Dataset not found' });
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    const ds = await datasetFileStore.getDataset(req.params.datasetId, app.id, app.userId);
+    if (!ds || !mayDelete(req, app, ds)) return res.status(404).json({ error: 'Dataset not found' });
 
-        if (ds.status === 'uploading' && ds.uploadState?.s3UploadId) {
-            await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState.s3UploadId).catch(() => {});
-        }
-        await deleteArtifacts(app, ds);
-        await datasetFileStore.deleteDataset(ds.id, app.id, app.userId);
-        res.json({ ok: true });
-    } catch (err) {
-        log.error('[StudioAppDatasets] delete failed:', err.message);
-        res.status(500).json({ error: 'Could not delete the dataset' });
+    if (ds.status === 'uploading' && ds.uploadState?.s3UploadId) {
+        await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState.s3UploadId).catch(() => {});
     }
+    await deleteArtifacts(app, ds);
+    await datasetFileStore.deleteDataset(ds.id, app.id, app.userId);
+    res.json({ ok: true });
 });
 
 module.exports = router;

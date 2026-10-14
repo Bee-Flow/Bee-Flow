@@ -178,74 +178,69 @@ function attachmentKey(ownerId, appId, sha256) {
 // ── POST /:id/data/attachments ──────────────────────────────────────
 router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ params: AppParams, query: NoQuery }), guard,
     validate({ body: UploadFields }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        if (!(await viewerMayUpload(req, app))) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-        const file = req.file; // guard guarantees a validated, in-memory buffer
-        if (!file) return res.status(400).json({ error: 'No file uploaded' });
-
-        if (!storageStore.isAvailable()) {
-            return res.status(503).json({ error: 'File storage is not available' });
-        }
-
-        // Quota BEFORE we persist any bytes.
-        try {
-            await studioAppQuota.assertAttachmentQuota(app, file.size);
-            await assertAttachmentTotalBytes(app, file.size);
-        } catch (err) {
-            if (err && err.status === 409) {
-                return res.status(409).json({ error: err.message, code: err.code, limit: err.limit, used: err.used });
-            }
-            throw err;
-        }
-
-        const recordId = req.body.recordId || null;
-        const fieldKey = req.body.fieldKey || null;
-
-        const sha = crypto.createHash('sha256').update(file.buffer).digest('hex');
-        const key = attachmentKey(app.userId, app.id, sha);
-
-        // Put the blob, THEN scan. A dirty verdict deletes it and 422s — the
-        // ledger row is only written on a clean scan, so the bytes are never
-        // linked to a record.
-        await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
-
-        const scan = await scanBuffer(file.buffer);
-        if (!scan.clean) {
-            try { await storageStore.deleteFile(key); } catch (_) { /* best-effort cleanup */ }
-            return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
-        }
-
-        const attachment = await studioAppDataStore.addAttachment(app.id, app.userId, {
-            recordId,
-            fieldKey,
-            mimeType: file.mimetype,
-            sha256: sha,
-            size: file.size,
-        });
-        // scanned:true — the row exists only because the scan passed.
-        await studioAppDataStore.setAttachmentScan(attachment.id, app.id, app.userId, { scanned: true, quarantined: false })
-            .catch(() => { /* advisory */ });
-
-        res.json({
-            success: true,
-            attachment: {
-                id: attachment.id,
-                recordId: attachment.recordId,
-                fieldKey: attachment.fieldKey,
-                mime: attachment.mimeType,
-                size: attachment.size,
-                sha: attachment.sha256,
-                scanned: true,
-            },
-        });
-    } catch (err) {
-        log.error(`[StudioAppFiles/upload] ${err.message}`);
-        res.status(500).json({ error: 'Upload failed' });
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    if (!(await viewerMayUpload(req, app))) {
+        return res.status(403).json({ error: 'Forbidden' });
     }
+    const file = req.file; // guard guarantees a validated, in-memory buffer
+    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+
+    if (!storageStore.isAvailable()) {
+        return res.status(503).json({ error: 'File storage is not available' });
+    }
+
+    // Quota BEFORE we persist any bytes.
+    try {
+        await studioAppQuota.assertAttachmentQuota(app, file.size);
+        await assertAttachmentTotalBytes(app, file.size);
+    } catch (err) {
+        if (err && err.status === 409) {
+            return res.status(409).json({ error: err.message, code: err.code, limit: err.limit, used: err.used });
+        }
+        throw err;
+    }
+
+    const recordId = req.body.recordId || null;
+    const fieldKey = req.body.fieldKey || null;
+
+    const sha = crypto.createHash('sha256').update(file.buffer).digest('hex');
+    const key = attachmentKey(app.userId, app.id, sha);
+
+    // Put the blob, THEN scan. A dirty verdict deletes it and 422s — the
+    // ledger row is only written on a clean scan, so the bytes are never
+    // linked to a record.
+    await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
+
+    const scan = await scanBuffer(file.buffer);
+    if (!scan.clean) {
+        try { await storageStore.deleteFile(key); } catch (_) { /* best-effort cleanup */ }
+        return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
+    }
+
+    const attachment = await studioAppDataStore.addAttachment(app.id, app.userId, {
+        recordId,
+        fieldKey,
+        mimeType: file.mimetype,
+        sha256: sha,
+        size: file.size,
+    });
+    // scanned:true — the row exists only because the scan passed.
+    await studioAppDataStore.setAttachmentScan(attachment.id, app.id, app.userId, { scanned: true, quarantined: false })
+        .catch(() => { /* advisory */ });
+
+    res.json({
+        success: true,
+        attachment: {
+            id: attachment.id,
+            recordId: attachment.recordId,
+            fieldKey: attachment.fieldKey,
+            mime: attachment.mimeType,
+            size: attachment.size,
+            sha: attachment.sha256,
+            scanned: true,
+        },
+    });
 });
 
 // Can this viewer read a record the attachment hangs off? The rule itself lives
@@ -451,37 +446,32 @@ router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, va
 //   • The blob only goes when it was the last ledger row for those bytes:
 //     storage is content-addressed, so identical files share one object.
 router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        if (!(await viewerMayUpload(req, app))) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
-        const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
-        if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
-        if (attachment.recordId) {
-            return res.status(409).json({
-                error: 'This file is attached to a record — remove it from the record instead.',
-                code: 'attachment_linked',
-            });
-        }
-
-        await studioAppDataStore.deleteAttachment(attachment.id, app.id, app.userId);
-
-        const stillUsed = await studioAppDataStore.countAttachmentsBySha(app.id, app.userId, attachment.sha256);
-        if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
-            // Best-effort: the ledger row is already gone, so the bytes no
-            // longer count as used space either way — an orphan object is a
-            // storage-sweep problem, not a correctness one.
-            try { await storageStore.deleteFile(attachmentKey(app.userId, app.id, attachment.sha256)); } catch (_) { /* swept later */ }
-        }
-
-        res.json({ success: true });
-    } catch (err) {
-        log.error(`[StudioAppFiles/delete] ${err.message}`);
-        res.status(500).json({ error: 'Failed to remove the file' });
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    if (!(await viewerMayUpload(req, app))) {
+        return res.status(403).json({ error: 'Forbidden' });
     }
+
+    const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
+    if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
+    if (attachment.recordId) {
+        return res.status(409).json({
+            error: 'This file is attached to a record — remove it from the record instead.',
+            code: 'attachment_linked',
+        });
+    }
+
+    await studioAppDataStore.deleteAttachment(attachment.id, app.id, app.userId);
+
+    const stillUsed = await studioAppDataStore.countAttachmentsBySha(app.id, app.userId, attachment.sha256);
+    if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
+        // Best-effort: the ledger row is already gone, so the bytes no
+        // longer count as used space either way — an orphan object is a
+        // storage-sweep problem, not a correctness one.
+        try { await storageStore.deleteFile(attachmentKey(app.userId, app.id, attachment.sha256)); } catch (_) { /* swept later */ }
+    }
+
+    res.json({ success: true });
 });
 
 // ── POST /:id/data/attachments/materialize ──────────────────────────

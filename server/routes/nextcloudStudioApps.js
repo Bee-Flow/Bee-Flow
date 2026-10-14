@@ -37,37 +37,31 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 
 const { verifyConnectorSig } = require('../auth/connectorSig');
 
 // GET /api/nextcloud/studio-apps
 router.get('/', async (req, res) => {
-    try {
-        const org = await verifyConnectorSig(req);
-        if (!org) return res.status(401).json({ error: 'unauthorized' });
+    const org = await verifyConnectorSig(req);
+    if (!org) return res.status(401).json({ error: 'unauthorized' });
 
-        const studioAppStore = require('../stores/studioAppStore');
-        const apps = await studioAppStore.listNextcloudMenuApps(org.id);
-        res.json({
-            apps: apps.map(a => ({
-                id: a.id,
-                name: a.name,
-                description: a.description || '',
-                // The Studio icon is a Lucide icon NAME (e.g. 'Scissors'), not
-                // an image. The connector renders its own monochrome SVG for
-                // the NC top bar; the name and accent ride along for future use.
-                icon: a.icon || null,
-                accentColor: a.accentColor || null,
-                updatedAt: a.updatedAt,
-                publishedAt: a.publishedAt,
-            })),
-        });
-    } catch (err) {
-        log.error(`[NextcloudStudioApps] list failed: ${err.message}`);
-        res.status(500).json({ error: 'Failed to list apps' });
-    }
+    const studioAppStore = require('../stores/studioAppStore');
+    const apps = await studioAppStore.listNextcloudMenuApps(org.id);
+    res.json({
+        apps: apps.map(a => ({
+            id: a.id,
+            name: a.name,
+            description: a.description || '',
+            // The Studio icon is a Lucide icon NAME (e.g. 'Scissors'), not
+            // an image. The connector renders its own monochrome SVG for
+            // the NC top bar; the name and accent ride along for future use.
+            icon: a.icon || null,
+            accentColor: a.accentColor || null,
+            updatedAt: a.updatedAt,
+            publishedAt: a.publishedAt,
+        })),
+    });
 });
 
 module.exports = router;
