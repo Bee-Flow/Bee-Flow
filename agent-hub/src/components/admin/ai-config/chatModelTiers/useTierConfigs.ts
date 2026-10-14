@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { CustomTier, StatusMessage, TierConfig } from './tierTypes';
 import { flash } from './tierTypes';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
 
 const initialTiers = (): TierConfig => ({
     fast: { modelId: '', label: 'Fast' },
@@ -31,12 +31,6 @@ export interface TierConfigsState {
     updateEuTier: (tierKey: string, field: string, value: unknown) => void;
 }
 
-const postJson = (path: string, body: unknown) => authFetch(`${API_BASE}/ai/config/${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-});
-
 /** ' (warning; warning)' from the custom-tier save, and the tiers as the server kept them. */
 async function readCustomSave(customRes: Response, setCustomTiers: (tiers: CustomTier[]) => void): Promise<string> {
     let warn = '';
@@ -64,14 +58,14 @@ export default function useTierConfigs(customTiers: CustomTier[], setCustomTiers
 
     const loadConfig = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/chat-models`);
+            const res = await getAiConfig('chat-models');
             if (res.ok) setConfig(await res.json());
         } catch (e) { console.error('Failed to load chat model tiers:', e); }
     };
 
     const loadEuConfig = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/chat-models-eu`);
+            const res = await getAiConfig('chat-models-eu');
             if (res.ok) setEuConfig(await res.json());
         } catch (e) { console.error('Failed to load EU chat model tiers:', e); }
     };
@@ -80,8 +74,8 @@ export default function useTierConfigs(customTiers: CustomTier[], setCustomTiers
         setSaving(true);
         try {
             const [res, customRes] = await Promise.all([
-                postJson('chat-models', config),
-                postJson('custom-chat-models', { tiers: customTiers }),
+                postAiConfig('chat-models', config),
+                postAiConfig('custom-chat-models', { tiers: customTiers }),
             ]);
             const bothOk = res.ok && customRes.ok;
             const warn = await readCustomSave(customRes, setCustomTiers);
@@ -104,8 +98,8 @@ export default function useTierConfigs(customTiers: CustomTier[], setCustomTiers
             // endpoint overwrites wholesale so race with `save()` is avoided as
             // long as both callers write from the same local state.
             const [res, customRes] = await Promise.all([
-                postJson('chat-models-eu', euConfig),
-                postJson('custom-chat-models', { tiers: customTiers }),
+                postAiConfig('chat-models-eu', euConfig),
+                postAiConfig('custom-chat-models', { tiers: customTiers }),
             ]);
             if (res.ok && customRes.ok) {
                 flash(setEuMessage, { type: 'success', text: 'EU model tiers saved!' }, 3000);

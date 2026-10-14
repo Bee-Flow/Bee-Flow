@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { LANGUAGES_API, getLanguages, sendLanguages, sendLanguagesJson } from '../../../api/languages';
 import useConfirm from '../../shared/useConfirm';
 
-export const LANGUAGES_API = `${API_BASE}/api/languages`;
+export { LANGUAGES_API };
 
 /** One installed locale. */
 export interface LocaleEntry {
@@ -39,7 +39,7 @@ export interface LanguagesState {
 
 /** Download the locale's whole dictionary as a JSON file. */
 async function downloadExport(code: string) {
-    const res = await authFetch(`${LANGUAGES_API}/${code}/export`);
+    const res = await getLanguages(`${code}/export`);
     const data = await res.json();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -63,7 +63,7 @@ export default function useLanguages(): LanguagesState {
 
     const fetchLocales = useCallback(async () => {
         try {
-            const res = await authFetch(LANGUAGES_API);
+            const res = await getLanguages();
             const data = await res.json();
             setLocales(data.locales || []);
             setCatalog(data.catalog || []);
@@ -83,11 +83,7 @@ export default function useLanguages(): LanguagesState {
 
     const handleAddLocale = async (code: string, name: string) => {
         try {
-            const res = await authFetch(LANGUAGES_API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, name }),
-            });
+            const res = await sendLanguagesJson('POST', '', { code, name });
             const data = await res.json();
             if (data.success) {
                 setLocales(data.locales);
@@ -102,7 +98,7 @@ export default function useLanguages(): LanguagesState {
     const handleDeleteLocale = async (code: string) => {
         if (!(await confirm({ title: t('admin_languages.confirm_delete', 'Delete "{code}" and all its translations?', { code }), confirmLabel: t('admin_languages.delete', 'Delete'), destructive: true }))) return;
         try {
-            const res = await authFetch(`${LANGUAGES_API}/${code}`, { method: 'DELETE' });
+            const res = await sendLanguages('DELETE', code);
             const data = await res.json();
             if (data.success) {
                 setLocales(data.locales);
@@ -129,11 +125,7 @@ export default function useLanguages(): LanguagesState {
             try {
                 const text = await file.text();
                 const data = JSON.parse(text);
-                const res = await authFetch(`${LANGUAGES_API}/${code}/import`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
-                });
+                const res = await sendLanguagesJson('POST', `${code}/import`, data);
                 if (res.ok) fetchLocales();
             } catch { setError(t('admin_languages.error_import', 'Import failed: invalid JSON file')); }
         };
@@ -142,7 +134,7 @@ export default function useLanguages(): LanguagesState {
 
     const handleSetDefault = async (code: string) => {
         try {
-            const res = await authFetch(`${LANGUAGES_API}/${code}/default`, { method: 'PUT' });
+            const res = await sendLanguages('PUT', `${code}/default`);
             const data = await res.json();
             if (data.success) setLocales(data.locales);
         } catch { setError(t('admin_languages.error_set_default', 'Failed to set default')); }

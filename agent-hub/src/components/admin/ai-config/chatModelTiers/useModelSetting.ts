@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { StatusMessage } from './tierTypes';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
 
 /**
  * One single-model setting (classifier, title, memory extraction, AI step,
@@ -30,11 +30,10 @@ export default function useModelSetting(path: string, { noun, saved }: ModelSett
     const [model, setModel] = useState('');
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<StatusMessage | null>(null);
-    const url = `${API_BASE}/ai/config/${path}`;
 
     const load = async () => {
         try {
-            const res = await authFetch(url);
+            const res = await getAiConfig(path);
             if (res.ok) {
                 setModel(modelIdOf(await res.json()));
             }
@@ -44,11 +43,7 @@ export default function useModelSetting(path: string, { noun, saved }: ModelSett
     const save = async (next = model) => {
         setSaving(true);
         try {
-            const res = await authFetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ modelId: next || null }),
-            });
+            const res = await postAiConfig(path, { modelId: next || null });
             if (res.ok) {
                 setModel(modelIdOf(await res.json()));
                 setMessage({ type: 'success', text: saved });

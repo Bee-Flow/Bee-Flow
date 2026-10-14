@@ -40,7 +40,7 @@ export function NextcloudSsoTab({ sso }: TabProps) {
                         />
                     </div>
                     <ClientIdField provider="nextcloud" sso={sso} label={t('admin.sso_client_id')} placeholder={t('admin_security.sso_nc_client_id_ph', 'OAuth Client ID')} />
-                    <ClientSecretField provider="nextcloud" sso={sso} placeholder="OAuth Client Secret" />
+                    <ClientSecretField provider="nextcloud" sso={sso} />
                 </div>
             </div>
 
@@ -79,7 +79,7 @@ export function GoogleSsoTab({ sso }: TabProps) {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <ClientIdField provider="google" sso={sso} label={t('admin.sso_client_id')} placeholder="xxxxxxxxxxxx.apps.googleusercontent.com" />
-                    <ClientSecretField provider="google" sso={sso} placeholder="OAuth Client Secret" />
+                    <ClientSecretField provider="google" sso={sso} />
                 </div>
             </div>
 

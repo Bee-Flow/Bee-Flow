@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getModelMeta, isReasoningCapable } from './modelMeta';
 import type { CatalogModel } from './tierTypes';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
 
 const NON_CHAT_CATEGORIES = ['Embedding', 'OCR', 'Moderation', 'Audio'];
 
@@ -60,7 +60,7 @@ export function useHiddenModels(): HiddenModelsState {
 
     const loadHiddenModels = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/hidden-models`);
+            const res = await getAiConfig('hidden-models');
             if (res.ok) {
                 const data = await res.json();
                 setHiddenModelIds(Array.isArray(data.modelIds) ? data.modelIds : []);
@@ -77,11 +77,7 @@ export function useHiddenModels(): HiddenModelsState {
             : [...prev, modelId];
         setHiddenModelIds(next);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/hidden-models`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ modelIds: next }),
-            });
+            const res = await postAiConfig('hidden-models', { modelIds: next });
             if (!res.ok) throw new Error('save failed');
             const data = await res.json();
             if (Array.isArray(data.modelIds)) setHiddenModelIds(data.modelIds);

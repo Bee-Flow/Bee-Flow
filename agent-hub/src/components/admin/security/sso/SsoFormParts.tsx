@@ -65,8 +65,16 @@ export function ClientIdField({ provider, sso, label, placeholder }: FieldProps)
     );
 }
 
+// What the secret input shows while no secret is stored (each provider's
+// console names the value differently).
+const SECRET_PLACEHOLDER: Record<SsoProviderId, string> = {
+    nextcloud: 'OAuth Client Secret',
+    google: 'OAuth Client Secret',
+    microsoft: 'Client Secret Value',
+};
+
 /** The client secret input; the stored secret is never shown, only whether one is set. */
-export function ClientSecretField({ provider, sso, placeholder }: Omit<FieldProps, 'label'>) {
+export function ClientSecretField({ provider, sso }: Pick<FieldProps, 'provider' | 'sso'>) {
     const { t } = useTranslation();
     const { providers, secrets, setSecrets } = sso;
     return (
@@ -78,7 +86,7 @@ export function ClientSecretField({ provider, sso, placeholder }: Omit<FieldProp
                 type="password"
                 value={secrets[provider]}
                 onChange={(e) => setSecrets(prev => ({ ...prev, [provider]: e.target.value }))}
-                placeholder={providers[provider].clientSecretSet ? t('admin.sso_secret_empty') : placeholder}
+                placeholder={providers[provider].clientSecretSet ? t('admin.sso_secret_empty') : SECRET_PLACEHOLDER[provider]}
                 className="w-full px-4 py-2.5 rounded-lg text-sm font-mono"
                 style={INPUT_STYLE}
             />

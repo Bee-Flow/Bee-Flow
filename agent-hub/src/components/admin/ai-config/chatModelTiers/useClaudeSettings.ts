@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER } from './constants';
 import type { StatusMessage, TierConfig, TierSettings } from './tierTypes';
 import { flash } from './tierTypes';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
 
 interface ClaudeRecommendation {
     modelId: string;
@@ -56,7 +56,7 @@ export default function useClaudeSettings(config: TierConfig, setConfig: Dispatc
 
     const loadClaudeSettings = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/claude-settings`);
+            const res = await getAiConfig('claude-settings');
             if (res.ok) {
                 const data = await res.json();
                 setClaudeAutoRetry(data.autoRetryOnEmpty !== false);
@@ -67,11 +67,7 @@ export default function useClaudeSettings(config: TierConfig, setConfig: Dispatc
     const saveClaudeSettings = async (next = claudeAutoRetry) => {
         setClaudeSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/claude-settings`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ autoRetryOnEmpty: next }),
-            });
+            const res = await postAiConfig('claude-settings', { autoRetryOnEmpty: next });
             if (res.ok) {
                 flash(setClaudeMessage, { type: 'success', text: 'Claude settings saved' }, 3000);
             } else {

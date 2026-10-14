@@ -105,7 +105,7 @@ export default function MicrosoftSsoTab({ sso }: { sso: SsoProvidersState }) {
                         label={t('admin_security.sso_ms_application', 'Application ({label})', { label: t('admin.sso_client_id') })}
                         placeholder={t('admin_security.sso_ms_client_id_ph', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')}
                     />
-                    <ClientSecretField provider="microsoft" sso={sso} placeholder="Client Secret Value" />
+                    <ClientSecretField provider="microsoft" sso={sso} />
                     <TenantIdField sso={sso} />
                 </div>
             </div>

@@ -1,11 +1,10 @@
 import { AlertCircle, Check, Languages, RotateCcw, Send } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
-import { LANGUAGES_API } from './useLanguages';
 import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../hooks/useTranslation';
-import { authFetch } from '../../../utils/helpers';
+import { LANGUAGES_API, getLanguages, sendLanguagesJson } from '../../../api/languages';
 
 // Structured-field editor for the verification + welcome emails, per locale.
 // Fields are plain text rendered into the branded shell; a live preview shows
@@ -53,7 +52,7 @@ function useEmailTemplates(locale: string) {
     const selectedRef = useRef(selected);
     useEffect(() => { selectedRef.current = selected; }, [selected]);
     const fetchData = useCallback(() => {
-        authFetch(`${LANGUAGES_API}/${locale}/email-templates`)
+        getLanguages(`${locale}/email-templates`)
             .then((r: Response) => r.json())
             .then((d: EmailTemplatesData) => {
                 setData(d);
@@ -69,11 +68,7 @@ function useEmailTemplates(locale: string) {
     useEffect(() => {
         if (!data) return;
         const timer = setTimeout(() => {
-            authFetch(`${LANGUAGES_API}/${locale}/email-templates/${selected}/preview`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fields }),
-            })
+            sendLanguagesJson('POST', `${locale}/email-templates/${selected}/preview`, { fields })
                 .then((r: Response) => r.json())
                 .then((d: { html?: string }) => { if (d.html) setPreviewHtml(d.html); })
                 .catch(() => { });
@@ -84,11 +79,7 @@ function useEmailTemplates(locale: string) {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await authFetch(`${LANGUAGES_API}/${locale}/email-templates`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ templateId: selected, fields }),
-            });
+            const res = await sendLanguagesJson('PUT', `${locale}/email-templates`, { templateId: selected, fields });
             if (res.ok) {
                 const d = await res.json();
                 setData(prev => ({ ...prev, templates: d.templates }));
@@ -118,11 +109,7 @@ function TestEmailSender({ locale, selected, result, setResult }: {
         setTesting(true);
         setResult(null);
         try {
-            const res = await authFetch(`${LANGUAGES_API}/${locale}/email-templates/${selected}/test`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ testRecipient: testRecipient.trim() }),
-            });
+            const res = await sendLanguagesJson('POST', `${locale}/email-templates/${selected}/test`, { testRecipient: testRecipient.trim() });
             const d = await res.json();
             setResult(res.ok ? { ok: true } : { error: d.error || t('admin_languages.email_error_send', 'Failed to send') });
         } catch (err) {

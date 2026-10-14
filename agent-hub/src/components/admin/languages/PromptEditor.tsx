@@ -4,7 +4,7 @@ import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import { LANGUAGES_API } from './useLanguages';
 import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { authFetch } from '../../../utils/helpers';
+import { getLanguages, sendLanguagesJson } from '../../../api/languages';
 
 /** GET /api/languages/:locale/prompts */
 interface PromptData {
@@ -143,7 +143,7 @@ export default function PromptEditor({ locale }: { locale: string }) {
     const [saved, setSaved] = useState(false);
 
     const fetchData = useCallback(() => {
-        authFetch(`${LANGUAGES_API}/${locale}/prompts`)
+        getLanguages(`${locale}/prompts`)
             .then((r: Response) => r.json())
             .then((d: PromptData) => {
                 setData(d);
@@ -165,11 +165,7 @@ export default function PromptEditor({ locale }: { locale: string }) {
         if (!selectedPrompt) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${LANGUAGES_API}/${locale}/prompts/${selectedPrompt}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: editText }),
-            });
+            const res = await sendLanguagesJson('PUT', `${locale}/prompts/${selectedPrompt}`, { text: editText });
             if (res.ok) {
                 setTranslations(prev => ({ ...prev, [selectedPrompt]: editText }));
                 setSaved(true);

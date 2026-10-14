@@ -5,7 +5,7 @@ import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import { LANGUAGES_API } from './useLanguages';
 import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { authFetch } from '../../../utils/helpers';
+import { getLanguages, sendLanguagesJson } from '../../../api/languages';
 
 const FIELD_STYLE = { borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' };
 const TH_STYLE = { color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' };
@@ -93,7 +93,7 @@ function useGuiStrings(locale: string) {
     const [savedKey, setSavedKey] = useState<string | null>(null);
 
     const reload = useCallback(() => {
-        authFetch(`${LANGUAGES_API}/${locale}/gui`)
+        getLanguages(`${locale}/gui`)
             .then((r: Response) => r.json())
             .then((d: GuiData) => {
                 setData(d);
@@ -105,11 +105,7 @@ function useGuiStrings(locale: string) {
 
     const saveTranslation = useCallback(async (key: string, value: string) => {
         try {
-            const res = await authFetch(`${LANGUAGES_API}/${locale}/gui`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ updates: { [key]: value } }),
-            });
+            const res = await sendLanguagesJson('PATCH', `${locale}/gui`, { updates: { [key]: value } });
             if (res.ok) {
                 const result = await res.json();
                 setTranslations(result.translations);

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { CUSTOM_TIER_DEFAULTS, slugifyTierLabel } from './constants';
 import type { CustomTier } from './tierTypes';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { getAiConfig } from '../../../../api/aiConfig';
 
 type ConfirmFn = (opts: { title: string; description?: string; confirmLabel?: string; destructive?: boolean }) => Promise<boolean>;
 
@@ -26,7 +26,7 @@ export default function useCustomTiers(confirm: ConfirmFn): CustomTiersState {
 
     const loadCustomTiers = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/custom-chat-models`);
+            const res = await getAiConfig('custom-chat-models');
             if (res.ok) {
                 const data = await res.json();
                 setCustomTiers(Array.isArray(data.tiers) ? data.tiers : []);
