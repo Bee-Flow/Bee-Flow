@@ -10,7 +10,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import React, { Suspense } from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import ManagedPartBanner from '../../components/shared/ManagedPartBanner';
-import { managedOf, type ManagedPart } from '../../components/shared/managedPart';
+import { managedOf, type ManagedPart } from '../../utils/managedPart';
 import { lazy } from '../../utils/lazyWithReload';
 import { useDocumentView, useSessionUser, type StudioDocument } from './documentQueries';
 import DesignedEditor from './editor/DesignedEditor';

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { readEventStream } from '../utils/sseStream';
-import { fromError, type ManagedBannerInfo } from '../components/shared/managedPart';
+import { fromError, type ManagedBannerInfo } from '../utils/managedPart';
 
 /**
  * REST helpers for the automation builder. Thin wrapper over authFetch so

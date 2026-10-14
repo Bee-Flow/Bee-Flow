@@ -13,7 +13,7 @@ import type { ExtraContents, ExtraFileMeta, PrimarySetters, WebpagePatch, Webpag
 import { api } from './webpagesApi';
 import ExternalShareSection from '../../components/agents/AgentWizard/pickers/ExternalShareSection';
 import ShareLinksMenu from '../../components/agents/AgentWizard/pickers/ShareLinksMenu';
-import { managedOf } from '../../components/shared/managedPart';
+import { managedOf } from '../../utils/managedPart';
 import type { ChatMessage } from '../../hooks/useChatEngine/types';
 import { useTranslation } from '../../hooks/useTranslation';
 import downloadWebpageZip from '../../utils/downloadWebpageZip';

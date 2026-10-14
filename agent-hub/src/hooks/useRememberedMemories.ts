@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchRecentMemories, type RecentMemory } from '../components/chat/memory/memoryApi';
+import { fetchRecentMemories, type RecentMemory } from '../api/memoryApi';
 
 /**
  * After a turn ends, ask the server what it saved: at 2 s, 6 s and 15 s after the

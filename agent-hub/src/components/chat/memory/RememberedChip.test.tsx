@@ -4,10 +4,10 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OPEN_MEMORY_PANEL_EVENT } from '../../../utils/memoryMode';
 import { toast } from '../../shared/Toast';
-import { deleteMemory, fetchRecentMemories } from './memoryApi';
+import { deleteMemory, fetchRecentMemories } from '../../../api/memoryApi';
 import RememberedChip from './RememberedChip';
 
-vi.mock('./memoryApi', () => ({ fetchRecentMemories: vi.fn(), deleteMemory: vi.fn() }));
+vi.mock('../../../api/memoryApi', () => ({ fetchRecentMemories: vi.fn(), deleteMemory: vi.fn() }));
 
 const fetchRecent = vi.mocked(fetchRecentMemories);
 const remove = vi.mocked(deleteMemory);

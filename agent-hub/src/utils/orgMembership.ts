@@ -24,17 +24,35 @@
  * and standalone views. Trust the server's list; group within it.
  */
 
+/** The user fields membership is resolved from. */
+export interface MembershipUser {
+    organizationId?: string | null;
+    /** A JSON-encoded TEXT column, or the array the API already parsed. */
+    groups?: unknown;
+}
+
+/** The group fields membership is resolved from. */
+export interface MembershipGroup {
+    id: string;
+    organizationId?: string | null;
+}
+
+export interface Membership {
+    orgId: string;
+    via: string;
+}
+
 /**
  * `users.groups` is a TEXT column holding a JSON array, but the API may have
  * already parsed it. Accept either, and never throw on malformed JSON.
  */
-export function parseGroupIds(userRow) {
+export function parseGroupIds(userRow: MembershipUser | null | undefined): string[] {
     const raw = userRow && userRow.groups;
-    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw)) return raw as string[];
     try {
-        const parsed = JSON.parse(raw || '[]');
+        const parsed = JSON.parse((raw as string) || '[]');
         return Array.isArray(parsed) ? parsed : [];
-    } catch (_) {
+    } catch {
         return [];
     }
 }
@@ -44,12 +62,12 @@ export function parseGroupIds(userRow) {
  * attached both directly and through a group yields two entries for that org —
  * the "Via" filter needs that distinction.
  *
- * @returns {Array<{ orgId: string, via: 'direct' | string }>}
+ * `via` is 'direct' or 'group:<id>'.
  */
-export function membershipFor(userRow, allGroups = []) {
-    const out = [];
-    const seen = new Set();
-    const add = (orgId, via) => {
+export function membershipFor(userRow: MembershipUser | null | undefined, allGroups: MembershipGroup[] = []): Membership[] {
+    const out: Membership[] = [];
+    const seen = new Set<string>();
+    const add = (orgId: string | null | undefined, via: string) => {
         // `users.organizationId` DEFAULTs to '' and a global group's
         // organizationId is NULL — both falsy, and neither is an org.
         if (!orgId) return;
@@ -68,12 +86,12 @@ export function membershipFor(userRow, allGroups = []) {
 }
 
 /** The distinct orgs this user reaches, by either path. */
-export function orgIdsForUser(userRow, allGroups = []) {
+export function orgIdsForUser(userRow: MembershipUser | null | undefined, allGroups: MembershipGroup[] = []): Set<string> {
     return new Set(membershipFor(userRow, allGroups).map((m) => m.orgId));
 }
 
 /** Does this user reach `orgId` by either path? */
-export function isMemberOfOrg(userRow, allGroups, orgId) {
+export function isMemberOfOrg(userRow: MembershipUser | null | undefined, allGroups: MembershipGroup[], orgId: string | null | undefined): boolean {
     if (!orgId) return false;
     return orgIdsForUser(userRow, allGroups).has(orgId);
 }

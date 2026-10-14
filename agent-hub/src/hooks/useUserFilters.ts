@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { membershipFor, parseGroupIds } from '../components/admin/org/people/orgMembership';
+import { membershipFor, parseGroupIds } from '../utils/orgMembership';
 
 /**
  * Filter state + the filtering itself for a list of people.

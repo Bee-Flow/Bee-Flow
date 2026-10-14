@@ -311,7 +311,7 @@ jobs:
               - '.nvmrc'
               - 'agent-hub/src/components/shared/statusTokens.ts'
               # required by agent-hub/src/hooks/useAutomationApi.ts (managed parts of a Solution stage)
-              - 'agent-hub/src/components/shared/managedPart.ts'
+              - 'agent-hub/src/utils/managedPart.ts'
               - 'agent-hub/src/i18n/en-defaults.js'
               - 'scripts/gen-i18n-defaults.mjs'
               - 'agent-hub/src/index.css'
