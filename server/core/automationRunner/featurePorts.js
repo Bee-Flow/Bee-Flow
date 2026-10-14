@@ -12,6 +12,9 @@
  *   jobs/runnerPorts.js         the retention and digest passes
  *   integrations/runnerPorts.js nextcloudAdmin, knowledgeBase, customIntegrations
  *   services/runnerPorts.js     presentations
+ *   core/meetingNotes/runnerPorts.js  meetingImports (a separate module the
+ *                               scheduler drives, not a feature, but the runner
+ *                               should not pull the whole meeting pipeline in)
  *
  * boot/featureRegistrations.js loads them for the server; a test that drives
  * the real code path through a port loads the registering module itself, or

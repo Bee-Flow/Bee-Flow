@@ -19,13 +19,19 @@
 
 const { withNamedLock } = require('../../scheduling/namedLock');
 const log = require('../../../telemetry/log');
+const { runnerPort } = require('../featurePorts');
 
 const GMEET_IMPORT_LOCK_NAME = 'beeflow:job:gmeetAutoImportDiscovery';
 
-// Lazily required, as they were inline in ticks.js.
+// Lazily required, as they were inline in ticks.js. The Meet passes are
+// meeting notes', reached through the meetingImports port (../featurePorts.js,
+// filled by core/meetingNotes/runnerPorts.js).
 const DEFAULT_DEPS = {
     pool: () => require('../../../db').pool,
-    gmeetAutoImport: () => require('../../meetingNotes/gmeetAutoImport'),
+    gmeetAutoImport: () => {
+        const port = runnerPort('meetingImports');
+        return { discover: port.gmeetDiscover, processDue: port.gmeetProcessDue };
+    },
 };
 let _deps = { ...DEFAULT_DEPS };
 

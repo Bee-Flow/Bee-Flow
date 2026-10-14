@@ -15,7 +15,8 @@ const automationStore = require('../../../stores/automationStore');
 const { pool } = require('../../../db');
 const holidays = require('../../scheduling/holidays');
 const { holidaySkipFor } = require('./holidaySkip');
-// What the ticks drive in automation/ and jobs/ (both above core): see ../featurePorts.js.
+// What the ticks drive in automation/ and jobs/ (both above core) and in
+// meeting notes (core/meetingNotes/runnerPorts.js): see ../featurePorts.js.
 const { runnerPort } = require('../featurePorts');
 // Google Meet auto-import: discovery under a NAMED lock (one pod per tick),
 // then the ingest worker on every pod.
@@ -242,7 +243,7 @@ async function processTalkAutoRecord() {
         const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [TALK_AUTORECORD_LOCK_KEY]);
         acquired = !!lockRes.rows[0]?.locked;
         if (!acquired) return; // another pod owns this tick
-        await require('../../meetingNotes/talkAutoRecord').scanAndRecord();
+        await runnerPort('meetingImports').talkScanAndRecord();
     } catch (e) {
         log.error('[AutomationRunner] talk auto-record error:', e.message);
     } finally {
@@ -258,7 +259,8 @@ async function processTalkAutoRecord() {
 const TEAMS_IMPORT_LOCK_KEY = 0xBEEF113; // 0xBEEF105–0xBEEF112 are all taken (0xBEEF10A by the ISO evidence collector)
 
 async function processTeamsAutoImport() {
-    const teamsAutoImport = require('../../meetingNotes/teamsAutoImport');
+    const port = runnerPort('meetingImports');
+    const teamsAutoImport = { discover: port.teamsDiscover, processDue: port.teamsProcessDue };
     let acquired = false;
     let client;
     try {

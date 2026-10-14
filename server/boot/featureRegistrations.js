@@ -9,7 +9,8 @@
  *   jobs/runnerPorts.js            the retention and digest passes the runner ticks drive
  *   integrations/runnerPorts.js    the Nextcloud admin bell, KB ingest, custom-integration auth
  *   services/runnerPorts.js        the presentation renderer
- *                                  (all four -> core/automationRunner/featurePorts.js)
+ *   core/meetingNotes/runnerPorts.js  the Meet/Teams/Talk passes the scheduler drives
+ *                                  (all five -> core/automationRunner/featurePorts.js)
  *   integrations/integrationClients.js  the provider clients meeting notes and datatable
  *                                  sources use -> core/integrations/integrationClients.js
  *
@@ -24,4 +25,5 @@ require('../automation/runnerPorts');
 require('../jobs/runnerPorts');
 require('../integrations/runnerPorts');
 require('../services/runnerPorts');
+require('../core/meetingNotes/runnerPorts');
 require('../integrations/integrationClients');

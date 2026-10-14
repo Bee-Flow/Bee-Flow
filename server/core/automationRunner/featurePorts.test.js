@@ -56,6 +56,7 @@ const EXPECTED = {
     knowledgeBase: ['executeKbIngestTool'],
     customIntegrations: ['renderAuthValue'],
     presentations: ['renderPresentation', 'makeUserImageResolver'],
+    meetingImports: ['gmeetDiscover', 'gmeetProcessDue', 'teamsDiscover', 'teamsProcessDue', 'talkScanAndRecord'],
 };
 
 test('the feature registrations fill every port the runner calls', () => {
@@ -63,6 +64,7 @@ test('the feature registrations fill every port the runner calls', () => {
     require('../../jobs/runnerPorts');
     require('../../integrations/runnerPorts');
     require('../../services/runnerPorts');
+    require('../meetingNotes/runnerPorts');
     for (const [name, fns] of Object.entries(EXPECTED)) {
         const port = ports.runnerPort(name);
         for (const fn of fns) assert.strictEqual(typeof port[fn], 'function', `${name}.${fn} is not registered`);
