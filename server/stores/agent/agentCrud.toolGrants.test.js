@@ -89,7 +89,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     const from = parent && parent.filename;
-    const mine = from && /(agent[\\/]agentCrud\.js|agentRuntime[\\/]toolPolicy[\\/][^\\/]+\.js)$/.test(from);
+    const mine = from && /(agent[\\/]agent(?:Crud|Reads|RuntimeView|Rows|Publishing|Categories|OrgMaintenance|Projects|Sync)\.js|agentRuntime[\\/]toolPolicy[\\/][^\\/]+\.js)$/.test(from);
     if (mine && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) return MOCK_IDS[request];
     return originalResolve.call(this, request, parent, ...rest);
 };
