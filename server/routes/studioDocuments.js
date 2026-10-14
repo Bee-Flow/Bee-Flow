@@ -317,11 +317,9 @@ router.post('/house-style/deck-template', requireAuth, validate({ body: bodies.d
         const status = err && err.errorClass === 'template_too_large' ? 413 : (err && /^template_/.test(err.errorClass || '') ? 422 : 500);
         // Only the template's own refusals are worded for the caller; anything
         // else is an internal failure whose text stays in the log.
-        if (status === 500) {
-            log.error('[StudioDocuments] deck template failed:', err && err.message);
-            throw new HttpError(500, 'template_failed', 'The template deck could not be read.');
-        }
-        res.status(status).json({ error: err.message, code: err.errorClass || 'template_failed' });
+        if (status !== 500) return res.status(status).json({ error: err.message, code: err.errorClass || 'template_failed' });
+        log.error('[StudioDocuments] deck template failed:', err && err.message);
+        throw new HttpError(500, 'template_failed', 'The template deck could not be read.');
     }
 });
 

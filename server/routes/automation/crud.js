@@ -97,7 +97,6 @@ async function appRefOwnerGate(definition, actorUserId) {
     return appRefOwnerVerdict({ app, actorUserId });
 }
 
-
 /**
  * The automations wired to one app-event provider (M2).
  *
@@ -126,13 +125,11 @@ function appEventTriggersOf(definition) {
     return all.filter(t => t && t.kind === 'app_event' && t.appEvent?.provider);
 }
 
-
 // ── What a caller may send ──────────────────────────────────────────
 //
 // Every schema is `.strict()`: a key this router does not read is a client
 // bug, and answering 200 to it means the person watches a setting they typed
 // fail to stick with nothing on screen to explain it.
-
 
 const PROVIDER_TEXT = 'triggerProvider is the id of a trigger source.';
 const EVENT_TEXT = 'triggerEvent is the id of one of that provider\'s events.';
@@ -333,7 +330,6 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
 registerFolderRoutes(router);
 registerFormRoutes(router);
 registerTemplateAndImportRoutes(router);
-
 
 // The caller's trash (handoff 5). A literal, so it sits above GET /:id.
 router.get('/_trash', (req, res) => trashHandlers.listTrash(req, res));
@@ -726,7 +722,6 @@ router.post('/:id/deactivate', async (req, res) => {
     res.json({ automation: projectForViewer(u, access) });
 });
 
-
 /**
  * Did this PUT actually CONFIGURE a schedule, as opposed to merely carrying a
  * schedule trigger nobody has set up yet?
@@ -747,6 +742,5 @@ function scheduleWasConfigured(body, updates) {
     if (body?.triggerType === 'schedule') return true;
     return updates.definition?.trigger?.schedule !== undefined;
 }
-
 
 module.exports = router;

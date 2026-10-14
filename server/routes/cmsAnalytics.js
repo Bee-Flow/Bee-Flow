@@ -200,7 +200,6 @@ function invalidateCache() { _cache.clear(); }
 // `params` is the per-resource allow-list of caller-supplied query keys, on top
 // of the window (startAt/endAt/unit/timezone) which we always compute ourselves.
 
-
 const RESOURCES = Object.freeze({
     stats:            { path: (w) => `/api/websites/${w}/stats`,            params: [] },
     pageviews:        { path: (w) => `/api/websites/${w}/pageviews`,        params: [] },

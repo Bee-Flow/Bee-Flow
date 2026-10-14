@@ -76,8 +76,7 @@
 'use strict';
 
 const express = require('express');
-const { z, typeError } = require('../../../utils/zod');
-const { worded } = require('../../../core/http/schemaParts');
+const { z, typeError, worded } = require('../../../core/http/schemaParts');
 const log = require('../../../telemetry/log');
 const { HttpError } = require('../../../core/http/errors');
 const router = express.Router();

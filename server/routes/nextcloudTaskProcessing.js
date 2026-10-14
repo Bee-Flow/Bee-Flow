@@ -43,8 +43,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const { z, typeError } = require('../utils/zod');
-const { worded } = require('../core/http/schemaParts');
+const { z, typeError, worded } = require('../core/http/schemaParts');
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 // configStore and userStore are required lazily inside the handlers, not here:
