@@ -163,7 +163,7 @@ describe('InputArea — de voetregel op het scherm', () => {
 
     it('staat in dezelfde leeskolom als de berichten erboven (C9)', async () => {
         // Eén kolom, in twee bestanden geschreven: 760px hier en COLUMN_MAX_W
-        // in MessageItem/index.jsx. Liepen ze uit elkaar (900 vs 768, later
+        // in MessageItem/index.tsx. Liepen ze uit elkaar (900 vs 768, later
         // 760 vs 768), dan staat het gesprek net niet boven zijn eigen
         // invoerveld — het soort verschil dat niemand benoemt en iedereen ziet.
         render(<Harness />);
