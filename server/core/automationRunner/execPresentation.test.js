@@ -39,8 +39,17 @@ const automationStore = {
     async recordGeneratedFile(row) { automationStore.records.push(row); return { id: `file-${automationStore.records.length}` }; },
 };
 const library = { created: [] };
+// The step reaches services/presentationRenderer through the presentations
+// port of ./featurePorts.js, and automation/automationGraph (the marking's AI
+// steps) through another; boot registers the real ones. The renderer is faked.
+require('../../automation/runnerPorts');
+require('./featurePorts').registerRunnerPorts({
+    presentations: {
+        renderPresentation: (opts) => renderer.renderPresentation(opts),
+        makeUserImageResolver: (userId) => renderer.makeUserImageResolver(userId),
+    },
+});
 const restore = installResolveStub({
-    '../../services/presentationRenderer': renderer,
     '../../stores/storageStore': storage,
     '../../stores/automationStore': automationStore,
     '../../stores/configStore': { getConfig: async () => null, setConfig: async () => {} },

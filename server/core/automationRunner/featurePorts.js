@@ -7,9 +7,11 @@
  * owning feature fills at boot, the way integrations fill
  * core/tools/toolFamilyRegistry.js.
  *
- *   automation/runnerPorts.js   approvals, triggerBus, formQueue, evolution, ...
+ *   automation/runnerPorts.js   approvals, triggerBus, formQueue, codeSandbox, ...
  *                               (the trigger bus also serves core/meetingNotes)
  *   jobs/runnerPorts.js         the retention and digest passes
+ *   integrations/runnerPorts.js nextcloudAdmin, knowledgeBase, customIntegrations
+ *   services/runnerPorts.js     presentations
  *
  * boot/featureRegistrations.js loads them for the server; a test that drives
  * the real code path through a port loads the registering module itself, or

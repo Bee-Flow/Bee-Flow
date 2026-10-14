@@ -25,6 +25,8 @@
 
 const automationStore = require('../../stores/automationStore');
 const { buildTriggerState } = require('./triggerState');
+// The run-outcome resolver is automation/'s, reached through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 const {
     registerRunCancellation,
     clearRunCancellation,
@@ -67,7 +69,7 @@ const RUN_DEPS = {
     clearRunCancellation,
     isCancelRequested,
     loadApprovalLifecycle: () => require('./approvalLifecycle'),
-    loadRunOutcome: () => require('../../automation/runOutcome'),
+    loadRunOutcome: () => runnerPort('runOutcome'),
     loadAudience: () => require('../../auth/audience'),
     loadUserStore: () => require('../../stores/userStore'),
 };

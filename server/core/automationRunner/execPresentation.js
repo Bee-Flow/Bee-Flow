@@ -21,6 +21,8 @@
 const { interpolateTemplate, walkPath, resolveValue } = require('../automationModel/bind');
 const { normalizeDeck, normalizeSlide } = require('../documents/deckModel');
 const { collectDeck } = require('../documents/deckCollect');
+// The presentation renderer is services/', reached through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 // A string that is exactly one `{{path}}`: the rule fill_document applies, shared.
 const { soleTemplatePath } = require('./execFillDocument');
 const {
@@ -186,7 +188,7 @@ async function execPresentation(step, ctx, runState, mode) {
     }
     if (typeof step.slideNumbers === 'boolean') theme.slideNumbers = step.slideNumbers;
 
-    const { renderPresentation, makeUserImageResolver } = require('../../services/presentationRenderer');
+    const { renderPresentation, makeUserImageResolver } = runnerPort('presentations');
     const rendered = await renderPresentation({
         deck,
         format,

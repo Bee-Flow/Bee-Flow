@@ -5,9 +5,11 @@
  * feature registers it here at boot, before any route or tick can need it.
  *
  *   integrations/toolFamilies.js   every integration's tools -> core/tools/toolFamilyRegistry.js
- *   automation/runnerPorts.js      approvals, trigger bus, form queue, evolution
- *                                  -> core/automationRunner/featurePorts.js
+ *   automation/runnerPorts.js      approvals, trigger bus, form queue, code sandbox, ...
  *   jobs/runnerPorts.js            the retention and digest passes the runner ticks drive
+ *   integrations/runnerPorts.js    the Nextcloud admin bell, KB ingest, custom-integration auth
+ *   services/runnerPorts.js        the presentation renderer
+ *                                  (all four -> core/automationRunner/featurePorts.js)
  *   integrations/integrationClients.js  the provider clients meeting notes and datatable
  *                                  sources use -> core/integrations/integrationClients.js
  *
@@ -20,4 +22,6 @@
 require('../integrations/toolFamilies');
 require('../automation/runnerPorts');
 require('../jobs/runnerPorts');
+require('../integrations/runnerPorts');
+require('../services/runnerPorts');
 require('../integrations/integrationClients');

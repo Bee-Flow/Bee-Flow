@@ -36,20 +36,46 @@ test('registering again replaces the port; a non-function member is refused', ()
 // the call instead of at boot.
 const EXPECTED = {
     approvals: ['projectStamp', 'dispatchApprovalRequested', 'dispatchApprovalDecided', 'runOnDecidedHook',
-        'notifyApproval', 'automationForApproval', 'pollTalkReactions'],
+        'notifyApproval', 'automationForApproval', 'pollTalkReactions',
+        'resolveNcContext', 'resolveTalkRoom', 'postTalkCard', 'deliverApprovalToNextcloud'],
     triggerBus: ['runPollingPass', 'renewExpiringSubscriptions', 'loadSession', 'dispatchEvent', 'pickMatcher'],
     formQueue: ['recoverPending', 'stop'],
     evolution: ['evaluateCanaries'],
     periodicJobs: ['runRetentionPass', 'purgeTrashPass', 'datatableRetentionPass', 'digestPass'],
+    codeSandbox: ['isAvailable', 'loadError', 'runCode', 'defaultFetchHttp', 'secretsNotConfiguredMessage'],
+    outputSchemas: ['synthesizeDryRunOutput'],
+    shapeCache: ['recordShape'],
+    summarise: ['summariseDefinition'],
+    forms: ['renderFormConfig', 'maxRenderedDescriptionLen'],
+    automationGraph: ['walkSteps', 'isAiStep', 'generatingStepsDownstreamOfAi'],
+    runOutcome: ['resolveRunOutcome', 'storeOutcomeDeps'],
+    stepTypes: ['isBuiltinStepType'],
+    toolRegistry: ['availabilityFor', 'allToolApps'],
+    agents: ['servesPublishedConfig'],
+    nextcloudAdmin: ['sendAdminNotification'],
+    knowledgeBase: ['executeKbIngestTool'],
+    customIntegrations: ['renderAuthValue'],
+    presentations: ['renderPresentation', 'makeUserImageResolver'],
 };
 
 test('the feature registrations fill every port the runner calls', () => {
     require('../../automation/runnerPorts');
     require('../../jobs/runnerPorts');
+    require('../../integrations/runnerPorts');
+    require('../../services/runnerPorts');
     for (const [name, fns] of Object.entries(EXPECTED)) {
         const port = ports.runnerPort(name);
         for (const fn of fns) assert.strictEqual(typeof port[fn], 'function', `${name}.${fn} is not registered`);
     }
+});
+
+test('the constant-valued port members answer what the feature module holds', () => {
+    require('../../automation/runnerPorts');
+    assert.strictEqual(ports.runnerPort('codeSandbox').secretsNotConfiguredMessage(),
+        require('../../automation/codeSandbox').SECRETS_NOT_CONFIGURED_MESSAGE);
+    assert.strictEqual(ports.runnerPort('forms').maxRenderedDescriptionLen(),
+        require('../../automation/formTriggerContract').MAX_RENDERED_DESCRIPTION_LEN);
+    assert.strictEqual(ports.runnerPort('toolRegistry').allToolApps(), require('../../automation/toolRegistry').ALL_TOOL_APPS);
 });
 
 test('a port call reaches the feature module lazily, through require.cache', async () => {

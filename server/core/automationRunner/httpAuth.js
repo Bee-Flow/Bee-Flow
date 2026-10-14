@@ -36,6 +36,9 @@
  * ssrfGuard are required lazily so test harnesses can pre-mock them.
  */
 
+// The custom-integration auth renderer is integrations/', reached through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
+
 const MASK_VALUES = Symbol.for('beeflow.automation.maskValues');
 
 const TOKEN_REFRESH_MARGIN_MS = 60_000;
@@ -113,7 +116,7 @@ async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true
         throw new Error(`http_request: HTTP credential "${conn.label}" could not be decrypted — re-enter this credential in Settings → Connections.`);
     }
 
-    const { renderAuthValue } = require('../../integrations/customIntegrationRunner');
+    const { renderAuthValue } = runnerPort('customIntegrations');
     const headers = {};
     const maskValues = [];
     // Every raw secret string is a mask needle, plus every DERIVED header

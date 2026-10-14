@@ -106,7 +106,8 @@
 'use strict';
 
 const toolPolicy = require('../agentRuntime/toolPolicy');
-const { servesPublishedConfig } = require('../../automation/agentCatalog');
+// The agent catalogue and tool registry are automation/'s, reached through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 const log = require('../../telemetry/log');
 
 /**
@@ -187,7 +188,7 @@ function _mayUseAgent(agent, ctx) {
     // Gedeeld is nog niet gepubliceerd: zonder een gepubliceerde VERSIE
     // serveert `getForRuntime` het levende klad van de eigenaar, en daar mag de
     // onbewaakte automatisering van een ander niet op draaien.
-    if (!servesPublishedConfig(agent)) return false;
+    if (!runnerPort('agents').servesPublishedConfig(agent)) return false;
     // Een identiteitslezing die niet lukte is geen antwoord. `userHomeOrgId`,
     // `orgRole` en `userGroupIds` komen uit dezelfde lezing (execution.js), dus
     // met `identityError` gezet zijn zowel de org- als de groepsvraag
@@ -365,7 +366,7 @@ function _appsOutsideAgentContext() {
     if (_nonAgentApps) return _nonAgentApps;
     const out = new Set();
     try {
-        const registry = require('../../automation/toolRegistry');
+        const registry = runnerPort('toolRegistry');
         // `availabilityFor` is de gedeelde lezer; de rij zelf is de bron. Een
         // registry zonder die functie wordt op `availableTo` gelezen, want de
         // DECLARATIE is wat telt en een ontbrekende helper is geen ontbrekende
@@ -374,7 +375,7 @@ function _appsOutsideAgentContext() {
         const read = typeof registry.availabilityFor === 'function'
             ? (e) => registry.availabilityFor(e)
             : (e) => (Array.isArray(e.availableTo) ? e.availableTo : null);
-        for (const entry of registry.ALL_TOOL_APPS || []) {
+        for (const entry of registry.allToolApps() || []) {
             if (!entry || !entry.app) continue;
             const contexts = read(entry);
             if (Array.isArray(contexts) && !contexts.includes('agent')) out.add(entry.app);

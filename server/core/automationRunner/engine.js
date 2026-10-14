@@ -28,11 +28,7 @@ require('../../utils/ssrfGuard');
 require('./expr');
 require('../automationModel/approvalStages');
 require('../automationModel/sideEffectMap');
-require('../../automation/outputSchemas');
-require('../../automation/shapeCache');
-require('../../automation/summarise');
 require('../scheduling/cron');
-require('../../automation/codeSandbox');
 require('../automationModel/notificationDefaults');
 require('../runEventBus');
 // Feature C — http_request credential injection. MASK_VALUES is the Symbol-

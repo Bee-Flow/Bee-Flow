@@ -20,6 +20,11 @@
  * Run: cd server && node --test --test-force-exit core/automationRunner/documentMarking.test.js
  */
 const { test } = require('node:test');
+// The runner reaches automation/, integrations/ and services/ through
+// core/automationRunner/featurePorts.js; boot registers these for the server.
+require('../../automation/runnerPorts');
+require('../../integrations/runnerPorts');
+require('../../services/runnerPorts');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');

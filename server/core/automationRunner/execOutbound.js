@@ -9,7 +9,9 @@ const notificationStore = require('../../stores/notificationStore');
 const { resolveInputs, interpolateTemplate, interpolateJsonBody } = require('../automationModel/bind');
 const { withStepQuery, parseStepUrl, shieldPart, joinShieldedUrl } = require('./httpQuery');
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
-const sandbox = require('../../automation/codeSandbox');
+const { runnerPort } = require('./featurePorts');
+// The code sandbox is automation/'s (isolated-vm), reached through ./featurePorts.js.
+const sandbox = () => runnerPort('codeSandbox');
 const { prepareCodeRun } = require('./codeStepGuard');
 // Feature C — http_request credential injection (see httpAuth.js).
 const { MASK_VALUES, resolveHttpAuthHeaders, evictToken } = require('./httpAuth');
@@ -542,9 +544,9 @@ async function execCode(step, ctx, runState, mode) {
     // call is recorded and answered with an obviously-fake value, so the line
     // after it still executes and the author finds out their code throws on
     // line 12 instead of finding out that it "was skipped".
-    if (!sandbox.isAvailable()) {
+    if (!sandbox().isAvailable()) {
         if (rehearsal) return codeStepSkipped('the sandbox is not installed here');
-        throw new Error(`Code step unavailable: ${sandbox.loadError()}`);
+        throw new Error(`Code step unavailable: ${sandbox().loadError()}`);
     }
 
     // There is no switch: code steps run wherever the sandbox is installed.
@@ -585,7 +587,7 @@ async function execCode(step, ctx, runState, mode) {
     if (declaredSecretKeys.length > 0) {
         throw new Error(
             `This code step declares secretKeys (${declaredSecretKeys.join(', ')}), but `
-            + sandbox.SECRETS_NOT_CONFIGURED_MESSAGE);
+            + sandbox().secretsNotConfiguredMessage());
     }
 
     const declaredTools = new Set(step.allowedTools || []);
@@ -622,7 +624,7 @@ async function execCode(step, ctx, runState, mode) {
         : declaredTools;
     const { executeTool } = require('../tools/toolDispatcher');
 
-    const { result, logs, http, calls } = await sandbox.runCode({
+    const { result, logs, http, calls } = await sandbox().runCode({
         code: step.code,
         inputs,
         limits: step.limits || {},
@@ -721,7 +723,7 @@ async function execCode(step, ctx, runState, mode) {
                 const sendOptions = { ...(options || {}) };
                 if (guardedFetch.payload.body !== undefined) sendOptions.body = guardedFetch.payload.body;
                 if (guardableHeaders) sendOptions.headers = guardedFetch.payload.headers || {};
-                const call = await captured(() => sandbox.defaultFetchHttp(sendUrl, sendOptions));
+                const call = await captured(() => sandbox().defaultFetchHttp(sendUrl, sendOptions));
                 let res;
                 try {
                     if (!call.ok) throw call.error;

@@ -26,6 +26,8 @@
 const crypto = require('crypto');
 const automationStore = require('../../stores/automationStore');
 const { interpolateTemplate, resolveValue, walkPath } = require('../automationModel/bind');
+// The slide image resolver is services/', reached through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 const { scanTemplate } = require('./expr');
 const { renderFilledDocument, documentFileName } = require('../documents/renderFilledDocument');
 const { resolveDocumentMarking, markingOutcome } = require('./execDocument');
@@ -202,7 +204,7 @@ async function execFillDocument(step, ctx, runState, mode) {
         marking,
         format,
         // A slide's picture is a storage reference the owner may read.
-        resolveImage: isDeck ? require('../../services/presentationRenderer').makeUserImageResolver(ctx.userId) : null,
+        resolveImage: isDeck ? runnerPort('presentations').makeUserImageResolver(ctx.userId) : null,
     });
 
     const outcome = markingOutcome(marking, markingResult);

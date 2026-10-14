@@ -43,6 +43,8 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+// Approval delivery (automation/) and the Nextcloud admin bell (integrations/) come through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 const {
     normalizeNotificationSettings, normalizeEventSettings, urgencyToCategory, foldsIntoDigest,
 } = require('../automationModel/notificationDefaults');
@@ -52,7 +54,7 @@ const { shortMessage, talkText } = require('../automationModel/notificationMessa
 const HOUR_MS = 60 * 60 * 1000;
 
 function defaultDeps() {
-    const approvalDelivery = () => require('../../automation/approvalDelivery');
+    const approvals = () => runnerPort('approvals');
     const userStore = () => require('../../stores/userStore');
     return {
         now: () => Date.now(),
@@ -63,11 +65,11 @@ function defaultDeps() {
         createBell: (o) => require('../../stores/notificationStore').createNotification(o),
         emailConfig: () => require('../../utils/emailService').getServiceEmailConfig(),
         sendEmail: (o) => require('../../utils/emailService').sendServiceEmail(o),
-        resolveNcContext: (ownerId) => approvalDelivery().resolveNcContext(ownerId),
-        sendNcNotification: (o) => require('../../integrations/nextcloudAdminNotify').sendAdminNotification(o),
-        resolveTalkRoom: (o) => approvalDelivery().resolveTalkRoom(o),
-        postTalk: (o) => approvalDelivery().postTalkCard(o),
-        deliverApprovalCard: (o) => approvalDelivery().deliverApprovalToNextcloud(o),
+        resolveNcContext: (ownerId) => approvals().resolveNcContext(ownerId),
+        sendNcNotification: (o) => runnerPort('nextcloudAdmin').sendAdminNotification(o),
+        resolveTalkRoom: (o) => approvals().resolveTalkRoom(o),
+        postTalk: (o) => approvals().postTalkCard(o),
+        deliverApprovalCard: (o) => approvals().deliverApprovalToNextcloud(o),
         absoluteUrl: (path) => {
             if (!path || /^https?:\/\//i.test(path)) return path || null;
             try { return `${require('../../utils/publicUrl').resolvePublicBaseUrl()}${path}`; } catch { return path; }

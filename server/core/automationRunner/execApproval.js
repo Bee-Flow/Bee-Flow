@@ -7,6 +7,8 @@
 const { interpolateTemplate } = require('../automationModel/bind');
 const { evaluate } = require('./expr');
 const { desugarApprovalStages } = require('../automationModel/approvalStages');
+// The form-config renderer is automation/'s, reached through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 const { resolveApprovalTtlMs } = require('./shared');
 
 // ── Approval step ───────────────────────────────────────
@@ -91,10 +93,10 @@ function renderApprovalExtras(step, runState) {
     const a = (step && step.approval) || {};
     const safeState = { ...runState, secrets: {} };
     const interpolate = (s) => interpolateTemplate(s, safeState, { listAsMarkdown: true });
-    const { renderFormConfig, MAX_RENDERED_DESCRIPTION_LEN } = require('../../automation/formTriggerContract');
+    const { renderFormConfig, maxRenderedDescriptionLen } = runnerPort('forms');
 
     const detailsMd = (typeof a.details === 'string' && a.details.trim())
-        ? interpolate(a.details).slice(0, MAX_RENDERED_DESCRIPTION_LEN)
+        ? interpolate(a.details).slice(0, maxRenderedDescriptionLen())
         : null;
 
     let fields = null;
@@ -283,7 +285,7 @@ function isRunPause(e) {
  * a URL or a header.
  */
 function renderFormPage(step, runState, { baseTheme = null } = {}) {
-    const { renderFormConfig } = require('../../automation/formTriggerContract');
+    const { renderFormConfig } = runnerPort('forms');
     const safeState = { ...runState, secrets: {} };
     return renderFormConfig(step.form, {
         interpolate: (s) => interpolateTemplate(s, safeState, { listAsMarkdown: true }),

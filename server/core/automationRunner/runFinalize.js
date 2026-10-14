@@ -20,7 +20,8 @@ const crypto = require('crypto');
 const { sanitizeError } = require('../privacy/errorSanitizer');
 const { classifyUnknownError, remediationFor } = require('../automationErrors');
 const { bindingMissSummary } = require('./bindingMisses');
-const { summariseDefinition } = require('../../automation/summarise');
+// What this module needs from automation/ (a feature) comes through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 const holidays = require('../scheduling/holidays');
 const log = require('../../telemetry/log');
 
@@ -100,7 +101,7 @@ async function finalizeRun(deps, {
         // they are often WHY ("to is required" because its mapping was empty).
         const misses = bindingMissSummary(ctx._bindingMisses);
         if (runErrorMsg) return withReuse(`${runRemediation ? `Failed: ${userSafeError}. ${runRemediation}` : `Failed: ${userSafeError}`}${misses}`);
-        const base = summariseDefinition(automation.definition || {}).summary;
+        const base = runnerPort('summarise').summariseDefinition(automation.definition || {}).summary;
         const withErrors = handledErrorCount > 0
             ? `${base} — ${handledErrorCount} step error(s) handled by error branch`
             : base;

@@ -15,8 +15,11 @@
 const { resolveInputs } = require('../automationModel/bind');
 const { isSideEffect, isMemoisable } = require('../automationModel/sideEffectMap');
 const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
-const { synthesizeDryRunOutput } = require('../../automation/outputSchemas');
-const shapeCache = require('../../automation/shapeCache');
+// What this module needs from automation/ (a feature) comes through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
+
+/** automation/outputSchemas' sample output for a tool, for dry runs. */
+const synthesizeDryRunOutput = (toolName, args) => runnerPort('outputSchemas').synthesizeDryRunOutput(toolName, args);
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
 const log = require('../../telemetry/log');
 const { assertStepToolPermitted, resolveLendingIdentity, resolveDurableTier } = require('./integrationActionGates');
@@ -359,7 +362,7 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // re-deriving one from a replayed payload would add nothing the builder
     // does not already have.
     if (mode !== 'dry_run' && !servedFromMemo) {
-        try { await shapeCache.recordShape({ userId: ctx.userId, toolName: step.tool, output: result }); } catch (_) {}
+        try { await runnerPort('shapeCache').recordShape({ userId: ctx.userId, toolName: step.tool, output: result }); } catch (_) {}
     }
     // Scan the tool output (toolOutput scope) before it enters runState and is
     // bound by downstream steps. block → throws; redact/tokenize → transforms.
@@ -386,6 +389,6 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     return { output: outputForState, ...(piiSummary ? { piiSummary } : {}), ...(reused ? { reused } : {}) };
 }
 
-// synthesizeDryRunOutput is re-exported for execAi's tool loop: one require
-// of automation/outputSchemas for both executors (layering ratchet).
+// synthesizeDryRunOutput is re-exported for execAi's tool loop, so both
+// executors reach automation/outputSchemas through the same port.
 module.exports = { execIntegrationAction, synthesizeDryRunOutput };

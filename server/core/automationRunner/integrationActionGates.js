@@ -13,6 +13,8 @@
  */
 
 const log = require('../../telemetry/log');
+// The built-in step-type table is automation/'s, reached through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 
 /**
  * Throws when `step.tool` is no longer in the user's CURRENT allowed tool set.
@@ -59,7 +61,7 @@ async function assertStepToolPermitted(step, ctx, sideEffect, deps) {
         // (an AI builder passed it to builder_add_action), and no admin toggle
         // can fix that — telling the user to ask their admin sends them to
         // someone who cannot help.
-        const { isBuiltinStepType } = require('../../automation/builtinStepTools');
+        const { isBuiltinStepType } = runnerPort('stepTypes');
         if (isBuiltinStepType(step.tool)) {
             throw new Error(`Step "${step.id}" is an integration action calling "${step.tool}", but "${step.tool}" `
                 + `is a built-in step type, not an integration. This step was built incorrectly — delete it and add `
