@@ -56,6 +56,7 @@ ent.resolveEntitlements = async () => ({
 
 const { getIntegrationTools } = require('./integrationTools');
 const { executeTool } = require('../tools/toolDispatcher');
+require('../../integrations/toolFamilies'); // the integration tools the dispatcher routes to
 
 // ── Fake Graph ──────────────────────────────────────────────────────────────
 const graphCalls = [];

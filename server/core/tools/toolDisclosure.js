@@ -19,6 +19,8 @@
  * its request-scoped closure.
  */
 
+const { getToolFamily } = require('./toolFamilyRegistry');
+
 const LOAD_TOOLS_TOOL_NAME = 'load_tools';
 
 // Hard ceiling on how many tools we'll ever disclose into one request. Anthropic
@@ -103,9 +105,11 @@ function groupForTool(tool) {
     // group per integration, keyed by the slug parsed out of cint_<slug>_<tool>.
     if (name.startsWith('cint_')) {
         let slug = null;
+        // The name grammar belongs to the custom-integration runner, which
+        // hands its parser over with its tool family registration.
         try {
-            const { parsePrefixedName } = require('../../integrations/customIntegrationRunner');
-            slug = parsePrefixedName(name)?.slug || null;
+            const parseName = getToolFamily('custom_integration')?.parseName;
+            slug = (parseName && parseName(name)?.slug) || null;
         } catch (_) { /* fail soft — fall back to a raw split below */ }
         if (!slug) slug = name.split('_')[1] || 'unknown';
         const label = slug.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());

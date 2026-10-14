@@ -7,6 +7,8 @@ const express = require('express');
 // Core modules
 const componentManager = require('./core/cms/componentManager');
 require('./core/executionEngine');
+// Registers every integration's tools with core's tool dispatcher.
+require('./integrations/toolFamilies');
 
 // Route modules
 const authRouter = require('./auth/router');

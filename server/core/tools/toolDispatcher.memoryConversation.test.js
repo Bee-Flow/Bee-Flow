@@ -21,6 +21,7 @@ const memoryTools = require('../../integrations/memoryTools');
 memoryTools.executeMemoryTool = async (name, args, context) => { seen.push({ name, args, context }); return { ok: true }; };
 
 const { executeTool } = require('./toolDispatcher');
+require('../../integrations/toolFamilies'); // the integration tools the dispatcher routes to
 
 (async () => {
     await executeTool('memory_remember', { type: 'fact', content: 'Works in Utrecht' }, {

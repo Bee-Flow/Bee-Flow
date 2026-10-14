@@ -22,7 +22,8 @@ const fs = require('fs');
 const path = require('path');
 
 const RUNNER = fs.readFileSync(path.join(__dirname, 'aiTaskRunner.js'), 'utf8');
-const DISPATCHER = fs.readFileSync(path.join(__dirname, 'tools', 'toolDispatcher.js'), 'utf8');
+// The custom-integration family (and its unattended rule) is registered here.
+const DISPATCHER = fs.readFileSync(path.join(__dirname, '..', 'integrations', 'toolFamilies.js'), 'utf8');
 // The agent runtime's tool dispatch moved with the tool round into
 // agentRuntime/toolRoundExecutor.js — scan the spine and the round together.
 // The spine is a FOLDER (agentRuntime/chatStream/), so every module in it is

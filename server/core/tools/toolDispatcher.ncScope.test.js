@@ -38,6 +38,7 @@ inject('../../stores/guardrailEventStore.js', { logGuardrailEvent: async () => {
 const ncClient = require('../../integrations/nextcloudClient');
 const guard = require('../integrations/ncScopeGuard');
 const { executeTool, executeNextcloudFamilyTool } = require('./toolDispatcher');
+require('../../integrations/toolFamilies'); // the integration tools the dispatcher routes to
 
 const USER = 'u-1';
 // Connector-shaped session: Deck (like Notes) branches on isConnectorSession —
@@ -152,9 +153,11 @@ const run = async () => {
         ...require('../../integrations/nextcloudTools'),
         executeNextcloudTool: async (name, args) => { ncArgsSeen = { name, args }; return { success: true, path: args.path, fileId: '482', webUrl: 'https://nc.example.com/f/482', file: { kind: 'presentation', name: 'Q3 review.pptx', webUrl: 'https://nc.example.com/f/482' } }; },
     });
-    delete require.cache[require.resolve('./toolDispatcher')];
-    const fresh = require('./toolDispatcher');
-    result = await fresh.executeTool('create_presentation', { title: 'Q3 review', markdown: '## A\n- a', nextcloudPath: '/Presentations' }, { userId: USER, session: CONNECTOR_SESSION });
+    // Re-register the Nextcloud family so it picks up the stubbed executor.
+    delete require.cache[require.resolve('../../integrations/nextcloudToolFamily')];
+    delete require.cache[require.resolve('../../integrations/toolFamilies')];
+    require('../../integrations/toolFamilies');
+    result = await executeTool('create_presentation', { title: 'Q3 review', markdown: '## A\n- a', nextcloudPath: '/Presentations' }, { userId: USER, session: CONNECTOR_SESSION });
     assert.equal(ncArgsSeen?.name, 'nextcloud_create_presentation');
     assert.equal(ncArgsSeen?.args?.path, '/Presentations/Q3 review.pptx', 'a folder path is completed from the title');
     assert.equal(ncArgsSeen.args.nextcloudPath, undefined, 'the routing argument does not leak into the Nextcloud tool');

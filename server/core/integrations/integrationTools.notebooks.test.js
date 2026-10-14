@@ -44,6 +44,7 @@ try {
 const ent = require('../entitlements/entitlements');
 const { getIntegrationTools } = require('./integrationTools');
 const { executeTool } = require('../tools/toolDispatcher');
+require('../../integrations/toolFamilies'); // the integration tools the dispatcher routes to
 
 // Crafted resolver snapshot — real snapshotHas falls back to the arrayified
 // effective buckets when `_sets` is absent, so plain arrays are enough.
