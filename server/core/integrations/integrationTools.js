@@ -431,10 +431,9 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agen
     // a real .pptx in the org's house style and hands back a download link.
     // No credentials, no org toggle; the simple mode is the only switch.
     if (!userSimpleMode) {
-        addTools(require('../../integrations/presentationTools').PRESENTATION_TOOLS);
-        // Word documents — the same footing: a real .docx in the org's Word
-        // house style, kept in storage (or Nextcloud) behind a download link.
-        addTools(require('../../integrations/wordDocumentTools').WORD_DOCUMENT_TOOLS);
+        // With Word and Excel files: a real .pptx / .docx / .xlsx behind a
+        // download link (or in OneDrive / Nextcloud when the user asks).
+        addTools(require('../../integrations/officeFileDelivery').officeFileToolDefinitions({ oneDrive: isAppOn('onedrive') }));
     }
 
     // Personal memory — the user's own user_memories, read and written through

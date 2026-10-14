@@ -109,12 +109,24 @@ const INTEGRATION_PREFIXES = {
 };
 
 /**
- * A document builder (create_presentation, create_word_document) asked to
- * save into Nextcloud. Same test the dispatcher uses: a non-empty string.
+ * A file builder (create_presentation, create_word_document,
+ * create_spreadsheet) keeps its file in Bee Flow's own storage: on-box. Asked
+ * to save into Nextcloud (`nextcloudPath`) or OneDrive (`oneDrivePath`) it is
+ * external, classed like the nextcloud_ family: the egress
+ * ledger, the org's "Outside tools" PII rules and an automation's privacy
+ * scope all apply. A path is a non-empty string, as for the dispatcher.
  */
-function writesToNextcloud(args) {
-    return typeof args?.nextcloudPath === 'string' && args.nextcloudPath.trim() !== '';
-}
+const writesTo = (key) => (args) => typeof args?.[key] === 'string' && args[key].trim() !== '';
+const writesToNextcloud = writesTo('nextcloudPath');
+const writesOutside = (a) => writesToNextcloud(a) || writesTo('oneDrivePath')(a);
+
+const officeFileEntry = (integration, label) => ({
+    integration, label,
+    serverFn: (a, ctx) => (writesToNextcloud(a) ? ctx?.nextcloudUrl || null : writesOutside(a) ? 'graph.microsoft.com (OneDrive)' : null),
+    isLocal: (a) => !writesOutside(a),
+    direction: (a) => (writesOutside(a) ? 'sent' : 'received'),
+    dataCategories: 'document_content',
+});
 
 // ── Static overrides for specific tools ──────────────────────────────
 // These provide precise metadata for tools that need custom server endpoints,
@@ -136,30 +148,9 @@ const INTEGRATION_TOOL_MAP = {
         direction: 'received',
         dataCategories: 'search_query, document_content',
     },
-    // A .pptx built in-process and kept in Bee Flow's own storage: nothing
-    // leaves the building. With `nextcloudPath` the dispatcher writes it into
-    // Nextcloud instead, and then it is classed exactly like the nextcloud_
-    // family (external, server = the Nextcloud URL): the egress ledger, the
-    // org's "Outside tools" PII rules and an automation's external privacy scope
-    // all apply to the content that goes there.
-    create_presentation: {
-        integration: 'presentation_builder',
-        label: 'Presentation builder',
-        serverFn: (a, ctx) => (writesToNextcloud(a) ? ctx?.nextcloudUrl || null : null),
-        isLocal: (a) => !writesToNextcloud(a),
-        direction: (a) => (writesToNextcloud(a) ? 'sent' : 'received'),
-        dataCategories: 'document_content',
-    },
-    // Same for a .docx: local when kept in Bee Flow's storage, external (like
-    // nextcloud_create_document) when `nextcloudPath` sends it to Nextcloud.
-    create_word_document: {
-        integration: 'word_document_builder',
-        label: 'Word document builder',
-        serverFn: (a, ctx) => (writesToNextcloud(a) ? ctx?.nextcloudUrl || null : null),
-        isLocal: (a) => !writesToNextcloud(a),
-        direction: (a) => (writesToNextcloud(a) ? 'sent' : 'received'),
-        dataCategories: 'document_content',
-    },
+    create_presentation: officeFileEntry('presentation_builder', 'Presentation builder'),
+    create_word_document: officeFileEntry('word_document_builder', 'Word document builder'),
+    create_spreadsheet: officeFileEntry('spreadsheet_builder', 'Spreadsheet builder'),
     web_search: {
         integration: 'web_search',
         label: 'Web Search (Tavily)',

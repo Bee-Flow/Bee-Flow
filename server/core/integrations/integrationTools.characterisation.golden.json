@@ -421,6 +421,7 @@
       "fireflies_get_transcript",
       "create_presentation",
       "create_word_document",
+      "create_spreadsheet",
       "memory_search",
       "memory_remember",
       "nextcloud_list_files",
@@ -486,7 +487,7 @@
       "config:oauth",
       "secret:mistral_api_key"
     ],
-    "hint": " You have access to tools — use them when they would help answer the user's question. You can call multiple tools in parallel when appropriate. Your available integrations: Fireflies (meeting transcripts), Image generation, Presentations (create_presentation builds a real .pptx deck and returns a download link you must put in your reply; nextcloud_create_presentation saves it into Nextcloud so it opens in Nextcloud Office), Word documents (create_word_document builds a real, editable .docx in the organisation's Word house style and returns a download link you must put in your reply; with nextcloudPath it is saved into Nextcloud instead), Nextcloud Files (list/search/read/upload/delete files, create folders, share with public links / users / groups / email, manage shares, file comments, system tags, trash bin recovery, file version history via WebDAV — destructive ops require user approval, permanent deletes always require confirmation)."
+    "hint": " You have access to tools — use them when they would help answer the user's question. You can call multiple tools in parallel when appropriate. Your available integrations: Fireflies (meeting transcripts), Image generation, Presentations (create_presentation builds a real .pptx deck and returns a download link you must put in your reply; nextcloud_create_presentation saves it into Nextcloud so it opens in Nextcloud Office; with oneDrivePath it is also saved into OneDrive), Word documents (create_word_document builds a real, editable .docx in the organisation's Word house style and returns a download link you must put in your reply; with oneDrivePath or nextcloudPath it is saved there instead), Spreadsheets (create_spreadsheet builds a real .xlsx workbook with one or more sheets and returns a download link you must put in your reply; also use it to hand back an uploaded spreadsheet with the requested changes; with oneDrivePath or nextcloudPath it is saved there instead), Nextcloud Files (list/search/read/upload/delete files, create folders, share with public links / users / groups / email, manage shares, file comments, system tags, trash bin recovery, file version history via WebDAV — destructive ops require user approval, permanent deletes always require confirmation)."
   },
   "designTimeGate": {
     "permitted": [

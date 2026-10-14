@@ -264,23 +264,12 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         });
     }
 
-    // ─── Word documents (.docx) ─────────────────────────────────
-    if (toolName === 'create_word_document') {
-        const { executeWordDocumentTool, nextcloudDocxPath } = require('../../integrations/wordDocumentTools');
-        const wordCtx = { userId, session, orgId: orgId || session?.connectorOrgId || session?.user?.organizationId || null };
-        // "Save it in Nextcloud": the destination passes the same scope guard
-        // a direct nextcloud_create_document call would. Denied or not
-        // connected, the document is still built and kept in Bee Flow storage
-        // with the reason alongside (as create_presentation does) — never lost,
-        // and nothing reaches Nextcloud.
-        const ncPath = nextcloudDocxPath(toolArgs?.nextcloudPath, toolArgs || {});
-        if (ncPath) {
-            const ncScopeGuard = require('../integrations/ncScopeGuard');
-            const denied = await ncScopeGuard.checkToolCall({ toolName: 'nextcloud_create_document', toolArgs: { path: ncPath }, userId, orgId });
-            if (denied) wordCtx.nextcloudError = denied.error || 'Nextcloud access was denied';
-            else wordCtx.nextcloudPath = ncPath;
-        }
-        return await executeWordDocumentTool(toolArgs, wordCtx);
+    // ─── Word (.docx) and Excel (.xlsx) files ───────────────────
+    // Built in-process, then a download link, OneDrive or Nextcloud (after
+    // its scope guard): integrations/officeFileDelivery.js.
+    if (toolName === 'create_word_document' || toolName === 'create_spreadsheet') {
+        const { executeOfficeFileTool } = require('../../integrations/officeFileDelivery');
+        return await executeOfficeFileTool(toolName, toolArgs, { userId, session, orgId: orgId || session?.connectorOrgId || session?.user?.organizationId || null });
     }
 
     // ─── Video Generation ───────────────────────────────────────

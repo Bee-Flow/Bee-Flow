@@ -48,6 +48,8 @@ check('kb_search → internal (isLocal)', classifyToolClass('kb_search') === 'in
 check('unknown_tool → internal', classifyToolClass('some_unknown_tool') === 'internal');
 check('create_word_document → internal (kept in Bee Flow storage)', classifyToolClass('create_word_document', { title: 'x' }) === 'internal');
 check('create_word_document + nextcloudPath → external (writes into Nextcloud)', classifyToolClass('create_word_document', { nextcloudPath: '/Documents' }) === 'external');
+check('create_spreadsheet + nextcloudPath → external, kept locally → internal', classifyToolClass('create_spreadsheet', { nextcloudPath: '/Documents' }) === 'external' && classifyToolClass('create_spreadsheet', { title: 'x' }) === 'internal');
+check('create_spreadsheet + oneDrivePath → external (sent to Microsoft Graph)', classifyToolClass('create_spreadsheet', { oneDrivePath: '/Documents' }) === 'external');
 check('create_presentation + nextcloudPath → external', classifyToolClass('create_presentation', { nextcloudPath: '/Decks' }) === 'external');
 check('empty name → internal', classifyToolClass('') === 'internal');
 
