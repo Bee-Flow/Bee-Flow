@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { readSseFrames } from '../api/readEventStream';
 import { API_BASE, authFetch } from '../utils/helpers';
 
 /**
@@ -118,25 +119,16 @@ function polledEvents(items: ActivityItem[], seen: Set<string>): Array<[string, 
 
 /**
  * Read SSE frames off a response body until it ends or `onFrame` returns
- * false. Frames are separated by a blank line; a chunk can split one, so the
- * tail is held until the next read completes it. Resolves true when the body
- * ended, false when the reader asked to stop.
+ * false (see `readSseFrames` for the framing). Resolves true when the body
+ * ended or `stopped()` turned true, false when `onFrame` asked to stop; an
+ * early exit cancels the body.
  */
 export async function readFrames(body: ReadableStream<Uint8Array>, onFrame: (frame: string) => boolean, stopped: () => boolean): Promise<boolean> {
-    const reader = body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    for (;;) {
-        const { done, value } = await reader.read();
-        if (done || stopped()) return true;
-        buffer += decoder.decode(value, { stream: true });
-        let sep;
-        while ((sep = buffer.indexOf('\n\n')) !== -1) {
-            const frame = buffer.slice(0, sep);
-            buffer = buffer.slice(sep + 2);
-            if (!onFrame(frame)) return false;
-        }
+    for await (const frame of readSseFrames(body)) {
+        if (stopped()) return true;
+        if (!onFrame(frame)) return false;
     }
+    return true;
 }
 
 export default function useProjectStream({

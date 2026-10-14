@@ -10,6 +10,7 @@ import type {
 import { errorTextOf as safeText, finalizeStreaming, openTurn, rateOf, useAbortOnUnmount, usePatchAssistant } from './builderStream';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { studioAppsApi } from '../components/admin/Studio/AppStudio/studioAppsApi';
+import { readEventStream } from '../api/readEventStream';
 import { API_BASE, authFetch } from '../utils/helpers';
 
 // Shown when the build stream drops mid-flight (gateway timeout / network
@@ -575,25 +576,8 @@ export default function useAppBuilderStream({
                 if (resp.status === 413) fail(OVERSIZE_MESSAGE);
                 else fail(isGateway ? STREAM_DROP_MESSAGE : (await safeText(resp)) || `HTTP ${resp.status}`);
             } else {
-                const reader = resp.body.getReader();
-                const decoder = new TextDecoder();
-                let buf = '';
-                let currentEvent = 'message';
-                for (;;) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buf += decoder.decode(value, { stream: true });
-                    const lines = buf.split('\n');
-                    buf = lines.pop() ?? '';
-                    for (const line of lines) {
-                        if (line.startsWith('event: ')) {
-                            currentEvent = line.slice(7).trim();
-                        } else if (line.startsWith('data: ')) {
-                            let data;
-                            try { data = JSON.parse(line.slice(6)); } catch { continue; }
-                            handle(currentEvent, data);
-                        }
-                    }
+                for await (const { event, data } of readEventStream<BuilderStreamData>(resp, { signal: ac.signal })) {
+                    handle(event, data);
                 }
                 // The stream closed without a terminal event — a proxy cut the
                 // connection mid-build. Fail the turn so the editor unlocks.
