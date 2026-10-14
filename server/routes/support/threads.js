@@ -450,304 +450,284 @@ function registerThreadRoutes(router) {
     // GET /threads/:id — view a thread (requester, staff, or anon w/ token)
     // ──────────────────────────────────────────────────────────────────────────
     router.get('/threads/:id', threadReadLimiter, validate({ query: TokenQuery }), async (req, res) => {
-        try {
-            const thread = await supportStore.getThread(req.params.id);
+        const thread = await supportStore.getThread(req.params.id);
 
-            // Mix "not found" and "no access" into a single 404 so an attacker
-            // can't distinguish "thread exists but I can't read it" from "thread
-            // doesn't exist at all" — that distinction would enable UUID
-            // enumeration.
-            const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
-            if (!thread) return NOT_FOUND();
+        // Mix "not found" and "no access" into a single 404 so an attacker
+        // can't distinguish "thread exists but I can't read it" from "thread
+        // doesn't exist at all" — that distinction would enable UUID
+        // enumeration.
+        const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
+        if (!thread) return NOT_FOUND();
 
-            const userId = getUserId(req);
-            const staff = await _hasAdminSupport(req);
-            const isOwner = userId && thread.requester_user_id === userId;
-            // Anonymous-token access stays valid even after a thread is later
-            // linked to a user (via email match). Marketing-form requesters need
-            // to come back via the email link without ever logging in.
-            const tokenOK = req.query.token
-                && supportStore.verifyAccessToken(thread.id, thread.requester_email, req.query.token);
+        const userId = getUserId(req);
+        const staff = await _hasAdminSupport(req);
+        const isOwner = userId && thread.requester_user_id === userId;
+        // Anonymous-token access stays valid even after a thread is later
+        // linked to a user (via email match). Marketing-form requesters need
+        // to come back via the email link without ever logging in.
+        const tokenOK = req.query.token
+            && supportStore.verifyAccessToken(thread.id, thread.requester_email, req.query.token);
 
-            if (!staff && !isOwner && !tokenOK) return NOT_FOUND();
+        if (!staff && !isOwner && !tokenOK) return NOT_FOUND();
 
-            const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: staff });
-            res.json({ thread, messages, viewerIsStaff: !!staff });
-        } catch (err) {
-            log.error(`[Support] GET /threads/:id error (id=${_shortId(req.params.id)}):`, err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: staff });
+        res.json({ thread, messages, viewerIsStaff: !!staff });
     });
 
     // ──────────────────────────────────────────────────────────────────────────
     // POST /threads/:id/messages — append a reply
     // ──────────────────────────────────────────────────────────────────────────
     router.post('/threads/:id/messages', validate({ query: TokenQuery, body: ReplyBody }), async (req, res) => {
-        try {
-            const thread = await supportStore.getThread(req.params.id);
-            const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
-            if (!thread) return NOT_FOUND();
+        const thread = await supportStore.getThread(req.params.id);
+        const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
+        if (!thread) return NOT_FOUND();
 
-            const userId = getUserId(req);
-            const staff = await _hasAdminSupport(req);
-            const isOwner = userId && thread.requester_user_id === userId;
-            const tokenOK = req.query.token
-                && supportStore.verifyAccessToken(thread.id, thread.requester_email, req.query.token);
+        const userId = getUserId(req);
+        const staff = await _hasAdminSupport(req);
+        const isOwner = userId && thread.requester_user_id === userId;
+        const tokenOK = req.query.token
+            && supportStore.verifyAccessToken(thread.id, thread.requester_email, req.query.token);
 
-            if (!staff && !isOwner && !tokenOK) return NOT_FOUND();
+        if (!staff && !isOwner && !tokenOK) return NOT_FOUND();
 
-            const body = req.body.body;
-            // Only a real boolean makes a reply internal, and only for staff.
-            const internalNote = req.body.internalNote === true && staff;
+        const body = req.body.body;
+        // Only a real boolean makes a reply internal, and only for staff.
+        const internalNote = req.body.internalNote === true && staff;
 
-            const authorKind = staff ? 'staff' : 'requester';
-            const authorDisplay = staff
-                ? (getUserDisplay(req) || 'Bee Flow Support')
-                : (thread.requester_name || thread.requester_email);
+        const authorKind = staff ? 'staff' : 'requester';
+        const authorDisplay = staff
+            ? (getUserDisplay(req) || 'Bee Flow Support')
+            : (thread.requester_name || thread.requester_email);
 
-            const msg = await supportStore.appendMessage({
-                threadId: thread.id,
-                authorKind,
-                authorUserId: userId,
-                authorDisplay,
-                body,
-                internalNote,
-            });
+        const msg = await supportStore.appendMessage({
+            threadId: thread.id,
+            authorKind,
+            authorUserId: userId,
+            authorDisplay,
+            body,
+            internalNote,
+        });
 
-            supportStore.recordThreadEvent({
-                threadId: thread.id,
-                actorUserId: userId,
-                actorKind: authorKind === 'staff' ? 'staff' : 'requester',
-                action: internalNote ? 'internal_note' : 'reply',
-                payload: { messageId: msg?.id, length: body.length },
-            }).catch(() => {});
+        supportStore.recordThreadEvent({
+            threadId: thread.id,
+            actorUserId: userId,
+            actorKind: authorKind === 'staff' ? 'staff' : 'requester',
+            action: internalNote ? 'internal_note' : 'reply',
+            payload: { messageId: msg?.id, length: body.length },
+        }).catch(() => {});
 
-            // Side-effects ─────────────────────────────────────────────────────
-            if (staff && !internalNote) {
-                // Atomic transition wins concurrent first-replies: COALESCE leaves
-                // any already-set first_response_at / assignee_user_id intact.
-                await supportStore.firstStaffReplyTransition(thread.id, userId);
+        // Side-effects ─────────────────────────────────────────────────────
+        if (staff && !internalNote) {
+            // Atomic transition wins concurrent first-replies: COALESCE leaves
+            // any already-set first_response_at / assignee_user_id intact.
+            await supportStore.firstStaffReplyTransition(thread.id, userId);
 
-                sendOrNotifyStaff(
-                    sendStaffReplyEmail,
-                    {
-                        to: thread.requester_email,
-                        requesterName: thread.requester_name,
-                        subject: thread.subject,
-                        staffName: authorDisplay,
-                        replyBody: body,
-                        threadUrl: _buildThreadUrl(thread),
-                    },
-                    { kind: 'staff_reply', threadId: thread.id, messageId: msg?.id },
-                );
+            sendOrNotifyStaff(
+                sendStaffReplyEmail,
+                {
+                    to: thread.requester_email,
+                    requesterName: thread.requester_name,
+                    subject: thread.subject,
+                    staffName: authorDisplay,
+                    replyBody: body,
+                    threadUrl: _buildThreadUrl(thread),
+                },
+                { kind: 'staff_reply', threadId: thread.id, messageId: msg?.id },
+            );
 
-                if (thread.requester_user_id) {
-                    notificationStore.createNotification({
-                        userId: thread.requester_user_id,
-                        taskId: thread.id,
-                        category: 'info',
-                        title: 'Bee Flow Support replied',
-                        // Preview the staff reply itself, not the thread subject.
-                        message: _notifExcerpt(body) || thread.subject,
-                        link: supportThreadPath(thread.id),
-                    }).catch(() => {});
-                }
-            } else if (!staff) {
-                // Requester reply → flip to awaiting_agent; if AI hasn't escalated
-                // yet, give the AI one more shot.
-                await supportStore.updateThread(thread.id, { status: 'awaiting_agent' });
+            if (thread.requester_user_id) {
+                notificationStore.createNotification({
+                    userId: thread.requester_user_id,
+                    taskId: thread.id,
+                    category: 'info',
+                    title: 'Bee Flow Support replied',
+                    // Preview the staff reply itself, not the thread subject.
+                    message: _notifExcerpt(body) || thread.subject,
+                    link: supportThreadPath(thread.id),
+                }).catch(() => {});
+            }
+        } else if (!staff) {
+            // Requester reply → flip to awaiting_agent; if AI hasn't escalated
+            // yet, give the AI one more shot.
+            await supportStore.updateThread(thread.id, { status: 'awaiting_agent' });
 
-                if (thread.assignee_user_id) {
-                    notificationStore.createNotification({
-                        userId: thread.assignee_user_id,
-                        taskId: thread.id,
-                        category: 'heads_up',
-                        title: 'Customer replied',
-                        message: _notifExcerpt(body) || thread.subject,
-                    }).catch(() => {});
-                } else {
-                    notifyStaff({
-                        title: `Customer replied: ${thread.subject}`,
-                        message: _redactEmail(thread.requester_email),
-                        threadId: thread.id,
-                    }).catch(() => {});
-                }
-
-                require('../../services/outboundChatNotifier')
-                    .notify({ thread, event: 'customer_message' })
-                    .catch(() => {});
-
-                // Re-run AI on requester follow-up, but only if the thread is
-                // still AI-handled (no staff has weighed in). Failure goes via
-                // the responder's internal escalate-on-error path.
-                if (!thread.first_response_at && thread.ai_handled) {
-                    Promise.resolve().then(() => runAiAutoResponder(thread.id))
-                        .then(result => {
-                            if (result && result.message) {
-                                sendOrNotifyStaff(
-                                    sendAiReplyEmail,
-                                    {
-                                        to: thread.requester_email,
-                                        requesterName: thread.requester_name,
-                                        subject: thread.subject,
-                                        replyBody: result.message.body,
-                                        threadUrl: _buildThreadUrl(thread),
-                                        escalated: result.escalated,
-                                    },
-                                    { kind: 'ai_reply', threadId: thread.id, messageId: result.message.id },
-                                );
-                                // Notify the requester of the follow-up reply too — previously
-                                // only the very first AI reply created a bell notification, so
-                                // later replies landed silently.
-                                if (thread.requester_user_id) {
-                                    notificationStore.createNotification({
-                                        userId: thread.requester_user_id,
-                                        taskId: thread.id,
-                                        category: 'info',
-                                        title: result.escalated ? 'Bee Flow Support — a human will reply' : 'Bee Flow Support — AI replied',
-                                        message: _notifExcerpt(result.message.body),
-                                        link: supportThreadPath(thread.id),
-                                    }).catch(() => {});
-                                }
-                                _emit('thread_updated', { threadId: thread.id });
-                            }
-                        })
-                        .catch(e => log.warn(`[Support] follow-up AI failed (thread=${_shortId(thread.id)}):`, e.message));
-                }
+            if (thread.assignee_user_id) {
+                notificationStore.createNotification({
+                    userId: thread.assignee_user_id,
+                    taskId: thread.id,
+                    category: 'heads_up',
+                    title: 'Customer replied',
+                    message: _notifExcerpt(body) || thread.subject,
+                }).catch(() => {});
+            } else {
+                notifyStaff({
+                    title: `Customer replied: ${thread.subject}`,
+                    message: _redactEmail(thread.requester_email),
+                    threadId: thread.id,
+                }).catch(() => {});
             }
 
-            _emit('thread_updated', { threadId: thread.id });
-            res.status(201).json({ ok: true, message: msg });
-        } catch (err) {
-            log.error(`[Support] POST /threads/:id/messages error (id=${_shortId(req.params.id)}):`, err.message);
-            res.status(500).json({ error: 'Internal error' });
+            require('../../services/outboundChatNotifier')
+                .notify({ thread, event: 'customer_message' })
+                .catch(() => {});
+
+            // Re-run AI on requester follow-up, but only if the thread is
+            // still AI-handled (no staff has weighed in). Failure goes via
+            // the responder's internal escalate-on-error path.
+            if (!thread.first_response_at && thread.ai_handled) {
+                Promise.resolve().then(() => runAiAutoResponder(thread.id))
+                    .then(result => {
+                        if (result && result.message) {
+                            sendOrNotifyStaff(
+                                sendAiReplyEmail,
+                                {
+                                    to: thread.requester_email,
+                                    requesterName: thread.requester_name,
+                                    subject: thread.subject,
+                                    replyBody: result.message.body,
+                                    threadUrl: _buildThreadUrl(thread),
+                                    escalated: result.escalated,
+                                },
+                                { kind: 'ai_reply', threadId: thread.id, messageId: result.message.id },
+                            );
+                            // Notify the requester of the follow-up reply too — previously
+                            // only the very first AI reply created a bell notification, so
+                            // later replies landed silently.
+                            if (thread.requester_user_id) {
+                                notificationStore.createNotification({
+                                    userId: thread.requester_user_id,
+                                    taskId: thread.id,
+                                    category: 'info',
+                                    title: result.escalated ? 'Bee Flow Support — a human will reply' : 'Bee Flow Support — AI replied',
+                                    message: _notifExcerpt(result.message.body),
+                                    link: supportThreadPath(thread.id),
+                                }).catch(() => {});
+                            }
+                            _emit('thread_updated', { threadId: thread.id });
+                        }
+                    })
+                    .catch(e => log.warn(`[Support] follow-up AI failed (thread=${_shortId(thread.id)}):`, e.message));
+            }
         }
+
+        _emit('thread_updated', { threadId: thread.id });
+        res.status(201).json({ ok: true, message: msg });
     });
 
     // ──────────────────────────────────────────────────────────────────────────
     // PATCH /threads/:id — staff status/priority/assignee + resolve
     // ──────────────────────────────────────────────────────────────────────────
     router.patch('/threads/:id', requireStaffSupport, validate({ body: PatchThread }), async (req, res) => {
-        try {
-            const thread = await supportStore.getThread(req.params.id);
-            if (!thread) return res.status(404).json({ error: 'thread not found' });
+        const thread = await supportStore.getThread(req.params.id);
+        if (!thread) return res.status(404).json({ error: 'thread not found' });
 
-            const patch = {};
-            const { status, priority, assignee_user_id, category, tags } = req.body;
+        const patch = {};
+        const { status, priority, assignee_user_id, category, tags } = req.body;
 
-            if (status) {
-                patch.status = status;
-                if (status === 'resolved') patch.resolved_at = new Date().toISOString();
-            }
-            if (priority) patch.priority = priority;
-            if (assignee_user_id !== undefined) {
-                patch.assignee_user_id = assignee_user_id || null;
-                // A manual assignee change always clears the auto-assigned flag.
-                patch.auto_assigned = false;
-            }
-            if (category !== undefined) patch.category = category || null;
-            // Priority drives the SLA clock — recompute due dates when it changes.
-            if (patch.priority && patch.priority !== thread.priority) {
-                try {
-                    const { computeSlaDueAt } = require('../../services/supportSlaEnforcer');
-                    const due = await computeSlaDueAt({ ...thread, priority: patch.priority });
-                    patch.sla_first_response_due_at = due.first;
-                    patch.sla_resolution_due_at = due.resolution;
-                } catch (e) {
-                    log.warn('[Support] SLA recompute on priority change failed:', e.message);
-                }
-            }
-
-            const updated = await supportStore.updateThread(thread.id, patch);
-
-            // Tags are JSONB — handled by a dedicated helper, not the generic patch.
-            if (tags !== undefined) {
-                const tagged = await supportStore.setThreadTags(thread.id, tags);
-                if (tagged) Object.assign(updated, tagged);
-                supportStore.recordThreadEvent({
-                    threadId: thread.id,
-                    actorUserId: getUserId(req),
-                    actorKind: 'staff',
-                    action: 'tags_change',
-                    payload: { tags: tagged?.tags || [] },
-                }).catch(() => {});
-            }
-
-            const userId = getUserId(req);
-            // Audit each field that actually changed.
-            if (patch.status && patch.status !== thread.status) {
-                supportStore.recordThreadEvent({
-                    threadId: thread.id,
-                    actorUserId: userId,
-                    actorKind: 'staff',
-                    action: patch.status === 'resolved' ? 'resolved' : 'status_change',
-                    payload: { from: thread.status, to: patch.status },
-                }).catch(() => {});
-            }
-            if (patch.priority && patch.priority !== thread.priority) {
-                supportStore.recordThreadEvent({
-                    threadId: thread.id,
-                    actorUserId: userId,
-                    actorKind: 'staff',
-                    action: 'priority_change',
-                    payload: { from: thread.priority, to: patch.priority },
-                }).catch(() => {});
-            }
-            if (patch.assignee_user_id !== undefined && patch.assignee_user_id !== thread.assignee_user_id) {
-                supportStore.recordThreadEvent({
-                    threadId: thread.id,
-                    actorUserId: userId,
-                    actorKind: 'staff',
-                    action: 'assignee_change',
-                    payload: { from: thread.assignee_user_id || null, to: patch.assignee_user_id || null },
-                }).catch(() => {});
-            }
-
-            // Resolution email
-            if (patch.status === 'resolved' && thread.status !== 'resolved') {
-                sendOrNotifyStaff(
-                    sendThreadResolvedEmail,
-                    {
-                        to: thread.requester_email,
-                        requesterName: thread.requester_name,
-                        subject: thread.subject,
-                        threadUrl: _buildThreadUrl(thread),
-                        csatLinks: _buildCsatLinks(thread),
-                    },
-                    { kind: 'resolved', threadId: thread.id },
-                );
-                if (thread.requester_user_id) {
-                    notificationStore.createNotification({
-                        userId: thread.requester_user_id,
-                        taskId: thread.id,
-                        category: 'info',
-                        title: 'Your support request was resolved',
-                        message: thread.subject,
-                        // Make the "resolved" bell clickable like the reply notifs (BFSF-191).
-                        link: supportThreadPath(thread.id),
-                    }).catch(() => {});
-                }
-            }
-
-            _emit('thread_updated', { threadId: thread.id });
-            res.json({ ok: true, thread: updated });
-        } catch (err) {
-            log.error(`[Support] PATCH /threads/:id error (id=${_shortId(req.params.id)}):`, err.message);
-            res.status(500).json({ error: 'Internal error' });
+        if (status) {
+            patch.status = status;
+            if (status === 'resolved') patch.resolved_at = new Date().toISOString();
         }
+        if (priority) patch.priority = priority;
+        if (assignee_user_id !== undefined) {
+            patch.assignee_user_id = assignee_user_id || null;
+            // A manual assignee change always clears the auto-assigned flag.
+            patch.auto_assigned = false;
+        }
+        if (category !== undefined) patch.category = category || null;
+        // Priority drives the SLA clock — recompute due dates when it changes.
+        if (patch.priority && patch.priority !== thread.priority) {
+            try {
+                const { computeSlaDueAt } = require('../../services/supportSlaEnforcer');
+                const due = await computeSlaDueAt({ ...thread, priority: patch.priority });
+                patch.sla_first_response_due_at = due.first;
+                patch.sla_resolution_due_at = due.resolution;
+            } catch (e) {
+                log.warn('[Support] SLA recompute on priority change failed:', e.message);
+            }
+        }
+
+        const updated = await supportStore.updateThread(thread.id, patch);
+
+        // Tags are JSONB — handled by a dedicated helper, not the generic patch.
+        if (tags !== undefined) {
+            const tagged = await supportStore.setThreadTags(thread.id, tags);
+            if (tagged) Object.assign(updated, tagged);
+            supportStore.recordThreadEvent({
+                threadId: thread.id,
+                actorUserId: getUserId(req),
+                actorKind: 'staff',
+                action: 'tags_change',
+                payload: { tags: tagged?.tags || [] },
+            }).catch(() => {});
+        }
+
+        const userId = getUserId(req);
+        // Audit each field that actually changed.
+        if (patch.status && patch.status !== thread.status) {
+            supportStore.recordThreadEvent({
+                threadId: thread.id,
+                actorUserId: userId,
+                actorKind: 'staff',
+                action: patch.status === 'resolved' ? 'resolved' : 'status_change',
+                payload: { from: thread.status, to: patch.status },
+            }).catch(() => {});
+        }
+        if (patch.priority && patch.priority !== thread.priority) {
+            supportStore.recordThreadEvent({
+                threadId: thread.id,
+                actorUserId: userId,
+                actorKind: 'staff',
+                action: 'priority_change',
+                payload: { from: thread.priority, to: patch.priority },
+            }).catch(() => {});
+        }
+        if (patch.assignee_user_id !== undefined && patch.assignee_user_id !== thread.assignee_user_id) {
+            supportStore.recordThreadEvent({
+                threadId: thread.id,
+                actorUserId: userId,
+                actorKind: 'staff',
+                action: 'assignee_change',
+                payload: { from: thread.assignee_user_id || null, to: patch.assignee_user_id || null },
+            }).catch(() => {});
+        }
+
+        // Resolution email
+        if (patch.status === 'resolved' && thread.status !== 'resolved') {
+            sendOrNotifyStaff(
+                sendThreadResolvedEmail,
+                {
+                    to: thread.requester_email,
+                    requesterName: thread.requester_name,
+                    subject: thread.subject,
+                    threadUrl: _buildThreadUrl(thread),
+                    csatLinks: _buildCsatLinks(thread),
+                },
+                { kind: 'resolved', threadId: thread.id },
+            );
+            if (thread.requester_user_id) {
+                notificationStore.createNotification({
+                    userId: thread.requester_user_id,
+                    taskId: thread.id,
+                    category: 'info',
+                    title: 'Your support request was resolved',
+                    message: thread.subject,
+                    // Make the "resolved" bell clickable like the reply notifs (BFSF-191).
+                    link: supportThreadPath(thread.id),
+                }).catch(() => {});
+            }
+        }
+
+        _emit('thread_updated', { threadId: thread.id });
+        res.json({ ok: true, thread: updated });
     });
 
     // ──────────────────────────────────────────────────────────────────────────
     // GET /threads/:id/events — staff-only audit log for a thread
     // ──────────────────────────────────────────────────────────────────────────
     router.get('/threads/:id/events', requireStaffSupport, async (req, res) => {
-        try {
-            const events = await supportStore.listThreadEvents(req.params.id, { limit: 200 });
-            res.json({ events });
-        } catch (err) {
-            log.error(`[Support] GET /threads/:id/events error (id=${_shortId(req.params.id)}):`, err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const events = await supportStore.listThreadEvents(req.params.id, { limit: 200 });
+        res.json({ events });
     });
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -808,48 +788,43 @@ function registerBulkRoute(router) {
     // Per-thread partial success; never an all-or-nothing transaction.
     // ──────────────────────────────────────────────────────────────────────────
     router.post('/threads/bulk', requireStaffSupport, validate({ body: BulkBody }), async (req, res) => {
-        try {
-            const { ids, action } = req.body;
-            const params = req.body.params || {};
+        const { ids, action } = req.body;
+        const params = req.body.params || {};
 
-            const userId = getUserId(req);
-            const results = [];
-            for (const id of ids) {
-                try {
-                    const thread = await supportStore.getThread(id);
-                    if (!thread) { results.push({ id, ok: false, error: 'not found' }); continue; }
+        const userId = getUserId(req);
+        const results = [];
+        for (const id of ids) {
+            try {
+                const thread = await supportStore.getThread(id);
+                if (!thread) { results.push({ id, ok: false, error: 'not found' }); continue; }
 
-                    if (action === 'tag') {
-                        const tag = params.tag || '';
-                        if (!tag) { results.push({ id, ok: false, error: 'tag required' }); continue; }
-                        await supportStore.addThreadTag(id, tag);
-                        supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'tags_change', payload: { added: tag } }).catch(() => {});
-                    } else if (action === 'assign') {
-                        await supportStore.updateThread(id, { assignee_user_id: params.assignee_user_id || null, auto_assigned: false });
-                        supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'assignee_change', payload: { to: params.assignee_user_id || null } }).catch(() => {});
-                    } else if (action === 'priority') {
-                        if (!params.priority) { results.push({ id, ok: false, error: 'priority required' }); continue; }
-                        await supportStore.updateThread(id, { priority: params.priority });
-                        supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'priority_change', payload: { from: thread.priority, to: params.priority } }).catch(() => {});
-                    } else if (action === 'status' || action === 'resolve') {
-                        const status = action === 'resolve' ? 'resolved' : params.status;
-                        if (!status) { results.push({ id, ok: false, error: 'status required' }); continue; }
-                        const patch = { status };
-                        if (status === 'resolved') patch.resolved_at = new Date().toISOString();
-                        await supportStore.updateThread(id, patch);
-                        supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: status === 'resolved' ? 'resolved' : 'status_change', payload: { from: thread.status, to: status } }).catch(() => {});
-                    }
-                    _emit('thread_updated', { threadId: id });
-                    results.push({ id, ok: true });
-                } catch (e) {
-                    results.push({ id, ok: false, error: e.message });
+                if (action === 'tag') {
+                    const tag = params.tag || '';
+                    if (!tag) { results.push({ id, ok: false, error: 'tag required' }); continue; }
+                    await supportStore.addThreadTag(id, tag);
+                    supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'tags_change', payload: { added: tag } }).catch(() => {});
+                } else if (action === 'assign') {
+                    await supportStore.updateThread(id, { assignee_user_id: params.assignee_user_id || null, auto_assigned: false });
+                    supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'assignee_change', payload: { to: params.assignee_user_id || null } }).catch(() => {});
+                } else if (action === 'priority') {
+                    if (!params.priority) { results.push({ id, ok: false, error: 'priority required' }); continue; }
+                    await supportStore.updateThread(id, { priority: params.priority });
+                    supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'priority_change', payload: { from: thread.priority, to: params.priority } }).catch(() => {});
+                } else if (action === 'status' || action === 'resolve') {
+                    const status = action === 'resolve' ? 'resolved' : params.status;
+                    if (!status) { results.push({ id, ok: false, error: 'status required' }); continue; }
+                    const patch = { status };
+                    if (status === 'resolved') patch.resolved_at = new Date().toISOString();
+                    await supportStore.updateThread(id, patch);
+                    supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: status === 'resolved' ? 'resolved' : 'status_change', payload: { from: thread.status, to: status } }).catch(() => {});
                 }
+                _emit('thread_updated', { threadId: id });
+                results.push({ id, ok: true });
+            } catch (e) {
+                results.push({ id, ok: false, error: e.message });
             }
-            res.json({ ok: true, results });
-        } catch (err) {
-            log.error('[Support] POST /threads/bulk error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
         }
+        res.json({ ok: true, results });
     });
 }
 

@@ -25,13 +25,8 @@ function register(router) {
     // GET /insights — CSAT + SLA dashboard aggregates (staff)
     // ──────────────────────────────────────────────────────────────────────────
     router.get('/insights', requireStaffSupport, async (req, res) => {
-        try {
-            const insights = await supportStore.getInsights({ inboxIsNull: true });
-            res.json(insights);
-        } catch (err) {
-            log.error('[Support] GET /insights error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const insights = await supportStore.getInsights({ inboxIsNull: true });
+        res.json(insights);
     });
 
     // ──────────────────────────────────────────────────────────────────────────

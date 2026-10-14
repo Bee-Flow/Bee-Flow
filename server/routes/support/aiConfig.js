@@ -174,7 +174,7 @@ function register(router) {
             null                     // categoryId
         );
         if (!ok) {
-            return res.status(500).json({ error: 'Update failed (agent not owned by system?)' });
+            throw new Error('Update failed (agent not owned by system?)');
         }
         // Mirror knowledge_base_ids into the legacy configStore key so the
         // existing supportAiResponder fallback path keeps working without a

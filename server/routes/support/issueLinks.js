@@ -49,6 +49,7 @@ const egress = require('../../support/issueEgress');
 
 const { requireStaffSupport, getUserId, _emit } = require('./shared');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
@@ -146,50 +147,40 @@ function register(router) {
     // ── Connection ────────────────────────────────────────────────────────
 
     router.get('/youtrack/status', requireStaffSupport, async (req, res) => {
-        try {
-            const status = await ytc.ping({ userId: getUserId(req) });
-            res.json({ ...status, includeSubject: await includeSubjectEnabled() });
-        } catch (err) {
-            log.error('[Support] GET /youtrack/status error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const status = await ytc.ping({ userId: getUserId(req) });
+        res.json({ ...status, includeSubject: await includeSubjectEnabled() });
     });
 
     router.put('/youtrack/connection', requireStaffSupport, validate({ body: ConnectionBody }), async (req, res) => {
-        try {
-            const { url, token, project, includeSubject } = req.body;
+        const { url, token, project, includeSubject } = req.body;
 
-            if (url !== undefined) {
-                const trimmed = String(url || '').trim().replace(/\/+$/, '');
-                if (trimmed && !/^https:\/\//i.test(trimmed)) {
-                    return res.status(400).json({ error: 'URL must start with https://' });
-                }
-                await configStore.setSecret(ytc.SERVICE_URL_KEY, trimmed);
+        if (url !== undefined) {
+            const trimmed = String(url || '').trim().replace(/\/+$/, '');
+            if (trimmed && !/^https:\/\//i.test(trimmed)) {
+                return res.status(400).json({ error: 'URL must start with https://' });
             }
-            // An empty token means "leave the stored one alone" — the client
-            // never receives it, so it cannot send it back on an unrelated save.
-            if (token) await configStore.setSecret(ytc.SERVICE_TOKEN_KEY, String(token).trim());
-            if (project !== undefined) {
-                await configStore.setSecret(ytc.SERVICE_PROJECT_KEY, String(project || '').trim());
-            }
-            if (includeSubject !== undefined) {
-                // BFSF-441: the subject is the one customer string that may go
-                // out, and only when the org said so. Now a real boolean.
-                await configStore.setConfig(SUBJECT_KEY, includeSubject ? 'true' : 'false');
-            }
-
-            supportStore.recordAuditEvent({
-                actorKind: 'staff', actorUserId: getUserId(req),
-                action: 'youtrack_connection_change',
-                payload: { fields: Object.keys(req.body) },
-            }).catch(() => {});
-
-            const status = await ytc.ping({ userId: getUserId(req) });
-            ok(res, { status, includeSubject: await includeSubjectEnabled() });
-        } catch (err) {
-            log.error('[Support] PUT /youtrack/connection error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
+            await configStore.setSecret(ytc.SERVICE_URL_KEY, trimmed);
         }
+        // An empty token means "leave the stored one alone" — the client
+        // never receives it, so it cannot send it back on an unrelated save.
+        if (token) await configStore.setSecret(ytc.SERVICE_TOKEN_KEY, String(token).trim());
+        if (project !== undefined) {
+            await configStore.setSecret(ytc.SERVICE_PROJECT_KEY, String(project || '').trim());
+        }
+        if (includeSubject !== undefined) {
+            // BFSF-441: the subject is the one customer string that may go
+            // out, and only when the org said so. Now a real boolean.
+            await configStore.setConfig(SUBJECT_KEY, includeSubject ? 'true' : 'false');
+        }
+
+        supportStore.recordAuditEvent({
+            actorKind: 'staff', actorUserId: getUserId(req),
+            action: 'youtrack_connection_change',
+            payload: { fields: Object.keys(req.body) },
+        }).catch(() => {});
+
+        const status = await ytc.ping({ userId: getUserId(req) });
+        ok(res, { status, includeSubject: await includeSubjectEnabled() });
     });
 
     // ── Search ────────────────────────────────────────────────────────────
@@ -232,52 +223,42 @@ function register(router) {
             });
         } catch (err) {
             log.error('[Support] GET /youtrack/search error:', err.message);
-            res.status(502).json({ error: 'YouTrack search failed' });
+            throw new HttpError(502, 'youtrack_search_failed', 'YouTrack search failed');
         }
     });
 
     router.get('/youtrack/issues/:issueId/threads', requireStaffSupport, async (req, res) => {
-        try {
-            const { issueId } = req.params;
-            if (!ytc.ISSUE_ID_RE.test(issueId)) return res.status(400).json({ error: 'invalid issue id' });
-            const threads = await supportStore.listThreadsForIssue(issueId);
-            res.json({
-                issueId,
-                threads: threads.map(t => ({
-                    id: t.id,
-                    ref: t.ticket_ref,
-                    subject: t.subject,
-                    status: t.status,
-                    priority: t.priority,
-                    linkedAt: t.linked_at,
-                    linkKind: t.link_kind,
-                    followupNeededAt: t.followup_needed_at,
-                    lastMessageAt: t.last_message_at,
-                })),
-            });
-        } catch (err) {
-            log.error('[Support] GET /youtrack/issues/:id/threads error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const { issueId } = req.params;
+        if (!ytc.ISSUE_ID_RE.test(issueId)) return res.status(400).json({ error: 'invalid issue id' });
+        const threads = await supportStore.listThreadsForIssue(issueId);
+        res.json({
+            issueId,
+            threads: threads.map(t => ({
+                id: t.id,
+                ref: t.ticket_ref,
+                subject: t.subject,
+                status: t.status,
+                priority: t.priority,
+                linkedAt: t.linked_at,
+                linkKind: t.link_kind,
+                followupNeededAt: t.followup_needed_at,
+                lastMessageAt: t.last_message_at,
+            })),
+        });
     });
 
     // ── Links on a ticket ─────────────────────────────────────────────────
 
     router.get('/threads/:id/issues', requireStaffSupport, async (req, res) => {
-        try {
-            const links = await supportStore.listIssueLinks(req.params.id);
-            const counts = await supportStore.countThreadsPerIssue(links.map(l => l.issue_id));
-            res.json({
-                issues: links.map(l => ({
-                    ...publicLink(l),
-                    // "also on 3 other tickets" — the same bug, several customers.
-                    otherTicketCount: Math.max((counts[l.issue_id] || 1) - 1, 0),
-                })),
-            });
-        } catch (err) {
-            log.error('[Support] GET /threads/:id/issues error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const links = await supportStore.listIssueLinks(req.params.id);
+        const counts = await supportStore.countThreadsPerIssue(links.map(l => l.issue_id));
+        res.json({
+            issues: links.map(l => ({
+                ...publicLink(l),
+                // "also on 3 other tickets" — the same bug, several customers.
+                otherTicketCount: Math.max((counts[l.issue_id] || 1) - 1, 0),
+            })),
+        });
     });
 
     /**
@@ -287,72 +268,62 @@ function register(router) {
      * the reason rather than erroring — re-linking is intent, not a mistake.
      */
     router.post('/threads/:id/issues', requireStaffSupport, validate({ body: AttachBody }), async (req, res) => {
-        try {
-            const thread = await supportStore.getThread(req.params.id);
-            if (!thread) return res.status(404).json({ error: 'thread not found' });
+        const thread = await supportStore.getThread(req.params.id);
+        if (!thread) return res.status(404).json({ error: 'thread not found' });
 
-            const raw = req.body.issueIds || (req.body.issueId ? [req.body.issueId] : []);
-            const issueIds = [...new Set(raw)];
-            if (!issueIds.length) return res.status(400).json({ error: 'issueIds required' });
-            const bad = issueIds.filter(id => !ytc.ISSUE_ID_RE.test(id));
-            if (bad.length) return res.status(400).json({ error: `invalid issue id: ${bad[0]}` });
+        const raw = req.body.issueIds || (req.body.issueId ? [req.body.issueId] : []);
+        const issueIds = [...new Set(raw)];
+        if (!issueIds.length) return res.status(400).json({ error: 'issueIds required' });
+        const bad = issueIds.filter(id => !ytc.ISSUE_ID_RE.test(id));
+        if (bad.length) return res.status(400).json({ error: `invalid issue id: ${bad[0]}` });
 
-            const reason = req.body.reason || null;
-            const creds = await credsFor(req);
-            const userId = getUserId(req);
+        const reason = req.body.reason || null;
+        const creds = await credsFor(req);
+        const userId = getUserId(req);
 
-            // Read each issue first: linking an id that does not exist would
-            // leave a row that can never sync and reads as "no data yet".
-            const { linkBaseline } = require('../../services/supportIssueSync');
-            const linked = [];
-            for (const issueId of issueIds) {
-                let issue = null;
-                if (creds) issue = await ytc.getIssue(creds, issueId).catch(() => null);
-                if (creds && !issue) {
-                    return res.status(404).json({ error: `${issueId} does not exist in YouTrack` });
-                }
-                const row = await supportStore.linkIssue({
-                    threadId: thread.id,
-                    issueId,
-                    issueUrl: creds ? ytc.issueUrl(creds.baseUrl, issueId) : null,
-                    projectShortName: issueId.split('-')[0],
-                    linkKind: 'linked',
-                    linkedByUserId: userId,
-                    linkReason: reason,
-                    // The state and latest comment as they are now, so the
-                    // next sync does not report an old comment as news.
-                    ...(await linkBaseline(creds, issue)),
-                });
-                linked.push(publicLink(row));
-                supportStore.recordThreadEvent({
-                    threadId: thread.id, actorUserId: userId, actorKind: 'staff',
-                    action: 'issue_linked', payload: { issueId, reason },
-                }).catch(() => {});
+        // Read each issue first: linking an id that does not exist would
+        // leave a row that can never sync and reads as "no data yet".
+        const { linkBaseline } = require('../../services/supportIssueSync');
+        const linked = [];
+        for (const issueId of issueIds) {
+            let issue = null;
+            if (creds) issue = await ytc.getIssue(creds, issueId).catch(() => null);
+            if (creds && !issue) {
+                return res.status(404).json({ error: `${issueId} does not exist in YouTrack` });
             }
-
-            _emit('thread_updated', { threadId: thread.id });
-            ok(res, { issues: linked });
-        } catch (err) {
-            log.error('[Support] POST /threads/:id/issues error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
+            const row = await supportStore.linkIssue({
+                threadId: thread.id,
+                issueId,
+                issueUrl: creds ? ytc.issueUrl(creds.baseUrl, issueId) : null,
+                projectShortName: issueId.split('-')[0],
+                linkKind: 'linked',
+                linkedByUserId: userId,
+                linkReason: reason,
+                // The state and latest comment as they are now, so the
+                // next sync does not report an old comment as news.
+                ...(await linkBaseline(creds, issue)),
+            });
+            linked.push(publicLink(row));
+            supportStore.recordThreadEvent({
+                threadId: thread.id, actorUserId: userId, actorKind: 'staff',
+                action: 'issue_linked', payload: { issueId, reason },
+            }).catch(() => {});
         }
+
+        _emit('thread_updated', { threadId: thread.id });
+        ok(res, { issues: linked });
     });
 
     router.delete('/threads/:id/issues/:issueId', requireStaffSupport, async (req, res) => {
-        try {
-            const { id, issueId } = req.params;
-            const removed = await supportStore.unlinkIssue(id, issueId);
-            if (!removed) return res.status(404).json({ error: 'not linked' });
-            supportStore.recordThreadEvent({
-                threadId: id, actorUserId: getUserId(req), actorKind: 'staff',
-                action: 'issue_unlinked', payload: { issueId },
-            }).catch(() => {});
-            _emit('thread_updated', { threadId: id });
-            ok(res, {});
-        } catch (err) {
-            log.error('[Support] DELETE /threads/:id/issues/:issueId error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const { id, issueId } = req.params;
+        const removed = await supportStore.unlinkIssue(id, issueId);
+        if (!removed) return res.status(404).json({ error: 'not linked' });
+        supportStore.recordThreadEvent({
+            threadId: id, actorUserId: getUserId(req), actorKind: 'staff',
+            action: 'issue_unlinked', payload: { issueId },
+        }).catch(() => {});
+        _emit('thread_updated', { threadId: id });
+        ok(res, {});
     });
 
     /**
@@ -448,7 +419,7 @@ function register(router) {
             });
         } catch (err) {
             log.error('[Support] POST /threads/:id/issues/create error:', err.message);
-            res.status(502).json({ error: 'Creating the issue failed' });
+            throw new HttpError(502, 'issue_create_failed', 'Creating the issue failed');
         }
     });
 
@@ -467,7 +438,7 @@ function register(router) {
             ok(res, { issues: links.map(publicLink) });
         } catch (err) {
             log.error('[Support] POST /threads/:id/issues/refresh error:', err.message);
-            res.status(502).json({ error: 'Refresh failed' });
+            throw new HttpError(502, 'issue_refresh_failed', 'Refresh failed');
         }
     });
 
@@ -481,152 +452,127 @@ function register(router) {
      * is mandatory — an escalation with no stated why is the thing this is for.
      */
     router.post('/threads/:id/escalate', requireStaffSupport, validate({ body: EscalateBody }), async (req, res) => {
-        try {
-            const thread = await supportStore.getThread(req.params.id);
-            if (!thread) return res.status(404).json({ error: 'thread not found' });
+        const thread = await supportStore.getThread(req.params.id);
+        if (!thread) return res.status(404).json({ error: 'thread not found' });
 
-            const { reason } = req.body;
-            const issueId = req.body.issueId || null;
-            if (issueId && !ytc.ISSUE_ID_RE.test(issueId)) {
-                return res.status(400).json({ error: 'invalid issue id' });
-            }
-
-            const userId = getUserId(req);
-            let link = null;
-            if (issueId) {
-                const creds = await credsFor(req);
-                const issue = creds ? await ytc.getIssue(creds, issueId).catch(() => null) : null;
-                if (creds && !issue) return res.status(404).json({ error: `${issueId} does not exist in YouTrack` });
-                const { linkBaseline } = require('../../services/supportIssueSync');
-                const row = await supportStore.linkIssue({
-                    threadId: thread.id,
-                    issueId,
-                    issueUrl: creds ? ytc.issueUrl(creds.baseUrl, issueId) : null,
-                    projectShortName: issueId.split('-')[0],
-                    linkKind: 'escalated',
-                    linkedByUserId: userId,
-                    linkReason: reason.slice(0, 300),
-                    ...(await linkBaseline(creds, issue)),
-                });
-                link = publicLink(row);
-            }
-
-            const patch = {};
-            if (req.body.raisePriority === true && ['low', 'normal'].includes(thread.priority)) {
-                patch.priority = 'high';
-            }
-            if (Object.keys(patch).length) await supportStore.updateThread(thread.id, patch);
-
-            // 'escalated_to_engineering', deliberately not 'escalated': the
-            // thread already carries ai_escalated_reason, which means the AI
-            // responder handed off to a human. Different event, different word.
-            await supportStore.recordThreadEvent({
-                threadId: thread.id, actorUserId: userId, actorKind: 'staff',
-                action: 'escalated_to_engineering',
-                payload: { reason: reason.slice(0, 300), issueId, raisedPriority: !!patch.priority },
-            });
-
-            // The team chat channel, when an admin ticked escalations. The
-            // card is the allow-listed one (reference, source, priority) plus
-            // the issue id; the reason the agent typed stays in the trail.
-            require('../../services/outboundChatNotifier')
-                .notify({
-                    thread: { ...thread, ...patch },
-                    event: 'escalation',
-                    detail: issueId ? `Linked issue: ${issueId}` : null,
-                })
-                .catch(() => {});
-
-            _emit('thread_updated', { threadId: thread.id });
-            ok(res, { issue: link, priority: patch.priority || thread.priority });
-        } catch (err) {
-            log.error('[Support] POST /threads/:id/escalate error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
+        const { reason } = req.body;
+        const issueId = req.body.issueId || null;
+        if (issueId && !ytc.ISSUE_ID_RE.test(issueId)) {
+            return res.status(400).json({ error: 'invalid issue id' });
         }
+
+        const userId = getUserId(req);
+        let link = null;
+        if (issueId) {
+            const creds = await credsFor(req);
+            const issue = creds ? await ytc.getIssue(creds, issueId).catch(() => null) : null;
+            if (creds && !issue) return res.status(404).json({ error: `${issueId} does not exist in YouTrack` });
+            const { linkBaseline } = require('../../services/supportIssueSync');
+            const row = await supportStore.linkIssue({
+                threadId: thread.id,
+                issueId,
+                issueUrl: creds ? ytc.issueUrl(creds.baseUrl, issueId) : null,
+                projectShortName: issueId.split('-')[0],
+                linkKind: 'escalated',
+                linkedByUserId: userId,
+                linkReason: reason.slice(0, 300),
+                ...(await linkBaseline(creds, issue)),
+            });
+            link = publicLink(row);
+        }
+
+        const patch = {};
+        if (req.body.raisePriority === true && ['low', 'normal'].includes(thread.priority)) {
+            patch.priority = 'high';
+        }
+        if (Object.keys(patch).length) await supportStore.updateThread(thread.id, patch);
+
+        // 'escalated_to_engineering', deliberately not 'escalated': the
+        // thread already carries ai_escalated_reason, which means the AI
+        // responder handed off to a human. Different event, different word.
+        await supportStore.recordThreadEvent({
+            threadId: thread.id, actorUserId: userId, actorKind: 'staff',
+            action: 'escalated_to_engineering',
+            payload: { reason: reason.slice(0, 300), issueId, raisedPriority: !!patch.priority },
+        });
+
+        // The team chat channel, when an admin ticked escalations. The
+        // card is the allow-listed one (reference, source, priority) plus
+        // the issue id; the reason the agent typed stays in the trail.
+        require('../../services/outboundChatNotifier')
+            .notify({
+                thread: { ...thread, ...patch },
+                event: 'escalation',
+                detail: issueId ? `Linked issue: ${issueId}` : null,
+            })
+            .catch(() => {});
+
+        _emit('thread_updated', { threadId: thread.id });
+        ok(res, { issue: link, priority: patch.priority || thread.priority });
     });
 
     // ── Chat notifications (BFSF-448 / BFSF-449) ──────────────────────────
 
     router.get('/notifications', requireStaffSupport, async (req, res) => {
-        try {
-            const chat = require('../../services/outboundChatNotifier');
-            res.json(await chat.getPublicSettings());
-        } catch (err) {
-            log.error('[Support] GET /notifications error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const chat = require('../../services/outboundChatNotifier');
+        res.json(await chat.getPublicSettings());
     });
 
     router.put('/notifications', requireStaffSupport, validate({ body: NotificationsBody }), async (req, res) => {
-        try {
-            const chat = require('../../services/outboundChatNotifier');
-            const { webhookUrl, provider, enabled, events } = req.body;
+        const chat = require('../../services/outboundChatNotifier');
+        const { webhookUrl, provider, enabled, events } = req.body;
 
-            if (webhookUrl !== undefined) {
-                const trimmed = String(webhookUrl || '').trim();
-                if (trimmed && !/^https:\/\//i.test(trimmed)) {
-                    return res.status(400).json({ error: 'The webhook URL must start with https://' });
-                }
-                // The URL carries its own key and token, so it is stored as a
-                // secret and never returned to the browser.
-                await configStore.setSecret(chat.WEBHOOK_KEY, trimmed);
+        if (webhookUrl !== undefined) {
+            const trimmed = String(webhookUrl || '').trim();
+            if (trimmed && !/^https:\/\//i.test(trimmed)) {
+                return res.status(400).json({ error: 'The webhook URL must start with https://' });
             }
-            if (provider !== undefined) {
-                if (!chat.PROVIDERS.includes(provider)) return res.status(400).json({ error: 'unknown provider' });
-                await configStore.setConfig(chat.PROVIDER_KEY, provider);
-            }
-            if (enabled !== undefined) await configStore.setConfig(chat.ENABLED_KEY, enabled ? 'true' : 'false');
-            if (events !== undefined) {
-                // Filtering the list down to what we recognise turned one
-                // misspelled name into an empty list — every notification off,
-                // under { ok: true }. An unknown name is named instead.
-                const unknown = events.find(e => !chat.EVENTS.includes(e));
-                if (unknown) {
-                    return res.status(400).json({ error: `unknown event "${unknown}"`, allowed: chat.EVENTS });
-                }
-                await configStore.setConfig(chat.EVENTS_KEY, JSON.stringify([...new Set(events)]));
-            }
-
-            supportStore.recordAuditEvent({
-                actorKind: 'staff', actorUserId: getUserId(req),
-                action: 'chat_notification_config_change',
-                payload: { fields: Object.keys(req.body) },
-            }).catch(() => {});
-
-            ok(res, { settings: await chat.getPublicSettings() });
-        } catch (err) {
-            log.error('[Support] PUT /notifications error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
+            // The URL carries its own key and token, so it is stored as a
+            // secret and never returned to the browser.
+            await configStore.setSecret(chat.WEBHOOK_KEY, trimmed);
         }
+        if (provider !== undefined) {
+            if (!chat.PROVIDERS.includes(provider)) return res.status(400).json({ error: 'unknown provider' });
+            await configStore.setConfig(chat.PROVIDER_KEY, provider);
+        }
+        if (enabled !== undefined) await configStore.setConfig(chat.ENABLED_KEY, enabled ? 'true' : 'false');
+        if (events !== undefined) {
+            // Filtering the list down to what we recognise turned one
+            // misspelled name into an empty list — every notification off,
+            // under { ok: true }. An unknown name is named instead.
+            const unknown = events.find(e => !chat.EVENTS.includes(e));
+            if (unknown) {
+                return res.status(400).json({ error: `unknown event "${unknown}"`, allowed: chat.EVENTS });
+            }
+            await configStore.setConfig(chat.EVENTS_KEY, JSON.stringify([...new Set(events)]));
+        }
+
+        supportStore.recordAuditEvent({
+            actorKind: 'staff', actorUserId: getUserId(req),
+            action: 'chat_notification_config_change',
+            payload: { fields: Object.keys(req.body) },
+        }).catch(() => {});
+
+        ok(res, { settings: await chat.getPublicSettings() });
     });
 
     router.post('/notifications/test', requireStaffSupport, validate({ body: NoBody }), async (req, res) => {
-        try {
-            const result = await require('../../services/outboundChatNotifier').sendTest();
-            // Report what the endpoint actually said. "Test failed" with no
-            // detail is the reason nobody trusts a test button.
-            if (!result.ok) return res.status(502).json({ error: result.error });
-            ok(res, {});
-        } catch (err) {
-            log.error('[Support] POST /notifications/test error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const result = await require('../../services/outboundChatNotifier').sendTest();
+        // Report what the endpoint actually said. "Test failed" with no
+        // detail is the reason nobody trusts a test button.
+        if (!result.ok) throw new HttpError(502, 'notification_test_failed', result.error);
+        ok(res, {});
     });
 
     router.post('/threads/:id/followup-done', requireStaffSupport, validate({ body: NoBody }), async (req, res) => {
-        try {
-            const cleared = await supportStore.clearFollowup(req.params.id);
-            if (!cleared) return res.status(404).json({ error: 'no follow-up pending' });
-            supportStore.recordThreadEvent({
-                threadId: req.params.id, actorUserId: getUserId(req), actorKind: 'staff',
-                action: 'followup_cleared', payload: {},
-            }).catch(() => {});
-            _emit('thread_updated', { threadId: req.params.id });
-            ok(res, {});
-        } catch (err) {
-            log.error('[Support] POST /threads/:id/followup-done error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const cleared = await supportStore.clearFollowup(req.params.id);
+        if (!cleared) return res.status(404).json({ error: 'no follow-up pending' });
+        supportStore.recordThreadEvent({
+            threadId: req.params.id, actorUserId: getUserId(req), actorKind: 'staff',
+            action: 'followup_cleared', payload: {},
+        }).catch(() => {});
+        _emit('thread_updated', { threadId: req.params.id });
+        ok(res, {});
     });
 }
 
