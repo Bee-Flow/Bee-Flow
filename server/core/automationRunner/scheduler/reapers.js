@@ -10,6 +10,7 @@
 const automationStore = require('../../../stores/automationStore');
 const notificationStore = require('../../../stores/notificationStore');
 const runEventBus = require('../../runEventBus');
+const { runnerPort } = require('../featurePorts');
 const { REAPER_FLOOR_MS, REAPER_BUFFER_MS, REAPER_MAX_ATTEMPTS } = require('../shared');
 const log = require('../../../telemetry/log');
 
@@ -80,7 +81,7 @@ async function reapStuckAutomations() {
             // still-pending queue, and a no-op on instances that never posted
             // a Talk card.
             try {
-                const { pollTalkReactions } = require('../../../automation/approvalReactionIngest');
+                const { pollTalkReactions } = runnerPort('approvals');
                 const polled = await pollTalkReactions();
                 if (polled.counted) {
                     log.info(`[AutomationRunner] Talk reaction poll recorded ${polled.counted} approval vote(s)`);
@@ -94,7 +95,7 @@ async function reapStuckAutomations() {
                     approvalId: ap.id, runId: ap.runId, stepId: ap.stepId,
                     decidedBy: null, decision: 'cancelled', source: 'reaper',
                 }).catch(() => {});
-                require('../../../automation/approvalEvents').dispatchApprovalDecided(ap);
+                runnerPort('approvals').dispatchApprovalDecided(ap);
             }
         } catch (e) {
             log.error('[AutomationRunner] approval lifecycle sweep error:', e.message);

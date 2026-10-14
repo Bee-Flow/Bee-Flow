@@ -18,6 +18,8 @@ const assert = require('node:assert');
 const automationStore = require('../../stores/automationStore');
 const userStore = require('../../stores/userStore');
 const approvalEvents = require('../../automation/approvalEvents');
+// The lifecycle reaches automation/ through core/automationRunner/featurePorts.js.
+require('../../automation/runnerPorts');
 const { createApprovalOnPause, validateStages } = require('./approvalLifecycle');
 
 const AUTOMATION = { id: 'aut_1', userId: 'owner', title: 'Invoice payment', organizationId: 'org1' };

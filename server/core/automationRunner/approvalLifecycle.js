@@ -19,6 +19,8 @@ require('../../stores/notificationStore');
 const { firstStageKey, stageByKey, collectParticipants } = require('../automationModel/approvalStages');
 const { approvalPath } = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+// Notify, dispatch and hook calls go to automation/ (a feature) through a port.
+const { runnerPort } = require('./featurePorts');
 
 /** How many members of an assigned group get a bell before we stop. */
 const GROUP_NOTIFY_CAP = 25;
@@ -269,7 +271,7 @@ async function createApprovalOnPause({ automation, run, err }) {
         const escalateTo = clocks.escalateAt ? await validateAssignee(err.escalateTo || null, orgId) : null;
 
         // Frozen at INSERT: which Solution this decision was made inside.
-        const { projectStamp } = require('../../automation/approvalProject');
+        const { projectStamp } = runnerPort('approvals');
         const project = await projectStamp(automation.projectId);
 
         const approval = await automationStore.createApproval({
@@ -318,7 +320,7 @@ async function createApprovalOnPause({ automation, run, err }) {
                 approvalId: approval.id, runId: run.id, stepId: err.stepId,
                 decidedBy: null, decision: 'requested', source: 'runner',
             }).catch(() => {});
-            require('../../automation/approvalEvents').dispatchApprovalRequested(approval);
+            runnerPort('approvals').dispatchApprovalRequested(approval);
         }
         return approval;
     } catch (e) {
@@ -366,8 +368,8 @@ async function announceExpiredApproval(ap) {
         approvalId: ap.id, runId: ap.runId, stepId: ap.stepId,
         decidedBy: null, decision: 'expired', source: 'reaper',
     }).catch(() => {});
-    require('../../automation/approvalEvents').dispatchApprovalDecided(ap);
-    await require('../../automation/approvalHooks').runOnDecidedHook(ap);
+    runnerPort('approvals').dispatchApprovalDecided(ap);
+    await runnerPort('approvals').runOnDecidedHook(ap);
     // A deployment gate that ran out of time cancels its deployment. A store
     // call; the runner's reconcileAwaitingApprovals backstops a failure.
     if (ap.source === 'deployment') {
@@ -399,7 +401,7 @@ async function announceExpiredApproval(ap) {
             : 'nobody decided before the deadline, so the request was closed.');
     // card:false — the window has closed; a card whose 👍 decides nothing
     // would only invite someone to try.
-    const { notifyApproval, automationForApproval } = require('../../automation/approvalNotify');
+    const { notifyApproval, automationForApproval } = runnerPort('approvals');
     await notifyApproval({
         approval: ap,
         automation: await automationForApproval(ap),
@@ -513,7 +515,7 @@ function reminderBellMessage(ap, deadline = '') {
  * went to. Never throws: notifyApproval swallows its own failures.
  */
 async function sendApprovalReminder(ap) {
-    const { notifyApproval, automationForApproval } = require('../../automation/approvalNotify');
+    const { notifyApproval, automationForApproval } = runnerPort('approvals');
     const recipients = await reminderRecipientIds(ap);
     const deadline = ap.expiresAt ? ` It expires ${new Date(ap.expiresAt).toLocaleString()}.` : '';
     // The request is still live, so the nudge goes out on every channel
@@ -541,7 +543,7 @@ async function sendApprovalReminder(ap) {
  * moment escalated_at is stamped; nobody loses rights.
  */
 async function remindAndEscalateDueApprovals() {
-    const { notifyApproval, automationForApproval } = require('../../automation/approvalNotify');
+    const { notifyApproval, automationForApproval } = runnerPort('approvals');
     let due = [];
     try { due = await automationStore.markDueApprovalReminders(); }
     catch (e) { log.warn(`[ApprovalLifecycle] reminder sweep failed: ${e.message}`); }

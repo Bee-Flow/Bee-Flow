@@ -15,6 +15,8 @@ const automationStore = require('../../../stores/automationStore');
 const { pool } = require('../../../db');
 const holidays = require('../../../automation/holidays');
 const { holidaySkipFor } = require('./holidaySkip');
+// What the ticks drive in automation/ and jobs/ (both above core): see ../featurePorts.js.
+const { runnerPort } = require('../featurePorts');
 // Google Meet auto-import: discovery under a NAMED lock (one pod per tick),
 // then the ingest worker on every pod.
 const { processGmeetAutoImport } = require('./gmeetImportTick');
@@ -105,7 +107,7 @@ async function processDueAutomations() {
     // Automation-evolution canaries: judge the ones that have seen enough runs.
     // Lazy-required and fully caught so a store hiccup never touches scheduling.
     try {
-        await require('../../../automation/evolution').evaluateCanaries();
+        await runnerPort('evolution').evaluateCanaries();
     } catch (e) {
         log.error('[AutomationRunner] evaluateCanaries error:', e.message);
     }
@@ -212,7 +214,7 @@ async function processPollingAndRenewals() {
             // Another pod owns the lock for this tick; back off cleanly.
             return;
         }
-        const triggerBus = require('../../../automation/triggerBus');
+        const triggerBus = runnerPort('triggerBus');
         await triggerBus.runPollingPass();
         await triggerBus.renewExpiringSubscriptions();
     } catch (e) {
@@ -291,12 +293,12 @@ async function processRunRetention() {
         const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [RETENTION_LOCK_KEY]);
         acquired = !!lockRes.rows[0]?.locked;
         if (!acquired) return; // another pod owns this tick
-        await require('../../../jobs/runRetention').runRetentionPass();
+        await runnerPort('periodicJobs').runRetentionPass();
         // Automations in the trash past their 30 days (handoff 5). Same shape of
         // work as the pass above — bounded, idempotent, one pod — so it
         // shares this tick and its lock. Never lets a failure end the tick.
         try {
-            await require('../../../jobs/automationTrashPurge').purgeTrashPass();
+            await runnerPort('periodicJobs').purgeTrashPass();
         } catch (e) {
             log.warn('[AutomationRunner] trash purge failed:', e.message);
         }
@@ -348,7 +350,7 @@ async function processDatatableRetention() {
         const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [DATATABLE_RETENTION_LOCK_KEY]);
         acquired = !!lockRes.rows[0]?.locked;
         if (!acquired) return; // another pod owns this tick
-        await require('../../../jobs/datatableRetention').datatableRetentionPass();
+        await runnerPort('periodicJobs').datatableRetentionPass();
     } catch (e) {
         log.error('[AutomationRunner] datatable-retention error:', e.message);
     } finally {
@@ -371,7 +373,7 @@ const NOTIFICATION_DIGEST_INTERVAL_MS = 5 * 60_000;
 // no lock is needed. See automation/formQueue.js.
 async function processQueuedFormWork() {
     try {
-        await require('../../../automation/formQueue').recoverPending();
+        await runnerPort('formQueue').recoverPending();
     } catch (e) {
         log.warn('[AutomationRunner] form-queue recovery failed:', e.message);
     }
@@ -385,7 +387,7 @@ async function processNotificationDigest() {
         const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [NOTIFICATION_DIGEST_LOCK_KEY]);
         acquired = !!lockRes.rows[0]?.locked;
         if (!acquired) return; // another pod owns this tick
-        await require('../../../jobs/automationDigest').digestPass();
+        await runnerPort('periodicJobs').digestPass();
     } catch (e) {
         log.error('[AutomationRunner] notification digest error:', e.message);
     } finally {
@@ -527,7 +529,7 @@ async function stop({ timeoutMs = 25_000 } = {}) {
     // them, and hand them back so another pod runs them now rather than after
     // their lease lapses. The one already running is an ACTIVE_RUN below.
     try {
-        await require('../../../automation/formQueue').stop();
+        await runnerPort('formQueue').stop();
     } catch (e) {
         log.warn('[AutomationRunner] form-queue hand-back failed:', e.message);
     }

@@ -36,6 +36,8 @@ const automationStore = require('../stores/automationStore');
 const solutionStageStore = require('../stores/solutionStageStore');
 const approvalService = require('./approvalService');
 const approvalEvents = require('./approvalEvents');
+// The lifecycle reaches automation/ through core/automationRunner/featurePorts.js.
+require('./runnerPorts');
 const approvalLifecycle = require('../core/automationRunner/approvalLifecycle');
 const { collectParticipants } = require('./approvalStages');
 

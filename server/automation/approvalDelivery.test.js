@@ -495,6 +495,7 @@ test('a reminder (scheduled or "Send reminder") keeps the prompt in the Bee Flow
         definition: { notificationSettings: { onApproval: { enabled: true, channels: ['bell', 'talk'], recipients: [{ type: 'approver' }], urgency: 'normal' } } },
     };
     try {
+        require('./runnerPorts'); // the lifecycle's notify call goes through this port
         const { sendApprovalReminder } = require('../core/automationRunner/approvalLifecycle');
         const recipients = await sendApprovalReminder(sensitiveApproval({ automationId: 'a1', stages: null, stage: null }));
         assert.deepEqual(recipients, ['lead']);

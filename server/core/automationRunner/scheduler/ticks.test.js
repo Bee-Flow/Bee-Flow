@@ -90,10 +90,13 @@ mock('./reapers', {
 mock('../../integrations/integrationLogging', { flushEgressLogs: async () => { calls.flushEgress += 1; } });
 // U3: accepted form work whose pod died is swept up; on stop() the queue
 // hands what is still waiting back. Its own behaviour is in
-// automation/formQueue.test.js; here only that the runner drives it.
-mock('../../../automation/formQueue', {
-    recoverPending: async () => { calls.formRecover += 1; return 0; },
-    stop: async () => { calls.formStop += 1; return 0; },
+// automation/formQueue.test.js; here only that the runner drives it, through
+// the formQueue port automation/runnerPorts.js fills at boot.
+require('../featurePorts').registerRunnerPorts({
+    formQueue: {
+        recoverPending: async () => { calls.formRecover += 1; return 0; },
+        stop: async () => { calls.formStop += 1; return 0; },
+    },
 });
 
 // A stand-in for the real gate with the same contract (pinned in
