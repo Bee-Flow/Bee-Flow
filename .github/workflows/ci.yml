@@ -153,6 +153,7 @@ jobs:
               - 'server/routes/{healthSchema,skills}.js'
               - 'server/routes/automation/crud.js'
               - 'server/stores/{coworkStore,notificationStore,skillStore}.js'
+              - 'server/stores/skill/{rows,reads,usage}.js'
               - 'server/stores/transcription/rowShape.js'
               - 'server/stores/project/{projects,rows,events}.js'
               - 'server/stores/studioApp/rowMappers.js'

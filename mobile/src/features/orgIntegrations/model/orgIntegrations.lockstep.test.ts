@@ -53,8 +53,13 @@ describe('Azure lockstep', () => {
     });
 });
 
-describe('n8n lockstep (pages/settings/N8nSection.jsx)', () => {
-    const src = readWeb('pages/settings/N8nSection.jsx');
+describe('n8n lockstep (pages/settings/n8n/)', () => {
+    // N8nSection is split: the slug, defaults and search live in n8nModel.ts,
+    // the slug field's own filter in N8nWorkflowEditor.tsx.
+    const src = [
+        readWeb('pages/settings/n8n/n8nModel.ts'),
+        readWeb('pages/settings/n8n/N8nWorkflowEditor.tsx'),
+    ].join('\n');
 
     it('slugs, configures and searches as addWorkflow and the filters do', () => {
         expect(src).toContain(".toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 50)");

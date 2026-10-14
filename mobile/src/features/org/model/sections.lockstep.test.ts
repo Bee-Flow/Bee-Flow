@@ -1,5 +1,5 @@
 /**
- * The org index is the web's, in the web's order: orgInfoShared.jsx SECTIONS,
+ * The org index is the web's, in the web's order: orgInfoShared.tsx SECTIONS,
  * then AdvancedSettings.jsx BASE_ORG_SUB_ITEMS after its `...ORG_SECTIONS`
  * spread, then AZURE_SUB_ITEM. Ids and label keys are compared textually.
  */
@@ -20,10 +20,11 @@ function rows(src: string, marker: RegExp): { id: string; labelKey: string }[] {
 }
 
 describe('the organisation sections', () => {
-    const shared = fs.readFileSync(path.join(WEB, 'components/admin/org/orgInfo/orgInfoShared.jsx'), 'utf8');
+    const shared = fs.readFileSync(path.join(WEB, 'components/admin/org/orgInfo/orgInfoShared.tsx'), 'utf8');
     const settings = fs.readFileSync(path.join(WEB, 'pages/AdvancedSettings.jsx'), 'utf8');
     const web = [
-        ...rows(shared, /const SECTIONS\s*=\s*\[([\s\S]*?)\];/),
+        // Typed (`const SECTIONS: OrgSettingsSection[] = [`) since the TS move.
+        ...rows(shared, /const SECTIONS(?:\s*:[^=]*)?\s*=\s*\[([\s\S]*?)\];/),
         ...rows(settings, /const BASE_ORG_SUB_ITEMS\s*=\s*\[([\s\S]*?)\];/),
         ...rows(settings, /const AZURE_SUB_ITEM\s*=\s*(\{[^}]*\})/),
     ];
