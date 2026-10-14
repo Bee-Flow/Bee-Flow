@@ -47,8 +47,7 @@ function Track({ blocks, color, label, rowIdx, focusPos, setFocusPos, onSeekTo, 
 
     return (
         <div
-            className="relative h-3 flex-1 rounded-sm"
-            style={{ background: 'var(--bg-tertiary)' }}
+            className="relative h-3 flex-1 rounded-sm bg-[var(--bg-tertiary)]"
             onMouseMove={onHover}
             onMouseLeave={onLeave}
         >
@@ -81,7 +80,7 @@ function RowsHoverChip({ hover, colorMap }) {
         <PlayerTooltip x={hover?.x || 0} containerWidth={hover?.width || 0} visible={!!hover}>
             {hover && (
                 <>
-                    <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
+                    <span className="font-mono text-[var(--text-muted)]">
                         {formatDuration(hover.time)}
                     </span>
                     {hover.speakerId && (
@@ -94,7 +93,7 @@ function RowsHoverChip({ hover, colorMap }) {
                         </div>
                     )}
                     {hover.text && (
-                        <div className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="line-clamp-2 text-[var(--text-secondary)]">
                             {hover.text}
                         </div>
                     )}
@@ -209,8 +208,7 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
                     type="button"
                     onClick={() => setExpanded(false)}
                     aria-expanded
-                    className="self-start text-[11px] hover:underline"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="self-start text-[11px] hover:underline text-[var(--text-muted)]"
                 >
                     {t('meeting_notes.timeline_less', 'Show less')}
                 </button>

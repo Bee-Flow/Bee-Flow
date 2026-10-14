@@ -245,22 +245,21 @@ function StateChip({ row, t }) {
 function RuleFooter({ row, runs, open, onOpen, t }) {
     return (
         <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }} data-testid="rule-runs">
+            <span className="text-[11px] truncate text-[var(--text-tertiary)]" data-testid="rule-runs">
                 {runs || ''}
             </span>
             {open === 'ok' && typeof onOpen === 'function' ? (
                 <button
                     type="button"
                     onClick={() => onOpen(row.id)}
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium flex-shrink-0"
-                    style={{ color: 'var(--accent-primary)' }}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium flex-shrink-0 text-[var(--accent-primary)]"
                     data-testid="rule-open"
                 >
                     {t('meetings.rules_open', 'Open automation')}
                     <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
                 </button>
             ) : open === 'foreign' ? (
-                <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} data-testid="rule-foreign">
+                <span className="text-[11px] flex-shrink-0 text-[var(--text-tertiary)]" data-testid="rule-foreign">
                     {t('meetings.rules_someone_elses', 'Someone else’s rule')}
                 </span>
             ) : null}
@@ -293,18 +292,18 @@ export function RuleCard({ row, facets, facetsError, hours, currentUserId, onOpe
                 <span style={tile.tile} aria-hidden="true"><Workflow style={tile.glyph} /></span>
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-[13px] font-medium truncate text-[var(--text-primary)]">
                             {row?.title || t('meetings.rules_untitled', 'Untitled rule')}
                         </span>
                         <StateChip row={row} t={t} />
                     </div>
-                    <p className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }} data-testid="rule-sentence">
+                    <p className="text-[11px] leading-snug text-[var(--text-secondary)]" data-testid="rule-sentence">
                         {conditionSentence(condition, t) || t('meetings.rules_when_unknown', 'This rule no longer starts on a meeting note')}
                         {' → '}
                         {parts.join(' · ')}
                     </p>
                     {narrowing.length > 0 && (
-                        <p className="text-[11px] leading-snug" style={{ color: 'var(--text-tertiary)' }} data-testid="rule-narrowing">
+                        <p className="text-[11px] leading-snug text-[var(--text-tertiary)]" data-testid="rule-narrowing">
                             {narrowing.join(' · ')}
                         </p>
                     )}
@@ -319,9 +318,8 @@ export function RuleCard({ row, facets, facetsError, hours, currentUserId, onOpe
 
 function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }) {
     return (
-        <div className="mx-3 mb-2 px-2.5 py-2 rounded-lg border flex flex-col gap-1.5"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-            <label className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} htmlFor="meeting-rules-composer">
+        <div className="mx-3 mb-2 px-2.5 py-2 rounded-lg border flex flex-col gap-1.5 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+            <label className="text-[11px] text-[var(--text-tertiary)]" htmlFor="meeting-rules-composer">
                 {t('meetings.rules_ai_hint', 'Say what should happen after a meeting; the ideas stay inside meeting notes.')}
             </label>
             <input
@@ -360,11 +358,10 @@ function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }) {
                 </div>
             )}
             {ideas.items.map((idea, i) => (
-                <div key={idea?.id ?? `idea-${i}`} className="px-2 py-1.5 rounded-md border flex flex-col gap-1"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }} data-testid="rules-idea">
-                    <span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{idea?.title}</span>
+                <div key={idea?.id ?? `idea-${i}`} className="px-2 py-1.5 rounded-md border flex flex-col gap-1 border-[var(--border-subtle)] bg-[var(--bg-card)]" data-testid="rules-idea">
+                    <span className="text-[12px] font-medium text-[var(--text-primary)]">{idea?.title}</span>
                     {idea?.description && (
-                        <span className="text-[11px] leading-snug" style={{ color: 'var(--text-tertiary)' }}>{idea.description}</span>
+                        <span className="text-[11px] leading-snug text-[var(--text-tertiary)]">{idea.description}</span>
                     )}
                     <button
                         type="button" onClick={() => onUseIdea(idea)} disabled={creating}
@@ -541,7 +538,7 @@ export default function RulesPanel({
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="flex items-center justify-between gap-2 px-3 py-2">
-                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] text-[var(--text-tertiary)]">
                     {t('meetings.rules_intro', 'What runs by itself once a meeting note is ready. These are your own rules — a colleague sees theirs.')}
                 </span>
                 <button
@@ -594,14 +591,14 @@ export default function RulesPanel({
                 {loading && (
                     <div className="flex items-center gap-2 px-3 py-6 justify-center">
                         <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('meetings.rules_loading', 'Loading rules…')}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">{t('meetings.rules_loading', 'Loading rules…')}</span>
                     </div>
                 )}
 
                 {!loading && rules.error && (
                     <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER} data-testid="rules-error">
                         <div className="font-semibold">{t('meetings.rules_failed', 'Couldn’t load the rules for meeting notes')}</div>
-                        <div style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-[var(--text-secondary)]">
                             {licenceMessage(rules.error, t) || rules.error.message}
                         </div>
                     </div>
@@ -623,8 +620,8 @@ export default function RulesPanel({
                             style={{ background: kindTint('automation', 12), color: kindColorVar('automation') }} aria-hidden="true">
                             <Workflow className="w-6 h-6" />
                         </div>
-                        <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meetings.rules_empty_title', 'No rules yet')}</div>
-                        <div className="text-[11px] max-w-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="text-sm font-semibold text-[var(--text-primary)]">{t('meetings.rules_empty_title', 'No rules yet')}</div>
+                        <div className="text-[11px] max-w-xs text-[var(--text-tertiary)]">
                             {t('meetings.rules_empty_desc', 'A rule picks up a meeting note the moment it is ready — files it, passes it on, or tells someone.')}
                         </div>
                     </div>

@@ -29,7 +29,7 @@ export default function WebpageUsedByTab({ page }) {
                         style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
                     >
                         <Layers size={15} className="mt-0.5 shrink-0" aria-hidden="true" style={{ color: 'var(--text-secondary)' }} />
-                        <div className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
+                        <div className="text-[13px] text-[var(--text-primary)]">
                             {t('webpages.used_by.in_solution', 'This page is part of a Solution.')}
                         </div>
                     </div>
@@ -39,7 +39,7 @@ export default function WebpageUsedByTab({ page }) {
                     style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}
                 >
                     <HelpCircle size={15} className="mt-0.5 shrink-0" aria-hidden="true" style={{ color: 'var(--text-tertiary)' }} />
-                    <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
                         {t('webpages.used_by.unknown',
                             'Bee Flow cannot list everything that links to this page yet, so treat this as incomplete rather than as "nothing uses it".')}
                     </div>

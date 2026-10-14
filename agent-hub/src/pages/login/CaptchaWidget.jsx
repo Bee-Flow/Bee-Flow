@@ -110,7 +110,7 @@ const CaptchaWidget = ({ config, onToken }) => {
 
     if (failed) {
         return (
-            <p className="text-xs" style={{ color: 'var(--error)' }}>
+            <p className="text-xs text-[var(--error)]">
                 {t('signup.captcha_unavailable', 'The verification challenge could not be loaded. Please refresh the page and try again.')}
             </p>
         );

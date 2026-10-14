@@ -41,8 +41,7 @@ export default function SpeakerLegend({ speakers = [], colorMap = {}, activeId, 
                     type="button"
                     onClick={() => onEdit()}
                     title={t('meeting_notes.legend_fix_title', 'Rename or merge speakers')}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border border-dashed transition-colors"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border border-dashed transition-colors border-[var(--border-default)] text-[var(--text-muted)]"
                 >
                     <Pencil className="w-3 h-3" />
                     {t('meeting_notes.legend_fix', 'Fix names')}

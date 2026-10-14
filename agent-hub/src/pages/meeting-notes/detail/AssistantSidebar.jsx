@@ -93,13 +93,12 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
 
     return (
         <aside
-            className="flex flex-col h-full border-l"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}
+            className="flex flex-col h-full border-l bg-[var(--bg-secondary)] border-[var(--border-subtle)]"
         >
-            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
                 <div className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meeting_notes.assistant_title', 'Ask about this meeting')}</span>
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">{t('meeting_notes.assistant_title', 'Ask about this meeting')}</span>
                 </div>
                 <IconButton ariaLabel="Close" onClick={onClose} size="sm"><X /></IconButton>
             </div>
@@ -107,7 +106,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
             <div ref={scrollerRef} className="flex-1 overflow-auto px-3 py-3">
                 {messages.length === 0 && (
                     <div className="flex flex-col gap-2">
-                        <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+                        <div className="text-xs mb-1 text-[var(--text-muted)]">
                             {t('meeting_notes.assistant_starter', 'Try a starter prompt:')}
                         </div>
                         {suggestions.map((s) => (
@@ -115,8 +114,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
                                 key={s}
                                 type="button"
                                 onClick={() => submit(s)}
-                                className="text-left text-xs px-3 py-2 rounded-xl border transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="text-left text-xs px-3 py-2 rounded-xl border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)]"
                             >
                                 {s}
                             </button>
@@ -136,7 +134,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
                 <div ref={endRef} />
             </div>
 
-            <div className="px-3 py-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="px-3 py-2 border-t border-[var(--border-subtle)]">
                 <div className="flex items-end gap-2">
                     <textarea
                         value={input}
@@ -168,15 +166,14 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
                             onClick={() => submit()}
                             disabled={!input.trim()}
                             aria-label={t('chat.send', 'Send')}
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white disabled:opacity-40"
-                            style={{ background: 'var(--accent-primary)' }}
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white disabled:opacity-40 bg-[var(--accent-primary)]"
                         >
                             <Send className="w-4 h-4" />
                         </button>
                     )}
                 </div>
                 {isLoading && (
-                    <div className="flex items-center gap-1.5 text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <div className="flex items-center gap-1.5 text-[11px] mt-1.5 text-[var(--text-muted)]">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         {t('meeting_notes.assistant_thinking', 'Thinking…')}
                     </div>

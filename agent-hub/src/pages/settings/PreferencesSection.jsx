@@ -25,9 +25,9 @@ const Row = ({ label, description, right, first }) => (
         }}
     >
         <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}</p>
+            <p className="text-[13px] font-medium text-[var(--text-primary)]">{label}</p>
             {description && (
-                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+                <p className="text-[11px] mt-0.5 text-[var(--text-muted)]">{description}</p>
             )}
         </div>
         <div className="flex-shrink-0 w-full sm:w-auto">{right}</div>
@@ -118,8 +118,7 @@ const Toggle = ({ on, onClick, disabled, ariaLabel }) => (
 
 const SectionLabel = ({ children }) => (
     <p
-        className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2"
-        style={{ color: 'var(--text-muted)' }}
+        className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]"
     >
         {children}
     </p>
@@ -228,7 +227,7 @@ const PreferencesSection = ({
                     <AvatarPicker user={localUser} onSaved={handleAvatarSaved} />
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-[15px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                            <p className="text-[15px] font-semibold truncate text-[var(--text-primary)]">
                                 {localUser.displayName || localUser.username || 'User'}
                             </p>
                             {roleLabel && (
@@ -242,7 +241,7 @@ const PreferencesSection = ({
                             )}
                         </div>
                         {localUser.email && (
-                            <p className="text-[12px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[12px] truncate mt-0.5 text-[var(--text-muted)]">
                                 {localUser.email}
                             </p>
                         )}
@@ -299,7 +298,7 @@ const PreferencesSection = ({
                             className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5"
                             style={{ borderTop: '1px solid var(--border-subtle)' }}
                         >
-                            <p className="text-[13px] font-medium flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>
+                            <p className="text-[13px] font-medium flex-1 min-w-0 text-[var(--text-primary)]">
                                 {t('settings.select_agent_label')}
                             </p>
                             <select

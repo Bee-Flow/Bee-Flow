@@ -64,41 +64,40 @@ export default function TalkImportPanel({ onComplete }) {
             <CaptureControls />
 
             <div className="flex items-center justify-between">
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-xs text-[var(--text-muted)]">
                     {t('meetings.talk_pick', 'Pick a call recording — Bee Flow transcribes it with your configured engine.')}
                 </div>
                 <button
                     type="button"
                     onClick={load}
                     disabled={loading}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> {t('meetings.refresh', 'Refresh')}
                 </button>
             </div>
 
             {loading && (
-                <div className="flex items-center gap-3 px-4 py-6 rounded-xl border justify-center" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                <div className="flex items-center gap-3 px-4 py-6 rounded-xl border justify-center bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <Loader2 className="w-4 h-4 animate-spin" style={{ color: NC_BLUE }} />
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('meetings.talk_loading', 'Loading Talk recordings…')}</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{t('meetings.talk_loading', 'Loading Talk recordings…')}</span>
                 </div>
             )}
 
             {!loading && error && (
                 <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs" style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}>
                     <div className="font-semibold">{t('meetings.talk_load_failed', 'Couldn’t load recordings')}</div>
-                    <div style={{ color: 'var(--text-secondary)' }}>{error.message}</div>
+                    <div className="text-[var(--text-secondary)]">{error.message}</div>
                 </div>
             )}
 
             {!loading && !error && rooms.length === 0 && (
-                <div className="flex flex-col items-center gap-2 px-4 py-10 rounded-xl border text-center" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                <div className="flex flex-col items-center gap-2 px-4 py-10 rounded-xl border text-center bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: `color-mix(in srgb, ${NC_BLUE} 12%, transparent)`, color: NC_BLUE }}>
                         <MessageSquare className="w-6 h-6" />
                     </div>
-                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meetings.talk_empty_title', 'No Talk recordings found')}</div>
-                    <div className="text-xs max-w-sm" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{t('meetings.talk_empty_title', 'No Talk recordings found')}</div>
+                    <div className="text-xs max-w-sm text-[var(--text-muted)]">
                         {t('meetings.talk_empty_desc', 'Record a call in Nextcloud Talk (the moderator can record audio-only or video). Finished recordings appear here automatically.')}
                     </div>
                 </div>
@@ -110,7 +109,7 @@ export default function TalkImportPanel({ onComplete }) {
                         <div key={room.token} className="flex flex-col gap-2">
                             <div className="flex items-center gap-2 px-1">
                                 <MessageSquare className="w-3.5 h-3.5" style={{ color: NC_BLUE }} />
-                                <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="text-xs font-semibold text-[var(--text-secondary)]">
                                     {room.name || t('meetings.talk_conversation', 'Conversation {token}', { token: room.token })}
                                 </span>
                             </div>
@@ -121,15 +120,14 @@ export default function TalkImportPanel({ onComplete }) {
                                     return (
                                         <div
                                             key={rec.path}
-                                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border"
-                                            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]"
                                         >
                                             <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `color-mix(in srgb, ${NC_BLUE} 12%, transparent)`, color: NC_BLUE }}>
                                                 <KindIcon className="w-4.5 h-4.5" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{rec.name}</div>
-                                                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                                <div className="text-sm font-medium truncate text-[var(--text-primary)]">{rec.name}</div>
+                                                <div className="text-xs text-[var(--text-muted)]">
                                                     {[rec.kind === 'video' ? t('meetings.kind_video', 'Video') : t('meetings.kind_audio', 'Audio'), fmtSize(rec.size), fmtDate(rec.lastModified)].filter(Boolean).join(' · ')}
                                                 </div>
                                             </div>
@@ -137,8 +135,7 @@ export default function TalkImportPanel({ onComplete }) {
                                                 type="button"
                                                 onClick={() => handleImport(rec)}
                                                 disabled={uploading}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 flex-shrink-0"
-                                                style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 flex-shrink-0 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                                             >
                                                 {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                                                 {busy ? t('meetings.transcribing', 'Transcribing…') : t('meetings.transcribe', 'Transcribe')}
@@ -153,21 +150,20 @@ export default function TalkImportPanel({ onComplete }) {
             )}
 
             {(uploading || uploadStage) && (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <Loader2 className="w-4 h-4 animate-spin" style={{ color: NC_BLUE }} />
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{uploadStage || t('meetings.upload_working', 'Working…')}</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{uploadStage || t('meetings.upload_working', 'Working…')}</span>
                 </div>
             )}
 
             {uploadError && (
                 <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs" style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}>
                     <div className="font-semibold">{t('meetings.import_failed', 'Import failed')}</div>
-                    <div style={{ color: 'var(--text-secondary)' }}>{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
                     <button
                         type="button"
                         onClick={clearError}
-                        className="self-start px-3 py-1.5 rounded-lg text-xs font-medium border"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="self-start px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         {t('meetings.dismiss', 'Dismiss')}
                     </button>

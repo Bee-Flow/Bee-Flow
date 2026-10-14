@@ -16,10 +16,10 @@ export default function DetailEmptyState() {
             <div className="w-16 h-16 rounded-2xl grid place-items-center mb-5" style={{ background: kindTint('meeting', 16), color: kindColorVar('meeting') }} aria-hidden="true">
                 <FileAudio className="w-8 h-8" />
             </div>
-            <div className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+            <div className="text-lg font-semibold mb-1 text-[var(--text-primary)]">
                 {t('meetings.select_title', 'Select a meeting')}
             </div>
-            <div className="text-sm max-w-md mb-6" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="text-sm max-w-md mb-6 text-[var(--text-tertiary)]">
                 {t('meetings.select_desc', 'Pick a meeting from the library to see its summary, action items and full transcript — or start a new one below.')}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2">

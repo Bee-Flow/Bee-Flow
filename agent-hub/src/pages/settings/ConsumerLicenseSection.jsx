@@ -441,7 +441,7 @@ const ConsumerLicenseSection = ({ user }) => {
                                     }}
                                 >
                                     {isCurrentPlan && (
-                                        <div className="absolute top-0 left-0 right-0 h-1" style={{ background: 'var(--success)' }} />
+                                        <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--success)]" />
                                     )}
                                     <div className="p-4">
                                         <div className="flex items-center justify-between mb-2">

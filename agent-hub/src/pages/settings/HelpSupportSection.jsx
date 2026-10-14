@@ -111,29 +111,27 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
             </div>
 
             {view === 'list' && (
-                <div className="rounded-xl border overflow-hidden"
-                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                <div className="rounded-xl border overflow-hidden border-[var(--border-default)] bg-[var(--bg-card)]">
                     {loading ? (
-                        <div className="p-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>{t('settings.help_support.loading', 'Loading…')}</div>
+                        <div className="p-8 text-sm text-center text-[var(--text-muted)]">{t('settings.help_support.loading', 'Loading…')}</div>
                     ) : threads.length === 0 ? (
-                        <div className="p-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>
+                        <div className="p-8 text-sm text-center text-[var(--text-muted)]">
                             {t('settings.help_support.empty_prefix', 'No conversations yet. Click')} <strong>{t('settings.help_support.new_question', 'New question')}</strong> {t('settings.help_support.empty_suffix', 'to ask Bee Flow something — the AI will reply within seconds.')}
                         </div>
                     ) : threads.map(th => (
                         <button
                             key={th.id}
                             onClick={() => { setActiveId(th.id); setView('detail'); }}
-                            className="w-full text-left px-4 py-3 border-b last:border-b-0 hover:bg-[var(--bg-tertiary)]"
-                            style={{ borderColor: 'var(--border-default)' }}
+                            className="w-full text-left px-4 py-3 border-b last:border-b-0 hover:bg-[var(--bg-tertiary)] border-[var(--border-default)]"
                         >
-                            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{th.subject}</div>
-                            <div className="text-xs mt-0.5 flex items-center justify-between" style={{ color: 'var(--text-muted)' }}>
+                            <div className="text-sm font-medium text-[var(--text-primary)]">{th.subject}</div>
+                            <div className="text-xs mt-0.5 flex items-center justify-between text-[var(--text-muted)]">
                                 <span>{STATUS_LABELS[th.status] || th.status}</span>
                                 <span>{formatRelative(th.last_message_at)}</span>
                             </div>
                             {(th.requester_org_role || th.requester_org_name) && (
-                                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                                    {t('settings.help_support.posted_as', 'Posted as')} <strong style={{ color: 'var(--text-secondary)' }}>{th.requester_org_role || 'member'}</strong>
+                                <div className="text-xs mt-1 text-[var(--text-muted)]">
+                                    {t('settings.help_support.posted_as', 'Posted as')} <strong className="text-[var(--text-secondary)]">{th.requester_org_role || 'member'}</strong>
                                     {th.requester_org_name ? ` ${t('settings.help_support.posted_at', 'at {org}', { org: th.requester_org_name })}` : ''}
                                 </div>
                             )}
@@ -143,13 +141,12 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
             )}
 
             {view === 'new' && (
-                <div className="rounded-xl border overflow-hidden"
-                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
-                    <div className="px-4 py-2 border-b flex items-center gap-2" style={{ borderColor: 'var(--border-default)' }}>
-                        <button onClick={() => setView('list')} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>
+                <div className="rounded-xl border overflow-hidden border-[var(--border-default)] bg-[var(--bg-card)]">
+                    <div className="px-4 py-2 border-b flex items-center gap-2 border-[var(--border-default)]">
+                        <button onClick={() => setView('list')} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                             <ArrowLeft className="w-4 h-4" />
                         </button>
-                        <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('settings.help_support.new_question', 'New question')}</div>
+                        <div className="text-sm font-medium text-[var(--text-primary)]">{t('settings.help_support.new_question', 'New question')}</div>
                     </div>
                     <NewThreadForm
                         onCancel={() => setView('list')}
@@ -163,8 +160,7 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
             )}
 
             {view === 'detail' && activeId && (
-                <div className="rounded-xl border overflow-hidden h-[640px] max-h-[80vh] flex flex-col"
-                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                <div className="rounded-xl border overflow-hidden h-[640px] max-h-[80vh] flex flex-col border-[var(--border-default)] bg-[var(--bg-card)]">
                     <ThreadDetail
                         threadId={activeId}
                         onBack={() => { setView('list'); fetchMine(); }}

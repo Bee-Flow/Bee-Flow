@@ -101,7 +101,7 @@ export default function AppearanceSection() {
             {isGlassPreset && (
                 <section>
                     <SectionLabel>{t('settings.appearance.mood', 'Mood')}</SectionLabel>
-                    <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs mb-3 text-[var(--text-muted)]">
                         {t('settings.appearance.mood_hint', 'The colour palette behind glass surfaces.')}
                     </p>
                     <WallpaperPresets
@@ -122,8 +122,7 @@ function labelForPreset(id) {
 function SectionLabel({ children }) {
     return (
         <h3
-            className="text-xs font-semibold uppercase tracking-wider mb-3"
-            style={{ color: 'var(--text-muted)' }}
+            className="text-xs font-semibold uppercase tracking-wider mb-3 text-[var(--text-muted)]"
         >
             {children}
         </h3>

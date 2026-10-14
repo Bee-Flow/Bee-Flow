@@ -55,7 +55,7 @@ export default function TopicsTab({ model, colorFor, onSeek, t }) {
                                     title={t('meeting_notes.insights_jump', 'Jump to this moment')}
                                 />
                                 {c.topSpeakerId && (
-                                    <div className="ml-[7.5rem] flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                    <div className="ml-[7.5rem] flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colorFor(c.topSpeakerId) }} />
                                         <span className="truncate">
                                             {t('meeting_notes.insights_driven_by', 'Mostly {name}')

@@ -69,7 +69,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                 className="w-full rounded-2xl border shadow-2xl overflow-hidden flex flex-col"
                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', maxHeight: '70vh' }}
             >
-                <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]">
                     <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                     <input
                         ref={inputRef}
@@ -87,7 +87,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                 </div>
                 <div id="bf-cmd-list" role="listbox" className="flex-1 overflow-y-auto custom-scrollbar py-1">
                     {filtered.length === 0 && (
-                        <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>{emptyText}</div>
+                        <div className="px-4 py-6 text-center text-xs text-[var(--text-tertiary)]">{emptyText}</div>
                     )}
                     {filtered.map((cmd, i) => {
                         const showGroup = cmd.group && cmd.group !== lastGroup;
@@ -97,7 +97,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                         return (
                             <React.Fragment key={cmd.id}>
                                 {showGroup && (
-                                    <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                                    <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                                         {cmd.group}
                                     </div>
                                 )}
@@ -112,7 +112,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                                 >
                                     {Icon && <Icon className="w-4 h-4 shrink-0" strokeWidth={2} style={{ color: 'var(--text-secondary)' }} />}
                                     <span className="flex-1 truncate">{cmd.label}</span>
-                                    {cmd.hint && <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{cmd.hint}</span>}
+                                    {cmd.hint && <span className="text-[10px] text-[var(--text-tertiary)]">{cmd.hint}</span>}
                                     {active && <CornerDownLeft className="w-3 h-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />}
                                 </button>
                             </React.Fragment>

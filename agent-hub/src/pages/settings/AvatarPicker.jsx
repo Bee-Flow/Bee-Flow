@@ -110,14 +110,12 @@ const AvatarPicker = ({ user, onSaved }) => {
                             />
                             <button onClick={() => customEmoji.trim() && pickEmoji(customEmoji.trim())} type="button"
                                 disabled={!customEmoji.trim() || saving}
-                                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40"
-                                style={{ background: 'var(--accent-primary)' }}>{t('settings.avatar.use', 'Use')}</button>
+                                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]">{t('settings.avatar.use', 'Use')}</button>
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex gap-1.5">
                                 <button onClick={() => fileRef.current?.click()} type="button"
-                                    className="text-xs px-2.5 py-1 rounded-md transition-colors"
-                                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{t('settings.avatar.upload_image', '📁 Upload image')}</button>
+                                    className="text-xs px-2.5 py-1 rounded-md transition-colors bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{t('settings.avatar.upload_image', '📁 Upload image')}</button>
                                 {user?.avatar && (
                                     <button onClick={removeAvatar} type="button" disabled={saving}
                                         className="text-xs px-2.5 py-1 rounded-md transition-colors hover:bg-red-500/10"
@@ -125,8 +123,7 @@ const AvatarPicker = ({ user, onSaved }) => {
                                 )}
                             </div>
                             <button onClick={() => setOpen(false)} type="button"
-                                className="text-xs px-2.5 py-1 rounded-md hover:bg-[var(--bg-tertiary)] transition-colors"
-                                style={{ color: 'var(--text-muted)' }}>{t('settings.avatar.done', 'Done')}</button>
+                                className="text-xs px-2.5 py-1 rounded-md hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)]">{t('settings.avatar.done', 'Done')}</button>
                         </div>
                         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                     </div>

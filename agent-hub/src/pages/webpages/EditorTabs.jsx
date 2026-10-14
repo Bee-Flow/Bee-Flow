@@ -67,8 +67,7 @@ export default function EditorTabs({ openFiles, activeKey, onSelect, onClose, di
                             <span>{label}</span>
                             {isDirty && (
                                 <span
-                                    className="w-2 h-2 rounded-full"
-                                    style={{ background: 'var(--vsc-fg-muted)' }}
+                                    className="w-2 h-2 rounded-full bg-[var(--vsc-fg-muted)]"
                                     title={t('webpages.tabs_unsaved', 'Unsaved')}
                                 />
                             )}

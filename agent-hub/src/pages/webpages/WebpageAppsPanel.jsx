@@ -54,7 +54,7 @@ function StatusPill({ available }) {
         );
     }
     return (
-        <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+        <span className="inline-flex items-center gap-1 text-[10px] text-[var(--vsc-fg-muted)]">
             <HelpCircle size={11} /> {t('webpages.apps.status_unknown', 'Status unknown')}
         </span>
     );
@@ -70,8 +70,7 @@ function ConnectLink({ webpageId, children }) {
     return (
         <a
             href={connectHref(webpageId)}
-            className="underline underline-offset-2"
-            style={{ color: 'var(--vsc-accent)' }}
+            className="underline underline-offset-2 text-[var(--vsc-accent)]"
         >
             {children || t('webpages.apps.connect_first', 'Connect it first')}
         </a>
@@ -144,9 +143,9 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
     const selectStyle = { background: 'var(--vsc-editor-bg)', borderColor: 'var(--vsc-border)', color: 'var(--vsc-fg)' };
 
     return (
-        <div className="flex flex-col gap-2 p-2 rounded border" style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)' }}>
+        <div className="flex flex-col gap-2 p-2 rounded border border-[var(--vsc-border)] bg-[var(--vsc-editor-bg)]">
             <label className="flex flex-col gap-1">
-                <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.field_app', 'App')}</span>
+                <span className="text-[11px] text-[var(--vsc-fg-muted)]">{t('webpages.apps.field_app', 'App')}</span>
                 <select
                     className={selectCls}
                     style={selectStyle}
@@ -184,7 +183,7 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
                     </span>
                 </p>
             ) : app && app.available !== true ? (
-                <p className="text-[11px] flex items-start gap-1.5" style={{ color: 'var(--vsc-fg-muted)' }} data-testid="app-status-unknown">
+                <p className="text-[11px] flex items-start gap-1.5 text-[var(--vsc-fg-muted)]" data-testid="app-status-unknown">
                     <HelpCircle size={12} className="mt-0.5 shrink-0" />
                     <span>
                         {t('webpages.apps.app_status_unknown',
@@ -194,7 +193,7 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
                 </p>
             ) : null}
             <label className="flex flex-col gap-1">
-                <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.field_what', 'What it may do')}</span>
+                <span className="text-[11px] text-[var(--vsc-fg-muted)]">{t('webpages.apps.field_what', 'What it may do')}</span>
                 <select
                     className={selectCls}
                     style={selectStyle}
@@ -212,7 +211,7 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
                 </select>
             </label>
             <label className="flex flex-col gap-1">
-                <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.field_label', 'Label (optional)')}</span>
+                <span className="text-[11px] text-[var(--vsc-fg-muted)]">{t('webpages.apps.field_label', 'Label (optional)')}</span>
                 <input
                     className={selectCls}
                     style={selectStyle}
@@ -223,7 +222,7 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
                 />
             </label>
             <label className="flex flex-col gap-1">
-                <span className="text-[11px] inline-flex items-center gap-1" style={{ color: 'var(--vsc-fg-muted)' }}>
+                <span className="text-[11px] inline-flex items-center gap-1 text-[var(--vsc-fg-muted)]">
                     <Lock size={11} /> {t('webpages.apps.field_pinned', 'Pinned arguments (optional JSON)')}
                 </span>
                 <textarea
@@ -234,7 +233,7 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
                     placeholder={t('webpages.apps.ph_pinned', '{ "channel": "#general" }')}
                     spellCheck={false}
                 />
-                <span className="text-[10px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                <span className="text-[10px] text-[var(--vsc-fg-muted)]">
                     {t('webpages.apps.pinned_hint', 'Pinned values always win over what the page sends — pin anything a visitor must not choose (recipient, channel, sheet id).')}
                 </span>
                 {fixedArgsError ? <span className="text-[10px]" style={{ color: '#ef4444' }}>{fixedArgsError}</span> : null}
@@ -248,8 +247,7 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
                 type="button"
                 onClick={submit}
                 disabled={!tool || submitting}
-                className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium text-white disabled:opacity-50"
-                style={{ background: 'var(--vsc-accent)' }}
+                className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium text-white disabled:opacity-50 bg-[var(--vsc-accent)]"
             >
                 {submitting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                 {t('webpages.apps.add_to_page', 'Add to page')}
@@ -287,7 +285,7 @@ function AddAutomationForm({ webpageId, automations, onGranted, onError }) {
     return (
         <div className="flex items-end gap-2">
             <label className="flex flex-col gap-1 flex-1">
-                <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.field_automation', 'Automation')}</span>
+                <span className="text-[11px] text-[var(--vsc-fg-muted)]">{t('webpages.apps.field_automation', 'Automation')}</span>
                 <select
                     className="w-full px-2 py-1.5 rounded text-[12px] border outline-none"
                     style={{ background: 'var(--vsc-editor-bg)', borderColor: 'var(--vsc-border)', color: 'var(--vsc-fg)' }}
@@ -307,8 +305,7 @@ function AddAutomationForm({ webpageId, automations, onGranted, onError }) {
                 type="button"
                 onClick={submit}
                 disabled={!automationId || submitting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium text-white disabled:opacity-50"
-                style={{ background: 'var(--vsc-accent)' }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium text-white disabled:opacity-50 bg-[var(--vsc-accent)]"
             >
                 {submitting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                 {t('common.add', 'Add')}
@@ -397,7 +394,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
 
     if (readOnly) {
         return (
-            <div className="p-3 text-[12px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+            <div className="p-3 text-[12px] text-[var(--vsc-fg-muted)]">
                 {t('webpages.apps.owner_only', 'Only the page owner can manage the apps and automations this page may use.')}
             </div>
         );
@@ -407,9 +404,9 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
     const grantedAutomations = grants?.automations || [];
 
     return (
-        <div className="flex flex-col h-full overflow-y-auto p-2 gap-3 text-[12px]" style={{ color: 'var(--vsc-fg)' }}>
+        <div className="flex flex-col h-full overflow-y-auto p-2 gap-3 text-[12px] text-[var(--vsc-fg)]">
             <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)' }}>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--vsc-fg-muted)]">
                     {t('webpages.apps.title', 'Apps & data')}
                 </span>
                 <button
@@ -417,14 +414,13 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                     onClick={load}
                     title={t('webpages.refresh', 'Refresh')}
                     aria-label={t('webpages.apps.refresh_aria', 'Refresh apps and grants')}
-                    className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
-                    style={{ color: 'var(--vsc-fg-muted)' }}
+                    className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] text-[var(--vsc-fg-muted)]"
                 >
                     <RefreshCw size={13} />
                 </button>
             </div>
 
-            <p className="text-[11px] -mt-1" style={{ color: 'var(--vsc-fg-muted)' }}>
+            <p className="text-[11px] -mt-1 text-[var(--vsc-fg-muted)]">
                 {t('webpages.apps.subtitle', 'What this page may call, running as you. Visitors never need their own accounts.')}
             </p>
 
@@ -443,14 +439,14 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
             ) : null}
 
             {loading ? (
-                <p className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                <p className="inline-flex items-center gap-1.5 text-[11px] text-[var(--vsc-fg-muted)]">
                     <Loader2 size={12} className="animate-spin" /> {t('webpages.sources.loading', 'Loading…')}
                 </p>
             ) : (
                 <>
                     {/* Granted integrations */}
                     <section className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.section_apps', 'Apps')}</span>
+                        <span className="text-[11px] font-medium text-[var(--vsc-fg-muted)]">{t('webpages.apps.section_apps', 'Apps')}</span>
                         {grantedIntegrations.length === 0 ? (
                             // `grants` blijft null als de lezing omviel, en dan
                             // is deze lijst leeg zonder dat er iets geteld is.
@@ -465,15 +461,14 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                         ) : grantedIntegrations.map(g => (
                             <div
                                 key={g.tool}
-                                className="group flex items-center gap-2 px-2 py-1.5 rounded border"
-                                style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)' }}
+                                className="group flex items-center gap-2 px-2 py-1.5 rounded border border-[var(--vsc-border)] bg-[var(--vsc-editor-bg)]"
                             >
                                 <Plug size={13} className="shrink-0" style={{ color: 'var(--vsc-fg-muted)' }} />
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate" title={g.tool}>
                                         {g.label || (g.tool || '').replace(/_/g, ' ')}
                                         {g.integrationLabel ? (
-                                            <span style={{ color: 'var(--vsc-fg-muted)' }}> · {g.integrationLabel}</span>
+                                            <span className="text-[var(--vsc-fg-muted)]"> · {g.integrationLabel}</span>
                                         ) : null}
                                         {g.hasFixedArgs ? (
                                             <Lock size={10} className="inline ml-1 -mt-0.5" aria-label={t('webpages.apps.has_pinned', 'Has pinned arguments')} />
@@ -501,8 +496,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                                     type="button"
                                     onClick={() => setAdding(null)}
                                     aria-label={t('common.close', 'Close')}
-                                    className="absolute right-1 top-1 p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
-                                    style={{ color: 'var(--vsc-fg-muted)' }}
+                                    className="absolute right-1 top-1 p-1 rounded hover:bg-[var(--vsc-hover-bg)] text-[var(--vsc-fg-muted)]"
                                 >
                                     <X size={12} />
                                 </button>
@@ -519,14 +513,13 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                                 onClick={() => setAdding('app')}
                                 disabled={catalogFailed && !catalog}
                                 title={catalogFailed ? t('webpages.apps.catalog_failed_title', 'The app catalog could not be loaded') : undefined}
-                                className="self-start inline-flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed text-[11px] disabled:opacity-50"
-                                style={{ borderColor: 'var(--vsc-border)', color: 'var(--vsc-fg-muted)' }}
+                                className="self-start inline-flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed text-[11px] disabled:opacity-50 border-[var(--vsc-border)] text-[var(--vsc-fg-muted)]"
                             >
                                 <AppWindow size={12} /> {t('webpages.apps.add_app', 'Add an app')}
                             </button>
                         )}
                         {catalogFailed ? (
-                            <p className="text-[10px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                            <p className="text-[10px] text-[var(--vsc-fg-muted)]">
                                 {t('webpages.apps.catalog_failed', "Your app catalog couldn't be loaded (automations may be off for your plan). Refresh to try again.")}
                             </p>
                         ) : null}
@@ -534,7 +527,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
 
                     {/* Granted automations */}
                     <section className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.section_automations', 'Automations')}</span>
+                        <span className="text-[11px] font-medium text-[var(--vsc-fg-muted)]">{t('webpages.apps.section_automations', 'Automations')}</span>
                         {grantedAutomations.length === 0 ? (
                             <p className="text-[11px]" style={{ color: grants ? 'var(--vsc-fg-muted)' : '#d97706' }} data-testid="automations-empty">
                                 {grants
@@ -544,8 +537,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                         ) : grantedAutomations.map(g => (
                             <div
                                 key={g.automationId}
-                                className="group flex items-center gap-2 px-2 py-1.5 rounded border"
-                                style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)' }}
+                                className="group flex items-center gap-2 px-2 py-1.5 rounded border border-[var(--vsc-border)] bg-[var(--vsc-editor-bg)]"
                             >
                                 <Workflow size={13} className="shrink-0" style={{ color: 'var(--vsc-fg-muted)' }} />
                                 <span className="min-w-0 flex-1 truncate" title={g.automationId}>
@@ -568,8 +560,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                                     type="button"
                                     onClick={() => setAdding(null)}
                                     aria-label={t('common.close', 'Close')}
-                                    className="absolute right-1 -top-1 p-1 rounded hover:bg-[var(--vsc-hover-bg)] z-10"
-                                    style={{ color: 'var(--vsc-fg-muted)' }}
+                                    className="absolute right-1 -top-1 p-1 rounded hover:bg-[var(--vsc-hover-bg)] z-10 text-[var(--vsc-fg-muted)]"
                                 >
                                     <X size={12} />
                                 </button>
@@ -584,8 +575,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                             <button
                                 type="button"
                                 onClick={() => setAdding('automation')}
-                                className="self-start inline-flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed text-[11px]"
-                                style={{ borderColor: 'var(--vsc-border)', color: 'var(--vsc-fg-muted)' }}
+                                className="self-start inline-flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed text-[11px] border-[var(--vsc-border)] text-[var(--vsc-fg-muted)]"
                             >
                                 <Workflow size={12} /> {t('webpages.apps.add_automation', 'Add an automation')}
                             </button>

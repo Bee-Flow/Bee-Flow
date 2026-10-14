@@ -144,7 +144,7 @@ function WaveformHoverChip({ hover, duration, segments, colorMap }) {
         <PlayerTooltip x={hover?.x || 0} containerWidth={hover?.width || 0} visible={!!hover}>
             {hover && (
                 <>
-                    <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
+                    <span className="font-mono text-[var(--text-muted)]">
                         {formatDuration(hover.frac * duration)}
                     </span>
                     {hoverSpeaker && (
@@ -157,7 +157,7 @@ function WaveformHoverChip({ hover, duration, segments, colorMap }) {
                         </div>
                     )}
                     {hoverSegment?.text && (
-                        <div className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="line-clamp-2 text-[var(--text-secondary)]">
                             {hoverSegment.text}
                         </div>
                     )}
@@ -187,8 +187,7 @@ function PlayheadOverlay({ hoverFrac, progress, visible }) {
                     style={{ left: `${progress * 100}%`, background: 'var(--accent-primary)' }}
                 >
                     <div
-                        className="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]"
                     />
                 </div>
             )}

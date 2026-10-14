@@ -199,8 +199,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-3 py-1.5 rounded-lg text-sm"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="px-3 py-1.5 rounded-lg text-sm text-[var(--text-secondary)]"
                     >
                         {t('common.cancel', 'Cancel')}
                     </button>
@@ -208,8 +207,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                         type="button"
                         onClick={handleSave}
                         disabled={!isDirty || saving}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         {t('meeting_notes.save_speaker_changes', 'Save changes')}
@@ -220,11 +218,11 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
             <div className="flex flex-col gap-2">
                 {onAutoDetect && rows.length > 0 && (
                     <div className="rounded-lg border p-3 mb-1" style={{ background: 'color-mix(in srgb, var(--accent-primary) 5%, var(--bg-secondary))', borderColor: 'var(--border-default)' }}>
-                        <div className="flex items-center gap-1.5 text-[13px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                        <div className="flex items-center gap-1.5 text-[13px] font-semibold mb-1 text-[var(--text-primary)]">
                             <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
                             {t('meeting_notes.speaker_autodetect', 'Auto-detect names')}
                         </div>
-                        <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[11px] mb-2 text-[var(--text-muted)]">
                             {t('meeting_notes.speaker_autodetect_desc', 'Let AI map the speakers to real names using the transcript. Add who was in the meeting to make it reliable.')}
                         </p>
                         <div className="flex items-center gap-2">
@@ -239,8 +237,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                                 type="button"
                                 onClick={handleAutoDetect}
                                 disabled={autoDetecting}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 whitespace-nowrap"
-                                style={{ background: 'var(--accent-primary)' }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 whitespace-nowrap bg-[var(--accent-primary)]"
                             >
                                 {autoDetecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                                 {t('meeting_notes.speaker_detect', 'Detect')}
@@ -249,7 +246,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                     </div>
                 )}
                 {rows.length === 0 && (
-                    <div className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-sm text-center py-6 text-[var(--text-muted)]">
                         {t('meeting_notes.speaker_none', 'No speakers yet.')}
                     </div>
                 )}
@@ -260,8 +257,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                     return (
                         <div
                             key={row.targetId}
-                            className="flex items-center gap-3 px-3 py-2 rounded-lg border"
-                            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
                         >
                             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                             <input
@@ -271,7 +267,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                                 className="flex-1 min-w-0 px-2 py-1 rounded text-sm border outline-none"
                                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
                             />
-                            <span className="text-[11px] tabular-nums whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-[11px] tabular-nums whitespace-nowrap text-[var(--text-muted)]">
                                 {formatSec(row.speakingSeconds)}
                             </span>
                             {merged ? (
@@ -333,16 +329,14 @@ function MergeSelect({ others, onPick }) {
             </button>
             {open && (
                 <div
-                    className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg shadow-lg border overflow-hidden"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                    className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg shadow-lg border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]"
                 >
                     {others.map(o => (
                         <button
                             key={o.targetId}
                             type="button"
                             onClick={() => { onPick(o.targetId); setOpen(false); }}
-                            className="w-full px-3 py-1.5 text-left text-xs hover:bg-[var(--bg-tertiary)] truncate"
-                            style={{ color: 'var(--text-primary)' }}
+                            className="w-full px-3 py-1.5 text-left text-xs hover:bg-[var(--bg-tertiary)] truncate text-[var(--text-primary)]"
                         >
                             {o.name || formatSpeakerLabel(o.targetId)}
                         </button>

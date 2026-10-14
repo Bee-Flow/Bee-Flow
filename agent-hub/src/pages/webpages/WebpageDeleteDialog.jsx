@@ -154,7 +154,7 @@ function DeleteNotice({ t, hasFindings, unchecked, unreadable }) {
     return (
         <div className="space-y-2" data-testid="webpage-delete-notice">
             {hasFindings ? (
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }} data-testid="webpage-delete-does-not-stop">
+                <p className="text-xs text-[var(--text-secondary)]" data-testid="webpage-delete-does-not-stop">
                     {t('webpages.delete.does_not_stop',
                         'Deleting is not announced and not undone. What points at this page keeps pointing at a page that is gone; what lives on the page goes with it.')}
                 </p>
@@ -162,20 +162,20 @@ function DeleteNotice({ t, hasFindings, unchecked, unreadable }) {
                 // Nothing was FOUND — which is not the same as nothing being
                 // there. Claiming "these things use it" over an empty list
                 // would claim a scan succeeded that did not.
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }} data-testid="webpage-delete-unknown">
+                <p className="text-xs text-[var(--text-secondary)]" data-testid="webpage-delete-unknown">
                     {t('webpages.delete.unknown_intro',
                         'The check did not finish, so what still uses this page is unknown. Deleting now is a decision made without that answer.')}
                 </p>
             )}
             {unchecked.length > 0 && (
-                <p className="text-xs" style={{ color: 'var(--warning)' }} data-testid="webpage-delete-unchecked">
+                <p className="text-xs text-[var(--warning)]" data-testid="webpage-delete-unchecked">
                     {t('webpages.delete.unchecked',
                         'Could not be checked: {kinds}. Treat this list as incomplete, not as “nothing uses this page”.',
                         { kinds: unchecked.map((k) => kindLabelFor(t, k, 2)).join(', ') })}
                 </p>
             )}
             {unreadable && (
-                <p className="text-xs" style={{ color: 'var(--warning)' }} data-testid="webpage-delete-unreadable">
+                <p className="text-xs text-[var(--warning)]" data-testid="webpage-delete-unreadable">
                     {t('webpages.delete.unreadable',
                         'The check did not answer at all, so nothing below is a complete list.')}
                 </p>

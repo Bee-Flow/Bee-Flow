@@ -35,7 +35,7 @@ export default function FlowTab({ model, colorFor, onSeek, t }) {
                         onSeek={onSeek}
                         formatTitle={(p) => `${windowLabel(p.start)} · ${p.value} ${t('meeting_notes.insights_switches', 'switches')}`}
                     />
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] text-[var(--text-muted)]">
                         {interactivity.switches} {t('meeting_notes.insights_switches', 'switches')} ·{' '}
                         {interactivity.switchesPerMinute.toFixed(1)}/{t('meeting_notes.insights_per_minute', 'min')}
                     </p>

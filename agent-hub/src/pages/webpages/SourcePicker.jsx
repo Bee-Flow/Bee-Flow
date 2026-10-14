@@ -91,7 +91,7 @@ export default function SourcePicker({ value = [], onChange, disabled = false })
             >
                 <Table size={13} aria-hidden="true" style={{ color: kindColorVar('datatable') }} />
                 {t('webpages.build.pick_source', 'Pick a source')}
-                {count > 0 && <span className="tabular-nums" style={{ color: 'var(--text-primary)' }}>{count}</span>}
+                {count > 0 && <span className="tabular-nums text-[var(--text-primary)]">{count}</span>}
                 <ChevronDown size={12} aria-hidden="true" className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
             </button>
 
@@ -123,7 +123,7 @@ export default function SourcePicker({ value = [], onChange, disabled = false })
 function PickerBody({ t, loading, error, tables, automations, isPicked, onToggle }) {
     if (loading) {
         return (
-            <div className="px-3 py-2 text-xs flex items-center gap-2" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="px-3 py-2 text-xs flex items-center gap-2 text-[var(--text-tertiary)]">
                 <Loader2 size={13} className="animate-spin" aria-hidden="true" />
                 {t('webpages.sources.loading', 'Loading…')}
             </div>
@@ -131,7 +131,7 @@ function PickerBody({ t, loading, error, tables, automations, isPicked, onToggle
     }
     if (error) {
         return (
-            <div className="px-3 py-2 text-xs" style={{ color: 'var(--error-ink)' }} role="alert">
+            <div className="px-3 py-2 text-xs text-[var(--error-ink)]" role="alert">
                 {t('webpages.sources.error', 'Could not load your tables and automations.')}
             </div>
         );
@@ -140,7 +140,7 @@ function PickerBody({ t, loading, error, tables, automations, isPicked, onToggle
     const automationItems = (automations || []).map(x => ({ id: x.id, name: x.title || x.id }));
     if (!tableItems.length && !automationItems.length) {
         return (
-            <div className="px-3 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="px-3 py-2 text-xs text-[var(--text-tertiary)]">
                 {t('webpages.sources.empty', 'No tables or automations to pick yet.')}
             </div>
         );
@@ -172,8 +172,7 @@ function Group({ label, kind, items, isPicked, onToggle }) {
     return (
         <>
             <div
-                className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wide"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]"
             >
                 {label}
             </div>

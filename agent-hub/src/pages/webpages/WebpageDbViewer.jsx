@@ -102,11 +102,11 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
     const sel = tables.find(tbl => tbl.name === selected);
 
     return (
-        <div className="flex h-full" style={{ color: 'var(--vsc-fg)' }}>
+        <div className="flex h-full text-[var(--vsc-fg)]">
             {/* Left: table list */}
             <div className="shrink-0 border-r overflow-y-auto" style={{ width: 220, borderColor: 'var(--vsc-border)' }}>
-                <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: 'var(--vsc-border)' }}>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)' }}>
+                <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vsc-border)]">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--vsc-fg-muted)]">
                         {unreadable && tables.length === 0
                             ? t('webpages.db.tables_unreadable_count', 'Tables (?)')
                             : t('webpages.db.tables_count', 'Tables ({count})', { count: tables.length })}
@@ -169,7 +169,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             className="w-full px-2 py-1.5 mb-3 text-[12px] rounded border outline-none"
                             style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
                         />
-                        <div className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.db.columns', 'Columns')}</div>
+                        <div className="text-[11px] uppercase tracking-wider mb-1 text-[var(--vsc-fg-muted)]">{t('webpages.db.columns', 'Columns')}</div>
                         <div className="space-y-1.5 mb-3">
                             {cols.map((c, i) => (
                                 <div key={i} className="flex items-center gap-1.5">
@@ -192,17 +192,17 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                                         <option>BLOB</option>
                                         <option>NUMERIC</option>
                                     </select>
-                                    <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                                    <label className="flex items-center gap-1 text-[11px] text-[var(--vsc-fg-muted)]">
                                         <input type="checkbox" checked={!!c.pk} onChange={e => updateCol(i, { pk: e.target.checked })} /> {t('webpages.db.pk', 'PK')}
                                     </label>
-                                    <label className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                                    <label className="flex items-center gap-1 text-[11px] text-[var(--vsc-fg-muted)]">
                                         <input type="checkbox" checked={!!c.notnull} onChange={e => updateCol(i, { notnull: e.target.checked })} /> {t('webpages.db.not_null', 'NOT NULL')}
                                     </label>
                                     <button onClick={() => removeCol(i)} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('common.remove', 'Remove')}><Trash2 size={12} /></button>
                                 </div>
                             ))}
                         </div>
-                        <button onClick={addCol} className="text-[11px] mb-3" style={{ color: 'var(--vsc-accent)' }}>{t('webpages.db.add_column', '+ Add column')}</button>
+                        <button onClick={addCol} className="text-[11px] mb-3 text-[var(--vsc-accent)]">{t('webpages.db.add_column', '+ Add column')}</button>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleCreate}
@@ -212,7 +212,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             >
                                 {submitting ? t('webpages.db.creating', 'Creating…') : t('webpages.create', 'Create')}
                             </button>
-                            <button onClick={() => setCreating(false)} className="px-3 py-1.5 rounded text-[12px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('common.cancel', 'Cancel')}</button>
+                            <button onClick={() => setCreating(false)} className="px-3 py-1.5 rounded text-[12px] text-[var(--vsc-fg-muted)]">{t('common.cancel', 'Cancel')}</button>
                         </div>
                     </div>
                 ) : sel ? (
@@ -247,10 +247,10 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                                             {c.primaryKey && <KeyRound size={11} className="inline mr-1" style={{ color: '#eab308' }} />}
                                             {c.name}
                                         </td>
-                                        <td className="py-1.5 pr-3" style={{ color: 'var(--vsc-fg-muted)' }}>{c.type || '—'}</td>
+                                        <td className="py-1.5 pr-3 text-[var(--vsc-fg-muted)]">{c.type || '—'}</td>
                                         <td className="py-1.5 pr-3">{c.primaryKey ? '✓' : ''}</td>
                                         <td className="py-1.5 pr-3">{c.notNull ? '✓' : ''}</td>
-                                        <td className="py-1.5 pr-3 font-mono" style={{ color: 'var(--vsc-fg-muted)' }}>{c.defaultValue ?? ''}</td>
+                                        <td className="py-1.5 pr-3 font-mono text-[var(--vsc-fg-muted)]">{c.defaultValue ?? ''}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -260,7 +260,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                         )}
                     </div>
                 ) : (
-                    <div className="text-[12px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.db.select_table', 'Select a table on the left, or click + to create one.')}</div>
+                    <div className="text-[12px] text-[var(--vsc-fg-muted)]">{t('webpages.db.select_table', 'Select a table on the left, or click + to create one.')}</div>
                 )}
             </div>
             {confirmDialog}
@@ -408,8 +408,8 @@ function BrowseTab({ webpageId, schema, onError }) {
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
     return (
-        <div className="flex flex-col h-full" style={{ color: 'var(--vsc-fg)' }}>
-            <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0" style={{ borderColor: 'var(--vsc-border)' }}>
+        <div className="flex flex-col h-full text-[var(--vsc-fg)]">
+            <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0 border-[var(--vsc-border)]">
                 <Table2 size={14} style={{ color: 'var(--vsc-fg-muted)' }} />
                 <select
                     value={tableName || ''}
@@ -424,7 +424,7 @@ function BrowseTab({ webpageId, schema, onError }) {
                     <RefreshCw size={13} />
                 </button>
                 <div className="flex-1" />
-                <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                <span className="text-[11px] text-[var(--vsc-fg-muted)]">
                     {nOf(t, 'webpages.db.rows', total, '{count} row', '{count} rows')}
                 </span>
                 <button
@@ -435,7 +435,7 @@ function BrowseTab({ webpageId, schema, onError }) {
                 >
                     <ChevronLeft size={14} />
                 </button>
-                <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                <span className="text-[11px] text-[var(--vsc-fg-muted)]">
                     {page + 1} / {totalPages}
                 </span>
                 <button
@@ -457,15 +457,15 @@ function BrowseTab({ webpageId, schema, onError }) {
             </div>
 
             {inserting && tableMeta && (
-                <div className="shrink-0 border-b p-3" style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-sidebar-bg)' }}>
+                <div className="shrink-0 border-b p-3 border-[var(--vsc-border)] bg-[var(--vsc-sidebar-bg)]">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.db.new_row', 'New row')}</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--vsc-fg-muted)]">{t('webpages.db.new_row', 'New row')}</span>
                         <button onClick={() => setInserting(false)} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"><X size={12} /></button>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         {tableMeta.columns.map(c => (
                             <div key={c.name} className="flex flex-col">
-                                <label className="text-[10px] mb-0.5" style={{ color: 'var(--vsc-fg-muted)' }}>
+                                <label className="text-[10px] mb-0.5 text-[var(--vsc-fg-muted)]">
                                     {c.name} <span className="font-mono">{c.type}</span>{c.primaryKey ? ` · ${t('webpages.db.pk', 'PK')}` : ''}{c.notNull ? ` · ${t('webpages.db.not_null', 'NOT NULL')}` : ''}
                                 </label>
                                 <input
@@ -492,16 +492,16 @@ function BrowseTab({ webpageId, schema, onError }) {
                 {loading ? (
                     <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" /></div>
                 ) : !tableName ? (
-                    <div className="px-3 py-8 text-[12px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.db.no_table_selected', 'No table selected.')}</div>
+                    <div className="px-3 py-8 text-[12px] text-[var(--vsc-fg-muted)]">{t('webpages.db.no_table_selected', 'No table selected.')}</div>
                 ) : rows.length === 0 ? (
-                    <div className="px-3 py-8 text-[12px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.db.empty_table', 'Empty table.')}</div>
+                    <div className="px-3 py-8 text-[12px] text-[var(--vsc-fg-muted)]">{t('webpages.db.empty_table', 'Empty table.')}</div>
                 ) : (
                     <table className="w-full text-[12px]" style={{ borderCollapse: 'collapse', tableLayout: 'auto' }}>
                         <thead style={{ position: 'sticky', top: 0, background: 'var(--vsc-sidebar-bg)' }}>
                             <tr style={{ borderBottom: '1px solid var(--vsc-border)' }}>
-                                <th className="text-left px-2 py-1.5 font-mono" style={{ color: 'var(--vsc-fg-muted)' }}>rowid</th>
+                                <th className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">rowid</th>
                                 {dataColumns.map(c => (
-                                    <th key={c} className="text-left px-2 py-1.5 font-mono" style={{ color: 'var(--vsc-fg-muted)' }}>{c}</th>
+                                    <th key={c} className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">{c}</th>
                                 ))}
                                 <th style={{ width: 32 }}></th>
                             </tr>
@@ -509,7 +509,7 @@ function BrowseTab({ webpageId, schema, onError }) {
                         <tbody>
                             {rows.map((row, rowidx) => (
                                 <tr key={row.rowid ?? rowidx} className="hover:bg-[var(--vsc-hover-bg)]" style={{ borderBottom: '1px solid var(--vsc-border)' }}>
-                                    <td className="px-2 py-1 font-mono" style={{ color: 'var(--vsc-fg-muted)' }}>{row.rowid}</td>
+                                    <td className="px-2 py-1 font-mono text-[var(--vsc-fg-muted)]">{row.rowid}</td>
                                     {dataColumns.map(c => {
                                         const isEditing = editing && editing.rowidx === rowidx && editing.col === c;
                                         const v = row[c];
@@ -610,9 +610,9 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
     };
 
     return (
-        <div className="flex flex-col h-full" style={{ color: 'var(--vsc-fg)' }}>
-            <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0" style={{ borderColor: 'var(--vsc-border)' }}>
-                <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)' }}>
+        <div className="flex flex-col h-full text-[var(--vsc-fg)]">
+            <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0 border-[var(--vsc-border)]">
+                <span className="text-[11px] uppercase tracking-wider text-[var(--vsc-fg-muted)]">
                     {isSelect ? t('webpages.db.read_query', 'Read query') : t('webpages.db.write_ddl', 'Write / DDL')}
                 </span>
                 <div className="flex-1" />
@@ -637,7 +637,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
 
             <div className="flex-1 overflow-auto">
                 {!result ? (
-                    <div className="px-3 py-3 text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                    <div className="px-3 py-3 text-[11px] text-[var(--vsc-fg-muted)]">
                         {t('webpages.db.routing_hint', 'SELECT/WITH/PRAGMA → read query. Anything else (INSERT, CREATE, ALTER, …) → exec.')}
                     </div>
                 ) : result.error ? (
@@ -660,7 +660,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
                     </div>
                 ) : (
                     <div className="text-[12px]">
-                        <div className="px-3 py-1.5 text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                        <div className="px-3 py-1.5 text-[11px] text-[var(--vsc-fg-muted)]">
                             {result.truncated
                                 /* pluralKey i.p.v. nOf: de Engelse tekst bevat zelf haakjes, en de
                                    i18n-guard leest een helper-aanroep met /nOf\(([^()]*)\)/ — met
@@ -678,7 +678,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
                                 <thead style={{ position: 'sticky', top: 0, background: 'var(--vsc-sidebar-bg)' }}>
                                     <tr style={{ borderBottom: '1px solid var(--vsc-border)' }}>
                                         {result.columns.map(c => (
-                                            <th key={c} className="text-left px-2 py-1 font-mono" style={{ color: 'var(--vsc-fg-muted)' }}>{c}</th>
+                                            <th key={c} className="text-left px-2 py-1 font-mono text-[var(--vsc-fg-muted)]">{c}</th>
                                         ))}
                                     </tr>
                                 </thead>
@@ -697,15 +697,15 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
                                 </tbody>
                             </table>
                         ) : (
-                            <div className="px-3 py-3" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.db.no_rows', '(no rows)')}</div>
+                            <div className="px-3 py-3 text-[var(--vsc-fg-muted)]">{t('webpages.db.no_rows', '(no rows)')}</div>
                         )}
                     </div>
                 )}
             </div>
 
             {/* Danger zone */}
-            <div className="shrink-0 px-3 py-2 border-t flex items-center justify-between" style={{ borderColor: 'var(--vsc-border)' }}>
-                <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.db.danger_zone', 'Danger zone')}</span>
+            <div className="shrink-0 px-3 py-2 border-t flex items-center justify-between border-[var(--vsc-border)]">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--vsc-fg-muted)]">{t('webpages.db.danger_zone', 'Danger zone')}</span>
                 <button
                     onClick={handleReset}
                     disabled={resetting}
@@ -778,8 +778,8 @@ export default function WebpageDbViewer({ webpageId }) {
     ];
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}>
-            <div className="flex items-center shrink-0 border-b" style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-sidebar-bg)' }}>
+        <div className="flex flex-col h-full bg-[var(--vsc-editor-bg)] text-[var(--vsc-fg)]">
+            <div className="flex items-center shrink-0 border-b border-[var(--vsc-border)] bg-[var(--vsc-sidebar-bg)]">
                 {TABS.map(({ id, label, Icon }) => (
                     <button
                         key={id}
@@ -799,8 +799,7 @@ export default function WebpageDbViewer({ webpageId }) {
                 <button
                     onClick={loadSchema}
                     title={t('webpages.db.refresh_schema', 'Refresh schema')}
-                    className="flex items-center gap-1 px-2 py-1 mr-2 rounded text-[11px] hover:bg-[var(--vsc-hover-bg)]"
-                    style={{ color: 'var(--vsc-fg-muted)' }}
+                    className="flex items-center gap-1 px-2 py-1 mr-2 rounded text-[11px] hover:bg-[var(--vsc-hover-bg)] text-[var(--vsc-fg-muted)]"
                 >
                     <RefreshCw size={12} /> {t('webpages.refresh', 'Refresh')}
                 </button>

@@ -38,12 +38,11 @@ export default function AudioUnavailable({ audio, onRetry }) {
 
     return (
         <div
-            className="flex flex-col items-center justify-center gap-2 rounded-xl border px-4 py-6 text-center"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+            className="flex flex-col items-center justify-center gap-2 rounded-xl border px-4 py-6 text-center bg-[var(--bg-secondary)] border-[var(--border-default)]"
         >
             <AlertTriangle className="w-6 h-6" style={{ color: recoverable ? '#f59e0b' : '#ef4444' }} />
-            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</p>
-            <p className="text-xs max-w-md" style={{ color: 'var(--text-muted)' }}>{detail}</p>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{title}</p>
+            <p className="text-xs max-w-md text-[var(--text-muted)]">{detail}</p>
             {recoverable && onRetry && (
                 <button
                     type="button"
@@ -76,8 +75,7 @@ export function AudioNotBackedUp({ downloadUrl }) {
             {downloadUrl && (
                 <a
                     href={downloadUrl}
-                    className="inline-flex items-center gap-1 font-medium hover:underline"
-                    style={{ color: 'var(--accent-primary)' }}
+                    className="inline-flex items-center gap-1 font-medium hover:underline text-[var(--accent-primary)]"
                 >
                     <Download className="w-3.5 h-3.5" />
                     {t('chat.download', 'Download')}

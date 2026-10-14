@@ -54,12 +54,12 @@ const SignupStepAccount = ({
             ...(signupData.signupType === 'new' ? [[t('signup.review_privacy', 'Privacy Shield'), privacyLabel]] : []),
         ];
         return (
-            <div className="rounded-xl border p-4 space-y-2 text-sm" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}>
-                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>{t('signup.review_title', 'Review your details')}</p>
+            <div className="rounded-xl border p-4 space-y-2 text-sm border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                <p className="text-xs font-semibold mb-1 text-[var(--text-secondary)]">{t('signup.review_title', 'Review your details')}</p>
                 {rows.map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between gap-3">
-                        <span style={{ color: 'var(--text-muted)' }}>{k}</span>
-                        <span className="font-medium text-right truncate" style={{ color: 'var(--text-primary)' }}>{v}</span>
+                        <span className="text-[var(--text-muted)]">{k}</span>
+                        <span className="font-medium text-right truncate text-[var(--text-primary)]">{v}</span>
                     </div>
                 ))}
             </div>
@@ -133,16 +133,16 @@ const SignupStepAccount = ({
         return (
             <div className="space-y-4">
                 {embedded ? renderReview() : (
-                    <div className="p-3 rounded-lg border flex items-center gap-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+                    <div className="p-3 rounded-lg border flex items-center gap-3 border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                         {isConsumerOAuth
                             ? <User className="w-5 h-5 text-[var(--accent-primary)]" />
                             : <Building className="w-5 h-5 text-[var(--accent-primary)]" />
                         }
                         <div>
-                            <span className="text-sm font-medium block" style={{ color: 'var(--text-primary)' }}>
+                            <span className="text-sm font-medium block text-[var(--text-primary)]">
                                 {isConsumerOAuth ? t('signup.personal_account') : signupData.newOrgName}
                             </span>
-                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-xs text-[var(--text-muted)]">
                                 {isConsumerOAuth ? t('signup.personal_account_desc') : t('signup.new_org')}
                             </span>
                         </div>
@@ -215,13 +215,13 @@ const SignupStepAccount = ({
     return (
         <form onSubmit={handleSignup} className="space-y-4">
             {embedded ? renderReview() : (
-                <div className="p-3 rounded-lg border flex items-center gap-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+                <div className="p-3 rounded-lg border flex items-center gap-3 border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                     {contextIcon}
                     <div>
-                        <span className="text-sm font-medium block" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-sm font-medium block text-[var(--text-primary)]">
                             {contextTitle}
                         </span>
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-xs text-[var(--text-muted)]">
                             {contextSubtitle}
                         </span>
                     </div>

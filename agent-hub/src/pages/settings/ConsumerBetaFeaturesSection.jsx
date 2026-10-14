@@ -62,7 +62,7 @@ const ConsumerBetaFeaturesSection = () => {
                 {/* Shared paywall. A consumer on cloud can upgrade in two
                     clicks, so the CTA goes to /app/billing rather than sending
                     them out to the public pricing site to start over. */}
-                <div className="rounded-2xl border p-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="rounded-2xl border p-2 border-[var(--border-subtle)]">
                     <UpgradePrompt
                         requiredTier="enterprise"
                         feature="beta_features"
@@ -112,9 +112,9 @@ const ConsumerBetaFeaturesSection = () => {
                                 {pickBetaIcon(f.id || f.name)}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{f.name || f.id}</p>
+                                <p className="text-[13px] font-medium text-[var(--text-primary)]">{f.name || f.id}</p>
                                 {f.description && (
-                                    <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{f.description}</p>
+                                    <p className="text-[11px] truncate text-[var(--text-muted)]">{f.description}</p>
                                 )}
                             </div>
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>

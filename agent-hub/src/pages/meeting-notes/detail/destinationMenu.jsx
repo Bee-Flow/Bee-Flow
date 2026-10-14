@@ -205,7 +205,7 @@ export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddR
                 <Note>{t('meetings.dest_no_columns', 'This table has no column that can hold text.')}</Note>
             )}
             {!loading && columns.map((f) => (
-                <label key={f.key} className="flex items-center gap-2 px-3 py-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <label key={f.key} className="flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--text-secondary)]">
                     <span className="flex-1 min-w-0 truncate">{f.label || f.key}</span>
                     <select
                         value={mapping[f.key] || ''}
@@ -224,8 +224,7 @@ export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddR
                     type="button"
                     role="menuitem"
                     onClick={onAddRow}
-                    className="w-full text-left px-3 py-1.5 text-sm font-semibold hover:bg-[var(--bg-secondary)]"
-                    style={{ color: 'var(--accent-primary)' }}
+                    className="w-full text-left px-3 py-1.5 text-sm font-semibold hover:bg-[var(--bg-secondary)] text-[var(--accent-primary)]"
                 >
                     {t('meetings.dest_add_row', 'Add the row')}
                 </button>
@@ -240,8 +239,7 @@ export function BackRow({ t, onBack }) {
             type="button"
             role="menuitem"
             onClick={onBack}
-            className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-[var(--bg-secondary)]"
-            style={{ color: 'var(--text-tertiary)' }}
+            className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
         >
             <ArrowLeft className="w-3 h-3" aria-hidden="true" />
             {t('meetings.dest_back', 'Back')}
@@ -250,7 +248,7 @@ export function BackRow({ t, onBack }) {
 }
 
 export function Note({ children }) {
-    return <div className="px-3 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>{children}</div>;
+    return <div className="px-3 py-2 text-xs text-[var(--text-tertiary)]">{children}</div>;
 }
 
 export function MenuRow({ icon: Icon, kind, label, onClick, chevron = false, tone = null }) {
@@ -259,8 +257,7 @@ export function MenuRow({ icon: Icon, kind, label, onClick, chevron = false, ton
             type="button"
             role="menuitem"
             onClick={onClick}
-            className="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-[var(--bg-secondary)]"
-            style={{ color: 'var(--text-secondary)' }}
+            className="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
         >
             {Icon && (
                 <Icon

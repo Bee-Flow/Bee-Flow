@@ -125,7 +125,7 @@ export default function WebpagesList({
     };
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-primary)]">
             <StudioSectionHeader
                 kind="webpage"
                 title={t('webpages.title', 'Webpages')}
@@ -135,8 +135,7 @@ export default function WebpagesList({
                 statusChip={!loading && webpages.length > 0 ? (
                     <span
                         data-testid="studio-section-status"
-                        className="text-xs tabular-nums shrink-0"
-                        style={{ color: 'var(--text-tertiary)' }}
+                        className="text-xs tabular-nums shrink-0 text-[var(--text-tertiary)]"
                     >
                         {webpages.length}
                     </span>
@@ -298,7 +297,7 @@ function AllOptions({ t, open, onToggle, newName, onNewNameChange, creating, onC
                         {t('webpages.create', 'Create')}
                     </button>
                 </form>
-                <p className="pt-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="pt-1.5 text-[11px] text-[var(--text-tertiary)]">
                     {t('webpages.name_only_hint', 'Creates an empty page you can describe later in its chat.')}
                 </p>
             </div>
@@ -324,7 +323,7 @@ function ExampleCard({ t, onPick }) {
             }}
         >
             <LayoutTemplate size={22} aria-hidden="true" style={{ color: 'var(--text-tertiary)' }} />
-            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <div className="font-semibold text-[var(--text-primary)]">
                 {t('webpages.examples.title', 'Start from an example')}
             </div>
             <div className="text-[12px] leading-[17px]">
@@ -349,10 +348,10 @@ function EmptySearch({ t }) {
     return (
         <div className="flex flex-col items-center justify-center text-center py-20">
             <Search className="w-10 h-10 mb-3" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-            <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-base font-semibold mb-1 text-[var(--text-primary)]">
                 {t('webpages.empty.no_matches', 'No matches')}
             </h3>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm text-[var(--text-secondary)]">
                 {t('webpages.empty.try_another', 'Try a different search.')}
             </p>
         </div>

@@ -747,20 +747,20 @@ const LoginPage = ({ onLogin }) => {
             <div className="min-h-screen flex items-center justify-center p-4 relative"
                 style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
                 <div className="w-full max-w-md">
-                    <div className="rounded-2xl shadow-xl p-8 text-center" style={{ background: 'var(--bg-secondary)' }}>
-                        <div className="w-16 h-16 mx-auto mb-5 rounded-full flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+                    <div className="rounded-2xl shadow-xl p-8 text-center bg-[var(--bg-secondary)]">
+                        <div className="w-16 h-16 mx-auto mb-5 rounded-full flex items-center justify-center bg-[var(--bg-primary)]">
                             <MailCheck className="w-8 h-8" style={{ color: 'var(--accent-primary)' }} />
                         </div>
-                        <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                        <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">
                             {t('login.verify_title', 'Confirm your email address')}
                         </h2>
-                        <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-sm mb-1 text-[var(--text-secondary)]">
                             {verifyEmail
                                 ? t('login.verify_sent_to', 'We sent a confirmation link to')
                                 : t('login.verify_check_inbox', 'We sent you a confirmation link. Please check your inbox to activate your account.')}
                         </p>
-                        {verifyEmail && <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>{verifyEmail}</p>}
-                        <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>
+                        {verifyEmail && <p className="text-sm font-semibold mb-4 text-[var(--text-primary)]">{verifyEmail}</p>}
+                        <p className="text-xs mb-6 text-[var(--text-muted)]">
                             {t('login.verify_then_login', 'Click the link in the email, then log in. You can\'t log in until your email is confirmed.')}
                         </p>
 
@@ -782,8 +782,7 @@ const LoginPage = ({ onLogin }) => {
                                 <button
                                     onClick={() => handleResendVerification(verifyEmail)}
                                     disabled={resending || !verifyEmail.trim()}
-                                    className="w-full py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
-                                    style={{ background: 'var(--accent-primary)' }}
+                                    className="w-full py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity bg-[var(--accent-primary)]"
                                 >
                                     {resending ? t('login.verify_resending', 'Sending…') : t('login.verify_resend', 'Resend confirmation email')}
                                 </button>
@@ -792,8 +791,7 @@ const LoginPage = ({ onLogin }) => {
 
                         <button
                             onClick={() => { setVerifyEmailSent(false); setResendDone(false); setSignupMode(false); setError(''); }}
-                            className="text-sm font-medium"
-                            style={{ color: 'var(--accent-primary)' }}
+                            className="text-sm font-medium text-[var(--accent-primary)]"
                         >
                             {t('login.back_to_login', 'Back to login')}
                         </button>
@@ -841,11 +839,11 @@ const LoginPage = ({ onLogin }) => {
                     className="w-full max-w-md"
                     data-testid="recovery-key-modal"
                 >
-                    <div className="w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-5" style={{ background: 'var(--bg-secondary)' }}>
+                    <div className="w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-5 bg-[var(--bg-secondary)]">
                         <div className="text-center">
                             <div className="text-3xl mb-2">🔐</div>
-                            <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('login.save_recovery_key')}</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{t('login.recovery_key_desc')}</p>
+                            <h3 className="text-lg font-bold text-[var(--text-primary)]">{t('login.save_recovery_key')}</h3>
+                            <p className="text-sm mt-1 text-[var(--text-muted)]">{t('login.recovery_key_desc')}</p>
                         </div>
                         <div className="p-4 rounded-xl font-mono text-sm text-center break-all select-all cursor-text" data-testid="recovery-key-value" style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-default)', color: 'var(--text-primary)' }}>
                             {adminRecoveryKey}
@@ -853,14 +851,12 @@ const LoginPage = ({ onLogin }) => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => { navigator.clipboard.writeText(adminRecoveryKey); }}
-                                className="flex-1 py-2.5 rounded-xl font-medium text-sm border transition-colors"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="flex-1 py-2.5 rounded-xl font-medium text-sm border transition-colors border-[var(--border-default)] text-[var(--text-primary)]"
                             >📋 {t('common.copy')}</button>
                             <button
                                 onClick={() => { setAdminRecoveryKey(null); setSetupMode(false); setIsSetupComplete(true); }}
                                 data-testid="recovery-key-saved"
-                                className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white"
-                                style={{ background: 'var(--accent-primary)' }}
+                                className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white bg-[var(--accent-primary)]"
                             >{t('login.ive_saved_it')}</button>
                         </div>
                     </div>
@@ -880,7 +876,7 @@ const LoginPage = ({ onLogin }) => {
             </div>
 
             <div className="w-full max-w-md relative z-10 transition-all duration-300">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     {/* Top highlight line for glass effect */}
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
@@ -896,7 +892,7 @@ const LoginPage = ({ onLogin }) => {
                                     style={{ minWidth: '2rem' }}
                                 >
                                     {availableLocales.map(l => (
-                                        <option key={l.code} value={l.code} style={{ background: 'var(--bg-secondary)' }}>
+                                        <option key={l.code} value={l.code} className="bg-[var(--bg-secondary)]">
                                             {l.code.toUpperCase()}
                                         </option>
                                     ))}

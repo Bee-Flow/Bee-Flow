@@ -17,12 +17,11 @@ export const FLAG_AMBER = '#f59e0b';
 export function StatChip({ label, value, hint }) {
     return (
         <div
-            className="rounded-lg border px-3 py-2"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+            className="rounded-lg border px-3 py-2 bg-[var(--bg-secondary)] border-[var(--border-default)]"
             title={hint}
         >
-            <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{label}</div>
-            <div className="text-base font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>{value}</div>
+            <div className="text-[11px] text-[var(--text-muted)]">{label}</div>
+            <div className="text-base font-semibold tabular-nums text-[var(--text-primary)]">{value}</div>
         </div>
     );
 }
@@ -31,8 +30,7 @@ export function StatChip({ label, value, hint }) {
 export function TabHeading({ children, hint }) {
     return (
         <h3
-            className="text-xs font-semibold"
-            style={{ color: 'var(--text-primary)' }}
+            className="text-xs font-semibold text-[var(--text-primary)]"
             title={hint}
         >
             {children}
@@ -43,7 +41,7 @@ export function TabHeading({ children, hint }) {
 /** What a tab shows when it has nothing to show — never a bare heading. */
 export function EmptyState({ children }) {
     return (
-        <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>{children}</p>
+        <p className="text-xs italic text-[var(--text-muted)]">{children}</p>
     );
 }
 
@@ -59,9 +57,9 @@ export function MetricRow({ label, value, detail, onClick, title, flagged = fals
     );
     return (
         <div className="flex items-baseline gap-2 text-xs">
-            <span className="flex-1 min-w-0 truncate" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+            <span className="flex-1 min-w-0 truncate text-[var(--text-secondary)]">{label}</span>
             {detail && (
-                <span className="truncate max-w-[45%]" style={{ color: 'var(--text-muted)' }}>{detail}</span>
+                <span className="truncate max-w-[45%] text-[var(--text-muted)]">{detail}</span>
             )}
             {onClick ? (
                 <button type="button" onClick={onClick} title={title} className="hover:underline shrink-0">
@@ -79,7 +77,7 @@ export function SpeakerName({ speakerId, color, className = '' }) {
     return (
         <span className={`inline-flex items-center gap-1.5 min-w-0 ${className}`}>
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-            <span className="truncate" style={{ color: 'var(--text-primary)' }}>{formatSpeakerLabel(speakerId)}</span>
+            <span className="truncate text-[var(--text-primary)]">{formatSpeakerLabel(speakerId)}</span>
         </span>
     );
 }
@@ -90,10 +88,10 @@ export function BarRow({ label, fraction, value, color = 'var(--accent-primary)'
     const body = (
         <>
             <span className="w-28 shrink-0 truncate text-left">{label}</span>
-            <span className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+            <span className="flex-1 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
                 <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
             </span>
-            <span className="shrink-0 tabular-nums text-right" style={{ color: 'var(--text-muted)' }}>{value}</span>
+            <span className="shrink-0 tabular-nums text-right text-[var(--text-muted)]">{value}</span>
         </>
     );
     const className = 'w-full flex items-center gap-2 text-xs';
@@ -148,8 +146,7 @@ export function StackedAirtime({ windows, colorFor, ariaLabel, onSeek, formatTit
                     type="button"
                     onClick={onSeek ? () => onSeek(w.start) : undefined}
                     title={formatTitle ? formatTitle(w) : undefined}
-                    className="flex-1 min-w-0 h-full flex flex-col justify-end rounded-sm overflow-hidden"
-                    style={{ background: 'var(--bg-tertiary)' }}
+                    className="flex-1 min-w-0 h-full flex flex-col justify-end rounded-sm overflow-hidden bg-[var(--bg-tertiary)]"
                 >
                     {w.shares.map((s) => (
                         <span

@@ -171,8 +171,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
             <div className="min-h-screen flex items-center justify-center p-4"
                 style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
                 <div className="w-full max-w-lg relative z-10">
-                    <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                    <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
                         <div className="text-center mb-6">
@@ -225,8 +224,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
             <div className="min-h-screen flex items-center justify-center p-4"
                 style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
                 <div className="w-full max-w-md relative z-10">
-                    <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                    <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
                         {/* Header */}
@@ -309,8 +307,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
 
                             <button
                                 onClick={() => { setShowRecovery(false); setError(''); setRecoveryInput(''); setNewPin(''); setConfirmNewPin(''); }}
-                                className="w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all"
-                                style={{ color: 'var(--text-secondary)' }}>
+                                className="w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all text-[var(--text-secondary)]">
                                 <ArrowLeft className="w-4 h-4" />
                                 {t('encryption.back_to_pin', 'Back to PIN entry')}
                             </button>
@@ -325,8 +322,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
         <div className="min-h-screen flex items-center justify-center p-4"
             style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
             <div className="w-full max-w-md relative z-10">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
                     {/* Header */}
@@ -411,8 +407,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
                         {!isSetup && (
                             <button
                                 onClick={() => { setShowRecovery(true); setError(''); }}
-                                className="w-full py-2 text-sm font-medium transition-all hover:opacity-80"
-                                style={{ color: 'var(--accent-primary)' }}>
+                                className="w-full py-2 text-sm font-medium transition-all hover:opacity-80 text-[var(--accent-primary)]">
                                 {t('encryption.forgot_pin', 'Forgot your PIN? Use recovery key')}
                             </button>
                         )}

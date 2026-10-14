@@ -248,11 +248,11 @@ function PublicRow({ t, model, busy, onOpen, onTurnOff, disabled }) {
                         'Whether this page is public right now could not be read, so nothing is claimed here and nothing can be changed until it can.')}
                 </p>
             )}
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.audience.public_body',
                     'A public page is a snapshot without scripts, not the live page. It updates when you save, and when a table it shows changes.')}
             </p>
-            <ul className="text-[11px] list-disc pl-4" style={{ color: 'var(--text-secondary)' }}>
+            <ul className="text-[11px] list-disc pl-4 text-[var(--text-secondary)]">
                 <li>{t('webpages.audience.public_tables_read_only',
                     'Table blocks are read-only here. Writing back to a table is only possible for Personal, Entire organisation and Groups.')}</li>
                 {/* De staart van deze zin ("blijft leeg") is precies ONWAAR
@@ -290,7 +290,7 @@ function ColumnGateForm({ t, columnGate, choice, setChoice, onConfirm, onCancel,
             <div className="text-sm font-medium">
                 {t('webpages.audience.gate_title', 'What may leave this page?')}
             </div>
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.audience.gate_body',
                     'Tick the columns that may appear on the public page. Anything you leave unticked stays inside — there is no "everything" here on purpose.')}
             </p>
@@ -299,7 +299,7 @@ function ColumnGateForm({ t, columnGate, choice, setChoice, onConfirm, onCancel,
                     <div className="text-[11px] font-medium">{tb.label || tb.datatableId}</div>
                     <div className="flex flex-wrap gap-2">
                         {(tb.columns || []).length === 0 && (
-                            <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                            <span className="text-[11px] text-[var(--text-secondary)]">
                                 {t('webpages.audience.gate_no_columns', 'This binding reads no columns, so nothing can go out.')}
                             </span>
                         )}
@@ -334,7 +334,7 @@ function ColumnGateForm({ t, columnGate, choice, setChoice, onConfirm, onCancel,
                 <button type="button" onClick={onCancel} disabled={busy} className="text-xs underline disabled:opacity-50">
                     {t('common.cancel', 'Cancel')}
                 </button>
-                <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-[11px] text-[var(--text-secondary)]">
                     {chosen === 0
                         ? t('webpages.audience.gate_none_chosen', 'Nothing from your tables goes out.')
                         : chosen === 1
@@ -381,8 +381,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }) {
                 <div className="flex items-center gap-2 flex-wrap">
                     <code
                         data-testid="address-value"
-                        className="text-[11px] px-1.5 py-0.5 rounded border"
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                        className="text-[11px] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] text-[var(--text-primary)]"
                     >
                         {address.url || address.path}
                     </code>
@@ -392,20 +391,20 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }) {
                     </button>
                 </div>
             ) : (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.address.none_yet', 'This page gets its address the first time you make it public.')}
                 </p>
             )}
 
             {address && (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.address.made_of',
                         'The readable part comes from the page name as it was the first time you made this page public, and the rest is random so the address cannot be guessed. Renaming the page does not move it.')}
                 </p>
             )}
 
             {address && !isPublic && (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.address.kept_while_off',
                         'The address stays reserved while Public is off — it shows nothing until you turn Public back on, and then it is the same link again.')}
                 </p>
@@ -422,7 +421,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }) {
             </button>
 
             {open && (
-                <div className="flex flex-col gap-2 pt-1 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex flex-col gap-2 pt-1 border-t border-[var(--border-subtle)]">
                     <fieldset className="flex flex-col gap-1">
                         <legend className="text-[11px] font-medium">
                             {t('webpages.address.who_may_open', 'Who may open the address')}
@@ -482,7 +481,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }) {
                         />
                     </label>
 
-                    <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
                         {t('webpages.address.replace_warning',
                             'Changing the password or the email list replaces the underlying link, so links people already have stop working. The address itself stays the same.')}
                     </p>
@@ -506,7 +505,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }) {
                 één van die links het adres en de rest staat ernaast. De zin is
                 daarom altijd meervoud en heeft geen enkelvoudsvorm nodig. */}
             {notice === 'while_on' && (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.address.other_links',
                         'There are {n} external links on this page in total. Only this one is the address; the others are separate share links.')
                         .replace('{n}', String(model.shareCount))}
@@ -519,8 +518,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }) {
             {notice === 'while_off' && (
                 <p
                     data-testid="other-links-while-off"
-                    className="text-[11px]"
-                    style={{ color: 'var(--warning)' }}
+                    className="text-[11px] text-[var(--warning)]"
                 >
                     {model.shareCount === 1
                         ? t('webpages.address.serving_while_off',
@@ -534,8 +532,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }) {
             {notice === 'unknown' && (
                 <p
                     data-testid="other-links-unknown"
-                    className="text-[11px]"
-                    style={{ color: 'var(--warning)' }}
+                    className="text-[11px] text-[var(--warning)]"
                 >
                     {t('webpages.address.other_links_unknown',
                         'Whether other external links still serve this page could not be checked, so nothing is claimed here.')}
@@ -543,7 +540,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }) {
             )}
 
             {model?.solution && (
-                <p className="text-[11px] pt-1 border-t" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <p className="text-[11px] pt-1 border-t text-[var(--text-secondary)] border-[var(--border-subtle)]">
                     <Building2 size={11} className="inline mr-1" aria-hidden="true" />
                     {t('webpages.address.part_of_solution', 'Part of solution {name}').replace('{name}', model.solution.name)}
                 </p>
@@ -664,7 +661,7 @@ export default function WebpageAudiencePanel({
 
     if (readOnly) {
         return (
-            <div className="p-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <div className="p-4 text-sm text-[var(--text-secondary)]">
                 {t('webpages.audience.owner_only', 'Only the page owner can change who can see this page.')}
             </div>
         );
@@ -672,7 +669,7 @@ export default function WebpageAudiencePanel({
 
     return (
         <div className="p-3 flex flex-col gap-3">
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.audience.subtitle', 'Who can see this page, and where it lives.')}
             </p>
 
@@ -692,7 +689,7 @@ export default function WebpageAudiencePanel({
             />
 
             {state.loading && (
-                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                     <Loader2 size={14} className="animate-spin" />
                     {t('webpages.audience.loading', 'Reading who can see this page…')}
                 </div>
@@ -747,7 +744,7 @@ export default function WebpageAudiencePanel({
 
                     {/* Wat er vandaag daadwerkelijk naar buiten gaat — de poort in
                         één zin, ook als hij dicht staat. */}
-                    <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
                         <Lock size={11} className="inline mr-1" aria-hidden="true" />
                         {!model.columnGate?.anyBound
                             ? t('webpages.audience.gate_no_tables', 'No tables are bound to this page, so no rows go out.')

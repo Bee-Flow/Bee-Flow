@@ -234,17 +234,16 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
     if (viewing) {
         const files = viewing.files;
         return (
-            <div className="h-full flex flex-col" data-testid="webpage-version-view" style={{ background: 'var(--bg-primary)' }}>
-                <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="h-full flex flex-col bg-[var(--bg-primary)]" data-testid="webpage-version-view">
+                <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)]">
                     <button
                         onClick={() => setViewing(null)}
-                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded text-[var(--text-secondary)]"
                     >
                         <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                         {t('webpages.versions.back_to_list', 'Back to history')}
                     </button>
-                    <span className="text-[12px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-[12px] font-medium truncate text-[var(--text-primary)]">
                         {viewing.seq ? `v${viewing.seq} · ` : ''}{viewing.summary || t('webpages.versions.untitled', 'Snapshot')}
                     </span>
                     <Chip testId="version-view-readonly">{t('webpages.versions.read_only', 'Read-only')}</Chip>
@@ -266,9 +265,9 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
                 </div>
                 <div className="flex-1 min-h-0">
                     {viewError ? (
-                        <p className="p-4 text-xs" role="alert" style={{ color: 'var(--text-secondary)' }}>{viewError}</p>
+                        <p className="p-4 text-xs text-[var(--text-secondary)]" role="alert">{viewError}</p>
                     ) : !files ? (
-                        <p className="p-4 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('webpages.versions.loading', 'Loading…')}</p>
+                        <p className="p-4 text-xs text-[var(--text-tertiary)]">{t('webpages.versions.loading', 'Loading…')}</p>
                     ) : (
                         <WebpageEditor
                             value={files[viewSlot] || ''}
@@ -286,7 +285,7 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
         <div className="h-full overflow-auto custom-scrollbar px-6 py-5" data-testid="webpage-history" style={{ background: 'var(--bg-primary)' }}>
             <div className="max-w-[720px] flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                         {t('webpages.versions.title', 'Version history')}
                     </h3>
                     {publishedLabel && (
@@ -295,11 +294,11 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
                 </div>
 
                 {error && (
-                    <p className="text-xs" role="alert" style={{ color: 'var(--text-secondary)' }}>{error}</p>
+                    <p className="text-xs text-[var(--text-secondary)]" role="alert">{error}</p>
                 )}
 
                 {coverage && coverage.coversProject === false && (
-                    <p className="text-[11px]" data-testid="history-coverage" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-[11px] text-[var(--text-tertiary)]" data-testid="history-coverage">
                         {t('webpages.versions.coverage_partial',
                             'Only index.html, style.css, script.js and the page database are snapshotted. Other files '
                             + 'in this project are not part of a version and are not restored.')}
@@ -307,9 +306,9 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
                 )}
 
                 {loading && versions.length === 0 ? (
-                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('webpages.versions.loading', 'Loading…')}</p>
+                    <p className="text-xs text-[var(--text-tertiary)]">{t('webpages.versions.loading', 'Loading…')}</p>
                 ) : versions.length === 0 ? (
-                    <p className="text-xs" data-testid="history-empty" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-xs text-[var(--text-tertiary)]" data-testid="history-empty">
                         {coverage && coverage.coversProject === false
                             ? t('webpages.versions.empty_not_covered',
                                 'Version history only covers index.html, style.css, script.js and the page database. '
@@ -331,18 +330,17 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
                                 <div
                                     key={v.id}
                                     data-testid="version-row"
-                                    className="flex items-center gap-3 p-2.5 rounded-lg border"
-                                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
+                                    className="flex items-center gap-3 p-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]"
                                 >
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1.5 min-w-0">
                                             {/* Geen "v0" voor een rij zonder nummer: dan staat er niets. */}
                                             {v.seq ? (
-                                                <span data-testid="version-seq" className="text-[11px] font-mono shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+                                                <span data-testid="version-seq" className="text-[11px] font-mono shrink-0 text-[var(--text-tertiary)]">
                                                     {`v${v.seq}`}
                                                 </span>
                                             ) : null}
-                                            <span className="text-[12px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                                            <span className="text-[12px] font-medium truncate text-[var(--text-primary)]">
                                                 {v.summary || t('webpages.versions.untitled', 'Snapshot')}
                                             </span>
                                             {sourceLabel ? <Chip testId="version-source">{sourceLabel}</Chip> : null}
@@ -352,7 +350,7 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
                                                 </Chip>
                                             )}
                                         </div>
-                                        <div className="text-[10px] flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-tertiary)' }}>
+                                        <div className="text-[10px] flex items-center gap-1.5 flex-wrap text-[var(--text-tertiary)]">
                                             <span data-testid="version-actor">{actorLabel(v.actor)}</span>
                                             <span aria-hidden="true">·</span>
                                             <span>{formatRelativeTime(v.createdAt)}</span>
@@ -373,8 +371,7 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
                                     </div>
                                     <button
                                         onClick={() => handleView(v)}
-                                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium border"
-                                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium border border-[var(--border-subtle)] text-[var(--text-secondary)]"
                                     >
                                         <Eye className="w-3 h-3" aria-hidden="true" />
                                         {t('webpages.versions.view', 'View')}
@@ -396,8 +393,7 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }) {
                             <button
                                 onClick={loadMore}
                                 disabled={loadingMore}
-                                className="w-full py-1.5 rounded-lg text-[11px] font-medium border disabled:opacity-50"
-                                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                className="w-full py-1.5 rounded-lg text-[11px] font-medium border disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-secondary)]"
                             >
                                 {loadingMore ? t('webpages.versions.loading', 'Loading…') : t('webpages.versions.load_more', 'Load more')}
                             </button>

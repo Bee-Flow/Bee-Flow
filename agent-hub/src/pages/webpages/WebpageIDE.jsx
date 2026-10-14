@@ -174,7 +174,7 @@ function BinaryPreview({ path, mimeType, dataUrl, size }) {
     // hetzelfde bestand niet op twee plekken een ander getal krijgt.
     const shown = formatBytes(size);
     return (
-        <div className="flex flex-col items-center justify-center h-full w-full p-6" style={{ background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg-muted)' }}>
+        <div className="flex flex-col items-center justify-center h-full w-full p-6 bg-[var(--vsc-editor-bg)] text-[var(--vsc-fg-muted)]">
             {isImage && dataUrl ? (
                 <img
                     src={dataUrl}
@@ -461,7 +461,7 @@ export default function WebpageIDE({
             <div className="flex items-center justify-between px-3 py-1.5 shrink-0 gap-2"
                  style={{ borderBottom: '1px solid var(--vsc-border)', background: 'var(--vsc-sidebar-bg)' }}>
                 <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-[11px] shrink-0" style={{ color: 'var(--vsc-fg-muted)' }}>
+                    <span className="text-[11px] shrink-0 text-[var(--vsc-fg-muted)]">
                         {devMode ? t('webpages.ide.view_developer', 'Developer view') : t('webpages.preview.title', 'Preview')}
                     </span>
                     {/* The save status lives in the section header from W2 on;
@@ -545,8 +545,7 @@ export default function WebpageIDE({
                             )}
                             {sidebarPane === 'history' && (
                                 <div
-                                    className="flex items-center justify-center h-full text-[12px]"
-                                    style={{ color: 'var(--vsc-fg-muted)' }}
+                                    className="flex items-center justify-center h-full text-[12px] text-[var(--vsc-fg-muted)]"
                                 >
                                     <button
                                         onClick={onVersionsClick}
@@ -621,7 +620,7 @@ export default function WebpageIDE({
                                         size={activeView.size}
                                     />
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center h-full p-6 text-[12px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                                    <div className="flex flex-col items-center justify-center h-full p-6 text-[12px] text-[var(--vsc-fg-muted)]">
                                         <AlertCircle size={32} style={{ opacity: 0.5 }} />
                                         <div className="mt-3 font-mono">{activeView.path}</div>
                                         <div className="mt-1">{t('webpages.ide.file_not_loaded', 'File content not loaded yet.')}</div>

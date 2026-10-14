@@ -24,15 +24,14 @@ export default function SeriesPreviousCard({ previous, onOpenNote }) {
 
     return (
         <div
-            className="rounded-xl border px-4 py-3 flex flex-col gap-2"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+            className="rounded-xl border px-4 py-3 flex flex-col gap-2 bg-[var(--bg-secondary)] border-[var(--border-default)]"
         >
             <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold flex items-center gap-2 min-w-0" style={{ color: 'var(--text-primary)' }}>
                     <History className="w-4 h-4 shrink-0" />
                     <span className="truncate">
                         {t('meeting_notes.series_previous', 'Previously in this series')}
-                        <span className="font-normal" style={{ color: 'var(--text-muted)' }}>
+                        <span className="font-normal text-[var(--text-muted)]">
                             {' — '}{previous.title}{previous.createdAt ? ` · ${formatRelativeDate(previous.createdAt)}` : ''}
                         </span>
                     </span>
@@ -41,8 +40,7 @@ export default function SeriesPreviousCard({ previous, onOpenNote }) {
                     <button
                         type="button"
                         onClick={() => onOpenNote(previous.id)}
-                        className="inline-flex items-center gap-1 text-xs font-medium shrink-0 hover:underline"
-                        style={{ color: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-1 text-xs font-medium shrink-0 hover:underline text-[var(--accent-primary)]"
                     >
                         {t('meeting_notes.series_open_note', 'Open note')}
                         <ArrowRight className="w-3 h-3" />
@@ -57,8 +55,8 @@ export default function SeriesPreviousCard({ previous, onOpenNote }) {
             )}
 
             {openItems.length > 0 && (
-                <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-xs text-[var(--text-secondary)]">
+                    <span className="font-medium text-[var(--text-primary)]">
                         {t('meeting_notes.series_open_items', 'Still open')}
                         {': '}
                     </span>
@@ -67,12 +65,12 @@ export default function SeriesPreviousCard({ previous, onOpenNote }) {
                             {i > 0 && ' · '}
                             {item.text}
                             {item.assignee && item.assignee !== 'Unassigned' && item.assignee !== 'Niet toegewezen' && (
-                                <span style={{ color: 'var(--text-muted)' }}> ({item.assignee})</span>
+                                <span className="text-[var(--text-muted)]"> ({item.assignee})</span>
                             )}
                         </span>
                     ))}
                     {(previous.openActionItems || []).length > openItems.length && (
-                        <span style={{ color: 'var(--text-muted)' }}> · +{previous.openActionItems.length - openItems.length}</span>
+                        <span className="text-[var(--text-muted)]"> · +{previous.openActionItems.length - openItems.length}</span>
                     )}
                 </div>
             )}

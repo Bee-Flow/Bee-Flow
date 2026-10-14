@@ -305,7 +305,7 @@ const ConsumerPrivacySection = () => {
 
                     {/* Transparency toggle (only when tokenizing) */}
                     {config.piiDetectionAction === 'tokenize' && (
-                        <div className="p-4 rounded-xl border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
+                        <div className="p-4 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-subtle)]">
                             <label className="flex items-start gap-3 cursor-pointer">
                                 <input
                                     type="checkbox"
@@ -314,11 +314,11 @@ const ConsumerPrivacySection = () => {
                                     className="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-700 text-[var(--accent-primary)] focus:ring-0"
                                 />
                                 <span className="flex-1">
-                                    <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                                    <span className="text-xs font-medium flex items-center gap-1.5 text-[var(--text-primary)]">
                                         <Eye className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                                         {t('settings.consumer_privacy.raw_payload_title', 'Show me what was sent to the AI')}
                                     </span>
-                                    <span className="text-[10px] block mt-1 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                                    <span className="text-[10px] block mt-1 leading-relaxed text-[var(--text-muted)]">
                                         {t('settings.consumer_privacy.raw_payload_desc', 'Adds a section to the “How I got this answer” panel showing your original message, the version that went to the AI, and which placeholder stood for which value. Only you can see it, in your own conversation.')}
                                     </span>
                                 </span>

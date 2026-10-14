@@ -362,7 +362,7 @@ export default function N8nSection() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-4" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex items-center justify-center py-4 text-[var(--text-muted)]">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t('common.loading', 'Loading...')}
             </div>
         );
@@ -474,8 +474,7 @@ function AccessCheckCard({ diag, loading, onRefresh, onEnableForOrg, enablingFor
     const { t } = useTranslation();
     if (loading && !diag) {
         return (
-            <div className="rounded-lg border px-3 py-3 flex items-center gap-2 text-[11px]"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+            <div className="rounded-lg border px-3 py-3 flex items-center gap-2 text-[11px] border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('settings.n8n.checking_access', 'Checking access…')}
             </div>
         );
@@ -526,41 +525,39 @@ function AccessCheckCard({ diag, loading, onRefresh, onEnableForOrg, enablingFor
     const toolCount = (diag.toolsThatWillBeInjected || []).length;
 
     return (
-        <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="rounded-lg border overflow-hidden border-[var(--border-subtle)]">
             <div className="px-3 py-2.5 flex items-center justify-between gap-2" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
                 <div className="flex items-center gap-1.5">
                     {allPass
                         ? <CircleCheck className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
                         : <CircleX className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />}
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {t('settings.n8n.access_check', 'Access check')}
                     </span>
-                    <span className="text-[11px] ml-1" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-[11px] ml-1 text-[var(--text-muted)]">
                         {allPass ? (toolCount === 1 ? t('settings.n8n.ai_sees_one', 'AI sees 1 n8n tool') : t('settings.n8n.ai_sees_many', 'AI sees {count} n8n tools', { count: toolCount })) : t('settings.n8n.ai_cannot_see', 'AI can\'t see n8n workflows')}
                     </span>
                 </div>
                 <button onClick={onRefresh} disabled={loading}
-                    className="text-[11px] px-2 py-0.5 rounded flex items-center gap-1 disabled:opacity-50"
-                    style={{ color: 'var(--text-secondary)' }} title={t('settings.n8n.refresh', 'Refresh')}>
+                    className="text-[11px] px-2 py-0.5 rounded flex items-center gap-1 disabled:opacity-50 text-[var(--text-secondary)]" title={t('settings.n8n.refresh', 'Refresh')}>
                     <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                 </button>
             </div>
-            <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+            <ul className="divide-y border-[var(--border-subtle)]">
                 {rows.map((r, i) => (
                     <li key={i} className="px-3 py-2 flex items-start gap-2.5">
                         {r.ok
                             ? <CircleCheck className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: '#10b981' }} />
                             : <CircleX className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: '#ef4444' }} />}
                         <div className="flex-1 min-w-0">
-                            <div className="text-xs" style={{ color: 'var(--text-primary)' }}>{r.label}</div>
-                            {r.detail && <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{r.detail}</div>}
+                            <div className="text-xs text-[var(--text-primary)]">{r.label}</div>
+                            {r.detail && <div className="text-[11px] mt-0.5 text-[var(--text-muted)]">{r.detail}</div>}
                         </div>
                         {r.fix && (
                             <button
                                 onClick={r.fix.action}
                                 disabled={r.fix.disabled}
-                                className="text-[11px] font-medium px-2 py-0.5 rounded border shrink-0 disabled:opacity-50"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--accent-primary)' }}
+                                className="text-[11px] font-medium px-2 py-0.5 rounded border shrink-0 disabled:opacity-50 border-[var(--border-default)] text-[var(--accent-primary)]"
                             >
                                 {r.fix.label}
                             </button>
@@ -569,9 +566,9 @@ function AccessCheckCard({ diag, loading, onRefresh, onEnableForOrg, enablingFor
                 ))}
             </ul>
             {allPass && toolCount > 0 && (
-                <details className="text-[11px] px-3 py-2 border-t" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+                <details className="text-[11px] px-3 py-2 border-t border-[var(--border-subtle)] text-[var(--text-muted)]">
                     <summary className="cursor-pointer">{t('settings.n8n.show_tool_list', 'Show tool list')}</summary>
-                    <code className="block mt-1 font-mono text-[10.5px] break-all" style={{ color: 'var(--text-secondary)' }}>
+                    <code className="block mt-1 font-mono text-[10.5px] break-all text-[var(--text-secondary)]">
                         {(diag.toolsThatWillBeInjected || []).join(', ')}
                     </code>
                 </details>
@@ -602,20 +599,20 @@ function ConnectionTab({
                 />
             )}
             <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.instance_url', 'n8n Instance URL')}</label>
+                <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('settings.n8n.instance_url', 'n8n Instance URL')}</label>
                 <input
                     type="url" value={n8nUrl} onChange={e => setN8nUrl(e.target.value)}
                     placeholder="https://n8n.yourdomain.com"
                     className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
-                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] mt-1 text-[var(--text-muted)]">
                     {t('settings.n8n.instance_url_hint', 'Base URL of your n8n instance. `/api/v1` is appended automatically.')}
                 </p>
             </div>
             <div>
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.api_key', 'API Key')}</label>
+                <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('settings.n8n.api_key', 'API Key')}</label>
                 <input
                     type="password" value={apiKey} onChange={e => setApiKey(e.target.value)}
                     /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
@@ -623,7 +620,7 @@ function ConnectionTab({
                     className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
-                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] mt-1 text-[var(--text-muted)]">
                     {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                     {t('settings.n8n.api_key_hint', 'Generate at n8n → Settings → API → Create API Key. Stored encrypted.')}
                 </p>
@@ -665,7 +662,7 @@ function WorkflowsTab({
     const { t } = useTranslation();
     if (!configured) {
         return (
-            <div className="rounded-lg border px-4 py-6 text-center" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+            <div className="rounded-lg border px-4 py-6 text-center border-[var(--border-subtle)] text-[var(--text-muted)]">
                 <Info className="w-5 h-5 mx-auto mb-2 opacity-60" />
                 <p className="text-sm">{t('settings.n8n.connect_first', 'Connect to n8n first — fill in the URL and API key on the Connection tab.')}</p>
             </div>
@@ -687,8 +684,7 @@ function WorkflowsTab({
                 </div>
                 <button
                     onClick={discoverWorkflows} disabled={discovering}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                 >
                     <RefreshCw className={`w-3.5 h-3.5 ${discovering ? 'animate-spin' : ''}`} />
                     {discovering ? t('settings.n8n.scanning', 'Scanning...') : t('settings.n8n.discover', 'Discover')}
@@ -697,9 +693,9 @@ function WorkflowsTab({
 
             {/* Discovered (not yet added) */}
             {filteredDiscovered.length > 0 && (
-                <div className="rounded-lg border p-3 space-y-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="rounded-lg border p-3 space-y-1.5 border-[var(--border-subtle)]">
                     <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t('settings.n8n.available_to_add', 'Available to add')}</h4>
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{t('settings.n8n.available_to_add', 'Available to add')}</h4>
                     </div>
                     {filteredDiscovered.map(dw => {
                         const alreadyAdded = workflows.some(w => w.id === dw.id);
@@ -707,8 +703,8 @@ function WorkflowsTab({
                             <div key={dw.id} className="flex items-center justify-between px-3 py-2 rounded-lg border"
                                 style={{ borderColor: 'var(--border-subtle)', background: alreadyAdded ? 'rgba(16, 185, 129, 0.04)' : 'transparent' }}>
                                 <div className="min-w-0">
-                                    <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{dw.name}</div>
-                                    <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                                    <div className="text-sm font-medium truncate text-[var(--text-primary)]">{dw.name}</div>
+                                    <div className="text-xs truncate text-[var(--text-muted)]">
                                         {dw.webhookNodes?.map(n => `${n.method || 'POST'} /webhook/${n.path}`).join(', ')}
                                     </div>
                                 </div>
@@ -731,14 +727,14 @@ function WorkflowsTab({
 
             {/* Configured workflows */}
             {workflows.length === 0 ? (
-                <div className="rounded-lg border px-4 py-6 text-center" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+                <div className="rounded-lg border px-4 py-6 text-center border-[var(--border-subtle)] text-[var(--text-muted)]">
                     <Workflow className="w-5 h-5 mx-auto mb-2 opacity-60" />
                     <p className="text-sm">{t('settings.n8n.no_workflows_before', 'No workflows configured yet. Click')} <b>{t('settings.n8n.discover_bold', 'Discover')}</b> {t('settings.n8n.no_workflows_after', 'to scan your n8n instance for webhook-triggered workflows.')}</p>
                 </div>
             ) : (
-                <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-subtle)' }}>
-                    <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
-                        <h4 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <div className="rounded-lg border overflow-hidden border-[var(--border-subtle)]">
+                    <div className="px-3 py-2 border-b flex items-center justify-between border-[var(--border-subtle)]">
+                        <h4 className="text-xs font-semibold text-[var(--text-primary)]">
                             {t('settings.n8n.workflows_enabled', 'Workflows ({enabled}/{total} enabled)', { enabled: workflows.filter(w => w.enabled).length, total: workflows.length })}
                         </h4>
                         <button onClick={saveWorkflows} disabled={saving}
@@ -747,7 +743,7 @@ function WorkflowsTab({
                             {saving ? t('settings.n8n.saving', 'Saving...') : t('settings.n8n.save_all', 'Save All')}
                         </button>
                     </div>
-                    <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="divide-y border-[var(--border-subtle)]">
                         {filteredWorkflows.map(wf => {
                             const isExpanded = expandedWf === wf.id;
                             return (
@@ -756,13 +752,13 @@ function WorkflowsTab({
                                         onClick={() => setExpandedWf(isExpanded ? null : wf.id)}>
                                         {isExpanded ? <ChevronDown className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} />}
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium truncate flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                                            <div className="text-sm font-medium truncate flex items-center gap-1.5 text-[var(--text-primary)]">
                                                 {wf.name}
                                                 {wf.allowKbIngestion && (
                                                     <span className="text-[9px] px-1 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }} title={t('settings.n8n.kb_enabled_title', 'Enabled for KB ingestion')}>📚 {t('settings.n8n.kb_badge', 'KB')}</span>
                                                 )}
                                             </div>
-                                            <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                                            <div className="text-[11px] truncate text-[var(--text-muted)]">
                                                 n8n_run_{wf.slug} · {t('settings.n8n.inputs_count', '{count} input(s)', { count: (wf.inputs || []).length })}
                                             </div>
                                         </div>
@@ -771,24 +767,24 @@ function WorkflowsTab({
                                             <div className="w-8 h-4 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
                                         </label>
                                         <button onClick={(e) => { e.stopPropagation(); removeWorkflow(wf.id); }}
-                                            className="p-1 rounded-lg hover:bg-red-500/10 transition-colors" style={{ color: 'var(--text-muted)' }}>
+                                            className="p-1 rounded-lg hover:bg-red-500/10 transition-colors text-[var(--text-muted)]">
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
 
                                     {isExpanded && (
-                                        <div className="px-3 pb-3 space-y-2 border-t" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                                        <div className="px-3 pb-3 space-y-2 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                                             <div className="pt-2 grid grid-cols-2 gap-2">
                                                 <div>
-                                                    <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.display_name', 'Display Name')}</label>
+                                                    <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-secondary)]">{t('settings.n8n.display_name', 'Display Name')}</label>
                                                     <input type="text" value={wf.name} onChange={e => updateWorkflow(wf.id, { name: e.target.value })}
                                                         className="w-full px-2 py-1 text-xs rounded border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                                                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.tool_slug', 'Tool Slug')}</label>
+                                                    <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-secondary)]">{t('settings.n8n.tool_slug', 'Tool Slug')}</label>
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-[11px] shrink-0" style={{ color: 'var(--text-muted)' }}>n8n_run_</span>
+                                                        <span className="text-[11px] shrink-0 text-[var(--text-muted)]">n8n_run_</span>
                                                         <input type="text" value={wf.slug} onChange={e => updateWorkflow(wf.id, { slug: e.target.value.replace(/[^a-z0-9_]/g, '') })}
                                                             className="w-full px-2 py-1 text-xs rounded border bg-transparent outline-none focus:border-[var(--accent-primary)]"
                                                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
@@ -796,7 +792,7 @@ function WorkflowsTab({
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.description_label', 'Description (shown to AI)')}</label>
+                                                <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-secondary)]">{t('settings.n8n.description_label', 'Description (shown to AI)')}</label>
                                                 <input type="text" value={wf.description || ''} onChange={e => updateWorkflow(wf.id, { description: e.target.value })}
                                                     placeholder={t('settings.n8n.description_placeholder', 'Describe what this workflow does')}
                                                     className="w-full px-2 py-1 text-xs rounded border bg-transparent outline-none focus:border-[var(--accent-primary)]"
@@ -806,19 +802,18 @@ function WorkflowsTab({
                                             {/* Inputs */}
                                             <div>
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <label className="text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('settings.n8n.input_parameters', 'Input Parameters')}</label>
+                                                    <label className="text-[11px] font-semibold text-[var(--text-secondary)]">{t('settings.n8n.input_parameters', 'Input Parameters')}</label>
                                                     <button onClick={() => addInput(wf.id)}
-                                                        className="flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded hover:opacity-80"
-                                                        style={{ color: 'var(--accent-primary)' }}>
+                                                        className="flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded hover:opacity-80 text-[var(--accent-primary)]">
                                                         <Plus className="w-3 h-3" /> {t('settings.n8n.add', 'Add')}
                                                     </button>
                                                 </div>
                                                 {(wf.inputs || []).length === 0 ? (
-                                                    <p className="text-[11px] py-1" style={{ color: 'var(--text-muted)' }}>{t('settings.n8n.no_inputs', 'No inputs — AI sends freeform JSON.')}</p>
+                                                    <p className="text-[11px] py-1 text-[var(--text-muted)]">{t('settings.n8n.no_inputs', 'No inputs — AI sends freeform JSON.')}</p>
                                                 ) : (
                                                     <div className="space-y-1.5">
                                                         {(wf.inputs || []).map((inp, idx) => (
-                                                            <div key={idx} className="flex items-center gap-1.5 p-1.5 rounded border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+                                                            <div key={idx} className="flex items-center gap-1.5 p-1.5 rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                                                                 <input type="text" value={inp.name} onChange={e => updateInput(wf.id, idx, { name: e.target.value })}
                                                                     placeholder={t('settings.n8n.input_name_placeholder', 'name')} className="flex-1 px-1.5 py-0.5 text-[11px] rounded border bg-transparent outline-none"
                                                                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
@@ -831,7 +826,7 @@ function WorkflowsTab({
                                                                     placeholder={t('settings.n8n.input_description_placeholder', 'description')} className="flex-[2] px-1.5 py-0.5 text-[11px] rounded border bg-transparent outline-none"
                                                                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                                                                 <button onClick={() => removeInput(wf.id, idx)}
-                                                                    className="p-0.5 rounded hover:bg-red-500/10 shrink-0" style={{ color: 'var(--text-muted)' }}>
+                                                                    className="p-0.5 rounded hover:bg-red-500/10 shrink-0 text-[var(--text-muted)]">
                                                                     <X className="w-3 h-3" />
                                                                 </button>
                                                             </div>
@@ -841,9 +836,9 @@ function WorkflowsTab({
                                             </div>
 
                                             {/* KB Ingestion */}
-                                            <div className="pt-2 mt-1 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                                                <div className="flex items-center justify-between p-2 rounded border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
-                                                    <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                            <div className="pt-2 mt-1 border-t border-[var(--border-subtle)]">
+                                                <div className="flex items-center justify-between p-2 rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)]">
+                                                    <div className="text-[11px] text-[var(--text-muted)]">
                                                         📚 {t('settings.n8n.kb_allow', 'Allow agents to ingest this workflow into their Knowledge Base.')}
                                                     </div>
                                                     <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
@@ -874,17 +869,16 @@ function PermissionsTab({ loading, summary, onReload, onMutate, onCreateAndGrant
     const { t } = useTranslation();
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-6" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex items-center justify-center py-6 text-[var(--text-muted)]">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t('settings.n8n.loading_permissions', 'Loading permissions...')}
             </div>
         );
     }
     if (!summary || summary.error) {
         return (
-            <div className="rounded-lg border px-4 py-6 text-center" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+            <div className="rounded-lg border px-4 py-6 text-center border-[var(--border-subtle)] text-[var(--text-muted)]">
                 <p className="text-sm mb-2">{summary?.error || t('settings.n8n.load_permissions_failed', 'Could not load permissions')}</p>
-                <button onClick={onReload} className="text-xs px-3 py-1 rounded-lg border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('settings.n8n.retry', 'Retry')}</button>
+                <button onClick={onReload} className="text-xs px-3 py-1 rounded-lg border border-[var(--border-default)] text-[var(--text-primary)]">{t('settings.n8n.retry', 'Retry')}</button>
             </div>
         );
     }
@@ -908,12 +902,11 @@ function PermissionsTab({ loading, summary, onReload, onMutate, onCreateAndGrant
 
     return (
         <div className="space-y-3">
-            <div className="rounded-lg border px-3 py-2.5 text-[11px] flex items-start gap-2"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+            <div className="rounded-lg border px-3 py-2.5 text-[11px] flex items-start gap-2 border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                 <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>
                     {t('settings.n8n.perm_intro', 'Running n8n workflows from chat works for every member automatically once n8n is configured. The panel below controls')} <b>{t('settings.n8n.perm_modify', 'modify')}</b> {t('settings.n8n.perm_intro_after', 'access — who can let the AI create, edit, delete, or execute workflows. Alternative: use the full group editor in')}{' '}
-                    <a href={usersHref} className="underline font-medium inline-flex items-center gap-0.5" style={{ color: 'var(--accent-primary)' }}>
+                    <a href={usersHref} className="underline font-medium inline-flex items-center gap-0.5 text-[var(--accent-primary)]">
                         {t('settings.n8n.users_groups', 'Users & Groups')} <ExternalLink className="w-3 h-3" />
                     </a>.
                 </span>
@@ -965,25 +958,24 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
     };
 
     return (
-        <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+        <div className="rounded-lg border overflow-hidden border-[var(--border-subtle)]">
+            <div className="px-3 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                 <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                        <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{bucket.title}</div>
-                        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{bucket.desc}</div>
+                        <div className="text-sm font-semibold text-[var(--text-primary)]">{bucket.title}</div>
+                        <div className="text-[11px] mt-0.5 text-[var(--text-muted)]">{bucket.desc}</div>
                     </div>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0"
-                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                         {totalCount === 1 ? t('settings.n8n.grantee_one', '1 grantee') : t('settings.n8n.grantee_many', '{count} grantees', { count: totalCount })}
                     </span>
                 </div>
             </div>
 
-            <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+            <ul className="divide-y border-[var(--border-subtle)]">
                 {/* Always-on row for org admins */}
                 {orgAdminAlways && (
                     <li className="px-3 py-2 flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                        <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
                             <Crown className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
                             {t('settings.n8n.org_admins', 'Organisation Admins')}
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-medium"
@@ -991,26 +983,25 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                                 {t('settings.n8n.always', 'always')}
                             </span>
                         </span>
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('settings.n8n.baked_in', 'baked in')}</span>
+                        <span className="text-[11px] text-[var(--text-muted)]">{t('settings.n8n.baked_in', 'baked in')}</span>
                     </li>
                 )}
 
                 {bucket.groups.length === 0 && !orgAdminAlways && (
-                    <li className="px-3 py-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <li className="px-3 py-3 text-[11px] text-[var(--text-muted)]">
                         {t('settings.n8n.no_groups', 'No groups currently hold this permission.')}
                     </li>
                 )}
 
                 {bucket.groups.map(g => (
                     <li key={g.id} className="px-3 py-2 flex items-center justify-between text-xs gap-2">
-                        <span className="truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</span>
+                        <span className="truncate text-[var(--text-primary)]">{g.name}</span>
                         <div className="flex items-center gap-2 shrink-0">
-                            <span style={{ color: 'var(--text-muted)' }}>{g.userCount === 1 ? t('settings.n8n.user_one', '1 user') : t('settings.n8n.user_many', '{count} users', { count: g.userCount })}</span>
+                            <span className="text-[var(--text-muted)]">{g.userCount === 1 ? t('settings.n8n.user_one', '1 user') : t('settings.n8n.user_many', '{count} users', { count: g.userCount })}</span>
                             <button
                                 onClick={() => handleRemove(g.id)}
                                 disabled={busyGroupId === g.id}
-                                className="p-1 rounded hover:bg-red-500/10 disabled:opacity-50"
-                                style={{ color: 'var(--text-muted)' }}
+                                className="p-1 rounded hover:bg-red-500/10 disabled:opacity-50 text-[var(--text-muted)]"
                                 title={t('settings.n8n.revoke', 'Revoke permission')}
                             >
                                 {busyGroupId === g.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
@@ -1021,7 +1012,7 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
             </ul>
 
             {/* Add-group / Create-group row */}
-            <div className="px-3 py-2 border-t flex items-center flex-wrap gap-2" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="px-3 py-2 border-t flex items-center flex-wrap gap-2 border-[var(--border-subtle)]">
                 {creatingOpen ? (
                     <div className="flex items-center gap-2 flex-1">
                         <input
@@ -1046,8 +1037,7 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                         <button
                             onClick={() => { setCreatingOpen(false); setNewGroupName(''); }}
                             disabled={creating}
-                            className="p-1 rounded hover:bg-[var(--bg-tertiary)]"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
                             title={t('settings.n8n.cancel', 'Cancel')}
                         >
                             <X className="w-3.5 h-3.5" />
@@ -1071,8 +1061,7 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                         </select>
                         <button
                             onClick={() => setPickerOpen(false)}
-                            className="p-1 rounded hover:bg-[var(--bg-tertiary)]"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
                             title={t('settings.n8n.cancel', 'Cancel')}
                         >
                             <X className="w-3.5 h-3.5" />
@@ -1083,21 +1072,19 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                         {addable.length > 0 && (
                             <button
                                 onClick={() => setPickerOpen(true)}
-                                className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:opacity-80"
-                                style={{ color: 'var(--accent-primary)' }}
+                                className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:opacity-80 text-[var(--accent-primary)]"
                             >
                                 <Plus className="w-3.5 h-3.5" /> {t('settings.n8n.add_existing_group', 'Add existing group')}
                             </button>
                         )}
                         <button
                             onClick={() => setCreatingOpen(true)}
-                            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:opacity-80"
-                            style={{ color: 'var(--accent-primary)' }}
+                            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:opacity-80 text-[var(--accent-primary)]"
                         >
                             <Plus className="w-3.5 h-3.5" /> {t('settings.n8n.create_new_group', 'Create new group')}
                         </button>
                         {addable.length === 0 && availableGroups.length > 0 && (
-                            <span className="text-[11px] ml-auto" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-[11px] ml-auto text-[var(--text-muted)]">
                                 {t('settings.n8n.all_hold', 'All existing groups already hold this permission.')}
                             </span>
                         )}

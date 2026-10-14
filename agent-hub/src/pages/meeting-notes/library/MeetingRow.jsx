@@ -91,7 +91,7 @@ export default function MeetingRow({ meeting, active, onClick }) {
                         </span>
                     )}
                     {meeting.isPublished && (
-                        <span className="inline-flex flex-shrink-0" title={publishTitle} aria-label={publishTitle} role="img" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="inline-flex flex-shrink-0 text-[var(--text-tertiary)]" title={publishTitle} aria-label={publishTitle} role="img">
                             <Share2 className="w-3 h-3" aria-hidden="true" />
                         </span>
                     )}

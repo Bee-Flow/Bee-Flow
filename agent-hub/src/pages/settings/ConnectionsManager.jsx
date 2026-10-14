@@ -123,7 +123,7 @@ const SharePanel = ({ connection, grants, onChanged }) => {
 
     return (
         <div className="mt-2 p-3 rounded-lg space-y-2.5" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] text-[var(--text-muted)]">
                 {t('connections.lend_explainer', "Lending shares this connection with full delegation — the recipient's runs use your credentials.")}
             </p>
             {connection.provider === 'http' && (
@@ -149,23 +149,21 @@ const SharePanel = ({ connection, grants, onChanged }) => {
                 <button
                     onClick={() => share({ granteeType: 'user', granteeEmail: email.trim() })}
                     disabled={busy || !email.trim()}
-                    className="px-3 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="px-3 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]"
                 >{t('connections.lend_to_teammate', 'Lend to teammate')}</button>
             </div>
             <button
                 onClick={() => share({ granteeType: 'org' })}
                 disabled={busy}
-                className="text-[12px] underline disabled:opacity-40"
-                style={{ color: 'var(--text-muted)' }}
+                className="text-[12px] underline disabled:opacity-40 text-[var(--text-muted)]"
             >{t('connections.lend_to_org', 'Lend to everyone in my organization')}</button>
             {err && <ErrorLine>{err}</ErrorLine>}
 
             {mine.length > 0 && (
                 <div className="space-y-1 pt-1">
                     {mine.map(g => (
-                        <div key={g.id} className="flex items-center justify-between text-[12px] px-2 py-1.5 rounded" style={{ background: 'var(--bg-secondary)' }}>
-                            <span style={{ color: 'var(--text-primary)' }}>
+                        <div key={g.id} className="flex items-center justify-between text-[12px] px-2 py-1.5 rounded bg-[var(--bg-secondary)]">
+                            <span className="text-[var(--text-primary)]">
                                 {granteeName(g)}
                                 {g.resource_type ? ` · ${g.resource_type}` : ''}
                                 {g.expires_at ? ` · ${t('connections.expires_on', 'expires')} ${new Date(g.expires_at).toLocaleDateString()}` : ''}
@@ -256,10 +254,10 @@ const ConnectionRow = ({ connection, grants, onChanged }) => {
                     </>
                 ) : (
                     <>
-                        <span className="text-[13px] font-medium flex-1" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-[13px] font-medium flex-1 text-[var(--text-primary)]">
                             {connection.label}
                             {connection.provider === 'http' && (
-                                <span className="block text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>
+                                <span className="block text-[11px] font-normal text-[var(--text-muted)]">
                                     {httpMetaSummary(connection)}
                                 </span>
                             )}
@@ -270,19 +268,19 @@ const ConnectionRow = ({ connection, grants, onChanged }) => {
                             </span>
                         )}
                         {sharedCount > 0 && (
-                            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-[10px] text-[var(--text-muted)]">
                                 {t('connections.share_count', '{count} shared', { count: sharedCount })}
                             </span>
                         )}
                         {!connection.isDefault && (
                             <button
                                 onClick={() => patch({ makeDefault: true }, t('connections.set_default_failed', 'Could not set this as the default'))}
-                                disabled={busy} className="text-[11px] underline" style={{ color: 'var(--text-muted)' }}
+                                disabled={busy} className="text-[11px] underline text-[var(--text-muted)]"
                             >{t('connections.set_default', 'Set default')}</button>
                         )}
-                        <button onClick={() => setRenaming(true)} className="text-[11px] underline" style={{ color: 'var(--text-muted)' }}>{t('connections.rename', 'Rename')}</button>
+                        <button onClick={() => setRenaming(true)} className="text-[11px] underline text-[var(--text-muted)]">{t('connections.rename', 'Rename')}</button>
                         <button type="button" onClick={() => setSharing(v => !v)} aria-expanded={sharing} className="p-1" title={t('connections.share', 'Share')} style={{ color: sharing ? 'var(--accent-primary)' : 'var(--text-muted)' }}><Share2 size={14} /></button>
-                        <button onClick={remove} disabled={busy} className="p-1" title={t('connections.delete', 'Delete')} style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
+                        <button onClick={remove} disabled={busy} className="p-1 text-[var(--text-muted)]" title={t('connections.delete', 'Delete')}><Trash2 size={14} /></button>
                     </>
                 )}
             </div>
@@ -355,7 +353,7 @@ const AddConnectionForm = ({ onAdded }) => {
 
     if (!open) {
         return (
-            <button onClick={() => setOpen(true)} className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-2" style={{ color: 'var(--accent-primary)' }}>
+            <button onClick={() => setOpen(true)} className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 text-[var(--accent-primary)]">
                 <Plus size={14} /> {t('connections.add', 'Add a connection')}
             </button>
         );
@@ -396,7 +394,7 @@ const AddConnectionForm = ({ onAdded }) => {
             ))}
             {err && <ErrorLine>{err}</ErrorLine>}
             <div className="flex gap-2">
-                <button onClick={submit} disabled={busy} className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40" style={{ background: 'var(--accent-primary)' }}>
+                <button onClick={submit} disabled={busy} className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]">
                     {busy ? <Loader2 size={14} className="animate-spin" /> : t('connections.create', 'Create connection')}
                 </button>
                 <button onClick={() => { reset(); setOpen(false); }} className="px-4 py-2 rounded-lg text-[13px]" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
@@ -445,33 +443,33 @@ const ConnectionsManager = () => {
     return (
         <div className="space-y-1.5">
             <GroupLabel>{t('connections.title', 'Named connections')}</GroupLabel>
-            <p className="text-[11px] px-1 -mt-1 mb-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] px-1 -mt-1 mb-1 text-[var(--text-muted)]">
                 {t('connections.description', 'Keep multiple named credentials per integration and lend a specific one to teammates. Recipients without a lent connection bring their own.')}
             </p>
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
                 {loading ? (
-                    <div className="px-4 py-6 flex items-center gap-2 text-[13px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                    <div className="px-4 py-6 flex items-center gap-2 text-[13px] bg-[var(--bg-secondary)] text-[var(--text-muted)]">
                         <Loader2 size={14} className="animate-spin" /> {t('connections.loading', 'Loading…')}
                     </div>
                 ) : (
-                    <div style={{ background: 'var(--bg-secondary)' }}>
+                    <div className="bg-[var(--bg-secondary)]">
                         {loadError ? (
                             <div className="px-4 py-4">
                                 <ErrorLine>{loadError}</ErrorLine>
-                                <button onClick={() => { setLoading(true); load(); }} className="text-[12px] underline mt-1" style={{ color: 'var(--accent-primary)' }}>
+                                <button onClick={() => { setLoading(true); load(); }} className="text-[12px] underline mt-1 text-[var(--accent-primary)]">
                                     {t('connections.retry', 'Try again')}
                                 </button>
                             </div>
                         ) : (
                             <>
                                 {Object.keys(byProvider).length === 0 && (
-                                    <p className="px-4 py-4 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                    <p className="px-4 py-4 text-[12px] text-[var(--text-muted)]">
                                         {t('connections.empty', 'No named connections yet.')}
                                     </p>
                                 )}
                                 {Object.entries(byProvider).map(([provider, conns]) => (
                                     <div key={provider} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                                        <div className="px-3 pt-2.5 pb-1 text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                        <div className="px-3 pt-2.5 pb-1 text-[12px] font-semibold text-[var(--text-primary)]">
                                             {PROVIDER_BY_ID[provider]?.name || provider}
                                         </div>
                                         {conns.map(c => <ConnectionRow key={c.id} connection={c} grants={grants} onChanged={load} />)}

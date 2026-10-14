@@ -49,7 +49,7 @@ function LinkAddedCard({ links, t }) {
                 >
                     {t('webpages.chat.link_added', 'Link added')}
                 </div>
-                <div className="text-[11px] truncate" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-[11px] truncate text-[var(--text-primary)]">
                     {links.map(l => l.name).join(', ')}
                 </div>
             </div>
@@ -64,8 +64,7 @@ function Chip({ icon, label, onClick, testId }) {
             type="button"
             onClick={onClick}
             data-testid={testId}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] border transition-colors hover:bg-[var(--vsc-hover-bg)]"
-            style={{ borderColor: 'var(--vsc-border)', color: 'var(--text-secondary)' }}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] border transition-colors hover:bg-[var(--vsc-hover-bg)] border-[var(--vsc-border)] text-[var(--text-secondary)]"
         >
             <Icon size={11} aria-hidden="true" />
             {label}
@@ -81,8 +80,7 @@ function HowIDidThis({ summary, t }) {
     return (
         <span
             data-testid="webpage-how-i-did-this"
-            className="text-[10px] inline-flex items-center gap-1"
-            style={{ color: 'var(--text-tertiary)' }}
+            className="text-[10px] inline-flex items-center gap-1 text-[var(--text-tertiary)]"
         >
             <Wrench size={10} aria-hidden="true" />
             {t('webpages.chat.how_i_did_this', 'How I did this')}
@@ -141,7 +139,7 @@ export default function WebpageTurnCard({
                 </div>
             )}
             {undone && (
-                <span className="text-[10px]" data-testid="webpage-turn-undone" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[10px] text-[var(--text-tertiary)]" data-testid="webpage-turn-undone">
                     {t('webpages.chat.undone', 'Undone — the page is back to how it was before this turn.')}
                 </span>
             )}

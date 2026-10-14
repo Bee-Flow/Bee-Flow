@@ -54,20 +54,20 @@ export default function ActionItemsList({ items = [], meeting = null, onToggle, 
 
     return (
         <div className="flex flex-col gap-3 h-full">
-            <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                 <ListChecks className="w-4 h-4" aria-hidden="true" />
                 {t('meetings.action_items', 'Action items')}
-                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                     {items.filter((i) => !i.done).length}
                 </span>
             </h2>
-            <div className="flex-1 overflow-auto rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+            <div className="flex-1 overflow-auto rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                 {items.length === 0 ? (
-                    <div className="text-sm text-center py-10 px-4" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-sm text-center py-10 px-4 text-[var(--text-muted)]">
                         {t('meetings.no_action_items', 'No action items detected.')}
                     </div>
                 ) : (
-                    <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <ul className="divide-y border-[var(--border-subtle)]">
                         {sorted.map((item) => (
                             <ActionItemRow
                                 key={item.id}
@@ -159,10 +159,10 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
 /** The line under the sentence: who, when, by when — and where it went. */
 function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }) {
     return (
-        <div className="flex items-center gap-2 mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex items-center gap-2 mt-1 text-[11px] text-[var(--text-muted)]">
             {item.assignee && (
                 <span className="inline-flex items-center gap-1">
-                    <span className="w-4 h-4 rounded-full text-[9px] font-semibold flex items-center justify-center" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} aria-hidden="true">
+                    <span className="w-4 h-4 rounded-full text-[9px] font-semibold flex items-center justify-center bg-[var(--bg-tertiary)] text-[var(--text-secondary)]" aria-hidden="true">
                         {(item.assignee[0] || '?').toUpperCase()}
                     </span>
                     {item.assignee}
@@ -206,8 +206,7 @@ function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }) {
 function KeptChip({ t }) {
     return (
         <span
-            className="inline-flex items-center gap-1"
-            style={{ color: 'var(--warning)' }}
+            className="inline-flex items-center gap-1 text-[var(--warning)]"
             title={t('meetings.action_kept_title', 'The latest regeneration no longer found this action. It was kept because it had been checked off or edited — nothing was deleted.')}
         >
             <History className="w-3 h-3" aria-hidden="true" />

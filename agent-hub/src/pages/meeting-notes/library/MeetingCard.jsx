@@ -33,13 +33,13 @@ export default function MeetingCard({ meeting, active, onClick }) {
             </div>
             <div className="px-4 pb-4 flex flex-col gap-1.5">
                 <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold leading-snug line-clamp-2" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-semibold leading-snug line-clamp-2 text-[var(--text-primary)]">
                         {meeting.title || 'Untitled meeting'}
                     </h3>
                     {status === 'failed' && <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#ef4444' }} />}
                     {status === 'processing' && <Loader2 className="w-3.5 h-3.5 flex-shrink-0 animate-spin" style={{ color: 'var(--text-muted)' }} />}
                 </div>
-                <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
                     <span>{formatRelativeDate(meeting.createdAt)}</span>
                     {sourceMeta && (
                         <span
@@ -56,7 +56,7 @@ export default function MeetingCard({ meeting, active, onClick }) {
                         </span>
                     )}
                 </div>
-                <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <div className="flex items-center gap-3 mt-1 text-[11px] text-[var(--text-secondary)]">
                     <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{formatDuration(meeting.durationSeconds)}</span>
                     {meeting.speakerCount > 0 && (
                         <span className="inline-flex items-center gap-1"><Users className="w-3 h-3" />{meeting.speakerCount}</span>
@@ -65,7 +65,7 @@ export default function MeetingCard({ meeting, active, onClick }) {
                         <span className="inline-flex items-center gap-1"><ListChecks className="w-3 h-3" />{actionItems}</span>
                     )}
                     {publishLabel && (
-                        <span className="inline-flex items-center gap-1 font-medium" title={publishTitle} style={{ color: 'var(--accent-primary)' }}>
+                        <span className="inline-flex items-center gap-1 font-medium text-[var(--accent-primary)]" title={publishTitle}>
                             <Share2 className="w-3 h-3" />{publishLabel}
                         </span>
                     )}
@@ -73,7 +73,7 @@ export default function MeetingCard({ meeting, active, onClick }) {
                 {Array.isArray(meeting.tags) && meeting.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                         {meeting.tags.slice(0, 3).map((tag) => (
-                            <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                            <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                 {tag}
                             </span>
                         ))}

@@ -156,14 +156,14 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }) => {
 
     if (!hasAnyAdminPermission) {
         return (
-            <div className="h-full flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-                <div className="text-center p-8 rounded-2xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+            <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
+                <div className="text-center p-8 rounded-2xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgb(239, 68, 68)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>
                     </div>
-                    <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin.access_denied_title')}</h2>
-                    <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{t('admin.access_denied_desc')}</p>
-                    {onBack && <button onClick={onBack} className="px-4 py-2 rounded-lg font-medium text-white" style={{ background: 'var(--accent-primary)' }}>{t('admin.go_back')}</button>}
+                    <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">{t('admin.access_denied_title')}</h2>
+                    <p className="text-sm mb-4 text-[var(--text-muted)]">{t('admin.access_denied_desc')}</p>
+                    {onBack && <button onClick={onBack} className="px-4 py-2 rounded-lg font-medium text-white bg-[var(--accent-primary)]">{t('admin.go_back')}</button>}
                 </div>
             </div>
         );
@@ -176,12 +176,12 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }) => {
     // Render access denied for forbidden tab content
     const renderAccessDenied = () => (
         <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center p-8 rounded-2xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+            <div className="text-center p-8 rounded-2xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                 <div className="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgb(239, 68, 68)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                 </div>
-                <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin.forbidden_title')}</h3>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('admin.forbidden_desc')}</p>
+                <h3 className="text-lg font-semibold mb-1 text-[var(--text-primary)]">{t('admin.forbidden_title')}</h3>
+                <p className="text-sm text-[var(--text-muted)]">{t('admin.forbidden_desc')}</p>
             </div>
         </div>
     );
@@ -193,7 +193,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }) => {
     // falls through to the normal chrome + renderAccessDenied below.
     if (activeTab === 'product-website' && isTabAllowed) {
         return (
-            <div className="h-full" style={{ background: 'var(--bg-primary)' }}>
+            <div className="h-full bg-[var(--bg-primary)]">
                 <ProductWebsitePanel
                     onExit={() => handleTabClick(firstAllowedTab?.id || 'agents')}
                     onNavigate={onNavigate}
@@ -203,9 +203,9 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }) => {
     }
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-card)' }}>
+        <div className="h-full flex flex-col bg-[var(--bg-card)]">
             {/* Top Navigation Bar */}
-            <div className="h-14 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+            <div className="h-14 flex items-center justify-between px-4 border-b shrink-0 border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 <div className="flex items-center gap-3">
                     {onBack && (
                         <button

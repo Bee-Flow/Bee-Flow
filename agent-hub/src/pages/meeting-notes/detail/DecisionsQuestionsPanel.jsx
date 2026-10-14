@@ -53,18 +53,17 @@ export default function DecisionsQuestionsPanel({ decisions = [], questions = []
 function ArtifactCard({ icon, title, count, children }) {
     return (
         <div>
-            <h2 className="text-sm font-semibold flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-sm font-semibold flex items-center gap-2 mb-2 text-[var(--text-primary)]">
                 {icon}
                 {title}
                 {count > 0 && (
-                    <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                    <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                         {count}
                     </span>
                 )}
             </h2>
             <ul
-                className="divide-y rounded-xl border"
-                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                className="divide-y rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]"
             >
                 {children}
             </ul>
@@ -75,9 +74,9 @@ function ArtifactCard({ icon, title, count, children }) {
 function ArtifactRow({ text, timestamp, badge, onSeek }) {
     const seconds = toSeconds(timestamp);
     return (
-        <li className="px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
+        <li className="px-3 py-2.5 border-[var(--border-subtle)]">
             <div className="flex items-start gap-2">
-                <span className="flex-1 min-w-0 text-sm" style={{ color: 'var(--text-primary)' }}>{text}</span>
+                <span className="flex-1 min-w-0 text-sm text-[var(--text-primary)]">{text}</span>
                 {badge && (
                     <span
                         className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"

@@ -80,8 +80,8 @@ export default function WebpageChat({
     };
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}>
-            <div className="shrink-0 px-3 py-1.5 border-b flex items-center gap-2" style={{ borderColor: 'var(--vsc-border)' }}>
+        <div className="flex flex-col h-full bg-[var(--vsc-editor-bg)] text-[var(--vsc-fg)]">
+            <div className="shrink-0 px-3 py-1.5 border-b flex items-center gap-2 border-[var(--vsc-border)]">
                 <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)', letterSpacing: '0.06em' }}>
                     {t('webpages.chat.title', 'AI Chat')}
                 </span>
@@ -150,10 +150,10 @@ export default function WebpageChat({
                              style={{ background: 'var(--brand-gradient)' }}>
                             <span className="text-lg">🌐</span>
                         </div>
-                        <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-xs font-medium text-[var(--text-primary)]">
                             {t('webpages.chat.empty_title', 'Describe a page, get a webpage')}
                         </p>
-                        <p className="text-[10px] mt-1 mb-4 max-w-[240px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="text-[10px] mt-1 mb-4 max-w-[240px] text-[var(--text-tertiary)]">
                             {t('webpages.chat.empty_body', "Tell me what you want. I'll scaffold the files, wire them up, and keep iterating with you.")}
                         </p>
                         <div className="flex flex-col gap-1.5 w-full max-w-[260px]">
@@ -230,7 +230,7 @@ export default function WebpageChat({
                 <div ref={endRef} />
             </div>
 
-            <div className="shrink-0 px-2 py-2 border-t" style={{ borderColor: 'var(--vsc-border)' }}>
+            <div className="shrink-0 px-2 py-2 border-t border-[var(--vsc-border)]">
                 {attachedSelection && (
                     <div
                         className="mb-1.5 flex items-start gap-1.5 px-2 py-1 rounded-md text-[11px]"

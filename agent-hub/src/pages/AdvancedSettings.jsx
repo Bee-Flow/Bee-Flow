@@ -753,13 +753,12 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose })
                     Desktop keeps the sidebar, so the button is hidden there. */}
                 <button
                     onClick={() => { if (mobileInDetail) setMobileDetail(false); else handleClose(); }}
-                    className="md:hidden -ml-2 mr-0.5 p-1.5 rounded-lg"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="md:hidden -ml-2 mr-0.5 p-1.5 rounded-lg text-[var(--text-secondary)]"
                     aria-label={t('common.back', 'Back')}
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
-                <span className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{titleLabel}</span>
+                <span className="text-[15px] font-semibold text-[var(--text-primary)]">{titleLabel}</span>
             </div>
             )}
 
@@ -906,8 +905,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose })
                     {/* Footer — product name + build version (commit SHA is unique per CI deploy). */}
                     <div className="px-4 py-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         <p
-                            className="text-[10px]"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="text-[10px] text-[var(--text-muted)]"
                             title={formatVersionWithDate()}
                         >
                             Bee Flow <span style={{ opacity: 0.7 }}>{formatVersion()}</span>

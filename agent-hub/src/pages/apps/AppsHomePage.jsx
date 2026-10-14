@@ -290,13 +290,12 @@ function AppCard({ app, now }) {
                     <AppIcon name={app.icon || 'LayoutGrid'} className="w-4 h-4" />
                 </span>
                 <div className="flex-1 min-w-0 pt-0.5 flex items-start gap-2">
-                    <div className="text-sm font-semibold truncate flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-sm font-semibold truncate flex-1 min-w-0 text-[var(--text-primary)]">
                         {app.name || t('apps.untitled', 'Untitled app')}
                     </div>
                     {isNewlyPublished(app, now) && (
                         <span
-                            className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-medium leading-none mt-0.5"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                            className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-medium leading-none mt-0.5 bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
                         >
                             {t('apps.new_badge', 'new')}
                         </span>
@@ -310,8 +309,7 @@ function AppCard({ app, now }) {
                 thing every card promises, and a promise that appears only
                 under a mouse is invisible on a phone and to a keyboard. */}
             <div
-                className="mt-2 pt-2 border-t flex items-center gap-2 text-[11px]"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
+                className="mt-2 pt-2 border-t flex items-center gap-2 text-[11px] border-[var(--border-subtle)] text-[var(--text-tertiary)]"
             >
                 <span className="truncate min-w-0">{category ? CATEGORY_LABELS[category](t) : ''}</span>
                 <span className="ml-auto inline-flex items-center gap-0.5 shrink-0 font-medium">
@@ -358,10 +356,10 @@ function SkeletonGrid() {
             {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className={`${CARD_CLASSES} animate-pulse`} style={CARD_STYLE}>
                     <div className="flex items-start gap-2.5">
-                        <div className="h-8 w-8 rounded-lg" style={{ background: 'var(--bg-secondary)' }} />
+                        <div className="h-8 w-8 rounded-lg bg-[var(--bg-secondary)]" />
                         <div className="flex-1 pt-0.5">
-                            <div className="h-3.5 w-2/3 rounded mb-2" style={{ background: 'var(--bg-secondary)' }} />
-                            <div className="h-2.5 w-full rounded" style={{ background: 'var(--bg-secondary)' }} />
+                            <div className="h-3.5 w-2/3 rounded mb-2 bg-[var(--bg-secondary)]" />
+                            <div className="h-2.5 w-full rounded bg-[var(--bg-secondary)]" />
                         </div>
                     </div>
                 </div>
@@ -379,8 +377,7 @@ function SkeletonGrid() {
 function SectionLabel({ children }) {
     return (
         <h2
-            className="text-[10px] font-semibold uppercase tracking-[0.08em]"
-            style={{ color: 'var(--text-tertiary)' }}
+            className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
         >
             {children}
         </h2>
@@ -400,8 +397,7 @@ function Toolbar({ count, query, onQuery, canBuild }) {
     return (
         <div
             data-testid="apps-toolbar"
-            className="shrink-0 h-12 px-4 border-b flex items-center gap-3"
-            style={{ borderColor: 'var(--border-subtle)' }}
+            className="shrink-0 h-12 px-4 border-b flex items-center gap-3 border-[var(--border-subtle)]"
         >
             <div className="flex items-center gap-2 min-w-0">
                 {/* The tile is the APP kind's colour, from the one module
@@ -410,13 +406,12 @@ function Toolbar({ count, query, onQuery, canBuild }) {
                 <span style={APP_TILE.tile}>
                     <LayoutGrid style={APP_TILE.glyph} aria-hidden="true" />
                 </span>
-                <h1 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                <h1 className="text-sm font-semibold truncate text-[var(--text-primary)]">
                     {t('apps.title', 'Apps')}
                 </h1>
                 {count !== null && (
                     <span
-                        className="hidden sm:inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px]"
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                        className="hidden sm:inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] border-[var(--border-subtle)] text-[var(--text-secondary)]"
                     >
                         {nOf(t, 'apps.published_count', count, '{count} published', '{count} published')}
                     </span>
@@ -449,12 +444,7 @@ function Toolbar({ count, query, onQuery, canBuild }) {
                 {canBuild && (
                     <a
                         href="/app/studio/apps"
-                        className="shrink-0 rounded-lg border px-2.5 py-1 text-xs font-medium no-underline whitespace-nowrap"
-                        style={{
-                            borderColor: 'var(--border-subtle)',
-                            background: 'var(--bg-card)',
-                            color: 'var(--text-secondary)',
-                        }}
+                        className="shrink-0 rounded-lg border px-2.5 py-1 text-xs font-medium no-underline whitespace-nowrap border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]"
                     >
                         {t('apps.build_in_studio', 'Build in Studio')}
                     </a>
@@ -497,8 +487,7 @@ function Directory({ recentlyUsed, apps, now, noMatches }) {
                         )}
                         {apps.length > 1 && (
                             <span
-                                className="ml-auto text-[10px]"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="ml-auto text-[10px] text-[var(--text-tertiary)]"
                             >
                                 {t('apps.sorted_by_name', 'Sorted by name')}
                             </span>
@@ -506,7 +495,7 @@ function Directory({ recentlyUsed, apps, now, noMatches }) {
                     </div>
                 )}
                 {noMatches ? (
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {t('apps.no_matches', 'No apps match your search.')}
                     </p>
                 ) : (
@@ -520,8 +509,7 @@ function Directory({ recentlyUsed, apps, now, noMatches }) {
                 sits at the BOTTOM in a dashed box: present, and
                 never in the way of the grid. */}
             <p
-                className="mt-6 rounded-[9px] border border-dashed px-[14px] py-[11px] text-[11.5px] leading-[17px]"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
+                className="mt-6 rounded-[9px] border border-dashed px-[14px] py-[11px] text-[11.5px] leading-[17px] border-[var(--border-subtle)] text-[var(--text-tertiary)]"
             >
                 {t(
                     'apps.footnote',
@@ -619,7 +607,7 @@ export default function AppsHomePage() {
     const noMatches = hasDirectory && visibleApps.length === 0;
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-primary)]">
             <Toolbar
                 count={hasDirectory ? apps.length : null}
                 query={query}
@@ -641,7 +629,7 @@ export default function AppsHomePage() {
                         list, it is yours. Said here rather than only in the
                         footnote, because "where are the other twelve?" is
                         asked while looking at the grid. */}
-                    <span className="ml-auto text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="ml-auto text-[11px] text-[var(--text-tertiary)]">
                         {t('apps.access_hint', 'Only what you are allowed to use appears here')}
                     </span>
                 </div>

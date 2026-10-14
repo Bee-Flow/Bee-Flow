@@ -52,8 +52,8 @@ export default function WebpageDataTab({
     const [pane, setPane] = useState('overview');
 
     return (
-        <div className="flex flex-col h-full min-h-0" style={{ background: 'var(--bg-primary)' }}>
-            <div className="shrink-0 px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="flex flex-col h-full min-h-0 bg-[var(--bg-primary)]">
+            <div className="shrink-0 px-3 py-2 border-b border-[var(--border-subtle)]">
                 <SegmentedControl
                     size="sm"
                     ariaLabel={t('webpages.data.panes', 'Data surfaces')}

@@ -224,20 +224,19 @@ export default function WebpageCard({
                         />
                     ) : (
                         <span
-                            className="font-semibold truncate text-[13px]"
-                            style={{ color: 'var(--text-primary)' }}
+                            className="font-semibold truncate text-[13px] text-[var(--text-primary)]"
                             onDoubleClick={(e) => { e.stopPropagation(); onStartRename?.(webpage); }}
                             title={t('webpages.card.rename_hint', 'Double-click to rename')}
                         >
                             {webpage.name}
                         </span>
                     )}
-                    <span className="ml-auto shrink-0 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="ml-auto shrink-0 text-[11px] text-[var(--text-tertiary)]">
                         {formatRelativeTime(webpage.updatedAt)}
                     </span>
                 </div>
                 {webpage.tagline && (
-                    <div className="text-[12px] leading-[17px] line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="text-[12px] leading-[17px] line-clamp-2 text-[var(--text-secondary)]">
                         {webpage.tagline}
                     </div>
                 )}

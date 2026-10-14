@@ -165,8 +165,7 @@ export default function TemplateEditor({
                 <button
                     type="button"
                     onClick={onClose}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     {t('meeting_notes.template_cancel', 'Cancel')}
                 </button>
@@ -174,8 +173,7 @@ export default function TemplateEditor({
                     type="button"
                     onClick={handleSave}
                     disabled={!canSave}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {t('meeting_notes.template_save', 'Save template')}
@@ -197,7 +195,7 @@ export default function TemplateEditor({
             <div className="flex flex-col gap-4">
                 {/* Name */}
                 <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('meeting_notes.template_name', 'Name')}</span>
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_name', 'Name')}</span>
                     <input
                         type="text"
                         value={name}
@@ -211,7 +209,7 @@ export default function TemplateEditor({
                 {/* Start from (create only) */}
                 {!isEdit && builtins.length > 0 && (
                     <label className="flex flex-col gap-1">
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('meeting_notes.template_start_from', 'Start from a built-in (optional)')}</span>
+                        <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_start_from', 'Start from a built-in (optional)')}</span>
                         <select
                             value={seedId}
                             onChange={(e) => applySeed(e.target.value)}
@@ -228,7 +226,7 @@ export default function TemplateEditor({
 
                 {/* Prompt */}
                 <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('meeting_notes.template_prompt', 'Prompt')}</span>
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_prompt', 'Prompt')}</span>
                     <textarea
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
@@ -241,7 +239,7 @@ export default function TemplateEditor({
 
                 {/* Scope */}
                 <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('meeting_notes.template_visible_to', 'Visible to')}</span>
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_visible_to', 'Visible to')}</span>
                     <div className="flex flex-wrap gap-2">
                         {scopeOptions.map((opt) => {
                             const Icon = opt.icon;
@@ -264,14 +262,14 @@ export default function TemplateEditor({
                         })}
                     </div>
                     {isEdit && (
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('meeting_notes.template_scope_locked', 'Scope can\'t be changed after creation.')}</span>
+                        <span className="text-[11px] text-[var(--text-muted)]">{t('meeting_notes.template_scope_locked', 'Scope can\'t be changed after creation.')}</span>
                     )}
                 </div>
 
                 {/* Group picker */}
                 {scope === 'group' && (
                     <label className="flex flex-col gap-1">
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('meeting_notes.template_group', 'Group')}</span>
+                        <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_group', 'Group')}</span>
                         <select
                             value={groupId}
                             onChange={(e) => setGroupId(e.target.value)}
@@ -296,8 +294,8 @@ export default function TemplateEditor({
                         className="mt-0.5 accent-[var(--accent-primary)] w-4 h-4"
                     />
                     <span className="flex flex-col">
-                        <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('meeting_notes.template_set_default', 'Use as the default for new meetings')}</span>
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-sm text-[var(--text-primary)]">{t('meeting_notes.template_set_default', 'Use as the default for new meetings')}</span>
+                        <span className="text-[11px] text-[var(--text-muted)]">
                             {scope === 'user'
                                 ? t('meeting_notes.template_default_user_hint', 'New meetings you create get this summary style automatically.')
                                 : scope === 'org'

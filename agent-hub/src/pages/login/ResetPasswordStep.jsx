@@ -20,7 +20,7 @@ const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labe
                 <p className="text-sm text-[var(--text-secondary)]">
                     {t('reset.success', 'Your password has been reset. You can now sign in with your new password.')}
                 </p>
-                <button onClick={onDone} className="w-full py-3 text-white rounded-xl font-semibold" style={{ background: 'var(--accent-primary)' }}>
+                <button onClick={onDone} className="w-full py-3 text-white rounded-xl font-semibold bg-[var(--accent-primary)]">
                     {t('reset.go_signin', 'Go to sign in')}
                 </button>
             </div>

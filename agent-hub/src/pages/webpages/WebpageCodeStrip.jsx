@@ -202,15 +202,13 @@ function FileChip({ t, file, active, dirty, onOpen }) {
             <span style={{ opacity: 0.75 }}>{label}</span>
             {dirty && (
                 <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: 'var(--vsc-fg-muted)' }}
+                    className="w-1.5 h-1.5 rounded-full bg-[var(--vsc-fg-muted)]"
                     title={t('webpages.code.unsaved', 'Unsaved changes')}
                 />
             )}
             {file.marks > 0 && (
                 <span
-                    className="px-1 rounded"
-                    style={{ background: 'var(--vsc-border)', color: 'var(--vsc-fg)' }}
+                    className="px-1 rounded bg-[var(--vsc-border)] text-[var(--vsc-fg)]"
                     title={t('webpages.code.marks_in_file', '{count} highlighted lines', { count: file.marks })}
                 >
                     {file.marks}
@@ -230,7 +228,7 @@ function FileChip({ t, file, active, dirty, onOpen }) {
 function Totals({ t, count, totalBytes, complete }) {
     const total = formatBytes(totalBytes);
     return (
-        <span className="text-[11px] ml-auto" style={{ color: 'var(--vsc-fg-muted)' }}>
+        <span className="text-[11px] ml-auto text-[var(--vsc-fg-muted)]">
             {t(count === 1 ? 'webpages.code.files_count' : 'webpages.code.files_count_plural',
                 count === 1 ? '{count} file' : '{count} files', { count })}
             {total ? ' · ' : ''}
@@ -262,7 +260,7 @@ function Legend({ t, marksState, readOnly, stale }) {
 
     if (readOnly) {
         return (
-            <span style={{ color: 'var(--vsc-fg-muted)' }}>
+            <span className="text-[var(--vsc-fg-muted)]">
                 {t('webpages.code.legend_owner_only', 'Only the page owner can see which lines link to Studio.')}
             </span>
         );
@@ -270,7 +268,7 @@ function Legend({ t, marksState, readOnly, stale }) {
 
     if (marksState.loading) {
         return (
-            <span className="flex items-center gap-1.5" style={{ color: 'var(--vsc-fg-muted)' }}>
+            <span className="flex items-center gap-1.5 text-[var(--vsc-fg-muted)]">
                 <Loader2 size={11} className="animate-spin" />
                 {t('webpages.code.legend_loading', 'Working out the Studio links…')}
             </span>
@@ -299,14 +297,14 @@ function Legend({ t, marksState, readOnly, stale }) {
 
     if (!perFamily.length) {
         return (
-            <span style={{ color: 'var(--vsc-fg-muted)' }}>
+            <span className="text-[var(--vsc-fg-muted)]">
                 {t('webpages.code.legend_none', 'Nothing in this code links to Studio yet.')}
             </span>
         );
     }
 
     return (
-        <span className="flex items-center gap-2 flex-wrap" style={{ color: 'var(--vsc-fg-muted)' }}>
+        <span className="flex items-center gap-2 flex-wrap text-[var(--vsc-fg-muted)]">
             <span>{t('webpages.code.legend', 'Highlighted = Studio link')}</span>
             {perFamily.map(({ family, count }) => (
                 <span key={family} className="flex items-center gap-1">
@@ -384,7 +382,7 @@ export default function WebpageCodeStrip({
                     />
                 ))}
                 {hidden > 0 && (
-                    <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>
+                    <span className="text-[11px] text-[var(--vsc-fg-muted)]">
                         {t('webpages.code.more_files', '+{count} more', { count: hidden })}
                     </span>
                 )}

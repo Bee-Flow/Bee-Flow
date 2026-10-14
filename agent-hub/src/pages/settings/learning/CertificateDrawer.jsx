@@ -57,7 +57,7 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                         <Eyebrow accent>{t('learn.cert.drawer_label', 'Certificate')}</Eyebrow>
                         <div className="font-semibold text-[14px] leading-[18px] truncate">{cert.title}</div>
                     </div>
-                    <button type="button" onClick={onClose} aria-label={t('common.close', 'Close')} className="grid place-items-center w-7 h-7 rounded-lg hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>
+                    <button type="button" onClick={onClose} aria-label={t('common.close', 'Close')} className="grid place-items-center w-7 h-7 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                         <X style={{ width: 14, height: 14 }} />
                     </button>
                 </div>
@@ -75,7 +75,7 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                                     <span className="uppercase font-semibold" style={{ fontSize: 10, letterSpacing: '.1em', color: 'var(--text-tertiary)' }}>{t('learn.cert.brand', 'Bee Flow AI Certified')}</span>
                                 </div>
                                 <div className="text-[22px] font-bold leading-[26px]">{cert.level || cert.title}</div>
-                                <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                                <div className="text-[11px] mt-1 text-[var(--text-tertiary)]">
                                     {imgError ? t('learn.cert.preview_failed', 'Could not load the preview — the download still works.') : <span className="inline-flex items-center gap-1.5"><Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />{t('learn.cert.preview_loading', 'Rendering the preview…')}</span>}
                                 </div>
                                 <div className="absolute grid place-items-center rounded-full" style={{ right: 18, bottom: 16, width: 44, height: 44, border: '2px solid var(--accent-primary)', color: 'var(--accent-primary)' }} aria-hidden="true">
@@ -98,7 +98,7 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                         <div className="flex items-center gap-2.5">
                             <div className="flex-1 min-w-0">
                                 <div className="font-semibold">{t('learn.cert.make_public', 'Make public & share')}</div>
-                                <div className="text-[11px] leading-[15px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.cert.public_explainer', 'Creates a verification link. Without this switch the link does not exist; you can revoke it at any time.')}</div>
+                                <div className="text-[11px] leading-[15px] text-[var(--text-tertiary)]">{t('learn.cert.public_explainer', 'Creates a verification link. Without this switch the link does not exist; you can revoke it at any time.')}</div>
                             </div>
                             <button type="button" role="switch" aria-checked={!!cert.isPublic} disabled={busy} onClick={() => onTogglePublic(!cert.isPublic)}
                                 aria-label={t('learn.cert.make_public', 'Make public & share')}
@@ -125,7 +125,7 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                             </>
                         )}
                         {noPublicUrl && (
-                            <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.cert.no_public_url', 'A public verify link isn’t available on this deployment — your certificate PNG/PDF download still works.')}</div>
+                            <div className="text-[11px] text-[var(--text-tertiary)]">{t('learn.cert.no_public_url', 'A public verify link isn’t available on this deployment — your certificate PNG/PDF download still works.')}</div>
                         )}
                     </div>
                 </div>

@@ -47,7 +47,7 @@ export default function PeopleTab({ model, colorFor, viewerSpeakerId, onSeek, t 
                     <TabHeading hint={t('meeting_notes.insights_silent_hint', 'Invited but never recorded speaking')}>
                         {t('meeting_notes.insights_silent', 'Did not speak')}
                     </TabHeading>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {people.silentAttendees.join(', ')}
                     </p>
                 </div>
@@ -62,9 +62,9 @@ function SpeakerRow({ stat, color, isViewer, onSeek, expanded, onToggle, t }) {
     const panelId = `contribution-${encodeURIComponent(stat.speakerId)}`;
     return (
         <div role="listitem">
-            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-                <span className="w-28 truncate font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="w-28 truncate font-medium text-[var(--text-primary)]">
                     {formatSpeakerLabel(stat.speakerId)}
                     {isViewer && (
                         <span
@@ -75,11 +75,11 @@ function SpeakerRow({ stat, color, isViewer, onSeek, expanded, onToggle, t }) {
                         </span>
                     )}
                 </span>
-                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+                <div className="flex-1 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
                     <div className="h-full rounded-full" style={{ width: `${Math.max(1, pct)}%`, background: color }} />
                 </div>
                 <span className="w-9 text-right tabular-nums">{pct}%</span>
-                <span className="w-12 text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                <span className="w-12 text-right tabular-nums text-[var(--text-muted)]">
                     {formatDuration(stat.speakingSeconds)}
                 </span>
                 {mono && onSeek ? (
@@ -103,8 +103,7 @@ function SpeakerRow({ stat, color, isViewer, onSeek, expanded, onToggle, t }) {
                         onClick={onToggle}
                         aria-expanded={expanded}
                         aria-controls={panelId}
-                        className="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)]"
                         aria-label={expanded
                             ? t('meeting_notes.insights_hide_contribution', 'Hide contribution')
                             : t('meeting_notes.insights_show_contribution', 'Show contribution')}
@@ -117,7 +116,7 @@ function SpeakerRow({ stat, color, isViewer, onSeek, expanded, onToggle, t }) {
                 )}
             </div>
 
-            <div className="ml-4 mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            <div className="ml-4 mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-[var(--text-muted)]">
                 {stat.wpm != null && (
                     <span title={t('meeting_notes.insights_pace_hint', 'Words per minute while speaking')}>
                         {t('meeting_notes.insights_pace', 'Pace')} <span className="tabular-nums">{stat.wpm}</span> {t('meeting_notes.insights_wpm', 'wpm')}

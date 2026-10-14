@@ -52,7 +52,7 @@ export default function CourseView({
                 tile={<HeaderTile icon={(props) => <CourseIcon courseId={course.id} size={15} {...props} />} />}
                 title={title}
                 chips={(
-                    <span className="text-[12px] whitespace-nowrap flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-[12px] whitespace-nowrap flex-shrink-0 text-[var(--text-tertiary)]">
                         {t('learn.course.progress_chip', '{a} of {b} lessons · {min} min')
                             .replace('{a}', String(done)).replace('{b}', String(lessons.length)).replace('{min}', String(minutes))}
                     </span>
@@ -137,15 +137,15 @@ function LessonRow({ t, locale, lesson, entry, isComplete, isMastered, isNext, l
                 <StatusGlyph isMastered={isMastered} isComplete={isComplete} isNext={isNext} t={t} />
                 <div className="min-w-0">
                     <div className="font-medium truncate">{t(lesson.titleKey, lesson.titleFallback)}</div>
-                    <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="text-[11px] truncate text-[var(--text-tertiary)]">
                         {stamp && <>{stamp} · </>}{desc}
                     </div>
                 </div>
-                <span style={{ color: 'var(--text-secondary)' }}>{t('learn.minutes', '{n} min').replace('{n}', String(lesson.estMinutes || 1))}</span>
+                <span className="text-[var(--text-secondary)]">{t('learn.minutes', '{n} min').replace('{n}', String(lesson.estMinutes || 1))}</span>
                 <div className="flex justify-end items-center gap-1.5">
                     <RowAction t={t} isComplete={isComplete} isNext={isNext} docked={docked} locked={locked} onStart={onStart} />
                     <button type="button" onClick={onToggle} aria-expanded={open} aria-label={t('learn.table.details', 'Lesson details')}
-                        className="grid place-items-center rounded-md w-6 h-6 hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-tertiary)' }}>
+                        className="grid place-items-center rounded-md w-6 h-6 hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
                         {open ? <ChevronUp style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
                     </button>
                 </div>
@@ -217,22 +217,21 @@ function LessonSteps({ t, lesson, stripe, showPractice, reviewBuilding, onPracti
             style={{ padding: '2px 14px 16px 44px', background: 'var(--bg-secondary)', boxShadow: `inset 3px 0 0 ${stripe}`, color: 'var(--text-secondary)', maxWidth: 760 }}>
             {steps.map((s, i) => (
                 <div key={s.id || i} className="grid items-center gap-2" style={{ gridTemplateColumns: '14px 14px minmax(0,1fr)' }}>
-                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{i + 1}</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{i + 1}</span>
                     <StepKindIcon kind={kinds[i]} />
                     <span className="truncate">
                         <span className="capitalize">{stepKindLabel(t, kinds[i])}</span>
                         {' · '}{tOpt(t, s.titleKey, s.titleFallback) || tOpt(t, s.questionKey, s.questionFallback)}
-                        {kinds[i] === STEP_TYPES.EXERCISE && <span style={{ color: 'var(--text-tertiary)' }}> · {t('learn.table.ai_coach', 'AI coach')}</span>}
+                        {kinds[i] === STEP_TYPES.EXERCISE && <span className="text-[var(--text-tertiary)]"> · {t('learn.table.ai_coach', 'AI coach')}</span>}
                     </span>
                 </div>
             ))}
-            <div className="text-[11px] mt-1 flex items-center gap-2 flex-wrap" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="text-[11px] mt-1 flex items-center gap-2 flex-wrap text-[var(--text-tertiary)]">
                 <span>{t('learn.table.what_counts_short', 'Mastered when every quiz is right first try and the exercise needs no hint.')}</span>
                 {showPractice && (
                     <button type="button" onClick={onPractice} disabled={reviewBuilding}
                         title={t('learn.practice.button_title', 'A fresh round of AI-generated questions on this lesson')}
-                        className="inline-flex items-center gap-1 font-medium transition hover:underline disabled:opacity-40"
-                        style={{ color: 'var(--accent-primary)' }}>
+                        className="inline-flex items-center gap-1 font-medium transition hover:underline disabled:opacity-40 text-[var(--accent-primary)]">
                         {reviewBuilding
                             ? <Loader2 className="animate-spin" style={{ width: 11, height: 11 }} aria-hidden="true" />
                             : <Sparkles style={{ width: 11, height: 11 }} aria-hidden="true" />}

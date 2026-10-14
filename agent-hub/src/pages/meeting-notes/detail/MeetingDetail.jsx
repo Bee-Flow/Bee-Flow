@@ -607,8 +607,7 @@ export default function MeetingDetail({ id, currentUserId, currentUserName, onBa
                                 type="button"
                                 onClick={() => setRegenerateOffer(false)}
                                 aria-label={t('meetings.dismiss', 'Dismiss')}
-                                className="p-1 rounded-md"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="p-1 rounded-md text-[var(--text-tertiary)]"
                             >
                                 <X className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>

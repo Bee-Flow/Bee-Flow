@@ -61,23 +61,23 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
     // Full access denied gate
     if (!canAccessOrgSettings) {
         return (
-            <div className="h-full flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-                <div className="text-center p-8 rounded-2xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+            <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
+                <div className="text-center p-8 rounded-2xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
                         <ShieldOff className="w-8 h-8" style={{ color: 'rgb(239, 68, 68)' }} />
                     </div>
-                    <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin.access_denied_title', 'Access Denied')}</h2>
-                    <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{t('org.settings_access_denied_text', "You don't have permission to access organisation settings.")}</p>
-                    {onBack && <button onClick={onBack} className="px-4 py-2 rounded-lg font-medium text-white" style={{ background: 'var(--accent-primary)' }}>{t('admin.go_back', 'Go Back')}</button>}
+                    <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">{t('admin.access_denied_title', 'Access Denied')}</h2>
+                    <p className="text-sm mb-4 text-[var(--text-muted)]">{t('org.settings_access_denied_text', "You don't have permission to access organisation settings.")}</p>
+                    {onBack && <button onClick={onBack} className="px-4 py-2 rounded-lg font-medium text-white bg-[var(--accent-primary)]">{t('admin.go_back', 'Go Back')}</button>}
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex flex-col bg-[var(--bg-primary)]">
             {/* Top Navigation Bar */}
-            <div className="h-14 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+            <div className="h-14 flex items-center justify-between px-4 border-b shrink-0 border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                 <div className="flex items-center gap-3">
                     {onBack && (
                         <button
@@ -93,7 +93,7 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
                     </h2>
                 </div>
 
-                <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
+                <div className="flex gap-1 p-1 rounded-lg bg-[var(--bg-tertiary)]">
                     {allowedTabs.map((tab) => (
                         <button
                             key={tab.id}

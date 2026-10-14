@@ -76,10 +76,10 @@ export default function RecordPanel({ onComplete }) {
             </div>
 
             <div className="text-center">
-                <div className="text-3xl font-mono font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-3xl font-mono font-semibold tabular-nums text-[var(--text-primary)]">
                     {formatDuration(elapsed)}
                 </div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-xs mt-1 text-[var(--text-muted)]">
                     {state === 'recording' && t('meetings.record_in_progress', 'Recording in progress')}
                     {state === 'paused' && t('meetings.record_paused', 'Paused')}
                     {state === 'idle' && !uploading && t('meetings.record_hint', 'Tap the mic to start')}
@@ -94,8 +94,7 @@ export default function RecordPanel({ onComplete }) {
                         <button
                             type="button"
                             onClick={pause}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm border"
-                            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm border bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-primary)]"
                         >
                             <Pause className="w-4 h-4" /> {t('meetings.record_pause', 'Pause')}
                         </button>
@@ -103,8 +102,7 @@ export default function RecordPanel({ onComplete }) {
                         <button
                             type="button"
                             onClick={resume}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm border"
-                            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm border bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-primary)]"
                         >
                             <Play className="w-4 h-4" /> {t('meetings.record_resume', 'Resume')}
                         </button>
@@ -112,8 +110,7 @@ export default function RecordPanel({ onComplete }) {
                     <button
                         type="button"
                         onClick={cancel}
-                        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm border"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm border bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-muted)]"
                     >
                         <X className="w-4 h-4" /> {t('meetings.record_discard', 'Discard')}
                     </button>
@@ -121,7 +118,7 @@ export default function RecordPanel({ onComplete }) {
             )}
 
             {error && (
-                <div className="text-xs max-w-sm text-center" style={{ color: 'var(--error)' }}>
+                <div className="text-xs max-w-sm text-center text-[var(--error)]">
                     {error.name === 'NotAllowedError'
                         ? t('meetings.record_mic_denied', 'Microphone access denied. Please allow access in your browser settings.')
                         : t('meetings.record_mic_error', 'Microphone error: {message}', { message: error.message || 'unknown' })}
@@ -134,15 +131,14 @@ export default function RecordPanel({ onComplete }) {
                     style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}
                 >
                     <div className="font-semibold">{t('meetings.failed_title', 'Transcription failed')}</div>
-                    <div style={{ color: 'var(--text-secondary)' }}>{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
                     <div className="flex items-center gap-2">
                         {canRetry && (
                             <button
                                 type="button"
                                 onClick={() => retryWithProvider()}
                                 disabled={uploading}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
-                                style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                             >
                                 {t('meetings.retry', 'Retry')}
                             </button>
@@ -151,8 +147,7 @@ export default function RecordPanel({ onComplete }) {
                             type="button"
                             onClick={clearError}
                             disabled={uploading}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
                             {t('meetings.dismiss', 'Dismiss')}
                         </button>

@@ -73,7 +73,7 @@ export default function RequiredTrainingPanel() {
     };
 
     if (state.loading) {
-        return <div className="flex items-center gap-2 p-5 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+        return <div className="flex items-center gap-2 p-5 text-[13px] text-[var(--text-tertiary)]">
             <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />{t('common.loading', 'Loading…')}
         </div>;
     }
@@ -83,7 +83,7 @@ export default function RequiredTrainingPanel() {
     return (
         <div className="flex flex-col gap-4" data-testid="required-training-panel">
             <div className="flex items-start gap-3 rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                <div className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0" style={{ background: 'var(--bg-tertiary)' }}>
+                <div className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 bg-[var(--bg-tertiary)]">
                     <GraduationCap style={{ width: 18, height: 18, color: 'var(--text-secondary)' }} aria-hidden="true" />
                 </div>
                 <div className="min-w-0 flex flex-col gap-1">
@@ -110,16 +110,16 @@ export default function RequiredTrainingPanel() {
                     {saving ? <Loader2 className="animate-spin" style={{ width: 13, height: 13 }} /> : <Save style={{ width: 13, height: 13 }} aria-hidden="true" />}
                     {t('common.save', 'Save')}
                 </button>
-                <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[12px] text-[var(--text-tertiary)]">
                     {enabledCount === 0
                         ? t('org.training.none_on', 'Nothing requires training yet.')
                         : t('org.training.n_on', '{n} area(s) require a course.').replace('{n}', String(enabledCount))}
                 </span>
-                {saved && !dirty && <span className="text-[12px]" style={{ color: 'var(--learn-complete-ink)' }}>{t('common.saved', 'Saved')}</span>}
-                {state.error && <span className="text-[12px]" style={{ color: 'var(--error-ink)' }}>{state.error}</span>}
+                {saved && !dirty && <span className="text-[12px] text-[var(--learn-complete-ink)]">{t('common.saved', 'Saved')}</span>}
+                {state.error && <span className="text-[12px] text-[var(--error-ink)]">{state.error}</span>}
             </div>
 
-            <div className="flex items-start gap-2 text-[11px] leading-[16px]" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="flex items-start gap-2 text-[11px] leading-[16px] text-[var(--text-tertiary)]">
                 <Info style={{ width: 12, height: 12, flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
                 <span>{t('org.training.exempt_note', 'Organisation admins are never blocked by these rules, and neither is anyone whose plan no longer includes the Learning Center — a rule nobody can satisfy would stop the workspace instead of teaching anyone.')}</span>
             </div>
@@ -136,13 +136,13 @@ function AreaRow({ t, area, courses, courseId, onToggle, onPick }) {
                     aria-label={t(area.labelKey, area.labelFallback)} />
                 <span className="min-w-0 flex flex-col">
                     <span className="text-[13px] font-medium truncate">{t(area.labelKey, area.labelFallback)}</span>
-                    {!on && <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('org.training.open_to_all', 'Open to anyone whose role allows it')}</span>}
+                    {!on && <span className="text-[11px] text-[var(--text-tertiary)]">{t('org.training.open_to_all', 'Open to anyone whose role allows it')}</span>}
                 </span>
             </label>
             {on ? (
                 <span className="flex items-center gap-2 flex-shrink-0">
                     <Lock style={{ width: 12, height: 12, color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                    <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('org.training.after', 'after')}</span>
+                    <span className="text-[11px] text-[var(--text-tertiary)]">{t('org.training.after', 'after')}</span>
                     <select value={courseId} onChange={(e) => onPick(e.target.value)}
                         aria-label={t('org.training.pick_course', 'Course that unlocks {area}').replace('{area}', t(area.labelKey, area.labelFallback))}
                         className="text-[12px] rounded-lg px-2 h-8"

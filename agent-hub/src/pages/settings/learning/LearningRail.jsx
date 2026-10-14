@@ -77,7 +77,7 @@ export default function LearningRail({
                 </div>
                 <div className="min-w-0">
                     <div className="font-semibold leading-4 text-[14px]">{t('settings.learning_center', 'Learning Center')}</div>
-                    <div className="text-[11px] leading-[14px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="text-[11px] leading-[14px] truncate text-[var(--text-tertiary)]">
                         {t('learn.rail.subtitle', 'Bee Flow Academy · {courses} courses · {lessons} lessons')
                             .replace('{courses}', String(courses.length)).replace('{lessons}', String(totalLessons))}
                     </div>
@@ -106,7 +106,7 @@ export default function LearningRail({
                             <button key={id} type="button" role="radio" aria-checked={on} onClick={() => setFilter(id)}
                                 className="flex-1 text-center rounded-md transition"
                                 style={{ padding: '4px 8px', background: on ? 'var(--bg-card)' : 'transparent', boxShadow: on ? 'var(--shadow-sm)' : 'none', color: on ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                                {label}{count != null && <> <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{count}</span></>}
+                                {label}{count != null && <> <span className="font-semibold text-[var(--text-primary)]">{count}</span></>}
                             </button>
                         );
                     })}
@@ -121,7 +121,7 @@ export default function LearningRail({
                         <RotateCcw style={{ width: 14, height: 14 }} aria-hidden="true" />
                         {t('learn.rail.review', 'Review')}
                         {reviewDue?.due ? (
-                            <span className="ml-auto text-[11px] font-semibold tabular-nums" style={{ color: 'var(--accent-primary)' }}>
+                            <span className="ml-auto text-[11px] font-semibold tabular-nums text-[var(--accent-primary)]">
                                 {reviewDue.mistakes + reviewDue.staleLessons}
                             </span>
                         ) : null}
@@ -150,7 +150,7 @@ export default function LearningRail({
                                             title={t(course.titleKey, course.titleFallback)}>
                                             <CourseIcon courseId={course.id} size={14} style={{ color: locked ? 'var(--text-tertiary)' : undefined }} />
                                             <span className="truncate">{t(course.titleKey, course.titleFallback)}</span>
-                                            <span className="ml-auto inline-flex items-center flex-shrink-0 text-[11px]" style={{ color: 'var(--text-tertiary)' }} title={`${done}/${lessons.length}`}>
+                                            <span className="ml-auto inline-flex items-center flex-shrink-0 text-[11px] text-[var(--text-tertiary)]" title={`${done}/${lessons.length}`}>
                                                 <RailStatus t={t} locked={locked} complete={isComplete(course)} done={done} total={lessons.length} />
                                             </span>
                                         </button>
@@ -168,7 +168,7 @@ export default function LearningRail({
                                 aria-current={view === 'course' && courseId === capstone.course.id ? 'page' : undefined}>
                                 <CourseIcon courseId={capstone.course.id} size={14} style={{ color: capstone.locked ? 'var(--text-tertiary)' : undefined }} />
                                 <span className="truncate">{t(capstone.course.titleKey, capstone.course.titleFallback)}</span>
-                                <span className="ml-auto inline-flex items-center flex-shrink-0 text-[11px]" style={{ color: 'var(--text-tertiary)' }}
+                                <span className="ml-auto inline-flex items-center flex-shrink-0 text-[11px] text-[var(--text-tertiary)]"
                                     title={t('learn.rail.capstone_progress', '{a}/{b} courses').replace('{a}', String(capstone.doneCourses)).replace('{b}', String(capstone.totalCourses))}>
                                     <RailStatus t={t} locked={capstone.locked} complete={isComplete(capstone.course)}
                                         done={capstone.doneCourses} total={capstone.totalCourses} />
@@ -184,7 +184,7 @@ export default function LearningRail({
                 <div className="flex-shrink-0 flex flex-col gap-[5px] text-[11px]" style={{ padding: '10px 14px', borderTop: '1px solid var(--border-default)', color: 'var(--text-tertiary)' }}>
                     <div className="flex items-center gap-1.5">
                         <span className="text-[12px]" aria-hidden="true">🐝</span>
-                        <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t(`learn.level.${lvl.key}`, lvl.titleFallback)}</span>
+                        <span className="font-semibold text-[var(--text-primary)]">{t(`learn.level.${lvl.key}`, lvl.titleFallback)}</span>
                         <span className="ml-auto truncate">
                             {next
                                 ? t('learn.xp.to_next', '{xp} XP · {n} to {level}').replace('{xp}', String(xp)).replace('{n}', String(spanEnd - xp)).replace('{level}', t(`learn.level.${next.key}`, next.titleFallback))

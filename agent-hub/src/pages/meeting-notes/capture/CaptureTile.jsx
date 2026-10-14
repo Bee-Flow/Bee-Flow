@@ -23,7 +23,7 @@ export default function CaptureTile({ icon: Icon, title, description, onClick, a
                 <Icon className="w-7 h-7" />
             </div>
             <div className="font-semibold text-base">{title}</div>
-            <div className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-xs leading-relaxed text-[var(--text-muted)]">
                 {description}
             </div>
         </button>

@@ -75,7 +75,7 @@ function ChapterStrip({ chapters = [], activeIndex = -1, onSeek }) {
                 {hc && (
                     <>
                         <div className="font-semibold line-clamp-2">{hc.title}</div>
-                        <div className="font-mono mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <div className="font-mono mt-0.5 text-[var(--text-muted)]">
                             {formatDuration(hc.seconds)} – {formatDuration(hc.endSeconds)}
                         </div>
                         {hc.summary && <div className="mt-1 line-clamp-3">{hc.summary}</div>}

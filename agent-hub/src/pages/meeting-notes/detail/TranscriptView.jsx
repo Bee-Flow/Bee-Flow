@@ -79,7 +79,7 @@ export default function TranscriptView({
 
     if (segments.length === 0) {
         return (
-            <div className="rounded-xl border px-4 py-6 text-sm whitespace-pre-wrap" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
+            <div className="rounded-xl border px-4 py-6 text-sm whitespace-pre-wrap bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-primary)]">
                 {fullText || t('meetings.transcript_none', 'No transcript available.')}
             </div>
         );
@@ -102,10 +102,10 @@ export default function TranscriptView({
                 </div>
                 <SpeakerLegend speakers={speakers} colorMap={colorMap} activeId={speakerFilter} onSelect={setSpeakerFilter} onEdit={onEditSpeakers} />
             </div>
-            <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                <ul className="divide-y max-h-[600px] overflow-auto" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="rounded-xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
+                <ul className="divide-y max-h-[600px] overflow-auto border-[var(--border-subtle)]">
                     {filtered.length === 0 && (
-                        <li className="px-4 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                        <li className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">
                             {t('meetings.transcript_no_matches', 'No matching segments.')}
                         </li>
                     )}
@@ -172,7 +172,7 @@ function TranscriptRow({ segment, index, query, color, marks, selected, menuOpen
                 '--bf-pulse-color': 'var(--accent-primary)',
             }}
         >
-            <div className="flex flex-col text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex flex-col text-[11px] text-[var(--text-muted)]">
                 <button
                     type="button"
                     onClick={() => onSeek?.(segment.start || 0)}
@@ -182,12 +182,12 @@ function TranscriptRow({ segment, index, query, color, marks, selected, menuOpen
                 </button>
                 <span className="inline-flex items-center gap-1 mt-0.5">
                     <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-                    <span className="truncate" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="truncate text-[var(--text-secondary)]">
                         {formatSpeakerLabel(segmentSpeakerId(segment))}
                     </span>
                 </span>
             </div>
-            <div className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+            <div className="text-sm leading-relaxed text-[var(--text-primary)]">
                 {highlight(segment.text || '', query)}
             </div>
             <div className="flex items-start justify-end gap-1 flex-wrap">
@@ -199,8 +199,7 @@ function TranscriptRow({ segment, index, query, color, marks, selected, menuOpen
                     aria-expanded={menuOpen}
                     data-testid="transcript-line-menu-trigger"
                     aria-label={t('meetings.line_menu', 'What is this line?')}
-                    className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] transition-colors shrink-0"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] transition-colors shrink-0 text-[var(--text-muted)]"
                 >
                     <MoreHorizontal className="w-4 h-4" aria-hidden="true" />
                 </button>

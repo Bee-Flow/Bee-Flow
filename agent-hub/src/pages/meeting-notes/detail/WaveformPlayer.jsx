@@ -174,8 +174,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
             tabIndex={0}
             onKeyDown={onKeyDown}
             aria-label={t('meeting_notes.player_aria', 'Meeting audio player. Space to play or pause, arrow keys to skip.')}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border outline-none focus-visible:ring-1"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border outline-none focus-visible:ring-1 bg-[var(--bg-secondary)] border-[var(--border-default)]"
         >
             <Transport playing={playing} onToggle={togglePlay} onSkip={skip} />
 
@@ -216,8 +215,7 @@ function Transport({ playing, onToggle, onSkip }) {
                 type="button"
                 onClick={onToggle}
                 aria-label={playing ? 'Pause' : 'Play'}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105"
-                style={{ background: 'var(--accent-primary)' }}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 bg-[var(--accent-primary)]"
             >
                 {playing ? <Pause className="w-4 h-4" fill="currentColor" /> : <Play className="w-4 h-4 ml-0.5" fill="currentColor" />}
             </button>
@@ -228,7 +226,7 @@ function Transport({ playing, onToggle, onSkip }) {
 
 function TimeRow({ currentTime, duration, showRemaining, onToggle }) {
     return (
-        <div className="flex items-center justify-between text-[11px] mt-1 font-mono" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex items-center justify-between text-[11px] mt-1 font-mono text-[var(--text-muted)]">
             <span>{formatDuration(currentTime)}</span>
             <button
                 type="button"
@@ -265,8 +263,7 @@ function SkipButton({ onClick, label, children }) {
             type="button"
             onClick={onClick}
             aria-label={label}
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)]"
-            style={{ color: 'var(--text-secondary)' }}
+            className="w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
         >
             {children}
         </button>

@@ -344,9 +344,8 @@ export default function WebpagePreview({ webpageId, html, css, js, extraFiles = 
     };
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--vsc-sidebar-bg)' }}>
-            <div className="shrink-0 px-3 py-1.5 border-b flex items-center justify-between gap-2"
-                 style={{ borderColor: 'var(--vsc-border)' }}>
+        <div className="flex flex-col h-full bg-[var(--vsc-sidebar-bg)]">
+            <div className="shrink-0 px-3 py-1.5 border-b flex items-center justify-between gap-2 border-[var(--vsc-border)]">
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)', letterSpacing: '0.06em' }}>
                         {t('webpages.preview.title', 'Preview')}
@@ -356,10 +355,9 @@ export default function WebpagePreview({ webpageId, html, css, js, extraFiles = 
                         allow-same-origin (see the file header). If that ever
                         changes, this wording has to change with it. */}
                     <span
-                        className="inline-flex items-center gap-1 text-[10px]"
+                        className="inline-flex items-center gap-1 text-[10px] text-[var(--vsc-fg-muted)]"
                         data-testid="preview-shield"
                         title={t('webpages.preview.shielded_hint', 'The page runs in an isolated frame: it cannot reach your session, your cookies, or the app around it.')}
-                        style={{ color: 'var(--vsc-fg-muted)' }}
                     >
                         <Shield className="w-3 h-3" aria-hidden="true" />
                         {t('webpages.preview.shielded', 'Running shielded')}

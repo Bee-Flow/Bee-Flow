@@ -43,7 +43,7 @@ export default function TemplateManager({
         <div>
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
                 {templates.length === 0 && (
-                    <div className="px-4 py-6 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                    <div className="px-4 py-6 text-center text-[13px] text-[var(--text-muted)]">
                         {emptyHint || t('meeting_notes.template_empty', 'No templates yet.')}
                     </div>
                 )}
@@ -60,15 +60,15 @@ export default function TemplateManager({
                                 <Icon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5">
-                                        <span className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{tpl.name}</span>
+                                        <span className="text-[13px] font-medium truncate text-[var(--text-primary)]">{tpl.name}</span>
                                         {tpl.isDefault && (
-                                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold" style={{ color: 'var(--accent-primary)' }}>
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--accent-primary)]">
                                                 <Star className="w-3 h-3 fill-current" />
                                                 {t('meeting_notes.template_default_badge', 'Default')}
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{scopeLabel(tpl)}</span>
+                                    <span className="text-[11px] text-[var(--text-muted)]">{scopeLabel(tpl)}</span>
                                 </div>
                                 <Pencil className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                             </button>
@@ -81,8 +81,7 @@ export default function TemplateManager({
                 <button
                     type="button"
                     onClick={openNew}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-medium text-white"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-medium text-white bg-[var(--accent-primary)]"
                 >
                     <Plus className="w-3.5 h-3.5" />
                     {t('meeting_notes.template_new', 'New template…')}

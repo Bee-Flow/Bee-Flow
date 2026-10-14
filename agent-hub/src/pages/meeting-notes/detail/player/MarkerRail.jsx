@@ -58,12 +58,12 @@ function MarkerRail({ markers = [], onJump, color = 'var(--accent-primary)', ari
             <PlayerTooltip x={hovered?.x || 0} containerWidth={hovered?.width || 0} visible={!!hovered}>
                 {hovered && (
                     <>
-                        <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
+                        <span className="font-mono text-[var(--text-muted)]">
                             {formatDuration(hovered.marker.seconds)}
                         </span>
                         <div className="line-clamp-3">{hovered.marker.label}</div>
                         {hovered.marker.assignee && (
-                            <div style={{ color: 'var(--text-muted)' }}>→ {hovered.marker.assignee}</div>
+                            <div className="text-[var(--text-muted)]">→ {hovered.marker.assignee}</div>
                         )}
                     </>
                 )}

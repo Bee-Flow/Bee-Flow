@@ -22,12 +22,7 @@ export default function PlayerTooltip({ x, containerWidth, visible, children }) 
             style={{ left: clamped, transform: 'translateX(-50%)' }}
         >
             <div
-                className="max-w-[240px] px-2.5 py-1.5 rounded-lg border shadow-lg text-[11px] leading-snug"
-                style={{
-                    background: 'var(--bg-primary)',
-                    borderColor: 'var(--border-default)',
-                    color: 'var(--text-primary)',
-                }}
+                className="max-w-[240px] px-2.5 py-1.5 rounded-lg border shadow-lg text-[11px] leading-snug bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
             >
                 {children}
             </div>

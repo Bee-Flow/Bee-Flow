@@ -114,8 +114,7 @@ export default function LibraryFilters({
                         type="button"
                         onClick={() => setExpanded(true)}
                         data-testid="meetings-more-tags"
-                        className="px-2 py-0.5 rounded-full text-[11px] border transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}
+                        className="px-2 py-0.5 rounded-full text-[11px] border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-tertiary)]"
                     >
                         {t('meetings.more_tags', '+{count} tags', { count: hiddenCount })}
                     </button>
@@ -124,8 +123,7 @@ export default function LibraryFilters({
                     <button
                         type="button"
                         onClick={() => setExpanded(false)}
-                        className="px-2 py-0.5 rounded-full text-[11px] border transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}
+                        className="px-2 py-0.5 rounded-full text-[11px] border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-tertiary)]"
                     >
                         {t('meetings.fewer_tags', 'Fewer tags')}
                     </button>

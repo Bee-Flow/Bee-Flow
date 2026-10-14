@@ -110,7 +110,7 @@ export default function WebpageEditor({
     };
 
     return (
-        <div className="flex flex-col h-full min-h-0" style={{ background: 'var(--vsc-editor-bg)' }}>
+        <div className="flex flex-col h-full min-h-0 bg-[var(--vsc-editor-bg)]">
             <div className="flex-1 min-h-0">
                 {monacoFailed ? (
                     <textarea
@@ -122,7 +122,7 @@ export default function WebpageEditor({
                         spellCheck={false}
                     />
                 ) : (
-                    <Suspense fallback={<div className="p-4 text-xs" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.editor_loading', 'Loading editor…')}</div>}>
+                    <Suspense fallback={<div className="p-4 text-xs text-[var(--vsc-fg-muted)]">{t('webpages.editor_loading', 'Loading editor…')}</div>}>
                         <MonacoEditor
                             height="100%"
                             language={language}

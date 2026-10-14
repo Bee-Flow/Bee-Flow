@@ -358,8 +358,7 @@ export default function FileExplorer({
 
     return (
         <div
-            className="flex flex-col h-full select-none overflow-y-auto relative"
-            style={{ background: 'var(--vsc-sidebar-bg)', color: 'var(--vsc-fg)' }}
+            className="flex flex-col h-full select-none overflow-y-auto relative bg-[var(--vsc-sidebar-bg)] text-[var(--vsc-fg)]"
             onDragOver={(e) => { if (interactive && onUploadAsset) { e.preventDefault(); setIsDragOver(true); } }}
             onDragLeave={(e) => { if (e.currentTarget === e.target) setIsDragOver(false); }}
             onDrop={onDrop}
@@ -398,7 +397,7 @@ export default function FileExplorer({
                     >
                         <Icon size={13} />
                         <span className="flex-1 truncate">{label}</span>
-                        {isDirty && <span title={t('webpages.code.unsaved', 'Unsaved changes')} className="w-2 h-2 rounded-full shrink-0 mr-1" style={{ background: 'var(--vsc-fg-muted)' }} />}
+                        {isDirty && <span title={t('webpages.code.unsaved', 'Unsaved changes')} className="w-2 h-2 rounded-full shrink-0 mr-1 bg-[var(--vsc-fg-muted)]" />}
                     </div>
                 );
             })}
@@ -433,7 +432,7 @@ export default function FileExplorer({
             {isDragOver && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
                      style={{ background: 'color-mix(in srgb, var(--vsc-accent) 12%, transparent)', border: '2px dashed var(--vsc-accent)' }}>
-                    <span className="text-[12px] font-medium" style={{ color: 'var(--vsc-accent)' }}>{t('webpages.explorer.drop_hint', 'Drop images to upload')}</span>
+                    <span className="text-[12px] font-medium text-[var(--vsc-accent)]">{t('webpages.explorer.drop_hint', 'Drop images to upload')}</span>
                 </div>
             )}
 

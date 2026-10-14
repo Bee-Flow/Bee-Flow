@@ -124,8 +124,8 @@ export default function CaptureModal() {
                             <ArrowLeft />
                         </IconButton>
                         <div>
-                            <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{modeText[mode]?.title}</div>
-                            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{modeText[mode]?.description}</div>
+                            <div className="text-sm font-semibold text-[var(--text-primary)]">{modeText[mode]?.title}</div>
+                            <div className="text-xs text-[var(--text-muted)]">{modeText[mode]?.description}</div>
                         </div>
                     </div>
                     <ModePanel onComplete={onComplete} />
@@ -141,12 +141,11 @@ export default function CaptureModal() {
             <>
                 <Modal open onClose={close} variant="bare" placement="bottom" size="auto" label={t('meetings.capture_title', 'New transcription')}>
                     <div
-                        className="w-full rounded-t-2xl shadow-2xl border-t flex flex-col max-h-[92vh]"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                        className="w-full rounded-t-2xl shadow-2xl border-t flex flex-col max-h-[92vh] bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-primary)]"
                     >
                         <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                            <div className="w-10 h-1 rounded-full mx-auto" style={{ background: 'var(--border-default)' }} />
-                            <button type="button" onClick={close} aria-label={t('common.close', 'Close')} className="absolute right-3 top-3 p-1.5 rounded-lg" style={{ color: 'var(--text-muted)' }}>
+                            <div className="w-10 h-1 rounded-full mx-auto bg-[var(--border-default)]" />
+                            <button type="button" onClick={close} aria-label={t('common.close', 'Close')} className="absolute right-3 top-3 p-1.5 rounded-lg text-[var(--text-muted)]">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>

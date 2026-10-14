@@ -141,8 +141,8 @@ export default function HouseStylePanel({ onBack }) {
     if (!style) {
         return (
             <div className="flex flex-col items-center justify-center h-full gap-3">
-                <p style={{ color: 'var(--text-muted)' }}>{error || t('documents.style.unavailable', 'The house style could not be loaded.')}</p>
-                <button onClick={onBack} className="text-sm underline" style={{ color: 'var(--accent-primary)' }}>
+                <p className="text-[var(--text-muted)]">{error || t('documents.style.unavailable', 'The house style could not be loaded.')}</p>
+                <button onClick={onBack} className="text-sm underline text-[var(--accent-primary)]">
                     {t('documents.back', 'Back to Documents')}
                 </button>
             </div>
@@ -152,22 +152,21 @@ export default function HouseStylePanel({ onBack }) {
     const disabled = !meta.editable;
 
     return (
-        <div className="h-full overflow-y-auto" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full overflow-y-auto bg-[var(--bg-primary)]">
             <div className="max-w-3xl mx-auto px-6 py-8">
                 <div className="flex items-start gap-3 mb-6">
                     <button
                         onClick={onBack}
-                        className="p-1.5 rounded-lg hover:opacity-80 shrink-0 mt-0.5"
+                        className="p-1.5 rounded-lg hover:opacity-80 shrink-0 mt-0.5 text-[var(--text-muted)]"
                         aria-label={t('documents.back', 'Back to Documents')}
-                        style={{ color: 'var(--text-muted)' }}
                     >
                         <ArrowLeft size={17} />
                     </button>
                     <div className="flex-1 min-w-0">
-                        <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+                        <h1 className="text-2xl font-bold mb-1 text-[var(--text-primary)]">
                             {t('documents.style.title', 'Document house style')}
                         </h1>
-                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-sm text-[var(--text-muted)]">
                             {t('documents.style.subtitle', 'The letterhead every new document starts from. Any single document can opt out of it.')}
                             {' '}{t('documents.style.subtitle_decks', 'Presentations follow it too, with their own section below — and any presentation can choose its own look.')}
                         </p>
@@ -198,10 +197,10 @@ export default function HouseStylePanel({ onBack }) {
                             data-testid="house-style-enabled"
                         />
                         <span>
-                            <span className="block text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <span className="block text-sm font-semibold text-[var(--text-primary)]">
                                 {t('documents.style.enable', 'Use this house style on new documents')}
                             </span>
-                            <span className="block text-sm" style={{ color: 'var(--text-muted)' }}>
+                            <span className="block text-sm text-[var(--text-muted)]">
                                 {t('documents.style.enable_hint', 'Off means nothing is applied and every document is whatever its own styling says. This is the default until you fill the letterhead in.')}
                             </span>
                         </span>
@@ -210,7 +209,7 @@ export default function HouseStylePanel({ onBack }) {
 
                 {/* ── Logo ── */}
                 <Card title={t('documents.style.logo', 'Logo')}>
-                    <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm mb-3 text-[var(--text-muted)]">
                         {t('documents.style.logo_hint', 'PNG, JPEG, WebP or SVG. It is embedded in the document, so it also prints when there is no internet.')}
                     </p>
                     <div className="flex items-center gap-4">
@@ -220,7 +219,7 @@ export default function HouseStylePanel({ onBack }) {
                         >
                             {style.logoDataUrl
                                 ? <img src={style.logoDataUrl} alt="" className="max-w-full max-h-full object-contain" data-testid="house-style-logo" />
-                                : <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('documents.style.no_logo', 'None')}</span>}
+                                : <span className="text-xs text-[var(--text-tertiary)]">{t('documents.style.no_logo', 'None')}</span>}
                         </div>
                         <div className="flex flex-col gap-2">
                             <label
@@ -241,15 +240,14 @@ export default function HouseStylePanel({ onBack }) {
                             {style.logoDataUrl && !disabled && (
                                 <button
                                     onClick={() => set('logoDataUrl', '')}
-                                    className="inline-flex items-center gap-1.5 text-xs"
-                                    style={{ color: 'var(--text-muted)' }}
+                                    className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]"
                                 >
                                     <Trash2 size={13} />
                                     {t('documents.style.remove_logo', 'Remove')}
                                 </button>
                             )}
                         </div>
-                        <label className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <label className="ml-auto text-xs text-[var(--text-muted)]">
                             {t('documents.style.logo_width', 'Width (mm)')}
                             <input
                                 type="number"
@@ -267,14 +265,14 @@ export default function HouseStylePanel({ onBack }) {
 
                 {/* ── Colours + font ── */}
                 <Card title={t('documents.style.look', 'Colours and type')}>
-                    <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm mb-3 text-[var(--text-muted)]">
                         {t('documents.style.look_hint', 'The assistant writes these as variables, so changing one restyles every document that uses the house style — including ones written months ago.')}
                     </p>
                     <div className="flex flex-wrap gap-4">
                         {COLOUR_FIELDS.map((f) => (
-                            <label key={f.key} className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <label key={f.key} className="text-xs text-[var(--text-muted)]">
                                 {t(f.labelKey, f.fallback)}
-                                <span className="block font-mono text-[10px] mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                                <span className="block font-mono text-[10px] mb-1 text-[var(--text-tertiary)]">
                                     {f.varName}
                                 </span>
                                 <span className="flex items-center gap-2">
@@ -297,9 +295,9 @@ export default function HouseStylePanel({ onBack }) {
                                 </span>
                             </label>
                         ))}
-                        <label className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <label className="text-xs text-[var(--text-muted)]">
                             {t('documents.style.font', 'Typeface')}
-                            <span className="block font-mono text-[10px] mb-1" style={{ color: 'var(--text-tertiary)' }}>--doc-font</span>
+                            <span className="block font-mono text-[10px] mb-1 text-[var(--text-tertiary)]">--doc-font</span>
                             <select
                                 value={style.font}
                                 disabled={disabled}
@@ -317,7 +315,7 @@ export default function HouseStylePanel({ onBack }) {
 
                 {/* ── Presentations ── */}
                 <Card title={t('documents.style.deck', 'Presentations')}>
-                    <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm mb-3 text-[var(--text-muted)]">
                         {t('documents.style.deck_hint', 'How a deck the assistant or an automation builds looks. Text colours are always kept readable, whatever the letterhead ink is. Every choice can be overridden on a single deck.')}
                     </p>
                     <div className="mb-4" data-testid="house-style-deck-preview">
@@ -328,12 +326,12 @@ export default function HouseStylePanel({ onBack }) {
 
                 {/* ── Company details ── */}
                 <Card title={t('documents.style.details', 'Company details')}>
-                    <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm mb-3 text-[var(--text-muted)]">
                         {t('documents.style.details_hint', 'The assistant writes these into the document itself, so you can still correct them by hand on a single invoice.')}
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                         {TEXT_FIELDS.map((f) => (
-                            <label key={f.key} className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <label key={f.key} className="text-xs text-[var(--text-muted)]">
                                 {t(f.labelKey, f.fallback)}
                                 <input
                                     type="text"
@@ -362,7 +360,7 @@ export default function HouseStylePanel({ onBack }) {
                             {t('documents.style.save', 'Save house style')}
                         </button>
                         {saved && (
-                            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-sm text-[var(--text-muted)]">
                                 {t('documents.style.saved', 'Saved. New documents will use it.')}
                             </span>
                         )}
@@ -380,7 +378,7 @@ function Card({ title, children }) {
             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
         >
             {title && (
-                <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+                <h2 className="text-sm font-semibold mb-3 text-[var(--text-primary)]">{title}</h2>
             )}
             {children}
         </section>

@@ -43,7 +43,7 @@ export function OptionalColour({ label, value, fallback, disabled, onChange, tes
     const { t } = useTranslation();
     const own = !!value;
     return (
-        <label className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <label className="text-xs text-[var(--text-muted)]">
             {label}
             <span className="flex items-center gap-2 mt-1">
                 <input type="checkbox" checked={own} disabled={disabled} onChange={(e) => onChange(e.target.checked ? (fallback || '#123a5e') : '')} aria-label={`${label} own colour`} data-testid={testId ? `${testId}-own` : undefined} />
@@ -117,7 +117,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
         try { setDeck('logo', await fileToDataUrl(file)); } catch (e) { setLogoError(e.message); }
     };
     const select = (key, list, labelKey, fallback, { allowInherit = false } = {}) => (
-        <label className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <label className="text-xs text-[var(--text-muted)]">
             {t(labelKey, fallback)}
             <select
                 value={deck[key] || ''}
@@ -137,7 +137,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
     // On a document a switch has three states: as the house style, on, off.
     const triState = (key, labelKey, fallback) => (
         isDoc ? (
-            <label className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <label className="text-xs text-[var(--text-muted)]">
                 {t(labelKey, fallback)}
                 <select value={deck[key] === undefined || deck[key] === '' ? '' : (deck[key] === false ? 'off' : 'on')} disabled={disabled} onChange={(e) => setDeck(key, e.target.value === '' ? undefined : e.target.value === 'on')} className="block w-full mt-1 px-2 py-2 rounded text-sm" style={fieldStyle} data-testid={`${testPrefix}-${key}`}>
                     <option value="">{t('documents.style.deck_as_house', 'House style')}</option>
@@ -157,7 +157,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
     return (
         <div className="space-y-4">
             <div>
-                <div className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>{t('documents.style.deck_preset', 'Style')}</div>
+                <div className="text-xs mb-1.5 text-[var(--text-muted)]">{t('documents.style.deck_preset', 'Style')}</div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="radiogroup" aria-label={t('documents.style.deck_preset', 'Style')}>
                     {[...(isDoc ? [{ id: '', label: t('documents.style.deck_as_house', 'House style'), description: t('documents.style.deck_inherit_preset', 'The style the organisation chose.') }] : []), ...opt.presets].map((p) => {
                         const active = (deck.preset || '') === p.id;
@@ -174,7 +174,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                                 data-testid={`${testPrefix}-preset-${p.id || 'inherit'}`}
                             >
                                 <span className="block font-semibold">{p.label}</span>
-                                <span className="block mt-0.5" style={{ color: 'var(--text-muted)' }}>{p.description}</span>
+                                <span className="block mt-0.5 text-[var(--text-muted)]">{p.description}</span>
                             </button>
                         );
                     })}
@@ -191,7 +191,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                 {select('coverStyle', opt.coverStyles, 'documents.style.deck_cover', 'Cover')}
                 {select('tableStyle', opt.tableStyles, 'documents.style.deck_table', 'Tables')}
                 {select('logoPlacement', opt.logoPlacements, 'documents.style.deck_logo', 'Logo')}
-                <label className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <label className="text-xs text-[var(--text-muted)]">
                     {t('documents.style.deck_footer', 'Footer line on slides')}
                     <input
                         type="text"
@@ -207,7 +207,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
             </div>
             {isDoc && (
                 <div>
-                    <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('documents.style.deck_logo_source', 'Logo on this presentation')}</div>
+                    <div className="text-xs mb-1 text-[var(--text-muted)]">{t('documents.style.deck_logo_source', 'Logo on this presentation')}</div>
                     <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label={t('documents.style.deck_logo_source', 'Logo on this presentation')}>
                         {[['house', t('documents.style.deck_logo_house', 'House-style logo')], ['none', t('documents.style.deck_logo_none', 'No logo')]].map(([id, label]) => (
                             <button key={id} type="button" role="radio" aria-checked={logoMode === id} disabled={disabled} data-testid={`${testPrefix}-logo-${id}`}
@@ -220,14 +220,14 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                             {t('documents.style.deck_logo_own', 'Own logo')}
                             <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" disabled={disabled} onChange={(e) => onLogoFile(e.target.files && e.target.files[0])} data-testid={`${testPrefix}-logo-file`} />
                         </label>
-                        {logoMode === 'own' && <img src={deck.logo} alt="" className="h-8 max-w-24 object-contain rounded" style={{ background: 'var(--bg-tertiary)' }} data-testid={`${testPrefix}-logo-preview`} />}
+                        {logoMode === 'own' && <img src={deck.logo} alt="" className="h-8 max-w-24 object-contain rounded bg-[var(--bg-tertiary)]" data-testid={`${testPrefix}-logo-preview`} />}
                     </div>
                     {logoError && <p className="text-xs mt-1" style={{ color: 'var(--danger, #b91c1c)' }}>{logoError}</p>}
                 </div>
             )}
             <div>
-                <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('documents.style.deck_template', 'Template deck (.pptx)')}</div>
-                <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>{t('documents.style.deck_template_hint', 'Upload a deck whose first two slides carry the design (a cover and a content slide): its backgrounds and logo go under every presentation, and the style above steps back.')}</p>
+                <div className="text-xs mb-1 text-[var(--text-muted)]">{t('documents.style.deck_template', 'Template deck (.pptx)')}</div>
+                <p className="text-xs mb-2 text-[var(--text-muted)]">{t('documents.style.deck_template_hint', 'Upload a deck whose first two slides carry the design (a cover and a content slide): its backgrounds and logo go under every presentation, and the style above steps back.')}</p>
                 {isDoc && (
                     <div className="flex flex-wrap items-center gap-2 mb-2" role="radiogroup" aria-label={t('documents.style.deck_template', 'Template deck (.pptx)')}>
                         {[['house', t('documents.style.deck_template_house', 'As the house style')], ['none', t('documents.style.deck_template_none', 'Plain slides')]].map(([id, label]) => (
@@ -245,24 +245,24 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                 )}
                 {deck.template && typeof deck.template === 'object' ? (
                     <div className="flex items-center gap-3 text-sm" data-testid={`${testPrefix}-template`}>
-                        <span className="truncate" style={{ color: 'var(--text-primary)' }}>{deck.template.name || t('documents.style.deck_template_unnamed', 'Template deck')}</span>
+                        <span className="truncate text-[var(--text-primary)]">{deck.template.name || t('documents.style.deck_template_unnamed', 'Template deck')}</span>
                         {!disabled && (
-                            <button type="button" className="text-xs underline" style={{ color: 'var(--text-muted)' }} onClick={() => setDeck('template', isDoc ? undefined : null)} data-testid={`${testPrefix}-template-remove`}>
+                            <button type="button" className="text-xs underline text-[var(--text-muted)]" onClick={() => setDeck('template', isDoc ? undefined : null)} data-testid={`${testPrefix}-template-remove`}>
                                 {t('documents.style.deck_template_remove', 'Remove')}
                             </button>
                         )}
                     </div>
                 ) : (!isDoc && (
-                    <label className="inline-flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text-primary)' }}>
+                    <label className="inline-flex items-center gap-2 text-sm cursor-pointer text-[var(--text-primary)]">
                         <input type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" disabled={disabled || templateBusy} className="hidden" onChange={(e) => onTemplateFile(e.target.files && e.target.files[0])} data-testid={`${testPrefix}-template-file`} />
-                        <span className="px-3 py-1.5 rounded border text-xs" style={{ borderColor: 'var(--border-default)' }}>{templateBusy ? t('documents.style.deck_template_reading', 'Reading…') : t('documents.style.deck_template_upload', 'Upload a .pptx')}</span>
+                        <span className="px-3 py-1.5 rounded border text-xs border-[var(--border-default)]">{templateBusy ? t('documents.style.deck_template_reading', 'Reading…') : t('documents.style.deck_template_upload', 'Upload a .pptx')}</span>
                     </label>
                 ))}
                 {templateError && <p className="text-xs mt-1" style={{ color: 'var(--danger, #b91c1c)' }} data-testid={`${testPrefix}-template-error`}>{templateError}</p>}
                 {suggestions.length > 0 && !disabled && (
-                    <div className="mt-3 p-3 rounded-md text-sm" style={{ background: 'var(--bg-tertiary)' }} data-testid="house-style-template-suggestions">
-                        <div className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('documents.style.deck_template_suggest', 'Match the house style to this template?')}</div>
-                        <ul className="text-xs space-y-1 mb-2" style={{ color: 'var(--text-muted)' }}>
+                    <div className="mt-3 p-3 rounded-md text-sm bg-[var(--bg-tertiary)]" data-testid="house-style-template-suggestions">
+                        <div className="font-medium mb-1 text-[var(--text-primary)]">{t('documents.style.deck_template_suggest', 'Match the house style to this template?')}</div>
+                        <ul className="text-xs space-y-1 mb-2 text-[var(--text-muted)]">
                             {suggestions.map((sug) => (
                                 <li key={sug.key} className="flex items-center gap-2">
                                     {sug.key === 'accent' && <span className="inline-block w-3.5 h-3.5 rounded-sm border" style={{ background: sug.value, borderColor: 'var(--border-default)' }} />}
@@ -277,7 +277,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                         </ul>
                         <div className="flex gap-2">
                             <button type="button" className="px-3 py-1 rounded text-xs text-white" style={{ background: 'var(--accent-primary, #123a5e)' }} onClick={applySuggestions} data-testid="house-style-template-apply">{t('documents.style.deck_template_apply', 'Apply')}</button>
-                            <button type="button" className="px-3 py-1 rounded text-xs border" style={{ borderColor: 'var(--border-default)' }} onClick={() => setSuggestFor(null)}>{t('documents.style.deck_template_keep', 'Keep mine')}</button>
+                            <button type="button" className="px-3 py-1 rounded text-xs border border-[var(--border-default)]" onClick={() => setSuggestFor(null)}>{t('documents.style.deck_template_keep', 'Keep mine')}</button>
                         </div>
                     </div>
                 )}

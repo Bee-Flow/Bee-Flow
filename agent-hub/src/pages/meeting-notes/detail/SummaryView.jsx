@@ -93,7 +93,7 @@ export default function SummaryView({
 
     function sectionHeader(label) {
         return (
-            <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 {label}
             </div>
         );
@@ -105,13 +105,12 @@ export default function SummaryView({
                 <button
                     type="button"
                     onClick={() => pick({ templateId: tpl.id })}
-                    className="flex-1 min-w-0 text-left px-3 py-1.5 text-xs flex items-center gap-1.5"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="flex-1 min-w-0 text-left px-3 py-1.5 text-xs flex items-center gap-1.5 text-[var(--text-primary)]"
                 >
                     {defaultTemplateId === tpl.id && <Star className="w-3 h-3 flex-shrink-0 fill-current" style={{ color: 'var(--accent-primary)' }} />}
                     <span className="truncate">{tpl.name}</span>
                     {tpl.scope === 'group' && (
-                        <span className="ml-1 px-1 py-px rounded text-[9px] font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                        <span className="ml-1 px-1 py-px rounded text-[9px] font-medium bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                             {t('meeting_notes.template_badge_group', 'group')}
                         </span>
                     )}
@@ -120,8 +119,7 @@ export default function SummaryView({
                     <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEditTemplate?.(tpl); }}
-                        className="px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-muted)]"
                         aria-label={t('meeting_notes.template_edit', 'Edit template')}
                     >
                         <Pencil className="w-3 h-3" />
@@ -151,8 +149,7 @@ export default function SummaryView({
                             type="button"
                             onClick={() => setMenuOpen((o) => !o)}
                             disabled={regenerating}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-60"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-60 border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
                             {regenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                             {t('meeting_notes.regenerate', 'Regenerate')}
@@ -160,8 +157,7 @@ export default function SummaryView({
                         </button>
                         {menuOpen && (
                             <div
-                                className="absolute right-0 top-full mt-1 z-10 w-60 max-h-[60vh] overflow-auto rounded-lg border shadow-lg"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                                className="absolute right-0 top-full mt-1 z-10 w-60 max-h-[60vh] overflow-auto rounded-lg border shadow-lg bg-[var(--bg-secondary)] border-[var(--border-default)]"
                             >
                                 {(mine.length > 0 || orgTemplates.length > 0) && sectionHeader(t('meeting_notes.template_section_builtin', 'Built-in'))}
                                 {builtins.map((tpl) => (
@@ -169,8 +165,7 @@ export default function SummaryView({
                                         key={tpl.id}
                                         type="button"
                                         onClick={() => pick({ template: tpl.id })}
-                                        className="block w-full text-left px-3 py-1.5 text-xs hover:bg-[var(--bg-tertiary)]"
-                                        style={{ color: 'var(--text-primary)' }}
+                                        className="block w-full text-left px-3 py-1.5 text-xs hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                                     >
                                         {tpl.nameKey ? t(tpl.nameKey, tpl.name) : tpl.name}
                                     </button>
@@ -184,12 +179,11 @@ export default function SummaryView({
 
                                 {canManageTemplates && (
                                     <>
-                                        <div className="border-t my-1" style={{ borderColor: 'var(--border-subtle)' }} />
+                                        <div className="border-t my-1 border-[var(--border-subtle)]" />
                                         <button
                                             type="button"
                                             onClick={() => { setMenuOpen(false); onNewTemplate?.(); }}
-                                            className="flex items-center gap-1.5 w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)]"
-                                            style={{ color: 'var(--accent-primary)' }}
+                                            className="flex items-center gap-1.5 w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] text-[var(--accent-primary)]"
                                         >
                                             <Plus className="w-3 h-3" />
                                             {t('meeting_notes.template_new', 'New template…')}
@@ -201,11 +195,11 @@ export default function SummaryView({
                     </div>
                 )}
             </div>
-            <div className="flex-1 overflow-auto rounded-xl border px-4 py-3" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+            <div className="flex-1 overflow-auto rounded-xl border px-4 py-3 bg-[var(--bg-secondary)] border-[var(--border-default)]">
                 {summary ? (
                     <MarkdownRenderer content={summary} />
                 ) : (
-                    <div className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-sm text-center py-8 text-[var(--text-muted)]">
                         {t('meeting_notes.no_summary', 'No summary yet.')}
                     </div>
                 )}

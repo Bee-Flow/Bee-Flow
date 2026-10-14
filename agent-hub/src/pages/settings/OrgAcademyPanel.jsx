@@ -22,7 +22,7 @@ import RequiredTrainingPanel from './learning/admin/RequiredTrainingPanel';
 const TableSkeleton = () => (
     <div className="animate-pulse space-y-2 p-5">
         {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 rounded-lg" style={{ background: 'var(--bg-tertiary)' }} />
+            <div key={i} className="h-12 rounded-lg bg-[var(--bg-tertiary)]" />
         ))}
     </div>
 );
@@ -40,15 +40,14 @@ function relativeTime(iso, t) {
 }
 
 const StatCard = ({ icon: Icon, label, value, accent }) => (
-    <div className="rounded-xl border p-4 flex items-center gap-3"
-        style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+    <div className="rounded-xl border p-4 flex items-center gap-3 border-[var(--border-default)] bg-[var(--bg-card)]">
         <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: `color-mix(in srgb, ${accent} 14%, transparent)` }}>
             <Icon className="w-4.5 h-4.5" style={{ color: accent, width: 18, height: 18 }} />
         </div>
         <div className="min-w-0">
-            <div className="text-lg font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{value}</div>
-            <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{label}</div>
+            <div className="text-lg font-bold leading-tight text-[var(--text-primary)]">{value}</div>
+            <div className="text-[11px] truncate text-[var(--text-muted)]">{label}</div>
         </div>
     </div>
 );
@@ -121,8 +120,7 @@ function OrgAcademyOverview() {
             </div>
 
             {error && (
-                <div className="rounded-xl border p-6 text-sm text-center mb-4"
-                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
+                <div className="rounded-xl border p-6 text-sm text-center mb-4 border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-muted)]">
                     {error}
                 </div>
             )}
@@ -161,11 +159,11 @@ function OrgAcademyOverview() {
                     </div>
 
                     {/* Member table */}
-                    <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                    <div className="rounded-xl border overflow-hidden border-[var(--border-default)] bg-[var(--bg-card)]">
                         {loading && !data ? (
                             <TableSkeleton />
                         ) : members.length === 0 ? (
-                            <div className="p-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>
+                            <div className="p-8 text-sm text-center text-[var(--text-muted)]">
                                 {query || courseFilter
                                     ? t('org.academy.no_matches', 'No members match the current filters.')
                                     : t('org.academy.empty', 'No learning activity in your organisation yet.')}
@@ -173,8 +171,7 @@ function OrgAcademyOverview() {
                         ) : (
                             <div className="divide-y divide-[var(--border-subtle)]">
                                 {/* Header row */}
-                                <div className="px-5 py-2 hidden md:flex items-center gap-4 text-[11px] font-semibold uppercase tracking-wide"
-                                    style={{ color: 'var(--text-muted)' }}>
+                                <div className="px-5 py-2 hidden md:flex items-center gap-4 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                                     <span className="w-9" />
                                     <span className="flex-1">{t('org.academy.col_member', 'Member')}</span>
                                     <span className="w-36">{t('org.academy.col_courses', 'Courses')}</span>
@@ -186,8 +183,8 @@ function OrgAcademyOverview() {
                                     <div key={m.userId} className="px-5 py-3 flex items-center gap-4 flex-wrap md:flex-nowrap hover:bg-[var(--bg-secondary)] transition-colors">
                                         <MemberAvatar m={m} />
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{m.displayName}</div>
-                                            {m.email && <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{m.email}</div>}
+                                            <div className="text-sm font-medium truncate text-[var(--text-primary)]">{m.displayName}</div>
+                                            {m.email && <div className="text-[11px] truncate text-[var(--text-muted)]">{m.email}</div>}
                                         </div>
                                         {/* Course completion dots */}
                                         <div className="w-36 flex items-center gap-1.5 flex-shrink-0" aria-label={t('org.academy.col_courses', 'Courses')}>
@@ -202,18 +199,18 @@ function OrgAcademyOverview() {
                                                         }} />
                                                 );
                                             })}
-                                            <span className="text-[11px] ml-1" style={{ color: 'var(--text-muted)' }}>
+                                            <span className="text-[11px] ml-1 text-[var(--text-muted)]">
                                                 {(m.coursesDone || []).length}/{courses.length}
                                             </span>
                                         </div>
                                         {/* Badges */}
-                                        <div className="w-16 text-center text-sm flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
+                                        <div className="w-16 text-center text-sm flex-shrink-0 text-[var(--text-secondary)]">
                                             {(m.badges || []).length > 0 ? `🏅 ${m.badges.length}` : '—'}
                                         </div>
                                         {/* Certificates */}
                                         <div className="w-44 flex items-center gap-1 flex-wrap flex-shrink-0">
                                             {(m.certificates || []).length === 0 ? (
-                                                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>—</span>
+                                                <span className="text-sm text-[var(--text-muted)]">—</span>
                                             ) : m.certificates.map((cert) => (
                                                 <span key={cert.certificateId}
                                                     title={cert.issuedAt ? new Date(cert.issuedAt).toLocaleDateString() : ''}
@@ -224,7 +221,7 @@ function OrgAcademyOverview() {
                                             ))}
                                         </div>
                                         {/* Last activity */}
-                                        <div className="w-24 text-right text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                                        <div className="w-24 text-right text-[12px] flex-shrink-0 text-[var(--text-muted)]">
                                             {relativeTime(m.lastActivity, t)}
                                         </div>
                                     </div>

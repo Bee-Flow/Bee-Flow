@@ -85,7 +85,7 @@ export default function MfaSetupGate({ onDone, onLogout }) {
         // where no scroll reaches (BFSF-280). The page scrolls instead.
         <div className="min-h-full flex items-center-safe justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
             <div className="w-full max-w-md">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
                     <div className="text-center">
@@ -95,7 +95,7 @@ export default function MfaSetupGate({ onDone, onLogout }) {
                         <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
                             <ShieldCheck className="w-7 h-7 text-emerald-400" />
                         </div>
-                        <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                        <h2 className="text-lg font-bold mb-2 text-[var(--text-primary)]">
                             {t('mfa.required_title', 'Set up two-factor authentication')}
                         </h2>
                         <p className="text-sm mb-2 text-[var(--text-secondary)] leading-[1.6]">
@@ -121,7 +121,7 @@ export default function MfaSetupGate({ onDone, onLogout }) {
                             {/* Steps incl. WHICH apps work, the QR, a tap-to-add link and the key */}
                             <AuthenticatorAppSetup otpauthUrl={setupData.otpauthUrl} qr={setupData.qr} secret={setupData.secret} />
                             <input className={inputClass} value={code} onChange={e => setCode(e.target.value)} placeholder="000000" inputMode="numeric" maxLength={6} autoFocus />
-                            <button onClick={confirmEnable} disabled={busy || code.trim().length < 6} className="w-full py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: 'var(--accent-primary)' }}>
+                            <button onClick={confirmEnable} disabled={busy || code.trim().length < 6} className="w-full py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2 bg-[var(--accent-primary)]">
                                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} {t('mfa.enable', 'Enable')}
                             </button>
                             {/* AI setup helper — takes no props by design: it must never
@@ -144,8 +144,7 @@ export default function MfaSetupGate({ onDone, onLogout }) {
 
                     <button
                         onClick={onLogout}
-                        className="w-full mt-4 py-2.5 rounded-xl font-medium text-sm border transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="w-full mt-4 py-2.5 rounded-xl font-medium text-sm border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         {t('sidebar.sign_out', 'Sign Out')}
                     </button>

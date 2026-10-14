@@ -53,7 +53,7 @@ export const IntegrationRow = ({ icon, name, description, connected, badge, chil
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-medium text-[var(--text-primary)]">{name}</p>
-                    <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{description}</p>
+                    <p className="text-[11px] truncate text-[var(--text-muted)]">{description}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                     {/* An explicit badge renders alongside Connected (e.g. "Update
@@ -105,13 +105,12 @@ export const ApiKeyField = ({ placeholder, value, onChange, onSave, saving, hint
                     type="button"
                     onClick={onSave}
                     disabled={saving || !(canSave ?? value.trim())}
-                    className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 transition-opacity"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 transition-opacity bg-[var(--accent-primary)]"
                 >
                     {saving ? '…' : t('settings.save', 'Save')}
                 </button>
             </div>
-            {hint && <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>{hint}</p>}
+            {hint && <p className="text-[11px] mt-1.5 text-[var(--text-muted)]">{hint}</p>}
         </div>
     );
 };
@@ -147,7 +146,7 @@ const FirefliesIntegration = ({ hasFirefliesKey, onSaved, last }) => {
             placeholder={t('settings.integrations.fireflies_key_placeholder', 'Enter your Fireflies.ai API key')}
             onSaved={onSaved}
             icon={<svg viewBox="22 20 24 24" fill="none" style={{ width: '18px', height: '18px' }}><path d="M30.5749 22H24V28.5267H30.5749V22Z" fill="url(#ffs_g1)" /><path d="M38.3633 29.8789H31.7883V36.4056H38.3633V29.8789Z" fill="url(#ffs_g2)" /><path d="M38.3633 22H31.7883V28.5267H43.9998V27.594C43.9997 26.1104 43.4058 24.6875 42.3489 23.6384C41.2919 22.5894 39.8585 22 38.3638 22H38.3633Z" fill="url(#ffs_g3)" /><path d="M24 29.8789V36.4056C24.0002 37.8892 24.594 39.3121 25.6509 40.3612C26.7079 41.4103 28.1413 41.9996 29.636 41.9996H30.5749V29.8789H24Z" fill="url(#ffs_g4)" /><defs><linearGradient id="ffs_g1" x1="40.08" y1="38.51" x2="12.44" y2="9.47" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g2" x1="40.18" y1="38.42" x2="12.54" y2="9.38" gradientUnits="userSpaceOnUse"><stop stopColor="#FF3C82" /><stop offset="0.49" stopColor="#B251B2" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g3" x1="44.77" y1="34.05" x2="35.4" y2="0.12" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g4" x1="35.55" y1="42.82" x2="2.03" y2="32.61" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient></defs></svg>}
-            hint={<>{t('settings.integrations.get_key_from', 'Get your key from')} <a href="https://app.fireflies.ai/integrations/custom/fireflies" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">app.fireflies.ai</a></>}
+            hint={<>{t('settings.integrations.get_key_from', 'Get your key from')} <a href="https://app.fireflies.ai/integrations/custom/fireflies" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">app.fireflies.ai</a></>}
         />
     );
 };
@@ -183,7 +182,7 @@ const YouTrackIntegration = ({ hasYouTrackConfig, onSaved, last }) => {
                 <ApiKeyField
                     placeholder={hasYouTrackConfig ? '••••••••••••••••' : t('connections.field_permanent_token', 'Permanent token')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
-                    hint={<>{t('settings.integrations.token_from', 'Token from')} <a href="https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.youtrack_path', 'YouTrack → Profile → Authentication')}</a></>}
+                    hint={<>{t('settings.integrations.token_from', 'Token from')} <a href="https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.youtrack_path', 'YouTrack → Profile → Authentication')}</a></>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasYouTrackConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -223,7 +222,7 @@ const SignRequestIntegration = ({ hasSignRequestConfig, onSaved, last }) => {
                 <ApiKeyField
                     placeholder={hasSignRequestConfig ? '••••••••••••••••' : t('connections.field_api_token', 'API token')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
-                    hint={<>{t('settings.integrations.get_token_from', 'Get your token from')} <a href="https://signrequest.com/api/v1/api-docs/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.signrequest_path', 'SignRequest → API Settings')}</a>{t('settings.integrations.signrequest_sandbox', '. Use your sandbox team subdomain for testing.')}</>}
+                    hint={<>{t('settings.integrations.get_token_from', 'Get your token from')} <a href="https://signrequest.com/api/v1/api-docs/" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.signrequest_path', 'SignRequest → API Settings')}</a>{t('settings.integrations.signrequest_sandbox', '. Use your sandbox team subdomain for testing.')}</>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasSignRequestConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -246,7 +245,7 @@ const GammaIntegration = ({ hasGammaKey, onSaved, last }) => {
             placeholder={t('settings.integrations.gamma_key_placeholder', 'Enter your Gamma API key')}
             onSaved={onSaved}
             icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="url(#gamma_g)" /><path d="M7 8h10v1.5H7zM7 12h8v1.5H7zM7 16h5v1.5H7z" fill="white" fillOpacity="0.9" /><defs><linearGradient id="gamma_g" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset="1" stopColor="#A855F7" /></linearGradient></defs></svg>}
-            hint={<>{t('settings.integrations.get_key_from_short', 'Get key from')} <a href="https://gamma.app/settings" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">gamma.app/settings</a> {t('settings.integrations.gamma_api_tokens', '→ API Tokens')}</>}
+            hint={<>{t('settings.integrations.get_key_from_short', 'Get key from')} <a href="https://gamma.app/settings" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">gamma.app/settings</a> {t('settings.integrations.gamma_api_tokens', '→ API Tokens')}</>}
         />
     );
 };
@@ -291,7 +290,7 @@ const AFASIntegration = ({ hasAfasConfig, onSaved, last }) => {
             icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="#E30613" /><path d="M12 6.5L7 17.5h2.3l1-2.4h3.4l1 2.4H17L12 6.5zm0 4.1l1 2.5h-2l1-2.5z" fill="white" /></svg>}
         >
             <div className="space-y-2">
-                <ol className="list-decimal pl-4 space-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--text-muted)]">
                     <li>{t('integ.afas_step1')}</li>
                     <li>{t('integ.afas_step2')}</li>
                     <li>{t('integ.afas_step3')}</li>
@@ -317,7 +316,7 @@ const AFASIntegration = ({ hasAfasConfig, onSaved, last }) => {
                     placeholder={hasAfasConfig ? '••••••••••••••••' : t('integ.afas_token_placeholder')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(token.trim() || memberNumber.trim() || envTouched)}
-                    hint={<>{t('settings.integrations.afas_help', 'AFAS Help:')} <a href="https://help.afas.nl/help/NL/SE/App_Cnr_Rest_Token.htm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.afas_link', 'Create an app connector & token')}</a></>}
+                    hint={<>{t('settings.integrations.afas_help', 'AFAS Help:')} <a href="https://help.afas.nl/help/NL/SE/App_Cnr_Rest_Token.htm" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.afas_link', 'Create an app connector & token')}</a></>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasAfasConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -359,7 +358,7 @@ const VplanIntegration = ({ hasVplanConfig, onSaved, last }) => {
             icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="#1D4ED8" /><rect x="6" y="7" width="11" height="2.4" rx="1.2" fill="white" /><rect x="8.5" y="10.8" width="9.5" height="2.4" rx="1.2" fill="white" fillOpacity="0.85" /><rect x="6" y="14.6" width="7" height="2.4" rx="1.2" fill="white" fillOpacity="0.7" /></svg>}
         >
             <div className="space-y-2">
-                <ol className="list-decimal pl-4 space-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--text-muted)]">
                     <li>{t('integ.vplan_step1')}</li>
                     <li>{t('integ.vplan_step2')}</li>
                     <li>{t('integ.vplan_step3')}</li>
@@ -373,7 +372,7 @@ const VplanIntegration = ({ hasVplanConfig, onSaved, last }) => {
                     placeholder={hasVplanConfig ? '••••••••••••••••' : t('integ.vplan_key_placeholder')}
                     value={apiKey} onChange={e => setApiKey(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(apiKey.trim() || apiEnv.trim())}
-                    hint={<>{t('settings.integrations.vplan_help', 'vPlan Help:')} <a href="https://support.vplan.com/en/articles/158922-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.vplan_link', 'create an API key')}</a> {t('settings.integrations.vplan_plan', '(available from the Basic plan)')}</>}
+                    hint={<>{t('settings.integrations.vplan_help', 'vPlan Help:')} <a href="https://support.vplan.com/en/articles/158922-api" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.vplan_link', 'create an API key')}</a> {t('settings.integrations.vplan_plan', '(available from the Basic plan)')}</>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasVplanConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -422,7 +421,7 @@ const NMBRSIntegration = ({ hasNmbrsConfig, apiMode: initialMode, subdomain: ini
             icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="#00C389" /><path d="M7 16.5v-9h1.9v1.1c.45-.8 1.3-1.3 2.4-1.3 1.05 0 1.85.42 2.3 1.2.5-.78 1.4-1.2 2.45-1.2 1.95 0 2.95 1.2 2.95 3.2v6H19v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55h-2v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55H7z" fill="white" /></svg>}
         >
             <div className="space-y-2">
-                <ol className="list-decimal pl-4 space-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--text-muted)]">
                     <li>{t('integ.nmbrs_step1')}</li>
                     <li>{t('integ.nmbrs_step2')}</li>
                     <li>{t('integ.nmbrs_step3')}</li>
@@ -455,7 +454,7 @@ const NMBRSIntegration = ({ hasNmbrsConfig, apiMode: initialMode, subdomain: ini
                     placeholder={hasNmbrsConfig ? '••••••••••••••••' : t('integ.nmbrs_token_placeholder')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(token.trim() || subdomain.trim() || email.trim())}
-                    hint={<>{t('settings.integrations.nmbrs_help', 'NMBRS Help:')} <a href="https://support.nmbrs.nl/hc/nl/articles/360010686800-Connect-Nmbrs-with-an-API-token" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.nmbrs_link', 'Create an API token')}</a></>}
+                    hint={<>{t('settings.integrations.nmbrs_help', 'NMBRS Help:')} <a href="https://support.nmbrs.nl/hc/nl/articles/360010686800-Connect-Nmbrs-with-an-API-token" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.nmbrs_link', 'Create an API token')}</a></>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasNmbrsConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -541,9 +540,9 @@ const GoogleWorkspaceIntegration = ({ onSaved, last }) => {
             icon={<svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }} aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" /><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" /><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" /><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" /></svg>}
         >
             {loading ? (
-                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>…</p>
+                <p className="text-[12px] text-[var(--text-muted)]">…</p>
             ) : !status.configured ? (
-                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{t('integ.google_not_configured')}</p>
+                <p className="text-[12px] text-[var(--text-muted)]">{t('integ.google_not_configured')}</p>
             ) : connected ? (
                 <div className="space-y-2">
                     {needsMeetReconsent && (
@@ -561,7 +560,7 @@ const GoogleWorkspaceIntegration = ({ onSaved, last }) => {
                             </button>
                         </div>
                     )}
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('integ.google_disconnect_note')}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">{t('integ.google_disconnect_note')}</p>
                     <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />
                 </div>
             ) : (
@@ -620,7 +619,7 @@ const LinkedInIntegration = ({ connected, linkedInName, hasLinkedInConfig, onSav
             description={connected ? (linkedInName ? t('integ.linkedin_connected_as', { name: linkedInName }) : t('integ.linkedin_connected')) : t('integ.linkedin_desc')}
             icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="#0A66C2" /><path d="M7.5 9.5h2v7h-2v-7zm1-3.2a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4zm3.5 3.2h1.9v1h0c.27-.5.92-1.1 1.9-1.1 2 0 2.4 1.3 2.4 3.1v3.6h-2v-3.2c0-.8 0-1.8-1.1-1.8s-1.3.9-1.3 1.7v3.3h-2v-6.6z" fill="white" /></svg>}
         >
-            {!hasLinkedInConfig && <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{t('integ.linkedin_not_configured')}</p>}
+            {!hasLinkedInConfig && <p className="text-[12px] text-[var(--text-muted)]">{t('integ.linkedin_not_configured')}</p>}
             {hasLinkedInConfig && !connected && (
                 <button onClick={handleConnect} disabled={connecting} className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-50" style={{ background: '#0A66C2' }}>
                     {connecting ? t('integ.linkedin_opening') : t('integ.linkedin_connect')}
@@ -708,12 +707,12 @@ const WithingsIntegration = ({ onSaved, last }) => {
             icon={getIntegrationIcon('withings')}
         >
             {loading ? (
-                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>…</p>
+                <p className="text-[12px] text-[var(--text-muted)]">…</p>
             ) : !status.configured ? (
-                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{t('integ.withings_not_configured')}</p>
+                <p className="text-[12px] text-[var(--text-muted)]">{t('integ.withings_not_configured')}</p>
             ) : connected ? (
                 <div className="space-y-2">
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('integ.withings_disconnect_note')}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">{t('integ.withings_disconnect_note')}</p>
                     <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />
                 </div>
             ) : (
@@ -775,7 +774,7 @@ const GitHubIntegration = ({ onSaved, last }) => {
                 <ApiKeyField
                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
-                    hint={<>{t('settings.integrations.create_token_at', 'Create token at')} <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">github.com/settings/tokens</a> {t('settings.integrations.github_with', 'with')} <strong>repo</strong> {t('settings.integrations.github_scope', 'scope')}</>}
+                    hint={<>{t('settings.integrations.create_token_at', 'Create token at')} <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">github.com/settings/tokens</a> {t('settings.integrations.github_with', 'with')} <strong>repo</strong> {t('settings.integrations.github_scope', 'scope')}</>}
                 />
             ) : (
                 <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />
@@ -906,7 +905,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
                 )}
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {notice && (
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{notice}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">{notice}</p>
                 )}
                 {hasNextcloudAppPassword && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
                 {hasNextcloudAppPassword && (

@@ -112,15 +112,14 @@ export default function VoiceprintSection() {
                         type="button"
                         onClick={() => setConfirmDelete(true)}
                         disabled={busy}
-                        className="px-3 py-1.5 rounded-lg text-[13px] border disabled:opacity-40"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="px-3 py-1.5 rounded-lg text-[13px] border disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         {t('voiceprint.delete', 'Delete')}
                     </button>
                 )}
                 {confirmDelete && (
                     <>
-                        <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-[12px] text-[var(--text-secondary)]">
                             {t('voiceprint.delete_confirm', 'Delete your voice profile? Your name will no longer be recognised automatically.')}
                         </span>
                         <button
@@ -136,8 +135,7 @@ export default function VoiceprintSection() {
                             type="button"
                             onClick={() => setConfirmDelete(false)}
                             disabled={busy}
-                            className="px-3 py-1.5 rounded-lg text-[13px] border disabled:opacity-40"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="px-3 py-1.5 rounded-lg text-[13px] border disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
                             {t('voiceprint.delete_confirm_no', 'Cancel')}
                         </button>

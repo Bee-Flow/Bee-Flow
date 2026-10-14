@@ -53,18 +53,18 @@ export default function UploadPanel({ onComplete }) {
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)', color: 'var(--accent-primary)' }}>
                     <Upload className="w-7 h-7" />
                 </div>
-                <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-sm font-semibold text-[var(--text-primary)]">
                     {t('meetings.upload_drop', 'Drop an audio file here, or click to browse')}
                 </div>
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-xs text-[var(--text-muted)]">
                     {t('meetings.upload_formats', 'Supports .mp3, .wav, .m4a, .webm, .mp4 — up to ~2 hours')}
                 </div>
             </div>
 
             {(uploading || uploadStage) && (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--accent-primary)' }} />
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{uploadStage || t('meetings.upload_working', 'Working…')}</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{uploadStage || t('meetings.upload_working', 'Working…')}</span>
                 </div>
             )}
             {uploadError && isTooLongNoFallback && (
@@ -73,14 +73,13 @@ export default function UploadPanel({ onComplete }) {
                     style={{ background: 'color-mix(in srgb, var(--warning) 8%, var(--bg-secondary))', borderColor: 'var(--warning)', color: 'var(--text-primary)' }}
                 >
                     <div className="font-semibold">{t('meetings.upload_too_long_title', 'Recording too long for on-device transcription')}</div>
-                    <div style={{ color: 'var(--text-secondary)' }}>{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
                     {canRetry && (
                         <button
                             type="button"
                             onClick={handleSwitchEngineRetry}
                             disabled={uploading}
-                            className="self-start px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-opacity hover:opacity-90"
-                            style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                            className="self-start px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-opacity hover:opacity-90 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                         >
                             {t('meetings.upload_switch_engine', 'Switch engine & retry')}
                         </button>
@@ -93,15 +92,14 @@ export default function UploadPanel({ onComplete }) {
                     style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}
                 >
                     <div className="font-semibold">{t('meetings.upload_failed', 'Upload failed')}</div>
-                    <div style={{ color: 'var(--text-secondary)' }}>{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
                     <div className="flex items-center gap-2">
                         {canRetry && (
                             <button
                                 type="button"
                                 onClick={async () => { const outcome = await retryWithProvider(); if (outcome?.ok) onComplete?.(); }}
                                 disabled={uploading}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
-                                style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                             >
                                 {t('meetings.retry', 'Retry')}
                             </button>
@@ -110,8 +108,7 @@ export default function UploadPanel({ onComplete }) {
                             type="button"
                             onClick={clearError}
                             disabled={uploading}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
                             {t('meetings.dismiss', 'Dismiss')}
                         </button>

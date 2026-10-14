@@ -37,11 +37,11 @@ export default function SummaryTemplatesSection() {
         <div>
             <div className="flex items-center gap-2 mb-2">
                 <FileText className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-                <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
                     {t('meeting_notes.template_personal_title', 'My summary templates')}
                 </p>
             </div>
-            <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[12px] mb-3 text-[var(--text-muted)]">
                 {t('meeting_notes.template_personal_desc', 'Save your own summary styles for Meeting Notes. Pick one from the Regenerate menu, or set a default that new meetings use automatically.')}
             </p>
 

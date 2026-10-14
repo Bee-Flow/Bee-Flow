@@ -25,8 +25,7 @@ export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveT
             {tags.map((tag) => (
                 <span
                     key={tag}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     {tag}
                     {canEdit && (
@@ -61,8 +60,7 @@ export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveT
                     <button
                         type="button"
                         onClick={() => setShowInput(true)}
-                        className="px-2 py-0.5 rounded-full border border-dashed inline-flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}
+                        className="px-2 py-0.5 rounded-full border border-dashed inline-flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors border-[var(--border-default)] text-[var(--text-tertiary)]"
                     >
                         <Tag className="w-3 h-3" aria-hidden="true" />
                         {t('meetings.add_tag', 'Add tag')}

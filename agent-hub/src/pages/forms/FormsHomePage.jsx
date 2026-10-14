@@ -61,11 +61,11 @@ function FormCard({ form, onNavigate }) {
                     <ClipboardList className="w-4.5 h-4.5" />
                 </span>
                 <div className="flex-1 min-w-0 pt-0.5">
-                    <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-sm font-semibold truncate text-[var(--text-primary)]">
                         {form.title}
                     </div>
                     {form.description ? (
-                        <div className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-xs mt-0.5 line-clamp-2 text-[var(--text-secondary)]">
                             {form.description}
                         </div>
                     ) : null}
@@ -75,8 +75,7 @@ function FormCard({ form, onNavigate }) {
                         card promises something the link will not deliver. */}
                     {!form.live && (
                         <div
-                            className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border"
-                            style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-subtle)' }}
+                            className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border text-[var(--text-tertiary)] border-[var(--border-subtle)]"
                         >
                             {t('forms.home_not_live', 'Not live — the automation is paused or still a draft')}
                         </div>
@@ -94,10 +93,10 @@ function SkeletonGrid() {
             {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className={`${CARD_CLASSES} animate-pulse`} style={CARD_STYLE}>
                     <div className="flex items-start gap-2.5">
-                        <div className="h-9 w-9 rounded-lg" style={{ background: 'var(--bg-secondary)' }} />
+                        <div className="h-9 w-9 rounded-lg bg-[var(--bg-secondary)]" />
                         <div className="flex-1 pt-0.5">
-                            <div className="h-3.5 w-2/3 rounded mb-2" style={{ background: 'var(--bg-secondary)' }} />
-                            <div className="h-2.5 w-full rounded" style={{ background: 'var(--bg-secondary)' }} />
+                            <div className="h-3.5 w-2/3 rounded mb-2 bg-[var(--bg-secondary)]" />
+                            <div className="h-2.5 w-full rounded bg-[var(--bg-secondary)]" />
                         </div>
                     </div>
                 </div>
@@ -136,11 +135,11 @@ export default function FormsHomePage({ onNavigate = null }) {
     const isEmpty = !loading && !error && forms.length === 0;
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
-            <div className="shrink-0 px-4 py-3 border-b flex items-center gap-3" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-primary)]">
+            <div className="shrink-0 px-4 py-3 border-b flex items-center gap-3 border-[var(--border-subtle)]">
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                     <ClipboardList className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-primary)' }} />
-                    <h1 className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{t('forms.home_title', 'Forms')}</h1>
+                    <h1 className="text-lg font-semibold truncate text-[var(--text-primary)]">{t('forms.home_title', 'Forms')}</h1>
                 </div>
             </div>
 

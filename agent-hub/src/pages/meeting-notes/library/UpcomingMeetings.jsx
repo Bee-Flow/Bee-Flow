@@ -174,10 +174,10 @@ function UpcomingMeetingRow({ provider, icon: Icon, meeting, status, noteId, onO
                 <DateBlock start={meeting.start} t={t} />
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{title}</span>
+                        <span className="text-[13px] font-medium truncate text-[var(--text-primary)]">{title}</span>
                         <StatusChip status={status} onOpenNote={() => noteId && onOpenNote?.(noteId)} t={t} />
                     </div>
-                    <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="upcoming-meta">
+                    <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-0.5 text-[11px] text-[var(--text-tertiary)]" data-testid="upcoming-meta">
                         {segments.map((seg, i) => (
                             <React.Fragment key={seg.key}>
                                 {i > 0 && <span aria-hidden="true">·</span>}
@@ -204,13 +204,13 @@ function UpcomingMeetingRow({ provider, icon: Icon, meeting, status, noteId, onO
                             overridden,
                         })}
                     />
-                    <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-[10px] text-[var(--text-tertiary)]">
                         {toggleStateLabel(record, meeting.recordDecided, t)}
                     </span>
                 </div>
             </div>
             {error && (
-                <div className="px-3 pb-2 text-[11px] truncate" style={{ color: 'var(--error)' }}>{error}</div>
+                <div className="px-3 pb-2 text-[11px] truncate text-[var(--error)]">{error}</div>
             )}
         </div>
     );
@@ -428,13 +428,12 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="flex items-center justify-between gap-2 px-3 py-2">
-                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] text-[var(--text-tertiary)]">
                     {t('meetings.upcoming_intro', 'Your upcoming meetings — toggle which ones to auto-record.')}
                 </span>
                 <button
                     type="button" onClick={load} disabled={loading}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0 border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" /> {t('meetings.upcoming_refresh', 'Refresh')}
                 </button>
@@ -448,11 +447,11 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
             )}
 
             {!gmeet.loading && !gmeet.error && connection?.googleConnected === false && (
-                <div className="mx-3 mb-2 flex items-start gap-2 px-3 py-2 rounded-lg border text-[11px]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                <div className="mx-3 mb-2 flex items-start gap-2 px-3 py-2 rounded-lg border text-[11px] bg-[var(--bg-card)] border-[var(--border-default)] text-[var(--text-secondary)]">
                     <Video className="w-4 h-4 flex-shrink-0" style={{ color: kindColorVar('meeting') }} aria-hidden="true" />
                     <span>
                         {t('meetings.upcoming_connect_google', 'Connect Google Workspace to see your Meet meetings here —')}{' '}
-                        <a href="/app/settings/integrations" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('meetings.upcoming_settings_integrations', 'Settings → Connections')}</a>.
+                        <a href="/app/settings/integrations" className="underline text-[var(--accent-primary)]">{t('meetings.upcoming_settings_integrations', 'Settings → Connections')}</a>.
                     </span>
                 </div>
             )}
@@ -463,8 +462,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                     <span className="flex-1">{t('meetings.upcoming_meet_scopes', "Your Google connection doesn't include Meet permissions yet — reconnect to enable auto-import.")}</span>
                     <button
                         type="button" onClick={reconnectGoogle} disabled={reconnecting}
-                        className="px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0"
-                        style={{ borderColor: 'var(--warning)', color: 'var(--warning-ink)' }}
+                        className="px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0 border-[var(--warning)] text-[var(--warning-ink)]"
                     >
                         {reconnecting ? t('meetings.upcoming_reconnecting', 'Reconnecting…') : t('meetings.upcoming_reconnect', 'Reconnect')}
                     </button>
@@ -488,21 +486,21 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                 {loading && (
                     <div className="flex items-center gap-2 px-3 py-6 justify-center">
                         <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('meetings.upcoming_loading', 'Loading meetings…')}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">{t('meetings.upcoming_loading', 'Loading meetings…')}</span>
                     </div>
                 )}
 
                 {!talk.loading && talk.error && (
                     <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER}>
                         <div className="font-semibold">{t('meetings.upcoming_talk_failed', "Couldn't load Nextcloud Talk meetings")}</div>
-                        <div style={{ color: 'var(--text-secondary)' }}>{talk.error.message}</div>
+                        <div className="text-[var(--text-secondary)]">{talk.error.message}</div>
                     </div>
                 )}
 
                 {!gmeet.loading && gmeet.error && (
                     <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER}>
                         <div className="font-semibold">{t('meetings.upcoming_meet_failed', "Couldn't load Google Meet meetings")}</div>
-                        <div style={{ color: 'var(--text-secondary)' }}>{gmeet.error.message}</div>
+                        <div className="text-[var(--text-secondary)]">{gmeet.error.message}</div>
                     </div>
                 )}
 
@@ -518,8 +516,8 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                         <div className="w-12 h-12 rounded-2xl grid place-items-center" style={{ background: kindTint('meeting', 12), color: kindColorVar('meeting') }} aria-hidden="true">
                             <Calendar className="w-6 h-6" />
                         </div>
-                        <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meetings.upcoming_empty_title', 'No upcoming meetings')}</div>
-                        <div className="text-[11px] max-w-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="text-sm font-semibold text-[var(--text-primary)]">{t('meetings.upcoming_empty_title', 'No upcoming meetings')}</div>
+                        <div className="text-[11px] max-w-xs text-[var(--text-tertiary)]">
                             {t('meetings.upcoming_empty_desc_teams', 'Meetings in your calendar with a Nextcloud Talk conversation, a Google Meet link or a Microsoft Teams link show up here.')}
                         </div>
                     </div>
@@ -576,8 +574,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
             </div>
 
             {notices.length > 0 && (
-                <div className="px-3 py-2 border-t flex flex-col gap-1 text-[11px] flex-shrink-0"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }} data-testid="upcoming-notice">
+                <div className="px-3 py-2 border-t flex flex-col gap-1 text-[11px] flex-shrink-0 border-[var(--border-default)] text-[var(--text-tertiary)]" data-testid="upcoming-notice">
                     {notices.map(n => <span key={n.key}>{t(n.key, n.en)}</span>)}
                 </div>
             )}

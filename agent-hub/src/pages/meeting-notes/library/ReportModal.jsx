@@ -87,8 +87,7 @@ export default function ReportModal({ open, onClose, meetings = [] }) {
                                 key={p}
                                 type="button"
                                 onClick={() => generate(p)}
-                                className="text-left text-xs px-3 py-1.5 rounded-full border transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                className="text-left text-xs px-3 py-1.5 rounded-full border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                             >
                                 {p}
                             </button>
@@ -101,8 +100,7 @@ export default function ReportModal({ open, onClose, meetings = [] }) {
                         type="button"
                         onClick={() => generate()}
                         disabled={busy || !prompt.trim()}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-40"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]"
                     >
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                         {busy
@@ -113,8 +111,7 @@ export default function ReportModal({ open, onClose, meetings = [] }) {
                         <button
                             type="button"
                             onClick={copy}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border transition-colors hover:bg-[var(--bg-tertiary)]"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
                             <Copy className="w-3.5 h-3.5" />
                             {copied ? t('meeting_notes.report_copied', 'Copied') : t('meeting_notes.report_copy', 'Copy')}
@@ -128,8 +125,7 @@ export default function ReportModal({ open, onClose, meetings = [] }) {
 
                 {result && (
                     <div
-                        className="rounded-xl border px-4 py-3 max-h-[50vh] overflow-auto text-sm"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                        className="rounded-xl border px-4 py-3 max-h-[50vh] overflow-auto text-sm bg-[var(--bg-secondary)] border-[var(--border-default)]"
                     >
                         <MarkdownRenderer content={result.report} />
                         {!result.usedTranscripts && (
