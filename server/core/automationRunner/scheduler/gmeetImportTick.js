@@ -6,7 +6,7 @@
  * claims jobs via FOR UPDATE SKIP LOCKED, so it runs AFTER the lock is
  * released and on every pod.
  *
- * The lock is NAMED (jobs/lib/namedLock.js), not numbered: it used to be
+ * The lock is NAMED (core/scheduling/namedLock.js), not numbered: it used to be
  * 0xBEEF10A, which is also the ISO evidence collector's key, so each job
  * silently skipped its tick on every pod while the other one held the lock
  * (jobs/isoEvidenceCollector.test.js drives both against one lock table).
@@ -17,7 +17,7 @@
 
 'use strict';
 
-const { withNamedLock } = require('../../../jobs/lib/namedLock');
+const { withNamedLock } = require('../../scheduling/namedLock');
 const log = require('../../../telemetry/log');
 
 const GMEET_IMPORT_LOCK_NAME = 'beeflow:job:gmeetAutoImportDiscovery';
