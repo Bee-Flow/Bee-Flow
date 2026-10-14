@@ -39,6 +39,16 @@ function triggerDownload(blob, name) {
     URL.revokeObjectURL(url);
 }
 
+/**
+ * @param {object} opts
+ * @param {string} [opts.name]
+ * @param {string} [opts.html]
+ * @param {string} [opts.css]
+ * @param {string} [opts.js]
+ * @param {Array<{ path: string }>} [opts.extraFiles]
+ * @param {Record<string, { isText?: boolean, content?: string, dataUrl?: string, mimeType?: string }>} [opts.extraContents]
+ * @param {string} [opts.framework]
+ */
 export async function downloadWebpageZip({ name, html, css, js, extraFiles = [], extraContents = {}, framework = 'vanilla' }) {
     // React + Material UI: ship a self-contained built index.html (the same
     // esbuild-bundled module + esm.sh import map the preview uses) plus the

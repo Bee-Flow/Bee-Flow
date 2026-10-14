@@ -69,7 +69,7 @@ describe('chat signals: who can send the marker', () => {
             'pages/TemplatesPage.jsx',
             'pages/documents/notebook/detail/useNotebookChat.ts',
             'pages/meeting-notes/detail/AssistantSidebar.jsx',
-            'pages/webpages/WebpageEditorPage.jsx',
+            'pages/webpages/hooks/useWebpageChat.ts',
         ]);
     });
 
