@@ -95,7 +95,7 @@ describe('EditorHeader — the responsive fold stays wired', () => {
     });
 
     it('the center column clips horizontal overflow (AppEditorShell)', async () => {
-        const src = await readSource('AppEditorShell.jsx');
+        const src = await readSource('AppEditorShell.tsx');
         expect(src).toMatch(/overflow-x-clip/);
     });
 });
