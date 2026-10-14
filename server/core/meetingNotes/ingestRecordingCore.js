@@ -2,8 +2,8 @@
  * ingestRecordingCore — provider-agnostic middle of the Meeting Notes ingest
  * pipeline. Takes a recording that already sits on local disk and turns it
  * into a Meeting Note: transcription (tenant-configured or explicitly pinned
- * provider), diarized speakers anchored to a participant roster, summary,
- * AI title and action items.
+ * provider, ./ingestTranscription.js), diarized speakers anchored to a
+ * participant roster, summary, AI title and action items.
  *
  * Shared by the provider wrappers (`ingestNextcloudRecording.js`,
  * `ingestGmeetRecording.js`) which own download/auth/roster resolution and
@@ -17,10 +17,7 @@ const fs = require('fs');
 const path = require('path');
 
 const transcriptionStore = require('../../stores/transcriptionStore');
-const configStore = require('../../stores/configStore');
 const {
-    transcribeWithWhisperX,
-    transcribeWithScaleway,
     identifySpeakerNames,
     generateMeetingSummary,
     generateMeetingTitle,
@@ -34,24 +31,16 @@ const {
     fillGenericSpeakerLabels,
     buildPipelineNotices,
     artifactsUsable,
-    toContextBias,
     formatTime,
 } = require('./summaryHelpers');
 const { stampForTemplate } = require('./summaryStamp');
+const { IngestError, safeUnlink } = require('./ingestShared');
+const { chooseProvider, transcribe } = require('./ingestTranscription');
 const log = require('../../telemetry/log');
 // The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
 const { runnerPort } = require('../automationRunner/featurePorts');
 
 const savedDir = path.resolve(__dirname, '../../data/uploads/saved-recordings');
-
-class IngestError extends Error {
-    constructor(message, { code = 'ingest_failed', status = 500 } = {}) {
-        super(message);
-        this.name = 'IngestError';
-        this.code = code;
-        this.status = status;
-    }
-}
 
 /**
  * A `source_uri` dedup hit proves the recording was already imported — it does
@@ -72,6 +61,81 @@ async function assertDedupHitReadable(existing, userId, accessCtx) {
         'This recording has already been imported by someone else. Ask them to share the meeting note with you.',
         { code: 'already_imported', status: 409 }
     );
+}
+
+/**
+ * Map diarization speaker IDs → real names (parity with upload route). When
+ * the caller supplies the real attendee roster the model maps speaker_0/1/2 to
+ * the actual participants instead of guessing. Pass the stats rows, not bare
+ * IDs — the speaking times are what let the model separate real participants
+ * from short diarization fragments. The platform already named every speaker:
+ * keep those names as they are.
+ */
+async function nameSpeakers(built, { speakersNamed, language, userName, orgId, participantNames, voiceprint }) {
+    const { speakers } = built;
+    const nameMapping = speakersNamed
+        ? Object.fromEntries(speakers.map((s) => [s.id, s.id]))
+        : speakers.length
+            ? await identifySpeakerNames(
+                built.merged, speakers, language, userName, orgId,
+                [...(participantNames || []), ...voiceprint.roster],
+                // No speaker-count input on the auto-import paths — Talk/Meet
+                // supply an attendee roster instead, which is stronger.
+                { lockedNames: voiceprint.mapping, ruledOutNames: voiceprint.ruledOut },
+            )
+            : null;
+    // Floor unnamed ids to clean "Spreker N"/"Speaker N" — never leak raw ids.
+    const filledMapping = fillGenericSpeakerLabels(speakers, nameMapping, language);
+    const named = applySpeakerNames(built.merged, filledMapping);
+    return { ...named, speakers: tagSpeakerProvenance(named.speakers, voiceprint.mapping) };
+}
+
+/** ── Summary, title, action items, chapters, per-speaker summaries ── */
+async function writeSummary(named, { userId, orgId, language, fileName, titleHint, participantNames, voiceprint }) {
+    const { transcript } = named;
+    const defaultTemplate = await resolveOwnerDefaultTemplate(userId, orgId);
+    const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null });
+    // BEFORE the note's notice lines, because a failed artifact pass is one
+    // of them. This writer used to pass `artifacts.*` through raw: a pass that
+    // fell over or could not be parsed then produced a finished note claiming
+    // nothing was agreed, and an auto-import has no other channel at all to
+    // report that — there was no screen watching.
+    const artifacts = await extractMeetingArtifacts(transcript, language, orgId, {
+        meetingDateIso: new Date().toISOString().slice(0, 10),
+        personNames: [...named.speakers.map((s) => s.id), ...(participantNames || [])],
+    });
+    const usable = artifactsUsable(artifacts);
+    if (!usable) {
+        log.warn(`[IngestCore] ${fileName}: artifact extraction failed — the note says so instead of claiming an empty meeting.`);
+    }
+    // An auto-import has no UI to report to, so the note's summary is the
+    // only place to explain why voice recognition didn't name everyone —
+    // and why this note has no action items.
+    const notices = buildPipelineNotices({ voiceprint: voiceprint.info, artifactsFailed: !usable, language });
+    const summary = notices.length ? `${notices.join('\n')}\n\n${rawSummary || ''}`.trim() : rawSummary;
+    let title = titleHint || fileName.replace(/\.[^/.]+$/, '');
+    if (summary) {
+        const aiTitle = await generateMeetingTitle(summary, language, orgId);
+        if (aiTitle) title = aiTitle;
+    }
+    const chapters = await generateChapters(transcript, language, orgId);
+    const speakerSummaries = await generateSpeakerSummaries(transcript, named.speakers.map((s) => s.id), language, orgId);
+    const speakers = applySpeakerSummaries(named.speakers, speakerSummaries);
+    return { defaultTemplate, artifacts, usable, summary, title, chapters, speakers };
+}
+
+/**
+ * ── Save the note ── The audio copies exist before any row references them,
+ * so every exit from here that does not produce a row throws them away.
+ */
+async function saveNote(row, savedAudio) {
+    const { discardSavedAudio } = require('./savedAudioStore');
+    try {
+        return await transcriptionStore.createTranscription(row);
+    } catch (e) {
+        await discardSavedAudio(savedAudio);
+        throw e;
+    }
 }
 
 /**
@@ -124,132 +188,27 @@ async function ingestLocalRecording(opts) {
 
     try {
         const userName = userNameArg !== undefined ? userNameArg : await resolveUserFirstName(userId);
-
-        // ── Provider selection (request → admin config → voxtral) ──
-        const localEnabled = (await configStore.getConfig('local_whisper_enabled')) !== false;
-        let provider = await configStore.getConfig('transcription_provider') || 'voxtral';
-        const reqP = String(requestedProvider || '').trim().toLowerCase();
-        if (transcriptResponse) provider = reqP || 'platform_transcript';
-        else if (reqP === 'local' && localEnabled) provider = 'local';
-        else if (['voxtral', 'whisperx', 'scaleway', 'azure', 'whisper_azure', 'pyannote'].includes(reqP)) provider = reqP;
-
-        // ── Transcribe ───────────────────────────────────────
-        let response;
-        // Only the pyannote provider can fill these (see below).
-        let voiceprintMapping = null;
-        let voiceprintRoster = [];
-        let voiceprintRuledOut = null;
-        let voiceprintInfo = null;
-        if (transcriptResponse) {
-            response = { text: transcriptResponse.text || '', segments: transcriptResponse.segments || [] };
-        } else if (provider === 'local') {
-            const { transcribeLocally } = require('../voice/localWhisper');
-            const local = await transcribeLocally(filePath, { language });
-            if (!local) {
-                safeUnlink(filePath);
-                throw new IngestError('Local transcription unavailable. Pick a cloud provider.', { code: 'local_whisper_unavailable', status: 503 });
-            }
-            response = { text: local.text, segments: local.segments };
-        } else if (provider === 'whisperx') {
-            response = await transcribeWithWhisperX(filePath, fileName, language, contextTerms || '');
-        } else if (provider === 'scaleway') {
-            response = await transcribeWithScaleway(filePath, fileName, language, contextTerms || '');
-        } else if (provider === 'pyannote') {
-            // Self-staging via pyannote's own media store — works for auto-import
-            // paths too (no public URL needed, unlike whisper_azure).
-            // Talk/Meet supply the attendee roster automatically, which is also
-            // the best possible prioritiser when an org has more enrolled
-            // members than one identify job can carry.
-            const { transcribeWithPyannote } = require('../voice/pyannoteClient');
-            const p = await transcribeWithPyannote(filePath, {
-                language, orgId, recorderUserId: userId, attendees: participantNames,
-            });
-            response = p;
-            voiceprintMapping = p.voiceprintMapping;
-            voiceprintRoster = p.voiceprintRoster || [];
-            voiceprintRuledOut = p.voiceprintRuledOut;
-            voiceprintInfo = p.voiceprintInfo;
-        } else {
-            // Voxtral default (other cloud providers reachable via manual upload).
-            const apiKey = await configStore.getSecret('mistral_api_key');
-            if (!apiKey) {
-                safeUnlink(filePath);
-                throw new IngestError('Mistral API key not configured.', { code: 'missing_mistral_key', status: 400 });
-            }
-            const client = require('./voxtralClient').createVoxtralClient(apiKey);
-            const fileContent = fs.readFileSync(filePath);
-            const contextBias = toContextBias(contextTerms);
-            response = await client.audio.transcriptions.complete({
-                model: 'voxtral-mini-2602',
-                file: { fileName, content: fileContent },
-                diarize: true, language,
-                timestampGranularities: ['segment'],
-                ...(contextBias.length ? { contextBias } : {}),
-            });
-        }
+        const provider = await chooseProvider(requestedProvider, transcriptResponse);
+        const { response, voiceprint } = await transcribe(provider, {
+            filePath, fileName, language, contextTerms, orgId, userId, participantNames, transcriptResponse,
+        });
 
         // ── Build transcript + diarized speakers ─────────────
-        let { merged, transcript, speakers, totalDuration } = buildTranscriptArtifacts(response.segments || []);
+        const built = buildTranscriptArtifacts(response.segments || []);
         // Same guard as the upload and reprocess routes: an empty result is a
         // failure, not a note. Without it an auto-imported Talk/Meet recording
         // that transcribed to nothing is saved as a finished, empty note that
         // the user cannot retry.
-        if (!merged.length) {
+        if (!built.merged.length) {
             safeUnlink(filePath);
             throw new IngestError('Transcription returned no segments.', { code: 'empty_transcription', status: 502 });
         }
-
-        // Map diarization speaker IDs → real names (parity with upload route).
-        // When the caller supplies the real attendee roster the model maps
-        // speaker_0/1/2 to the actual participants instead of guessing.
-        // Pass the stats rows, not bare IDs — the speaking times are what let
-        // the model separate real participants from short diarization fragments.
-        // The platform already named every speaker: keep those names as they are.
-        const nameMapping = speakersNamed
-            ? Object.fromEntries(speakers.map((s) => [s.id, s.id]))
-            : speakers.length
-            ? await identifySpeakerNames(
-                merged, speakers, language, userName, orgId,
-                [...(participantNames || []), ...voiceprintRoster],
-                // No speaker-count input on the auto-import paths — Talk/Meet
-                // supply an attendee roster instead, which is stronger.
-                { lockedNames: voiceprintMapping, ruledOutNames: voiceprintRuledOut },
-            )
-            : null;
-        // Floor unnamed ids to clean "Spreker N"/"Speaker N" — never leak raw ids.
-        const filledMapping = fillGenericSpeakerLabels(speakers, nameMapping, language);
-        ({ merged, transcript, speakers } = applySpeakerNames(merged, filledMapping));
-        speakers = tagSpeakerProvenance(speakers, voiceprintMapping);
-
-        // ── Summary, title, action items ─────────────────────
-        const defaultTemplate = await resolveOwnerDefaultTemplate(userId, orgId);
-        const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null });
-        // VÓÓR de notitieregels, want een mislukte artefactpass is er één van.
-        // Deze schrijver gaf `artifacts.*` rauw door: een omgevallen of
-        // onparseerbare pass leverde dan een afgeronde notitie op die beweert
-        // dat er niets is afgesproken, en een auto-import heeft geen enkel
-        // ander kanaal om dat te melden — er is geen scherm dat toekeek.
-        const artifacts = await extractMeetingArtifacts(transcript, language, orgId, {
-            meetingDateIso: new Date().toISOString().slice(0, 10),
-            personNames: [...speakers.map((s) => s.id), ...(participantNames || [])],
+        const totalDuration = built.totalDuration;
+        const named = await nameSpeakers(built, { speakersNamed, language, userName, orgId, participantNames, voiceprint });
+        const { merged, transcript } = named;
+        const { defaultTemplate, artifacts, usable, summary, title, chapters, speakers } = await writeSummary(named, {
+            userId, orgId, language, fileName, titleHint, participantNames, voiceprint,
         });
-        const usable = artifactsUsable(artifacts);
-        if (!usable) {
-            log.warn(`[IngestCore] ${fileName}: artifact extraction failed — the note says so instead of claiming an empty meeting.`);
-        }
-        // An auto-import has no UI to report to, so the note's summary is the
-        // only place to explain why voice recognition didn't name everyone —
-        // and why this note has no action items.
-        const notices = buildPipelineNotices({ voiceprint: voiceprintInfo, artifactsFailed: !usable, language });
-        const summary = notices.length ? `${notices.join('\n')}\n\n${rawSummary || ''}`.trim() : rawSummary;
-        let title = titleHint || fileName.replace(/\.[^/.]+$/, '');
-        if (summary) {
-            const aiTitle = await generateMeetingTitle(summary, language, orgId);
-            if (aiTitle) title = aiTitle;
-        }
-        const chapters = await generateChapters(transcript, language, orgId);
-        const speakerSummaries = await generateSpeakerSummaries(transcript, speakers.map((s) => s.id), language, orgId);
-        speakers = applySpeakerSummaries(speakers, speakerSummaries);
 
         // ── Persist audio for playback ───────────────────────
         // A transcript-only ingest (Teams VTT without a recording) has no audio.
@@ -257,46 +216,36 @@ async function ingestLocalRecording(opts) {
         const { audioPath, audioStorageKey } = filePath
             ? await persistAudioCopy(filePath, userId, ext)
             : { audioPath: null, audioStorageKey: null };
-
-        // ── Save the note ────────────────────────────────────
-        // The audio copies above exist before any row references them, so every
-        // exit from here that does not produce a row must throw them away.
         const savedAudio = { audioPath: audioPath && fs.existsSync(audioPath) ? audioPath : null, audioStorageKey };
-        let saved;
-        try {
-            saved = await transcriptionStore.createTranscription({
-                userId, organizationId: orgId, title, fileName, language,
-                durationSeconds: Math.round(totalDuration),
-                speakerCount: speakers.length, segmentCount: merged.length,
-                fullText: response.text || '', transcript, segments: merged, speakers,
-                summary, audioPath: savedAudio.audioPath || '',
-                audioStorageKey,
-                provider,
-                // Een nieuwe rij, dus hier valt niets te bewaren — maar er
-                // wordt ook niets geclaimd wat de pass niet gevonden heeft.
-                // De notitieregel hierboven zegt waarom deze leeg zijn.
-                actionItems: usable ? artifacts.actionItems : [],
-                decisions: usable ? artifacts.decisions : [],
-                questions: usable ? artifacts.questions : [],
-                tags: usable ? artifacts.tags : [],
-                chapters,
-                // Persist the roster the auto-import resolved (Talk participants,
-                // Meet attendees). It was only ever used in-memory for naming, so
-                // re-transcribing an auto-imported note started blind and relabelled
-                // everyone "Spreker 1/2" — the manual upload path has always stored
-                // it. Done here rather than in each wrapper so every source gets it.
-                attendees: participantNames,
-                source, sourceUri,
-                // Welk sjabloon en welke versie ervan deze samenvatting
-                // schreef. Geen standaardsjabloon → beide null, en het scherm
-                // zwijgt in plaats van een sjabloon te noemen.
-                ...stampForTemplate(defaultTemplate),
-                ...extraStoreFields,
-            });
-        } catch (e) {
-            await discardSavedAudio(savedAudio);
-            throw e;
-        }
+        const saved = await saveNote({
+            userId, organizationId: orgId, title, fileName, language,
+            durationSeconds: Math.round(totalDuration),
+            speakerCount: speakers.length, segmentCount: merged.length,
+            fullText: response.text || '', transcript, segments: merged, speakers,
+            summary, audioPath: savedAudio.audioPath || '',
+            audioStorageKey,
+            provider,
+            // A new row, so there is nothing to keep here — but nothing is
+            // claimed that the pass did not find either. The notice line
+            // above says why these are empty.
+            actionItems: usable ? artifacts.actionItems : [],
+            decisions: usable ? artifacts.decisions : [],
+            questions: usable ? artifacts.questions : [],
+            tags: usable ? artifacts.tags : [],
+            chapters,
+            // Persist the roster the auto-import resolved (Talk participants,
+            // Meet attendees). It was only ever used in-memory for naming, so
+            // re-transcribing an auto-imported note started blind and relabelled
+            // everyone "Spreker 1/2" — the manual upload path has always stored
+            // it. Done here rather than in each wrapper so every source gets it.
+            attendees: participantNames,
+            source, sourceUri,
+            // Which template, and which version of it, wrote this summary. No
+            // default template → both null, and the screen stays silent
+            // instead of naming a template.
+            ...stampForTemplate(defaultTemplate),
+            ...extraStoreFields,
+        }, savedAudio);
 
         // Concurrent ingest won the race — surface the existing note. Our copies
         // belong to nothing: the winner has its own.
@@ -329,9 +278,9 @@ async function ingestLocalRecording(opts) {
         // than another createTranscription parameter: it only applies to one
         // provider with at least one enrolled colleague, and the INSERT is
         // already 29 columns wide.
-        if (voiceprintInfo?.detail?.length) {
+        if (voiceprint.info?.detail?.length) {
             try {
-                await transcriptionStore.updateTranscription(saved.id, userId, { voiceprintMatches: voiceprintInfo.detail });
+                await transcriptionStore.updateTranscription(saved.id, userId, { voiceprintMatches: voiceprint.info.detail });
             } catch (e) { log.warn('[IngestCore] could not persist voiceprint matches:', e.message); }
         }
 
@@ -460,7 +409,6 @@ async function resolveOwnerDefaultTemplate(userId, orgId) {
     }
 }
 
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) {} }
 
 module.exports = {
     ingestLocalRecording,
