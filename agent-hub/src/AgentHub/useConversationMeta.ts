@@ -1,0 +1,277 @@
+import { projectErrorText } from '../components/projects/workspace/projectErrorText';
+import { toast } from '../components/shared/Toast';
+import type { TranslateFn } from '../hooks/useTranslation';
+import { API_BASE, authFetch } from '../utils/helpers';
+import { mutate } from '../api/mutate';
+
+/** A conversation row in the sidebar lists (direct or agent). */
+export interface ConversationRow {
+    id: string;
+    agent_id?: string | null;
+    project_id?: string | null;
+    shared_scope?: string | null;
+    pinned?: boolean;
+    title?: string;
+    labels_json?: string | null;
+    [key: string]: unknown;
+}
+
+/** A label the user can put on conversations. */
+export interface ConversationLabel {
+    id: string;
+    name?: string;
+    color?: string;
+    [key: string]: unknown;
+}
+
+/** A project a conversation can be filed under, as the move picker passes it. */
+export interface TargetProject {
+    id: string;
+}
+
+/** The agent the hub is showing, when it is in agent mode. */
+export interface SelectedAgentRef {
+    id: string;
+}
+
+export interface ConfirmOptions {
+    title: string;
+    description: string;
+    confirmLabel: string;
+    destructive?: boolean;
+}
+
+export interface ConversationMetaDeps {
+    t: (key: string, fallback?: string) => string;
+    directChatMode: boolean;
+    selectedAgent: SelectedAgentRef | null;
+    loadDirectConversations: () => void;
+    loadConversations: (agentId: string) => void;
+    setDirectConversations: (update: (prev: ConversationRow[]) => ConversationRow[]) => void;
+    setConversations: (update: (prev: ConversationRow[]) => ConversationRow[]) => void;
+    setConversationLabels: (update: (prev: ConversationLabel[]) => ConversationLabel[]) => void;
+    confirm: (options: ConfirmOptions) => Promise<boolean>;
+}
+
+// Conversation bookkeeping shared by the sidebar rows: project filing/sharing,
+// rename, pin and labels. Plain closures (no hooks) moved verbatim from
+// AgentHub.jsx; they are recreated per render exactly as before.
+const useConversationMeta = ({
+    t, directChatMode, selectedAgent,
+    loadDirectConversations, loadConversations,
+    setDirectConversations, setConversations, setConversationLabels,
+    confirm,
+}: ConversationMetaDeps) => {
+    /**
+     * Share a conversation into the project it is filed under — or stop.
+     *
+     * Distinct from handleMoveToProject: filing is private bookkeeping, this
+     * publishes the conversation to every project member. It also RE-ENCRYPTS
+     * the messages to a project-held key, which is why the confirm spells the
+     * consequence out rather than asking "are you sure?", and why the server
+     * accepts it only from the conversation's owner (on the zero-knowledge tier
+     * only they hold the key that opens the current ciphertext).
+     */
+    const handleShareToProject = async (conv: ConversationRow) => {
+        const projectId = conv.project_id;
+        if (!projectId) return;
+        const type = conv.agent_id ? 'agent' : 'direct';
+        const currentlyShared = conv.shared_scope === 'project';
+
+        if (!currentlyShared) {
+            const ok = await confirm({
+                title: `${t('projects.share_thread')}?`,
+                description: t('projects.share_encryption_warning'),
+                confirmLabel: t('projects.share_thread'),
+                destructive: true,
+            });
+            if (!ok) return;
+        }
+
+        try {
+            const url = `${API_BASE}/api/projects/${projectId}/threads`;
+            const res = currentlyShared
+                ? await authFetch(`${url}/${conv.id}?type=${type}`, { method: 'DELETE' })
+                : await authFetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conversationId: conv.id, type }),
+                });
+            if (!res.ok) {
+                const err: { error?: string } = await res.json().catch(() => ({}));
+                // 403 = not the owner, 503 = the project key is unavailable.
+                // Both are worth stating plainly; neither is a generic failure.
+                toast.error(err.error || t('projects.share_owner_only'));
+                return;
+            }
+            // Refresh so the row picks up its new shared_scope.
+            if (directChatMode) loadDirectConversations();
+            else if (selectedAgent) loadConversations(selectedAgent.id);
+        } catch (e) {
+            toast.error(t('projects.share_owner_only'));
+        }
+    };
+
+    /**
+     * File a conversation under a project (or take it out). Private
+     * bookkeeping: nothing is shared by this.
+     *
+     * The conversation's own shape says what it is — the same rule sharing
+     * uses — rather than the mode the hub happens to be in: in the all-chats
+     * view an agent conversation is listed while the hub is in direct mode.
+     * A refusal (a Solution holds no chats, a project that is gone) is said
+     * out loud instead of leaving the row where it was without a word.
+     */
+    const handleMoveToProject = async (conv: ConversationRow, targetProject?: TargetProject | null) => {
+        const type = conv.agent_id ? 'agent' : 'direct';
+        const projectId = targetProject ? targetProject.id : conv.project_id;
+        if (!projectId) return;
+        const change = targetProject ? { assign: [{ id: conv.id, type }] } : { unassign: [{ id: conv.id, type }] };
+        const failed = t('sidebar.project_move_failed', 'Could not move this chat. It is still where it was.');
+        try {
+            const res = await authFetch(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/conversations`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(change),
+            });
+            if (!res.ok) {
+                const err: unknown = await res.json().catch(() => ({}));
+                toast.error(projectErrorText(t as TranslateFn, err, failed));
+                return;
+            }
+            // Refresh conversation lists to reflect project_id changes
+            if (directChatMode) loadDirectConversations();
+            else if (selectedAgent) loadConversations(selectedAgent.id);
+        } catch {
+            toast.error(failed);
+        }
+    };
+
+    const handleRenameConversation = async (conv: ConversationRow, newTitle: string) => {
+        try {
+            if (directChatMode) {
+                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: newTitle }),
+                });
+                setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, title: newTitle } : c));
+            } else {
+                const agentId = conv.agent_id || selectedAgent?.id;
+                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: newTitle }),
+                });
+                setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, title: newTitle } : c));
+            }
+        } catch (e) {
+            console.error('Failed to rename conversation:', e);
+            toast.error((e as Error).message);
+        }
+    };
+
+    const handlePinConversation = async (conv: ConversationRow) => {
+        const newPinned = !conv.pinned;
+        try {
+            if (directChatMode) {
+                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pinned: newPinned }),
+                });
+                setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, pinned: newPinned } : c));
+            } else {
+                const agentId = conv.agent_id || selectedAgent?.id;
+                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pinned: newPinned }),
+                });
+                setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, pinned: newPinned } : c));
+            }
+        } catch (e) {
+            console.error('Failed to pin/unpin conversation:', e);
+            toast.error((e as Error).message);
+        }
+    };
+
+    const handleLabelConversation = async (conv: ConversationRow, label: string) => {
+        // Toggle label: if already has it, remove; otherwise add
+        const currentLabels: string[] = (() => { try { return JSON.parse(conv.labels_json || '[]') as string[]; } catch { return []; } })();
+        const newLabels = currentLabels.includes(label)
+            ? currentLabels.filter(l => l !== label)
+            : [...currentLabels, label];
+        try {
+            if (directChatMode) {
+                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ labels: newLabels }),
+                });
+                setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, labels_json: JSON.stringify(newLabels) } : c));
+            } else {
+                const agentId = conv.agent_id || selectedAgent?.id;
+                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ labels: newLabels }),
+                });
+                setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, labels_json: JSON.stringify(newLabels) } : c));
+            }
+        } catch (e) {
+            console.error('Failed to update conversation labels:', e);
+            toast.error((e as Error).message);
+        }
+    };
+
+    const handleCreateLabel = async (name: string, color: string) => {
+        try {
+            const res = await authFetch(`${API_BASE}/ai/labels`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, color }),
+            });
+            if (res.ok) {
+                const label: ConversationLabel = await res.json();
+                setConversationLabels(prev => [...prev, label]);
+                return label;
+            }
+        } catch (e) {
+            console.error('Failed to create label:', e);
+        }
+    };
+
+    const handleDeleteLabel = async (labelId: string) => {
+        try {
+            await mutate(`${API_BASE}/ai/labels/${labelId}`, { method: 'DELETE' });
+            setConversationLabels(prev => prev.filter(l => l.id !== labelId));
+        } catch (e) {
+            console.error('Failed to delete label:', e);
+            toast.error((e as Error).message);
+        }
+    };
+
+    const handleEditLabel = async (labelId: string, updates: Partial<ConversationLabel>) => {
+        try {
+            const res = await authFetch(`${API_BASE}/ai/labels/${labelId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates),
+            });
+            if (res.ok) {
+                setConversationLabels(prev => prev.map(l => l.id === labelId ? { ...l, ...updates } : l));
+            }
+        } catch (e) {
+            console.error('Failed to edit label:', e);
+        }
+    };
+
+    return {
+        handleShareToProject, handleMoveToProject,
+        handleRenameConversation, handlePinConversation, handleLabelConversation,
+        handleCreateLabel, handleDeleteLabel, handleEditLabel,
+    };
+};
+
+export default useConversationMeta;

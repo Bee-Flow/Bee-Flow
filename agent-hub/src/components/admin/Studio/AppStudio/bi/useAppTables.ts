@@ -1,0 +1,73 @@
+import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../../../utils/helpers';
+
+/**
+ * App Studio BI — the table/field catalogue hook.
+ *
+ * Reads GET /api/studio-apps/:appId/data/tables (the viewer-readable tables,
+ * fields only — access rules never leave the server). It degrades gracefully:
+ * a 404 (app has no data model yet, or the endpoint is empty) resolves to an
+ * empty table list instead of an error, so the query builder renders a friendly
+ * "no tables yet" state rather than crashing.
+ *
+ *   const { tables, fieldsFor, isLoading } = useAppTables(appId);
+ *   const fields = fieldsFor(selectedTableId);   // [] when unknown
+ */
+
+/** One field of a viewer-readable table, as the server projects it. */
+export interface AppTableField {
+    key?: string;
+    name?: string;
+    type?: string;
+    [key: string]: unknown;
+}
+
+/** One viewer-readable table of an app's data model. */
+export interface AppTable {
+    id?: string;
+    key?: string;
+    name?: string;
+    fields?: AppTableField[];
+    [key: string]: unknown;
+}
+
+async function fetchTables(appId: string, t: TranslateFn): Promise<AppTable[]> {
+    const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/tables`);
+    if (res.status === 404) return [];
+    let body: { error?: string; tables?: unknown } | null = null;
+    try { body = await res.json(); } catch { body = null; }
+    if (!res.ok) throw new Error(body?.error || t('studio_apps_bi.hooks.tables_load_failed', 'Could not load tables ({status})', { status: res.status }));
+    return Array.isArray(body?.tables) ? (body.tables as AppTable[]) : [];
+}
+
+/** Fields for a table resolved by id OR key (empty array when unknown). */
+export function fieldsForTable(tables: AppTable[] | null | undefined, tableRef: string | null | undefined): AppTableField[] {
+    const t = (Array.isArray(tables) ? tables : []).find((x) => x && (x.id === tableRef || x.key === tableRef));
+    return t && Array.isArray(t.fields) ? t.fields : [];
+}
+
+export default function useAppTables(appId: string | null | undefined) {
+    const { t } = useTranslation();
+    const query = useQuery({
+        queryKey: ['studio-app-tables', appId],
+        queryFn: () => fetchTables(appId as string, t),
+        enabled: !!appId,
+        staleTime: 30_000,
+        retry: false,
+    });
+
+    const tables: AppTable[] = Array.isArray(query.data) ? query.data : [];
+    const fieldsFor = useCallback((tableRef: string | null | undefined) => fieldsForTable(tables, tableRef), [tables]);
+
+    return {
+        tables,
+        fieldsFor,
+        isLoading: !!appId && query.isLoading,
+        isError: query.isError,
+        error: query.error || null,
+        refetch: query.refetch,
+    };
+}
