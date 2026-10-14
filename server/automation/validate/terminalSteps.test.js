@@ -98,7 +98,7 @@ const SERVER_SITES = [
     {
         what: 'het model leest het on_error-verbod (builderPrompt.js + builderTools/schemas.js)',
         check: (type) => {
-            const prompt = read('automation/builderPrompt.js');
+            const prompt = require('../builderPrompt').buildFullSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false });
             const schemas = read('automation/builderTools/schemas.js');
             // Beide verbodslijsten zijn proza die over meerdere regels mag
             // lopen ("NEVER from trigger / condition / … / <type>"), dus een

@@ -122,21 +122,23 @@ test('builderPrompt\'s prose copy of the table still says the same numbers', () 
     // in een `//`-ontwikkelaarscommentaar ernaast: dat commentaar draagt geen
     // enkel runtime-gedrag, dus aanroepen kan de aanwezigheid van dit getal
     // niet waarnemen. De tekst IS hier de eigenschap.
-    const prompt = fs.readFileSync(path.join(__dirname, 'builderPrompt.js'), 'utf8')
+    // The comment sits beside CODE_STEP_MENU_ENTRY, which buildFullSystemPrompt
+    // in builderPrompt.js splices into the step menu.
+    const prompt = fs.readFileSync(path.join(__dirname, 'builderPrompt', 'fullPromptGuidance.js'), 'utf8')
         .replace(/(\d)_(\d)/g, '$1$2')
         .replace(/\n\s*(\/\/|\*)?\s*/g, ' ');
     const b = CODE_LIMIT_BOUNDS;
     assert.ok(
         prompt.includes(`DEFAULT_LIMITS {memoryMb:${b.memoryMb.def}, cpuMs:${b.cpuMs.def}, wallMs:${b.wallMs.def}}`),
-        'builderPrompt.js no longer states the sandbox defaults this table holds',
+        'builderPrompt/fullPromptGuidance.js no longer states the sandbox defaults this table holds',
     );
     assert.ok(
         prompt.includes(`MAX_LIMITS {${b.memoryMb.max}, ${b.cpuMs.max}, ${b.wallMs.max}, httpBudget:${b.httpBudget.max}}`),
-        'builderPrompt.js states different ceilings than the sandbox clamps to',
+        'builderPrompt/fullPromptGuidance.js states different ceilings than the sandbox clamps to',
     );
     assert.ok(
         prompt.includes(`HTTP_BUDGET_DEFAULT ${b.httpBudget.def}`),
-        'builderPrompt.js states a different default http budget',
+        'builderPrompt/fullPromptGuidance.js states a different default http budget',
     );
 });
 
