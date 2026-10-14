@@ -173,7 +173,8 @@ for (const [key, exportsObj] of Object.entries(MOCKS)) {
 
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /directChat[\\/]streamTurn\.js$/.test(parent.filename)
+    // streamTurn.js and the phase files its spine was split into.
+    if (parent && /directChat[\\/](streamTurn|turnPhases|toolLoopSetup|toolLoopRounds)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(IDS, request)) {
         return IDS[request];
     }
