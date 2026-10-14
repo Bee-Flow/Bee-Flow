@@ -11,28 +11,133 @@
 
 const {
     MAX_RELEASES_PER_PROJECT,
-    MAX_PIPELINE_RELEASES_PER_PROJECT,
-    MAX_LISTED_PIPELINE_RELEASES,
-    RELEASE_PAYLOAD_KINDS,
     RELEASE_CHANNELS,
-    TERMINAL_DEPLOYMENT_STATUSES,
-    SUCCEEDED_DEPLOYMENT_STATUSES,
-    MAX_REQUEST_KEY_LENGTH,
 } = require('./constants');
 const {
     newReleaseId,
-    isNonEmptyString,
-    isPlainObject,
-    storeError,
     clientHandle,
-    assertManifestSize,
     normalizeNotes,
     mapReleaseRow,
-    PIPELINE_RELEASE_COLUMNS,
-    normalizePayloads,
-    samePayloadSet,
-    asJsonb,
 } = require('./mappers');
+const { makePipelineReleasesStore } = require('./pipelineReleases');
+
+/** Write one gallery release row, inside the caller's handle. */
+async function _insertRelease(h, { projectId, blueprintId, version, manifest, notes, publishedBy }) {
+    // RETURNING without the manifest: it was just written and the caller
+    // already has it; dragging it back through the driver is pure transfer.
+    const row = await h.one(
+        `INSERT INTO project_releases
+            (id, project_id, blueprint_id, version, manifest, notes, published_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+         RETURNING id, project_id, blueprint_id, version, notes, published_at, published_by`,
+        [newReleaseId(), projectId, blueprintId, version,
+         JSON.stringify(manifest ?? {}), JSON.stringify(notes ?? {}), publishedBy],
+    );
+    return mapReleaseRow(row);
+}
+
+/**
+ * Prune this project's gallery history back to the newest twenty.
+ *
+ * THREE things hold this query together, and each closes a way the prune
+ * could remove a row something points at:
+ *
+ *   1. `, id` AS THE TIEBREAKER. `published_at` defaults to NOW(), which in
+ *      Postgres is TRANSACTION time: rows written in one transaction carry the
+ *      same timestamp and their relative order is undefined. OFFSET over an
+ *      unstable sort drops an arbitrary row at each n, not necessarily the
+ *      oldest. Same reason, same fix as webpage/versions.js and
+ *      studioAppStore.writeVersionSnapshot.
+ *   2. WHAT AN INSTALL POINTS AT. An install points at the Blueprint with
+ *      `projects.installed_from_blueprint_id` and at the number it carries
+ *      with `project_solution_entities.installed_version`; together those two
+ *      are exactly one release row. Such a row does not count against the cap
+ *      and is never deleted. THIS IS NOT THEORY: publishing 25 times while
+ *      someone stays on v1 pushes v1 out of the window of the newest twenty,
+ *      and then the very install that most needs an answer ("what is v1, and
+ *      what changed since") could no longer get one. A partly updated install
+ *      holds both numbers, by the way: every stamp pins its own release row,
+ *      so also the v3 row of the one app that was never replaced.
+ *
+ *      ONLY INSTALLS IN THE SOURCE'S ORGANISATION HOLD ROWS, and that is a
+ *      deliberate narrowing. Reason 1, who can reach the row: a release row
+ *      only leaves through `listReleases`/`getRelease`, which sit behind
+ *      `requireProjectRole('owner')` on the SOURCE project; fetching a
+ *      Blueprint by id (the upgrade) goes through `canRead`, which is
+ *      org-scoped. An install outside that organisation can therefore read the
+ *      row it would hold through no door at all; it would freeze a manifest of
+ *      up to MAX_BLUEPRINT_BYTES that nobody can fetch. Reason 2, who decides
+ *      the input: on a file install both the claimed Blueprint id and
+ *      `installed_version` come from a file the installer edits. Without this
+ *      narrowing, one forwarded file could switch off another project's cap by
+ *      creating installs that claim versions 21..300, and the source
+ *      organisation would have no button to remove those foreign "installs".
+ *      Such installs still COUNT (`countInstallsFor` splits exactly on that
+ *      line); they do not freeze another organisation's history.
+ *   3. WHAT THE GALLERY SERVES NOW. `project_blueprints.version` is the number
+ *      installable today; that row may never go, or the gallery serves a
+ *      version that does not exist in the history. Also reachable and not
+ *      theoretical: the series runs per maker, so twenty publishes by
+ *      colleague B push colleague A's current v3 out of the window while A's
+ *      Blueprint still offers it.
+ *
+ * The held rows sit OUTSIDE the candidate list and so do not count against the
+ * twenty: the same choice as `source <> 'published'` in W2. The table may grow
+ * beyond the cap because of that; that is the safe side, bounded by the number
+ * of installs and never at the cost of a row something points at.
+ *
+ * WHAT GUARD 2 CANNOT SEE, and that is the honest limit: stamping is
+ * best-effort (install.js says so in as many words), so there are installs
+ * that point at the Blueprint with `installed_from_blueprint_id` and carry no
+ * stamp at all. For such an install it cannot be established which version it
+ * is on, so it holds no row either. That is the narrow side: holding the whole
+ * history because one install could not stamp would switch the cap off for
+ * good, and that install cannot be updated anyway, because the upgrade runs on
+ * stamps too.
+ *
+ * THE CHANNEL. `AND r.channel = 'gallery'`: a pipeline row has no
+ * `blueprint_id`, so both NOT EXISTS guards are true for it, and without this
+ * condition one gallery publish would prune the releases a UAT or PRD stage
+ * runs on. `_prunePipelineReleases` prunes pipeline rows, with guards of its
+ * own.
+ *
+ * TENANCY. This query READS `projects` but returns nothing of it: the result is
+ * a list of ids of this project's release rows, and that list goes to a
+ * DELETE, not to a caller. No project name, no owner, no org: no payload is
+ * created here that could leak. `projects` is another store's table;
+ * publishing always follows a project lookup, so it exists. Should it ever not
+ * exist, this statement fails loudly and the publish rolls back: never a quiet
+ * prune without guard 2.
+ *
+ * Only ids come back, so a caller that wants to know what went can see it
+ * without the rows themselves travelling any further.
+ */
+async function _pruneReleases(h, projectId) {
+    const doomed = await h.all(
+        `SELECT id FROM project_releases r
+          WHERE r.project_id = $1
+            AND NOT EXISTS (
+                SELECT 1 FROM project_blueprints b
+                 WHERE b.id = r.blueprint_id AND b.version = r.version)
+            AND NOT EXISTS (
+                SELECT 1 FROM projects p
+                  JOIN project_solution_entities e ON e.project_id = p.id
+                  JOIN projects src ON src.id = r.project_id
+                 WHERE p.installed_from_blueprint_id = r.blueprint_id
+                   AND e.installed_version = r.version
+                   AND COALESCE(p.organization_id, '') = COALESCE(src.organization_id, ''))
+            AND r.channel = 'gallery'
+          ORDER BY r.published_at DESC, r.id
+          OFFSET $2`,
+        [projectId, MAX_RELEASES_PER_PROJECT],
+    );
+    const ids = (doomed || []).map(r => r?.id).filter(id => typeof id === 'string' && id);
+    if (!ids.length) return [];
+    // Only the ids this query returned. A DELETE with a predicate of its own
+    // ("everything older than") would bypass the three guards above.
+    await h.run(`DELETE FROM project_releases WHERE id = ANY($1::text[])`, [ids]);
+    return ids;
+}
 
 /**
  * @param {import('./mappers').BlueprintStoreCtx & {
@@ -128,187 +233,6 @@ function makeReleasesStore({ db, ready, handle, inTransaction, _saveBlueprint })
         });
     }
 
-    async function _insertRelease(h, { projectId, blueprintId, version, manifest, notes, publishedBy }) {
-        // RETURNING zonder het manifest: het is net geschreven en de aanroeper heeft
-        // het al — het door de driver terugslepen is puur overdracht.
-        const row = await h.one(
-            `INSERT INTO project_releases
-                (id, project_id, blueprint_id, version, manifest, notes, published_by)
-             VALUES ($1,$2,$3,$4,$5,$6,$7)
-             RETURNING id, project_id, blueprint_id, version, notes, published_at, published_by`,
-            [newReleaseId(), projectId, blueprintId, version,
-             JSON.stringify(manifest ?? {}), JSON.stringify(notes ?? {}), publishedBy],
-        );
-        return mapReleaseRow(row);
-    }
-
-    /**
-     * Snoei de galerijgeschiedenis van dit project terug tot de laatste twintig.
-     *
-     * DRIE dingen houden deze query bij elkaar, en elk sluit een manier waarop het
-     * snoeien een rij zou weghalen waar iets naar wijst:
-     *
-     *   1. `, id` ALS TIEBREAKER. `published_at` valt terug op NOW(), en dat is in
-     *      Postgres TRANSACTIETIJD: rijen die in één transactie geschreven worden
-     *      dragen dezelfde tijdstempel en hun onderlinge volgorde is dan
-     *      ongedefinieerd. OFFSET over een onstabiele sortering laat op elk n een
-     *      willekeurige rij vallen — niet per se de oudste. Zelfde reden, zelfde
-     *      oplossing als webpage/versions.js en studioAppStore.writeVersionSnapshot.
-     *   2. WAAR EEN INSTALLATIE NAAR WIJST. Een installatie wijst met
-     *      `projects.installed_from_blueprint_id` naar de Blueprint en met
-     *      `project_solution_entities.installed_version` naar het nummer dat zij
-     *      draagt; samen zijn die twee precies één release-rij. Zo'n rij telt niet
-     *      mee tegen de cap en wordt nooit verwijderd. DIT IS GEEN THEORIE: wie 25
-     *      keer publiceert terwijl iemand op v1 blijft zitten, duwt v1 uit het
-     *      venster van de laatste twintig — en dan zou juist de installatie die het
-     *      hardst een antwoord nodig heeft ("wat is v1, en wat is er sindsdien
-     *      veranderd") het niet meer kunnen krijgen. Een deels bijgewerkte
-     *      installatie houdt trouwens beide nummers vast: elk stempel pint zijn
-     *      eigen release-rij, dus ook de v3-rij van de ene app die nooit is
-     *      vervangen.
-     *
-     *      ALLEEN INSTALLATIES IN DE ORGANISATIE VAN DE BRON HOUDEN VAST, en dat
-     *      is een bewuste versmalling. Reden 1 — wie de rij kan bereiken: een
-     *      release-rij komt uitsluitend naar buiten via `listReleases`/`getRelease`
-     *      en die staan achter `requireProjectRole('owner')` op het BRONproject;
-     *      een Blueprint bij id opvragen (de upgrade) loopt door `canRead`, dat
-     *      org-gescoopt is. Een installatie buiten die organisatie kan de rij die
-     *      zij zou vasthouden dus door geen enkele deur lezen — zij bevriest een
-     *      manifest van maximaal MAX_BLUEPRINT_BYTES dat niemand kan opvragen.
-     *      Reden 2 — wie de invoer bepaalt: bij een bestandsinstallatie komt zowel
-     *      het beweerde Blueprint-id als `installed_version` uit een bestand dat de
-     *      installateur zelf bewerkt. Zonder deze versmalling kon iemand met één
-     *      doorgestuurd bestand de cap van een ander project uitzetten door
-     *      installaties te maken die versies 21..300 claimen, en had de
-     *      bron-organisatie geen knop om die vreemde "installaties" weg te halen.
-     *      MEETELLEN doen zulke installaties nog steeds — `countInstallsFor`
-     *      splitst juist op die grens — de geschiedenis van een andere organisatie
-     *      bevriezen niet.
-     *   3. WAT DE GALERIJ NU SERVEERT. `project_blueprints.version` is het nummer
-     *      dat vandaag installeerbaar is; die rij mag nooit weg, anders serveert de
-     *      galerij een versie die in de geschiedenis niet bestaat. Ook bereikbaar
-     *      en niet theoretisch: de serie loopt per maker, dus twintig publicaties
-     *      door collega B duwen de huidige v3 van collega A uit het venster terwijl
-     *      A's Blueprint hem nog steeds aanbiedt.
-     *
-     * De vastgehouden rijen staan BUITEN de kandidatenlijst en tellen dus niet mee
-     * tegen de twintig — dezelfde keuze als `source <> 'published'` in W2. De tabel
-     * mag daardoor groter worden dan de cap; dat is de veilige kant, begrensd door
-     * het aantal installaties en nooit ten koste van een rij waar iets naar wijst.
-     *
-     * WAT WAARBORG 2 NIET KAN ZIEN, en dat is de eerlijke grens: stempelen is
-     * best-effort (install.js zegt dat met zoveel woorden), dus er bestaan
-     * installaties die met `installed_from_blueprint_id` naar de Blueprint wijzen
-     * en géén enkel stempel hebben. Van zo'n installatie is niet vast te stellen op
-     * welke versie zij staat, dus houdt zij ook geen rij vast. Dat is de smalle
-     * kant: de hele geschiedenis vasthouden omdat één installatie niet kon
-     * stempelen, zou de cap voorgoed uitschakelen — en die installatie kan sowieso
-     * niet worden bijgewerkt, want de upgrade draait óók op stempels.
-     *
-     * HET KANAAL. `AND r.channel = 'gallery'`: een pipeline-rij heeft geen
-     * `blueprint_id`, dus beide NOT EXISTS-waarborgen zijn voor haar waar, en
-     * zonder deze voorwaarde zou één galerijpublicatie de releases snoeien waar
-     * een UAT- of PRD-stage op draait. Pipeline-rijen snoeit
-     * `_prunePipelineReleases`, met eigen waarborgen.
-     *
-     * TENANCY. Deze query LEEST `projects` maar levert er niets van op: het
-     * resultaat is een lijst id's van release-rijen van dít project, en die lijst
-     * gaat naar een DELETE, niet naar een aanroeper. Geen projectnaam, geen
-     * eigenaar, geen org — er ontstaat hier geen payload om te lekken. `projects`
-     * is wel de tabel van een ándere store; publiceren volgt altijd op een
-     * projectlookup, dus zij bestaat. Zou zij ooit niet bestaan, dan faalt dit
-     * statement luid en draait de publicatie terug — nooit stilzwijgend snoeien
-     * zonder waarborg 2.
-     *
-     * Alleen id's terug, zodat een aanroeper die wil weten wat er verdween dat kan
-     * zien zonder dat de rijen zelf nog rondreizen.
-     */
-    async function _pruneReleases(h, projectId) {
-        const doomed = await h.all(
-            `SELECT id FROM project_releases r
-              WHERE r.project_id = $1
-                AND NOT EXISTS (
-                    SELECT 1 FROM project_blueprints b
-                     WHERE b.id = r.blueprint_id AND b.version = r.version)
-                AND NOT EXISTS (
-                    SELECT 1 FROM projects p
-                      JOIN project_solution_entities e ON e.project_id = p.id
-                      JOIN projects src ON src.id = r.project_id
-                     WHERE p.installed_from_blueprint_id = r.blueprint_id
-                       AND e.installed_version = r.version
-                       AND COALESCE(p.organization_id, '') = COALESCE(src.organization_id, ''))
-                AND r.channel = 'gallery'
-              ORDER BY r.published_at DESC, r.id
-              OFFSET $2`,
-            [projectId, MAX_RELEASES_PER_PROJECT],
-        );
-        const ids = (doomed || []).map(r => r?.id).filter(id => typeof id === 'string' && id);
-        if (!ids.length) return [];
-        // Uitsluitend op de id's die deze query teruggaf. Een DELETE met een eigen
-        // predicaat ("alles ouder dan") zou de drie waarborgen hierboven omzeilen.
-        await h.run(`DELETE FROM project_releases WHERE id = ANY($1::text[])`, [ids]);
-        return ids;
-    }
-
-    /**
-     * Prune this Solution's pipeline releases back to the newest 50 that nothing
-     * holds.
-     *
-     * A row is HELD, outside the count and never deleted, when it is:
-     *   (a) the current or previous release of a stage (what runs, and what a
-     *       rollback goes back to);
-     *   (b) the release of a deployment that is not finished (awaiting
-     *       approval, queued, running, compensating, or any status added later);
-     *   (c) the release of a succeeded UAT deployment whose seq is above the PRD
-     *       stage's current release: tested, and still waiting to be promoted
-     *       (with no PRD stage yet, every UAT-tested release waits);
-     *   (d) the release of any succeeded PRD deployment: a rollback target.
-     *
-     * The stage tables belong to solutionStageStore, which boots AFTER this
-     * store. Without them the guards cannot be evaluated, and pruning without
-     * them could delete what a stage runs, so this then prunes nothing.
-     *
-     * The pruned rows' payloads go in the same handle, before the rows.
-     */
-    async function _prunePipelineReleases(h, projectId) {
-        const tables = await h.one(
-            `SELECT to_regclass('solution_stages') IS NOT NULL AS stages,
-                    to_regclass('solution_deployments') IS NOT NULL AS deployments`,
-            [],
-        );
-        if (!tables?.stages || !tables?.deployments) return [];
-        const doomed = await h.all(
-            `SELECT r.id FROM project_releases r
-              WHERE r.project_id = $1
-                AND r.channel = 'pipeline'
-                AND NOT EXISTS (
-                    SELECT 1 FROM solution_stages s
-                     WHERE s.current_release_id = r.id OR s.previous_release_id = r.id)
-                AND NOT EXISTS (
-                    SELECT 1 FROM solution_deployments d
-                     WHERE d.release_id = r.id
-                       AND d.status <> ALL($3::text[]))
-                AND NOT EXISTS (
-                    SELECT 1 FROM solution_deployments d
-                     WHERE d.solution_id = r.project_id
-                       AND d.release_id = r.id
-                       AND d.status = ANY($4::text[])
-                       AND (d.stage = 'prd'
-                            OR (d.stage = 'uat' AND r.seq > COALESCE((
-                                SELECT MAX(ps.current_release_seq) FROM solution_stages ps
-                                 WHERE ps.solution_id = r.project_id AND ps.stage = 'prd'), 0))))
-              ORDER BY r.seq DESC NULLS LAST, r.published_at DESC, r.id
-              OFFSET $2`,
-            [projectId, MAX_PIPELINE_RELEASES_PER_PROJECT,
-             [...TERMINAL_DEPLOYMENT_STATUSES], [...SUCCEEDED_DEPLOYMENT_STATUSES]],
-        );
-        const ids = (doomed || []).map(r => r?.id).filter(id => typeof id === 'string' && id);
-        if (!ids.length) return [];
-        await h.run(`DELETE FROM solution_release_payloads WHERE release_id = ANY($1::text[])`, [ids]);
-        await h.run(`DELETE FROM project_releases WHERE id = ANY($1::text[]) AND channel = 'pipeline'`, [ids]);
-        return ids;
-    }
-
     /**
      * De publicatiegeschiedenis van één project, nieuwste eerst — zonder manifest.
      *
@@ -362,166 +286,12 @@ function makeReleasesStore({ db, ready, handle, inTransaction, _saveBlueprint })
         return mapReleaseRow(row, { includeManifest: true, withPipeline: true });
     }
 
-    // ── Pipeline releases (Solution stages) ──────────────────────────────────
-
-    /**
-     * Cut a pipeline release of a Solution's Dev project: one immutable,
-     * numbered row (`channel = 'pipeline'`, no gallery row) plus its payloads,
-     * in one transaction.
-     *
-     * - The Dev project row is locked first (`FOR UPDATE`), so two cuts never
-     *   compute the same `seq`; `uq_project_releases_seq` is the backstop.
-     * - Idempotent by `requestKey` (kept in `notes.requestKey`): a replay
-     *   answers the row the first call wrote, `replayed: true`.
-     * - The same `contentHash` as the latest pipeline release, with the same
-     *   payloads (ref, kind, contentHash), writes nothing and answers that
-     *   release, `reused: true` ("no changes since Release 6"). Changed
-     *   reference rows or KB listings alone still cut the next seq.
-     * - `version = seq` and `published_by = createdBy`, because both columns
-     *   are NOT NULL and a pipeline row belongs to no Blueprint series.
-     * - The pipeline prune runs in the same transaction.
-     *
-     * Authorises nothing: the caller has checked that `createdBy` owns the
-     * Solution. `client` joins a transaction the caller already holds.
-     *
-     * @param {{ projectId?: string, manifest?: any, contentHash?: string, gate?: any, sourceCut?: any,
-     *   notes?: any, createdBy?: string, requestKey?: string|null, payloads?: any[], client?: any }} [opts]
-     * @returns {Promise<{ release: any, reused: boolean, replayed: boolean }>}
-     */
-    async function cutPipelineRelease({
-        projectId, manifest, contentHash, gate = null, sourceCut = null, notes = null,
-        createdBy, requestKey = null, payloads = [], client = null,
-    } = {}) {
-        await ready();
-        if (!isNonEmptyString(projectId)) throw new Error('projectId is required to cut a release');
-        if (!isNonEmptyString(createdBy)) throw new Error('createdBy is required');
-        if (!manifest?.solution) throw new Error('manifest is required');
-        if (!isNonEmptyString(contentHash)) throw new Error('contentHash is required');
-        if (gate != null && !isPlainObject(gate)) throw new TypeError('gate must be an object');
-        if (sourceCut != null && !isPlainObject(sourceCut)) throw new TypeError('sourceCut must be an object');
-        if (requestKey != null && (!isNonEmptyString(requestKey) || requestKey.length > MAX_REQUEST_KEY_LENGTH)) {
-            throw new TypeError('requestKey must be a short string');
-        }
-        assertManifestSize(manifest);
-        const baseNotes = normalizeNotes(notes);
-        const safeNotes = requestKey ? normalizeNotes({ ...baseNotes, requestKey }) : baseNotes;
-        const rows = normalizePayloads(payloads);
-
-        return inTransaction(client, async (h) => {
-            const project = await h.one(`SELECT id FROM projects WHERE id = $1 FOR UPDATE`, [projectId]);
-            if (!project) throw storeError(404, 'project_not_found', 'This Solution no longer exists.');
-
-            if (requestKey) {
-                const replay = await h.one(
-                    `SELECT ${PIPELINE_RELEASE_COLUMNS} FROM project_releases
-                      WHERE project_id = $1 AND channel = 'pipeline' AND notes->>'requestKey' = $2
-                      ORDER BY seq DESC LIMIT 1`,
-                    [projectId, requestKey],
-                );
-                if (replay) return { release: mapReleaseRow(replay, { withPipeline: true }), reused: false, replayed: true };
-            }
-
-            const latest = await h.one(
-                `SELECT ${PIPELINE_RELEASE_COLUMNS} FROM project_releases
-                  WHERE project_id = $1 AND channel = 'pipeline'
-                  ORDER BY seq DESC NULLS LAST, published_at DESC, id
-                  LIMIT 1`,
-                [projectId],
-            );
-            if (latest && latest.content_hash === contentHash) {
-                // The content hash covers the manifest entities only; reference
-                // rows and KB listings travel as payloads (D20). A changed payload
-                // is a new release even when no definition changed.
-                const stored = await h.all(
-                    `SELECT ref, kind, content_hash FROM solution_release_payloads WHERE release_id = $1`,
-                    [latest.id],
-                );
-                if (samePayloadSet(stored || [], rows)) {
-                    return { release: mapReleaseRow(latest, { withPipeline: true }), reused: true, replayed: false };
-                }
-            }
-
-            const next = await h.one(
-                `SELECT COALESCE(MAX(seq), 0)::int + 1 AS seq FROM project_releases WHERE project_id = $1`,
-                [projectId],
-            );
-            const seq = Number(next?.seq) > 0 ? Number(next.seq) : 1;
-            const row = await h.one(
-                `INSERT INTO project_releases
-                    (id, project_id, blueprint_id, version, manifest, notes, published_by,
-                     seq, channel, content_hash, gate, source_cut)
-                 VALUES ($1,$2,NULL,$3,$4,$5,$6,$3,'pipeline',$7,$8,$9)
-                 RETURNING ${PIPELINE_RELEASE_COLUMNS}`,
-                [newReleaseId(), projectId, seq, JSON.stringify(manifest), JSON.stringify(safeNotes),
-                 createdBy, contentHash, asJsonb(gate), asJsonb(sourceCut)],
-            );
-            for (const p of rows) {
-                await h.run(
-                    `INSERT INTO solution_release_payloads
-                        (release_id, ref, kind, source_entity_id, payload, content_hash)
-                     VALUES ($1,$2,$3,$4,$5,$6)`,
-                    [row.id, p.ref, p.kind, p.sourceEntityId, p.json, p.contentHash],
-                );
-            }
-            await _prunePipelineReleases(h, projectId);
-            return { release: mapReleaseRow(row, { withPipeline: true }), reused: false, replayed: false };
-        });
-    }
-
-    /**
-     * A Solution's pipeline releases, newest first, without manifests.
-     * Authorises nothing (same contract as `listReleases`).
-     */
-    async function listPipelineReleases(projectId, { limit = MAX_PIPELINE_RELEASES_PER_PROJECT, client = null } = {}) {
-        await ready();
-        if (!isNonEmptyString(projectId)) return [];
-        const asked = Number(limit);
-        const capped = Math.min(
-            Number.isFinite(asked) && asked > 0 ? Math.trunc(asked) : MAX_PIPELINE_RELEASES_PER_PROJECT,
-            MAX_LISTED_PIPELINE_RELEASES,
-        );
-        const rows = await handle(client).all(
-            `SELECT ${PIPELINE_RELEASE_COLUMNS} FROM project_releases
-              WHERE project_id = $1 AND channel = 'pipeline'
-              ORDER BY seq DESC NULLS LAST, published_at DESC, id
-              LIMIT $2`,
-            [projectId, capped],
-        );
-        return (rows || []).map(r => mapReleaseRow(r, { withPipeline: true }));
-    }
-
-    /**
-     * The payloads stored with one release (reference rows, KB listings),
-     * optionally of one kind, ordered by ref. Authorises nothing: the caller has
-     * read the release through `getRelease(projectId, releaseId)` first.
-     */
-    async function getReleasePayloads(releaseId, { kind = null, client = null } = {}) {
-        await ready();
-        if (!isNonEmptyString(releaseId)) return [];
-        if (kind != null && !RELEASE_PAYLOAD_KINDS.includes(kind)) throw new TypeError(`Unknown payload kind '${kind}'`);
-        const rows = await handle(client).all(
-            `SELECT ref, kind, source_entity_id, payload, content_hash
-               FROM solution_release_payloads
-              WHERE release_id = $1 AND ($2::text IS NULL OR kind = $2)
-              ORDER BY ref, kind`,
-            [releaseId, kind],
-        );
-        return (rows || []).map(r => ({
-            ref: r.ref,
-            kind: r.kind,
-            sourceEntityId: r.source_entity_id,
-            payload: isPlainObject(r.payload) ? r.payload : {},
-            contentHash: r.content_hash,
-        }));
-    }
-
     return {
         publishRelease,
         listReleases,
         getRelease,
-        cutPipelineRelease,
-        listPipelineReleases,
-        getReleasePayloads,
+        // Pipeline releases of Solution stages (./pipelineReleases.js).
+        ...makePipelineReleasesStore({ ready, handle, inTransaction }),
     };
 }
 
