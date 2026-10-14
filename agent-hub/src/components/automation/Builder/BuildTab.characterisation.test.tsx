@@ -7,7 +7,7 @@ import scopedStorage from '../../../utils/scopedStorage';
 
 /**
  * The golden behaviour of BuildTab's main paths, pinned before the file was
- * split into hooks (quality round, wave 2): the build cue the canvas reads,
+ * split into hooks: the build cue the canvas reads,
  * the one insert path (ribbon add, edge "+" splice), the smart Add-step
  * suggestions, the Flowlets manager and the expanded-flowlet write path.
  *

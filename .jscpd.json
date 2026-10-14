@@ -51,7 +51,6 @@
     "components/webpage-to-markdown/htmlToMarkdown.js",
     "components/website-sitemap-fetcher/safeGet.js",
     "deploy/**",
-    "docs_old/**",
-    ".quality-round/**"
+    "docs_old/**"
   ]
 }
