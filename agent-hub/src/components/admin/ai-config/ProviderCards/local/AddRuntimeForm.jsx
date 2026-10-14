@@ -45,7 +45,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
     };
 
     return (
-        <div className="p-3 rounded-lg border space-y-2" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+        <div className="p-3 rounded-lg border space-y-2 bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <select
                     value={form.type}
@@ -65,7 +65,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
                 />
             </div>
 
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{current.description}</p>
+            <p className="text-xs text-[var(--text-muted)]">{current.description}</p>
 
             <input
                 type="text"
@@ -101,7 +101,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
                     {saving ? t('admin_ai_config.add_connecting', 'Connecting…') : t('admin_ai_config.local_connect', 'Connect')}
                 </button>
                 {current.docsUrl && (
-                    <a href={current.docsUrl} target="_blank" rel="noreferrer" className="text-xs underline" style={{ color: 'var(--text-muted)' }}>
+                    <a href={current.docsUrl} target="_blank" rel="noreferrer" className="text-xs underline text-[var(--text-muted)]">
                         {t('admin_ai_config.add_docs', '{label} docs', { label: current.label })}
                     </a>
                 )}

@@ -78,7 +78,7 @@ export default function ComplianceBlock({ kind = 'automation', target, now, clas
             </div>
 
             {error && (
-                <p data-testid="compliance-block-error" className="text-[11px]" style={{ color: 'var(--error-ink)' }}>
+                <p data-testid="compliance-block-error" className="text-[11px] text-[var(--error-ink)]">
                     {t('compliance.ladder_block_read_failed', 'The saved assessment could not be read.')}
                 </p>
             )}

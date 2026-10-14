@@ -14,7 +14,7 @@ function PermissionRow({ perm, granted, isNew }) {
             <ShieldAlert className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-xs font-medium text-[var(--text-primary)]">
                         {permissionCopy(t, perm.id)}
                     </span>
                     {isNew && (
@@ -29,9 +29,9 @@ function PermissionRow({ perm, granted, isNew }) {
                     )}
                 </div>
                 {perm.reason && (
-                    <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{perm.reason}</p>
+                    <p className="text-xs mt-0.5 leading-relaxed text-[var(--text-secondary)]">{perm.reason}</p>
                 )}
-                <code className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{perm.id}</code>
+                <code className="text-[10px] text-[var(--text-muted)]">{perm.id}</code>
             </div>
         </li>
     );
@@ -41,7 +41,7 @@ export default function PermissionList({ permissions, granted = null, diff = nul
     const { t } = useTranslation();
     const perms = normalizePermissions(permissions);
     if (perms.length === 0) {
-        return <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('modules.permissions.none')}</p>;
+        return <p className="text-xs text-[var(--text-muted)]">{t('modules.permissions.none')}</p>;
     }
 
     const { normal, env } = splitEnvPermissions(perms);
@@ -51,7 +51,7 @@ export default function PermissionList({ permissions, granted = null, diff = nul
     return (
         <div className="space-y-3">
             {normal.length > 0 && (
-                <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+                <ul className="divide-y border-[var(--border-subtle)]">
                     {normal.map((p) => (
                         <PermissionRow key={p.id} perm={p} granted={grantedSet.has(p.id)} isNew={diffSet.has(p.id)} />
                     ))}
@@ -62,10 +62,10 @@ export default function PermissionList({ permissions, granted = null, diff = nul
                     <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: '#ef4444' }}>
                         <ServerCrash className="w-3.5 h-3.5" /> {t('modules.permissions.env_section')}
                     </div>
-                    <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs mt-1 leading-relaxed text-[var(--text-secondary)]">
                         {t('modules.permissions.env_disclaimer')}
                     </p>
-                    <ul className="divide-y mt-1" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <ul className="divide-y mt-1 border-[var(--border-subtle)]">
                         {env.map((p) => (
                             <PermissionRow key={p.id} perm={p} granted={grantedSet.has(p.id)} isNew={diffSet.has(p.id)} />
                         ))}

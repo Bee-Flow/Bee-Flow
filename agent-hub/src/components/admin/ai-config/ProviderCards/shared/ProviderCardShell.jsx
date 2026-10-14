@@ -33,14 +33,14 @@ export const ProviderStatusPill = ({ tone = 'green', children }) => (
 
 export default function ProviderCardShell({ icon, iconGradient, title, subtitle, badges, children }) {
     return (
-        <div className="mb-6 p-5 rounded-xl border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+        <div className="mb-6 p-5 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-default)]">
             <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style={{ background: iconGradient }}>
                     {icon}
                 </div>
                 <div className="flex-1">
-                    <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>{title}</h4>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+                    <h4 className="font-medium text-[var(--text-primary)]">{title}</h4>
+                    <p className="text-xs text-[var(--text-muted)]">{subtitle}</p>
                 </div>
                 {badges && <div className="flex gap-1.5">{badges}</div>}
             </div>

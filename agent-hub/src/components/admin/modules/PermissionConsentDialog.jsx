@@ -44,8 +44,7 @@ export default function PermissionConsentDialog({ module, permissions, mode = 'i
                     <button
                         onClick={onCancel}
                         disabled={busy}
-                        className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50"
-                        style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
+                        className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
                     >
                         {t('modules.cancel')}
                     </button>
@@ -63,7 +62,7 @@ export default function PermissionConsentDialog({ module, permissions, mode = 'i
             }
         >
             <div className="space-y-3">
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                     {t('modules.consent_body')}
                 </p>
                 <div className="max-h-72 overflow-y-auto pr-1">

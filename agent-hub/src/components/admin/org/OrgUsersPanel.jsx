@@ -909,8 +909,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
                                                         </div>
                                                     ) : (
                                                         <button onClick={() => { setMemberAddGroupId(group.id); setMemberAddSearch(''); }}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-dashed hover:bg-[var(--bg-tertiary)]"
-                                                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-dashed hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
                                                             <Plus className="w-3.5 h-3.5" /> {t('admin.org_group_add_member', 'Add member')}
                                                         </button>
                                                     )}
@@ -1068,8 +1067,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
                 could undo. Silence here used to leave the dropdown showing a
                 role that was never saved. */}
             {roleChangeError && (
-                <div className="flex items-start gap-2 rounded-xl p-3 text-sm"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                <div className="flex items-start gap-2 rounded-xl p-3 text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--error)' }} />
                     <span>{roleChangeError}</span>
                     <button type="button" onClick={() => setRoleChangeError('')} className="ml-auto shrink-0">

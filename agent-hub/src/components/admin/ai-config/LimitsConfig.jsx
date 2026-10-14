@@ -86,10 +86,10 @@ const LimitsConfig = ({ onNavigateToTab }) => {
     ];
 
     return (
-        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="mb-6">
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.limits_title', 'Limits & Self-host')}</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_title', 'Limits & Self-host')}</h3>
+                <p className="text-sm mt-1 text-[var(--text-muted)]">
                     {t('admin_ai_config.limits_subtitle', 'Runtime caps and routing for self-hosted deployments. Background agents (AI tasks, swarms, browser, automation builder) keep their own internal limits and are out of scope.')}
                 </p>
             </div>
@@ -102,8 +102,8 @@ const LimitsConfig = ({ onNavigateToTab }) => {
 
             {/* ── Self-host status summary ─────────────────────────────── */}
             <div className="rounded-xl border p-4 mb-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.limits_status_title', 'Setup status')}</div>
-                <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-sm font-semibold mb-2 text-[var(--text-primary)]">{t('admin_ai_config.limits_status_title', 'Setup status')}</div>
+                <p className="text-xs mb-3 text-[var(--text-muted)]">
                     {t('admin_ai_config.limits_status_hint', 'What this server will use right now. Click a row to jump to the tab that controls it.')}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
@@ -114,7 +114,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                         className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
                     >
-                        <div style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.limits_embed_model', 'Embedding model (global)')}</div>
+                        <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_embed_model', 'Embedding model (global)')}</div>
                         <div className="font-semibold mt-0.5" style={{ color: status.embedModel ? 'var(--text-primary)' : '#f59e0b' }}>
                             {status.embedModel ? `${status.embedModel}${status.embedProvider ? ` · ${status.embedProvider}` : ''}` : t('admin_ai_config.limits_embed_not_set', 'Not set: pick one in Embeddings')}
                         </div>
@@ -127,8 +127,8 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                         className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
                     >
-                        <div style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.limits_search_provider', 'Web search provider')}</div>
-                        <div className="font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                        <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_search_provider', 'Web search provider')}</div>
+                        <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
                             {status.searchProvider === 'node-search' ? t('admin_ai_config.limits_search_cloud', 'Cloud-only (Serper + provider APIs)')
                                 : status.searchProvider === 'bing' ? t('admin_ai_config.limits_search_bing', 'Azure Bing Web Search')
                                 : status.searchProvider === 'disabled' ? t('admin_ai_config.disabled', 'Disabled')
@@ -145,11 +145,10 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                     {/* KB provider (current) */}
                     <button
                         type="button"
-                        className="text-left px-3 py-2 rounded-lg border"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                        className="text-left px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
                     >
-                        <div style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.limits_kb_provider', 'KB provider')}</div>
-                        <div className="font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                        <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_kb_provider', 'KB provider')}</div>
+                        <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
                             {kbProvider === 'auto' ? t('admin_ai_config.limits_kb_auto', 'Auto') : kbProvider === 'local' ? t('admin_ai_config.limits_kb_local', 'Local (in-process)') : t('admin_ai_config.limits_kb_remote', 'Remote search-service')}
                         </div>
                     </button>
@@ -157,11 +156,10 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                     {/* CPU reranker */}
                     <button
                         type="button"
-                        className="text-left px-3 py-2 rounded-lg border"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                        className="text-left px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
                     >
-                        <div style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.limits_cpu_reranker', 'CPU cross-encoder reranker')}</div>
-                        <div className="font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                        <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_cpu_reranker', 'CPU cross-encoder reranker')}</div>
+                        <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
                             {cpuRerankerEnabled ? t('admin_ai_config.enabled', 'Enabled') : t('admin_ai_config.disabled', 'Disabled')}
                         </div>
                     </button>
@@ -170,8 +168,8 @@ const LimitsConfig = ({ onNavigateToTab }) => {
 
             {/* ── Tool-call rounds ─────────────────────────────────────── */}
             <div className="rounded-xl border p-4 mb-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.limits_rounds_title', 'Tool calls per chat turn')}</div>
-                <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_rounds_title', 'Tool calls per chat turn')}</div>
+                <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
                     {t('admin_ai_config.limits_rounds_hint', 'Maximum number of tool-call rounds the model is allowed before it must produce a final answer. Applies uniformly to direct chat, notebook chat, webpage chat, and the native streaming loop.')}
                 </p>
                 <div className="flex items-center gap-3">
@@ -185,19 +183,19 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                         className="w-48 px-3 py-2.5 rounded-lg border outline-none text-sm"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     />
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-xs text-[var(--text-muted)]">
                         {t('admin_ai_config.limits_rounds_range', 'Range 1 to 50. Leave empty to use per-surface defaults.')}
                     </span>
                 </div>
                 <div className="mt-4">
-                    <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-muted)]">
                         {t('admin_ai_config.limits_surface_title', 'Per-surface defaults (when empty)')}
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {PER_SURFACE_DEFAULTS.map(s => (
                             <div key={s.name} className="px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-default)' }}>
-                                <div style={{ color: 'var(--text-muted)' }}>{s.name}</div>
-                                <div className="font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>{s.value} {t('admin_ai_config.limits_rounds_unit', 'rounds')}</div>
+                                <div className="text-[var(--text-muted)]">{s.name}</div>
+                                <div className="font-semibold mt-0.5 text-[var(--text-primary)]">{s.value} {t('admin_ai_config.limits_rounds_unit', 'rounds')}</div>
                             </div>
                         ))}
                     </div>
@@ -206,8 +204,8 @@ const LimitsConfig = ({ onNavigateToTab }) => {
 
             {/* ── KB provider ──────────────────────────────────────────── */}
             <div className="rounded-xl border p-4 mb-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.limits_kbp_title', 'Knowledge-base provider')}</div>
-                <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_kbp_title', 'Knowledge-base provider')}</div>
+                <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
                     {t('admin_ai_config.limits_kbp_hint', 'Where KB chunk retrieval and ranking happens. Local routes everything through the in-process pgvector + reranker pipeline; remote forwards to the external search-service.')}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -232,7 +230,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                                         {opt.label}
                                     </span>
                                 </div>
-                                <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                                <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">{opt.desc}</p>
                             </button>
                         );
                     })}
@@ -241,8 +239,8 @@ const LimitsConfig = ({ onNavigateToTab }) => {
 
             {/* ── CPU reranker ─────────────────────────────────────────── */}
             <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.limits_cpu_title', 'In-process CPU reranker')}</div>
-                <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_cpu_title', 'In-process CPU reranker')}</div>
+                <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
                     {t('admin_ai_config.limits_cpu_hint', 'When Azure Cohere reranker is not configured, fall back to the in-process Transformers.js cross-encoder (Xenova/bge-reranker-base, MIT, ~280 MB). First call downloads the model; subsequent calls run locally with no network round-trip.')}
                 </p>
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -252,7 +250,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                         onChange={e => setCpuRerankerEnabled(e.target.checked)}
                         className="rounded"
                     />
-                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-sm text-[var(--text-primary)]">
                         {t('admin_ai_config.limits_cpu_enable', 'Enable CPU cross-encoder reranker (recommended)')}
                     </span>
                 </label>

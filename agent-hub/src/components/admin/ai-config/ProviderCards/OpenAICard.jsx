@@ -70,22 +70,22 @@ const EuResidencyToggle = ({ onMessage }) => {
     };
 
     return (
-        <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
+        <div className="mt-4 pt-4 border-t border-[var(--border-default)]">
             <div className="flex items-start gap-3 cursor-pointer" onClick={toggle} role="switch" aria-checked={isEU} tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}>
                 <div className={`w-9 h-5 rounded-full relative transition-colors shrink-0 mt-0.5 ${isEU ? 'bg-green-500' : 'bg-gray-600'} ${saving ? 'opacity-60' : ''}`}>
                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${isEU ? 'translate-x-4' : 'translate-x-0.5'}`} />
                 </div>
                 <div>
-                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-sm font-medium text-[var(--text-primary)]">
                         {t('admin_ai_config.openai_eu_title', '🇪🇺 Process in the EU')}
                     </div>
-                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] mt-0.5 text-[var(--text-muted)]">
                         {isEU
                             ? t('admin_ai_config.openai_eu_hint_on', 'Requests go to eu.api.openai.com: inference runs inside the EU. Models released since March 2026 cost 10% more on this endpoint.')
                             : t('admin_ai_config.openai_eu_hint_off', 'Requests go to the default endpoint, where inference runs in the US. Turn this on to keep processing inside the EU (10% surcharge on newer models).')}
                     </p>
-                    <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] mt-1 text-[var(--text-muted)]">
                         {t('admin_ai_config.openai_eu_note', 'This changes where the model runs, not what is sent to it: the Privacy Shield still decides that.')}
                     </p>
                 </div>

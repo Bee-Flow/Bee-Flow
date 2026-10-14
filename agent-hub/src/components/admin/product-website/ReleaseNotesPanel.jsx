@@ -63,25 +63,24 @@ export default function ReleaseNotesPanel() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full gap-2" style={{ color: 'var(--text-secondary)' }}>
+            <div className="flex items-center justify-center h-full gap-2 text-[var(--text-secondary)]">
                 <Loader2 className="w-4 h-4 animate-spin" /> {t('cms_site.site.releasenotes.loading', 'Loading release notes…')}
             </div>
         );
     }
 
     return (
-        <div className="h-full overflow-y-auto p-6" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full overflow-y-auto p-6 bg-[var(--bg-primary)]">
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('cms_site.site.releasenotes.title', 'Release notes')}</h1>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <h1 className="text-lg font-semibold text-[var(--text-primary)]">{t('cms_site.site.releasenotes.title', 'Release notes')}</h1>
+                    <p className="text-xs mt-0.5 text-[var(--text-secondary)]">
                         {t('cms_site.site.releasenotes.intro', 'Drafted automatically on every build. Nothing appears on the website until you publish it.')}
                     </p>
                 </div>
                 <button
                     onClick={load}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     <RefreshCw className="w-3.5 h-3.5" /> {t('cms_site.site.releasenotes.refresh', 'Refresh')}
                 </button>
@@ -95,7 +94,7 @@ export default function ReleaseNotesPanel() {
             ) : null}
 
             {entries.length === 0 ? (
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm text-[var(--text-secondary)]">
                     {t('cms_site.site.releasenotes.empty', 'No release notes yet. They appear here after the next build.')}
                 </p>
             ) : null}
@@ -110,8 +109,7 @@ export default function ReleaseNotesPanel() {
                              style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
                             <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold"
-                                          style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
                                         {entry.version || 'Unreleased'}
                                     </span>
                                     <span className="px-2 py-0.5 rounded text-[11px] font-medium"
@@ -121,7 +119,7 @@ export default function ReleaseNotesPanel() {
                                         {published ? 'Published' : 'Draft'}
                                     </span>
                                     {entry.services ? (
-                                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                        <span className="text-[11px] text-[var(--text-muted)]">
                                             {entry.services}
                                         </span>
                                     ) : null}
@@ -131,8 +129,7 @@ export default function ReleaseNotesPanel() {
                                         <button
                                             disabled={busy}
                                             onClick={() => act(entry.id, '/unpublish')}
-                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs border"
-                                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs border border-[var(--border-default)] text-[var(--text-secondary)]"
                                         >
                                             <EyeOff className="w-3.5 h-3.5" /> {t('cms_site.site.releasenotes.unpublish', 'Unpublish')}
                                         </button>
@@ -149,8 +146,7 @@ export default function ReleaseNotesPanel() {
                                     <button
                                         disabled={busy}
                                         onClick={() => act(entry.id, '', 'DELETE')}
-                                        className="p-1.5 rounded-md"
-                                        style={{ color: 'var(--text-muted)' }}
+                                        className="p-1.5 rounded-md text-[var(--text-muted)]"
                                         title={t('cms_site.site.releasenotes.discard', 'Discard')}
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -159,7 +155,7 @@ export default function ReleaseNotesPanel() {
                             </div>
 
                             {rolling && !published ? (
-                                <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-[11px] mb-2 text-[var(--text-muted)]">
                                     {t('cms_site.site.releasenotes.rolling_draft', 'This is the rolling draft — the next build will regenerate it, replacing any edits. Publish it to freeze the copy.')}
                                 </p>
                             ) : null}
@@ -187,15 +183,13 @@ export default function ReleaseNotesPanel() {
                                 if (!items.length) return null;
                                 return (
                                     <div key={kind} className="mb-2">
-                                        <div className="text-[11px] font-semibold uppercase tracking-wide mb-1"
-                                             style={{ color: 'var(--text-secondary)' }}>
+                                        <div className="text-[11px] font-semibold uppercase tracking-wide mb-1 text-[var(--text-secondary)]">
                                             {KIND_LABELS[kind]}
                                         </div>
-                                        <ul className="text-xs pl-4 list-disc flex flex-col gap-1"
-                                            style={{ color: 'var(--text-secondary)' }}>
+                                        <ul className="text-xs pl-4 list-disc flex flex-col gap-1 text-[var(--text-secondary)]">
                                             {items.map((it, i) => (
                                                 <li key={i}>
-                                                    <strong style={{ color: 'var(--text-primary)' }}>{it.title}</strong>
+                                                    <strong className="text-[var(--text-primary)]">{it.title}</strong>
                                                     {it.title && it.body ? ' — ' : null}{it.body}
                                                 </li>
                                             ))}
@@ -205,7 +199,7 @@ export default function ReleaseNotesPanel() {
                             })}
 
                             {published && entry.publishedAt ? (
-                                <div className="mt-2 flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                <div className="mt-2 flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
                                     <Eye className="w-3 h-3" /> {t('cms_site.site.releasenotes.live_since', 'Live since {date}', { date: new Date(entry.publishedAt).toLocaleDateString() })}
                                 </div>
                             ) : null}

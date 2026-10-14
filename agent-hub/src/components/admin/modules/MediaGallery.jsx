@@ -25,8 +25,7 @@ export default function MediaGallery({ moduleId, media }) {
                             src={moduleMediaUrl(moduleId, m.media_id)}
                             alt=""
                             loading="lazy"
-                            className="h-24 rounded-lg border object-cover"
-                            style={{ borderColor: 'var(--border-default)' }}
+                            className="h-24 rounded-lg border object-cover border-[var(--border-default)]"
                             onError={() => setBroken((s) => new Set(s).add(m.media_id))}
                         />
                     </button>

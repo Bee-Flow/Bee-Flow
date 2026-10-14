@@ -89,7 +89,7 @@ export default function DsrCaptureModal({ open = false, onClose, onCapture, busy
     };
 
     const err = (k) => errors[k] ? t(...ERROR_TEXT[errors[k]]) : null;
-    const Err = ({ k }) => err(k) ? <span className="text-[11px]" style={{ color: 'var(--error-ink)' }} role="alert" data-testid={`${testId}-err-${k}`}>{err(k)}</span> : null;
+    const Err = ({ k }) => err(k) ? <span className="text-[11px] text-[var(--error-ink)]" role="alert" data-testid={`${testId}-err-${k}`}>{err(k)}</span> : null;
 
     return (
         <Modal

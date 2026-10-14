@@ -237,8 +237,7 @@ export default function SetupStepBody({ step, data, onChange, orgUsers = null, t
                             type="button"
                             aria-label={t('common.remove', 'Remove')}
                             onClick={() => update({ breach_recipients: recipients.filter((_, idx) => idx !== i) })}
-                            className="rounded-md px-1.5 text-base leading-none"
-                            style={{ color: 'var(--error-ink)' }}
+                            className="rounded-md px-1.5 text-base leading-none text-[var(--error-ink)]"
                         >×</button>
                     </div>
                 ))}

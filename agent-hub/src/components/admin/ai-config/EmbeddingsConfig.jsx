@@ -73,15 +73,15 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
     if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.embed_loading', 'Loading settings...')}</div>;
 
     return (
-        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: 'rgba(16, 185, 129, 0.15)' }}>
                         🔍
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.embed_title', 'Embedding Configuration')}</h3>
-                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.embed_subtitle', 'Configure vectors for Knowledge Base')}</p>
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_ai_config.embed_title', 'Embedding Configuration')}</h3>
+                        <p className="text-sm text-[var(--text-muted)]">{t('admin_ai_config.embed_subtitle', 'Configure vectors for Knowledge Base')}</p>
                     </div>
                 </div>
                 {message && (
@@ -93,7 +93,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
 
             <div className="space-y-6 max-w-2xl">
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.embed_provider', 'Embedding Provider')}</label>
+                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.embed_provider', 'Embedding Provider')}</label>
                     <select
                         value={config.embeddingProviderId}
                         onChange={e => setConfig({ ...config, embeddingProviderId: e.target.value, embeddingModel: '' })}
@@ -108,7 +108,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.embed_model', 'Embedding Model')}</label>
+                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.embed_model', 'Embedding Model')}</label>
                     {useModelDropdown ? (
                         <select
                             value={config.embeddingModel}
@@ -131,7 +131,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                             style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         />
                     )}
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs mt-1 text-[var(--text-muted)]">
                         {isAzure
                             ? t('admin_ai_config.embed_azure_hint', 'For Azure, enter the deployment name of your embedding model (not the base model name).')
                             : t('admin_ai_config.embed_mistral_hint', 'For Mistral, "mistral-embed" is recommended.')}
@@ -142,8 +142,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-6 py-2.5 rounded-xl font-medium text-white transition-all disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="px-6 py-2.5 rounded-xl font-medium text-white transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.embed_save', 'Save Configuration')}
                     </button>

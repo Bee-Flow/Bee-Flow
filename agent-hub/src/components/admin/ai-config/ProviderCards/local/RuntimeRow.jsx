@@ -45,12 +45,12 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
     };
 
     return (
-        <div className="p-3 rounded-lg border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+        <div className="p-3 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{provider.name}</span>
+                <span className="text-sm font-medium text-[var(--text-primary)]">{provider.name}</span>
                 <ProviderStatusPill tone="blue">{runtime.label || provider.type}</ProviderStatusPill>
                 {isEnvManaged && <ProviderStatusPill tone="orange">{t('admin_ai_config.row_from_env', 'from environment')}</ProviderStatusPill>}
-                <span className="text-xs font-mono truncate" style={{ color: 'var(--text-muted)' }}>{provider.url}</span>
+                <span className="text-xs font-mono truncate text-[var(--text-muted)]">{provider.url}</span>
                 <div className="flex-1" />
                 <button className={BTN_GHOST} style={{ color: 'var(--text-muted)' }} disabled={testing} onClick={runTest}>
                     {testing ? t('admin_ai_config.testing', 'Testing…') : t('admin_ai_config.row_test', 'Test')}
@@ -73,7 +73,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
             </div>
 
             {isEnvManaged && (
-                <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] mt-1.5 text-[var(--text-muted)]">
                     {t('admin_ai_config.row_env_hint', 'Declared by an environment variable, so it is recreated on restart. Remove the variable to disconnect it permanently.')}
                 </p>
             )}
@@ -81,8 +81,8 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
             <ProbeResult result={probe} />
 
             {pullOpen && (
-                <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-default)' }}>
-                    <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+                <div className="mt-3 pt-3 border-t border-[var(--border-default)]">
+                    <p className="text-xs mb-2 text-[var(--text-muted)]">
                         {t('admin_ai_config.row_pick_hint', 'Pick a starter model, or enter any tag from the Ollama library.')}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mb-3">
@@ -95,11 +95,11 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                                 style={{ background: 'var(--bg-tertiary)' }}
                             >
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</span>
+                                    <span className="font-medium text-[var(--text-primary)]">{m.label}</span>
                                     {m.tier && <ProviderStatusPill tone="blue">{TIER_LABELS[m.tier] || m.tier}</ProviderStatusPill>}
-                                    <span style={{ color: 'var(--text-muted)' }}>{m.vram}</span>
+                                    <span className="text-[var(--text-muted)]">{m.vram}</span>
                                 </div>
-                                <div style={{ color: 'var(--text-muted)' }}>{m.note}</div>
+                                <div className="text-[var(--text-muted)]">{m.note}</div>
                             </button>
                         ))}
                     </div>
@@ -121,12 +121,12 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
 
             {pull && (
                 <div className="mt-2">
-                    <div className="flex items-center justify-between text-xs gap-2" style={{ color: 'var(--text-muted)' }}>
+                    <div className="flex items-center justify-between text-xs gap-2 text-[var(--text-muted)]">
                         <span className="truncate">{pull.model}: {pull.error || pull.status}</span>
                         {pull.pct !== null && <span>{pull.pct}%</span>}
                     </div>
                     {pull.pct !== null && !pull.error && (
-                        <div className="h-1.5 rounded-full mt-1 overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+                        <div className="h-1.5 rounded-full mt-1 overflow-hidden bg-[var(--bg-tertiary)]">
                             <div
                                 className="h-full rounded-full transition-all"
                                 style={{ width: `${pull.pct}%`, background: 'var(--accent-primary)' }}

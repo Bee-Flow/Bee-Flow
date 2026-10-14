@@ -141,7 +141,7 @@ const SSOConfigPanel = () => {
 
     if (loading) {
         return (
-            <div className="flex h-full border rounded-xl overflow-hidden shadow-sm" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+            <div className="flex h-full border rounded-xl overflow-hidden shadow-sm border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-muted">Loading...</div>
                 </div>
@@ -174,9 +174,9 @@ const SSOConfigPanel = () => {
     const isMultiTenant = !tenantId || tenantId.toLowerCase().trim() === 'common' || tenantId.toLowerCase().trim() === 'organizations' || tenantId.toLowerCase().trim() === 'consumers';
 
     return (
-        <div className="flex h-full border rounded-xl overflow-hidden shadow-sm" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+        <div className="flex h-full border rounded-xl overflow-hidden shadow-sm border-[var(--border-default)] bg-[var(--bg-secondary)]">
             {/* Left Sidebar */}
-            <div className="w-64 flex flex-col p-2 border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+            <div className="w-64 flex flex-col p-2 border-r border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 <div className="p-4 mb-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{t('admin_security.sso_providers_title', 'SSO Providers')}</h3>
                 </div>
@@ -227,7 +227,7 @@ const SSOConfigPanel = () => {
                 {/* Nextcloud Tab */}
                 {activeTab === 'nextcloud' && (
                     <div className="space-y-6">
-                        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0, 130, 201, 0.15)' }}>
                                     <svg className="w-7 h-7" style={{ color: '#0082c9' }} fill="currentColor" viewBox="0 0 24 24">
@@ -280,7 +280,7 @@ const SSOConfigPanel = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                             <h4 className="font-semibold text-primary mb-3">{t('admin_security.sso_setup_title', '📋 Setup Instructions')}</h4>
                             <ol className="text-sm text-secondary space-y-2 list-decimal list-inside">
                                 <li>{t('admin_security.sso_nc_step1', 'Go to Nextcloud → Settings → Security → OAuth 2.0 clients')}</li>
@@ -292,13 +292,11 @@ const SSOConfigPanel = () => {
 
                         <div className="flex gap-3">
                             <button onClick={() => handleSaveProvider('nextcloud')} disabled={saving.nextcloud}
-                                className="px-5 py-2.5 rounded-lg text-sm font-medium text-white shadow-md"
-                                style={{ background: 'var(--accent-primary)' }}>
+                                className="px-5 py-2.5 rounded-lg text-sm font-medium text-white shadow-md bg-[var(--accent-primary)]">
                                 {saving.nextcloud ? t('admin.sso_saving') : t('admin.sso_save')}
                             </button>
                             <button onClick={() => handleTestProvider('nextcloud')} disabled={testing.nextcloud || !providers.nextcloud.url}
-                                className="px-5 py-2.5 rounded-lg text-sm font-medium border"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}>
+                                className="px-5 py-2.5 rounded-lg text-sm font-medium border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-secondary)]">
                                 {testing.nextcloud ? t('admin.sso_testing') : t('admin.sso_test')}
                             </button>
                         </div>
@@ -308,7 +306,7 @@ const SSOConfigPanel = () => {
                 {/* Google Tab */}
                 {activeTab === 'google' && (
                     <div className="space-y-6">
-                        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(66, 133, 244, 0.15)' }}>
                                     <svg className="w-7 h-7" viewBox="0 0 24 24">
@@ -353,7 +351,7 @@ const SSOConfigPanel = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                             <h4 className="font-semibold text-primary mb-3">{t('admin_security.sso_setup_title', '📋 Setup Instructions')}</h4>
                             <ol className="text-sm text-secondary space-y-2 list-decimal list-inside">
                                 <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{t('admin_security.sso_g_console', 'Google Cloud Console → Credentials')}</a></li>
@@ -365,13 +363,11 @@ const SSOConfigPanel = () => {
 
                         <div className="flex gap-3">
                             <button onClick={() => handleSaveProvider('google')} disabled={saving.google}
-                                className="px-5 py-2.5 rounded-lg text-sm font-medium text-white shadow-md"
-                                style={{ background: 'var(--accent-primary)' }}>
+                                className="px-5 py-2.5 rounded-lg text-sm font-medium text-white shadow-md bg-[var(--accent-primary)]">
                                 {saving.google ? t('admin.sso_saving') : t('admin.sso_save')}
                             </button>
                             <button onClick={() => handleTestProvider('google')} disabled={testing.google || !providers.google.clientId}
-                                className="px-5 py-2.5 rounded-lg text-sm font-medium border"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}>
+                                className="px-5 py-2.5 rounded-lg text-sm font-medium border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-secondary)]">
                                 {testing.google ? t('admin.sso_testing') : t('admin.sso_validate')}
                             </button>
                         </div>
@@ -381,7 +377,7 @@ const SSOConfigPanel = () => {
                 {/* Microsoft Tab */}
                 {activeTab === 'microsoft' && (
                     <div className="space-y-6">
-                        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0, 164, 239, 0.15)' }}>
                                     <svg className="w-7 h-7" viewBox="0 0 23 23">
@@ -454,7 +450,7 @@ const SSOConfigPanel = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+                        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
                             <h4 className="font-semibold text-primary mb-3">{t('admin_security.sso_setup_title', '📋 Setup Instructions')}</h4>
                             <ol className="text-sm text-secondary space-y-2 list-decimal list-inside">
                                 <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{t('admin_security.sso_ms_portal', 'Azure Portal → App registrations')}</a></li>
@@ -469,13 +465,11 @@ const SSOConfigPanel = () => {
 
                         <div className="flex gap-3">
                             <button onClick={() => handleSaveProvider('microsoft')} disabled={saving.microsoft}
-                                className="px-5 py-2.5 rounded-lg text-sm font-medium text-white shadow-md"
-                                style={{ background: 'var(--accent-primary)' }}>
+                                className="px-5 py-2.5 rounded-lg text-sm font-medium text-white shadow-md bg-[var(--accent-primary)]">
                                 {saving.microsoft ? t('admin.sso_saving') : t('admin.sso_save')}
                             </button>
                             <button onClick={() => handleTestProvider('microsoft')} disabled={testing.microsoft || !providers.microsoft.clientId}
-                                className="px-5 py-2.5 rounded-lg text-sm font-medium border"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}>
+                                className="px-5 py-2.5 rounded-lg text-sm font-medium border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-secondary)]">
                                 {testing.microsoft ? t('admin.sso_testing') : t('admin.sso_validate')}
                             </button>
                         </div>

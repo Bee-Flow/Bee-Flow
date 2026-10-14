@@ -97,7 +97,7 @@ const SearchableModelSelect = ({
                 }}
             >
                 <span className="truncate">{label}</span>
-                <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 shrink-0 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
@@ -121,8 +121,8 @@ const SearchableModelSelect = ({
                     {/* Header */}
                     <div className="flex items-center justify-between px-5 pt-5 pb-3">
                         <div>
-                            <h3 id={titleId} className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{title ?? t('admin_shared.model_select_title', 'Select Model')}</h3>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            <h3 id={titleId} className="text-lg font-semibold text-[var(--text-primary)]">{title ?? t('admin_shared.model_select_title', 'Select Model')}</h3>
+                            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                                 {search
                                     ? (totalResults === 1 ? t('admin_shared.model_select_count_match_one', '{count} model matching "{search}"', { count: totalResults, search }) : t('admin_shared.model_select_count_match_many', '{count} models matching "{search}"', { count: totalResults, search }))
                                     : (totalResults === 1 ? t('admin_shared.model_select_count_one', '{count} model available', { count: totalResults }) : t('admin_shared.model_select_count_many', '{count} models available', { count: totalResults }))}
@@ -131,8 +131,7 @@ const SearchableModelSelect = ({
                         <button
                             type="button"
                             onClick={() => setOpen(false)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors text-[var(--text-muted)]"
                         >
                             ✕
                         </button>
@@ -160,7 +159,7 @@ const SearchableModelSelect = ({
                     <div className="px-5 pb-3 space-y-2">
                         {/* Provider filter */}
                         <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>{t('admin_shared.model_select_provider', 'Provider')}</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider mr-1 text-[var(--text-muted)]">{t('admin_shared.model_select_provider', 'Provider')}</span>
                             <button
                                 type="button"
                                 onClick={() => setActiveProvider(null)}
@@ -186,7 +185,7 @@ const SearchableModelSelect = ({
                         {/* Hidden toggle — only render when there's something to manage */}
                         {(hiddenCount > 0 || onToggleHidden) && (
                             <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>{t('admin_shared.model_select_hidden', 'Hidden')}</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider mr-1 text-[var(--text-muted)]">{t('admin_shared.model_select_hidden', 'Hidden')}</span>
                                 <button
                                     type="button"
                                     onClick={() => setShowHidden(s => !s)}
@@ -204,7 +203,7 @@ const SearchableModelSelect = ({
                         {/* Family filter */}
                         {familyList.length > 1 && (
                             <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>{t('admin_shared.model_select_family', 'Family')}</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider mr-1 text-[var(--text-muted)]">{t('admin_shared.model_select_family', 'Family')}</span>
                                 <button
                                     type="button"
                                     onClick={() => setActiveFamily(null)}
@@ -236,8 +235,7 @@ const SearchableModelSelect = ({
                         <button
                             type="button"
                             onClick={() => { onChange({ providerId: '', modelId: '' }); setOpen(false); }}
-                            className="w-full text-left px-4 py-2.5 rounded-lg text-sm hover:bg-white/5 transition-colors mb-1"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="w-full text-left px-4 py-2.5 rounded-lg text-sm hover:bg-white/5 transition-colors mb-1 text-[var(--text-muted)]"
                         >
                             {clearLabel ?? `— ${t('admin_shared.model_select_not_configured', 'Not configured')} —`}
                         </button>
@@ -279,7 +277,7 @@ const SearchableModelSelect = ({
                                                     className="flex-1 min-w-0 text-left px-4 py-2.5 flex items-center gap-3"
                                                 >
                                                     {/* Checkmark */}
-                                                    <span className="w-5 text-center shrink-0" style={{ color: 'var(--accent-primary)' }}>
+                                                    <span className="w-5 text-center shrink-0 text-[var(--accent-primary)]">
                                                         {isSelected ? '✓' : ''}
                                                     </span>
                                                     {/* Model info */}
@@ -287,18 +285,17 @@ const SearchableModelSelect = ({
                                                         <div className="font-medium flex items-center gap-2">
                                                             <span className="truncate">{displayName}</span>
                                                             {isHidden && (
-                                                                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{t('admin_shared.model_select_hidden', 'Hidden')}</span>
+                                                                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 bg-[var(--bg-tertiary)] text-[var(--text-muted)]">{t('admin_shared.model_select_hidden', 'Hidden')}</span>
                                                             )}
                                                         </div>
                                                         {displayName !== m.id && (
-                                                            <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{m.id}</div>
+                                                            <div className="text-xs mt-0.5 truncate text-[var(--text-muted)]">{m.id}</div>
                                                         )}
                                                     </div>
                                                     {/* Category badge */}
                                                     {cat && (
                                                         <span
-                                                            className="text-[10px] px-2 py-1 rounded-full shrink-0 font-medium"
-                                                            style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}
+                                                            className="text-[10px] px-2 py-1 rounded-full shrink-0 font-medium bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
                                                         >
                                                             {cat}
                                                         </span>
@@ -309,8 +306,7 @@ const SearchableModelSelect = ({
                                                     <button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); onToggleHidden(m.id); }}
-                                                        className="px-3 flex items-center justify-center hover:bg-white/10 rounded-r-lg transition-colors shrink-0"
-                                                        style={{ color: 'var(--text-muted)' }}
+                                                        className="px-3 flex items-center justify-center hover:bg-white/10 rounded-r-lg transition-colors shrink-0 text-[var(--text-muted)]"
                                                         title={isHidden ? t('admin_shared.model_select_show_in_tiers', 'Show this model in tier pickers') : t('admin_shared.model_select_hide_from_tiers', 'Hide this model from tier pickers')}
                                                     >
                                                         {isHidden ? (
@@ -333,7 +329,7 @@ const SearchableModelSelect = ({
                         ))}
 
                         {totalResults === 0 && (
-                            <div className="px-4 py-12 text-center" style={{ color: 'var(--text-muted)' }}>
+                            <div className="px-4 py-12 text-center text-[var(--text-muted)]">
                                 <p className="text-lg mb-1">{t('admin_shared.model_select_no_models', 'No models found')}</p>
                                 <p className="text-sm">{providerNames.length === 0 ? t('admin_shared.model_select_no_provider', 'Configure a provider in the Providers tab first.') : t('admin_shared.model_select_try_other', 'Try a different search term')}</p>
                             </div>

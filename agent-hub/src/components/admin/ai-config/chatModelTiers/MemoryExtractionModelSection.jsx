@@ -22,8 +22,8 @@ export default function MemoryExtractionModelSection({
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(139, 92, 246, 0.15)' }}>🧠</div>
                     <div>
-                        <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_mem_title', 'Memory Extraction Model')}</h3>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_mem_title', 'Memory Extraction Model')}</h3>
+                        <p className="text-xs text-[var(--text-muted)]">
                             {t('admin_ai_config.tier_mem_hint', 'Model that reads each finished exchange for facts worth remembering: a small background call after every reply, thinking off. On a self-hosted single-slot server pick a tiny model here so extraction never queues in front of the next turn. Defaults to the Fast tier model when unset.')}
                         </p>
                     </div>
@@ -36,7 +36,7 @@ export default function MemoryExtractionModelSection({
                 )}
 
                 <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                    <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                    <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide text-[var(--text-muted)]">
                         {t('admin_ai_config.tier_mem_label', 'Memory extraction model')}
                     </label>
                     {(() => {
@@ -61,8 +61,7 @@ export default function MemoryExtractionModelSection({
                 <button
                     onClick={() => saveMemoryModel()}
                     disabled={memoryModelSaving}
-                    className="mt-4 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="mt-4 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {memoryModelSaving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_mem_save', 'Save Memory Extraction Model')}
                 </button>

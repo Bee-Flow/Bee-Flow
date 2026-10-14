@@ -138,8 +138,7 @@ const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onS
                         })}
                     </div>
                     {error && (
-                        <div className="px-3 py-2 flex items-start gap-2 text-[11px] border-t border-[var(--border-subtle)]"
-                            style={{ color: 'var(--error)' }}>
+                        <div className="px-3 py-2 flex items-start gap-2 text-[11px] border-t border-[var(--border-subtle)] text-[var(--error)]">
                             <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                             <span>{error}</span>
                         </div>

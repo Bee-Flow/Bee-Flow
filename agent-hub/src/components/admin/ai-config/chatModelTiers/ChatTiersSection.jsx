@@ -20,8 +20,8 @@ export default function ChatTiersSection({
                 <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(139, 92, 246, 0.15)' }}>💬</div>
                     <div>
-                        <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_chat_title', 'Chat Model Tiers')}</h3>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_chat_title', 'Chat Model Tiers')}</h3>
+                        <p className="text-xs text-[var(--text-muted)]">
                             {t('admin_ai_config.tier_chat_subtitle', 'Assign a model to each tier for Direct Chat mode')}
                         </p>
                     </div>
@@ -55,20 +55,19 @@ export default function ChatTiersSection({
                 </div>
 
                 {/* Custom tiers — live inside the same section as the standard four */}
-                <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="mt-6 pt-6 border-t border-[var(--border-default)]">
                     <div className="flex items-center justify-between mb-3">
                         <div>
-                            <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <h4 className="text-sm font-semibold text-[var(--text-primary)]">
                                 {t('admin_ai_config.tier_custom_title', 'Custom Tiers')}
                             </h4>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-xs text-[var(--text-muted)]">
                                 {t('admin_ai_config.tier_custom_hint', 'Extra tiers beyond the standard four. Restrict each tier to specific task types and per-group access from the Organisation admin.')}
                             </p>
                         </div>
                         <button
                             onClick={addCustomTier}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium text-white hover:opacity-90 transition-opacity"
-                            style={{ background: 'var(--accent-primary)' }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium text-white hover:opacity-90 transition-opacity bg-[var(--accent-primary)]"
                         >
                             {t('admin_ai_config.tier_custom_add', '+ Add Custom Tier')}
                         </button>
@@ -103,8 +102,7 @@ export default function ChatTiersSection({
                 <button
                     onClick={save}
                     disabled={saving}
-                    className="mt-6 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="mt-6 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_save', 'Save Tier Configuration')}
                 </button>

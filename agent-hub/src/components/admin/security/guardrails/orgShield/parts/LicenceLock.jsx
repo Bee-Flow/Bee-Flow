@@ -10,7 +10,7 @@ import React from 'react';
  */
 export function LicenceLock({ children, upgradeUrl, t }) {
     return (
-        <p className="text-[11px] leading-relaxed flex items-start gap-1.5" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[11px] leading-relaxed flex items-start gap-1.5 text-[var(--text-muted)]">
             <Lock className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />
             <span>
                 {children}{' '}

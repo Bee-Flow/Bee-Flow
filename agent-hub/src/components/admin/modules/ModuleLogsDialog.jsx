@@ -65,22 +65,22 @@ export default function ModuleLogsDialog({ module, onClose }) {
                 </div>
             }
             footer={replica ? (
-                <div className="flex-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                <div className="flex-1 text-[10px] text-[var(--text-muted)]">
                     {t('modules.logs_replica', { replica })}
                 </div>
             ) : null}
         >
-            <div className="font-mono text-xs rounded-lg px-3 py-2" style={{ background: 'var(--bg-primary)' }}>
+            <div className="font-mono text-xs rounded-lg px-3 py-2 bg-[var(--bg-primary)]">
                 {logs.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)' }}>{t('modules.logs_empty')}</p>
+                    <p className="text-[var(--text-muted)]">{t('modules.logs_empty')}</p>
                 ) : (
                     logs.map((row) => (
                         <div key={row.seq} className="flex gap-2 py-0.5 leading-relaxed">
-                            <span className="flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{formatTs(row.ts)}</span>
+                            <span className="flex-shrink-0 text-[var(--text-muted)]">{formatTs(row.ts)}</span>
                             <span className="flex-shrink-0 uppercase w-12" style={{ color: LEVEL_COLOR[row.level] || 'var(--text-secondary)' }}>
                                 {row.level}
                             </span>
-                            <span className="whitespace-pre-wrap break-all" style={{ color: 'var(--text-primary)' }}>{row.msg}</span>
+                            <span className="whitespace-pre-wrap break-all text-[var(--text-primary)]">{row.msg}</span>
                         </div>
                     ))
                 )}

@@ -123,9 +123,9 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             {/* ── Org picker bar (super-admin) ── */}
             {isSuperAdmin && orgs && orgs.length > 0 ? (
-                <div className="flex items-center gap-2.5 px-4 py-2.5 border-b flex-shrink-0" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center gap-2.5 px-4 py-2.5 border-b flex-shrink-0 bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <Building2 className="w-4 h-4 flex-shrink-0" style={{ color: BLUE }} />
-                    <label className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin_org.access_panel_organisation', 'Organisation')}</label>
+                    <label className="text-sm text-[var(--text-secondary)]">{t('admin_org.access_panel_organisation', 'Organisation')}</label>
                     <select
                         value={orgId || ''}
                         onChange={e => selectOrg(e.target.value)}

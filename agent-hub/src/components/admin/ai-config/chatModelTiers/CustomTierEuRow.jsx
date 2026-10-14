@@ -16,13 +16,13 @@ export default function CustomTierEuRow({
             ? (displayName !== selectedModel.id ? displayName : selectedModel.id)
             : t('admin_ai_config.tier_not_configured', 'Not configured');
         return (
-            <div key={tier.id} className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+            <div key={tier.id} className="rounded-xl border overflow-hidden bg-[var(--bg-tertiary)] border-[var(--border-default)]">
                 <div className="p-4">
                     <div className="flex items-center gap-3 mb-3">
                         <span className="text-xl">{tier.icon || '✨'}</span>
                         <div className="flex-1">
-                            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{tier.label}</span>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-sm font-semibold text-[var(--text-primary)]">{tier.label}</span>
+                            <p className="text-xs text-[var(--text-muted)]">
                                 {tier.description || <span className="italic opacity-60">{t('admin_ai_config.tier_eu_custom_tier', 'Custom tier')}</span>}
                             </p>
                         </div>

@@ -11,7 +11,7 @@ const ScalewayApiKeyCard = ({ onMessage }) => {
     const { t } = useTranslation();
     return (
     <ProviderApiKeyCard provider={PROVIDER_KEY_CONFIGS.scaleway} onMessage={onMessage}>
-        <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs mt-2 text-[var(--text-muted)]">
             {t('admin_ai_config.scaleway_hint', 'Serverless open-weight models (Qwen, Mistral, Gemma, GLM, DeepSeek, gpt-oss) served from EU data centres and billed per token. The same secret key is used for Scaleway Whisper transcription under Integrations.')}
         </p>
     </ProviderApiKeyCard>

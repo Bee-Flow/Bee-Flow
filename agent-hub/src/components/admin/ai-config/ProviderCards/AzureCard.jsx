@@ -106,7 +106,7 @@ const AzureConfigCard = ({ onMessage }) => {
                     style={PROVIDER_INPUT_STYLE}
                     title={t('admin_ai_config.azure_models_title', 'Comma-separated list of your Azure deployment names')}
                 />
-                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] mt-1 text-[var(--text-muted)]">
                     {t('admin_ai_config.azure_models_hint', 'Comma-separated deployment names from your Azure portal. If a deployment is not named after its model, write name=model (prod-chat=gpt-6-astra).')}
                 </p>
             </div>
@@ -114,7 +114,7 @@ const AzureConfigCard = ({ onMessage }) => {
             {/* Help + Save */}
             <div className="flex items-center justify-between">
                 <div className="flex gap-2 flex-wrap">
-                    <p className="text-xs self-center" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs self-center text-[var(--text-muted)]">
                         {t('admin_ai_config.get_from', 'Get from')} <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">portal.azure.com</a>
                     </p>
                 </div>
@@ -129,8 +129,7 @@ const AzureConfigCard = ({ onMessage }) => {
                     <button
                         onClick={handleSave}
                         disabled={saving || (!endpoint.trim() && !apiKey.trim() && models === savedModels)}
-                        className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {saving ? '...' : t('admin_ai_config.save', 'Save')}
                     </button>

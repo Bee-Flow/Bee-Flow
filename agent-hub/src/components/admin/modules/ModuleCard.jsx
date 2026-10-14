@@ -49,41 +49,41 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }) 
             <div className="flex items-start gap-3 mb-2 pr-24">
                 <ModuleIcon icon={module.icon} />
                 <div className="min-w-0">
-                    <h4 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    <h4 className="text-sm font-semibold truncate text-[var(--text-primary)]">
                         {module.name}
                     </h4>
                     <div className="flex items-center gap-1.5 mt-0.5">
                         {module.category && (
-                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                                 {module.category}
                             </span>
                         )}
                         {module.version && (
-                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>v{module.version}</span>
+                            <span className="text-xs text-[var(--text-muted)]">v{module.version}</span>
                         )}
                     </div>
                 </div>
             </div>
 
             {/* Description */}
-            <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs leading-relaxed mb-3 text-[var(--text-secondary)]">
                 {module.description}
             </p>
 
             {/* Requirements */}
             {requirements.length > 0 && (
                 <div className="mb-3">
-                    <div className="text-[11px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-[11px] font-medium uppercase tracking-wide mb-1 text-[var(--text-muted)]">
                         {t('modules.requirements')}
                     </div>
                     <div className="space-y-1">
                         {requirements.map(req => (
-                            <div key={req.id} className="text-xs flex items-start gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                            <div key={req.id} className="text-xs flex items-start gap-1.5 text-[var(--text-secondary)]">
                                 <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${req.met ? 'bg-green-500' : 'bg-amber-500'}`} />
                                 <span className="min-w-0">
                                     {req.label}
                                     {!req.met && req.detail && (
-                                        <span className="block" style={{ color: 'var(--text-muted)' }}>{req.detail}</span>
+                                        <span className="block text-[var(--text-muted)]">{req.detail}</span>
                                     )}
                                 </span>
                             </div>
@@ -95,12 +95,12 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }) 
             {/* Capabilities */}
             {capabilities.length > 0 && (
                 <div className="mb-3">
-                    <div className="text-[11px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-[11px] font-medium uppercase tracking-wide mb-1 text-[var(--text-muted)]">
                         {t('modules.capabilities')}
                     </div>
                     <div className="flex flex-wrap gap-1">
                         {capabilities.map(cap => (
-                            <span key={cap.id} className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                            <span key={cap.id} className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                                 {cap.label}
                             </span>
                         ))}
@@ -141,8 +141,7 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }) 
                     <>
                         <button
                             disabled
-                            className="w-full py-2 rounded-lg text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-1.5 border"
-                            style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', borderColor: 'var(--border-default)' }}
+                            className="w-full py-2 rounded-lg text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-1.5 border bg-[var(--bg-primary)] text-[var(--text-muted)] border-[var(--border-default)]"
                         >
                             <Download className="w-3.5 h-3.5" /> {t('modules.import')}
                         </button>

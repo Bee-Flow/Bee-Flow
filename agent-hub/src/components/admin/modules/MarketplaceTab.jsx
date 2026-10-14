@@ -237,8 +237,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }) {
                 </div>
                 <button
                     onClick={() => marketplace.refetch()}
-                    className="text-xs font-medium flex items-center gap-1 hover:opacity-80"
-                    style={{ color: 'var(--accent-primary)' }}
+                    className="text-xs font-medium flex items-center gap-1 hover:opacity-80 text-[var(--accent-primary)]"
                 >
                     {t('modules.retry')}
                 </button>
@@ -266,23 +265,21 @@ export default function MarketplaceTab({ flash, reloadEntitlements }) {
 
             {/* Connection status row */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
                     <Plug className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
                     {t('modules.connected_to', { hub: hubUrl || '' })}
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setSideloadOpen(true)}
-                        className="text-xs font-medium hover:opacity-80 flex items-center gap-1"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="text-xs font-medium hover:opacity-80 flex items-center gap-1 text-[var(--text-secondary)]"
                         data-testid="sideload-open"
                     >
                         <FileUp className="w-3.5 h-3.5" /> {t('modules.sideload')}
                     </button>
                     <button
                         onClick={() => { setDialogError(null); setDialog('disconnect'); }}
-                        className="text-xs font-medium hover:opacity-80"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="text-xs font-medium hover:opacity-80 text-[var(--text-secondary)]"
                     >
                         {t('modules.disconnect')}
                     </button>
@@ -310,7 +307,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }) {
             {/* Grid */}
             {modules.length === 0 ? (
                 <div className="text-center py-12" data-testid="marketplace-empty">
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('modules.empty')}</p>
+                    <p className="text-sm text-[var(--text-muted)]">{t('modules.empty')}</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -341,8 +338,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }) {
                     <button
                         onClick={() => marketplace.fetchNextPage()}
                         disabled={marketplace.isFetchingNextPage}
-                        className="px-4 py-2 rounded-lg text-xs font-medium transition-all border disabled:opacity-50 flex items-center gap-1.5"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
+                        className="px-4 py-2 rounded-lg text-xs font-medium transition-all border disabled:opacity-50 flex items-center gap-1.5 bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-default)]"
                     >
                         {marketplace.isFetchingNextPage && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         {t('modules.load_more')}

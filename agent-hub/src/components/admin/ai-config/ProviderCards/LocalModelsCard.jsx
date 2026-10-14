@@ -111,7 +111,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
             badges={localProviders.length > 0 ? <ProviderStatusPill>{t('admin_ai_config.local_connected_count', '{count} connected', { count: localProviders.length })}</ProviderStatusPill> : null}
         >
             {loading ? (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.loading_ellipsis', 'Loading…')}</p>
+                <p className="text-xs text-[var(--text-muted)]">{t('admin_ai_config.loading_ellipsis', 'Loading…')}</p>
             ) : (
                 <>
                     {localProviders.map(provider => (
@@ -128,12 +128,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
 
                     {unsupported ? (
                         <p
-                            className="text-xs p-2.5 rounded-lg border"
-                            style={{
-                                color: 'var(--text-muted)',
-                                background: 'var(--bg-secondary)',
-                                borderColor: 'var(--border-default)',
-                            }}
+                            className="text-xs p-2.5 rounded-lg border text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-default)]"
                         >
                             {unsupported}
                         </p>
@@ -155,21 +150,20 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
                     {detected && (
                         <div className="space-y-1.5">
                             {detected.found.length === 0 ? (
-                                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-xs text-[var(--text-muted)]">
                                     {t('admin_ai_config.local_none_found', 'Nothing found on the {count} usual addresses. Start a runtime (for example ollama serve) and scan again, or add its address manually. If Bee Flow itself runs in Docker, the runtime has to be reachable from inside that container: use host.docker.internal rather than localhost.', { count: detected.probed })}
                                 </p>
                             ) : detected.found.map(f => (
                                 <div
                                     key={f.url}
-                                    className="flex items-center gap-2 p-2.5 rounded-lg border flex-wrap"
-                                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                                    className="flex items-center gap-2 p-2.5 rounded-lg border flex-wrap bg-[var(--bg-secondary)] border-[var(--border-default)]"
                                 >
-                                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{f.label}</span>
-                                    <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{f.url}</span>
+                                    <span className="text-sm text-[var(--text-primary)]">{f.label}</span>
+                                    <span className="text-xs font-mono text-[var(--text-muted)]">{f.url}</span>
                                     <ProviderStatusPill tone="blue">{f.modelCount === 1 ? t('admin_ai_config.model_count_one', '1 model') : t('admin_ai_config.model_count_other', '{count} models', { count: f.modelCount })}</ProviderStatusPill>
                                     <div className="flex-1" />
                                     {f.alreadyConfigured ? (
-                                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.local_already', 'Already connected')}</span>
+                                        <span className="text-xs text-[var(--text-muted)]">{t('admin_ai_config.local_already', 'Already connected')}</span>
                                     ) : (
                                         <button
                                             className={BTN_PRIMARY}
@@ -189,7 +183,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
                     )}
 
                     {localProviders.length === 0 && !showAdd && !detected && !unsupported && (
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs text-[var(--text-muted)]">
                             {t('admin_ai_config.local_empty', 'Nothing connected yet. Models served this way run on your own hardware and are billed at €0: connect a runtime here, then assign its models to tiers under Chat Models.')}
                         </p>
                     )}

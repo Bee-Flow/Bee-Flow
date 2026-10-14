@@ -174,7 +174,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                 style={{ background: active ? 'var(--bg-primary)' : 'transparent', border: `1px solid ${active ? accent : 'transparent'}` }}>
                 <span className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: active ? `${accent}1a` : 'var(--bg-primary)', color: accent }}>{icon}</span>
                 <span className="flex-1 min-w-0 truncate text-sm" style={{ color: 'var(--text-primary)', fontWeight: active ? 600 : 400 }}>{label}</span>
-                {count > 0 ? <span className="text-[11px] px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{count}</span> : null}
+                {count > 0 ? <span className="text-[11px] px-1.5 py-0.5 rounded-full flex-shrink-0 bg-[var(--bg-secondary)] text-[var(--text-muted)]">{count}</span> : null}
             </button>
         );
     };
@@ -196,16 +196,16 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
             <div className="flex items-center gap-3 p-3 rounded-xl transition-all"
                 style={{ border: `1px solid ${checked && !locked ? scopeAccent : 'var(--border-subtle)'}`, background: checked && !locked ? `${scopeAccent}0a` : 'var(--bg-primary)', opacity: locked ? 0.55 : 1, cursor: locked || readOnly ? 'default' : 'pointer' }}
                 onClick={() => !locked && !readOnly && toggle(cap)}>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-secondary)' }}>{icon}</div>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--bg-secondary)]">{icon}</div>
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }} title={cap.name}>{cap.name}</p>
+                        <p className="text-sm font-medium truncate text-[var(--text-primary)]" title={cap.name}>{cap.name}</p>
                         {locked ? <Lock className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} /> : null}
                     </div>
                     {inherited && !isEveryoneScope ? (
                         <p className="text-[11px]" style={{ color: BLUE }}>{t('admin_org.access_matrix_granted_all', 'Granted to all members')}</p>
                     ) : cap.description ? (
-                        <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }} title={cap.description}>{cap.description}</p>
+                        <p className="text-[11px] truncate text-[var(--text-muted)]" title={cap.description}>{cap.description}</p>
                     ) : null}
                 </div>
                 {locked
@@ -254,8 +254,8 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                 <div className="md:w-60 flex-shrink-0">
                     <ScopeButton id={EVERYONE} label={t('admin_org.access_matrix_all_members', 'All members')} accent={BLUE} count={grantCount(EVERYONE)} icon={<Users className="w-3.5 h-3.5" />} />
                     <div className="my-2 flex items-center gap-2 px-1">
-                        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t('admin_org.access_matrix_groups', 'Groups')}</span>
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>({groups.length})</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{t('admin_org.access_matrix_groups', 'Groups')}</span>
+                        <span className="text-[11px] text-[var(--text-muted)]">({groups.length})</span>
                     </div>
                     {groups.length > 6 ? (
                         <div className="relative mb-2">
@@ -266,7 +266,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                         </div>
                     ) : null}
                     {groups.length === 0 ? (
-                        <p className="text-[12px] px-1 py-2" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[12px] px-1 py-2 text-[var(--text-muted)]">
                             {t('admin_org.access_matrix_no_groups_a', 'No groups yet. Create groups under')} <strong>{t('admin_org.access_matrix_users_groups', 'Users & Groups')}</strong> {t('admin_org.access_matrix_no_groups_b', 'to grant capabilities per team.')}
                         </p>
                     ) : (
@@ -274,7 +274,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                             {filteredGroups.map(g => (
                                 <ScopeButton key={g.id} id={g.id} label={g.name} accent={EMERALD} count={grantCount(g.id)} icon={<Users className="w-3.5 h-3.5" />} />
                             ))}
-                            {filteredGroups.length === 0 ? <p className="text-[12px] px-2 py-2" style={{ color: 'var(--text-muted)' }}>{t('admin_org.access_matrix_no_groups_match', 'No groups match “{query}”.', { query: groupQuery })}</p> : null}
+                            {filteredGroups.length === 0 ? <p className="text-[12px] px-2 py-2 text-[var(--text-muted)]">{t('admin_org.access_matrix_no_groups_match', 'No groups match “{query}”.', { query: groupQuery })}</p> : null}
                         </div>
                     )}
                 </div>
@@ -283,9 +283,9 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-3">
                         <span className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: `${scopeAccent}1a`, color: scopeAccent }}><Users className="w-3.5 h-3.5" /></span>
-                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{isEveryoneScope ? t('admin_org.access_matrix_all_members', 'All members') : activeGroup?.name}</h3>
-                        {!isEveryoneScope ? <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('admin_org.access_matrix_stack', 'grants stack on top of All members')}</span> : null}
-                        {data.betaGoverned ? <span className="text-[11px] ml-auto" style={{ color: 'var(--text-muted)' }}>{t('admin_org.access_matrix_beta_follow', 'Beta features follow your subscription')}</span> : null}
+                        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{isEveryoneScope ? t('admin_org.access_matrix_all_members', 'All members') : activeGroup?.name}</h3>
+                        {!isEveryoneScope ? <span className="text-[11px] text-[var(--text-muted)]">{t('admin_org.access_matrix_stack', 'grants stack on top of All members')}</span> : null}
+                        {data.betaGoverned ? <span className="text-[11px] ml-auto text-[var(--text-muted)]">{t('admin_org.access_matrix_beta_follow', 'Beta features follow your subscription')}</span> : null}
                     </div>
                     {(() => {
                         const sections = KIND_SECTIONS
@@ -308,7 +308,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                             const SectionIcon = section.icon;
                             return (
                                 <div key={section.kind} className="mb-5">
-                                    <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                                    <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                                         <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)}
                                     </div>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">

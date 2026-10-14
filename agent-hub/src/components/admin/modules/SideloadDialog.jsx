@@ -121,7 +121,7 @@ export default function SideloadDialog({ onClose, onDone }) {
                 <div className="space-y-3">
                     {result ? (
                         <>
-                            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-primary)' }} data-testid="sideload-success">
+                            <div className="flex items-center gap-2 text-xs text-[var(--text-primary)]" data-testid="sideload-success">
                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
                                 {result.activated
                                     ? t('modules.sideload_activated', { version: result.version })
@@ -144,7 +144,7 @@ export default function SideloadDialog({ onClose, onDone }) {
                         </>
                     ) : needGrant ? (
                         <>
-                            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                                 {t('modules.sideload_grant_needed')}
                             </p>
                             {error && <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400">{error}</div>}
@@ -159,8 +159,7 @@ export default function SideloadDialog({ onClose, onDone }) {
                                 <button
                                     onClick={onClose}
                                     disabled={busy}
-                                    className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50"
-                                    style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
+                                    className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
                                 >
                                     {t('modules.cancel')}
                                 </button>
@@ -178,7 +177,7 @@ export default function SideloadDialog({ onClose, onDone }) {
                         </>
                     ) : (
                         <>
-                            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                                 {t('modules.sideload_body')}
                             </p>
                             {error && <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400">{error}</div>}
@@ -203,8 +202,7 @@ export default function SideloadDialog({ onClose, onDone }) {
                                 <button
                                     onClick={onClose}
                                     disabled={busy}
-                                    className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50"
-                                    style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
+                                    className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
                                 >
                                     {t('modules.cancel')}
                                 </button>

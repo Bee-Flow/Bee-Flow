@@ -74,24 +74,23 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
             label={module.name || module.id}
         >
             <div
-                className="h-full border-l overflow-y-auto flex flex-col"
-                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                className="h-full border-l overflow-y-auto flex flex-col bg-[var(--bg-secondary)] border-[var(--border-default)]"
             >
                 {/* Header */}
-                <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="px-5 py-4 border-b border-[var(--border-subtle)]">
                     <div className="flex items-start gap-3">
                         <ModuleIcon icon={module.icon} />
                         <div className="min-w-0 flex-1">
-                            <h3 className="text-base font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{module.name}</h3>
-                            <div className="flex items-center gap-2 mt-1 flex-wrap text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <h3 className="text-base font-semibold truncate text-[var(--text-primary)]">{module.name}</h3>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-[var(--text-muted)]">
                                 {vendor && <span>{t('modules.details_by', { vendor })}</span>}
                                 {module.latestVersion && <span>v{module.latestVersion}</span>}
                                 {installCount != null && <span>{t('modules.install_count', { count: installCount })}</span>}
-                                <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)' }}>
+                                <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)]">
                                     {priceLabel(t, detail?.pricing ?? module.pricing)}
                                 </span>
                                 {sideloaded && (
-                                    <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)' }}>
+                                    <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)]">
                                         {t('modules.badge_sideloaded')}
                                     </span>
                                 )}
@@ -145,7 +144,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                 </div>
 
                 {/* Tabs */}
-                <div className="px-5 pt-3 flex gap-1.5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="px-5 pt-3 flex gap-1.5 border-b border-[var(--border-subtle)]">
                     {TAB_IDS.map((id) => (
                         <button
                             key={id}
@@ -175,7 +174,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                                     <MarkdownRenderer content={readme} className="text-sm" />
                                 </Suspense>
                             ) : (
-                                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                                     {module.description || t('modules.details_no_readme')}
                                 </p>
                             )}
@@ -204,7 +203,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                                 granted={detail?.grantedPermissions}
                             />
                             {detail?.grantedPermissions?.acceptedAt && (
-                                <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-[10px] text-[var(--text-muted)]">
                                     {t('modules.permissions.accepted_at', {
                                         by: detail.grantedPermissions.acceptedBy || '—',
                                         at: new Date(detail.grantedPermissions.acceptedAt).toLocaleString(),

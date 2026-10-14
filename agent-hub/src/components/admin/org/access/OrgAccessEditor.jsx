@@ -108,7 +108,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
             <header className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                     <ListChecks className="w-5 h-5" style={{ color: EMERALD }} />
-                    <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_org.ceiling_org_access_title', 'Organisation access')}</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.ceiling_org_access_title', 'Organisation access')}</h2>
                 </div>
                 {message ? (
                     <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
@@ -128,8 +128,8 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
                     <span className="absolute top-[2px] left-[2px] bg-white rounded-full h-4 w-4 shadow-sm transition-transform" style={{ transform: unrestricted ? 'translateX(16px)' : 'none' }} />
                 </span>
                 <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('admin_org.ceiling_allow_all', 'Allow everything the {ceiling} permits', { ceiling: data.mode === 'cloud' ? t('admin_org.ceiling_word_plan', 'plan') : t('admin_org.ceiling_word_licence', 'licence') })}</p>
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('admin_org.ceiling_allow_all_hint', 'Turn off to restrict this organisation to a subset.')}</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('admin_org.ceiling_allow_all', 'Allow everything the {ceiling} permits', { ceiling: data.mode === 'cloud' ? t('admin_org.ceiling_word_plan', 'plan') : t('admin_org.ceiling_word_licence', 'licence') })}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">{t('admin_org.ceiling_allow_all_hint', 'Turn off to restrict this organisation to a subset.')}</p>
                 </div>
             </label>
 
@@ -139,7 +139,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
                 const SectionIcon = section.icon;
                 return (
                     <div key={section.kind} className="mb-5" style={{ opacity: unrestricted ? 0.6 : 1 }}>
-                        <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                        <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                             <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)}
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -151,10 +151,10 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
                                         className="flex items-center gap-3 p-3 rounded-xl transition-all"
                                         style={{ border: `1px solid ${checked ? EMERALD : 'var(--border-subtle)'}`, background: checked ? `${EMERALD}0a` : 'var(--bg-primary)', cursor: unrestricted ? 'default' : 'pointer' }}
                                         onClick={() => toggle(cap.id)}>
-                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-secondary)' }}>{icon}</div>
+                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--bg-secondary)]">{icon}</div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }} title={cap.name}>{cap.name}</p>
-                                            {cap.description ? <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }} title={cap.description}>{cap.description}</p> : null}
+                                            <p className="text-sm font-medium truncate text-[var(--text-primary)]" title={cap.name}>{cap.name}</p>
+                                            {cap.description ? <p className="text-[11px] truncate text-[var(--text-muted)]" title={cap.description}>{cap.description}</p> : null}
                                         </div>
                                         {unrestricted
                                             ? <Lock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />

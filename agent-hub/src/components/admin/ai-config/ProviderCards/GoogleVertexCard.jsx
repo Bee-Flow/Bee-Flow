@@ -66,14 +66,14 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
     const isConfigured = hasProject && hasKey;
 
     return (
-        <div className="mb-6 p-5 rounded-xl border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+        <div className="mb-6 p-5 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-default)]">
             <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style={{ background: 'linear-gradient(135deg, rgba(66,133,244,0.2), rgba(52,168,83,0.2))' }}>
                     ☁️
                 </div>
                 <div className="flex-1">
-                    <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.vertex_title', 'Google Vertex AI')}</h4>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <h4 className="font-medium text-[var(--text-primary)]">{t('admin_ai_config.vertex_title', 'Google Vertex AI')}</h4>
+                    <p className="text-xs text-[var(--text-muted)]">
                         {isConfigured ? t('admin_ai_config.fully_configured', '✅ Fully configured') : t('admin_ai_config.vertex_subtitle', 'EU-hosted Gemini via Vertex AI')}
                     </p>
                 </div>
@@ -115,7 +115,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                     </button>
                 ) : (
                     <div>
-                        <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                        <label className="block text-xs font-medium mb-1.5 text-[var(--text-muted)]">
                             {t('admin_ai_config.vertex_key_label', 'Service Account JSON Key')}
                         </label>
                         <textarea
@@ -126,7 +126,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-xs font-mono resize-y"
                             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         />
-                        <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                             {t('admin_ai_config.vertex_key_hint', 'GCP Console → IAM → Service Accounts → Keys → Add Key → JSON')}
                         </p>
                     </div>
@@ -145,8 +145,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                     <button
                         onClick={handleSave}
                         disabled={saving || (!project.trim() && !serviceAccountKey.trim())}
-                        className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {saving ? '...' : t('admin_ai_config.save', 'Save')}
                     </button>

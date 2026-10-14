@@ -78,11 +78,11 @@ export default function CeilingReadOnly({ orgId = null }) {
                 const SectionIcon = section.icon;
                 return (
                     <div key={section.kind} className="mb-5">
-                        <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                        <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                             <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)} <span style={{ opacity: 0.6 }}>({caps.length})</span>
                         </div>
                         {caps.length === 0 ? (
-                            <p className="text-[12px] px-1 py-1 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[12px] px-1 py-1 flex items-center gap-1.5 text-[var(--text-muted)]">
                                 <Lock className="w-3 h-3" /> {t('admin_org.ceiling_ro_none', 'Your organisation has no access in this category.')}
                             </p>
                         ) : (
@@ -91,10 +91,10 @@ export default function CeilingReadOnly({ orgId = null }) {
                                     const icon = cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="w-4 h-4" style={{ color: BLUE }} />;
                                     return (
                                         <div key={cap.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }}>
-                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-secondary)' }}>{icon}</div>
+                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--bg-secondary)]">{icon}</div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }} title={cap.name}>{cap.name}</p>
-                                                {cap.description ? <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }} title={cap.description}>{cap.description}</p> : null}
+                                                <p className="text-sm font-medium truncate text-[var(--text-primary)]" title={cap.name}>{cap.name}</p>
+                                                {cap.description ? <p className="text-[11px] truncate text-[var(--text-muted)]" title={cap.description}>{cap.description}</p> : null}
                                             </div>
                                         </div>
                                     );

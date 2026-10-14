@@ -47,14 +47,14 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
     };
 
     return (
-        <div className="mb-6 p-5 rounded-xl border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+        <div className="mb-6 p-5 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-default)]">
             <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style={{ background: iconBackground }}>
                     {icon}
                 </div>
                 <div className="flex-1">
-                    <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.apikey_title', '{name} API Key', { name })}</h4>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <h4 className="font-medium text-[var(--text-primary)]">{t('admin_ai_config.apikey_title', '{name} API Key', { name })}</h4>
+                    <p className="text-xs text-[var(--text-muted)]">
                         {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                         {hasKey ? t('admin_ai_config.apikey_configured', '✅ API key configured') : description}
                     </p>
@@ -75,15 +75,14 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
                 <button
                     onClick={handleSave}
                     disabled={saving || !apiKey.trim()}
-                    className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {saving ? '...' : t('admin_ai_config.save', 'Save')}
                 </button>
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 {hasKey && <DeleteConfirmButtons onConfirm={handleDelete} title={t('admin_ai_config.apikey_delete_title', 'Delete API key')} />}
             </div>
-            <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mt-2 text-[var(--text-muted)]">
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 {t('admin_ai_config.apikey_get_from', 'Get your API key from')} <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">{docsLabel}</a>
             </p>

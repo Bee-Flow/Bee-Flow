@@ -116,12 +116,12 @@ const LanguagesPanel = () => {
         } catch { setError(t('admin_languages.error_set_default', 'Failed to set default')); }
     };
 
-    if (loading) return <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.loading', 'Loading languages...')}</div>;
+    if (loading) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">{t('admin_languages.loading', 'Loading languages...')}</div>;
 
     const availableToAdd = catalog.filter(c => !locales.find(l => l.code === c.code));
 
     return (
-        <div className="h-full flex flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]">
             {error && (
                 <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -132,9 +132,9 @@ const LanguagesPanel = () => {
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Left: Locale List */}
-                <div className="w-64 border-r shrink-0 flex flex-col" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                    <div className="p-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-default)' }}>
-                        <span className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <div className="w-64 border-r shrink-0 flex flex-col border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                    <div className="p-3 border-b flex items-center justify-between border-[var(--border-default)]">
+                        <span className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                             <Globe className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} /> {t('admin_languages.title', 'Languages')}
                         </span>
                         <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('admin_languages.add_language_title', 'Add language')}>
@@ -194,10 +194,10 @@ const LanguagesPanel = () => {
                                     </button>
                                 ))}
                                 <div className="ml-auto flex items-center gap-2">
-                                    <button onClick={() => handleExport(selectedLocale)} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                                    <button onClick={() => handleExport(selectedLocale)} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
                                         <Download className="w-3.5 h-3.5" /> {t('admin_languages.export', 'Export')}
                                     </button>
-                                    <button onClick={() => handleImport(selectedLocale)} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                                    <button onClick={() => handleImport(selectedLocale)} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
                                         <Upload className="w-3.5 h-3.5" /> {t('admin_languages.import', 'Import')}
                                     </button>
                                 </div>
@@ -216,7 +216,7 @@ const LanguagesPanel = () => {
                             </div>
                         </>
                     ) : (
-                        <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+                        <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
                             <div className="text-center">
                                 <Globe className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                 <p className="text-sm">{t('admin_languages.empty', 'Add a language to get started')}</p>
@@ -257,8 +257,8 @@ const AddLanguageModal = ({ available, onAdd, onClose }) => {
     // initial focus lands where autoFocus put it.
     return (
         <Modal open onClose={onClose} variant="bare" size="md" labelledBy={titleId}>
-            <div className="w-full rounded-2xl border shadow-2xl p-5" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                <h3 id={titleId} className="text-lg font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin_languages.add_language', 'Add Language')}</h3>
+            <div className="w-full rounded-2xl border shadow-2xl p-5 bg-[var(--bg-secondary)] border-[var(--border-default)]">
+                <h3 id={titleId} className="text-lg font-semibold mb-3 text-[var(--text-primary)]">{t('admin_languages.add_language', 'Add Language')}</h3>
 
                 <div className="relative mb-3">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -273,26 +273,26 @@ const AddLanguageModal = ({ available, onAdd, onClose }) => {
 
                 <div className="max-h-56 overflow-y-auto space-y-1 mb-4" style={{ scrollbarWidth: 'thin' }}>
                     {filtered.map(l => (
-                        <button key={l.code} onClick={() => onAdd(l.code, l.name)} className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors" style={{ color: 'var(--text-primary)' }}>
+                        <button key={l.code} onClick={() => onAdd(l.code, l.name)} className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]">
                             <span>{l.name}</span>
-                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{l.code}</span>
+                            <span className="text-xs text-[var(--text-muted)]">{l.code}</span>
                         </button>
                     ))}
                     {filtered.length === 0 && (
-                        <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.no_match_languages', 'No matching languages. Use custom below.')}</p>
+                        <p className="text-xs text-center py-4 text-[var(--text-muted)]">{t('admin_languages.no_match_languages', 'No matching languages. Use custom below.')}</p>
                     )}
                 </div>
 
-                <div className="border-t pt-3 mt-2" style={{ borderColor: 'var(--border-default)' }}>
-                    <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('admin_languages.or_custom', 'Or add custom:')}</p>
+                <div className="border-t pt-3 mt-2 border-[var(--border-default)]">
+                    <p className="text-xs font-medium mb-2 text-[var(--text-secondary)]">{t('admin_languages.or_custom', 'Or add custom:')}</p>
                     <div className="flex gap-2">
                         <input value={customCode} onChange={e => setCustomCode(e.target.value.toLowerCase())} placeholder={t('admin_languages.code_placeholder', 'Code (e.g. pt-br)')} className="w-24 px-2 py-1.5 rounded-lg text-sm border bg-[var(--bg-primary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }} />
                         <input value={customName} onChange={e => setCustomName(e.target.value)} placeholder={t('admin_languages.name_placeholder', 'Language name')} className="flex-1 px-2 py-1.5 rounded-lg text-sm border bg-[var(--bg-primary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }} />
-                        <button onClick={() => customCode && customName && onAdd(customCode, customName)} disabled={!customCode || !customName} className="px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-40" style={{ background: 'var(--accent-primary)' }}>{t('admin_languages.add', 'Add')}</button>
+                        <button onClick={() => customCode && customName && onAdd(customCode, customName)} disabled={!customCode || !customName} className="px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]">{t('admin_languages.add', 'Add')}</button>
                     </div>
                 </div>
 
-                <button onClick={onClose} className="mt-3 w-full py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)] transition-colors" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>{t('admin_languages.cancel', 'Cancel')}</button>
+                <button onClick={onClose} className="mt-3 w-full py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)] transition-colors border-[var(--border-default)] text-[var(--text-secondary)]">{t('admin_languages.cancel', 'Cancel')}</button>
             </div>
         </Modal>
     );
@@ -363,7 +363,7 @@ const GUIStringEditor = ({ locale }) => {
         setSaving(false);
     }, [locale]);
 
-    if (!data) return <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>Loading...</div>;
+    if (!data) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">Loading...</div>;
 
     const defaults = data.defaults || {};
     const namespaces = data.namespaces || [];
@@ -383,10 +383,10 @@ const GUIStringEditor = ({ locale }) => {
         <div className="h-full flex flex-col p-4 overflow-hidden">
             {/* Stats bar */}
             <div className="flex items-center gap-4 mb-3 shrink-0">
-                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+                <div className="flex-1 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
                     <div className="h-full rounded-full transition-all" style={{ width: `${stats.progress || 0}%`, background: stats.progress >= 100 ? '#22c55e' : 'var(--accent-primary)' }} />
                 </div>
-                <span className="text-xs font-medium shrink-0" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-xs font-medium shrink-0 text-[var(--text-secondary)]">
                     {stats.translated || 0} / {stats.total || 0} ({stats.progress || 0}%)
                 </span>
                 {locale !== 'en' && (
@@ -441,7 +441,7 @@ const GUIStringEditor = ({ locale }) => {
                             />
                         ))}
                         {filteredKeys.length === 0 && (
-                            <tr><td colSpan={3} className="text-center py-8" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.no_keys', 'No matching keys')}</td></tr>
+                            <tr><td colSpan={3} className="text-center py-8 text-[var(--text-muted)]">{t('admin_languages.no_keys', 'No matching keys')}</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -470,11 +470,11 @@ const GUIStringRow = React.memo(({ stringKey, defaultValue, translation, onSave,
 
     return (
         <tr className="group hover:bg-[var(--bg-secondary)] transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-            <td className="px-3 py-1.5 font-mono text-[11px] break-all" style={{ color: 'var(--text-muted)' }}>{stringKey}</td>
-            <td className="px-3 py-1.5" style={{ color: 'var(--text-secondary)' }}>{defaultValue}</td>
+            <td className="px-3 py-1.5 font-mono text-[11px] break-all text-[var(--text-muted)]">{stringKey}</td>
+            <td className="px-3 py-1.5 text-[var(--text-secondary)]">{defaultValue}</td>
             <td className="px-3 py-1">
                 {isEnglish ? (
-                    <span style={{ color: 'var(--text-muted)' }}>{defaultValue}</span>
+                    <span className="text-[var(--text-muted)]">{defaultValue}</span>
                 ) : (
                     <div className="flex items-center gap-1">
                         <input
@@ -552,7 +552,7 @@ const PromptEditor = ({ locale }) => {
         onReload: fetchData,
     });
 
-    if (!data) return <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>Loading...</div>;
+    if (!data) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">Loading...</div>;
 
     const categories = data.categories || {};
     const labels = data.labels || {};
@@ -564,10 +564,10 @@ const PromptEditor = ({ locale }) => {
             {/* Stats bar with AI Translate */}
             {locale !== 'en' && (
                 <div className="flex items-center gap-3 mb-3 shrink-0">
-                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
                         <div className="h-full rounded-full transition-all" style={{ width: `${stats.total > 0 ? Math.round((stats.translated / stats.total) * 100) : 0}%`, background: stats.translated >= stats.total ? '#22c55e' : 'var(--accent-primary)' }} />
                     </div>
-                    <span className="text-xs font-medium shrink-0" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-xs font-medium shrink-0 text-[var(--text-secondary)]">
                         {stats.translated || 0} / {stats.total || 0} ({stats.total > 0 ? Math.round(((stats.translated || 0) / stats.total) * 100) : 0}%)
                     </span>
                     <AiTranslateControl
@@ -585,14 +585,14 @@ const PromptEditor = ({ locale }) => {
             <div className="flex-1 flex overflow-hidden gap-3 min-h-0">
                 {/* Left: Prompt list */}
                 <div className="w-56 shrink-0 border rounded-xl overflow-y-auto" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)', scrollbarWidth: 'thin' }}>
-                    <div className="p-2 border-b" style={{ borderColor: 'var(--border-default)' }}>
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                    <div className="p-2 border-b border-[var(--border-default)]">
+                        <span className="text-xs font-medium text-[var(--text-muted)]">
                             {t('admin_languages.prompt_stats', '{translated} / {total} translated', { translated: stats.translated || 0, total: stats.total || 0 })}
                         </span>
                     </div>
                     {Object.entries(categories).map(([cat, ids]) => (
                         <div key={cat}>
-                            <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{cat}</div>
+                            <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{cat}</div>
                             {ids.map(id => (
                                 <button
                                     key={id}
@@ -616,13 +616,12 @@ const PromptEditor = ({ locale }) => {
                 {selectedPrompt ? (
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <div className="flex items-center justify-between mb-2 shrink-0">
-                            <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{labels[selectedPrompt] || selectedPrompt}</h4>
+                            <h4 className="text-sm font-semibold text-[var(--text-primary)]">{labels[selectedPrompt] || selectedPrompt}</h4>
                             <div className="flex items-center gap-2">
                                 {saved && <span className="text-xs text-green-500 flex items-center gap-1"><Check className="w-3 h-3" /> {t('admin_languages.saved', 'Saved')}</span>}
                                 <button
                                     onClick={() => setEditText(defaults[selectedPrompt] || '')}
-                                    className="px-2 py-1 rounded text-xs border hover:bg-[var(--bg-tertiary)] transition-colors"
-                                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                    className="px-2 py-1 rounded text-xs border hover:bg-[var(--bg-tertiary)] transition-colors border-[var(--border-default)] text-[var(--text-secondary)]"
                                     title={t('admin_languages.copy_default_title', 'Copy English default into editor')}
                                 >
                                     <Copy className="w-3 h-3 inline mr-1" /> {t('admin_languages.copy_default', 'Copy Default')}
@@ -630,8 +629,7 @@ const PromptEditor = ({ locale }) => {
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
-                                    className="px-3 py-1 rounded-lg text-xs font-medium text-white disabled:opacity-50 transition-opacity"
-                                    style={{ background: 'var(--accent-primary)' }}
+                                    className="px-3 py-1 rounded-lg text-xs font-medium text-white disabled:opacity-50 transition-opacity bg-[var(--accent-primary)]"
                                 >
                                     {saving ? t('admin_languages.saving', 'Saving...') : t('admin_languages.save', 'Save')}
                                 </button>
@@ -641,19 +639,19 @@ const PromptEditor = ({ locale }) => {
                         <div className="flex-1 flex gap-3 overflow-hidden min-h-0">
                             {/* Default (read-only) */}
                             <div className="flex-1 flex flex-col overflow-hidden">
-                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.english_default', 'English Default')}</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 px-1 text-[var(--text-muted)]">{t('admin_languages.english_default', 'English Default')}</div>
                                 <textarea
                                     value={defaults[selectedPrompt] || ''}
                                     readOnly
                                     className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none"
                                     style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', outline: 'none', scrollbarWidth: 'thin' }}
                                 />
-                                <div className="text-[10px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.chars', '{n} chars', { n: (defaults[selectedPrompt] || '').length })}</div>
+                                <div className="text-[10px] mt-1 px-1 text-[var(--text-muted)]">{t('admin_languages.chars', '{n} chars', { n: (defaults[selectedPrompt] || '').length })}</div>
                             </div>
 
                             {/* Translation (editable) */}
                             <div className="flex-1 flex flex-col overflow-hidden">
-                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.translation_locale', 'Translation ({locale})', { locale: locale.toUpperCase() })}</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 px-1 text-[var(--text-muted)]">{t('admin_languages.translation_locale', 'Translation ({locale})', { locale: locale.toUpperCase() })}</div>
                                 <textarea
                                     value={editText}
                                     onChange={e => setEditText(e.target.value)}
@@ -661,12 +659,12 @@ const PromptEditor = ({ locale }) => {
                                     className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none focus:border-[var(--accent-primary)]"
                                     style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', scrollbarWidth: 'thin' }}
                                 />
-                                <div className="text-[10px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.chars', '{n} chars', { n: editText.length })}</div>
+                                <div className="text-[10px] mt-1 px-1 text-[var(--text-muted)]">{t('admin_languages.chars', '{n} chars', { n: editText.length })}</div>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+                    <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
                         <p className="text-sm">{t('admin_languages.select_prompt', 'Select a prompt to translate')}</p>
                     </div>
                 )}
@@ -783,7 +781,7 @@ const EmailTemplateEditor = ({ locale }) => {
         setTesting(false);
     };
 
-    if (!data) return <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>Loading...</div>;
+    if (!data) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">Loading...</div>;
 
     const defaults = data.defaults?.[selected] || {};
     const labels = data.labels || {};
@@ -826,9 +824,9 @@ const EmailTemplateEditor = ({ locale }) => {
                     {/* Variable hint chips */}
                     {variables.length > 0 && (
                         <div className="flex items-center gap-1.5 flex-wrap mb-3">
-                            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Variables:</span>
+                            <span className="text-[11px] text-[var(--text-muted)]">Variables:</span>
                             {variables.map(v => (
-                                <code key={v} className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{`{{${v}}}`}</code>
+                                <code key={v} className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{`{{${v}}}`}</code>
                             ))}
                         </div>
                     )}
@@ -838,9 +836,9 @@ const EmailTemplateEditor = ({ locale }) => {
                         return (
                             <div key={key} className="mb-3">
                                 <div className="flex items-center justify-between mb-1">
-                                    <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{meta.label}</label>
+                                    <label className="text-xs font-medium text-[var(--text-secondary)]">{meta.label}</label>
                                     {val && (
-                                        <button onClick={() => setField(key, '')} className="text-[10px] flex items-center gap-1 opacity-60 hover:opacity-100" style={{ color: 'var(--text-muted)' }} title={t('admin_languages.reset_title', 'Reset to default')}>
+                                        <button onClick={() => setField(key, '')} className="text-[10px] flex items-center gap-1 opacity-60 hover:opacity-100 text-[var(--text-muted)]" title={t('admin_languages.reset_title', 'Reset to default')}>
                                             <RotateCcw className="w-3 h-3" /> {t('admin_languages.reset', 'Reset')}
                                         </button>
                                     )}
@@ -872,16 +870,15 @@ const EmailTemplateEditor = ({ locale }) => {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
-                            style={{ background: 'var(--accent-primary)' }}
+                            className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity bg-[var(--accent-primary)]"
                         >
                             {saving ? t('admin_languages.saving', 'Saving...') : t('admin_languages.save', 'Save')}
                         </button>
                         {saved && <span className="text-xs text-green-500 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('admin_languages.saved', 'Saved')}</span>}
                     </div>
 
-                    <div className="border-t pt-3" style={{ borderColor: 'var(--border-default)' }}>
-                        <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('admin_languages.send_test_email', 'Send a test email')}</label>
+                    <div className="border-t pt-3 border-[var(--border-default)]">
+                        <label className="text-xs font-medium block mb-1.5 text-[var(--text-secondary)]">{t('admin_languages.send_test_email', 'Send a test email')}</label>
                         <div className="flex items-center gap-2">
                             <input
                                 type="email"
@@ -894,8 +891,7 @@ const EmailTemplateEditor = ({ locale }) => {
                             <button
                                 onClick={handleTest}
                                 disabled={testing || !testRecipient.trim()}
-                                className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 border disabled:opacity-40 hover:bg-[var(--bg-tertiary)] transition-colors"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 border disabled:opacity-40 hover:bg-[var(--bg-tertiary)] transition-colors border-[var(--border-default)] text-[var(--text-secondary)]"
                             >
                                 {testing ? <span className="inline-block w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                                 {t('admin_languages.send_test', 'Send test')}
@@ -911,7 +907,7 @@ const EmailTemplateEditor = ({ locale }) => {
 
                 {/* Right: live preview */}
                 <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.live_preview', 'Live preview')}</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 px-1 text-[var(--text-muted)]">{t('admin_languages.live_preview', 'Live preview')}</div>
                     <div className="flex-1 rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)', background: '#f5f5f5' }}>
                         <iframe
                             title={t('admin_languages.email_preview', 'Email preview')}

@@ -64,18 +64,18 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
     const rows = mergeVersionRows(hubVersions, ledgerVersions);
 
     if (rows.length === 0) {
-        return <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('modules.no_versions')}</p>;
+        return <p className="text-xs text-[var(--text-muted)]">{t('modules.no_versions')}</p>;
     }
 
     return (
-        <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }} data-testid="version-history">
+        <ul className="divide-y border-[var(--border-subtle)]" data-testid="version-history">
             {rows.map((row) => {
                 const status = row.ledger?.status || null;
                 return (
                     <li key={row.version} className="py-2.5" data-testid={`version-row-${row.version}`}>
                         <div className="flex items-center gap-2 flex-wrap">
                             <History className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
-                            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>v{row.version}</span>
+                            <span className="text-xs font-semibold text-[var(--text-primary)]">v{row.version}</span>
                             {row.channel && row.channel !== 'stable' && (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
                                     {row.channel}
@@ -110,8 +110,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                                 <button
                                     onClick={() => onRollback(row.version)}
                                     disabled={busy}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-medium border disabled:opacity-50 flex items-center gap-1"
-                                    style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-medium border disabled:opacity-50 flex items-center gap-1 bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-default)]"
                                     data-testid={`rollback-${row.version}`}
                                 >
                                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
@@ -120,7 +119,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                             )}
                         </div>
                         {row.changelog && (
-                            <p className="text-xs mt-1 ml-5 leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-xs mt-1 ml-5 leading-relaxed whitespace-pre-wrap text-[var(--text-secondary)]">
                                 {row.changelog}
                             </p>
                         )}

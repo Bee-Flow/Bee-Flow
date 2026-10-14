@@ -88,8 +88,8 @@ const OrgAuthSection = ({ t, isAuthLocked, isSaving = false, orgData, setOrgData
                             <div className="flex gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.15)' }}>
                                 <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('org.signin_locked')}</p>
-                                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('org.signin_locked')}</p>
+                                    <p className="text-xs mt-0.5 text-[var(--text-secondary)]">
                                         {t('org.signin_locked_desc')}
                                     </p>
                                 </div>
@@ -108,8 +108,8 @@ const OrgAuthSection = ({ t, isAuthLocked, isSaving = false, orgData, setOrgData
                         {!isAuthLocked && (
                             <div className="flex gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(59, 130, 246, 0.06)', border: '1px solid rgba(59, 130, 246, 0.12)' }}>
                                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
-                                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                                    <strong style={{ color: 'var(--text-primary)' }}>{t('org.choose_carefully')}</strong> {t('org.choose_carefully_desc')}
+                                <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+                                    <strong className="text-[var(--text-primary)]">{t('org.choose_carefully')}</strong> {t('org.choose_carefully_desc')}
                                 </p>
                             </div>
                         )}

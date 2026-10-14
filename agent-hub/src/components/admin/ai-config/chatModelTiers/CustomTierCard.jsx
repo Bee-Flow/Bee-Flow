@@ -27,7 +27,7 @@ export default function CustomTierCard({
             : null;
 
         return (
-            <div key={tier.id} className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+            <div key={tier.id} className="rounded-xl border overflow-hidden bg-[var(--bg-tertiary)] border-[var(--border-default)]">
                 <div className="p-4">
                     <div className="flex items-center gap-3 mb-3">
                         <input
@@ -48,19 +48,17 @@ export default function CustomTierCard({
                                 className="w-full text-sm font-semibold px-2 py-1 rounded-lg border outline-none"
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             />
-                            <p className="text-[10px] mt-0.5 font-mono" style={{ color: 'var(--text-muted)' }}>{tier.id}</p>
+                            <p className="text-[10px] mt-0.5 font-mono text-[var(--text-muted)]">{tier.id}</p>
                         </div>
                         <button
                             onClick={() => setExpandedCustomId(isExpanded ? null : tier.id)}
-                            className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 transition-colors text-[var(--text-muted)]"
                         >
                             {isExpanded ? t('admin_ai_config.custom_settings_open', '▲ Settings') : t('admin_ai_config.custom_settings_closed', '▼ Settings')}
                         </button>
                         <button
                             onClick={() => removeCustomTier(tier.id)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-500/20 transition-colors"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-500/20 transition-colors text-[var(--text-muted)]"
                             title={t('admin_ai_config.custom_delete_title', 'Delete tier')}
                         >✕</button>
                     </div>
@@ -84,7 +82,7 @@ export default function CustomTierCard({
                     />
 
                     <div className="mt-3">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 text-[var(--text-muted)]">
                             {t('admin_ai_config.custom_available_for', 'Available for')}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -111,9 +109,9 @@ export default function CustomTierCard({
                 </div>
 
                 {isExpanded && (
-                    <div className="px-4 pb-4 pt-1 border-t flex gap-4 flex-wrap" style={{ borderColor: 'var(--border-default)' }}>
+                    <div className="px-4 pb-4 pt-1 border-t flex gap-4 flex-wrap border-[var(--border-default)]">
                         <div className="flex-1 min-w-[180px]">
-                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_max_tokens', 'Max Tokens')}</label>
+                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_max_tokens', 'Max Tokens')}</label>
                             <input
                                 type="number"
                                 value={tier.maxTokens !== undefined ? tier.maxTokens : CUSTOM_TIER_DEFAULTS.maxTokens}
@@ -124,7 +122,7 @@ export default function CustomTierCard({
                             />
                         </div>
                         <div className="flex-1 min-w-[180px]">
-                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_temperature', 'Temperature')}</label>
+                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_temperature', 'Temperature')}</label>
                             <input
                                 type="number"
                                 value={tier.temperature !== undefined ? tier.temperature : CUSTOM_TIER_DEFAULTS.temperature}
@@ -136,7 +134,7 @@ export default function CustomTierCard({
                         </div>
                         {reasoningCapable(tier.modelId) && (
                             <div className="flex-1 min-w-[180px]">
-                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{isClaudeReasoning(tier.modelId) ? t('admin_ai_config.tier_thinking_effort', '🧠 Thinking Effort') : t('admin_ai_config.tier_reasoning_effort', '🧠 Reasoning Effort')}</label>
+                                <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{isClaudeReasoning(tier.modelId) ? t('admin_ai_config.tier_thinking_effort', '🧠 Thinking Effort') : t('admin_ai_config.tier_reasoning_effort', '🧠 Reasoning Effort')}</label>
                                 <select
                                     value={isGpt5Pro(tier.modelId)
                                         ? 'high'
@@ -184,7 +182,7 @@ export default function CustomTierCard({
                         )}
                         {isGpt5(tier.modelId) && (
                             <div className="flex-1 min-w-[180px]">
-                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_verbosity', '🗣️ Verbosity')}</label>
+                                <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_verbosity', '🗣️ Verbosity')}</label>
                                 <select
                                     value={tier.verbosity || 'medium'}
                                     onChange={e => updateCustomTier(tier.id, { verbosity: e.target.value })}
@@ -204,7 +202,7 @@ export default function CustomTierCard({
                             return (
                                 <div className="w-full flex gap-4 flex-wrap mt-2">
                                     <div className="flex-1 min-w-[260px]">
-                                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_thinking_mode', 'Thinking Mode')}</label>
+                                        <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_thinking_mode', 'Thinking Mode')}</label>
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => updateCustomTier(tier.id, { budgetTokens: undefined })}
@@ -229,7 +227,7 @@ export default function CustomTierCard({
                                                 {t('admin_ai_config.tier_extended', 'Extended (fixed budget)')}
                                             </button>
                                         </div>
-                                        <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                                        <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                             {mode === 'adaptive'
                                                 ? t('admin_ai_config.tier_adaptive_hint', 'Claude decides depth from Effort. Shares Max Tokens with output.')
                                                 : t('admin_ai_config.tier_extended_hint', 'Fixed thinking budget. Output is guaranteed (max tokens − budget).')}
@@ -237,7 +235,7 @@ export default function CustomTierCard({
                                     </div>
                                     {mode === 'extended' && (
                                         <div className="flex-1 min-w-[180px]">
-                                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_thinking_budget', 'Thinking Budget')}</label>
+                                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_thinking_budget', 'Thinking Budget')}</label>
                                             <input
                                                 type="number"
                                                 value={tier.budgetTokens || ''}
@@ -250,7 +248,7 @@ export default function CustomTierCard({
                                                 className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
                                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                             />
-                                            <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                                            <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                                 {t('admin_ai_config.tier_budget_hint', 'Tokens reserved for thinking. Must be < Max Tokens.')}
                                             </p>
                                         </div>
@@ -260,7 +258,7 @@ export default function CustomTierCard({
                         })()}
                         {isClaudeAdaptiveOnly(tier.modelId) && (
                             <div className="w-full mt-2">
-                                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-[11px] text-[var(--text-muted)]">
                                     {t('admin_ai_config.tier_adaptive_only', '{model} uses adaptive thinking only: the Effort dropdown controls how deep the model thinks. Manual thinking budgets and the temperature setting are not supported.', { model: getModelMeta(tier.modelId)?.name || t('admin_ai_config.tier_this_model', 'This model') })}
                                 </p>
                             </div>

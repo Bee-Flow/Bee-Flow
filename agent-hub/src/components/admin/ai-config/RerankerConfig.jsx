@@ -128,7 +128,7 @@ const RerankerConfig = ({ onMessage }) => {
 
             {/* Help + Actions */}
             <div className="flex items-center justify-between">
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs text-[var(--text-muted)]">
                     {t('admin_ai_config.rerank_deploy_from', 'Deploy from')} <a href="https://ai.azure.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">Azure AI Foundry</a> {t('admin_ai_config.rerank_deploy_path', '→ Model catalog → Cohere-rerank')}
                 </p>
                 <div className="flex gap-2 items-center">
@@ -152,8 +152,7 @@ const RerankerConfig = ({ onMessage }) => {
                     <button
                         onClick={handleSave}
                         disabled={saving || (!endpoint.trim() && !apiKey.trim() && model === savedModel)}
-                        className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {saving ? '...' : t('admin_ai_config.save', 'Save')}
                     </button>

@@ -13,7 +13,7 @@ export default function UpdatePolicySelector({ policy, busy = false, onChange })
 
     return (
         <div className="flex items-center gap-2 flex-wrap" data-testid="update-policy-selector" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
                 {t('modules.update_policy')}
             </span>
             <select

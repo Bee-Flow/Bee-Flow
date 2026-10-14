@@ -41,7 +41,7 @@ const ProbeResult = ({ result }) => {
                         </span>
                     ))}
                     {extra > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-[10px] px-1.5 py-0.5 text-[var(--text-muted)]">
                             {t('admin_ai_config.probe_more', '+{extra} more', { extra })}
                         </span>
                     )}

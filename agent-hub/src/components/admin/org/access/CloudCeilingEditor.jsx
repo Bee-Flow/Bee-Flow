@@ -100,7 +100,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                 <header className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Crown className="w-5 h-5" style={{ color: BLUE }} />
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_org.ceiling_cloud_title', 'Subscription plan')}</h2>
+                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.ceiling_cloud_title', 'Subscription plan')}</h2>
                     </div>
                     {message ? (
                         <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
@@ -113,7 +113,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                 </p>
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <label className="text-sm flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>{t('admin_org.ceiling_plan', 'Plan')}</label>
+                    <label className="text-sm flex-shrink-0 text-[var(--text-secondary)]">{t('admin_org.ceiling_plan', 'Plan')}</label>
                     <select
                         value={currentPlanId}
                         disabled={assigning}

@@ -128,8 +128,8 @@ const OrgLicenseSection = ({
                             <div className="rounded-2xl border px-5 py-4 flex items-start gap-3"
                                 style={{ borderColor: 'rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.06)' }}>
                                 <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgb(59,130,246)' }} />
-                                <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                                    <div className="font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>
+                                <div className="text-xs text-[var(--text-secondary)]">
+                                    <div className="font-semibold mb-0.5 text-[var(--text-primary)]">
                                         {t('license.server_override_title', 'Tier is managed server-wide')}
                                     </div>
                                     <div>

@@ -476,7 +476,7 @@ function AnnexQuestions({ questions, answers, hints, onAnswer, t }) {
                             <div className="text-[10px] text-[var(--text-tertiary)]">
                                 {ANNEX_III_ARTICLES[q.id]}
                                 {hints.has(q.id) && (
-                                    <span data-testid="ladder-annex-hint" className="ml-1.5" style={{ color: 'var(--text-secondary)' }}>
+                                    <span data-testid="ladder-annex-hint" className="ml-1.5 text-[var(--text-secondary)]">
                                         · {t('compliance.ladder_annex_mentioned', 'this automation’s wording mentions it')}
                                     </span>
                                 )}

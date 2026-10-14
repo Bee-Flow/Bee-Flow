@@ -16,8 +16,8 @@ export default function TitleModelSection({
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(245, 158, 11, 0.15)' }}>🏷️</div>
                     <div>
-                        <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_title_title', 'Title Generation Model')}</h3>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_title_title', 'Title Generation Model')}</h3>
+                        <p className="text-xs text-[var(--text-muted)]">
                             {t('admin_ai_config.tier_title_hint', 'Model used to name conversations: a tiny, tool-free call made after the second reply. Pick the cheapest, fastest model so a heavy Fast tier doesn\'t make titling expensive. Defaults to the Fast tier model when unset.')}
                         </p>
                     </div>
@@ -30,7 +30,7 @@ export default function TitleModelSection({
                 )}
 
                 <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                    <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                    <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide text-[var(--text-muted)]">
                         {t('admin_ai_config.tier_title_label', 'Title model')}
                     </label>
                     {(() => {
@@ -55,8 +55,7 @@ export default function TitleModelSection({
                 <button
                     onClick={() => saveTitleModel()}
                     disabled={titleModelSaving}
-                    className="mt-4 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="mt-4 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {titleModelSaving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_title_save', 'Save Title Model')}
                 </button>

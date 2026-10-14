@@ -125,7 +125,7 @@ export default function CmsBuilderShell({
     const showBackdrop = !isWide && (navOpen || inspectorOpen || !!aiDock);
 
     return (
-        <div className="h-full flex flex-col min-h-0" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex flex-col min-h-0 bg-[var(--bg-primary)]">
             {topBar}
             <div className="flex-1 min-h-0 flex flex-row relative">
                 {/* AI dock */}

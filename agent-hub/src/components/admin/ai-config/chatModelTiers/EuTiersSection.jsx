@@ -19,8 +19,8 @@ export default function EuTiersSection({
                 <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(0, 51, 153, 0.15)' }}>🇪🇺</div>
                     <div>
-                        <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.tier_eu_title', 'EU Chat Model Tiers')}</h3>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_eu_title', 'EU Chat Model Tiers')}</h3>
+                        <p className="text-xs text-[var(--text-muted)]">
                             {t('admin_ai_config.tier_eu_subtitle', 'EU-hosted models used when an organization has EU mode enabled in their Privacy Shield')}
                         </p>
                     </div>
@@ -55,11 +55,11 @@ export default function EuTiersSection({
 
                 {/* Custom tiers — EU model picker per tier. Only shown when any custom tier exists. */}
                 {customTiers.length > 0 && (
-                    <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--border-default)' }}>
-                        <h4 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                    <div className="mt-6 pt-6 border-t border-[var(--border-default)]">
+                        <h4 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">
                             {t('admin_ai_config.tier_eu_custom_title', 'Custom Tiers: EU override')}
                         </h4>
-                        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mb-3 text-[var(--text-muted)]">
                             {t('admin_ai_config.tier_eu_custom_hint', 'Pick an EU-hosted model for each custom tier. Used automatically when an organization has EU mode enabled.')}
                         </p>
                         <div className="space-y-4">
@@ -81,8 +81,7 @@ export default function EuTiersSection({
                 <button
                     onClick={saveEu}
                     disabled={euSaving}
-                    className="mt-6 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="mt-6 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {euSaving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_eu_save', 'Save EU Tier Configuration')}
                 </button>

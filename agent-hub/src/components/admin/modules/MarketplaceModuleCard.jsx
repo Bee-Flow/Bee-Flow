@@ -95,7 +95,7 @@ export default function MarketplaceModuleCard({
                         <Check className="w-3 h-3" /> {t('modules.badge_purchased')}
                     </span>
                 ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                         {priceLabel(t, module.pricing)}
                     </span>
                 )}
@@ -105,23 +105,23 @@ export default function MarketplaceModuleCard({
             <div className="flex items-start gap-3 mb-2 pr-24">
                 <ModuleIcon icon={module.icon} />
                 <div className="min-w-0">
-                    <h4 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    <h4 className="text-sm font-semibold truncate text-[var(--text-primary)]">
                         {module.name}
                     </h4>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         {module.category && (
-                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                                 {module.category}
                             </span>
                         )}
-                        <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                        <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                             <Globe className="w-3 h-3" /> {t('modules.badge_remote')}
                         </span>
                         {module.latestVersion && (
-                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>v{module.latestVersion}</span>
+                            <span className="text-xs text-[var(--text-muted)]">v{module.latestVersion}</span>
                         )}
                         {sideloaded && (
-                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }} data-testid={`sideloaded-${module.id}`}>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]" data-testid={`sideloaded-${module.id}`}>
                                 {t('modules.badge_sideloaded')}
                             </span>
                         )}
@@ -140,17 +140,17 @@ export default function MarketplaceModuleCard({
             </div>
 
             {/* Description */}
-            <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs leading-relaxed mb-3 text-[var(--text-secondary)]">
                 {module.description}
             </p>
 
             {/* Footer — one variant at a time */}
             <div className="mt-auto pt-1">
                 {installing ? (
-                    <div className="flex items-center gap-2 text-xs font-medium" style={{ color: 'var(--text-secondary)' }} data-testid={`install-progress-${module.id}`}>
+                    <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]" data-testid={`install-progress-${module.id}`}>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--accent-primary)' }} />
                         {t(PHASE_KEY[installProgress.phase] || 'modules.installing_download')}
-                        {typeof installProgress.pct === 'number' && <span style={{ color: 'var(--text-muted)' }}>{Math.round(installProgress.pct)}%</span>}
+                        {typeof installProgress.pct === 'number' && <span className="text-[var(--text-muted)]">{Math.round(installProgress.pct)}%</span>}
                     </div>
                 ) : quarantined ? (
                     <button
@@ -207,15 +207,14 @@ export default function MarketplaceModuleCard({
                     </button>
                 ) : awaiting ? (
                     <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }} data-testid={`awaiting-${module.id}`}>
+                        <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]" data-testid={`awaiting-${module.id}`}>
                             <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('modules.awaiting_payment')}
                         </span>
                         <div className="flex-1" />
                         <button
                             onClick={act(onPaidRefresh)}
                             disabled={busy}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 border"
-                            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 border bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-default)]"
                         >
                             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                             {t('modules.paid_refresh')}
@@ -235,7 +234,7 @@ export default function MarketplaceModuleCard({
 
                 {/* Update policy (channel + pin) — installed hub modules only */}
                 {module.installed && !sideloaded && !installing && onPolicyChange && (
-                    <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]">
                         <UpdatePolicySelector
                             policy={module.updatePolicy}
                             busy={policyBusy}

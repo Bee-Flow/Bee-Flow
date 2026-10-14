@@ -160,7 +160,7 @@ export default function AnalyticsPanel() {
 
     if (loading) {
         return (
-            <div className="h-full flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+            <div className="h-full flex items-center justify-center text-[var(--text-muted)]">
                 <Loader2 className="w-5 h-5 animate-spin" />
             </div>
         );

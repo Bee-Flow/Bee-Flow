@@ -38,8 +38,7 @@ export default function ConnectHubDialog({ mode = 'connect', licensed = true, bu
                     <button
                         onClick={onCancel}
                         disabled={busy}
-                        className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50"
-                        style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
+                        className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
                     >
                         {t('modules.cancel')}
                     </button>
@@ -58,7 +57,7 @@ export default function ConnectHubDialog({ mode = 'connect', licensed = true, bu
             }
         >
             <div className="space-y-3">
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{body}</p>
+                <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{body}</p>
                 {error && (
                     <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400">{error}</div>
                 )}
