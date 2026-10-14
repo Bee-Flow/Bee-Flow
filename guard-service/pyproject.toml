@@ -41,7 +41,7 @@ dependencies = [
   # and leaving it implicit means the resolver picks the default PyPI build
   # (CUDA, ~2.5 GB of nvidia-* wheels) for a service that runs CPU-only.
   # Same version the Dockerfile pins; the index below supplies the +cpu build.
-  "torch==2.14.0",
+  "torch==2.14.1",
 ]
 
 [dependency-groups]
