@@ -1,5 +1,5 @@
 import { useCallback, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, ApiError, mutate } from '../../../api/mutate';
 import type { WebpagePatch, WebpageRow } from '../webpageEditorTypes';
 
 interface PublishingDeps {
@@ -26,7 +26,7 @@ export default function useWebpagePublishing({ pageId, page, setPage, onMetaChan
 
     const callPublish = useCallback(async (nextPublished: boolean, nextSharedGroups?: string[], { republish = false } = {}) => {
         try {
-            const res = await authFetch(`${API_BASE}/api/webpages/${pageId}/publish`, {
+            const res = await mutate(`${API_BASE}/api/webpages/${pageId}/publish`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -34,11 +34,12 @@ export default function useWebpagePublishing({ pageId, page, setPage, onMetaChan
                     ...(nextSharedGroups !== undefined ? { sharedGroups: nextSharedGroups } : {}),
                     ...(republish ? { republish: true } : {}),
                 }),
+            }).catch((err: unknown) => {
+                if (!(err instanceof ApiError)) throw err;
+                // Keep this hook's own fallback text when the body names no error.
+                const data = err.body as { error?: string } | null;
+                throw new Error(data?.error || `Publish failed (${err.status})`);
             });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `Publish failed (${res.status})`);
-            }
             // The server answers with the version it actually pinned. Take it
             // from the response rather than assuming: a publish that could not
             // pin is a 500 above, and anything else would leave the header
