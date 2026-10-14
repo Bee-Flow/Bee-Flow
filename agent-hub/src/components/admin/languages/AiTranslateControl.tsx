@@ -15,7 +15,9 @@
 // renames these keys (thinking→"Think", writer→"Write", pro→"Deep Thinking"
 // with a different emoji), so reusing it would change the visible labels.
 
-import { AlertCircle, Check, Languages } from 'lucide-react';
+import { AlertCircle, Check } from 'lucide-react';
+import type { ReactNode } from 'react';
+import type { AiTranslateResult as AiTranslateResultData } from '../../../hooks/useAiTranslate';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 const TIER_OPTIONS = [
@@ -24,6 +26,19 @@ const TIER_OPTIONS = [
     { value: 'writer', label: '✍️ Writer' },
     { value: 'pro', label: '🔬 Pro' },
 ];
+
+interface AiTranslateControlProps {
+    tier: string;
+    onTierChange: (tier: string) => void;
+    onTranslate: () => void;
+    translating: boolean;
+    /** Untranslated count; 0 disables the button. */
+    missing?: number;
+    icon?: ReactNode;
+    gradient?: boolean;
+    showCount?: boolean;
+    className?: string;
+}
 
 export default function AiTranslateControl({
     tier,
@@ -35,7 +50,7 @@ export default function AiTranslateControl({
     gradient = true,
     showCount = true,
     className = 'flex items-center gap-1.5 shrink-0',
-}) {
+}: AiTranslateControlProps) {
     const { t } = useTranslation();
     return (
         <div className={className}>
@@ -67,7 +82,7 @@ export default function AiTranslateControl({
 // The status banner shown under the toolbar after a translate run. Renders
 // nothing until there is a result. `result` is `{ message }` on success or
 // `{ error }` on failure (see useAiTranslate).
-export function AiTranslateResult({ result }) {
+export function AiTranslateResult({ result }: { result: AiTranslateResultData | null }) {
     if (!result) return null;
     return (
         <div className="mb-3 px-3 py-2 rounded-lg text-xs flex items-center gap-2" style={{
