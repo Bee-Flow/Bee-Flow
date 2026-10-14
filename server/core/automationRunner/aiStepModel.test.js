@@ -84,7 +84,7 @@ function install(tag, ownerRe, mocks) {
     return { ownerRe, ids };
 }
 const INSTALLED = [
-    install('ai-step-exec', /automationRunner[\\/]execAi\.js$/, EXEC_AI_MOCKS),
+    install('ai-step-exec', /automationRunner[\\/](?:execAi|execIntegrationAction|integrationActionGates|aiStepGrounding)\.js$/, EXEC_AI_MOCKS),
     install('ai-step-route', /config[\\/]modelTiers\.js$/, ROUTE_MOCKS),
 ];
 const originalResolve = Module._resolveFilename;

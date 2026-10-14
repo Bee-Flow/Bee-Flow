@@ -59,6 +59,7 @@
 
 const express = require('express');
 const { z, typeError } = require('../../../utils/zod');
+const { worded } = require('../../../core/http/schemaParts');
 const log = require('../../../telemetry/log');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
@@ -112,7 +113,6 @@ const CONTROL_RE = /[\u0000-\u001f\u007f]/;
 
 // ── Request ─────────────────────────────────────────────────────────────────
 
-const worded = (message) => z.string({ error: message });
 const PARAM_TEXT = 'Each input is { key, type?, format?, title?, description?, required?, enum? }.';
 const SOURCE_TEXT = 'Each source is { root, label?, real?, sample }.';
 

@@ -18,7 +18,7 @@
 
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
-const { storeError } = require('../lib/managedParts');
+const { storeError } = require('../lib/storeError');
 const { stageLockSql } = require('./stages');
 
 const ACTIVE_STATUSES = Object.freeze(['queued', 'approved', 'preparing', 'committing', 'converging', 'compensating']);

@@ -15,8 +15,8 @@ _THREAD_CORES = apply_thread_env()
 
 import logging
 import threading
-from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -69,6 +69,7 @@ def _warm_pii_model() -> None:
         return
 
     import time
+
     from app.services.pii import get_pii_service
 
     svc = get_pii_service()
@@ -151,6 +152,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     )
     import os
+
     from app.cpu import cgroup_quota_cores
 
     logger.info(
@@ -266,12 +268,11 @@ async def health(response: Response) -> HealthResponse:
     from app.dependencies import get_redis
 
     cache_ok = False
-    try:
+    # Redis is an optional cache: any failure here just reads as cache_ok=False.
+    with suppress(Exception):
         redis = get_redis()
         await redis.ping()
         cache_ok = True
-    except Exception:
-        pass
 
     pii_ready, pii_state, backend, load_error = _pii_status()
 

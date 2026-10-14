@@ -37,11 +37,6 @@ meant when all of this was one file. What lives where:
 from __future__ import annotations
 
 import logging
-import threading  # noqa: F401
-import time  # noqa: F401
-from collections import Counter  # noqa: F401
-from concurrent.futures import ThreadPoolExecutor  # noqa: F401
-from typing import Optional  # noqa: F401
 
 logger = logging.getLogger("guard.pii")
 
@@ -51,49 +46,70 @@ logger = logging.getLogger("guard.pii")
 # name (``from app.services.pii import _pick_label``, ``_chunk_text``,
 # ``_PER_CATEGORY_THRESHOLD`` …), so this list is a contract, not a
 # convenience.
-from .categories import (  # noqa: F401
+from .cache import (
+    _CACHE_SCHEMA_VERSION,
+    _get_inference_semaphore,
+    _inference_semaphore,
+    reset_inference_semaphore,
+)
+from .categories import (
     ALL_CATEGORIES,
     CATEGORY_LABELS,
     GLINER_LABELS_TO_CATEGORY,
     STRUCTURED_CATEGORIES,
 )
-from .label_groups import (  # noqa: F401
+from .chunking import (
+    _CHUNK_CHAR_LIMIT,
+    _CHUNK_OVERLAP,
+    _CUSTOM_CHUNK_CHAR_LIMIT,
+    _FALLBACK_MAX_LEN,
+    _MIN_TEXT_TOKEN_BUDGET,
+    _PRETRIM_MARGIN_CHARS,
+    _TOKEN_BUDGET_SAFETY,
+    _chunk_text,
+    _chunk_text_chars,
+    _chunk_text_tokens,
+    _ChunkBudget,
+    _is_word_char,
+    _label_prompt_tokens,
+    _label_prompt_width,
+    _label_prompt_width_max,
+    _model_limits,
+    _snap_boundary,
+    _snap_start_to_word,
+    _supports_offsets,
+    _ThreadLocalTokenizer,
+    _token_index_at_char,
+)
+from .custom_labels import (
+    CUSTOM_SOURCE,
+    _CustomSpec,
+    custom_label_digest,
+)
+from .detection import ScanRequest
+from .fingerprint import (
+    _ENGINE_FP_STATIC,
+    _engine_fingerprint,
+    engine_fingerprint_digest,
+    reset_engine_fingerprint,
+)
+from .inference import _MODEL_BATCH_SIZE
+from .label_groups import (
     _LABEL_GROUPS,
     _grouped_categories,
     _label_group_digest,
     label_groups,
     use_label_groups,
 )
-from .thresholds import (  # noqa: F401
-    _ABSOLUTE_CEIL,
-    _ABSOLUTE_FLOOR,
-    _PER_CATEGORY_THRESHOLD,
-    _UI_DEFAULT_THRESHOLD,
-)
-from .ranking import (  # noqa: F401
-    _CATEGORY_PRECEDENCE,
-    _CONTEXT_SEPARABLE_SIBLINGS,
-    _SPECIFIC_OVER_GENERAL,
-    _SPECIFICITY_BAND,
-    _SPECIFICITY_MIN_COVERAGE,
-    _label_margin,
-    _pick_label,
-)
-from .scan_policy import (  # noqa: F401
-    TIER_MODES,
-    _TIER_SCAN_BUDGET_CHARS,
-    _effective_regions,
-    _scan_budget_chars,
-    configured_regions,
-    resolve_tier_mode,
-)
-from .noise import (  # noqa: F401
+from .model_loading import _DEFAULT_MAX_PREDICT_WORKERS
+from .noise import (
     _PERSON_ORG_STOPWORDS,
     _STOP_PARTICLES,
     _is_noise_person_org,
     _is_skippable,
 )
-from .postprocess import (  # noqa: F401
+from .overlaps import _finalise_custom
+from .postprocess import (
     _EXTENSION_SUFFIX_RE,
     _MIN_DIGITS_BY_CATEGORY,
     _OPAQUE_ID_RE,
@@ -106,56 +122,120 @@ from .postprocess import (  # noqa: F401
     _precision_filter,
     _re,
 )
-from .chunking import (  # noqa: F401
-    _CHUNK_CHAR_LIMIT,
-    _CHUNK_OVERLAP,
-    _CUSTOM_CHUNK_CHAR_LIMIT,
-    _ChunkBudget,
-    _FALLBACK_MAX_LEN,
-    _MIN_TEXT_TOKEN_BUDGET,
-    _PRETRIM_MARGIN_CHARS,
-    _TOKEN_BUDGET_SAFETY,
-    _ThreadLocalTokenizer,
-    _chunk_text,
-    _chunk_text_chars,
-    _chunk_text_tokens,
-    _is_word_char,
-    _label_prompt_tokens,
-    _label_prompt_width,
-    _label_prompt_width_max,
-    _model_limits,
-    _snap_boundary,
-    _snap_start_to_word,
-    _supports_offsets,
-    _token_index_at_char,
+from .probe import ProbeUnavailable
+from .ranking import (
+    _CATEGORY_PRECEDENCE,
+    _CONTEXT_SEPARABLE_SIBLINGS,
+    _SPECIFIC_OVER_GENERAL,
+    _SPECIFICITY_BAND,
+    _SPECIFICITY_MIN_COVERAGE,
+    _label_margin,
+    _pick_label,
 )
-from .inference import _MODEL_BATCH_SIZE  # noqa: F401
-from .model_loading import _DEFAULT_MAX_PREDICT_WORKERS  # noqa: F401
-from .custom_labels import (  # noqa: F401
-    CUSTOM_SOURCE,
-    _CustomSpec,
-    custom_label_digest,
+from .scan_policy import (
+    _TIER_SCAN_BUDGET_CHARS,
+    TIER_MODES,
+    _effective_regions,
+    _scan_budget_chars,
+    configured_regions,
+    resolve_tier_mode,
 )
-from .detection import ScanRequest  # noqa: F401
-from .overlaps import _finalise_custom  # noqa: F401
-from .fingerprint import (  # noqa: F401
-    _ENGINE_FP_STATIC,
-    _engine_fingerprint,
-    engine_fingerprint_digest,
-    reset_engine_fingerprint,
-)
-from .cache import (  # noqa: F401
-    _CACHE_SCHEMA_VERSION,
-    _get_inference_semaphore,
-    _inference_semaphore,
-    reset_inference_semaphore,
-)
-from .probe import ProbeUnavailable  # noqa: F401
-from .service import (  # noqa: F401
+from .service import (
     PiiService,
     _service,
     get_pii_service,
 )
+from .thresholds import (
+    _ABSOLUTE_CEIL,
+    _ABSOLUTE_FLOOR,
+    _PER_CATEGORY_THRESHOLD,
+    _UI_DEFAULT_THRESHOLD,
+)
+
+# The re-exports above, named so a linter sees them as the public surface.
+__all__ = [
+    "_CACHE_SCHEMA_VERSION",
+    "_get_inference_semaphore",
+    "_inference_semaphore",
+    "reset_inference_semaphore",
+    "ALL_CATEGORIES",
+    "CATEGORY_LABELS",
+    "GLINER_LABELS_TO_CATEGORY",
+    "STRUCTURED_CATEGORIES",
+    "_CHUNK_CHAR_LIMIT",
+    "_CHUNK_OVERLAP",
+    "_CUSTOM_CHUNK_CHAR_LIMIT",
+    "_FALLBACK_MAX_LEN",
+    "_MIN_TEXT_TOKEN_BUDGET",
+    "_PRETRIM_MARGIN_CHARS",
+    "_TOKEN_BUDGET_SAFETY",
+    "_chunk_text",
+    "_chunk_text_chars",
+    "_chunk_text_tokens",
+    "_ChunkBudget",
+    "_is_word_char",
+    "_label_prompt_tokens",
+    "_label_prompt_width",
+    "_label_prompt_width_max",
+    "_model_limits",
+    "_snap_boundary",
+    "_snap_start_to_word",
+    "_supports_offsets",
+    "_ThreadLocalTokenizer",
+    "_token_index_at_char",
+    "CUSTOM_SOURCE",
+    "_CustomSpec",
+    "custom_label_digest",
+    "ScanRequest",
+    "_ENGINE_FP_STATIC",
+    "_engine_fingerprint",
+    "engine_fingerprint_digest",
+    "reset_engine_fingerprint",
+    "_MODEL_BATCH_SIZE",
+    "_LABEL_GROUPS",
+    "_grouped_categories",
+    "_label_group_digest",
+    "label_groups",
+    "use_label_groups",
+    "_DEFAULT_MAX_PREDICT_WORKERS",
+    "_PERSON_ORG_STOPWORDS",
+    "_STOP_PARTICLES",
+    "_is_noise_person_org",
+    "_is_skippable",
+    "_finalise_custom",
+    "_EXTENSION_SUFFIX_RE",
+    "_MIN_DIGITS_BY_CATEGORY",
+    "_OPAQUE_ID_RE",
+    "_TIME_OF_DAY_RE",
+    "_TRAILING_PUNCT",
+    "_TUSSENVOEGSEL_TAIL_RE",
+    "_apply_validators",
+    "_is_opaque_identifier",
+    "_postprocess_entities",
+    "_precision_filter",
+    "_re",
+    "ProbeUnavailable",
+    "_CATEGORY_PRECEDENCE",
+    "_CONTEXT_SEPARABLE_SIBLINGS",
+    "_SPECIFIC_OVER_GENERAL",
+    "_SPECIFICITY_BAND",
+    "_SPECIFICITY_MIN_COVERAGE",
+    "_label_margin",
+    "_pick_label",
+    "_TIER_SCAN_BUDGET_CHARS",
+    "TIER_MODES",
+    "_effective_regions",
+    "_scan_budget_chars",
+    "configured_regions",
+    "resolve_tier_mode",
+    "PiiService",
+    "_service",
+    "get_pii_service",
+    "_ABSOLUTE_CEIL",
+    "_ABSOLUTE_FLOOR",
+    "_PER_CATEGORY_THRESHOLD",
+    "_UI_DEFAULT_THRESHOLD",
+]
 
 
 # ── Why there is no rebinding forwarder here any more ──────────────────

@@ -43,9 +43,8 @@ from app.services.disclosure.similarity import (
 
 # The wire models need pydantic; the decision logic above does not.
 try:
-    from pydantic import ValidationError
-
     from app.models import DisclosureRequest, DisclosureResponse
+    from pydantic import ValidationError
 
     _MODEL_IMPORT_ERROR: Exception | None = None
 except Exception as _exc:  # pragma: no cover - environment-dependent
@@ -55,10 +54,9 @@ except Exception as _exc:  # pragma: no cover - environment-dependent
 # The HTTP layer needs fastapi (router import) and httpx (TestClient); it skips
 # cleanly where they are absent, same as tests/test_request_contract.py.
 try:
+    from app.routers.disclosure import router as _disclosure_router
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-
-    from app.routers.disclosure import router as _disclosure_router
 
     _HTTP_IMPORT_ERROR: Exception | None = None
 except Exception as _exc:  # pragma: no cover - environment-dependent

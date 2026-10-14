@@ -128,9 +128,21 @@ async function createProject({ name } = {}) {
 async function getProject(siteId, { fresh = false } = {}) {
     assertSiteId(siteId);
     const read = fresh ? configStore.getConfigFresh : configStore.getConfig;
-    const v = await read(projectKey(siteId));
-    if (!isPlainObject(v)) return null;
+    const stored = await read(projectKey(siteId));
+    if (!isPlainObject(stored)) return null;
+    // getConfig hands back the replica's SHARED cached object. Migrate (and let
+    // callers edit) a private copy, so neither migrateSite's in-place upgrade
+    // nor an edit whose save then fails becomes what this replica serves next.
+    return migrateSite(structuredClone(stored));
+}
 
+/**
+ * The lazy, in-place upgrades of a stored SiteDoc to the current shape. Sync
+ * and side-effect free on anything but `v`, so it also runs inside
+ * mutateProject's locked read-modify-write.
+ * @param {any} v a private copy of the stored SiteDoc
+ */
+function migrateSite(v) {
     // Lazy v1 → v2 migration: pages used to auto-merge into the header
     // nav at render time. That merge was removed; without a one-shot
     // seed, existing live sites would lose their visible nav after the
@@ -214,7 +226,58 @@ async function getProject(siteId, { fresh = false } = {}) {
 async function setProject(siteId, site) {
     assertSiteId(siteId);
     if (!isPlainObject(site)) throw new Error('Site must be an object');
+    const sanitized = sanitizeSite(siteId, site);
+    await configStore.setConfig(projectKey(siteId), sanitized);
+    await touchProjectsIndexEntry(siteId, sanitized);
+    return sanitized;
+}
 
+/**
+ * Atomic read-modify-write of one SiteDoc: `mutator(site)` edits a fresh,
+ * migrated copy read under configStore.mutateConfig's cross-replica advisory
+ * lock, and the sanitized result is written in the same transaction. Every
+ * page-list operation goes through here, so two editors (or one replica with
+ * a stale cache) can no longer silently drop each other's page.
+ *
+ * The mutator must be synchronous and side-effect free (it runs inside the
+ * transaction); throwing aborts the write. Returns the saved site and
+ * whatever the mutator returned.
+ * @template T
+ * @param {string} siteId
+ * @param {(site: any) => T} mutator
+ * @returns {Promise<{ site: any, result: T }>}
+ */
+async function mutateProject(siteId, mutator) {
+    assertSiteId(siteId);
+    /** @type {any} */
+    let result;
+    const saved = await configStore.mutateConfig(projectKey(siteId), (cur) => {
+        if (!isPlainObject(cur)) throw new Error('Project not found');
+        const site = migrateSite(structuredClone(cur));
+        if (!Array.isArray(site.pages)) site.pages = [];
+        result = mutator(site);
+        return sanitizeSite(siteId, site);
+    });
+    await touchProjectsIndexEntry(siteId, saved);
+    return { site: saved, result };
+}
+
+// Touch the index so listProjects() reflects the new name + updatedAt.
+async function touchProjectsIndexEntry(siteId, sanitized) {
+    const index = await getProjectsIndex();
+    const entry = index.projects.find(p => p.id === siteId);
+    if (entry) {
+        entry.name = sanitized.name;
+        // Mirror versioning fields onto the index entry so listProjects()
+        // can build the version switcher without reading every SiteDoc.
+        entry.versionGroupId = sanitized.versionGroupId;
+        entry.versionName = sanitized.versionName;
+        entry.updatedAt = new Date().toISOString();
+        await setProjectsIndex(index);
+    }
+}
+
+function sanitizeSite(siteId, site) {
     const sanitized = {
         version: SITE_VERSION,
         id: siteId,
@@ -246,21 +309,6 @@ async function setProject(siteId, site) {
         ...p,
         isHomepage: p.id === sanitized.homepageId,
     }));
-
-    await configStore.setConfig(projectKey(siteId), sanitized);
-
-    // Touch the index so listProjects() reflects the new name + updatedAt.
-    const index = await getProjectsIndex();
-    const entry = index.projects.find(p => p.id === siteId);
-    if (entry) {
-        entry.name = sanitized.name;
-        // Mirror versioning fields onto the index entry so listProjects()
-        // can build the version switcher without reading every SiteDoc.
-        entry.versionGroupId = sanitized.versionGroupId;
-        entry.versionName = sanitized.versionName;
-        entry.updatedAt = new Date().toISOString();
-        await setProjectsIndex(index);
-    }
     return sanitized;
 }
 
@@ -284,10 +332,8 @@ async function deleteProject(siteId) {
 }
 
 async function renameProject(siteId, name) {
-    const site = await getProject(siteId);
-    if (!site) throw new Error('Project not found');
-    site.name = name;
-    return setProject(siteId, site);
+    const { site } = await mutateProject(siteId, (s) => { s.name = name; });
+    return site;
 }
 
 /**
@@ -475,13 +521,15 @@ function sanitizePageIndexEntry(entry) {
  * @param {{ slug?: string, title?: string, copyFromId?: string, templateId?: string }} [opts]
  */
 async function createPage(siteId, { slug, title, copyFromId, templateId } = {}) {
-    const site = await getProject(siteId);
+    // A fresh read to validate and plan the slug before the PageDoc is written;
+    // the authoritative slug is picked again under the lock below.
+    const site = await getProject(siteId, { fresh: true });
     if (!site) throw new Error('Project not found');
 
     const id = newId('pg');
     const baseSlug = normalizeSlug(slug || title || 'untitled') || 'untitled';
-    const finalSlug = ensureUniqueSlug(baseSlug, site.pages, null);
-    if (isReservedSlug(finalSlug)) throw new Error(`Slug "${finalSlug}" is reserved`);
+    const plannedSlug = ensureUniqueSlug(baseSlug, Array.isArray(site.pages) ? site.pages : [], null);
+    if (isReservedSlug(plannedSlug)) throw new Error(`Slug "${plannedSlug}" is reserved`);
 
     let page;
     if (copyFromId) {
@@ -490,7 +538,7 @@ async function createPage(siteId, { slug, title, copyFromId, templateId } = {}) 
         page = {
             ...clone(source),
             id,
-            slug: finalSlug,
+            slug: plannedSlug,
             title: title || `${source.title} (copy)`,
             blocks: source.blocks.map(b => ({ ...clone(b), id: newId('blk') })),
         };
@@ -499,24 +547,33 @@ async function createPage(siteId, { slug, title, copyFromId, templateId } = {}) 
         // with fresh ids, so we can drop them straight onto an empty page.
         const blocks = await applyTemplate(templateId);
         page = {
-            ...emptyPage({ id, slug: finalSlug, title: title || finalSlug }),
+            ...emptyPage({ id, slug: plannedSlug, title: title || plannedSlug }),
             blocks,
         };
     } else {
-        page = emptyPage({ id, slug: finalSlug, title: title || finalSlug });
+        page = emptyPage({ id, slug: plannedSlug, title: title || plannedSlug });
     }
     await setPage(siteId, page);
 
     // New pages are NOT auto-added to the header nav. The user adds nav
     // items explicitly via Site chrome → Nav links and picks "Internal
     // page" if they want this page to appear there.
-    site.pages.push({
-        id, slug: finalSlug, title: page.title,
-        isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false,
+    const { result: savedSlug } = await mutateProject(siteId, (s) => {
+        // Another editor may have taken the planned slug in the meantime.
+        const lockedSlug = ensureUniqueSlug(baseSlug, s.pages, null);
+        if (isReservedSlug(lockedSlug)) throw new Error(`Slug "${lockedSlug}" is reserved`);
+        s.pages.push({
+            id, slug: lockedSlug, title: page.title,
+            isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false,
+        });
+        if (!s.homepageId) s.homepageId = id;
+        return lockedSlug;
     });
-    if (!site.homepageId) site.homepageId = id;
-    await setProject(siteId, site);
-    return { id, slug: finalSlug };
+    if (savedSlug !== page.slug) {
+        page.slug = savedSlug;
+        await setPage(siteId, page);
+    }
+    return { id, slug: savedSlug };
 }
 
 function ensureUniqueSlug(slug, pages, ignoreId) {
@@ -529,58 +586,57 @@ function ensureUniqueSlug(slug, pages, ignoreId) {
 }
 
 async function updatePageMeta(siteId, pageId, patch = {}) {
-    const site = await getProject(siteId);
-    if (!site) throw new Error('Project not found');
-    const idx = site.pages.findIndex(p => p.id === pageId);
-    if (idx < 0) throw new Error('Page not found');
-    const current = site.pages[idx];
+    const { result: current } = await mutateProject(siteId, (site) => {
+        const idx = site.pages.findIndex(p => p.id === pageId);
+        if (idx < 0) throw new Error('Page not found');
+        const entry = site.pages[idx];
 
-    if (patch.slug !== undefined) {
-        const next = normalizeSlug(patch.slug) || current.slug;
-        if (isReservedSlug(next)) throw new Error(`Slug "${next}" is reserved`);
-        current.slug = ensureUniqueSlug(next, site.pages, pageId);
-    }
-    if (typeof patch.title === 'string') current.title = patch.title;
-    if (typeof patch.hideHeader === 'boolean') current.hideHeader = patch.hideHeader;
-    if (typeof patch.hideFooter === 'boolean') current.hideFooter = patch.hideFooter;
-    if (typeof patch.noAnalytics === 'boolean') current.noAnalytics = patch.noAnalytics;
-    if (typeof patch.isNotFound === 'boolean') current.isNotFound = patch.isNotFound;
-    // showInNav / navOrder removed — pages don't drive the nav anymore.
+        if (patch.slug !== undefined) {
+            const next = normalizeSlug(patch.slug) || entry.slug;
+            if (isReservedSlug(next)) throw new Error(`Slug "${next}" is reserved`);
+            entry.slug = ensureUniqueSlug(next, site.pages, pageId);
+        }
+        if (typeof patch.title === 'string') entry.title = patch.title;
+        if (typeof patch.hideHeader === 'boolean') entry.hideHeader = patch.hideHeader;
+        if (typeof patch.hideFooter === 'boolean') entry.hideFooter = patch.hideFooter;
+        if (typeof patch.noAnalytics === 'boolean') entry.noAnalytics = patch.noAnalytics;
+        if (typeof patch.isNotFound === 'boolean') entry.isNotFound = patch.isNotFound;
+        // showInNav / navOrder removed — pages don't drive the nav anymore.
 
-    site.pages[idx] = current;
+        site.pages[idx] = entry;
+        return entry;
+    });
 
+    // The PageDoc mirrors the slug/title the locked write settled on.
     const page = await getPage(siteId, pageId);
     if (page) {
         if (patch.slug  !== undefined) page.slug  = current.slug;
         if (patch.title !== undefined) page.title = current.title;
         await setPage(siteId, page);
     }
-    await setProject(siteId, site);
     return current;
 }
 
 async function setHomepage(siteId, pageId) {
-    const site = await getProject(siteId);
-    if (!site) throw new Error('Project not found');
-    if (!site.pages.find(p => p.id === pageId)) throw new Error('Page not found');
-    site.homepageId = pageId;
-    await setProject(siteId, site);
+    await mutateProject(siteId, (site) => {
+        if (!site.pages.find(p => p.id === pageId)) throw new Error('Page not found');
+        site.homepageId = pageId;
+    });
 }
 
 async function reorderPages(siteId, orderedIds) {
-    const site = await getProject(siteId);
-    if (!site) throw new Error('Project not found');
-    const byId = new Map(site.pages.map(p => [p.id, p]));
-    const next = [];
-    for (const id of orderedIds) {
-        if (byId.has(id)) {
-            next.push(byId.get(id));
-            byId.delete(id);
+    await mutateProject(siteId, (site) => {
+        const byId = new Map(site.pages.map(p => [p.id, p]));
+        const next = [];
+        for (const id of orderedIds) {
+            if (byId.has(id)) {
+                next.push(byId.get(id));
+                byId.delete(id);
+            }
         }
-    }
-    for (const p of site.pages) if (byId.has(p.id)) next.push(p);
-    site.pages = next;
-    await setProject(siteId, site);
+        for (const p of site.pages) if (byId.has(p.id)) next.push(p);
+        site.pages = next;
+    });
 }
 
 // Recursively walk a site-chrome subtree (header/footer) and strip any
@@ -616,13 +672,12 @@ function stripPageRefsToDeleted(node, deletedPageId) {
 }
 
 async function removePage(siteId, pageId) {
-    const site = await getProject(siteId);
-    if (!site) throw new Error('Project not found');
-    site.pages = site.pages.filter(p => p.id !== pageId);
-    if (site.homepageId === pageId) site.homepageId = site.pages[0]?.id || null;
-    if (isPlainObject(site.header)) site.header = stripPageRefsToDeleted(site.header, pageId);
-    if (isPlainObject(site.footer)) site.footer = stripPageRefsToDeleted(site.footer, pageId);
-    await setProject(siteId, site);
+    await mutateProject(siteId, (site) => {
+        site.pages = site.pages.filter(p => p.id !== pageId);
+        if (site.homepageId === pageId) site.homepageId = site.pages[0]?.id || null;
+        if (isPlainObject(site.header)) site.header = stripPageRefsToDeleted(site.header, pageId);
+        if (isPlainObject(site.footer)) site.footer = stripPageRefsToDeleted(site.footer, pageId);
+    });
     await deletePage(siteId, pageId);
 }
 
@@ -630,7 +685,7 @@ module.exports = {
     // projects index
     getProjectsIndex, setProjectsIndex, mutateProjectsIndex, listProjects,
     // project CRUD
-    emptySite, createProject, getProject, setProject,
+    emptySite, createProject, getProject, setProject, mutateProject,
     deleteProject, renameProject, duplicateProject, sanitizePageIndexEntry,
     // page-list operations
     createPage, ensureUniqueSlug, updatePageMeta, setHomepage, reorderPages, removePage,

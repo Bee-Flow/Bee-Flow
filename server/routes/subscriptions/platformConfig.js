@@ -10,6 +10,7 @@ const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 const router = express.Router();
 
@@ -25,9 +26,6 @@ const router = express.Router();
 // The currency-rates body is the opposite case and stays deliberately open:
 // its keys ARE the data (one per ISO currency code), so it is a record with a
 // validated key shape rather than a fixed field list.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A plan slot: a plan id, or empty/null to clear it. */
 const PLAN_SLOT_TEXT = 'A trial plan is the id of a plan, or empty to offer none.';

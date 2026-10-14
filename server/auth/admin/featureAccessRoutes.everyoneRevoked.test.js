@@ -20,7 +20,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const { makeSwaps } = require('../../testUtils/swaps');
 
 const db = h.recordDb();
@@ -41,7 +41,7 @@ const api = h.serve('/', router, { user: { id: 'root', role: 'admin', organizati
 const CAPS = [
     { id: 'notebooks', kind: 'core', userFacing: true, groupTogglable: true },
     { id: 'projects', kind: 'core', userFacing: true, groupTogglable: true },
-    { id: 'component_designer', kind: 'core', userFacing: true, groupTogglable: true },
+    { id: 'x_out_of_menu', kind: 'core', userFacing: true, groupTogglable: true },
     { id: 'audit', kind: 'core', userFacing: false, groupTogglable: false },
     { id: 'webpages', kind: 'beta', userFacing: true, groupTogglable: true, groupScoped: false },
     { id: 'swarm', kind: 'beta', userFacing: true, groupTogglable: true, groupScoped: false },
@@ -52,7 +52,7 @@ const CAPS = [
 const state = {};
 function reset() {
     state.mode = 'self-hosted';
-    // component_designer is outside the org's access menu; swarm is a beta the
+    // x_out_of_menu is outside the org's access menu; swarm is a beta the
     // menu does not hold either.
     state.bound = {
         core: ['notebooks', 'projects', 'audit'],
@@ -117,16 +117,16 @@ test('a save that includes projects again removes it from the list', async () =>
 });
 
 test('ids outside the org bound are carried over, not decided by the save', async () => {
-    // component_designer and swarm are outside the menu: the admin could not see
+    // x_out_of_menu and swarm are outside the menu: the admin could not see
     // them, so a save neither revokes nor restores them.
-    state.revoked = ['component_designer', 'swarm', 'projects'];
+    state.revoked = ['x_out_of_menu', 'swarm', 'projects'];
     const res = await save(['notebooks', 'projects', 'webpages']);
     assert.strictEqual(res.status, 200, res.text);
-    assert.deepStrictEqual(written('setOrgEveryoneRevoked'), [['orgA', ['component_designer', 'swarm']]]);
+    assert.deepStrictEqual(written('setOrgEveryoneRevoked'), [['orgA', ['x_out_of_menu', 'swarm']]]);
 });
 
 test('an outside-the-bound id sent in the body does not get decided either', async () => {
-    const res = await save(['notebooks', 'projects', 'webpages', 'swarm', 'component_designer']);
+    const res = await save(['notebooks', 'projects', 'webpages', 'swarm', 'x_out_of_menu']);
     assert.strictEqual(res.status, 200, res.text);
     assert.deepStrictEqual(written('setOrgEveryoneRevoked'), [['orgA', []]]);
 });

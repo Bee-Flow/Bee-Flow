@@ -98,7 +98,7 @@ test('tampered tokens are rejected', () => {
 // file and therefore agree even WITHOUT the fix, so the naive version of the
 // "two pods" test passes on the bug.
 
-/** require.cache stub, same trick as routes/automation/formPublic.test.js. */
+/** require.cache stub, same trick as routes/automation/formPublic/formPublic.testkit.js. */
 function mock(absId, exports) {
     const p = require.resolve(absId);
     const m = new Module(p);

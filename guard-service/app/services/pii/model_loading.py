@@ -13,18 +13,19 @@ import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 
 from .chunking import (
     _CHUNK_CHAR_LIMIT,
     _FALLBACK_MAX_LEN,
     _MIN_TEXT_TOKEN_BUDGET,
-    _ThreadLocalTokenizer,
     _TOKEN_BUDGET_SAFETY,
     _label_prompt_tokens,
     _label_prompt_width_max,
     _model_limits,
     _overlap_tokens_for,
     _supports_offsets,
+    _ThreadLocalTokenizer,
 )
 from .inference import _MODEL_BATCH_SIZE
 from .label_groups import label_groups
@@ -68,8 +69,10 @@ class _ModelLoading:
                 return
 
             import os
-            from app.config import settings
+
             from gliner import GLiNER
+
+            from app.config import settings
 
             onnx_path = os.path.join(settings.pii_onnx_dir, settings.pii_onnx_file)
             use_onnx = settings.pii_use_onnx and os.path.isfile(onnx_path)
@@ -141,13 +144,11 @@ class _ModelLoading:
                         local_files_only=True,
                     )
                 else:
-                    try:
+                    with suppress(Exception):
                         import torch
 
                         torch.set_num_threads(cpu_count)
                         torch.set_num_interop_threads(1)
-                    except Exception:
-                        pass
                     source = settings.pii_onnx_dir if local_fp32 else model_id
                     logger.info(
                         "[PiiService] Loading PyTorch GLiNER fp32 from %s on CPU (%d threads) …",

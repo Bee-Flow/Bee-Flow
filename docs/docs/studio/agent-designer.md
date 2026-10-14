@@ -110,5 +110,4 @@ Each agent has its own memory store keyed by `(agentId, userId)`. The Memory Ext
 
 - [Agent wizard](agent-wizard.md) — guided creation flow.
 - [Skills](skills.md) — reusable methods you attach to an agent.
-- [Components](components.md) — pair with custom UI components.
 - [Features → Chat & agents](../features/chat.md) — how the runtime uses these settings.

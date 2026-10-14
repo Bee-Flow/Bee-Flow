@@ -1,6 +1,6 @@
 /**
- * Workflow execution over HTTP: run a workflow graph, test one component, run
- * a workflow as a subworkflow.
+ * Workflow execution over HTTP: run a workflow graph, run a workflow as a
+ * subworkflow.
  *
  * ── What a caller may send ──────────────────────────────────────────
  *
@@ -8,9 +8,7 @@
  * what is recorded, and each was dropped without a word when misspelled —
  * `workflowID` ran the graph with NO execution record (executionId: null),
  * and `input` in place of `inputData` ran the subworkflow on `{}` and
- * answered `success: true`. A test run's `inputs` given as text or a list
- * was spread character by character into `{ 0: …, 1: … }` and handed to the
- * component as its input values.
+ * answered `success: true`.
  *
  * The graph itself stays OPEN inside — its nodes and edges are the engine's
  * contract (executionEngine reads them), not this route's. The schema asks
@@ -20,8 +18,8 @@
 
 const express = require('express');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const executionEngine = require('../core/executionEngine');
-const componentManager = require('../core/cms/componentManager');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 
@@ -29,9 +27,6 @@ const router = express.Router();
 
 const { getUserAuth } = require('../utils/routeHelpers');
 const { requireAuth } = require('../auth');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const WORKFLOW_TEXT = 'workflow is the graph to run: { nodes: [...], edges: [...] }.';
 const Graph = z.object({
@@ -46,13 +41,6 @@ const ExecuteBody = z.object({
     workflowName: worded('workflowName is text.').optional(),
 }, { error: typeError({ required: WORKFLOW_TEXT, invalid: WORKFLOW_TEXT }) }).strict();
 
-const COMPONENT_TEXT = 'componentId is required';
-const INPUTS_TEXT = 'inputs is an object of input values, like { "input": "hello" }.';
-const TestComponentBody = z.object({
-    componentId: worded(COMPONENT_TEXT).trim().min(1, COMPONENT_TEXT),
-    inputs: z.record(z.string(), z.unknown(), { error: typeError({ invalid: INPUTS_TEXT }) }).nullish(),
-}, { error: typeError({ required: COMPONENT_TEXT, invalid: COMPONENT_TEXT }) }).strict();
-
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const SubworkflowBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     // What the subworkflow ENTERS with — its trigger's contract, not this route's.
@@ -60,7 +48,7 @@ const SubworkflowBody = z.preprocess((v) => (v === undefined || v === null ? {} 
     callerId: worded('callerId is text.').trim().max(200, 'callerId is at most 200 characters.').optional(),
 }).strict());
 
-// Execute a workflow. Inline requireAuth (same idiom as routes/ai/agentChat.js):
+// Execute a workflow. Inline requireAuth:
 // this runs caller-supplied workflow JSON through components that reach the
 // network and the caller's stored credentials, so it must never be reachable
 // anonymously.
@@ -99,37 +87,6 @@ router.post('/execute', requireAuth, validate({ body: ExecuteBody }), async (req
 
         next(error);
     }
-});
-
-// Test a single component with sample inputs — the Component Studio's test
-// runner. Component execution, so gated like POST /execute.
-router.post('/test-component', requireAuth, validate({ body: TestComponentBody }), async (req, res) => {
-    const { componentId, inputs } = req.body;
-
-    const components = componentManager.getComponents();
-    const component = components.find(c => c.id === componentId);
-
-    if (!component) {
-        return res.status(404).json({ error: `Component '${componentId}' not found` });
-    }
-
-    const userAuth = await getUserAuth(req);
-
-    const testWorkflow = {
-        nodes: [{
-            id: 'test-node',
-            type: 'custom',
-            data: {
-                componentId: componentId,
-                inputValues: inputs || {}
-            }
-        }],
-        edges: []
-    };
-
-    const result = await executionEngine.executeWorkflow(testWorkflow, userAuth);
-    const nodeResult = result['test-node'];
-    res.json(nodeResult || { output: 'No output' });
 });
 
 // Execute a workflow as a subworkflow over HTTP. Workflow-to-workflow and

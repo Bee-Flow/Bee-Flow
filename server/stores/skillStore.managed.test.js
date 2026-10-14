@@ -35,7 +35,7 @@ const projectStore = require('./projectStore');
 const solutionStageStore = require('./solutionStageStore');
 const skillStore = require('./skillStore');
 const userStore = require('./userStore');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 
 const { swap, restore } = makeSwaps();
 

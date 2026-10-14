@@ -46,6 +46,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const stableJson = require('../../utils/stableJson');
 const queryCompiler = require('../../core/dataEngine/queryCompiler');
 const personal = require('../../core/privacy/personalColumns');
 const { toDollarParams } = require('../../stores/lib/pgAppEngine');
@@ -67,11 +68,7 @@ const ALL_ROWS = Object.freeze({ where: 'TRUE', params: [] });
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 function stableStringify(value) {
-    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-    if (isObj(value)) {
-        return `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
-    }
-    return JSON.stringify(value === undefined ? null : value);
+    return stableJson.stableStringify(value);
 }
 
 /** Fields that hold a stored value a row writer may set. */

@@ -48,7 +48,6 @@ the canonical copy and is designed to outlive ``pii_regex.py``.
 from __future__ import annotations
 
 import ipaddress
-from typing import Optional
 
 # Confidence a span is raised to when arithmetic confirms it. Deliberately NOT
 # 1.0 or 0.99: _finalise must still be able to prefer a MORE SPECIFIC validated
@@ -66,7 +65,7 @@ def is_valid_bsn(digits: str) -> bool:
     if not (len(digits) == 9 and digits.isdigit()):
         return False
     weights = (9, 8, 7, 6, 5, 4, 3, 2, -1)
-    total = sum(w * int(d) for w, d in zip(weights, digits))
+    total = sum(w * int(d) for w, d in zip(weights, digits, strict=False))
     return total != 0 and total % 11 == 0
 
 
@@ -190,7 +189,7 @@ def is_valid_pl_pesel(candidate: str) -> bool:
     if len(d) != 11:
         return False
     weights = (1, 3, 7, 9, 1, 3, 7, 9, 1, 3)
-    total = sum(w * int(x) for w, x in zip(weights, d))
+    total = sum(w * int(x) for w, x in zip(weights, d, strict=False))
     return (10 - total % 10) % 10 == int(d[10])
 
 
@@ -218,7 +217,7 @@ def is_valid_at_svnr(candidate: str) -> bool:
     if len(d) != 10:
         return False
     weights = (3, 7, 9, 0, 5, 8, 4, 2, 1, 6)
-    total = sum(w * int(x) for w, x in zip(weights, d)) % 11
+    total = sum(w * int(x) for w, x in zip(weights, d, strict=False)) % 11
     return total != 10 and total == int(d[3])
 
 
@@ -227,10 +226,10 @@ def is_valid_uk_nhs(candidate: str) -> bool:
     d = "".join(c for c in candidate if c.isdigit())
     if len(d) != 10:
         return False
-    return sum(int(x) * w for x, w in zip(d, range(10, 0, -1))) % 11 == 0
+    return sum(int(x) * w for x, w in zip(d, range(10, 0, -1), strict=False)) % 11 == 0
 
 
-def _validate_health_insurance(span_text: str) -> Optional[bool]:
+def _validate_health_insurance(span_text: str) -> bool | None:
     """Confirm a UK NHS number; no opinion on anything else.
 
     Confirming only, and the asymmetry matters more here than elsewhere: a Dutch
@@ -246,7 +245,7 @@ def _validate_health_insurance(span_text: str) -> Optional[bool]:
     return None
 
 
-def _validate_national_id(span_text: str) -> Optional[bool]:  # noqa: C901, PLR0911
+def _validate_national_id(span_text: str) -> bool | None:  # noqa: C901, PLR0911
     """Shape-gated national-ID checksums, confirming only — never refuting.
 
     Used to be NL-only, with a comment explaining why non-NL identifiers had to
@@ -299,7 +298,7 @@ def _validate_national_id(span_text: str) -> Optional[bool]:  # noqa: C901, PLR0
     return None
 
 
-def _validate_iban(span_text: str) -> Optional[bool]:
+def _validate_iban(span_text: str) -> bool | None:
     s = span_text.strip()
     # An IBAN is CC + 2 check digits + up to 30 alnum. Anything else is not a
     # malformed IBAN, it is a different thing the model happened to label IBAN,
@@ -310,14 +309,14 @@ def _validate_iban(span_text: str) -> Optional[bool]:
     return is_valid_iban(compact)
 
 
-def _validate_card(span_text: str) -> Optional[bool]:
+def _validate_card(span_text: str) -> bool | None:
     digits = [c for c in span_text if c.isdigit()]
     if not (13 <= len(digits) <= 19):
         return None
     return is_valid_luhn(span_text)
 
 
-def _validate_ip(span_text: str) -> Optional[bool]:
+def _validate_ip(span_text: str) -> bool | None:
     s = span_text.strip()
     # A network or endpoint notation is not a bare address, and arithmetic has
     # no standing to refute it: `2001:db8::/32` and `[2001:db8::1]:443` are
@@ -339,7 +338,7 @@ def _validate_ip(span_text: str) -> Optional[bool]:
     return None  # neither shape — arithmetic has no opinion
 
 
-def _validate_ssn(span_text: str) -> Optional[bool]:
+def _validate_ssn(span_text: str) -> bool | None:
     s = span_text.strip()
     if len(s) != 11 or s[3] != "-" or s[6] != "-":
         return None
@@ -360,7 +359,7 @@ _VALIDATORS = {
 VALIDATED_CATEGORIES = frozenset(_VALIDATORS)
 
 
-def validate(category: str, text: str) -> Optional[bool]:
+def validate(category: str, text: str) -> bool | None:
     """Does *text* satisfy *category*'s checksum?
 
     Returns True (confirmed), False (refuted), or None (no opinion — either the

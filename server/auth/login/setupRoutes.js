@@ -17,9 +17,7 @@ const { MIN_PASSWORD_LENGTH, validatePasswordAsync } = require('../passwordPolic
 const signupCaptcha = require('../signupCaptcha');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 const PASSWORD_TEXT = 'Choose a password for the operator account.';
 // Only the password, and it must be a string: the policy check below reads

@@ -57,9 +57,7 @@ async function ensureUserRow(userId) {
 // Current MFA state for the security settings UI.
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../core/http/schemaParts');
 
 /**
  * `force` means "throw away the secret I am already showing and mint a new
@@ -346,9 +344,8 @@ router.post('/assist', requireAuth, MFA_ASSIST_LIMITER, validate({ body: AssistB
         conversationHistory.push({ role: 'user', content: question });
 
         // One-shot, TOOL-LESS completion via llmClient.chat. Deliberately NOT
-        // the aiAgent._chatLoop path: that loop always attaches the component
-        // SYSTEM_TOOLS (execute_component etc.), which a help assistant on the
-        // 2FA screen must never be able to invoke. Lazy requires: don't pull
+        // an agent chat loop: that path attaches component tools, which a
+        // help assistant on the 2FA screen must never be able to invoke. Lazy requires: don't pull
         // the LLM stack into every auth boot.
         const { getAIConfig } = require('../core/aiAgent');
         const llmClient = require('../core/llm/llmClient');

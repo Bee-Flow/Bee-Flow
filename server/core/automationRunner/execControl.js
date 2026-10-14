@@ -16,7 +16,7 @@ const { createRuleMissCounter } = require('./ruleMisses');
 const {
     RETURN_TO_APP_REFRESH_MODES, RETURN_TO_APP_ON_ERROR_MODES, RETURN_TO_APP_TOAST_TONES,
     RETURN_TO_APP_MAX_TOAST_CHARS, RETURN_TO_APP_MAX_RECORD_REF_CHARS,
-} = require('../../automation/validate/constants');
+} = require('../automationModel/constants');
 
 async function execCondition(step, ctx, runState) {
     let v = false;
@@ -104,7 +104,7 @@ async function execWait(step, ctx, runState, mode) {
  * normal error path and surfaces in run history.
  */
 async function execStopError(step, ctx, runState) {
-    const msg = require('../../automation/bind').interpolateTemplate(step.message || 'Stopped by stop_error step', runState);
+    const msg = require('../automationModel/bind').interpolateTemplate(step.message || 'Stopped by stop_error step', runState);
     throw new Error(msg);
 }
 
@@ -138,7 +138,7 @@ async function execStopError(step, ctx, runState) {
  * mag niet vanzelf mee de browser in reizen.
  */
 async function execReturnToApp(step, ctx, runState) {
-    const { interpolateTemplate } = require('../../automation/bind');
+    const { interpolateTemplate } = require('../automationModel/bind');
     const ignored = [];
     const drop = (field, reason) => {
         ignored.push({ field, reason });

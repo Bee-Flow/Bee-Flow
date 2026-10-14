@@ -34,7 +34,7 @@ The full feature × tier matrix lives in [Licensing → Tiers](../licensing/tier
 
 Community installs get the whole product:
 
-- **Workflows** — Automations, scheduled agent runs, the Component Designer, the Skills marketplace.
+- **Workflows** — Automations, scheduled agent runs, the Skills marketplace.
 - **Conversation** — Push-to-talk voice, voice call, meeting-notes transcription.
 - **Knowledge** — Knowledge Bases and Webpage creation.
 - **Integrations** — Every Nextcloud-bridge feature, all 30+ tool integrations, OAuth-write Nextcloud access.

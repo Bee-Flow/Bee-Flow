@@ -243,7 +243,7 @@ const REPORTS = Object.freeze({
 });
 
 // Dimensions a caller may filter on — mirrors Umami's own filter vocabulary.
-// Resolved lazily rather than spread at module load: routes/cms.public.test.js
+// Resolved lazily rather than spread at module load: routes/cmsPublicSite.test.js
 // stubs umamiClient with a partial object, and a load-time spread would make
 // merely importing this router throw.
 const metricTypes = () => umamiClient.METRIC_TYPES || [];
@@ -817,7 +817,7 @@ const SettingsBody = bodyOf({
     recorder: closedObject({
         sampleRate: z.number({ error: typeError({ invalid: 'recorder.sampleRate is a number above 0, at most 1.' }) })
             .gt(0, 'recorder.sampleRate is a number above 0, at most 1.').lte(1, 'recorder.sampleRate is a number above 0, at most 1.').optional(),
-        // Read when a request arrives: routes/cms.public.test.js stubs
+        // Read when a request arrives: routes/cmsPublicSite.test.js stubs
         // umamiClient with a partial object (see metricTypes below).
         maskLevel: aText('recorder.maskLevel is a mask level, like strict.', 40)
             .refine((v) => (umamiClient.MASK_LEVELS || []).includes(v), 'recorder.maskLevel is strict or moderate.').optional(),

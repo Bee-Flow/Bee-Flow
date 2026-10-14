@@ -131,7 +131,7 @@ test('xls and ods parse through the same reader, dates included', async () => {
         assert.equal(sheets[0].name, 'Blad1', bookType);
     }
     // the smallest ODS this product itself writes (no styles.xml) reads too
-    const { buildSpreadsheet } = require('../../../../../integrations/officegen');
+    const { buildSpreadsheet } = require('../../../../documents/office/officegen');
     const { buffer } = await buildSpreadsheet({ matrix: [['a', 'b'], [1, 'x']], sheetName: 'Blad1', format: 'ods' });
     const r = await sheetjs.readSheet(buffer, { format: 'ods', headerRow: 1, maxRows: 10, maxCols: 10 });
     assert.deepEqual(r.rows, [[1, 'x']]);

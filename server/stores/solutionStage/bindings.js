@@ -16,7 +16,7 @@
 
 'use strict';
 
-const { storeError } = require('../lib/managedParts');
+const { storeError } = require('../lib/storeError');
 
 const BINDING_KINDS = Object.freeze(['connection', 'approver_seats', 'table', 'knowledge_base',
     'webpage_slug', 'mirror_source', 'integration_grant', 'document']);

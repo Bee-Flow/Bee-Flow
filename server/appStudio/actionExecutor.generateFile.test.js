@@ -75,7 +75,7 @@ stub('./mailboxAttachments', {
 
 const actionExecutor = require('./actionExecutor');
 const { EICAR } = require('../middleware/uploadGuard'); // REAL scanBuffer's own test string
-const { CONTENT_TYPES } = require('../integrations/officegen');
+const { CONTENT_TYPES } = require('../core/documents/office/officegen');
 
 const OWNER = 'owner-1';
 const app = { id: 'app-1', userId: OWNER, organizationId: 'org-1', name: 'Ops' };

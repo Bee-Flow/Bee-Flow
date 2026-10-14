@@ -27,25 +27,13 @@
 'use strict';
 
 const crypto = require('crypto');
+const stableJson = require('../utils/stableJson');
 const registry = require('./templates');
 const log = require('../telemetry/log');
 
 /** Deterministic JSON: recursively sorted object keys, JSON value semantics. */
 function stableStringify(value) {
-    if (value === undefined) return 'null';
-    if (value === null || typeof value !== 'object') {
-        const out = JSON.stringify(value);
-        // Non-JSON leaves (functions/symbols) stringify to undefined — treat
-        // them as null so the serialization is always total.
-        return out === undefined ? 'null' : out;
-    }
-    if (Array.isArray(value)) {
-        return `[${value.map((v) => stableStringify(v === undefined ? null : v)).join(',')}]`;
-    }
-    const keys = Object.keys(value)
-        .filter((k) => value[k] !== undefined && typeof value[k] !== 'function')
-        .sort();
-    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+    return stableJson.stableStringify(value, { undefined: 'drop' });
 }
 
 /** sha256 hex of the canonical JSON of a definition object. */

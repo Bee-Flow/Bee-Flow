@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { mutate } from '../../../../api/mutate';
 import { logger } from '../../../../utils/logger';
 
 /**
@@ -137,7 +138,7 @@ export default function useAgentChat(state) {
     const clearHistory = async () => {
         if (!selectedAgent) return;
         try {
-            await authFetch(`${API_BASE}/agents/${selectedAgent.id}/history`, { method: 'DELETE' });
+            await mutate(`${API_BASE}/agents/${selectedAgent.id}/history`, { method: 'DELETE' });
             setMessages([]);
         } catch (err) {
             console.error('Failed to clear history:', err);

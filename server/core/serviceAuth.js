@@ -1,28 +1,6 @@
 /**
- * Service Authentication Helper
- * 
- * Provides headers with X-API-Key for outgoing calls to sidecar services
- * (guard-service, classify-service, a remote search-service, whisperx).
- * 
- * When SERVICES_API_KEY is set in env, all outgoing service calls include it.
- * When not set (e.g. localhost direct access), calls work without it.
+ * Re-export shim: this module moved to core/http/serviceAuth.js (the core/ layout in
+ * server/ARCHITECTURE.md). Kept so every existing require, test stub and
+ * require.cache key on the old path keeps working; new code requires the new path.
  */
-
-const SERVICES_API_KEY = process.env.SERVICES_API_KEY || '';
-
-/**
- * Build headers for service-to-service calls.
- * Automatically includes X-API-Key when configured.
- * 
- * @param {Object} [extraHeaders={}] - Additional headers to merge
- * @returns {Object} Headers object with Content-Type and optional API key
- */
-function getServiceHeaders(extraHeaders = {}) {
-    const headers = { 'Content-Type': 'application/json', ...extraHeaders };
-    if (SERVICES_API_KEY) {
-        headers['X-API-Key'] = SERVICES_API_KEY;
-    }
-    return headers;
-}
-
-module.exports = { getServiceHeaders, SERVICES_API_KEY };
+module.exports = require('./http/serviceAuth');

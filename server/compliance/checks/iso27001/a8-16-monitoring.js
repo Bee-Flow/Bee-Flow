@@ -7,7 +7,7 @@
  * investigations need history.
  */
 
-const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { readConnectorSnapshots, noSnapshotYet } = require('../lib/connectorSnapshots');
 
 const MIN_RETENTION_DAYS = 90;
 
@@ -26,22 +26,10 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'openobserve').catch(() => null);
-        if (!config?.enabled) {
-            return {
-                status: 'not_applicable',
-                evidence: { connector: 'openobserve', enabled: false },
-                details: 'OpenObserve connector not enabled — link your monitoring instance under ISO 27001 → Connectors.',
-            };
-        }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'openobserve').catch(() => []);
-        if (!snaps.length) {
-            return {
-                status: 'warn',
-                evidence: { connector: 'openobserve', enabled: true, snapshots: 0 },
-                details: 'Connector enabled but no snapshot yet — run a sweep or check the base URL and credentials.',
-            };
-        }
+        const read = await readConnectorSnapshots(orgId, 'openobserve', 'OpenObserve connector not enabled — link your monitoring instance under ISO 27001 → Connectors.');
+        if (read.result) return read.result;
+        const { snaps } = read;
+        if (!snaps.length) return noSnapshotYet('openobserve', 'Connector enabled but no snapshot yet — run a sweep or check the base URL and credentials.');
         const summary = snaps.find(s => s.subject_id === 'summary') || snaps[0];
         const p = summary.payload || {};
         const streams = Number(p.streams) || 0;

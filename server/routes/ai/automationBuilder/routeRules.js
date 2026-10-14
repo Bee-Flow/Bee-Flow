@@ -77,6 +77,7 @@
 
 const express = require('express');
 const { z, typeError } = require('../../../utils/zod');
+const { worded } = require('../../../core/http/schemaParts');
 const log = require('../../../telemetry/log');
 const router = express.Router();
 
@@ -91,9 +92,6 @@ const { CONDITION_RULES_HINT } = require('../../../automation/builderTools/ruleE
 const MAX_ROUTE_RULES_DESCRIPTION_CHARS = 500;
 /** A key the model is shown. A longer one is left out, never cut (header). */
 const MAX_FIELD_KEY_CHARS = 200;
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const DESCRIBE_TEXT = 'Describe the outputs you want.';
 const FIELD_TEXT = 'Each field is { key, name, type } — the field\'s name, never its values.';

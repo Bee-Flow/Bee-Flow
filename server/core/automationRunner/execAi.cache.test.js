@@ -81,8 +81,8 @@ const restore = installResolveStub({
     './safety': safetyStub,
     '../aiAgent': { getProviderForModel: () => null },
     '../providers': { getAdapter: () => null },
-    '../../automation/bind': { resolveInputs: (inputs) => JSON.parse(JSON.stringify(inputs || {})) },
-    '../../automation/sideEffectMap': { isSideEffect: () => false, isMemoisable: () => true },
+    '../automationModel/bind': { resolveInputs: (inputs) => JSON.parse(JSON.stringify(inputs || {})) },
+    '../automationModel/sideEffectMap': { isSideEffect: () => false, isMemoisable: () => true },
     '../../automation/outputSchemas': { synthesizeDryRunOutput: () => ({ sample: true }) },
     '../../automation/shapeCache': { async recordShape(rec) { shapeCalls.push(rec); } },
     '../http/outboundProbe': {

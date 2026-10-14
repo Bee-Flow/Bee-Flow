@@ -126,6 +126,28 @@ async function tierAccessFor({ userId, session = null, taskType = 'direct_chat' 
     return tierAccessOf(await getPermittedTierKeys({ userId, session, taskType }));
 }
 
+/**
+ * The administrator's group narrowing alone (`allowedTiers`), without the
+ * beta features or the task type, for the chat surfaces that resolve a tier
+ * themselves (core/llm/resolveTurnModel). Those surfaces already apply their
+ * own beta and alias rules (Flow without its betas runs as `fast`, the
+ * notebook reads `standard` as `fast`), so measuring them against the full
+ * permitted set would refuse what they deliberately downgrade. A tier is
+ * measured under the name the group editor stores (permissionNameOf); a
+ * missing name, or no person, is never allowed.
+ */
+async function groupTierGateFor({ userId } = {}) {
+    if (!userId) return { allows: () => false };
+    const { loadGroupTierRule } = require('./userTiers');
+    const { tierPermittedByGroups } = await loadGroupTierRule(userId);
+    return {
+        allows(tier) {
+            const name = permissionNameOf(tier);
+            return !!name && tierPermittedByGroups(name);
+        },
+    };
+}
+
 /** The refusal, in the words every caller gives. */
 function tierRefusal(tier) {
     return { status: 403, code: TIER_NOT_PERMITTED, error: `Tier "${String(tier).slice(0, 60)}" is not available on your account.` };
@@ -133,6 +155,7 @@ function tierRefusal(tier) {
 
 module.exports = {
     tierAccessFor,
+    groupTierGateFor,
     tierAccessOf,
     tierRefusal,
     cheapestTier,

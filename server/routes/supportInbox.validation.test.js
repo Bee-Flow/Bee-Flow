@@ -23,7 +23,7 @@ process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'validation-test-sess
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 
 const FOREIGN_AGENT = { id: 'agent-foreign', name: 'Theirs', organization_id: 'org2', owner_id: 'u9', config: '{}' };
 const { db, api } = h.routeUnderTest(test, '/api/support-inbox', () => require('./supportInbox'), {

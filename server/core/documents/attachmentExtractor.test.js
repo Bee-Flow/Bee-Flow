@@ -290,7 +290,7 @@ const {
     // ── PPTX routes through the office pipeline and keeps slide boundaries ──
     {
         const { normalizeDeck } = require('./deckModel');
-        const officegen = require('../../integrations/officegen');
+        const officegen = require('./office/officegen');
         const deck = normalizeDeck({ title: 'Deck', slides: [{ title: 'Alpha', bullets: ['one'], notes: 'say this' }, { title: 'Beta', bullets: ['two'] }] });
         const { buffer } = await officegen.buildPresentation({ deck });
         const att = { name: 'deck.pptx', type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', content: buffer.toString('base64') };

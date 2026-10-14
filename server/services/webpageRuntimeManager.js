@@ -39,6 +39,10 @@ const path = require('path');
 
 const webpageStore = require('../stores/webpageStore');
 const log = require('../telemetry/log');
+const {
+    isServerInContainer, imageExists, pullImage, ensureNetwork: ensureNamedNetwork,
+    connectSelfToNetwork: connectSelf, removeContainerIfExists: removeContainer,
+} = require('./docker/dockerKit');
 
 // ── Gate + tunables ─────────────────────────────────────────────────────────
 
@@ -116,15 +120,6 @@ async function dockerAvailable() {
     return _available;
 }
 
-function isServerInContainer() {
-    try { if (fs.existsSync('/.dockerenv')) return true; } catch (_) { /* ignore */ }
-    try {
-        const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
-        return /docker|containerd|kubepods/.test(cgroup);
-    } catch (_) { /* native */ }
-    return false;
-}
-
 function containerName(webpageId) {
     return `bf-wp-${String(webpageId).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 40)}`;
 }
@@ -171,11 +166,6 @@ function hostConfigCaps(extra = {}) {
 const LOCAL_IMAGE_TAG = 'beeflow-webpage-runner:local';
 let _resolvedImage = null;
 
-async function imageExists(docker, image) {
-    try { await docker.getImage(image).inspect(); return true; }
-    catch (err) { if (err.statusCode === 404) return false; throw err; }
-}
-
 async function resolveImage(docker) {
     if (_resolvedImage) return _resolvedImage;
     if (process.env.WEBPAGE_RUNNER_IMAGE) {
@@ -188,12 +178,7 @@ async function resolveImage(docker) {
     // surprising first request. Ops supplies the image (WEBPAGE_RUNNER_IMAGE).
     const registry = process.env.WEBPAGE_RUNNER_REGISTRY_IMAGE || 'ghcr.io/bee-flow/webpage-runner:latest';
     try {
-        await new Promise((resolve, reject) => {
-            docker.pull(registry, (err, stream) => {
-                if (err) return reject(err);
-                docker.modem.followProgress(stream, (e) => e ? reject(e) : resolve());
-            });
-        });
+        await pullImage(docker, registry);
         _resolvedImage = registry;
         return registry;
     } catch (e) {
@@ -202,19 +187,14 @@ async function resolveImage(docker) {
 }
 
 async function ensureNetwork(docker) {
-    try { await docker.getNetwork(NETWORK).inspect(); return; }
-    catch (err) { if (err.statusCode !== 404) throw err; }
     // `internal: false` so the container can reach the public internet (npm/CDN)
     // but NOT the host's other docker networks. Egress restriction is an infra
     // concern (network policy) — see the security-review checklist.
-    await docker.createNetwork({ Name: NETWORK, Driver: 'bridge' });
+    await ensureNamedNetwork(docker, NETWORK);
 }
 
-async function connectSelfToNetwork(docker) {
-    const hostname = process.env.HOSTNAME;
-    if (!hostname) return false;
-    try { await docker.getNetwork(NETWORK).connect({ Container: hostname }); return true; }
-    catch (err) { if (err.statusCode === 403 || /already exists/i.test(err.message || '')) return true; return false; }
+function connectSelfToNetwork(docker) {
+    return connectSelf(docker, NETWORK);
 }
 
 // ── Project hydration ───────────────────────────────────────────────────────
@@ -276,12 +256,8 @@ async function countOrgContainers(docker, orgId) {
     return list.length;
 }
 
-async function removeContainerIfExists(docker, name) {
-    try {
-        const c = docker.getContainer(name);
-        try { await c.stop({ t: 3 }); } catch (_) { /* may be stopped */ }
-        await c.remove({ force: true });
-    } catch (err) { if (err.statusCode !== 404) throw err; }
+function removeContainerIfExists(docker, name) {
+    return removeContainer(docker, name, 3);
 }
 
 // ── Per-org creation lock ────────────────────────────────────────────────

@@ -6,55 +6,16 @@
  */
 import { formatPath, parsePath } from '@shared/expr/path.mjs';
 import { fieldShape, singularKey } from '@shared/expr/rules.mjs';
-import { pathLabelParts } from '../../../../utils/bindingHelpers';
+import { humanizeFieldKey, humanizeFieldTail, PROPER_CASE } from '../mapping/core';
 import { parseRefTokens, resolveChipLabel } from '../mapping/refTokens';
 import { inferType, isUnaryOp, labelFor, parseExprToRows } from '../utils/conditionModel';
 
+// The field-name humanisers live in mapping/core.ts (the leaf of the mapping
+// library); their names stay importable from here.
+export { humanizeFieldKey, humanizeFieldTail } from '../mapping/core';
+
 // Step labels by id live in runStepLabels.ts; their names stay importable from here.
 export { buildRunStepLabelMap, buildRunStepMap, buildStepLabelMap, runStepLabel } from './runStepLabels';
-
-// Hand-curated proper-noun casing so 'gmail' renders as 'Gmail' instead
-// of 'Gmail' is fine but 'github' should render as 'GitHub', 'youtrack'
-// as 'YouTrack', etc. Anything not listed falls through to title-case.
-const PROPER_CASE = {
-    gmail: 'Gmail',
-    github: 'GitHub',
-    youtrack: 'YouTrack',
-    afas: 'AFAS',
-    nmbrs: 'NMBRS',
-    nextcloud: 'Nextcloud',
-    google: 'Google',
-    docs: 'Docs',
-    sheets: 'Sheets',
-    slides: 'Slides',
-    drive: 'Drive',
-    calendar: 'Calendar',
-    contacts: 'Contacts',
-    keep: 'Keep',
-    groups: 'Groups',
-    maps: 'Maps',
-    outlook: 'Outlook',
-    onedrive: 'OneDrive',
-    ms: 'Microsoft',
-    fireflies: 'Fireflies',
-    elevenlabs: 'ElevenLabs',
-    linkedin: 'LinkedIn',
-    signrequest: 'SignRequest',
-    n8n: 'n8n',
-    kb: 'Knowledge Base',
-    deck: 'Deck',
-    talk: 'Talk',
-    tasks: 'Tasks',
-    notes: 'Notes',
-    mail: 'Mail',
-    activity: 'Activity',
-    notifications: 'Notifications',
-    status: 'Status',
-    tts: 'TTS',
-    sfx: 'SFX',
-    ai: 'AI',
-    pdf: 'PDF', ocr: 'OCR',
-};
 
 function pretty(token) {
     if (!token) return '';
@@ -95,70 +56,6 @@ export function actionDisplayLabel(tool, catalog = null) {
         return appLabel ? `${appLabel}: ${actionLabel}` : actionLabel;
     }
     return humanizeToolName(name);
-}
-
-/**
- * A data field's key rendered as a plain English name — `subject` → "Subject",
- * `from_email` → "From email", `messageId` → "Message id", `htmlUrl` → "HTML url".
- *
- * Used wherever a non-technical user picks a field: they should read the name of
- * the thing ("Subject"), never its path (`item.subject`). Reuses the same
- * proper-noun table as the tool-name humanizer, so `pdf` stays "PDF".
- */
-export function humanizeFieldKey(key) {
-    const raw = String(key || '').trim();
-    if (!raw) return '';
-    const words = raw
-        .replace(/[_\-.]+/g, ' ')
-        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')   // camelCase → camel Case
-        .split(/\s+/)
-        .filter(Boolean);
-    if (!words.length) return raw;
-    return words
-        .map((w, i) => {
-            const known = PROPER_CASE[w.toLowerCase()];
-            if (known) return known;
-            // Only the first word is capitalised — "From email", not "From Email";
-            // sentence case reads as a label, title case reads as a heading.
-            return i === 0 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase();
-        })
-        .join(' ');
-}
-
-/** "1st", "2nd", "last" — an index the way a person counts. */
-function ordinalLabel(index) {
-    if (index === -1) return 'last';
-    const n = Math.abs(index < 0 ? index : index + 1);
-    const v = n % 100;
-    const suffix = (v >= 11 && v <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th';
-    return index < 0 ? `${n}${suffix} from last` : `${n}${suffix}`;
-}
-
-/** Text that is no path: its last dotted segment, brackets dropped. */
-function lastSegmentLabel(text) {
-    const seg = String(text).replace(/\[[^\]]*\]/g, '').split('.').filter(Boolean).pop();
-    return seg ? humanizeFieldKey(seg) : '';
-}
-
-/**
- * The readable name of a field path, the way its pill names it (the pills
- * call this too, through refTokens.fieldTailLabel): the field's own key,
- * humanised — `fields["Story Points"]` reads "Story points",
- * `headers[name="Subject"].value` "Subject". A generic key gets the key that
- * says whose it is (`from.emailAddress.address` → "From ▸ Address", so a
- * sender's and a recipient's address read differently), and an index right
- * after the key says which one (`items[0]` → "Items ▸ 1st"). Wildcards and
- * indexes further up are dropped; the exact path stays on the pill's tooltip
- * (BFSF-330).
- */
-export function humanizeFieldTail(fieldPath) {
-    const tail = String(fieldPath ?? '').trim();
-    if (!tail) return '';
-    const parts = pathLabelParts(tail);
-    if (!parts || !parts.leaf) return parts?.index != null ? ordinalLabel(parts.index) : lastSegmentLabel(tail);
-    const name = humanizeFieldKey(parts.leaf) || parts.leaf;
-    const head = parts.parent ? `${humanizeFieldKey(parts.parent) || parts.parent} ▸ ${name}` : name;
-    return parts.index == null ? head : `${head} ▸ ${ordinalLabel(parts.index)}`;
 }
 
 /**

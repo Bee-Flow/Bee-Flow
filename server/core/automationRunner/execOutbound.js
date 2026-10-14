@@ -6,7 +6,7 @@
  */
 
 const notificationStore = require('../../stores/notificationStore');
-const { resolveInputs, interpolateTemplate, interpolateJsonBody } = require('../../automation/bind');
+const { resolveInputs, interpolateTemplate, interpolateJsonBody } = require('../automationModel/bind');
 const { withStepQuery, parseStepUrl, shieldPart, joinShieldedUrl } = require('./httpQuery');
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 const sandbox = require('../../automation/codeSandbox');
@@ -70,8 +70,8 @@ async function guardOutbound(step, ctx, mode, { toolName, payload, destination =
 }
 
 async function execNotification(step, ctx, runState, mode) {
-    const title = typeof step.title === 'string' ? require('../../automation/bind').interpolateTemplate(step.title, runState) : '';
-    const body = typeof step.body === 'string' ? require('../../automation/bind').interpolateTemplate(step.body, runState) : '';
+    const title = typeof step.title === 'string' ? require('../automationModel/bind').interpolateTemplate(step.title, runState) : '';
+    const body = typeof step.body === 'string' ? require('../automationModel/bind').interpolateTemplate(step.body, runState) : '';
     // Channel contract (A15): 'notification' (canonical) and 'inapp' (alias,
     // matches notificationDefaults' channel vocabulary) create the in-app
     // bell; 'email' sends via sendRunEmail (which skips without throwing when

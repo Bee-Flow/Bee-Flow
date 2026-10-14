@@ -28,7 +28,7 @@ assist. A margin that small is noise, and noise must not be an opinion.
 from __future__ import annotations
 
 import re
-from typing import Sequence
+from collections.abc import Sequence
 
 # Segments shorter than this are punctuation, list bullets or a stray word —
 # nothing a sentence encoder can place, and every one of them costs a forward
@@ -82,7 +82,7 @@ def cosine(a: Sequence[float], b: Sequence[float]) -> float:
     if not a or not b or len(a) != len(b):
         return 0.0
     dot = na = nb = 0.0
-    for x, y in zip(a, b):
+    for x, y in zip(a, b, strict=False):
         dot += x * y
         na += x * x
         nb += y * y
@@ -96,7 +96,7 @@ def best_similarity(
 ) -> tuple[float, str | None]:
     """Nearest neighbour in one bank → (similarity, its id)."""
     best, best_id = -1.0, None
-    for vec, anchor_id in zip(bank, ids):
+    for vec, anchor_id in zip(bank, ids, strict=False):
         score = cosine(vector, vec)
         if score > best:
             best, best_id = score, anchor_id

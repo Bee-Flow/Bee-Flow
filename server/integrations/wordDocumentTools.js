@@ -124,7 +124,7 @@ async function buildWordDocument(args = {}, ctx = {}) {
         log.warn(`[WordDocumentTools] marking unavailable, rendering unmarked: ${e.message}`);
     }
 
-    const { renderDocument } = require('../services/documentRenderer');
+    const { renderDocument } = require('../core/documents/render/documentRenderer');
     let out;
     try {
         out = await renderDocument({

@@ -22,6 +22,10 @@ const fs = require('fs');
 const path = require('path');
 const Docker = require('dockerode');
 const log = require('../telemetry/log');
+const {
+    isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
+    connectSelfToNetwork: connectSelf, removeContainerIfExists,
+} = require('./docker/dockerKit');
 
 // The runner image MUST match the server's Playwright version (connect()
 // rejects a minor-version mismatch). Derive the version and bake it into the
@@ -129,49 +133,19 @@ async function dockerAvailable() {
     }
 }
 
-function isServerInContainer() {
-    try {
-        if (fs.existsSync('/.dockerenv')) return true;
-    } catch (_) { /* ignore */ }
-    try {
-        const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
-        return /docker|containerd|kubepods/.test(cgroup);
-    } catch (_) { /* native */ }
-    return false;
-}
-
 // ── Image resolution (mirrors guardInstaller.resolveGuardImage) ─────────────
 
-async function imageExists(docker, image) {
-    try {
-        await docker.getImage(image).inspect();
-        return true;
-    } catch (err) {
-        if (err.statusCode === 404) return false;
-        throw err;
-    }
-}
-
 async function pullImage(docker, image, onLine) {
-    await new Promise((resolve, reject) => {
-        docker.pull(image, (err, stream) => {
-            if (err) return reject(err);
-            let lastReport = 0;
-            docker.modem.followProgress(
-                stream,
-                (progressErr) => progressErr ? reject(progressErr) : resolve(),
-                (evt) => {
-                    if (!evt || !onLine) return;
-                    const now = Date.now();
-                    if (now - lastReport < 1000) return;
-                    lastReport = now;
-                    const status = evt.status || '';
-                    if (/downloading|extracting|pull complete|already exists/i.test(status)) {
-                        onLine(`[runner-image] ${status}${evt.id ? ` ${evt.id}` : ''}`);
-                    }
-                },
-            );
-        });
+    let lastReport = 0;
+    await pullImageStream(docker, image, (evt) => {
+        if (!evt || !onLine) return;
+        const now = Date.now();
+        if (now - lastReport < 1000) return;
+        lastReport = now;
+        const status = evt.status || '';
+        if (/downloading|extracting|pull complete|already exists/i.test(status)) {
+            onLine(`[runner-image] ${status}${evt.id ? ` ${evt.id}` : ''}`);
+        }
     });
 }
 
@@ -257,13 +231,7 @@ async function resolvePwtImage(docker, onLine) {
 // ── Network ─────────────────────────────────────────────────────────────────
 
 async function ensurePwtNetwork(docker) {
-    try {
-        await docker.getNetwork(PWT_NETWORK).inspect();
-        return;
-    } catch (err) {
-        if (err.statusCode !== 404) throw err;
-    }
-    await docker.createNetwork({ Name: PWT_NETWORK, Driver: 'bridge' });
+    await ensureNetwork(docker, PWT_NETWORK);
 }
 
 /**
@@ -271,26 +239,7 @@ async function ensurePwtNetwork(docker) {
  * the runner by name. Idempotent — a 403 ("already exists in network") is fine.
  */
 async function connectSelfToNetwork(docker) {
-    const hostname = process.env.HOSTNAME;
-    if (!hostname) return false;
-    try {
-        await docker.getNetwork(PWT_NETWORK).connect({ Container: hostname });
-        return true;
-    } catch (err) {
-        if (err.statusCode === 403 || /already exists/i.test(err.message || '')) return true;
-        log.warn('[PwtRunner] could not attach worker to pwt network:', err.message);
-        return false;
-    }
-}
-
-async function removeContainerIfExists(docker, name) {
-    try {
-        const c = docker.getContainer(name);
-        try { await c.stop({ t: 3 }); } catch (_) { /* may be stopped */ }
-        await c.remove({ force: true });
-    } catch (err) {
-        if (err.statusCode !== 404) throw err;
-    }
+    return connectSelf(docker, PWT_NETWORK, (err) => log.warn('[PwtRunner] could not attach worker to pwt network:', err.message));
 }
 
 // ── Log streaming ─────────────────────────────────────────────────────────
@@ -385,7 +334,7 @@ async function ensureBrowserSingleton({ onLine } = {}) {
         await ensurePwtNetwork(docker);
         const inContainer = isServerInContainer();
         if (inContainer) await connectSelfToNetwork(docker);
-        await removeContainerIfExists(docker, BROWSER_NAME);
+        await removeContainerIfExists(docker, BROWSER_NAME, 3);
 
         const createOpts = {
             name: BROWSER_NAME,

@@ -342,14 +342,6 @@ export default defineConfig(({ mode }) => {
                     target: `http://127.0.0.1:${SERVER_PORT}`,
                     changeOrigin: true
                 },
-                '/components': {
-                    target: `http://127.0.0.1:${SERVER_PORT}`,
-                    changeOrigin: true
-                },
-                '/test-component': {
-                    target: `http://127.0.0.1:${SERVER_PORT}`,
-                    changeOrigin: true
-                },
                 '/ai': {
                     target: `http://127.0.0.1:${SERVER_PORT}`,
                     changeOrigin: true

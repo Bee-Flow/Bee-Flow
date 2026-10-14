@@ -31,9 +31,7 @@ const router = express.Router();
 const reminderStore = require('../stores/reminderStore');
 const { validate } = require('../core/http/validate');
 const { z, datetimeWithOffset } = require('../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../core/http/schemaParts');
 
 const TITLE_TEXT = 'A reminder needs a title.';
 const WHEN_TEXT = 'remindAt is a date and time with its zone, e.g. 2026-09-22T09:00:00.000Z.';

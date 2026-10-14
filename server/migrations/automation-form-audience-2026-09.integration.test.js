@@ -23,16 +23,11 @@ const Module = require('node:module');
 
 const SERVER = path.join(__dirname, '..');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../testUtils/pglitePool');
 const pg = new PGlite();
 
-function adaptResult(res) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    return { rows: r.rows || [], rowCount: r.affectedRows ?? (r.rows ? r.rows.length : 0) };
-}
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params));
-    return adaptResult(await pg.query(sql));
-}
+// node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
+const rawQuery = pgliteQuery(pg);
 function mock(absId, exports) {
     const p = require.resolve(absId);
     const m = new Module(p); m.exports = exports; m.loaded = true; require.cache[p] = m;

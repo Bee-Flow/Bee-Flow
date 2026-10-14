@@ -17,6 +17,7 @@ const { GRAPH_ID_RE, MESSAGE_ID_TEXT, FOLDER_TEXT } = require('../../integration
 const { resolveMicrosoftSession } = require('../../auth/microsoftSessionHydration');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -40,9 +41,6 @@ const { z, typeError } = require('../../utils/zod');
 // sending the mail to everyone EXCEPT the blind copies, on a 200 reading
 // `Email sent via Outlook`. `replyToMessageId` is interpolated into
 // `/me/messages/${id}/reply`, so it is pinned to a Graph id too.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
 const optionalText = (name) => worded(`${name} must be text.`).nullish();

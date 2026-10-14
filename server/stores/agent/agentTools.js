@@ -79,7 +79,7 @@ async function getAgentToolsWithParamsBatch(agentIds) {
  * @param {{ deploymentId?: string }|null} managedWrite
  */
 async function assertToolsWriteAllowed(agentId, nextOf, managedWrite) {
-    const managedParts = require('../lib/managedParts');
+    const managedParts = require('../managedPartsDefault');
     const row = await getOne('SELECT project_id FROM agents WHERE id = $1', [agentId]);
     const projectId = row && row.project_id;
     if (!projectId || !(await managedParts.managedInfo(projectId))) return;

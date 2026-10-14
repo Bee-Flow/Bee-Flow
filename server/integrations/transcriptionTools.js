@@ -25,6 +25,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const log = require('../telemetry/log');
+const {
+    formatTime, maxSegmentEnd, finalizeTranscript,
+} = require('./transcription/finalize');
 
 // ─── Tool Definitions ──────────────────────────────────────────────────────────
 
@@ -70,16 +73,6 @@ const TRANSCRIPTION_TOOLS = [
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatTime(seconds) {
-    if (seconds == null) return '00:00';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    if (h > 0)
-        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
 /**
  * Build a diagnostic error message for a non-succeeded Azure batch job.
  *
@@ -108,29 +101,6 @@ function formatAzureBatchFailure(pollData) {
         return `Azure Whisper batch job ${status}: ${detail}${hint}`;
     }
     return `Azure Whisper batch job ${status}. Check your Azure Speech resource.`;
-}
-
-/**
- * Merge consecutive segments from the same speaker for cleaner output.
- */
-function mergeSegments(segments) {
-    if (!segments || segments.length === 0) return [];
-    const merged = [];
-    for (const seg of segments) {
-        const last = merged[merged.length - 1];
-        if (last && seg.speakerId === last.speakerId) {
-            last.end = seg.end;
-            last.text += ' ' + (seg.text || '').trim();
-        } else {
-            merged.push({
-                speakerId: seg.speakerId || 'Unknown',
-                start: seg.start,
-                end: seg.end,
-                text: (seg.text || '').trim(),
-            });
-        }
-    }
-    return merged;
 }
 
 /**
@@ -255,48 +225,6 @@ ${formattedLines.join('\n').substring(0, 20000)}`;
 }
 
 
-/**
- * Build the final result object shared by both providers.
- */
-function buildResult({ audioFileName, language, merged, totalDuration, speakerMap, nameMapping }) {
-    // Apply name mapping if available
-    if (nameMapping) {
-        for (const seg of merged) {
-            if (nameMapping[seg.speakerId]) seg.speakerId = nameMapping[seg.speakerId];
-        }
-    }
-
-    const formattedLines = merged.map((s) => {
-        const start = formatTime(s.start);
-        const end = formatTime(s.end);
-        return `[${s.speakerId}] ${start} - ${end}: ${s.text}`;
-    });
-
-    return {
-        success: true,
-        fileName: audioFileName,
-        language,
-        duration: formatTime(totalDuration),
-        durationSeconds: Math.round(totalDuration),
-        speakerCount: Object.keys(speakerMap).length,
-        segmentCount: merged.length,
-        speakers: Object.entries(speakerMap).map(([id, data]) => ({
-            id: nameMapping?.[id] || id,
-            speakingTime: formatTime(data.duration),
-            segments: data.segments,
-        })),
-        transcript: formattedLines.join('\n'),
-        segments: merged.map((s) => ({
-            speaker: s.speakerId,
-            start: s.start,
-            end: s.end,
-            startFormatted: formatTime(s.start),
-            endFormatted: formatTime(s.end),
-            text: s.text,
-        })),
-    };
-}
-
 // ─── Provider: Voxtral (Mistral) ──────────────────────────────────────────────
 
 async function handleVoxtralTranscription(args, context) {
@@ -351,31 +279,13 @@ async function handleVoxtralTranscription(args, context) {
         );
 
         const rawSegments = response.segments || [];
-        const merged = mergeSegments(rawSegments);
-
-        const speakerMap = {};
-        for (const seg of merged) {
-            if (!speakerMap[seg.speakerId])
-                speakerMap[seg.speakerId] = { duration: 0, segments: 0 };
-            speakerMap[seg.speakerId].duration += (seg.end || 0) - (seg.start || 0);
-            speakerMap[seg.speakerId].segments += 1;
-        }
-
-        const totalDuration =
-            rawSegments.length > 0 ? Math.max(...rawSegments.map((s) => s.end || 0)) : 0;
-
-        const formattedLines = merged.map((s) => {
-            return `[${s.speakerId}] ${formatTime(s.start)} - ${formatTime(s.end)}: ${s.text}`;
-        });
-
-        const nameMapping = await identifySpeakerNames(
-            Object.keys(speakerMap),
+        return await finalizeTranscript({
+            segments: rawSegments,
+            audioFileName,
             language,
-            formattedLines,
-            args.userName
-        );
-
-        return buildResult({ audioFileName, language, merged, totalDuration, speakerMap, nameMapping });
+            totalDuration: maxSegmentEnd(rawSegments),
+            identifyNames: (ids, lines) => identifySpeakerNames(ids, language, lines, args.userName),
+        });
     } catch (err) {
         // Sanitise error: strip any key-like tokens from message
         const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]');
@@ -425,25 +335,13 @@ async function handleAzureTranscription(args, context) {
             contextTerms: args.context_terms || '',
         });
 
-        const merged = mergeSegments(az.segments);
-
-        const speakerMap = {};
-        for (const seg of merged) {
-            if (!speakerMap[seg.speakerId])
-                speakerMap[seg.speakerId] = { duration: 0, segments: 0 };
-            speakerMap[seg.speakerId].duration += (seg.end || 0) - (seg.start || 0);
-            speakerMap[seg.speakerId].segments += 1;
-        }
-
-        const totalDuration = az.segments.length > 0 ? Math.max(...az.segments.map((s) => s.end || 0)) : 0;
-
-        const formattedLines = merged.map((s) =>
-            `[${s.speakerId}] ${formatTime(s.start)} - ${formatTime(s.end)}: ${s.text}`
-        );
-
-        const nameMapping = await identifySpeakerNames(Object.keys(speakerMap), language, formattedLines, args.userName);
-
-        const result = buildResult({ audioFileName, language, merged, totalDuration, speakerMap, nameMapping });
+        const result = await finalizeTranscript({
+            segments: az.segments,
+            audioFileName,
+            language,
+            totalDuration: maxSegmentEnd(az.segments),
+            identifyNames: (ids, lines) => identifySpeakerNames(ids, language, lines, args.userName),
+        });
         if (az.truncated) {
             result.warning = `Transcription stopped early at ${formatTime(az.truncated.atSeconds)} — the rest of the recording is missing.`;
         }
@@ -498,22 +396,21 @@ async function handlePyannoteTranscription(args, context) {
         const { transcribeWithPyannote } = require('../core/voice/pyannoteClient');
         const p = await transcribeWithPyannote(inputPath, { language, orgId, recorderUserId: context.userId });
 
-        const merged = mergeSegments(p.segments);
-        const speakerMap = {};
-        for (const seg of merged) {
-            if (!speakerMap[seg.speakerId]) speakerMap[seg.speakerId] = { duration: 0, segments: 0 };
-            speakerMap[seg.speakerId].duration += (seg.end || 0) - (seg.start || 0);
-            speakerMap[seg.speakerId].segments += 1;
-        }
-        const formattedLines = merged.map((s) => `[${s.speakerId}] ${formatTime(s.start)} - ${formatTime(s.end)}: ${s.text}`);
-        // This module's local identifySpeakerNames is the older 4-arg variant
-        // (no org, no roster) — deliberately left alone. Voiceprint pins are
-        // merged over its answer instead, so a voice match always wins.
-        const llmMapping = await identifySpeakerNames(Object.keys(speakerMap), language, formattedLines, args.userName);
-        const nameMapping = p.voiceprintMapping
-            ? { ...(llmMapping || {}), ...p.voiceprintMapping }
-            : llmMapping;
-        return buildResult({ audioFileName, language, merged, totalDuration: p.durationSeconds, speakerMap, nameMapping });
+        return await finalizeTranscript({
+            segments: p.segments,
+            audioFileName,
+            language,
+            totalDuration: p.durationSeconds,
+            // This module's local identifySpeakerNames is the older 4-arg variant
+            // (no org, no roster) — deliberately left alone. Voiceprint pins are
+            // merged over its answer instead, so a voice match always wins.
+            identifyNames: async (ids, lines) => {
+                const llmMapping = await identifySpeakerNames(ids, language, lines, args.userName);
+                return p.voiceprintMapping
+                    ? { ...(llmMapping || {}), ...p.voiceprintMapping }
+                    : llmMapping;
+            },
+        });
     } catch (err) {
         const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{20,}/g, '[REDACTED]');
         log.error('[Transcription:Pyannote] Error:', safeMsg);
@@ -811,16 +708,13 @@ async function handleAzureWhisperTranscription(args, context) {
     try {
         const batch = await runAzureWhisperBatch({ filePath, audioData, fileName: audioFileName, language });
 
-        const merged = mergeSegments(batch.segments);
-        const speakerMap = {};
-        for (const seg of merged) {
-            if (!speakerMap[seg.speakerId]) speakerMap[seg.speakerId] = { duration: 0, segments: 0 };
-            speakerMap[seg.speakerId].duration += (seg.end || 0) - (seg.start || 0);
-            speakerMap[seg.speakerId].segments += 1;
-        }
-        const formattedLines = merged.map(s => `[${s.speakerId}] ${formatTime(s.start)} - ${formatTime(s.end)}: ${s.text}`);
-        const nameMapping = await identifySpeakerNames(Object.keys(speakerMap), language, formattedLines, args.userName);
-        return buildResult({ audioFileName, language, merged, totalDuration: batch.durationSeconds, speakerMap, nameMapping });
+        return await finalizeTranscript({
+            segments: batch.segments,
+            audioFileName,
+            language,
+            totalDuration: batch.durationSeconds,
+            identifyNames: (ids, lines) => identifySpeakerNames(ids, language, lines, args.userName),
+        });
     } catch (err) {
         const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]').replace(/key[=:]\S+/gi, 'key=[REDACTED]');
         log.error('[Transcription:AzureWhisper] Error:', safeMsg);
@@ -958,20 +852,13 @@ async function handleWhisperXTranscription(args, context) {
 
         log.info(`[Transcription:WhisperX] Completed — ${rawSegments.length} raw segments`);
 
-        const merged = mergeSegments(rawSegments);
-        const speakerMap = {};
-        for (const seg of merged) {
-            if (!speakerMap[seg.speakerId]) speakerMap[seg.speakerId] = { duration: 0, segments: 0 };
-            speakerMap[seg.speakerId].duration += (seg.end || 0) - (seg.start || 0);
-            speakerMap[seg.speakerId].segments += 1;
-        }
-        const totalDuration = rawSegments.length > 0 ? Math.max(...rawSegments.map(s => s.end || 0)) : 0;
-        const formattedLines = merged.map(s =>
-            `[${s.speakerId}] ${formatTime(s.start)} - ${formatTime(s.end)}: ${s.text}`
-        );
-        const nameMapping = await identifySpeakerNames(Object.keys(speakerMap), language, formattedLines, args.userName);
-
-        return buildResult({ audioFileName, language, merged, totalDuration, speakerMap, nameMapping });
+        return await finalizeTranscript({
+            segments: rawSegments,
+            audioFileName,
+            language,
+            totalDuration: maxSegmentEnd(rawSegments),
+            identifyNames: (ids, lines) => identifySpeakerNames(ids, language, lines, args.userName),
+        });
 
     } catch (err) {
         if (err.name === 'AbortError') {
@@ -1012,17 +899,13 @@ async function handleScalewayTranscription(args, context) {
         })).filter(s => s.text);
         if (rawSegments.length === 0) return { error: 'Scaleway returned no speech segments.' };
 
-        const merged = mergeSegments(rawSegments);
-        const speakerMap = {};
-        for (const seg of merged) {
-            if (!speakerMap[seg.speakerId]) speakerMap[seg.speakerId] = { duration: 0, segments: 0 };
-            speakerMap[seg.speakerId].duration += (seg.end || 0) - (seg.start || 0);
-            speakerMap[seg.speakerId].segments += 1;
-        }
-        const totalDuration = Math.max(...rawSegments.map(s => s.end || 0));
-        const formattedLines = merged.map(s => `[${s.speakerId}] ${formatTime(s.start)} - ${formatTime(s.end)}: ${s.text}`);
-        const nameMapping = await identifySpeakerNames(Object.keys(speakerMap), language, formattedLines, args.userName);
-        return buildResult({ audioFileName, language, merged, totalDuration, speakerMap, nameMapping });
+        return await finalizeTranscript({
+            segments: rawSegments,
+            audioFileName,
+            language,
+            totalDuration: maxSegmentEnd(rawSegments),
+            identifyNames: (ids, lines) => identifySpeakerNames(ids, language, lines, args.userName),
+        });
     } catch (err) {
         const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]');
         log.error('[Transcription:Scaleway] Error:', safeMsg);
@@ -1073,22 +956,17 @@ async function handleLocalTranscription(args, context) {
         })).filter(s => s.text);
         if (rawSegments.length === 0) return { error: 'Local transcription returned no speech.' };
 
-        const merged = mergeSegments(rawSegments);
-        const speakerMap = {};
-        for (const seg of merged) {
-            if (!speakerMap[seg.speakerId]) speakerMap[seg.speakerId] = { duration: 0, segments: 0 };
-            speakerMap[seg.speakerId].duration += (seg.end || 0) - (seg.start || 0);
-            speakerMap[seg.speakerId].segments += 1;
-        }
-        const totalDuration = response.durationSec || Math.max(...rawSegments.map(s => s.end || 0));
-        const speakers = Object.keys(speakerMap);
-        // Asking an LLM who "speaker_0" is, when there is only ever one speaker,
-        // spends a model call to learn nothing.
-        const nameMapping = speakers.length > 1
-            ? await identifySpeakerNames(speakers, language,
-                merged.map(s => `[${s.speakerId}] ${formatTime(s.start)} - ${formatTime(s.end)}: ${s.text}`), args.userName)
-            : {};
-        return buildResult({ audioFileName, language, merged, totalDuration, speakerMap, nameMapping });
+        return await finalizeTranscript({
+            segments: rawSegments,
+            audioFileName,
+            language,
+            totalDuration: response.durationSec || maxSegmentEnd(rawSegments),
+            // Asking an LLM who "speaker_0" is, when there is only ever one speaker,
+            // spends a model call to learn nothing.
+            identifyNames: (ids, lines) => (ids.length > 1
+                ? identifySpeakerNames(ids, language, lines, args.userName)
+                : {}),
+        });
     } catch (err) {
         if (err?.code === 'local_whisper_too_long' || err?.code === 'npu_whisper_too_long') {
             return { error: `${err.message} Use a cloud transcription provider for recordings this long.` };

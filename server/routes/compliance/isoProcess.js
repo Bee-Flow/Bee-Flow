@@ -41,6 +41,7 @@ const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId, _riskStore, _auditStore, _obligationStore } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── The vocabulary, kept next to the routes that speak it ───────────
 //
@@ -48,9 +49,6 @@ const { z, typeError } = require('../../utils/zod');
 // store may not reach up into the HTTP layer (layering.test.js), and a value
 // added there without a thought for the API is exactly the drift a failing
 // test should catch.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

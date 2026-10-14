@@ -43,7 +43,7 @@ function purgeAtOf(deletedAt) {
 function makeTrashHandlers(deps) {
     const { store, revokeRemoteSubscriptions } = deps;
     // Resolved lazily so a test (or an early require cycle) is not forced to load the stage guard.
-    const managedParts = () => deps.managedParts || require('../../stores/lib/managedParts');
+    const managedParts = () => deps.managedParts || require('../../stores/managedPartsDefault');
     const wake = typeof deps.wakeComplianceReview === 'function' ? deps.wakeComplianceReview : () => {};
     // The caller's access (owner or org admin), or null after answering 403.
     const ownerOnly = async (req, res, a) => {

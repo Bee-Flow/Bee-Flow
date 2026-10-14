@@ -23,6 +23,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { quietSse } = require('../../testUtils/quietSse');
 
 process.env.NODE_ENV = 'test';
 
@@ -76,7 +77,7 @@ const MOCKS = {
         _resolveChatProblemsThrottled: noop,
     },
     '../../../core/agentRuntime/phaseEvents': { emitPhase: noop, emitPhaseEnd: noop },
-    '../../../core/http/sseHelpers': { startSseHeartbeat: noop },
+    '../../../core/http/sseHelpers': quietSse({ startSseHeartbeat: noop }),
     '../../../utils/routeHelpers': { getUserAuth: () => ({ userId: 'alice' }) },
     '../../../auth/permissions': { requireAuth: (req, res, next) => next() },
     './directChat/swarmTurn': { runSwarmTierTurn: async () => {} },

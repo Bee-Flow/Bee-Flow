@@ -13,6 +13,7 @@
 const crypto = require('crypto');
 const dns = require('dns').promises;
 const net = require('net');
+const { isForbiddenAddress } = require('../http/ssrfGuard');
 const configStore = require('../../stores/configStore');
 const kbStore = require('../../stores/knowledgeBases');
 const { getServiceHeaders } = require('../serviceAuth');
@@ -26,16 +27,27 @@ const log = require('../../telemetry/log');
  * ingestion). Pre-validates the hostname; callers should also re-check the
  * `response.url` post-fetch to catch redirects to internal services.
  *
+ * The address decision is NOT made here: every literal and every resolved
+ * address goes through core/http/ssrfGuard.isForbiddenAddress, the one range
+ * table the whole product screens against (the same one safeFetch applies at
+ * connect time). A second, local table drifted from it once (no IPv4-
+ * compatible ::a.b.c.d, no hex-form ::ffff:7f00:1, no broadcast); keeping a
+ * single table is what stops that from happening again. This wrapper only
+ * keeps this module's own error texts and return value (the parsed URL),
+ * which routes show to the user as-is.
+ *
  * Rejects:
  *   - non-http(s) schemes (file:, gopher:, ftp:, ...)
- *   - hostnames that resolve to 0.0.0.0/8, 10/8, 127/8, 169.254/16,
- *     172.16/12, 192.168/16
- *   - IPv6 loopback (::1), link-local (fe80::/10), unique-local (fc00::/7),
- *     IPv4-mapped versions of the above
+ *   - a host (literal, or ANY address it resolves to) that isForbiddenAddress
+ *     refuses
  *
  * Throws on rejection; resolves with the validated parsed URL on success.
+ *
+ * @param {string} url
+ * @param {object} [options]
+ * @param {Function} [options.lookup] resolver (default dns.promises.lookup); injectable for tests
  */
-async function assertUrlIsPublic(url) {
+async function assertUrlIsPublic(url, { lookup = (host, opts) => dns.lookup(host, opts) } = {}) {
     let parsed;
     try { parsed = new URL(url); }
     catch (_) { throw new Error('Invalid URL'); }
@@ -51,51 +63,17 @@ async function assertUrlIsPublic(url) {
         addresses = [{ address: host, family: net.isIP(host) }];
     } else {
         try {
-            addresses = await dns.lookup(host, { all: true });
+            addresses = await lookup(host, { all: true });
         } catch (e) {
             throw new Error(`DNS lookup failed for ${host}: ${e.message}`);
         }
     }
     for (const a of addresses) {
-        if (isPrivateAddress(a.address)) {
-            throw new Error(`URL ${host} resolves to a private/loopback address (${a.address})`);
+        if (isForbiddenAddress(a && a.address)) {
+            throw new Error(`URL ${host} resolves to a private/loopback address (${a && a.address})`);
         }
     }
     return parsed;
-}
-
-function isPrivateAddress(addr) {
-    if (!addr) return true;
-    // Strip IPv4-mapped IPv6 prefix (::ffff:127.0.0.1 → 127.0.0.1).
-    const ipv4Mapped = addr.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-    if (ipv4Mapped) addr = ipv4Mapped[1];
-    const ipVer = net.isIP(addr);
-    if (ipVer === 4) {
-        const parts = addr.split('.').map(Number);
-        if (parts.length !== 4 || parts.some(p => Number.isNaN(p) || p < 0 || p > 255)) return true;
-        const [a, b] = parts;
-        // 0/8 current network, 10/8, 127/8 loopback
-        if (a === 0 || a === 10 || a === 127) return true;
-        // 169.254/16 link-local (AWS/Azure metadata endpoint)
-        if (a === 169 && b === 254) return true;
-        // 172.16/12 private
-        if (a === 172 && b >= 16 && b <= 31) return true;
-        // 192.168/16 private
-        if (a === 192 && b === 168) return true;
-        // 100.64/10 carrier-grade NAT
-        if (a === 100 && b >= 64 && b <= 127) return true;
-        return false;
-    }
-    if (ipVer === 6) {
-        const lc = addr.toLowerCase();
-        if (lc === '::1' || lc === '::' ) return true;
-        // fe80::/10 link-local
-        if (/^fe[89ab][0-9a-f]:/.test(lc)) return true;
-        // fc00::/7 unique local
-        if (/^f[cd][0-9a-f]{2}:/.test(lc)) return true;
-        return false;
-    }
-    return true; // unknown format → treat as unsafe
 }
 
 const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';

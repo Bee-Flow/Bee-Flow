@@ -113,8 +113,9 @@ test('every reranker branch goes through this one function', () => {
     // meant to land here and make you check that the new branch really does go
     // through applyRerank — it is not a number to bump on reflex.
     const fs = require('node:fs');
-    const src = fs.readFileSync(require.resolve('./localKBIngest'), 'utf8');
-    const search = src.slice(src.indexOf('async function searchLocally'));
+    // The chain lives in localRerank.js since the localKBIngest split.
+    const src = fs.readFileSync(require.resolve('./localRerank'), 'utf8');
+    const search = src.slice(src.indexOf('async function rerankCandidates'));
     assert.strictEqual(
         (search.match(/applyRerank\(/g) || []).length, 5,
         'all five reranker branches must use applyRerank',

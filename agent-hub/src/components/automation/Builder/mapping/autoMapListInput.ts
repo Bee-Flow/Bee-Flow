@@ -43,9 +43,10 @@ import { isEmptyBinding } from './partitionInputs';
 import { suggestItemVar } from './upstream/loops';
 import { isDiagnosticOutputKey } from '../flow/stepPayload';
 
-interface ListProp { type?: unknown; items?: { type?: unknown; enum?: unknown[] } }
+interface ListProp { type?: string | string[]; items?: { type?: unknown; enum?: unknown[] } }
 interface Schema { properties?: Record<string, ListProp | undefined>; required?: string[] }
-type Binding = { kind: 'ref'; path: string };
+/** A binding the patch may already hold (another pass's); this pass adds refs. */
+type Binding = { kind?: string; path?: string };
 
 const SECRET_RE = /(password|passwd|secret|token|apikey|api[_-]?key|credential|client[_-]?secret|private[_-]?key)/i;
 

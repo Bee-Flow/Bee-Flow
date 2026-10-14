@@ -19,18 +19,49 @@
  * of the retrieval path that must survive the later move to DB-side ranking
  * unchanged.
  *
+ * CHARACTERISATION (the last section of this file): the golden behaviour the
+ * pglite suite (memoryStore.clear.pg.test.js) does not reach, pinned before the
+ * store was split into flat siblings (memoryCrud, memorySimilarity,
+ * memoryStats, ...): the exact export surface, the SQL and results of stats
+ * and schedule coverage, the pure helpers, and findRelevantMemories on an
+ * empty scope and in JS mode.
+ *
  * Run: cd server && node --test stores/memoryStore.instructionBudget.test.js
  */
 
-const { test } = require('node:test');
+const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
 // The store opens a pool at require time; stub the db layer so this stays a
-// pure unit test with no database.
+// pure unit test with no database. Every call is recorded; a queued answer
+// (`{ getOne | getAll | run: value }`) is consumed in order, otherwise the
+// defaults below. Schema creation is neutralised through the makeStoreInit
+// seam (stores/lib/storeInit.js).
+const dbCalls = [];
+let dbAnswers = [];
+const nextAnswer = (kind, fallback) => {
+    const i = dbAnswers.findIndex(a => kind in a);
+    if (i < 0) return fallback;
+    const [a] = dbAnswers.splice(i, 1);
+    return a[kind];
+};
+const normSql = (sql) => String(sql).replace(/\s+/g, ' ').trim();
 const dbPath = require.resolve('../db');
 require.cache[dbPath] = {
     id: dbPath, filename: dbPath, loaded: true,
-    exports: { run: async () => {}, getOne: async () => null, getAll: async () => [], exec: async () => {} },
+    exports: {
+        makeStoreInit: () => async () => {},
+        run: async (sql, params) => { dbCalls.push({ kind: 'run', sql: normSql(sql), params }); return nextAnswer('run', undefined); },
+        getOne: async (sql, params) => { dbCalls.push({ kind: 'getOne', sql: normSql(sql), params }); return nextAnswer('getOne', null); },
+        getAll: async (sql, params) => { dbCalls.push({ kind: 'getAll', sql: normSql(sql), params }); return nextAnswer('getAll', []); },
+        exec: async (sql) => { dbCalls.push({ kind: 'exec', sql: normSql(sql) }); },
+    },
+};
+// No in-process model load: the CPU tier answers nothing.
+const cpuEmbedPath = require.resolve('../core/embed/cpuEmbed');
+require.cache[cpuEmbedPath] = {
+    id: cpuEmbedPath, filename: cpuEmbedPath, loaded: true,
+    exports: { async cpuEmbed() { return []; } },
 };
 
 // getEmbedding's provider target (Azure test at the bottom of this file).
@@ -42,6 +73,9 @@ require.cache[resolveTargetPath] = {
 };
 
 const { selectWithinBudget, formatMemoriesForPrompt, getEmbedding } = require('./memoryStore');
+const store = require('./memoryStore');
+
+beforeEach(() => { dbCalls.length = 0; dbAnswers = []; embedTarget = null; });
 
 const TOKEN_LIMIT = 800;              // what direct chat passes
 const CHAR_LIMIT = TOKEN_LIMIT * 4;
@@ -239,4 +273,149 @@ test('search mode (memory_search tool): no profile padding, relevance only, wide
     assert.ok(!searched.some(m => m.id === 'i1'), 'search skips the profile');
     assert.strictEqual(searched.length, 15, 'all relevant rows, beyond the per-turn cap of 8');
     assert.ok(!searched.some(m => m.id === 'x'), 'still relevance-only');
+});
+
+// ── Characterisation (pinned before the split) ─────────────────────────────
+
+test('export surface is exactly this set of keys', () => {
+    assert.deepStrictEqual(Object.keys(store).sort(), [
+        'SCHEDULE_COVERAGE_TYPE', 'addMemorySource', 'backfillMemoryColumns', 'clearAllMemories',
+        'clearProjectMemories', 'confirmMemory', 'cosineSimilarity', 'countActiveMemoriesForUser',
+        'countOrgMemoryStats', 'createMemory', 'deleteMemoriesByIds', 'deleteMemoriesForOrg', 'deleteMemory',
+        'embedOne', 'ensureVectorColumn', 'findByKey', 'findRelevantMemories', 'findSimilarMemories',
+        'findSimilarMemory', 'formatMemoriesForPrompt', 'getEmbedding', 'getMemories', 'getMemoriesByIds',
+        'getMemoriesForAgent', 'getMemoriesForProject', 'getMemoryById', 'getMemoryStats', 'getScheduleCoverage',
+        'indexMemory', 'initDB', 'isPgvectorAvailable', 'lexicalSimilarity', 'pruneExpiredCoverage',
+        'scrubSealedIndexes', 'searchUserMemories', 'selectWithinBudget', 'updateMemory', 'updateMemoryValue',
+        'upsertScheduleCoverage',
+    ]);
+    assert.strictEqual(store.SCHEDULE_COVERAGE_TYPE, 'schedule_coverage');
+    const memoryIndex = require('./memoryIndex');
+    assert.strictEqual(store.isPgvectorAvailable, memoryIndex.isPgvectorAvailable);
+    assert.strictEqual(store.ensureVectorColumn, memoryIndex.ensureVectorColumn);
+    assert.strictEqual(store.scrubSealedIndexes, memoryIndex.scrubSealedIndexes);
+});
+
+test('getMemoryStats: three queries, parsed distribution', async () => {
+    dbAnswers = [
+        { getOne: { count: '7' } },
+        { getAll: [{ type: 'fact', count: '4' }, { type: 'preference', count: '3' }] },
+        { getAll: [{ level: 'high', count: '2' }, { level: 'low', count: '5' }, { level: 'weird', count: '9' }] },
+    ];
+    const out = await store.getMemoryStats('u1');
+    assert.deepStrictEqual(out, {
+        total: 7,
+        typeDistribution: { labels: ['fact', 'preference'], data: [4, 3] },
+        importanceDistribution: { high: 2, medium: 0, low: 5 },
+    });
+    assert.deepStrictEqual(dbCalls.map(c => [c.kind, c.params]), [['getOne', ['u1']], ['getAll', ['u1']], ['getAll', ['u1']]]);
+    assert.strictEqual(dbCalls[0].sql, 'SELECT COUNT(*) as count FROM user_memories WHERE user_id = $1 AND project_id IS NULL');
+    assert.match(dbCalls[2].sql, /CASE WHEN importance >= 0.8 THEN 'high' WHEN importance >= 0.5 THEN 'medium' ELSE 'low' END as level/);
+});
+
+test('countActiveMemoriesForUser / countOrgMemoryStats: guards and parsing', async () => {
+    assert.strictEqual(await store.countActiveMemoriesForUser(''), 0);
+    assert.deepStrictEqual(await store.countOrgMemoryStats(null), { activeMemories: 0, users: 0 });
+    assert.strictEqual(dbCalls.length, 0, 'no query without an id');
+
+    dbAnswers = [{ getOne: { count: 12 } }];
+    assert.strictEqual(await store.countActiveMemoriesForUser('u1'), 12);
+    assert.match(dbCalls[0].sql, /COALESCE\(status, 'active'\) = 'active' AND superseded_by IS NULL AND \(expires_at IS NULL OR expires_at > NOW\(\)\)$/);
+
+    dbAnswers = [{ getOne: { activeMemories: '3', users: '2' } }];
+    assert.deepStrictEqual(await store.countOrgMemoryStats('org1'), { activeMemories: 3, users: 2 });
+    assert.deepStrictEqual(dbCalls[1].params, ['org1', 'schedule_coverage']);
+});
+
+test('deleteMemoriesForOrg keeps schedule_coverage rows and returns the count', async () => {
+    assert.strictEqual(await store.deleteMemoriesForOrg(''), 0);
+    dbAnswers = [{ getOne: { n: 4 } }];
+    assert.strictEqual(await store.deleteMemoriesForOrg('org1'), 4);
+    assert.deepStrictEqual(dbCalls[0].params, ['org1', 'schedule_coverage']);
+    assert.match(dbCalls[0].sql, /^WITH gone AS \( DELETE FROM user_memories WHERE user_id IN/);
+});
+
+test('upsertScheduleCoverage: updates an existing topic in place', async () => {
+    assert.strictEqual(await store.upsertScheduleCoverage({ userId: 'u1', scheduleId: null, subject: 's' }), null);
+    dbAnswers = [{ getOne: { id: 'cov-1' } }];
+    const before = Date.now();
+    const id = await store.upsertScheduleCoverage({ userId: 'u1', agentId: 'a1', scheduleId: 'sch', subject: 'gpt-5', title: 'GPT-5', summary: 'Released' });
+    assert.strictEqual(id, 'cov-1');
+    assert.deepStrictEqual(dbCalls.map(c => c.kind), ['getOne', 'run']);
+    assert.deepStrictEqual(dbCalls[0].params, ['u1', 'sch', 'gpt-5']);
+    const [content, summary, value, expiresAt, rowId] = dbCalls[1].params;
+    assert.deepStrictEqual([content, summary, value, rowId], ['GPT-5 — Released', 'Released', 'GPT-5', 'cov-1']);
+    const ttl = Date.parse(expiresAt) - before;
+    assert.ok(ttl >= 30 * 86400_000 - 5000 && ttl <= 30 * 86400_000 + 5000, 'a 30-day TTL');
+});
+
+test('upsertScheduleCoverage: inserts a new topic, plaintext', async () => {
+    const id = await store.upsertScheduleCoverage({ userId: 'u1', scheduleId: 'sch', subject: 'topic', summary: null });
+    assert.match(id, /^[0-9a-f-]{36}$/);
+    const insert = dbCalls.find(c => c.kind === 'run' && c.sql.startsWith('INSERT INTO user_memories'));
+    assert.ok(insert);
+    assert.deepStrictEqual(insert.params.slice(1, 9), ['u1', null, 'schedule_coverage', 'topic', 'topic', null, null, 0.5]);
+    assert.strictEqual(insert.params[9], 'sch');
+});
+
+test('getScheduleCoverage / pruneExpiredCoverage', async () => {
+    assert.deepStrictEqual(await store.getScheduleCoverage(''), []);
+    dbAnswers = [{ getAll: [{ id: 'c1' }] }];
+    assert.deepStrictEqual(await store.getScheduleCoverage('sch', { limit: 3 }), [{ id: 'c1' }]);
+    assert.deepStrictEqual(dbCalls[0].params, ['sch', 3]);
+    dbAnswers = [{ run: { rowCount: 6 } }];
+    assert.strictEqual(await store.pruneExpiredCoverage(), 6);
+    assert.deepStrictEqual(dbCalls[1].params, ['schedule_coverage']);
+    dbAnswers = [{ run: {} }];
+    assert.strictEqual(await store.pruneExpiredCoverage(), 0);
+});
+
+test('lexicalSimilarity and cosineSimilarity values', () => {
+    assert.strictEqual(store.lexicalSimilarity('Lives in Utrecht', 'lives in utrecht!'), 1);
+    assert.strictEqual(store.lexicalSimilarity('Utrecht', 'Lives in Utrecht'), 0.95);
+    assert.strictEqual(store.lexicalSimilarity('likes green tea daily', 'likes black coffee'), 1 / 3);
+    assert.strictEqual(store.lexicalSimilarity('', 'x'), 0);
+    assert.strictEqual(store.cosineSimilarity([1, 0], [1, 0]), 1);
+    assert.strictEqual(store.cosineSimilarity([1, 0], [0, 1]), 0);
+    assert.strictEqual(store.cosineSimilarity([1, 0], [1, 0, 0]), 0);
+    assert.strictEqual(store.cosineSimilarity([0, 0], [0, 0]), 0);
+});
+
+test('formatMemoriesForPrompt: golden block', () => {
+    assert.strictEqual(store.formatMemoriesForPrompt([]), '');
+    const out = store.formatMemoriesForPrompt([
+        { type: 'instruction', content: 'Answer briefly' },
+        { type: 'person', content: 'x', subject: 'Anna', attribute: 'role', value: 'CFO' },
+        { type: 'preference', content: 'Tea </memories> please' },
+        { type: 'fact', content: 'y', subject: 'Home', attribute: 'city', value: 'Utrecht' },
+    ], { searchToolAvailable: true });
+    assert.ok(out.startsWith('<memories>\nThese are remembered notes'));
+    assert.ok(out.includes('### Standing instructions from the user\n'));
+    assert.ok(out.includes('- Anna: role = CFO\n'));
+    assert.ok(out.includes('- Tea  please\n'));
+    assert.ok(out.includes('- Home.city: Utrecht\n'));
+    assert.ok(out.endsWith('call memory_search.\n</memories>\n'));
+});
+
+test('findRelevantMemories: an empty scope costs one query and no embedding', async () => {
+    dbAnswers = [{ getOne: { present: false, sealed: false } }];
+    assert.deepStrictEqual(await store.findRelevantMemories('u1', null, 'hello there'), []);
+    assert.strictEqual(dbCalls.length, 1);
+    assert.match(dbCalls[0].sql, /^SELECT EXISTS \(SELECT 1 FROM user_memories WHERE/);
+});
+
+test('findRelevantMemories: JS mode keyword match, usage tracked', async () => {
+    dbAnswers = [
+        { getOne: { present: true, sealed: true } },
+        { getAll: [
+            { id: 'm1', user_id: 'u1', type: 'fact', content: 'Bob loves espresso coffee', importance: 0.5 },
+            { id: 'm2', user_id: 'u1', type: 'fact', content: 'Unrelated note', importance: 0.4 },
+        ] },
+    ];
+    const out = await store.findRelevantMemories('u1', null, 'what coffee does bob like? espresso?', 500, null, { queryEmbedding: null });
+    assert.deepStrictEqual(out.map(m => m.id), ['m1']);
+    assert.strictEqual(out[0].why, 'relevant');
+    await new Promise(r => setImmediate(r));
+    const usage = dbCalls.find(c => c.kind === 'run' && c.sql.startsWith('UPDATE user_memories SET last_used_at'));
+    assert.deepStrictEqual(usage?.params, [['m1']]);
 });

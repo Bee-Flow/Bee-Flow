@@ -144,7 +144,7 @@ async function defaultReadCutState(devProject) {
  * A section the manifest does not know yet has no prefix and is left out.
  */
 async function allocateLedger(solutionId, state, blueprintStore) {
-    const { REF_PREFIX } = require('../packaging/manifest');
+    const { REF_PREFIX } = require('../../core/packaging/manifest');
     const sections = Object.keys(REF_PREFIX);
     const members = [];
     for (const section of sections) {

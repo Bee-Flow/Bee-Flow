@@ -42,11 +42,9 @@ const SCREEN_SPEC = {
 // dropdowns behind a Save button.
 const EVENT_NAMES = ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided'];
 
-// `height` is deliberately NOT in SECTION_STYLE_DEFAULTS: cleanStyle spreads the
-// defaults into every section, so adding it there would rewrite every stored
-// definition on the next save. Absent means 'auto', exactly as before.
-const SECTION_STYLE_KNOBS = ['padding', 'gap', 'background', 'height'];
-const SECTION_STYLE_DEFAULTS = { padding: 4, gap: 3, background: 'none' };
+// Shared with the editor (server/shared/appDefinition/sectionStyle.mjs); the
+// reason `height` is not among the defaults is written there.
+const { SECTION_STYLE_KNOBS, SECTION_STYLE_DEFAULTS } = require('../../shared/appDefinition/sectionStyle.mjs');
 
 module.exports = {
     SCREEN_SPEC,

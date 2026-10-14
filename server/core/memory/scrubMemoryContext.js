@@ -54,8 +54,9 @@ function humaniseLabel(category) {
  * @param {object} orgShield
  * @returns {Promise<{ scrubbed: string, replacedCategories: string[] }>}
  */
-async function scrubMemoryContext(text, orgShield = null) {
+async function scrubMemoryContext(text, orgShield = null, { knownEntities = [] } = {}) {
     if (!text || typeof text !== 'string') return { scrubbed: text || '', replacedCategories: [] };
+    let enabledForKnown = null;
 
     try {
         const { detectPii, ALL_PII_CATEGORY_IDS, DEFAULT_PII_CONFIDENCE_THRESHOLD } =
@@ -71,17 +72,45 @@ async function scrubMemoryContext(text, orgShield = null) {
         const threshold = typeof orgShield?.piiDetectionConfidenceThreshold === 'number'
             ? Math.min(orgShield.piiDetectionConfidenceThreshold, 0.70)
             : (DEFAULT_PII_CONFIDENCE_THRESHOLD || 0.70);
+        enabledForKnown = enabledCategories;
 
         const result = await detectPii(text, enabledCategories, threshold);
-        if (!result?.hasPii || !result.entities?.length) {
-            return { scrubbed: text, replacedCategories: [] };
-        }
-
-        return labelEntities(text, result.entities);
+        const entities = withKnownEntities(text, result?.hasPii ? result.entities : [], knownEntities, enabledCategories);
+        if (!entities.length) return { scrubbed: text, replacedCategories: [] };
+        return labelEntities(text, entities);
     } catch (err) {
+        // The account values are known without a detector: those still go.
+        const known = withKnownEntities(text, [], knownEntities, enabledForKnown);
+        if (known.length) return labelEntities(text, known);
         log.warn('[ScrubMemory] PII scrub skipped (fail-open):', err.message);
         return { scrubbed: text, replacedCategories: [] };
     }
+}
+
+/**
+ * Put the spans of values we already know (the user's own name, e-mail and
+ * organisation, see userIdentityContext) in front of what the detector found.
+ * A detected span that overlaps a known one is dropped: the known span is the
+ * whole value. Only the first occurrence is placed; the tokenizer's name sweep
+ * and alias index carry the token to later mentions. A category the org
+ * switched off stays off.
+ * @param {string} text
+ * @param {Array<object>} detected
+ * @param {Array<{ text: string, category: string }>} known
+ * @param {string[]|null} enabledCategories
+ */
+function withKnownEntities(text, detected, known, enabledCategories = null) {
+    const spans = [];
+    for (const k of known || []) {
+        if (!k?.text || (enabledCategories && !enabledCategories.includes(k.category))) continue;
+        const offset = text.indexOf(k.text);
+        if (offset < 0) continue;
+        spans.push({ category: k.category, label: k.category, text: k.text, offset, length: k.text.length, confidenceScore: 1 });
+    }
+    if (!spans.length) return detected || [];
+    const overlaps = (e) => spans.some((s) => typeof e.offset === 'number'
+        && e.offset < s.offset + s.length && s.offset < e.offset + (e.length || 0));
+    return [...spans, ...(detected || []).filter((e) => !overlaps(e))];
 }
 
 /** Splice generic labels over detected spans (tail first, so offsets stay valid). */
@@ -100,6 +129,32 @@ function labelEntities(text, entities) {
         seen.add(label);
     }
     return { scrubbed, replacedCategories: [...seen] };
+}
+
+/**
+ * The note that keeps a tokenised memory usable. Without it a model reads
+ * "My name is [person_7]" as "the name is redacted" and tells the user it does
+ * not know their name, although the un-tokeniser would have shown the real
+ * value. Placed inside the <memories> block when it has one, so the note stays
+ * part of the remembered data and never reads as an instruction of its own.
+ * @param {string} text
+ * @param {Record<string, string>} tokenMap
+ */
+function withTokenNote(text, tokenMap, knownEntities = []) {
+    const tokens = Object.keys(tokenMap || {}).filter((t) => text.includes(t));
+    if (!tokens.length) return text;
+    // Say outright which placeholder is the user, so "what is my name?" in any
+    // language resolves to it rather than to another person in the notes.
+    const own = [];
+    for (const k of knownEntities || []) {
+        const want = String(k?.text || '').trim().toLowerCase();
+        const tok = tokens.find((t) => String(tokenMap[t]).trim().toLowerCase() === want);
+        if (tok && k.role) own.push(`\`${tok}\` is the user's ${k.role}`);
+    }
+    const note = `Placeholders such as ${tokens.map((t) => '`' + t + '`').join(', ')} in these notes stand for the user's own data (name, e-mail address, …); the user sees the real value. ${own.length ? own.join(', ') + '. ' : ''}When the user asks for it, answer with the placeholder verbatim, never that it is unknown.\n`;
+    const close = '</memories>';
+    const at = text.lastIndexOf(close);
+    return at >= 0 ? text.slice(0, at) + note + text.slice(at) : text + '\n' + note;
 }
 
 function realTokenizeDeps() {
@@ -135,31 +190,36 @@ function realTokenizeDeps() {
  *
  * @returns {Promise<{ text: string, tokenMap: object, replacedCategories: string[], mode: 'tokens'|'labels'|'none' }>}
  */
-async function tokenizeMemoryContext(text, orgShield = null, { conversationId = null, userId = null, deps = null } = {}) {
+async function tokenizeMemoryContext(text, orgShield = null, { conversationId = null, userId = null, deps = null, knownEntities = [] } = {}) {
     if (!text || typeof text !== 'string') return { text: text || '', tokenMap: {}, replacedCategories: [], mode: 'none' };
     if (!conversationId) {
-        const { scrubbed, replacedCategories } = await scrubMemoryContext(text, orgShield);
+        const { scrubbed, replacedCategories } = await scrubMemoryContext(text, orgShield, { knownEntities });
         return { text: scrubbed, tokenMap: {}, replacedCategories, mode: replacedCategories.length ? 'labels' : 'none' };
     }
 
     let entities;
     let d;
+    let enabledCategories = null;
     try {
         d = deps || realTokenizeDeps();
-        const enabledCategories = (orgShield?.piiDetectionCategories?.length
+        enabledCategories = (orgShield?.piiDetectionCategories?.length
             ? orgShield.piiDetectionCategories
             : d.ALL_PII_CATEGORY_IDS) || null;
         const threshold = typeof orgShield?.piiDetectionConfidenceThreshold === 'number'
             ? Math.min(orgShield.piiDetectionConfidenceThreshold, 0.70)
             : (d.DEFAULT_PII_CONFIDENCE_THRESHOLD || 0.70);
         const result = await d.detectPii(text, enabledCategories, threshold);
-        if (!result?.hasPii || !result.entities?.length) return { text, tokenMap: {}, replacedCategories: [], mode: 'none' };
-        entities = d.filterAllowed ? d.filterAllowed(result.entities, orgShield) : result.entities;
+        const merged = withKnownEntities(text, result?.hasPii ? result.entities : [], knownEntities, enabledCategories);
+        entities = d.filterAllowed ? d.filterAllowed(merged, orgShield) : merged;
         if (!entities.length) return { text, tokenMap: {}, replacedCategories: [], mode: 'none' };
     } catch (err) {
-        // Same fail-open as the scrub: with no detector we cannot know what to hide.
-        log.warn('[ScrubMemory] PII detection skipped (fail-open):', err.message);
-        return { text, tokenMap: {}, replacedCategories: [], mode: 'none' };
+        // Same fail-open as the scrub: with no detector we cannot know what to
+        // hide, except the account values, which are known without one.
+        entities = withKnownEntities(text, [], knownEntities, enabledCategories);
+        if (!entities.length || !d) {
+            log.warn('[ScrubMemory] PII detection skipped (fail-open):', err.message);
+            return { text, tokenMap: {}, replacedCategories: [], mode: 'none' };
+        }
     }
 
     try {
@@ -176,7 +236,7 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
         if (!tokenMap || Object.keys(tokenMap).length === 0 || tokenizedText === text) throw new Error('nothing tokenised');
         dlpRunner.mergeTokenMap(conversationId, tokenMap);
         const cats = [...new Set(entities.map((e) => humaniseLabel(e.category)))];
-        return { text: tokenizedText, tokenMap, replacedCategories: cats, mode: 'tokens' };
+        return { text: withTokenNote(tokenizedText, tokenMap, knownEntities), tokenMap, replacedCategories: cats, mode: 'tokens' };
     } catch (err) {
         log.warn('[ScrubMemory] tokenising failed, using labels:', err.message);
         const { scrubbed, replacedCategories } = labelEntities(text, entities);
@@ -184,4 +244,4 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
     }
 }
 
-module.exports = { scrubMemoryContext, tokenizeMemoryContext };
+module.exports = { scrubMemoryContext, tokenizeMemoryContext, withTokenNote };

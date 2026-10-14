@@ -21,6 +21,7 @@ const license = require('../license');
 const { hasPermission, resolveUserOrgIds, SystemRoles, Permissions, isOrgAdminRole } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded, choice } = require('../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -41,17 +42,11 @@ const { z, typeError } = require('../utils/zod');
 // Unknown keys are refused too; the token is trimmed (a JWT has no spaces,
 // a pasted one often has a newline).
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
-
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the request as a JSON object.' }) }).strict(),
 );
-
-/** An enum whose refusal is one sentence, for a wrong value as well as a wrong type. */
-const choice = (values, message) => z.enum(values, { error: () => message });
 
 const TOKEN_TEXT = 'Paste the licence token (the long text starting with "ey").';
 const ActivateBody = bodyOf({

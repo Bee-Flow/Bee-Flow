@@ -24,6 +24,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
+const stableJson = require('../utils/stableJson');
 
 const { collectDataBindings } = require('../appStudio/collectDataBindings');
 const queryCompiler = require('../appStudio/queryCompiler');
@@ -63,11 +64,7 @@ const PREVIEW_ORIGIN = 'https://appstudio-preview.beeflow.local/';
 
 /** Deterministic JSON with sorted keys — port of the client's key hasher. */
 function stableStringify(value) {
-    if (value == null) return 'null';
-    if (typeof value !== 'object') return JSON.stringify(value);
-    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-    const keys = Object.keys(value).sort();
-    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+    return stableJson.stableStringify(value);
 }
 
 /** Port of the client dataCacheKey for the server-collected binding kinds. */

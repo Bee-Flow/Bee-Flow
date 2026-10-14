@@ -28,7 +28,7 @@
  * testing against. It reports what it WOULD write and stops there.
  */
 
-const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES } = require('../../automation/validate/constants');
+const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES } = require('../automationModel/constants');
 
 /** How much text one step may store. Beyond this it is a document, not a note. */
 const MAX_CONTENT_CHARS = 200_000;
@@ -57,7 +57,7 @@ function skipped(reason, message, extra = {}) {
 }
 
 async function execKnowledgeWrite(step, ctx, runState, mode) {
-    const { resolveValue, interpolateTemplate } = require('../../automation/bind');
+    const { resolveValue, interpolateTemplate } = require('../automationModel/bind');
     /**
      * ── SECRETS NEVER REACH A KNOWLEDGE BASE ────────────────────────
      * `resolveValue` strips them when asked (`allowSecrets: false`);

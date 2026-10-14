@@ -19,7 +19,7 @@ const assert = require('node:assert/strict');
 process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET ??= 'ci-session-secret-value-at-least-32-chars-long';
 delete process.env.PII_SERVICE_URL;
-require('../../http/routeHarness').recordDb();
+require('../../../testUtils/routeHarness').recordDb();
 
 const registry = require('./registry');
 const { ALL_PII_CATEGORY_IDS } = require('../piiDetection/categories');

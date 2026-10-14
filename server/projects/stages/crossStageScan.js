@@ -24,7 +24,7 @@
 
 'use strict';
 
-const { visitPointers, HOLDER_KINDS } = require('../packaging/pointers');
+const { visitPointers, HOLDER_KINDS } = require('../../core/packaging/pointers');
 const { sweepRawIds } = require('../packaging/idSweep');
 const { KIND_OF_SECTION } = require('./stagePayload');
 

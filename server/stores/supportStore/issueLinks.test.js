@@ -27,17 +27,12 @@ const assert = require('node:assert');
 process.env.NODE_ENV = 'test';
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../../testUtils/pglitePool');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
 const pg = new PGlite();
 
-async function query(sql, params) {
-    const res = Array.isArray(params) && params.length > 0
-        ? await pg.query(sql, params)
-        : (/;\s*\S/.test(String(sql).trim()) ? (await pg.exec(sql)).at(-1) : await pg.query(sql));
-    const rows = res?.rows || [];
-    return { rows, rowCount: res?.fields?.length ? rows.length : (res?.affectedRows ?? 0) };
-}
+const query = pgliteQuery(pg);
 
 const restoreStubs = installResolveStub({ '../../db': { pool: { query } } });
 const links = require('./issueLinks');

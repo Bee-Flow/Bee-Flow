@@ -200,9 +200,8 @@ export const TYPE_STYLE_KNOBS = {
     approval_list: ['span', 'size', 'height'],
 };
 
-// Mirror of SECTION_STYLE_KNOBS / SECTION_STYLE_DEFAULTS (componentSpecs.js).
-export const SECTION_STYLE_KNOBS = ['padding', 'gap', 'background', 'height'];
-export const SECTION_STYLE_DEFAULTS = { padding: 4, gap: 3, background: 'none' };
+// Shared with the server catalog (server/shared/appDefinition/sectionStyle.mjs).
+export { SECTION_STYLE_KNOBS, SECTION_STYLE_DEFAULTS } from '@shared/appDefinition/sectionStyle.mjs';
 
 // Mirror of THEME_SPEC enums (componentSpecs.js); the preset hex list lives
 // in runtime/themeVars.js (APP_COLOR_PRESETS) — import it from there.

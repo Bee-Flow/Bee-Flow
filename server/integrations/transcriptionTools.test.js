@@ -10,7 +10,7 @@
  *  - executeTranscriptionTool ignored args.provider and re-read the admin
  *    default — a reprocess of an azure note could silently run voxtral.
  *
- * DB-free: configStore is require-cache stubbed. Run:
+ * DB-free: configStore and the provider cores are require-cache stubbed. Run:
  *   cd server && node --test integrations/transcriptionTools.test.js
  */
 
@@ -30,9 +30,25 @@ function stub(p, exports) {
 // fails on its own distinctive missing-credential error, which is exactly what
 // the dispatch tests use to prove WHICH handler was reached.
 stub('../stores/configStore', {
-    getSecret: async () => null,
+    // Only Scaleway gets a key: its handler is driven to a full result below.
+    getSecret: async (key) => (key === 'scaleway_api_key' ? 'test-key' : null),
     getConfig: async (key) => (key === 'transcription_provider' ? 'voxtral' : null),
 });
+
+// Provider cores for the end-to-end result tests at the bottom. Pyannote
+// without a staged answer fails like the real core does without a key.
+const llmCalls = [];
+let llmReply = '{}';
+let pyOut = null; let scwOut = null; let localOut = null;
+stub('../core/llm/llmClient', {
+    async chat(modelId, messages) { llmCalls.push(messages[1].content); return { content: llmReply }; },
+});
+stub('../core/voice/pyannoteClient', {
+    async transcribeWithPyannote() { if (!pyOut) throw new Error('Pyannote API key not configured'); return pyOut; },
+});
+stub('../stores/userStore', { getUser: async () => ({ organizationId: 'o1' }) });
+stub('../core/meetingNotes/summaryHelpers', { transcribeWithScaleway: async () => scwOut });
+stub('../core/voice/localWhisper', { transcribeLocally: async () => localOut });
 
 const { formatAzureBatchFailure, computeWhisperBatchTimeouts, executeTranscriptionTool, azureDiarizationSpeakers } = require('./transcriptionTools');
 
@@ -176,4 +192,77 @@ test('formatAzureBatchFailure adds a hint for InvalidData', () => {
     const msg = formatAzureBatchFailure({ status: 'Failed', properties: { error: { code: 'InvalidData', message: 'The recordings URI contains invalid data.' } } });
     assert.match(msg, /InvalidData/);
     assert.match(msg, /SERVER_PUBLIC_HOST|pyannote/);
+});
+
+// ── Provider result shape (merge, speaker tally, names) ─────────────────────
+// Pinned before the shared tail moved to transcription/finalize.js.
+
+const SEGS = [
+    { speakerId: 'S1', start: 0, end: 4.5, text: ' hello ' },
+    { speakerId: 'S1', start: 4.5, end: 9, text: 'there' },
+    { speakerId: 'S2', start: 9, end: 70, text: 'long answer' },
+    { speakerId: 'S1', start: 70, end: 3700, text: 'bye' },
+];
+const ATTACH_CTX = { userId: 'u1', attachments: [{ name: 'meet.mp3', data: Buffer.from('abc').toString('base64') }] };
+const runProvider = (provider) => executeTranscriptionTool('transcribe_audio', { provider, userName: 'Tom' }, ATTACH_CTX);
+const LINES = [
+    '[S1] 00:00 - 00:09: hello there',
+    '[S2] 00:09 - 01:10: long answer',
+    '[S1] 01:10 - 01:01:40: bye',
+];
+function expectedResult({ duration, durationSeconds, names = {} }) {
+    const n = (id) => names[id] || id;
+    return {
+        success: true,
+        fileName: 'meet.mp3',
+        language: 'nl',
+        duration,
+        durationSeconds,
+        speakerCount: 2,
+        segmentCount: 3,
+        speakers: [
+            { id: n('S1'), speakingTime: '01:00:39', segments: 2 },
+            { id: n('S2'), speakingTime: '01:01', segments: 1 },
+        ],
+        transcript: LINES.map((l) => l.replace(/^\[(S\d)\]/, (_, id) => `[${n(id)}]`)).join('\n'),
+        segments: [
+            { speaker: n('S1'), start: 0, end: 9, startFormatted: '00:00', endFormatted: '00:09', text: 'hello there' },
+            { speaker: n('S2'), start: 9, end: 70, startFormatted: '00:09', endFormatted: '01:10', text: 'long answer' },
+            { speaker: n('S1'), start: 70, end: 3700, startFormatted: '01:10', endFormatted: '01:01:40', text: 'bye' },
+        ],
+    };
+}
+
+test('pyannote: provider duration, voiceprint pins win over the LLM names', async (t) => {
+    t.after(() => { pyOut = null; });
+    llmCalls.length = 0; llmReply = '{"S1": "Tom", "S2": "Ann"}';
+    pyOut = { segments: SEGS.map(s => ({ ...s })), durationSeconds: 3725.6, voiceprintMapping: { S2: 'Bea' } };
+    const res = await runProvider('pyannote');
+    assert.deepStrictEqual(res, expectedResult({ duration: '01:02:05', durationSeconds: 3726, names: { S1: 'Tom', S2: 'Bea' } }));
+    assert.strictEqual(llmCalls.length, 1);
+    assert.match(llmCalls[0], /^Speaker IDs: S1, S2\nLanguage: nl\n/);
+    assert.ok(llmCalls[0].endsWith(LINES.join('\n')), 'the LLM sees the merged lines before renaming');
+});
+
+test('scaleway: segments normalised, max end as duration, no LLM JSON leaves ids', async () => {
+    llmCalls.length = 0; llmReply = 'no json here';
+    scwOut = { segments: [...SEGS.map(s => ({ ...s, start: String(s.start) })), { speakerId: 'S3', start: 1, end: 2, text: '   ' }] };
+    const res = await runProvider('scaleway');
+    assert.deepStrictEqual(res, expectedResult({ duration: '01:01:40', durationSeconds: 3700 }));
+    assert.strictEqual(llmCalls.length, 1);
+});
+
+test('local: one speaker skips the LLM and durationSec wins; two speakers ask it', async () => {
+    llmCalls.length = 0; llmReply = '{"S1": "Tom"}';
+    localOut = { segments: [{ start: 0, end: 5, text: 'solo' }], durationSec: 6.4 };
+    const solo = await runProvider('local');
+    assert.strictEqual(llmCalls.length, 0);
+    assert.deepStrictEqual(solo.speakers, [{ id: 'speaker_0', speakingTime: '00:05', segments: 1 }]);
+    assert.strictEqual(solo.durationSeconds, 6);
+    assert.strictEqual(solo.transcript, '[speaker_0] 00:00 - 00:05: solo');
+
+    localOut = { segments: SEGS.map(s => ({ ...s })) };
+    const duo = await runProvider('local');
+    assert.strictEqual(llmCalls.length, 1);
+    assert.deepStrictEqual(duo, expectedResult({ duration: '01:01:40', durationSeconds: 3700, names: { S1: 'Tom' } }));
 });

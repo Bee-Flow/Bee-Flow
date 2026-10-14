@@ -35,7 +35,7 @@ const STAGE_LABEL = Object.freeze({ uat: 'UAT', prd: 'Production' });
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 const lifecycle = () => require('../../core/automationRunner/approvalLifecycle');
-const stagesRules = () => require('../../automation/approvalStages');
+const stagesRules = () => require('../../core/automationModel/approvalStages');
 
 function needsApprover(message, details = {}) {
     return new HttpError(400, 'approval_policy_needs_approver', message, details);

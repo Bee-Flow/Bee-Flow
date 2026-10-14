@@ -32,6 +32,7 @@ const { requireAuth, requireSuperAdmin, isOrgAdminForOrg, resolveUserOrgIds } = 
 const { tagGate } = require('../../auth/gateMeta');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -47,9 +48,6 @@ const { z, typeError } = require('../../utils/zod');
 // The severity list is the store's own (orgHealthStore SEVERITIES) and the
 // client's picker (healthMeta SEVERITY_IDS); a value added on one side
 // without the other is exactly the drift a failing test should catch.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
 

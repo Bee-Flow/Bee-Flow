@@ -20,12 +20,12 @@
  * A suite that skips when the database is missing protects nothing on the
  * developer machine where the bug is written, and this one has no reason to.
  *
- * The seam is db.js, stubbed through require.cache before the stores load —
- * the same technique execDatatable.test.js uses. Everything above it is the
+ * The seam is db.js's pool, answered by PGlite (testUtils/pglitePool) before
+ * the stores load. Everything above it is the
  * genuine article: datatableStore's own createSchema DDL, its transactions,
  * pgAppEngine, the query compiler, the access filter and the datatable step.
  *
- * Run: cd server && node --test --test-force-exit stores/datatableDbStore.integration.test.js
+ * Run: cd server && node --test stores/datatableDbStore.integration.test.js
  */
 
 const { test, before, after } = require('node:test');
@@ -35,36 +35,11 @@ const Module = require('node:module');
 
 const SERVER = path.resolve(__dirname, '..');
 
-// ── A db.js facade over one pglite connection ───────────────────────────────
-
-// Constructed BEFORE the stores are required, not in before(): every store in
-// the require graph kicks off its own createSchema at load time, and a null
-// handle there turns this file's output into a wall of unrelated init errors.
-// The PGlite constructor returns immediately; the first query awaits readiness.
-const { PGlite } = require('@electric-sql/pglite');
-const pg = new PGlite();
-
-/** node-pg's result shape from pglite's. `fields` is what normalizeRows reads. */
-function adaptResult(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
-    const rowCount = fields.length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, fields, rowCount, command };
-}
-
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adaptResult(await pg.exec(sql), sql);
-    return adaptResult(await pg.query(sql), sql);
-}
-
-// pglite is ONE connection, so every "client" is that connection and the tests
-// below must stay sequential — two overlapping transactions would interleave.
-const client = { query: (sql, params) => rawQuery(sql, params), release: () => {} };
+// ── The real db.js, its pool answered by one pglite connection ──────────────
+// Before the stores are required: they start their schema init at load.
+// pglite is ONE connection, so these tests stay sequential.
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { pg, query: rawQuery, close: closePg } = usePglitePool();
 
 function mock(absId, exports) {
     const p = require.resolve(absId);
@@ -73,36 +48,6 @@ function mock(absId, exports) {
     m.loaded = true;
     require.cache[p] = m;
 }
-
-mock(path.join(SERVER, 'db.js'), {
-    pool: { query: rawQuery, connect: async () => client },
-    run: rawQuery,
-    getOne: async (sql, params) => (await rawQuery(sql, params)).rows[0] || null,
-    getAll: async (sql, params) => (await rawQuery(sql, params)).rows,
-    exec: (sql) => rawQuery(sql, []),
-    getClient: async () => client,
-    withTransaction: async (fn) => {
-        await client.query('BEGIN');
-        try {
-            const out = await fn(client);
-            await client.query('COMMIT');
-            return out;
-        } catch (e) {
-            try { await client.query('ROLLBACK'); } catch { /* already aborted */ }
-            throw e;
-        }
-    },
-    makeStoreInit: (tag, schemaFn) => {
-        let promise = null;
-        return function ensureInit() {
-            if (!promise) promise = Promise.resolve().then(schemaFn).catch((err) => { promise = null; throw err; });
-            return promise;
-        };
-    },
-    getRedis: () => null,
-    redisHealthy: () => false,
-    isSqlStateError: (e) => typeof e?.code === 'string' && /^[0-9A-Z]{5}$/.test(e.code),
-});
 
 // auth/datatableAccess pulls in userStore (through permissions and audience)
 // and projectStore, and BOTH run their full createSchema at require time. On
@@ -168,7 +113,7 @@ before(async () => {
 });
 
 after(async () => {
-    await pg.close();
+    await closePg();
 });
 
 // ── The scenario, in order. Each step depends on the one before it. ─────────

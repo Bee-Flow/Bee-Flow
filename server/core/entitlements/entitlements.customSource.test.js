@@ -9,7 +9,7 @@
  *   - builder rows (anything else, including a descriptor without the field)
  *     iff the ceiling holds the 'ai_integration_builder' beta, as before.
  *
- * No module mocking. The database is cut at core/http/routeHarness's db.pool
+ * No module mocking. The database is cut at testUtils/routeHarness's db.pool
  * seam (queries are recorded, never sent), and the resolver's data sources are
  * swapped as functions on their module objects with testUtils/swaps, the same
  * sources entitlements.test.js controls. `tierHint` fixes the tier so no
@@ -25,7 +25,7 @@ process.env.NODE_ENV = 'test';
 const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
-const h = require('../http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const db = h.recordDb();
 const { makeSwaps } = require('../../testUtils/swaps');
 

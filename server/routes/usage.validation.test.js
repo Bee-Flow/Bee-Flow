@@ -19,7 +19,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 
 // Every statement with its parameters, so the /recent ceiling can be read off the query.
 const seen = [];

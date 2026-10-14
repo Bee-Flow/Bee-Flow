@@ -17,15 +17,13 @@ const { tagGate } = require('../../auth/gateMeta');
 const orgHealth = require('../../services/orgHealth'); // fire-and-forget health capture
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
 // Both write routes read the body key by key and dropped whatever they did
 // not recognise, then answered 200 `{ ok: true }`. The panel says "Settings
 // saved" to that — for a setting that decides who gets an account at all.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

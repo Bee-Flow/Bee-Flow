@@ -30,7 +30,7 @@ const assert = require('node:assert');
 const automationStore = require('../../stores/automationStore');
 const userStore = require('../../stores/userStore');
 const permissions = require('../../auth/permissions');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 const { makeSwaps } = require('../../testUtils/swaps');
 
 const USERS = {

@@ -113,7 +113,8 @@ describe('the body keys of every register form', () => {
     });
 
     it('the settings form writes only whitelisted columns', () => {
-        const store = read('stores/complianceStore.js');
+        // SETTINGS_FIELDS, the whitelist complianceStore.js's saveSettings writes through.
+        const store = read('stores/compliance/settingsFields.js');
         for (const field of SETTING_GROUPS.flatMap((g) => g.fields).filter((f) => f.kind !== 'relevance')) {
             expect({ column: field.name, whitelisted: store.includes(field.name) }).toEqual({ column: field.name, whitelisted: true });
         }

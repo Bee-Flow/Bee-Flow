@@ -15,6 +15,7 @@ const { resolveOrgId } = require('./shared');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const { CHAT_MONITORING_DPIA_KEY } = require('../../stores/lib/chatMonitoringVocab');
 
 /**
@@ -41,9 +42,6 @@ function chatMonitoringDpiaHook(req, res, next) {
 // `answers` stays an open object: it is the questionnaire's own vocabulary and
 // grows with the form, and dpiaStore stores it whole as jsonb. Only the three
 // answers a questionnaire cannot do without are checked (REQUIRED_ANSWERS).
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const MODES = ['attestation', 'questionnaire'];
 const RISKS = ['low', 'medium', 'high'];

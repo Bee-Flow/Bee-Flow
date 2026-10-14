@@ -36,7 +36,7 @@ const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     // orgScope.js too: permissions.js delegates the org read to it, and a stub
     // keyed on the parent file alone would silently load the real userStore.
-    if (parent && /auth[\\/](permissions|orgScope)\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
+    if (parent && /auth[\\/](permissions\w*|orgScope)\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
     return originalResolve.call(this, request, parent, ...rest);

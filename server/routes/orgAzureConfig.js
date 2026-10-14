@@ -26,6 +26,7 @@ const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, a
 const { validate } = require('../core/http/validate');
 const { forbidden } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
+const { worded, choice } = require('../core/http/schemaParts');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
@@ -76,17 +77,11 @@ function platformConfigGate(req, _res, next) {
 // reasoning knobs): it is the model-tier config the admin dashboard owns too.
 // An empty or absent secret keeps the stored one, as the screens rely on.
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
-
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
-
-/** An enum whose refusal is one sentence, for a wrong value as well as a wrong type. */
-const choice = (values, message) => z.enum(values, { error: () => message });
 
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
 const text = (name) => worded(`${name} is text.`).trim().optional();

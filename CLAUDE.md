@@ -59,7 +59,8 @@ and `npm run lint:secrets`.
   (`scripts/check-fast.mjs`): every `lint:*` script from the root `package.json` except a
   denylist of slow or install/network-dependent ones, plus the i18n key guard and a range
   secret scan against the merge base with `origin/main`. A new `lint:*` ratchet joins
-  automatically. `--list` shows what runs, `--only <text>` filters.
+  automatically. `--list` shows what runs, `--only <text>` filters, `--list --slack` runs the
+  ratchets and prints measured vs budget per scope (slack above 0: an `--update` lowers it).
 - `npm run test:scripts`: unit tests of all `scripts/*.mjs`. Not part of `check:fast`.
 - `npm run lint:workflows`: every workflow sits in exactly one concurrency bucket
   (`scripts/check-workflow-concurrency.mjs`). A NEW workflow fails with "in no bucket" until
@@ -104,14 +105,29 @@ and `npm run lint:secrets`.
   two branches adding to the same file merge without a visible conflict, and the second one
   silently wins.
 - `npm run lint:shared-mirror`: `server/shared/expr/` is the source of the expression engine,
-  `agent-hub/src/shared/expr/` a byte-for-byte GENERATED copy (the agent-hub image cannot see
-  `server/`). After changing the source run `npm run gen:shared` and commit both.
+  `agent-hub/src/shared/expr/` and `mobile/src/shared/expr/vendor/` byte-for-byte GENERATED
+  copies (the agent-hub image cannot see `server/`). After changing the source run
+  `npm run gen:shared` and commit both. The copies are entries in
+  `scripts/shared-mirror.manifest.json` (`source`, `target`, `transform` `none`|`cjs-to-esm`,
+  `importRewrite`, `include`/`exclude`, `keep` for hand-written files such as a `.d.mts`); a new
+  generated copy is one entry there, never a hand copy. A transformed copy starts with a
+  `GENERATED from … do not edit` header, and `--check` names the entry of any stale or
+  hand-edited target.
 - Count ratchets (`scripts/count-ratchet.mjs`, budget in `agent-hub/.<metric>-ratchet.json`,
   `--update` only lowers, `--list` shows where they are): `lint:style-ratchet` (`style={{…}}`
   objects; use a Tailwind class on the theme variable, `text-[var(--x)]`),
   `lint:fire-event-ratchet` (`fireEvent` calls that `userEvent` can replace),
-  `lint:module-mock-ratchet`, `lint:authfetch-effect-ratchet`, `lint:big-file-ratchet` and
-  `lint:dutch-comment-ratchet`.
+  `lint:module-mock-ratchet`, `lint:authfetch-effect-ratchet`, `lint:big-file-ratchet`,
+  `lint:dutch-comment-ratchet` and `lint:import-zones-ratchet` (agent-hub layer direction:
+  `api/` and `hooks/` never import from `components/` or `pages/`, `components/` never from
+  `pages/`; tests excluded). Also `lint:empty-catch-ratchet`, `lint:rollback-in-store-ratchet`
+  (use `db.withTransaction`), `lint:db-in-routes-ratchet` (routes go through a store) and
+  `lint:long-function-ratchet` (functions over 200 lines, server and agent-hub).
+- `npm run lint:scc-ratchet`: the largest import cycle (strongly connected component of the
+  internal import graph, lazy `require`s included, `import type` excluded) in `server`,
+  `agent-hub/src` and `mobile/src` may only shrink (`scripts/scc-ratchet.mjs`, budget in
+  `<package>/.scc-ratchet.json`, `--update` only lowers, `--list` prints the files of the
+  largest cycle). A red gate means a new import closed a loop: move the shared piece down.
 - `npm run lint:source-text`: tests that read a source file and run a regex over it may only
   go down (`scripts/source-text-tests.mjs`).
 - `cd agent-hub && npm run lint:dead`: `knip`, no source file that nothing imports.

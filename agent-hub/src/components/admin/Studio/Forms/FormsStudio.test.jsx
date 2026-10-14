@@ -349,10 +349,11 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
 // This test is the wire between them. Flip the flag and it fails, which is the
 // point: whoever turns public forms on has to come back and say so here.
 describe('the copy matches what the server actually allows', () => {
-    const serverSrc = readFileSync(
-        resolve(__dirname, '../../../../../../server/routes/automation/formPublic.js'),
-        'utf8',
-    );
+    // The flag lives in formPublic/access.js since the route file was split;
+    // the gate that reads it stays in the route file.
+    const serverSrc = ['formPublic/access.js', 'formPublic.js']
+        .map((f) => readFileSync(resolve(__dirname, '../../../../../../server/routes/automation/', f), 'utf8'))
+        .join('\n');
 
     it('public forms are still off on the server', () => {
         expect(serverSrc).toMatch(/const PUBLIC_FORMS_ENABLED = false;/);

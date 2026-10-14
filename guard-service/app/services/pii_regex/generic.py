@@ -5,10 +5,25 @@ stdlib IP parsers). Every pattern here is compiled once at import.
 
 from __future__ import annotations
 
-import ipaddress
 import re
 
+from app.services.pii_validators import (
+    is_valid_iban as _is_valid_iban,
+    is_valid_ipv4 as _is_valid_ipv4,
+    is_valid_ipv6 as _is_valid_ipv6,
+    is_valid_luhn as _is_valid_luhn,
+)
+
 from .anchors import _ANCHOR_GAP, _LINE_SPACE
+
+# Re-exported for registry.py (generic._is_valid_ipv4 …), see the comment below.
+# No module star-imports this file; __all__ only marks the re-exports as used.
+__all__ = ["_is_valid_ipv4", "_is_valid_ipv6", "_is_valid_luhn"]
+
+# The mod-97, Luhn and IP checks are IMPORTED from pii_validators, the copy
+# model spans go through: a private copy here had already drifted (its IPv4
+# check took "+1.2.3.4"). The leading-underscore names stay for registry.py
+# and the package barrel.
 
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 
@@ -196,20 +211,6 @@ _HEX_SECRET_ANCHOR_RE = re.compile(
 )
 
 
-def _is_valid_iban(candidate: str) -> bool:
-    """Standard ISO 13616 mod-97 check."""
-    s = candidate.replace(" ", "").upper()
-    if not (4 < len(s) <= 34):
-        return False
-    rearranged = s[4:] + s[:4]
-    # A=10, B=11, ..., Z=35
-    digits_str = "".join(c if c.isdigit() else str(ord(c) - 55) for c in rearranged)
-    try:
-        return int(digits_str) % 97 == 1
-    except ValueError:
-        return False
-
-
 def _is_valid_iban_anysep(candidate: str) -> bool:
     """mod-97 on an IBAN grouped with spaces or dashes (_IBAN_ANYCASE_RE).
 
@@ -220,44 +221,3 @@ def _is_valid_iban_anysep(candidate: str) -> bool:
     """
     compact = candidate.replace("-", "").replace(" ", "")
     return len(compact) >= 15 and _is_valid_iban(compact)
-
-
-def _is_valid_luhn(candidate: str) -> bool:
-    """Standard Luhn check on a digit string (separators stripped)."""
-    digits = [int(c) for c in candidate if c.isdigit()]
-    if not (13 <= len(digits) <= 19):
-        return False
-    checksum = 0
-    parity = len(digits) % 2
-    for i, d in enumerate(digits):
-        if i % 2 == parity:
-            d *= 2
-            if d > 9:
-                d -= 9
-        checksum += d
-    return checksum % 10 == 0
-
-
-def _is_valid_ipv4(candidate: str) -> bool:
-    parts = candidate.split(".")
-    if len(parts) != 4:
-        return False
-    try:
-        return all(0 <= int(p) <= 255 for p in parts)
-    except ValueError:
-        return False
-
-
-def _is_valid_ipv6(candidate: str) -> bool:
-    """Let the stdlib decide, so the pattern can stay permissive.
-
-    This is what stops `12:30:45` and `aa:bb:cc:dd:ee:ff` from being redacted as
-    addresses: both parse as neither a full eight-hextet form nor a `::`
-    compression. Hand-rolling the rule instead would mean re-deriving RFC 4291,
-    and the last hand-rolled attempt is what shipped the timestamp bug.
-    """
-    try:
-        ipaddress.IPv6Address(candidate.strip())
-        return True
-    except ValueError:
-        return False

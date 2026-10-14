@@ -29,18 +29,10 @@ const { PGlite } = require('@electric-sql/pglite');
 const { makeProjectStore, applyProjectSchema } = require('./projectStore');
 const { makeSolutionStageStore, applySolutionStageSchema } = require('./solutionStageStore');
 const { makeManagedParts } = require('./lib/managedParts');
-const { pgliteDb } = require('../testUtils/pgliteDb');
+const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 
-/** The slice of db.js projectStore uses, over one PGlite connection. */
-function facadeFor(pg) {
-    const { db } = pgliteDb(pg);
-    return {
-        run: db.query,
-        getOne: async (sql, params) => (await db.query(sql, params)).rows[0] || null,
-        getAll: async (sql, params) => (await db.query(sql, params)).rows,
-        getClient: async () => ({ query: db.query, release() {} }),
-    };
-}
+/** The slice of db.js the store uses, over one PGlite connection. */
+const facadeFor = (pg) => dbFacade(pgliteDb(pg).db);
 
 const runDdl = (pg) => async (_tag, statements) => {
     for (const stmt of statements) await pg.exec(typeof stmt === 'string' ? stmt : stmt.sql);

@@ -16,7 +16,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { resolveForEachItems, walkWithTrail } = require('./forEachScope');
-const { walkPath } = require('../../automation/bind');
+const { walkPath } = require('../automationModel/bind');
 const { parsePath } = require('../../automation/expr');
 
 /** Run `fn` and count the JSON.parse calls that parse exactly `text`. */

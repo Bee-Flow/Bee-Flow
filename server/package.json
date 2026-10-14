@@ -55,7 +55,6 @@
     "cheerio": "^1.2.0",
     "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",
-    "docker-modem": "^5.0.7",
     "dockerode": "^5.0.1",
     "docx": "^9.10.0",
     "docxtemplater": "^3.71.0",
@@ -104,7 +103,6 @@
     "stripe": "^23.0.0",
     "undici": "^8.11.2",
     "vcf": "^2.1.2",
-    "y-protocols": "1.0.7",
     "yjs": "13.6.33",
     "zod": "~4.4.3"
   },
@@ -132,6 +130,7 @@
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
     "nodemon": "^3.1.11",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "y-protocols": "1.0.7"
   }
 }

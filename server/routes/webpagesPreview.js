@@ -76,7 +76,7 @@ const { resolveRuntime } = require('../integrations/webpageFramework');
 const { executeApiHandler } = require('../integrations/webpageApiRuntime');
 const { getProviderForModel } = require('../core/aiAgent');
 const { getAdapter } = require('../core/providers');
-const { startSseHeartbeat } = require('../core/http/sseHelpers');
+const { openSse } = require('../core/http/sseHelpers');
 
 // W3 — window.beeflowTables: `/:id/tables/:tid/query|insert|update`. Eigen
 // bestand omdat die routes als DE INGELOGDE BEZOEKER draaien en niet
@@ -296,25 +296,17 @@ router.post('/:id/ai/stream', requirePreviewToken, llmBridgeLimiter, async (req,
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
     if (!ctx.bridgeGrants.ai.enabled) return res.status(403).json({ error: 'AI bridge is disabled for this webpage' });
 
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
     // Prevents a thinking-model silence from tripping an upstream gateway's
     // idle-connection drop (the same failure mode fixed for the automation
     // builder stream — see startSseHeartbeat's usage there).
-    const stopHeartbeat = startSseHeartbeat(res);
-    // Set once the client disconnects. The underlying LLM fetch isn't
+    // isGone() turns true once the client disconnects. The underlying LLM fetch isn't
     // cancellable yet (the provider adapters don't accept an abort signal —
     // see webpageRuntimeManager's sibling design note), so this only stops us
     // writing to a dead socket; it doesn't cut short the in-flight request.
-    let aborted = false;
-    res.on('close', () => { aborted = true; stopHeartbeat(); });
+    const { send: sendEvent, isGone, stopHeartbeat } = openSse(res, { heartbeat: true });
     const send = (event, data) => {
-        if (aborted) return;
-        try { res.write(`event: ${event}\ndata: ${JSON.stringify(data || {})}\n\n`); } catch (_) {}
+        if (isGone()) return;
+        sendEvent(event, data || {});
     };
 
     try {
@@ -481,22 +473,14 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
     if (!ctx.bridgeGrants.ai.enabled) return res.status(403).json({ error: 'AI bridge is disabled for this webpage' });
 
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
     // Prevents an idle-timeout gateway drop during long thinking-model
     // silences, and lets the round loop below notice a disconnect and stop
     // spending tokens / dispatching integration+automation side effects on
     // behalf of a client that's no longer listening.
-    const stopHeartbeat = startSseHeartbeat(res);
-    let aborted = false;
-    res.on('close', () => { aborted = true; stopHeartbeat(); });
+    const { send: sendEvent, isGone, stopHeartbeat } = openSse(res, { heartbeat: true });
     const send = (event, data) => {
-        if (aborted) return;
-        try { res.write(`event: ${event}\ndata: ${JSON.stringify(data || {})}\n\n`); } catch (_) {}
+        if (isGone()) return;
+        sendEvent(event, data || {});
     };
 
     const t0 = Date.now();
@@ -681,7 +665,7 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
             // A client that disconnected mid-loop shouldn't cause further LLM
             // spend or trigger the next round's integration/automation side
             // effects (Slack messages, Sheets writes, …) for nobody to see.
-            if (aborted) break;
+            if (isGone()) break;
             fullContent = '';
             streamToolCalls = [];
 
@@ -693,7 +677,7 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
 
             await adapter.stream(apiKey, apiUrl, modelId, messages, streamOptions, streamCallback);
 
-            if (aborted || streamToolCalls.length === 0) break;
+            if (isGone() || streamToolCalls.length === 0) break;
 
             messages.push({
                 role: 'assistant',
@@ -705,7 +689,7 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
             messages.push(...toolResults);
         }
 
-        if (!aborted && rounds >= maxRounds && streamToolCalls.length > 0) {
+        if (!isGone() && rounds >= maxRounds && streamToolCalls.length > 0) {
             truncated = true;
             // Last chance to summarise without offering more tools.
             try {

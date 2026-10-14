@@ -56,7 +56,7 @@ const { buildAiMessages } = require('../core/webpages/webpageAiMessages');
 const llmClient = require('../core/llm/llmClient');
 const { resolveModelForTier, TIER_DEFAULTS } = require('../core/llm/modelResolver');
 const usageStore = require('../stores/usageStore');
-const { startSseHeartbeat } = require('../core/http/sseHelpers');
+const { openSse } = require('../core/http/sseHelpers');
 const { publicAiLimiter, publicIpLimiter } = require('./publicShareBridgeRateLimits');
 
 // Distinct usage source so anonymous spend is isolated from the author's own
@@ -233,18 +233,10 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
     if (clamp.error) return res.status(400).json({ error: clamp.error });
     tierName = clamp.tierName;
 
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-    const stopHeartbeat = startSseHeartbeat(res);
-    let aborted = false;
-    res.on('close', () => { aborted = true; stopHeartbeat(); });
+    const { send: sendEvent, isGone, stopHeartbeat } = openSse(res, { heartbeat: true });
     const send = (event, data) => {
-        if (aborted) return;
-        try { res.write(`event: ${event}\ndata: ${JSON.stringify(data || {})}\n\n`); } catch (_) {}
+        if (isGone()) return;
+        sendEvent(event, data || {});
     };
 
     try {

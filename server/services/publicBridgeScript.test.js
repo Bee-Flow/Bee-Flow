@@ -62,7 +62,8 @@ const { maskCode } = require('../core/webpages/webpageBindings');
  */
 const CLIENT_UTILS = path.join(__dirname, '..', '..', 'agent-hub', 'src', 'utils');
 const CLIENT_BRIDGE_FILES = [
-    path.join(CLIENT_UTILS, 'composeWebpageDocument.js'),
+    // De platformbruggen staan in server/shared/webpage/; dit is de gegenereerde spiegel die de client laadt.
+    path.join(__dirname, '..', '..', 'agent-hub', 'src', 'shared', 'webpage', 'previewBridges.mjs'),
     path.join(CLIENT_UTILS, 'bfElementsRuntime.js'),
 ];
 

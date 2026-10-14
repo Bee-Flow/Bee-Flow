@@ -59,9 +59,11 @@
 const express = require('express');
 const multer = require('multer');
 const { z, typeError } = require('../../utils/zod');
+const { orEmpty } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
+const { openSse } = require('../../core/http/sseHelpers');
 const { canSeePublished, resolveAudienceContext } = require('../../auth/audience');
 
 const configStore = require('../../stores/configStore');
@@ -116,8 +118,6 @@ function receiveTurnAudio(req, res, next) {
 }
 
 // ─── What a caller may send ───────────────────────────────────────
-/** A request that is not JSON / multipart at all reaches here with no body. */
-const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 const AGENT_TEXT = 'agentId is the id of an agent you can use.';
 const VOICE_TEXT = 'voice is the name of a voice.';
 const LANGUAGE_TEXT = 'language is a language code, like nl or en.';
@@ -374,16 +374,8 @@ router.post(
             return res.status(404).json({ error: 'Agent not found', code: 'agent_not_found' });
         }
 
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders?.();
-
-        const send = (event, data) => {
-            try {
-                res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-            } catch (_) { /* socket closed */ }
-        };
+        // This head never carried X-Accel-Buffering; it keeps its own wire head.
+        const { send } = openSse(res, { headers: { 'X-Accel-Buffering': null }, flush: true, viaSetHeader: true });
 
         try {
             const apiKey = req._mistralKey;

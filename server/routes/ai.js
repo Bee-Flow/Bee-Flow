@@ -12,7 +12,6 @@ const router = express.Router();
 const configRoutes = require('./ai/config');
 const providerRoutes = require('./ai/providers');
 const localRuntimeRoutes = require('./ai/localRuntimes');
-const agentChatRoutes = require('./ai/agentChat');
 const directChatRoutes = require('./ai/directChat');
 
 const templateChatRoutes = require('./ai/templateChat');
@@ -29,7 +28,6 @@ const { requireModule } = require('../modules');
 router.use('/', configRoutes);
 router.use('/', providerRoutes);
 router.use('/', localRuntimeRoutes);
-router.use('/', agentChatRoutes);
 router.use('/', directChatRoutes);
 
 router.use('/', templateChatRoutes);

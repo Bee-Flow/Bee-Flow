@@ -9,6 +9,10 @@
  * side is missing. It never skips a pair it cannot read.
  *
  * To add a pair: append it to PAIRS with a reason. Run: npm run lint:duplicated-files
+ *
+ * A copy of a server file that a package needs in its own tree is better a
+ * generated mirror (scripts/shared-mirror.manifest.json, npm run gen:shared):
+ * the components' ssrfGuard.js and htmlToMarkdown.js moved there.
  */
 
 import fs from 'node:fs';
@@ -28,6 +32,11 @@ export const PAIRS = [
         a: 'server/assets/brand/BeeFlow-logo-Icon-2026.svg',
         b: 'agent-hub/src/assets/BeeFlow-logo-Icon-2026.svg',
         why: 'the server embeds the logo in exports; the agent-hub image cannot see server/',
+    },
+    {
+        a: 'components/webpage-to-markdown/safeGet.js',
+        b: 'components/website-sitemap-fetcher/safeGet.js',
+        why: 'both web-fetching components share the guarded GET; neither can require the other',
     },
 ];
 

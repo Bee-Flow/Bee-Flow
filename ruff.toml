@@ -9,12 +9,36 @@
 
 target-version = "py312"
 
+# THE ruff pin. ci.yml's python-lint job installs exactly this version (it reads
+# it from this line), and any other ruff refuses to run against this config, so
+# a local `ruff check` and CI can never disagree about the rules.
+required-version = "==0.16.4"
+
 [lint]
 # F = pyflakes (unused imports / undefined names, low-noise); C901 = McCabe
 # complexity; PLR09xx = pylint too-many-{returns,branches,args,statements}.
 # Intentionally NOT selecting the full "E" set — E501 line-length is pure style
 # noise for a complexity/size goal and this repo enforces no line length today.
-select = ["F", "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915"]
+#
+# B = flake8-bugbear (likely bugs: zip without strict, unused loop variables);
+# S = flake8-bandit (security smells: assert in app code, swallowed exceptions,
+# bind-all, URL schemes); UP = pyupgrade (py312 syntax: `X | None`,
+# collections.abc); I = isort (one import order everywhere).
+select = ["F", "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "B", "S", "UP", "I"]
+
+[lint.per-file-ignores]
+# Tests assert, use fixed "secret" strings as canaries, bind to 0.0.0.0 in
+# fixtures and draw seeded randomness: none of that is a security finding.
+"**/tests/**" = ["S101", "S104", "S105", "S106", "S311"]
+# Offline eval and maintenance tooling, never shipped in a request path: the
+# corpus generator draws SEEDED randomness on purpose (reproducibility, not
+# secrecy), and the runners call a URL / subprocess given on their own CLI.
+"**/eval/**" = ["S311", "S310", "S603"]
+"guard-service/tools/**" = ["S310"]
+
+[lint.isort]
+# `from x import a, b as c` stays one statement instead of splitting off the alias.
+combine-as-imports = true
 
 [lint.mccabe]
 max-complexity = 10

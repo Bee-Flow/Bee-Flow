@@ -1,11 +1,14 @@
 const fs = require('fs');
-const axios = require('axios');
 const { parseString } = require('xml2js');
 const { URL } = require('url');
+const { safeGet } = require('./safeGet');
 
 async function fetchUrl(url, timeout, userAgent) {
   try {
-    const response = await axios.get(url, {
+    // safeGet, not axios.get: the site URL is caller-supplied (an agent tool)
+    // and robots.txt / sitemap indexes name further URLs; every one of them,
+    // and every redirect hop, must stay off internal addresses.
+    const { response } = await safeGet(url, {
       timeout,
       headers: userAgent ? { 'User-Agent': userAgent } : undefined,
       // helpful defaults
@@ -164,7 +167,7 @@ async function main() {
   console.log(JSON.stringify(result));
 }
 
-main().catch(e => {
+if (require.main === module) main().catch(e => {
   const errorResult = {
     success: false,
     error: e.message,
@@ -176,3 +179,5 @@ main().catch(e => {
   console.log(JSON.stringify(errorResult));
   process.exit(1);
 });
+
+module.exports = { fetchUrl, parseSitemap, processSitemap };

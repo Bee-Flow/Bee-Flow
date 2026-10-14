@@ -29,7 +29,7 @@ const OnboardingTour = lazy(() => import('./components/onboarding/OnboardingTour
 const LessonPlayerHost = lazy(() => import('./components/onboarding/LessonPlayerHost'));
 import ErrorBoundary from './components/shell/ErrorBoundary';
 import MaintenanceBanner from './components/shell/MaintenanceBanner';
-import { LicenseProvider, RequireTier } from './components/licensing/LicenseContext';
+import { LicenseProvider } from './components/licensing/LicenseContext';
 import { SubscriptionProvider } from './components/licensing/SubscriptionContext';
 import { EntitlementsProvider } from './components/licensing/EntitlementsContext';
 const NcOnboardingWizard = lazy(() => import('./components/NcOnboardingWizard'));
@@ -42,7 +42,6 @@ const EmailVerificationScreen = lazy(() => import('./components/onboarding/Email
 // bundle stays lean. Each render site is wrapped in <Suspense> + a per-
 // route <ErrorBoundary> so a load failure or runtime crash in one panel
 // can't take down the rest of the app.
-const ComponentBuilder = lazy(() => import('./components/admin/component-studio/ComponentBuilder'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const OrgSettings = lazy(() => import('./pages/OrgSettings'));
 // The RecorderProvider/CaptureProvider remain mounted at the app root so
@@ -555,15 +554,6 @@ function App() {
         }
         if (currentPage === 'orgSettings') {
             return routed('orgSettings', <OrgSettings user={user} onBack={() => navigateToPage('agents')} orgSettingsPath={orgSettingsPath} onNavigate={navigateToPage} />);
-        }
-
-
-        if (currentPage === 'components') {
-            return routed('components',
-                <RequireTier feature="component_designer" onNavigateToLicense={() => navigateToPage('settings')}>
-                    <ComponentBuilder onBack={() => navigateToPage('agents')} />
-                </RequireTier>
-            );
         }
 
         // The two published-directory pages, Apps and Forms, used to return

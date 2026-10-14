@@ -23,8 +23,9 @@ const assert = require('node:assert');
 const http = require('node:http');
 const express = require('express');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteDb, dbFacade } = require('../../testUtils/pgliteDb');
 const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
-const { assertRefused } = require('../../core/http/routeHarness');
+const { assertRefused } = require('../../testUtils/routeHarness');
 const { makeProjectStore, applyProjectSchema } = require('../../stores/projectStore');
 const { makeChangeFeed } = require('../../projects/changeFeed');
 const { makeChangeTitles } = require('../../projects/changeTitles');
@@ -42,20 +43,8 @@ let feed;
 let projectId;
 const roles = {};
 
-function facadeFor(db) {
-    const query = async (sql, params) => {
-        const r = params && params.length ? await db.query(sql, params) : await db.query(sql);
-        const rows = r.rows || [];
-        return { rows, rowCount: typeof r.affectedRows === 'number' ? r.affectedRows : rows.length };
-    };
-    return {
-        query,
-        run: query,
-        getOne: async (sql, params) => (await query(sql, params)).rows[0] || null,
-        getAll: async (sql, params) => (await query(sql, params)).rows,
-        getClient: async () => ({ query, release() {} }),
-    };
-}
+/** The slice of db.js the store uses, over one PGlite connection. */
+const facadeFor = (pg) => dbFacade(pgliteDb(pg).db);
 
 const app = express();
 app.use(express.json());

@@ -80,8 +80,6 @@ module.exports = {
     TITLE_GENERATOR_AGENT_ID: systemAgents.TITLE_GENERATOR_AGENT_ID,
     getMemoryExtractorAgent: systemAgents.getMemoryExtractorAgent,
     MEMORY_EXTRACTOR_AGENT_ID: systemAgents.MEMORY_EXTRACTOR_AGENT_ID,
-    getComponentDesignerAgent: systemAgents.getComponentDesignerAgent,
-    AI_COMPONENT_DESIGNER_AGENT_ID: systemAgents.AI_COMPONENT_DESIGNER_AGENT_ID,
     getPDFExtractorAgent: systemAgents.getPDFExtractorAgent,
     getSystemPromptDesignerAgent: systemAgents.getSystemPromptDesignerAgent,
     SYSTEM_PROMPT_DESIGNER_AGENT_ID: systemAgents.SYSTEM_PROMPT_DESIGNER_AGENT_ID,

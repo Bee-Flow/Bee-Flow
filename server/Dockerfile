@@ -185,14 +185,14 @@ COPY --chmod=a+rX,go-w . .
 #                module packages, the local storage fallback, the Transformers.js
 #                model cache. The volume mount point; a fresh named volume
 #                inherits this owner.
-#   /components  the Component Designer's components and their npm installs
+#   /components  the shipped components and their boot-time npm installs
 #                (core/cms/componentManager.js). Bind-mounted by
 #                docker-compose.yml and -from-registry; in Kubernetes it is
 #                this directory.
 #   /tmp, $HOME  scratch files, and the docker and npm caches (/home/node).
-# Two of them hold code the server runs. /components on purpose: writing
-# component code is what the designer is for, behind the component_designer
-# capability. /app/data/modules holds signed packages that every boot
+# Two of them hold code the server runs. /components holds the shipped,
+# repo-tracked components; nothing writes component code at run time any more,
+# only their npm installs land there. /app/data/modules holds signed packages that every boot
 # re-verifies and extracts afresh (modules/packageLoader.js), so an edit there
 # does not survive a restart.
 # /app/sbom exists in every image (empty when nothing was staged) so

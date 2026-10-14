@@ -25,7 +25,7 @@ const http = require('node:http');
 
 process.env.NODE_ENV = 'test';
 // configStore answers from an empty database, so the endpoint comes from env.
-require('../../http/routeHarness').recordDb();
+require('../../../testUtils/routeHarness').recordDb();
 
 const pii = require('../piiDetection');
 const { invalidateGuardEndpointCache } = require('./guardEndpoint');

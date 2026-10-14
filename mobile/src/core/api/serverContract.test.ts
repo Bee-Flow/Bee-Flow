@@ -68,12 +68,40 @@ function readTree(rel: string): string {
  * "found" in the next mapper down and the pin stayed green over a broken
  * payload.
  */
-function functionSlice(source: string, fnName: string): string {
+function functionSlice(source: string | readonly string[], fnName: string): string {
+    if (typeof source !== 'string') return functionSlice(holding(source, `function ${fnName}(`), fnName);
     const start = source.indexOf(`function ${fnName}(`);
     if (start === -1) return '';
+    const nested = nestedEnd(source, start);
+    if (nested !== null) return nested;
     const rest = source.slice(start + 1);
     const next = rest.search(/\n(?:async )?function /);
     return source.slice(start, next === -1 ? undefined : start + 1 + next);
+}
+
+/**
+ * The split stores and routers declare their functions and handlers INSIDE a
+ * factory or a `registerXRoutes(router)` function, indented. The top-level
+ * terminators above never see a sibling there, so a slice would run on to the
+ * end of the factory and beyond — the hole the `async function` fix closed,
+ * reopened. An indented declaration ends at the first line that closes at its
+ * own indentation (`    }` / `    });`). Answers null for a top-level one,
+ * which keeps its terminator.
+ */
+function nestedEnd(source: string, start: number): string | null {
+    const lineStart = source.lastIndexOf('\n', start) + 1;
+    const indent = /^[ \t]*/.exec(source.slice(lineStart, start))?.[0] ?? '';
+    if (indent === '') return null;
+    const close = source.slice(start).search(new RegExp(`\\n${indent}\\}`));
+    return source.slice(start, close === -1 ? undefined : start + close + indent.length + 2);
+}
+
+/**
+ * Of a module split into files, the ONE file that holds `marker` ('' when
+ * none does) — so a slice never runs from one file into the next.
+ */
+function holding(sources: readonly string[], marker: string): string {
+    return sources.find((src) => src.includes(marker)) ?? '';
 }
 
 /** Which keys does a mapper's body assign? A superset is fine — the pinned
@@ -431,9 +459,14 @@ describe('the mount points (server/index.js)', () => {
  * argument, not a declaration — but the same coarseness applies: reformatting
  * survives, moving the handler away does not.
  */
-function routeSlice(source: string, marker: string): string {
+function routeSlice(source: string | readonly string[], marker: string): string {
+    if (typeof source !== 'string') return routeSlice(holding(source, marker), marker);
     const start = source.indexOf(marker);
     if (start === -1) return '';
+    // Registered inside a function (`registerFormRoutes(router)`): indented,
+    // so it ends where it closes, not at a top-level `router.`.
+    const nested = nestedEnd(source, start);
+    if (nested !== null) return nested;
     const rest = source.slice(start + marker.length);
     const next = rest.search(/\nrouter\./);
     return source.slice(start, next === -1 ? undefined : start + marker.length + next);
@@ -535,14 +568,16 @@ describe('webpage rows (server/stores/webpage/shared.js)', () => {
     });
 });
 
-describe('transcription rows (server/stores/transcriptionStore.js)', () => {
+describe('transcription rows (server/stores/transcription/rowShape.js)', () => {
     // Mirrored by TranscriptionSummary in src/features/recording/model/types.ts. The
     // three spread-in fields are conditional BY DESIGN (list payloads only, and
     // absent rather than empty when a query did not select them), so they are
     // pinned as assignments here — the optional `?:` on the phone matches.
     it('mapRow still maps every field the recording list renders', () => {
         expect(
-            missingFrom(functionSlice(read('stores/transcriptionStore.js'), 'mapRow'), [
+            // transcriptionStore.js is the barrel; the row shape is built in
+            // transcription/rowShape.js (createRowShape -> mapRow).
+            missingFrom(functionSlice(read('stores/transcription/rowShape.js'), 'mapRow'), [
                 'id', 'title', 'fileName', 'language', 'durationSeconds',
                 'speakerCount', 'segmentCount', 'status', 'provider', 'source',
                 'isPublished', 'sharedGroups', 'organizationId',
@@ -620,11 +655,12 @@ describe('the 409 delete guards (src/core/api/deleteGuard.ts)', () => {
     });
 });
 
-describe('the form list (server/routes/automation/crud.js GET /forms)', () => {
+describe('the form list (server/routes/automation/forms.js GET /forms)', () => {
     // Mirrored by FormSummary in src/features/forms/model/types.ts, which names
     // this handler as its source. Assembled inline in the route rather than by
     // a row mapper, so the slice is the handler.
-    const source = read('routes/automation/crud.js');
+    // Registered on crud.js's router by registerFormRoutes (forms.js).
+    const source = read('routes/automation/forms.js');
     const slice = routeSlice(source, "router.get('/forms'");
 
     it('still assembles every field the forms screen renders', () => {
@@ -644,11 +680,12 @@ describe('the form list (server/routes/automation/crud.js GET /forms)', () => {
         // move independently: the router-relative path here, and the mount in
         // index.js. Losing either one 404s the whole Forms tab.
         expect(source).toContain("'/forms'");
+        expect(read('routes/automation/crud.js')).toContain('registerFormRoutes(router);');
         expect(read('index.js')).toContain("'/api/automation'");
     });
 });
 
-describe('project rows (server/stores/projectStore.js)', () => {
+describe('project rows (server/stores/project/projects.js, project/rows.js)', () => {
     // Mirrored by Project in src/features/projects/model/types.ts. `permission` is
     // list-only (the detail route calls it `role`) and is computed by the
     // SELECT's CASE, so it is part of this mapper's contract, not the table's.
@@ -656,11 +693,12 @@ describe('project rows (server/stores/projectStore.js)', () => {
     // getProject uses too) plus `permission`, so the mapped fields are the
     // union of both functions.
     it('listUserProjects still maps every field the solution screens read', () => {
-        const store = read('stores/projectStore.js');
-        const list = functionSlice(store, 'listUserProjects');
+        // projectStore.js is the barrel: the list query is in project/projects.js,
+        // the shared mapper in project/rows.js.
+        const list = functionSlice(read('stores/project/projects.js'), 'listUserProjects');
         expect(list).toContain('mapProjectRow(row)');
         expect(
-            missingFrom(list + functionSlice(store, 'mapProjectRow'), [
+            missingFrom(list + functionSlice(read('stores/project/rows.js'), 'mapProjectRow'), [
                 'id', 'name', 'description', 'customInstructions',
                 'knowledgeBaseIds', 'color', 'icon', 'ownerId',
                 'organizationId', 'extractMemories', 'version', 'permission',
@@ -879,6 +917,10 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
     // and the server stops reading is a 400 on every save, not a silently
     // dropped field.
     const crud = read('routes/automation/crud.js');
+    // Registered on crud.js's router (registerFolderRoutes,
+    // registerTemplateAndImportRoutes, registerExportRoute).
+    const folders = read('routes/automation/folders.js');
+    const importExport = read('routes/automation/importExport.js');
     const catalog = read('routes/automation/catalog.js');
     // The ai_step's agent and skill previews, registered on the catalog router.
     const agentSteps = read('routes/automation/agentStepRoutes.js');
@@ -889,6 +931,9 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
     // GET /:id/counts, registered inside makeActionsRouter.
     const actions = read('routes/automation/actions.js');
     const chatStream = read('routes/ai/automationBuilder/chatStream.js');
+    // The turn's body schema (turnSetup.js) and its closing write (turnClosing.js).
+    const turnSetup = read('routes/ai/automationBuilder/turnSetup.js');
+    const turnClosing = read('routes/ai/automationBuilder/turnClosing.js');
 
     /** A top-level `const <name> = …` declaration, up to the next top-level statement. */
     function declSlice(source: string, name: string): string {
@@ -906,18 +951,18 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
             [crud, "router.post('/', validate({ body: CreateAutomationBody })"],
             [crud, "router.delete('/:id'"],
             [crud, "router.get('/:id/usage'"],
-            [crud, "router.get('/:id/export'"],
-            [crud, "router.post('/import'"],
+            [importExport, "router.get('/:id/export'"],
+            [importExport, "router.post('/import'"],
             [crud, "router.post('/:id/activate'"],
             [crud, "router.post('/:id/publish', validate({ body: PublishBody })"],
             [crud, "router.post('/:id/deactivate'"],
             [actions, "router.get('/:id/counts'"],
-            [crud, "router.get('/templates'"],
-            [crud, "router.get('/templates/:id'"],
-            [crud, "router.get('/folders'"],
-            [crud, "router.post('/folders', validate({ body: FolderBody })"],
-            [crud, "router.put('/folders/:folderId', validate({ body: FolderPatch })"],
-            [crud, "router.delete('/folders/:folderId'"],
+            [importExport, "router.get('/templates'"],
+            [importExport, "router.get('/templates/:id'"],
+            [folders, "router.get('/folders'"],
+            [folders, "router.post('/folders', validate({ body: FolderBody })"],
+            [folders, "router.put('/folders/:folderId', validate({ body: FolderPatch })"],
+            [folders, "router.delete('/folders/:folderId'"],
             [catalog, "router.get('/catalog'"],
             [catalog, "router.get('/catalog/form-pick-sources'"],
             [catalog, "router.get('/catalog/nextcloud-tables/:tableId/columns'"],
@@ -940,6 +985,10 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
             [read('routes/ai/automationBuilder/sessionSnapshot.js'), "router.get('/session/:automationId'"],
         ];
         expect(routes.filter(([source, marker]) => !source.includes(marker)).map(([, marker]) => marker)).toEqual([]);
+        // folders.js and importExport.js serve only through crud.js's router.
+        for (const call of ['registerFolderRoutes(router);', 'registerTemplateAndImportRoutes(router);', 'registerExportRoute(router);']) {
+            expect(crud).toContain(call);
+        }
         // agentStepRoutes.js serves under /api/automation only through the catalog router.
         expect(catalog).toContain("require('./agentStepRoutes').registerAgentStepRoutes(router);");
         // actions.js serves under /api/automation through the automation router.
@@ -956,7 +1005,7 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         expect(missingFrom(declSlice(crud, 'CreateAutomationBody'), [
             'title', 'description', 'definition', 'triggerType', 'scheduleCron', 'scheduleTz', 'createdFromChatId',
         ])).toEqual([]);
-        expect(missingFrom(declSlice(crud, 'FolderBody'), ['name', 'icon', 'color'])).toEqual([]);
+        expect(missingFrom(declSlice(folders, 'FolderBody'), ['name', 'icon', 'color'])).toEqual([]);
     });
 
     it('a save and an activation still answer { automation, warnings } or 400 { details }', () => {
@@ -979,8 +1028,8 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         expect(functionSlice(activate, 'answerRefusal')).toContain('return res.status(r.status).json(r.body);');
         expect(activation).toContain('res.json({ automation: forViewer(r.automation, access), warnings: r.warnings });');
         expect(routeSlice(versions, "router.post('/:id/versions/:versionId/restore'")).toContain('res.json({ automation: projectForViewer(updated, access), restoredFromVersion: version.version');
-        expect(routeSlice(crud, "router.get('/:id/export'")).toContain('res.json({ envelope, warnings })');
-        expect(routeSlice(crud, "router.post('/import'")).toContain('res.json({ automation: a, warnings:');
+        expect(routeSlice(importExport, "router.get('/:id/export'")).toContain('res.json({ envelope, warnings })');
+        expect(routeSlice(importExport, "router.post('/import'")).toContain('res.json({ automation: a, warnings:');
     });
 
     it('Make vN live still takes the version on screen and answers like activation (handoff 5)', () => {
@@ -1030,10 +1079,11 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         expect(missingFrom(functionSlice(read('automation/formPickSources.js'), 'catalog'), [
             'id', 'appId', 'app', 'label', 'searchHint', 'internal', 'sampleData',
         ])).toEqual([]);
-        // Registered inside a function, so the handler is indented and
-        // routeSlice's `\nrouter.` never ends it: cut at the skill preview.
+        // Registered inside a function, so the handler is indented; routeSlice
+        // ends it where it closes, before the skill preview.
         const agentPreview = routeSlice(agentSteps, "router.get('/catalog/agent/:agentId'");
-        expect(missingFrom(agentPreview.slice(0, agentPreview.indexOf("router.get('/catalog/skill/:skillId'")), [
+        expect(agentPreview).not.toContain("router.get('/catalog/skill/:skillId'");
+        expect(missingFrom(agentPreview, [
             'id', 'canUse', 'name', 'runtimeSource', 'permissions', 'allowed', 'withheld', 'degraded', 'error',
         ])).toEqual([]);
     });
@@ -1064,7 +1114,7 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         expect(missingFrom(functionSlice(templates, 'listTemplates'), ['id', 'title', 'description', 'category', 'icon', 'tags'])).toEqual([]);
         expect(functionSlice(templates, 'deriveTemplateMeta')).toContain('return { requiredIntegrations: [...integrations], triggerReadiness,');
         // The gallery is the organisation's saved templates, then the built-in ones.
-        const gallery = routeSlice(crud, "router.get('/templates'");
+        const gallery = routeSlice(importExport, "router.get('/templates'");
         expect(gallery).toContain('await listTemplatesFor(');
         expect(gallery).toContain('res.json({ templates, categories: CATEGORIES })');
         expect(functionSlice(templates, 'listTemplatesFor')).toContain('return [...cards, ...listTemplates()]');
@@ -1081,11 +1131,12 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
 
     it('the builder turn still reads every key the phone sends, and the session still carries what it reads', () => {
         // builderTurnBody in src/features/flow-editor/api/builder.ts.
-        expect(missingFrom(declSlice(chatStream, 'TurnBody'), [
+        expect(chatStream).toContain("const { TurnBody, TurnQuery, setupTurn } = require('./turnSetup');");
+        expect(missingFrom(declSlice(turnSetup, 'TurnBody'), [
             'message', 'builderSessionId', 'automationId', 'modelTier', 'history', 'attachments',
             'webSearchEnabled', 'disabledMedia', 'timezone', 'canvasScope', 'seedMetadata',
         ])).toEqual([]);
-        const persisted = chatStream.slice(chatStream.indexOf('automationStore.setBuilderSession('));
+        const persisted = turnClosing.slice(turnClosing.indexOf('automationStore.setBuilderSession('));
         expect(missingFrom(persisted.slice(0, 1200), [
             'sessionId', 'draft', 'lastValidation', 'summary', 'conversation', 'todos', 'updatedAt',
         ])).toEqual([]);
@@ -1096,15 +1147,21 @@ describe('App Studio (server/routes/studioApps*.js, studioAppData.js, the builde
     // Mirrored by src/features/app-studio/model/{apiTypes,runtimeTypes,
     // builderTypes}.ts and read through api/readers*.ts. The builder's SSE
     // event names are held separately, both ways, by readersBuilder.test.ts.
-    const apps = read('routes/studioApps.js');
+    // routes/studioApps.js mounts one sub-router per file in routes/studioApps/;
+    // a slice is cut from the one file that holds its marker.
+    const APP_ROUTERS = ['templates', 'crud', 'appImport', 'publish', 'publicPages', 'runtime'];
+    const apps = APP_ROUTERS.map((name) => read(`routes/studioApps/${name}.js`));
     const run = read('routes/studioAppsRun.js');
     const data = read('routes/studioAppData.js');
-    const store = read('stores/studioAppStore.js');
+    // studioAppStore.js is the barrel; the row mappers are in studioApp/rowMappers.js.
+    const store = read('stores/studioApp/rowMappers.js');
 
     it('still mounts the studio routers and the builder', () => {
         const index = read('index.js');
         expect(index).toContain("'/api/studio-apps'");
         expect(index).toContain("'/api/studio-apps/builder'");
+        const barrel = read('routes/studioApps.js');
+        for (const name of APP_ROUTERS) expect(barrel).toContain(`router.use('/', require('./studioApps/${name}'));`);
     });
 
     it('mapAppMetaRow still maps every field an app row carries', () => {
@@ -1247,7 +1304,8 @@ describe('the webpage builder (features/webpages)', () => {
     it('every event the builder stream sends is routed or ignored on purpose', () => {
         // webpageChat.js writes through its own `send('x', …)` helper, which
         // the scan above (onEvent/sendEvent) does not see.
-        const source = read('routes/ai/webpageChat.js');
+        // webpageChat.js and the parts in routes/ai/webpageChat/.
+        const source = read('routes/ai/webpageChat.js') + readTree('routes/ai/webpageChat');
         const sent = [...new Set([...source.matchAll(/\bsend\(\s*'([a-z_]+)'/g)].map((m) => m[1] as string))];
         expect(sent.length).toBeGreaterThan(10);
         expect(sent.filter((e) => !accounts(WEBPAGE_FRAMES, e))).toEqual([]);
@@ -1421,8 +1479,11 @@ describe('the Solution payloads (routes/projects.js, projects/summary.js, routes
         const routes = read('routes/projects.js');
         // One page, then file rows named while the file is still in the project
         // (projects/projectFiles.nameFileActivity); the envelope is unchanged.
-        expect(functionSlice(read('stores/projectStore.js'), 'listActivity')).toContain('rows.map(mapActivityRow)');
-        const activity = routeSlice(routes, "router.get('/:id/activity'");
+        expect(functionSlice(read('stores/project/events.js'), 'listActivity')).toContain('rows.map(mapActivityRow)');
+        // The feed and the checks are sub-routers routes/projects.js mounts.
+        expect(routes).toContain("router.use('/', require('./projects/activity').makeActivityRouter({");
+        expect(routes).toContain("router.use('/', require('./projects/resources').makeResourcesRouter({");
+        const activity = routeSlice(read('routes/projects/activity.js'), "router.get('/:id/activity'");
         expect(activity).toContain('const page = hasMore ? items.slice(0, limit) : items;');
         expect(activity).toContain('res.json({ items: named, hasMore })');
         expect(
@@ -1431,7 +1492,7 @@ describe('the Solution payloads (routes/projects.js, projects/summary.js, routes
                 'id', 'actorId', 'action', 'targetType', 'targetId', 'details', 'createdAt',
             ]),
         ).toEqual([]);
-        expect(routeSlice(routes, "router.get('/:id/completeness'")).toContain('blocked: true');
+        expect(routeSlice(read('routes/projects/resources.js'), "router.get('/:id/completeness'")).toContain('blocked: true');
         expect(read('projects/completeness.js')).toContain('deepLink');
         const packaging = read('routes/projects/packaging.js');
         expect(routeSlice(packaging, "router.get('/:id/package/installs'")).toContain('installsHere');
@@ -1591,7 +1652,9 @@ describe('knowledge base Studio routes (server/routes/knowledgeBases/*)', () => 
         const source = read('routes/knowledgeBases/sources.js');
         expect(source).toContain("router.get('/:id/sources/:sid/documents'");
         expect(source).toContain('res.json({ documents, total, limit, offset })');
-        const columns = read('stores/knowledgeBases.js').match(/const DOCUMENT_COLUMNS = \[([^\]]+)\]/)?.[1] ?? '';
+        // knowledgeBases.js re-exports DOCUMENT_COLUMNS from kb/model.js.
+        expect(read('stores/knowledgeBases.js')).toContain("DOCUMENT_COLUMNS } = require('./kb/model');");
+        const columns = read('stores/kb/model.js').match(/const DOCUMENT_COLUMNS = \[([^\]]+)\]/)?.[1] ?? '';
         for (const col of ['status', 'status_reason', 'pii_status', 'title', 'source_uri', 'created_at']) expect(columns).toContain(`'${col}'`);
         const filters = read('routes/knowledgeBases/docFilters.js');
         for (const token of ['statusFilter', 'piiFilter', "'found'"]) expect(filters).toContain(token);
@@ -1656,7 +1719,8 @@ describe('the subscription and Stripe payloads (routes/subscriptions/*, routes/s
         expect(routeSlice(invoices, "router.get('/invoices',")).toContain('invoices');
         // The rows are shaped by the Stripe service the route calls.
         expect(
-            absentTokens(read('services/stripeService.js'), ['number', 'created', 'amountPaid', 'amountDue', 'currency', 'status', 'invoicePdf']),
+            // stripeService.js is the barrel; invoices are shaped in stripe/invoicesPromos.js.
+            absentTokens(read('services/stripe/invoicesPromos.js'), ['number', 'created', 'amountPaid', 'amountDue', 'currency', 'status', 'invoicePdf']),
         ).toEqual([]);
     });
 });

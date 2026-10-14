@@ -1,26 +1,32 @@
 /**
- * Integration-action and AI step executors (extracted verbatim from
- * engine.js): execIntegrationAction, execAiStep and the output-field
- * inference that powers the ai_step schema fallback.
+ * The AI step executor (extracted verbatim from engine.js): execAiStep and
+ * the output-field inference that powers the ai_step schema fallback.
+ * execIntegrationAction lives in ./execIntegrationAction and the memory / KB /
+ * skill grounding in ./aiStepGrounding, the reply-to-output parsing in
+ * ./aiStepOutputParse; this module re-exports the former so
+ * importers keep requiring './execAi'.
  */
 
 // modelResolver is required lazily inside execAiStep for the
 // direct-chat-style tier resolution flow.
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
-const { resolveInputs } = require('../../automation/bind');
+const { resolveInputs } = require('../automationModel/bind');
 const { inferAiStepOutputSchema } = require('./aiOutputInference');
-const { isSideEffect, isMemoisable } = require('../../automation/sideEffectMap');
-const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
-const { envFlagOn } = require('./integrationCachePolicy');
-const { synthesizeDryRunOutput } = require('../../automation/outputSchemas');
-const shapeCache = require('../../automation/shapeCache');
+const { isSideEffect } = require('../automationModel/sideEffectMap');
 // Safety/monitoring backbone — PII + regex guardrails + egress logging, mirroring
 // the agent/direct-chat pipeline so automations stop bypassing those controls.
 const safety = require('./safety');
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
 const usageStore = require('../../stores/usageStore');
 const terminationStore = require('../../stores/terminationStore');
+const log = require('../../telemetry/log');
+const { createUsageAccumulator, usageLogFields } = require('../providers/usageNormalizer');
+// synthesizeDryRunOutput comes through execIntegrationAction so the
+// core -> automation edge to outputSchemas stays a single require.
+const { execIntegrationAction: runIntegrationAction, synthesizeDryRunOutput } = require('./execIntegrationAction');
+const { groundAiStepWithMemory, groundAiStepWithKB, groundAiStepWithSkills } = require('./aiStepGrounding');
+const { envFlagOn } = require('./integrationCachePolicy');
 const {
     isEmptyToolResult,
     isToolErrorResult,
@@ -28,470 +34,43 @@ const {
     enrichNextcloudError,
     stepInputsSynthetic,
 } = require('./shared');
-const log = require('../../telemetry/log');
 const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
-const { createUsageAccumulator, usageLogFields } = require('../providers/usageNormalizer');
+const { parseAiStepOutput } = require('./aiStepOutputParse');
 
-// ── Step executors ──────────────────────────────────────
+// What ./execIntegrationAction, ./integrationActionGates and ./aiStepGrounding
+// use from the server's large import cycle. They are required HERE and handed
+// over, so those three modules stay out of the cycle (lint:scc-ratchet). The
+// getters are the lazy requires that used to sit inside those modules,
+// unchanged: each still loads its module on first use, and a test stub that
+// swaps a module under these exact require strings (same directory, so the
+// same strings) still reaches every call.
+const integrationActionDeps = {
+    safety,
+    envFlagOn,
+    isEmptyToolResult,
+    isToolErrorResult,
+    isEnvironmentToolError,
+    enrichNextcloudError,
+    stepInputsSynthetic,
+    integrationCachePolicy: () => require('./integrationCachePolicy'),
+    toolDispatcher: () => require('../tools/toolDispatcher'),
+    integrationTools: () => require('../integrations/integrationTools'),
+    connectionResolution: () => require('../integrations/connectionResolution'),
+};
+const groundingDeps = {
+    resolveMemoryPolicy,
+    memoryStore: () => require('../../stores/memoryStore'),
+    configStore: () => require('../../stores/configStore'),
+    aiAgent: () => require('../aiAgent'),
+    scrubMemoryContext: () => require('../memory/scrubMemoryContext'),
+    knowledgeSearch: () => require('../agentRuntime/knowledgeSearch'),
+    aiStepAgent: () => require('./aiStepAgent'),
+    skillInjection: () => require('../tools/skillInjection'),
+};
 
-async function execIntegrationAction(step, ctx, runState, mode) {
-    // Tool arguments are data, not prose: a list in a `{{…}}` stays JSON.
-    let inputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' });
-    const sideEffect = isSideEffect(step.tool);
-
-    // ── Safety: scan resolved inputs (toolInput scope) before anything leaves ──
-    // the platform. On a `block` action this throws GuardrailBlockError, which
-    // flows through dispatchStep's catch → on_error edge or a fail-loud run.
-    const policy = await safety.resolveAutomationPolicy(ctx);
-    const auditBase = safety.buildAuditBase(ctx, step);
-    const { resolveIntegration } = require('../integrations/integrationToolMap');
-    let guardedIn;
-    try {
-        guardedIn = await safety.guardToolInput(inputs, policy, auditBase, mode, ctx);
-    } catch (err) {
-        // A blocked call still belongs in the egress ledger: "we stopped this
-        // from leaving" is exactly the evidence the Art-44 record needs, and
-        // without it a blocked tool call was invisible there.
-        if (err && err.guardrailBlocked) {
-            await safety.logEgress({
-                toolName: step.tool, toolArgs: {}, blocked: true, error: err,
-                policy, auditBase, mode, durationMs: 0,
-            });
-        }
-        throw err;
-    }
-
-    if (mode === 'dry_run' && sideEffect) {
-        // No real dispatch in a side-effect dry-run, so nothing egresses — but
-        // still surface a "would block" annotation for the builder preview.
-        const out = synthesizeDryRunOutput(step.tool, inputs);
-        if (guardedIn.wouldBlock) out._guardrailWouldBlock = guardedIn.categories;
-        return { output: out, dryRunSynthesised: true };
-    }
-    if (mode === 'dry_run' && guardedIn.wouldBlock) {
-        // Read-only tool in a dry-run: a `block` action returns the payload
-        // UNTRANSFORMED, and this used to fall straight through to a live
-        // dispatch — so the one mode that must never leak sent the raw value to
-        // a third party. Synthesize instead, and keep the preview annotation.
-        const out = synthesizeDryRunOutput(step.tool, inputs);
-        out._guardrailWouldBlock = guardedIn.categories;
-        return { output: out, dryRunSynthesised: true, dryRunFallback: 'guardrail_block' };
-    }
-    if (mode === 'dry_run' && stepInputsSynthetic(step, runState, ctx)) {
-        // Read tool, but its inputs derive from SYNTHESIZED upstream data
-        // (sample fallback / simulated side-effect / synthetic trigger).
-        // Dispatching fake ids live guarantees a provider error per call —
-        // synthesize directly instead of hammering the API.
-        const out = synthesizeDryRunOutput(step.tool, inputs);
-        return { output: out, dryRunSynthesised: true, dryRunFallback: 'synthetic_input' };
-    }
-    // What actually leaves the platform: placeholders, an irreversible mask, or
-    // real values — decided per DESTINATION (an on-box Nextcloud is not a third
-    // party) against the WHOLE run vault, so placeholders minted by an earlier
-    // node resolve here too.
-    const inMeta = resolveIntegration(step.tool, guardedIn.value, { nextcloudUrl: ctx.nextcloudUrl });
-    inputs = safety.prepareForEgress(guardedIn.value, policy, ctx, {
-        destination: inMeta && inMeta.isLocal ? 'internal' : 'external',
-    });
-
-    // Defense-in-depth permission check. The catalog filter that the
-    // builder used at design-time may be out of date by the time a
-    // scheduled automation fires (org admin disabled the integration,
-    // user got removed from a group, etc.). Re-resolve the user's
-    // *current* allowed tool set and refuse if `step.tool` is no longer
-    // in it. Mirrors the n8nWorkflow pattern in toolDispatcher.js.
-    if (!ctx.allowedToolNames) {
-        try {
-            const { getIntegrationTools } = require('../integrations/integrationTools');
-            // Connection lending (gated): when this automation is run on behalf of a
-            // non-owner (ctx.resourceOwnerUserId set by automation-sharing) the
-            // owner's LENT providers' tools must be in the allowed set too, else
-            // the permission gate below would reject a validly-borrowed tool.
-            // Inert unless the flag is on AND an owner is provided.
-            const lendPolicy = (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
-                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'automation', resourceId: ctx.automationId || null }
-                : null;
-            const r = await getIntegrationTools({
-                userId: ctx.userId,
-                session: ctx.session,
-                isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
-                automationStep: true,
-                connectionPolicy: lendPolicy,
-            });
-            ctx.allowedToolNames = new Set((r.tools || []).map(t => t?.function?.name).filter(Boolean));
-        } catch (e) {
-            // If we can't resolve the catalog, fail closed for side-effects
-            // and pass-through for read-only tools.
-            log.warn(`[AutomationRunner] Permission catalog lookup failed: ${e.message}`);
-            if (sideEffect) throw new Error('Could not verify your permission for this tool. The automation has been paused — please re-open it after refreshing your permissions.');
-            ctx.allowedToolNames = null; // sentinel — skip subsequent checks this run
-        }
-    }
-    if (ctx.allowedToolNames && !ctx.allowedToolNames.has(step.tool)) {
-        // "Not in your allowed set" has two very different causes. A built-in
-        // step type here means the step names something that was never a tool
-        // (an AI builder passed it to builder_add_action), and no admin toggle
-        // can fix that — telling the user to ask their admin sends them to
-        // someone who cannot help.
-        const { isBuiltinStepType } = require('../../automation/builtinStepTools');
-        if (isBuiltinStepType(step.tool)) {
-            throw new Error(`Step "${step.id}" is an integration action calling "${step.tool}", but "${step.tool}" `
-                + `is a built-in step type, not an integration. This step was built incorrectly — delete it and add `
-                + `a real "${step.tool}" step in its place. No integration setting can fix this.`);
-        }
-        throw new Error(`You no longer have permission to use "${step.tool}". Ask your organisation admin to re-enable this integration, or remove the step from the automation.`);
-    }
-
-    const { executeTool } = require('../tools/toolDispatcher');
-
-    // Connection lending (GATED, default off): an automation run on behalf of a
-    // non-owner may borrow the owner's named connection for this step. Inert
-    // unless INTEGRATION_CONNECTION_LENDING_ENABLED is set AND a resource owner
-    // distinct from the runner is provided — so today's behavior is unchanged.
-    let stepUserId = ctx.userId;
-    let stepOrgId = ctx.orgId;
-    let lentConnection = null;
-    try {
-        const cr = require('../integrations/connectionResolution');
-        if (cr.isLendingEnabled() && ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId) {
-            if (!ctx.__runCtx) ctx.__runCtx = await cr.runningUserContext(ctx.userId);
-            const ov = await cr.resolveEffectiveIdentity({
-                toolName: step.tool, runningUserId: ctx.userId,
-                runningUserOrgId: ctx.__runCtx.orgId, runningUserGroups: ctx.__runCtx.groups,
-                ownerUserId: ctx.resourceOwnerUserId,
-                resourceType: 'automation', resourceId: ctx.automationId || null,
-            });
-            if (ov) { stepUserId = ov.integrationUserId; stepOrgId = ov.integrationOrgId; lentConnection = ov; }
-        }
-    } catch (_) { /* fail closed to bring-your-own */ }
-
-    // ── "Ask this app only once per run" (step.askOnce; absent = off) ──
-    //
-    // Placement is the security property. This sits AFTER the defence-in-depth
-    // permission re-check above and AFTER the lending identity swap, so a user
-    // whose access was revoked cannot be served from the memo, and a borrowed
-    // connection is part of the key rather than invisible to it.
-    //
-    // egressMode must be 'real': under 'tokenize' the outgoing args are run-vault
-    // placeholders and under 'redact' every person collapses to the literal
-    // [person]. Within one run those labels are stable, so this is belt and
-    // braces here — but it is DISQUALIFYING for anything durable, and having the
-    // line in now forecloses the whole class.
-    // envFlagOn, not bare truthiness: `AUTOMATION_ASK_ONCE_DISABLED=0` is a
-    // non-empty string, so `!process.env.X` read the operator's "leave it on"
-    // as "switch it off" — the same grammar the durable tier's kill switch
-    // already used, now shared so the two switches cannot drift.
-    const memo = ctx._toolMemo;
-    const memoEligible = !!memo
-        && !envFlagOn('AUTOMATION_ASK_ONCE_DISABLED')
-        && mode !== 'dry_run'
-        && !!step.askOnce
-        && isMemoisable(step.tool)
-        && safety.egressMode(policy, inMeta && inMeta.isLocal ? 'internal' : 'external') === 'real';
-    const callIdentity = memoEligible ? memoKeyParts({
-        toolName: step.tool,
-        stepUserId, stepOrgId,
-        connectionId: lentConnection?.connectionId,
-        grantId: lentConnection?.grantId,
-        integrationServer: inMeta?.server,
-        destination: inMeta && inMeta.isLocal ? 'internal' : 'external',
-        policyAction: policy?.action,
-        policyScope: policy?.privacyScope,
-        args: inputs,
-    }) : null;
-    const memoK = callIdentity === null ? null : memoKeyFromParts(callIdentity);
-    const memoTtlMs = (step.askOnce && typeof step.askOnce === 'object' && Number(step.askOnce.ttlSeconds))
-        ? Math.max(1, Math.min(900, Number(step.askOnce.ttlSeconds))) * 1000
-        : undefined;
-
-    // ── The DURABLE tier (step.askOnce.acrossRuns; absent = off) ──
-    //
-    // Everything the run memo gets for free — no crossing a user, an org, a run
-    // or a replica — has to be earned here, so this rides on top of the memo's
-    // eligibility rather than beside it: a call the memo would refuse can never
-    // reach the durable cache. On top of that it needs all three switches:
-    // the process env, the organisation's own opt-in, and this step's tick.
-    //
-    // stepOrgId, not ctx.orgId: after a lend the answer belongs to the lender's
-    // organisation, and storing it under the runner's would be the cross-tenant
-    // leak the whole key scheme exists to prevent.
-    //
-    // `!memo.hasSlept()`: a Wait clears the run memo precisely so the next
-    // look-up is asked again, and without this the call would fall THROUGH to
-    // the durable cache and be handed the same pre-sleep answer — whose TTL is
-    // up to an hour, far longer than most Waits.
-    let durable = null;
-    if (memoEligible && !memo.hasSlept() && step.askOnce && typeof step.askOnce === 'object'
-        && step.askOnce.acrossRuns === true && stepOrgId) {
-        try {
-            const { resolveCachePolicy } = require('./integrationCachePolicy');
-            const cachePolicy = await resolveCachePolicy(stepOrgId);
-            // `scopes.integration` is the app-look-up half of the org's one
-            // consent row (the other half is outbound HTTP — see httpCache.js).
-            // It defaults ON for a row written before scopes existed, so this
-            // is unchanged for every org that already opted in; without the
-            // check the tick on the settings screen would do nothing.
-            if (cachePolicy.enabled && cachePolicy.scopes && cachePolicy.scopes.integration === true) {
-                const store = require('../../stores/integrationCacheStore');
-                // The per-step ttl still applies, capped by the org's. Kept as
-                // its own field because the write path re-resolves the ORG half
-                // below and has to re-apply this cap against the fresh value.
-                const stepTtlSeconds = memoTtlMs ? Math.round(memoTtlMs / 1000) : null;
-                durable = {
-                    store,
-                    key: store.cacheKey(callIdentity),
-                    organizationId: stepOrgId,
-                    stepTtlSeconds,
-                    ttlSeconds: Math.min(cachePolicy.ttlSeconds, stepTtlSeconds ?? cachePolicy.ttlSeconds),
-                };
-            }
-        } catch (e) {
-            // A cache that cannot be consulted is a cache miss, never an error:
-            // the only correct response is to make the call for real.
-            log.warn('[AutomationRunner] durable cache unavailable:', e.message);
-            durable = null;
-        }
-    }
-
-    let result;
-    let probe = null;
-    const dispatchT0 = Date.now();
-    // A hit skips the dispatch, the egress row and the shape cache — nothing
-    // left the box, so there is nothing to log and no new shape to learn. It
-    // then falls into the SAME tail below (guardToolOutput → restoreForRunState
-    // → buildPiiSummary), so tokens are minted into THIS run's vault and the
-    // step's PII summary is identical to a live call. The memo shortcuts the
-    // network and nothing else.
-    let memoHit = memoEligible ? memo.peek(memoK) : undefined;
-    // Provenance, not a boolean. "We asked once instead of two hundred times"
-    // and "we did not contact this app at all today" are different facts about
-    // a run, and only the second one explains an answer that predates the run.
-    // Without it the inspector renders a replayed answer identically to a live
-    // one, so a person debugging "why did this act on yesterday's data" has
-    // nothing to look at.
-    let reused = memoHit === undefined ? null : 'run';
-    // The durable tier is consulted only AFTER the run memo misses, and a hit
-    // is written back into the memo so the rest of this run answers from
-    // memory rather than the database.
-    if (memoHit === undefined && durable) {
-        // maxAgeSeconds is the window as it stands NOW. expires_at was stamped
-        // when the row was written, so an admin who shortened the org's window
-        // after noticing stale data would otherwise keep being served the old
-        // answers until the OLD expiry — up to an hour later.
-        //
-        // Wrapped because a broken cache must only ever be a MISS. The store
-        // swallows its own failures today, so this is the guarantee stated
-        // rather than assumed: nothing about a step's correctness may depend
-        // on the cache being reachable.
-        let row = null;
-        try {
-            row = await durable.store.get(durable.key, durable.organizationId, {
-                maxAgeSeconds: durable.ttlSeconds,
-            });
-        } catch (e) {
-            log.warn('[AutomationRunner] durable cache read failed:', e.message);
-        }
-        if (row) {
-            memoHit = row.value;
-            reused = 'stored';
-            memo.recordDurableHit();
-            memo.store(memoK, memoHit, memoTtlMs);
-        }
-    }
-    const servedFromMemo = memoHit !== undefined;
-    if (servedFromMemo) {
-        result = memoHit;
-    } else {
-        // Wrap in runWithProbe so the global fetch shim captures the destination
-        // IP for the egress row. markLocal keeps on-host integrations honest.
-        // The inner fn never THROWS through runWithProbe — a throw used to
-        // discard the probe, and with it the audit row for a failed call whose
-        // bytes had already left the box.
-        const ran = await runWithProbe(async () => {
-            const meta = resolveIntegration(step.tool, inputs, { nextcloudUrl: ctx.nextcloudUrl });
-            if (meta && meta.isLocal) markLocal(meta.label || meta.integration);
-            try {
-                return {
-                    ok: true,
-                    value: await executeTool(step.tool, inputs, {
-                        userId: stepUserId,
-                        // MCP dispatch reads the caller id from userAuth ONLY
-                        // (toolExecution.js: `userAuth?.userId || userAuth?.user_id`),
-                        // never from context.userId. Without this every mcp_*
-                        // step — and every declaration-driven trigger poll that
-                        // calls one — dies on "User ID required for MCP tool
-                        // calls" before it reaches the server.
-                        userAuth: { ...(ctx.userAuth || {}), userId: stepUserId },
-                        session: ctx.session,
-                        orgId: stepOrgId,
-                        userGroupIds: ctx.userGroupIds || [],
-                        // The automation this step belongs to — what lets a
-                        // self-scoped tool (automation_*) act on its own automation
-                        // and nothing else.
-                        automationId: ctx.automationId || null,
-                        userOrgIds: ctx.userOrgIds || [],
-                        // The run, for tools that push a file a document step
-                        // kept (sourceHandle kind generated_file).
-                        runScope: ctx.runId ? { runId: ctx.runId, rootRunId: ctx.rootRunId || ctx.runId } : null,
-                        // Tell email/ticket-style tools that there is NO user UI here to
-                        // approve a draft — emit the side effect immediately. Only set
-                        // for live mode (dry_run is handled above with synthesized output).
-                        autoSend: mode === 'live',
-                        ...(lentConnection ? { lentConnection } : {}),
-                    }),
-                };
-            } catch (err) {
-                return { ok: false, error: err };
-            }
-        });
-        probe = ran.probe;
-        if (!ran.result?.ok) {
-            const err = ran.result?.error || new Error('tool dispatch failed');
-            // Read-only tool fallback in dry-run: when a search/read tool fails
-            // (auth lapsed, query yielded nothing, transient API hiccup) the
-            // automation builder still needs a workable bind target downstream.
-            // Substitute the curated sample so the AI can keep planning.
-            // A REAL dispatch happened in both modes (dry-run dispatches
-            // read-only tools live) — the failed call's bytes already left the
-            // box, so both modes get a status='error' row. Dry-run rows carry
-            // is_dry_run=true, same as the success path at the bottom.
-            await safety.logEgress({
-                toolName: step.tool, toolArgs: inputs, error: err, probe, policy, auditBase, mode,
-                durationMs: Date.now() - dispatchT0,
-            });
-            if (mode === 'dry_run') {
-                const fallback = synthesizeDryRunOutput(step.tool, inputs);
-                // Dedupe the warning per (tool, message) — a fan-out used to spam
-                // dozens of identical lines per dry-run.
-                const logKey = `${step.tool}:${err.message}`;
-                ctx._dryRunFallbackLogged = ctx._dryRunFallbackLogged || new Set();
-                if (!ctx._dryRunFallbackLogged.has(logKey)) {
-                    ctx._dryRunFallbackLogged.add(logKey);
-                    log.warn(`[AutomationRunner] dry-run: live ${step.tool} failed, using sample (${err.message})`);
-                }
-                return { output: fallback, dryRunSynthesised: true, dryRunFallback: 'live_failed' };
-            }
-            throw enrichNextcloudError(step.tool, err);
-        }
-        result = ran.result.value;
-        // A tool that returns a SOFT `{ error }` object throws a few lines
-        // below (isToolErrorResult), so it is a failed step — but it did not
-        // throw HERE, which is how it slipped past "a failure is never
-        // stored". Caching it serves "not authorised" as this call's answer to
-        // every later run for the whole TTL, and each of those runs fails with
-        // no request to the app to explain why.
-        const softFailure = isToolErrorResult(result);
-        if (memoEligible && !softFailure) memo.store(memoK, result, memoTtlMs);
-        // Written AFTER the dispatch succeeded, so a failure is never stored:
-        // a transient 500 must not become the answer for the next hour. Not
-        // awaited on the critical path — a slow write must not slow the step,
-        // and a failed one is only a future miss.
-        if (durable && !softFailure) {
-            // The org policy is re-read WITHOUT the 30-second memo before the
-            // row is written. invalidateCachePolicy is in-process only, so a
-            // replica that has not seen the admin's "switch it off and delete
-            // everything" would otherwise refill the table right behind them.
-            // A durable write is rare next to the step hot path, so the extra
-            // config read is cheap; the READ above stays memoised.
-            (async () => {
-                const { resolveCachePolicyFresh } = require('./integrationCachePolicy');
-                const fresh = await resolveCachePolicyFresh(durable.organizationId);
-                if (!fresh.enabled || !fresh.scopes || fresh.scopes.integration !== true) return;
-                await durable.store.put({
-                    key: durable.key,
-                    organizationId: durable.organizationId,
-                    userId: stepUserId,
-                    toolName: step.tool,
-                    value: result,
-                    // The fresh org window, still capped by the step's own.
-                    ttlSeconds: Math.min(fresh.ttlSeconds, durable.stepTtlSeconds ?? fresh.ttlSeconds),
-                    maxBytes: MAX_ENTRY_BYTES,
-                });
-            })().catch(() => { /* a cache write is never worth failing a step */ });
-        }
-    }
-
-    // ── Egress logging ── a real dispatch happened, so record where the data
-    // went and what type it was. dry-run read-only calls are logged with
-    // is_dry_run=true so Compliance Hub can exclude them.
-    //
-    // A MEMO HIT WRITES NO ROW, deliberately. integration_activity_log's
-    // invariant is "bytes crossed the boundary, or were stopped at it", and its
-    // two readers COUNT calls and take MAX(timestamp) — the Art. 44
-    // external-transfer check and the RoPA. A synthetic row would assert a
-    // transfer that did not happen and extend last_seen for a processor the org
-    // did not contact this time. The probe columns would all be null too,
-    // landing the row in "unknown" and making the ledger LESS accurate.
-    if (!servedFromMemo) {
-        await safety.logEgress({
-            toolName: step.tool, toolArgs: inputs, result, probe, policy, auditBase, mode,
-            durationMs: Date.now() - dispatchT0,
-        });
-    }
-
-    // Empty-result fallback: a live read-only call that returned no rows
-    // teaches the AI nothing about field shapes. In dry-run, swap in the
-    // sample so downstream binding decisions are made against realistic
-    // data. (Live mode keeps the empty result — the user wanted truth.)
-    if (mode === 'dry_run' && isEmptyToolResult(result)) {
-        const fallback = synthesizeDryRunOutput(step.tool, inputs);
-        return { output: fallback, dryRunSynthesised: true, dryRunFallback: 'live_empty' };
-    }
-    // A tool call that returned a soft `{ error }` object must fail the step —
-    // recording it as success masks misconfigured steps (they show green while
-    // doing nothing). Routes through the same catch as a thrown error, so
-    // on_error edges / retries still apply.
-    //
-    // This holds in a DRY RUN too, with one exception. The exception is what
-    // the carve-out here was originally for: an error about the ENVIRONMENT (no
-    // credentials, app not connected, endpoint unreachable) still falls back to
-    // a sample, so the builder can plan an automation for an app this workspace has
-    // not connected yet. An error about THIS STEP does not: "path is required"
-    // reported as success is how an automation with `loop.f.path` refs and no
-    // forEach at all passed its dry run and got finalised (2026-09-12).
-    if (isToolErrorResult(result)) {
-        if (mode === 'dry_run' && isEnvironmentToolError(result.error)) {
-            const fallback = synthesizeDryRunOutput(step.tool, inputs);
-            return { output: fallback, dryRunSynthesised: true, dryRunFallback: 'not_connected' };
-        }
-        const err = new Error(`${step.tool} failed: ${String(result.error)}`);
-        err.toolError = true;
-        throw enrichNextcloudError(step.tool, err, String(result.error));
-    }
-    // Cache the actual output shape so the Builder agent gets ground-truth
-    // bindings on its next turn (no more guessing items vs results).
-    // Only for real runs — dry-run synth output would pollute the cache.
-    // A run-memo hit teaches nothing new — the shape was recorded when the
-    // answer was first fetched, moments ago in this same run. A DURABLE hit
-    // skips it too: the shape was recorded on the run that fetched it, and
-    // re-deriving one from a replayed payload would add nothing the builder
-    // does not already have.
-    if (mode !== 'dry_run' && !servedFromMemo) {
-        try { await shapeCache.recordShape({ userId: ctx.userId, toolName: step.tool, output: result }); } catch (_) {}
-    }
-    // Scan the tool output (toolOutput scope) before it enters runState and is
-    // bound by downstream steps. block → throws; redact/tokenize → transforms.
-    const guardedOut = await safety.guardToolOutput(result, policy, auditBase, mode, ctx);
-    // The tokens it just minted live in the run vault (guardToolOutput hands the
-    // map back now — it used to drop it, which is how an unrestorable
-    // `[person_1]` ended up in runState and, from there, in outgoing email).
-    // runState holds real values; re-tokenization happens at the next egress.
-    const outputForState = safety.restoreForRunState(guardedOut.result, ctx);
-    // Categories the guards already detected (free — no extra scan) feed the
-    // canvas's per-step PII summary; recorded next to the row, never in the
-    // bindable output.
-    const piiSummary = safety.buildPiiSummary([
-        ...(guardedIn.categories || []),
-        ...(guardedOut.categories || []),
-    ]);
-    // `reused` rides beside piiSummary rather than inside the output: the
-    // output is the bindable namespace, and a step that suddenly grew a
-    // `reused` key would break every downstream ref that walks it.
-    // runDag does not persist it yet — automation_run_steps has no column for
-    // it — so today it reaches only an in-process caller. The run SUMMARY
-    // (execution.js) is what a person can see; the per-step line needs that
-    // column, and until then this is the producing half of it.
-    return { output: outputForState, ...(piiSummary ? { piiSummary } : {}), ...(reused ? { reused } : {}) };
+/** The integration-action executor (./execIntegrationAction), with its deps. */
+function execIntegrationAction(step, ctx, runState, mode) {
+    return runIntegrationAction(step, ctx, runState, mode, integrationActionDeps);
 }
 
 /**
@@ -505,198 +84,6 @@ async function execIntegrationAction(step, ctx, runState, mode) {
  */
 function collectAiStepOutputFields(definition, stepId) {
     return inferAiStepOutputSchema(definition, stepId).fields;
-}
-
-// ── Knowledge Base grounding (BFSF-410) ─────────────────────────────────────
-//
-// A single upfront search per step run, injected into the system prompt as
-// "Reference material:" — the App Studio ai_generate/ai_extract pattern
-// (appStudio/aiRuntime.groundWithKB, itself layered on
-// core/agentRuntime/knowledgeSearch's quickKBSearch), deliberately NOT an
-// agentic kb_search/kb_fetch tool-call loop: simpler, cheaper, and it fits an
-// unattended/scheduled step better than chat's multi-turn pattern.
-//
-// quickKBSearch performs NO tenant filtering of its own — its access boundary
-// IS the id list it is handed, on the documented assumption that the caller
-// already authorized every id (core/kb/localKBIngest.js: "Access is already
-// gated by kb_ids upstream"). knowledgeBaseIds is authored data (or an MCP
-// builder_update_step patch) that could in principle name any knowledge base
-// in the system, so every id is re-checked against ctx.userId/ctx.orgId here
-// before it ever reaches the search — the same defence-in-depth stance
-// execIntegrationAction takes on step.tool above, just for a read instead of a
-// dispatch. `core/kb/kbVisibility` holds that check, shared with every other
-// retrieval surface so they cannot drift apart.
-const AI_STEP_KB_TOP_K = 6;      // mirrors appStudio/aiRuntime.groundWithKB's default
-const MAX_AI_STEP_KB_IDS = 10;   // mirrors appStudio/aiRuntime.MAX_KB_IDS
-
-/**
- * Narrow a step's knowledgeBaseIds down to the ones the AUTOMATION OWNER
- * (ctx.userId, in ctx.orgId) may actually read.
- *
- * The decision itself lives in `core/kb/kbVisibility`, which is where every
- * other retrieval surface now asks it. Sharing the function is the point: this
- * one used to pass `isOrgAdmin` through, so an automation owned by an org admin
- * ground itself on any base in the organisation — including a colleague's
- * unfinished draft — and the run log said the automation had read it. The admin
- * bypass belongs to a management screen, not to a retrieval.
- *
- * A foreign or stale id is DROPPED with a warning, never thrown: one bad id in
- * the list must not fail the whole step, and it must never silently be
- * searched either.
- */
-async function resolveAllowedKnowledgeBaseIds(kbIds, ctx) {
-    const list = Array.isArray(kbIds)
-        ? [...new Set(kbIds.filter((id) => typeof id === 'string' && id))].slice(0, MAX_AI_STEP_KB_IDS)
-        : [];
-    if (!list.length) return [];
-    const { filterKbIdsForUser } = require('../kb/kbVisibility');
-    return filterKbIdsForUser(list, {
-        userId: ctx.userId,
-        // Always a Set. `canUserAccessKB` reads a null as super-admin, and a
-        // scheduled run has no request to fall back on.
-        orgIds: ctx.orgId ? new Set([ctx.orgId]) : new Set(),
-        userGroups: Array.isArray(ctx.userGroupIds) ? ctx.userGroupIds : [],
-        context: 'automation_ai_step',
-    });
-}
-
-
-/**
- * Personal memory grounding for an ai_step (`step.useMemory === true`).
- *
- * Searches the AUTOMATION OWNER's user_memories (ctx.userId — an automation has no
- * app-level owner) with the step's interpolated prompt and returns the same
- * "## Active Memory" block chat agents receive, scrubbed of literal PII by the
- * read-time guard. Everything is best-effort: no memories, a store error, or a
- * scrub failure all collapse to '' so the step runs exactly as it did before
- * the flag existed. Never runs for dry-run-only concerns: reads are harmless,
- * so dry runs ground too — that is how the builder sees what the model sees.
- */
-async function groundAiStepWithMemory(step, ctx, promptText) {
-    if (step?.useMemory !== true || !ctx?.userId) return '';
-    try {
-        // The same gate chat uses: user switch, org switch. There is no chat, so
-        // no per-chat flags; the automation owner's own switch still applies.
-        const policy = await resolveMemoryPolicy({ userId: ctx.userId, orgId: ctx.orgId || null });
-        if (!policy.read) {
-            log.info(`[AutomationRunner] ai_step memory grounding skipped (${policy.reason})`);
-            return '';
-        }
-        const memoryStore = require('../../stores/memoryStore');
-        const mems = await memoryStore.findRelevantMemories(ctx.userId, null, String(promptText || step.prompt || '').slice(0, 2000), 400, null, { includeGeneral: true, includeSensitive: policy.sensitive === true });
-        if (!Array.isArray(mems) || mems.length === 0) return '';
-        let block = memoryStore.formatMemoriesForPrompt(mems);
-        if (!block) return '';
-        try {
-            // Gated exactly like the chat paths: scrub when the org's Privacy
-            // Shield is on or PII detection is enabled globally.
-            const orgShield = ctx.orgShield
-                || (ctx.orgId ? await require('../../stores/configStore').getConfig(`org_privacy_shield_${ctx.orgId}`) : null);
-            const scrubEnabled = !!orgShield?.enabled || !!(await require('../aiAgent').getAIConfig())?.piiDetectionEnabled;
-            if (scrubEnabled) {
-                const { scrubMemoryContext } = require('../memory/scrubMemoryContext');
-                // Returns { scrubbed, replacedCategories } — not the string.
-                const result = await scrubMemoryContext(block, orgShield);
-                if (result?.replacedCategories?.length > 0) block = result.scrubbed;
-            }
-        } catch (_) { /* fail-open: the unscrubbed block is still the owner's own data */ }
-        return block ? `\n\n${block}` : '';
-    } catch (e) {
-        log.warn(`[AutomationRunner] ai_step memory grounding skipped: ${e.message}`);
-        return '';
-    }
-}
-
-/**
- * Search this step's grounded knowledge bases and return a context block to
- * inject into the system prompt (empty when nothing qualifies).
- *
- * Dry-run SKIPS the search entirely — no permission lookups, no live call —
- * mirroring execIntegrationAction's dry-run special-casing: a builder preview
- * must never pay for (or depend on) a real retrieval. Never throws: a broken
- * search stack degrades to "no grounding" rather than failing the step.
- */
-async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null) {
-    if (mode === 'dry_run') return { context: '', chunks: [] };
-    // De lijst komt van de aanroeper: op een agent-stap is dat de UNIE van de
-    // banken van de stap en die van de agent (aiStepAgent.knowledgeBaseIdsForStep),
-    // en die hele unie gaat door dezelfde per-vrager-filter hieronder — anders
-    // leest een automation-eigenaar via de agent van een collega mee in banken die
-    // hij zelf niet mag zien. Zonder lijst blijft het de stap zijn eigen banken.
-    const ids = Array.isArray(kbIds) ? kbIds : (Array.isArray(step.knowledgeBaseIds) ? step.knowledgeBaseIds : []);
-    if (!ids.length) return { context: '', chunks: [] };
-    try {
-        const allowedKbIds = await resolveAllowedKnowledgeBaseIds(ids, ctx);
-        if (!allowedKbIds.length) return { context: '', chunks: [] };
-        const { quickKBSearch } = require('../agentRuntime/knowledgeSearch');
-        const chunks = await quickKBSearch(ctx.userId, allowedKbIds, query, { topK: AI_STEP_KB_TOP_K });
-        if (!chunks || !chunks.length) return { context: '', chunks: [] };
-        const context = chunks.map((c, i) => `[[${i + 1}]] ${c.title || 'KB'}\n${c.content || ''}`).join('\n\n');
-        return { context, chunks };
-    } catch (e) {
-        log.warn(`[AutomationRunner] ai_step ${step.id}: KB grounding failed (${e.message}) — continuing without it`);
-        return { context: '', chunks: [] };
-    }
-}
-
-/**
- * Skill-injectie voor een AI-stap (R2).
- *
- * De stap-skills gaan als `attached` mee en de skills van de agent als
- * `session`: `mergeSkillIds` houdt attached vooraan en kapt daarna af op de
- * cap, dus de skill die de auteur op DEZE stap koos is leidend — in volgorde
- * én in de cap — zonder dat de gedeelde functie iets hoeft te weten van
- * automations.
- *
- * `orgId` is de tenantgrens van `getSkillsByIds`: zonder org geeft
- * `buildSkillInjection` stil niets terug, en dat "stil" is precies het soort
- * ding dat je een halve dag kost — daarom wordt het hier hardop gezegd.
- * Alles is best-effort: een kapotte skill-lookup mag een stap niet omleggen.
- */
-async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null) {
-    const empty = { systemPromptAddendum: '', tools: [], startsAutomations: false };
-    const { skillIdsForStep } = require('./aiStepAgent');
-    const { attachedSkillIds, sessionSkillIds } = skillIdsForStep(step, binding);
-    if (!attachedSkillIds.length && !sessionSkillIds.length) return empty;
-    if (!ctx.orgId) {
-        log.warn(`[AutomationRunner] ai_step ${step.id}: skills skipped — this run has no organisation context`);
-        return empty;
-    }
-    try {
-        const { buildSkillInjection } = require('../tools/skillInjection');
-        const injection = await buildSkillInjection({
-            attachedSkillIds,
-            sessionSkillIds,
-            orgId: ctx.orgId,
-            // De VRAGER is de automation-eigenaar: een persoonlijke skill van de
-            // agent-eigenaar valt daarmee vanzelf weg (stores/skillStore.js).
-            userId: ctx.userId,
-            agentId: binding ? binding.agentId : null,
-            // De "laatst gebruikt"-rij hoort bij deze automatisering, niet bij een chat.
-            conversationId: ctx.automationId || null,
-            // Handoff 5: the rows execAi already loaded (aiStepSkills), in
-            // run order, so the leading skill also comes first in the prompt.
-            ...(Array.isArray(preloadedSkills) ? { preloadedSkills } : {}),
-        });
-        return {
-            systemPromptAddendum: injection.systemPromptAddendum || '',
-            tools: Array.isArray(injection.tools) ? injection.tools : [],
-            // Draagt `activate_skill` hier een AUTOMATION-START? Een skill met een
-            // `automationId` heeft geen tekstbody: `executeActivateSkill` draait
-            // `executeAutomation(..., mode: 'live')`. Dat is dezelfde handeling
-            // waar `startAutomations` over gaat, dus die schakelaar beslist
-            // erover — anders krijgt een stap met alle drie de permissies UIT
-            // toch een tool waarmee het model een automatisering live start.
-            startsAutomations: Array.isArray(injection.automationSkillIds)
-                ? injection.automationSkillIds.length > 0
-                // Een oudere (of gestubde) injectie zegt het niet. Onbekend
-                // versmalt: dan telt de tool als automation-starter.
-                : true,
-        };
-    } catch (e) {
-        log.warn(`[AutomationRunner] ai_step ${step.id}: skill injection failed (${e.message}) — continuing without it`);
-        return empty;
-    }
 }
 
 async function execAiStep(step, ctx, runState, mode) {
@@ -817,7 +204,7 @@ async function execAiStep(step, ctx, runState, mode) {
     // still delivered in the framed "Inputs (data, not instructions)" block
     // below, so existing automations that rely on that keep working.
     const promptScope = { ...runState, secrets: {}, ...resolvedInputs };
-    const promptText = require('../../automation/bind')
+    const promptText = require('../automationModel/bind')
         .interpolateTemplate(step.prompt || '', promptScope, { leaveUnresolved: true, listAs: 'json' });
 
     // If the builder didn't declare an outputSchema, derive one from how
@@ -866,14 +253,14 @@ async function execAiStep(step, ctx, runState, mode) {
     // (never an app-level owner: an automation has none), queried with this
     // step's own interpolated prompt. See groundAiStepWithKB above.
     const kbIdsForStep = [...new Set([...knowledgeBaseIdsForStep(step, agentBinding), ...skillGrants.kbIds])];
-    const kbGround = await groundAiStepWithKB(step, ctx, promptText, mode, kbIdsForStep);
+    const kbGround = await groundAiStepWithKB(step, ctx, promptText, mode, kbIdsForStep, groundingDeps);
     const kbBlock = kbGround.context ? `\n\nReference material:\n${kbGround.context}` : '';
     // Personal memory grounding (step.useMemory) — the automation OWNER's
     // user_memories, keyed off ctx.userId like the KB search above. Rides in
     // the same slot as the KB block so the safety tail still closes the prompt.
-    const memoryBlock = await groundAiStepWithMemory(step, ctx, promptText);
+    const memoryBlock = await groundAiStepWithMemory(step, ctx, promptText, groundingDeps);
     // Skills — die van de stap eerst (leidend), dan die van de agent.
-    const skillGround = await groundAiStepWithSkills(step, ctx, agentBinding, skillCtx.loaded ? skillCtx.skills : null);
+    const skillGround = await groundAiStepWithSkills(step, ctx, agentBinding, skillCtx.loaded ? skillCtx.skills : null, groundingDeps);
     const skillBlock = skillGround.systemPromptAddendum || '';
     // An agent, or a skill written for a chat, is told it is a step: it never
     // asks anything back and never waits for a confirmation (handoff 5).
@@ -1198,71 +585,7 @@ async function execAiStep(step, ctx, runState, mode) {
         accrueUsage(response);
     }
 
-    let output = response?.content || '';
-    if (effectiveSchema) {
-        // Attempt JSON parse anywhere in the response. A model asked for JSON
-        // routinely wraps it in a ```json fence or writes a sentence first;
-        // the greedy match spans from the first brace to the last, which
-        // handles both.
-        const m = output.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-        let parsed = null;
-        if (m) {
-            // parseJsonish, not JSON.parse: a step whose schema asks for a long
-            // markdown document gets back a structurally perfect object whose
-            // string values contain LITERAL newlines, because the model is
-            // writing a document. That is not a broken answer, it is a
-            // mis-escaped one, and throwing it away loses a page of work that
-            // was already paid for.
-            const { parseJsonish } = require('../../automation/jsonRepair');
-            const r = parseJsonish(m[0]);
-            if (r.ok) {
-                parsed = r.value;
-                if (r.repaired) {
-                    log.warn(`[AutomationRunner] ai_step ${step.id}: model returned malformed JSON (raw control characters or a trailing comma) — repaired.`);
-                }
-            }
-        }
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            output = parsed;
-        } else if (inferredFields && inferredFields.length) {
-            // Fallback: model gave us prose despite asking for JSON. Wrap
-            // it under the first inferred field so downstream bindings
-            // still resolve. Better a slightly off-shape than a silent
-            // undefined that breaks the next step ("body is required").
-            output = { [inferred.textField || inferredFields[0]]: String(output).trim() };
-        } else if (outputContract.declared) {
-            // The author (or the leading skill) DECLARED a schema and the
-            // model did not honour it.
-            //
-            // What used to happen here was nothing: `output` stayed the raw
-            // string, the step reported SUCCESS, and every downstream
-            // `steps.<id>.output.<field>` silently resolved to undefined. A
-            // automation could render an empty document, mail an empty summary or
-            // write empty rows, with a green run behind it and no line anywhere
-            // saying why. That is the worst failure this file can produce, so it
-            // fails loudly instead.
-            //
-            // The two causes read very differently to whoever has to fix it, so
-            // they get different messages: a reply that starts like JSON and
-            // stops mid-structure ran out of output budget (raise the step's
-            // tier, or ask for fewer/shorter fields); anything else means the
-            // model answered in prose.
-            const text = String(output).trim();
-            // Truncation is decided on the SHAPE of the reply, not on whether
-            // the greedy match above found anything: a reply that ran out of
-            // budget has no closing brace at all, so that match is null exactly
-            // when truncation is most likely. Strip the fence first — a fenced
-            // block that was cut off never got its closing ``` either.
-            const body = text.replace(/^```[A-Za-z]*\s*/, '').replace(/\s*```$/, '').trim();
-            const looksTruncated = (body.startsWith('{') || body.startsWith('['))
-                && !/[}\]]$/.test(body);
-            const err = new Error(looksTruncated
-                ? `This step's answer was cut off before the JSON was complete (${text.length} characters). Raise the step's model tier, or ask for fewer or shorter fields in its output schema.`
-                : `This step was asked for JSON matching its output schema but answered with something else, so every "steps.${step.id}.output.…" reference downstream would have been empty. First 200 characters: ${text.slice(0, 200)}`);
-            err.errorClass = 'ValidationError';
-            throw err;
-        }
-    }
+    let output = parseAiStepOutput(response?.content || '', { step, effectiveSchema, inferred, inferredFields, outputContract });
 
     // ── Safety: guard model output (agentOutput scope), then restore from the
     // RUN VAULT so downstream steps see real values (the model saw placeholders).

@@ -1,56 +1,34 @@
-// §WS5 #4 — automation CRUD + templates + import + activate/deactivate,
-// extracted verbatim from routes/automation.js. syncAppEventSubscription co-located.
+// §WS5 #4 — automation CRUD + activate/deactivate, extracted verbatim from
+// routes/automation.js. Folders (folders.js), forms (forms.js) and templates,
+// import and export (importExport.js) are registered on this router at their
+// original positions; what they share with it lives in crudContext.js.
 const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 
-// The caller's organisation, or null on a personal / single-user install.
-// Used by the folder routes (folders are org-wide) and by both create routes,
-// which stamp automations.organization_id — hence defined up here, above every
-// handler that reads it, rather than beside the folder block it started in.
-//
-// ASYNC, and fresh from `users`, because this used to be
-// `req.session.user.organizationId`: only two of the login shapes frozen by
-// auth/sessionShapes.contract.test.js ever write that, so every returning
-// member looked org-less. An automation created that way was stamped NULL, its
-// datatable usage index was written against no org (the INSERT's WHERE EXISTS
-// matched nothing) and its folders landed in the shared no-org bucket.
-const { resolveDatatablePrincipal } = require('../../auth/datatableAccess');
-const orgOf = async (req) => (await resolveDatatablePrincipal(req)).orgId;
+// The caller's organisation (see crudContext.js for why it is async and read
+// fresh), the knowledge-base findings and the one access answer.
+const { orgOf, kbFindingsFor, automationAccess, worded } = require('./crudContext');
+const { registerFolderRoutes } = require('./folders');
+const { registerFormRoutes } = require('./forms');
+const { registerTemplateAndImportRoutes, registerExportRoute } = require('./importExport');
 
 // The helpers save, activate and publish share live in automation/ so the
 // go-live cores (automation/goLive.js) use the same ones — see
 // automation/liveSideEffects.js for what each does and why it is best-effort.
-const liveSideEffects = require('../../automation/liveSideEffects');
-const { agentsFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = liveSideEffects;
+const { agentsFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = require('../../automation/liveSideEffects');
 const { deactivateCore, editedPinRefusal, capturedPinWarnings } = require('../../automation/goLive');
 const automationStore = require('../../stores/automationStore');
 const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
-const { HttpError } = require('../../core/http/errors');
-const { MAX_FOLDER_NAME_LEN } = require('../../stores/automationStore/folders');
 const cron = require('../../automation/cron');
 const { validateDefinition } = require('../../automation/validate');
 const { topicClassifierFor } = require('../../core/classify/classifierClient');
 
-/**
- * Knowledge-base findings for a definition, at a stage, for this request: the
- * organisation is the caller's (orgOf). Fail-open — see
- * automation/liveSideEffects.kbFindingsFor.
- */
-async function kbFindingsFor(definition, req, userId, stage) {
-    return liveSideEffects.kbFindingsFor(definition, { orgId: async () => await orgOf(req), userId, stage });
-}
-
 const { triggerColumnsFromDefinition } = require('../../automation/triggerColumns');
 const { summariseDefinition } = require('../../automation/summarise');
-const { getDeliverableEvents } = require('../../automation/deliverableEvents');
-const { TOOL_REGISTRY, loadTools } = require('../../automation/toolRegistry');
 require('../../automation/triggerBus');
-const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { buildExport, sanitizeImport, rebindDatatables, rekeyDefinition, stripAppRefs } = require('../../automation/portability');
 const { syncDatatableUsage } = require('../../automation/datatableUsageSync');
-const { AUDIENCES, audienceAdmits, needsGroups, publicAudience } = require('../../automation/formAudience');
 const { syncKbSources } = require('../../core/kb/kbSourceSync');
 const { syncSchedules, scheduleFingerprint } = require('../../automation/scheduleSync');
 const { syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint } = require('../../automation/subscriptionSync');
@@ -62,8 +40,7 @@ const { withSanitizedRunPolicy, resolveRunPolicy, runTimeoutMsFor } = require('.
 // Handoff 5, sharing and roles: one answer to "may this caller do that with
 // this automation" (automation/access.js). Owner first and free; org admins with
 // manage_automations and people/groups the automation is shared with after.
-const { makeAutomationAccess, projectForViewer, roleSatisfies, groupsOf } = require('../../automation/access');
-const automationAccess = makeAutomationAccess({ store: automationStore });
+const { projectForViewer, groupsOf } = require('../../automation/access');
 const trashHandlers = makeTrashHandlers({
     store: automationStore,
     access: automationAccess,
@@ -119,36 +96,6 @@ async function appRefOwnerGate(definition, actorUserId) {
     return appRefOwnerVerdict({ app, actorUserId });
 }
 
-/**
- * The datatables THIS caller may use, in the shape portability.rebindDatatables
- * matches on — built exactly the way the builder catalog builds its picker
- * (both tenancies, then the same grade resolver the runner uses), so an import
- * can only ever re-link to a table its importer can already see.
- *
- * Best-effort by design: a datatable outage must leave the automation importable
- * with its steps unlinked, which is what the file said anyway. Returning []
- * loses nothing except the re-link.
- */
-async function importableDatatables(req) {
-    try {
-        const datatableStore = require('../../stores/datatableStore');
-        const { gradeForPrincipal, resolveDatatablePrincipal, datatableScopesFor } = require('../../auth/datatableAccess');
-        const principal = await resolveDatatablePrincipal(req);
-        const out = [];
-        for (const scope of datatableScopesFor(principal)) {
-            const all = await datatableStore.listDatatablesForScope(scope);
-            const grantsByTable = await datatableStore.listGrantsForTables(all.map(t => t.id));
-            for (const t of all) {
-                if (!gradeForPrincipal(t, grantsByTable.get(t.id) || [], principal)) continue;
-                out.push({ id: t.id, key: t.key, name: t.name });
-            }
-        }
-        return out;
-    } catch (e) {
-        log.warn('[automation/import] datatables unavailable; importing without re-linking:', e.message);
-        return [];
-    }
-}
 
 /**
  * The automations wired to one app-event provider (M2).
@@ -185,8 +132,6 @@ function appEventTriggersOf(definition) {
 // bug, and answering 200 to it means the person watches a setting they typed
 // fail to stick with nothing on screen to explain it.
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const PROVIDER_TEXT = 'triggerProvider is the id of a trigger source.';
 const EVENT_TEXT = 'triggerEvent is the id of one of that provider\'s events.';
@@ -243,19 +188,6 @@ const UpdateAutomationBody = z.object({
     scheduleCron: worded(CRON_TEXT).trim().nullish(),
     scheduleTz: worded(TZ_TEXT).trim().nullish(),
     folderId: worded(FOLDER_TEXT).trim().nullish(),
-}).strict();
-
-const AUDIENCE_TEXT = `audience is one of: ${AUDIENCES.join(', ')}.`;
-const ID_IN_LIST = (what) => worded(`Each ${what} must be a non-empty id.`).trim().min(1, `Each ${what} must be a non-empty id.`);
-const AudienceBody = z.object({
-    audience: z.enum(AUDIENCES, { error: () => AUDIENCE_TEXT }),
-    sharedGroups: z.array(ID_IN_LIST('group'), { error: typeError({ invalid: 'sharedGroups is a list of group ids.' }) })
-        .max(200, 'Too many people or groups on one form.').default([]),
-    // The route asks the directory about each id, so the same id twice is the
-    // same question twice.
-    sharedUserIds: z.array(ID_IN_LIST('person'), { error: typeError({ invalid: 'sharedUserIds is a list of user ids.' }) })
-        .max(500, 'Too many people or groups on one form.')
-        .transform((ids) => [...new Set(ids)]).prefault([]),
 }).strict();
 
 /**
@@ -395,545 +327,12 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
     res.json({ automation: a, answers, ...(kbWarnings.length ? { warnings: kbWarnings } : {}) });
 });
 
-// ── Folders ────────────────────────────────────────────────────────────
-//
-// Registered BEFORE `/:id` for the same reason the template routes are: the
-// param route would otherwise match the literal string 'folders' and answer
-// 404 from getAutomation('folders'). automation.routetable.test.js guards it.
-//
-// Folders are org-wide, so they are readable and editable by anyone in the
-// organisation. The automations INSIDE them stay per-user — the list endpoint
-// filters on user_id — so a folder is a shared label, not a shared inbox.
+// Folders, forms, templates and import: literal first segments, so they are
+// registered here, BEFORE `/:id` (automation.routetable.test.js guards the order).
+registerFolderRoutes(router);
+registerFormRoutes(router);
+registerTemplateAndImportRoutes(router);
 
-router.get('/folders', async (req, res) => {
-    res.json({ folders: await automationStore.listFolders(await orgOf(req), req.session.user.id) });
-});
-
-// ── Folders ───────────────────────────────────────────────────────────────
-// The store trims and truncates a name; the schema says the same thing to the
-// caller BEFORE the row is attempted, so a blank name is a 400 naming the
-// field rather than a driver error echoed back.
-const NAME_REQUIRED = 'A folder needs a name.';
-const FolderBody = z.object({
-    // Both messages, because zod answers a MISSING field with required_error
-    // and a blank one with the min() message, and the caller reads whichever
-    // it gets: an unworded rule arrives as the word "Required".
-    name: z.string({ error: NAME_REQUIRED })
-        .trim().min(1, NAME_REQUIRED)
-        .max(MAX_FOLDER_NAME_LEN, `A folder name is at most ${MAX_FOLDER_NAME_LEN} characters.`),
-    icon: z.string().trim().max(16).optional(),
-    color: z.string().trim().max(32).nullish(),
-}).strict();
-
-/** Every field optional: a rename must not have to resend icon and colour. */
-const FolderPatch = FolderBody.partial();
-
-const isDuplicateFolder = (e) => /duplicate key|unique/i.test(e?.message || '');
-const duplicateFolder = () => new HttpError(409, 'folder_name_taken', 'A folder with that name already exists.');
-
-router.post('/folders', validate({ body: FolderBody }), async (req, res, next) => {
-    try {
-        const folder = await automationStore.createFolder({
-            organizationId: await orgOf(req),
-            ...req.body,
-        });
-        res.status(201).json({ folder });
-    } catch (e) {
-        // A duplicate name is the user's doing, not a server fault — the unique
-        // index is case-insensitive per org, so say which half went wrong.
-        if (isDuplicateFolder(e)) return next(duplicateFolder());
-        return next(e);
-    }
-});
-
-router.put('/folders/:folderId', validate({ body: FolderPatch }), async (req, res, next) => {
-    try {
-        const existing = await automationStore.getFolder(req.params.folderId);
-        if (!existing) return res.status(404).json({ error: 'Not found' });
-        const folder = await automationStore.updateFolder(req.params.folderId, req.body);
-        return res.json({ folder });
-    } catch (e) {
-        if (isDuplicateFolder(e)) return next(duplicateFolder());
-        return next(e);
-    }
-});
-
-router.delete('/folders/:folderId', async (req, res) => {
-    const existing = await automationStore.getFolder(req.params.folderId);
-    if (!existing) return res.status(404).json({ error: 'Not found' });
-    // Detaches, never deletes: the folder may hold automations belonging to
-    // colleagues this user cannot see.
-    const { detached } = await automationStore.deleteFolder(req.params.folderId);
-    return res.json({ success: true, detached });
-});
-
-/**
- * GET /forms — every published form in the caller's organisation.
- *
- * Registered before `/:id` like the folder and template routes; the route-table
- * test guards the ordering.
- *
- * Org-scoped on purpose (agreed with the owner): a published form has a public
- * URL, which makes it the organisation's, not its author's. The list is what
- * the Forms menu and the All-forms page are built on, and since the builder no
- * longer shows the public link, this is now the only place to get it.
- *
- * A page row outlives its trigger — the author can switch the trigger to
- * something else and the row stays so the old address can be reinstated — so
- * rows whose trigger is no longer a form are dropped here, exactly as
- * formPublic.js's loadForm drops them.
- */
-router.get('/forms', async (req, res) => {
-    const rows = await automationStore.listFormPagesForOrg(await orgOf(req), req.session.user.id);
-    // One entry per form, not per row. The old builder panel looked its
-    // page up by trigger and created one when the lookup missed, which on
-    // a multi-trigger automation could mint a SECOND page for the same form —
-    // there are such pairs in the wild. Both addresses still work; showing
-    // both just gives you the same form twice under one name. The busiest
-    // wins, because that is the link people actually have (ties go to the
-    // newest, which is the order the store returns).
-    const byForm = new Map();
-    for (const row of rows) {
-        const key = `${row.automationId}::${row.triggerStepId || ''}`;
-        const held = byForm.get(key);
-        if (!held || row.submissions > held.submissions) byForm.set(key, row);
-    }
-    const forms = [];
-    const answersByAutomation = await answersInfoFor([...byForm.values()].map(r => r.automationId), req);
-    const admits = await admitsFor([...byForm.values()], req);
-    for (const row of byForm.values()) {
-        // What visitors are served: the live copy when there is one.
-        const def = row.liveDefinition || row.definition || {};
-        const trigger = row.triggerStepId
-            ? [def.trigger, ...(def.triggers || [])].find(t => t?.id === row.triggerStepId)
-            : def.trigger;
-        if (trigger?.kind !== 'form') continue;
-        const mine = row.userId === req.session.user.id;
-        forms.push({
-            id: row.id,
-            url: `/f/${row.id}`,
-            automationId: row.automationId,
-            triggerStepId: row.triggerStepId,
-            // The form's own heading when the author gave it one; the
-            // automation's title is the fallback, which is what the builder
-            // shows anyway.
-            title: trigger.form?.title || row.title || 'Untitled form',
-            description: trigger.form?.description || row.description || null,
-            // A visitor gets a 404 unless BOTH are right, so this is the
-            // difference between a link that works and one that does not.
-            live: row.isActive && !row.isDraft,
-            submissions: row.submissions,
-            lastSeenAt: row.lastSeenAt,
-            createdAt: row.createdAt,
-            // Whether this caller can open the automation behind the form:
-            // the automation endpoints are still per-user.
-            mine,
-            // Whether this caller may FILL IT IN — the visitor gate's own
-            // rule (automation/formAudience), so /app/forms lists exactly
-            // the forms that open. The list of who else may is the
-            // owner's to see.
-            canOpen: admits(row),
-            audience: publicAudience(row, { owner: mine }),
-            // The answers table and THIS caller's grade on it — what
-            // decides whether the Answers dashboard is theirs to open.
-            answers: answersFor(row, trigger, answersByAutomation),
-        });
-    }
-    res.json({ forms });
-});
-
-// Templates routes MUST come before `/:id` — otherwise Express matches
-// `/:id` for the literal string 'templates' and returns 404 from
-// automationStore.getAutomation('templates').
-
-/**
- * `row → may this caller fill it in`, for a batch of page rows: the
- * caller's group memberships are read once, and only when some restricted
- * row names a group. The rows are org-scoped already (listFormPagesForOrg),
- * so the audience's organisation is the caller's own; an orgless caller only
- * ever sees their own rows, which the owner rule admits.
- */
-async function admitsFor(rows, req) {
-    const caller = { id: req.session.user.id, organizationId: (await orgOf(req)) || null };
-    const audienceOf = (row) => ({
-        userId: row.userId, organizationId: caller.organizationId,
-        audience: row.audience, sharedGroups: row.sharedGroups, sharedUserIds: row.sharedUserIds,
-    });
-    let groups = [];
-    if (rows.some(row => needsGroups(audienceOf(row), caller) && !audienceAdmits(audienceOf(row), caller, []))) {
-        try {
-            groups = await require('../../auth/audience').resolveUserGroups(caller.id);
-        } catch (e) {
-            log.warn('[automation forms list] group lookup failed:', e.message);
-        }
-    }
-    return (row) => audienceAdmits(audienceOf(row), caller, groups);
-}
-
-/**
- * The audience a PUT may set: a mode, organisation groups that exist, and
- * people who are members of the same organisation. Anything else is the
- * caller's mistake (400), never silently dropped — a person who thinks they
- * shared a form with Finance must not find out otherwise from Finance.
- */
-async function readAudienceBody(body, orgId) {
-    const bad = (code, message) => Object.assign(new Error(message), { status: 400, code });
-    const { audience: mode, sharedGroups: groupsRaw, sharedUserIds: usersRaw } = body;
-    if (!orgId) {
-        if (groupsRaw.length || usersRaw.length) throw bad('audience_no_org', 'Cannot share a form: this account has no organisation.');
-        return { audience: mode, sharedGroups: [], sharedUserIds: [] };
-    }
-    const { validateSharedGroupsForOrg } = require('../../auth/permissions');
-    const sharedGroups = (await validateSharedGroupsForOrg(orgId, groupsRaw)) || [];
-    const userStore = require('../../stores/userStore');
-    const sharedUserIds = [];
-    for (const id of usersRaw) {
-        const u = await userStore.getUser(id);
-        if (!u || u.organizationId !== orgId) throw bad('audience_user_unknown', `"${id}" is not a member of this organisation.`);
-        sharedUserIds.push(id);
-    }
-    return { audience: mode, sharedGroups, sharedUserIds };
-}
-
-/**
- * The answers tables behind a directory of form automations, with the CALLER's
- * grade on each: form owner, org admin, or anyone the table is shared with.
- * One store round trip for the tables, one for the grants — never a probe
- * per row. A table the caller has no grade on stays anonymous (no id).
- */
-async function answersInfoFor(automationIds, req) {
-    const out = new Map();
-    const ids = [...new Set(automationIds.filter(Boolean))];
-    if (!ids.length) return out;
-    try {
-        const datatableStore = require('../../stores/datatableStore');
-        const { gradeForPrincipal } = require('../../auth/datatableAccess');
-        const principal = await resolveDatatablePrincipal(req);
-        const tables = await datatableStore.listAnswersTablesForAutomations(ids);
-        const grants = await datatableStore.listGrantsForTables(tables.map(t => t.id));
-        for (const t of tables) {
-            const prev = out.get(t.source.automationId);
-            // the linked table wins; else the newest
-            if (prev && prev.table.source.linked !== false && t.source.linked === false) continue;
-            const grade = gradeForPrincipal(t, grants.get(t.id) || [], principal);
-            out.set(t.source.automationId, { table: t, grade });
-        }
-    } catch (e) {
-        log.warn('[automation forms list] answers lookup failed:', e.message);
-    }
-    return out;
-}
-
-/** The `answers` block of one directory row. */
-function answersFor(row, trigger, answersByAutomation) {
-    const collecting = trigger?.form?.collect === true;
-    const hit = answersByAutomation.get(row.automationId) || null;
-    if (!hit && !collecting) return null;
-    if (!hit) return { collecting, datatableId: null, grade: null, rowCount: null, linked: false, lastWriteError: null };
-    const { table, grade } = hit;
-    if (!grade) return { collecting, datatableId: null, grade: null, rowCount: null, linked: table.source.linked !== false, lastWriteError: null };
-    return {
-        collecting,
-        datatableId: table.id,
-        grade,
-        rowCount: table.rowCount ?? null,
-        linked: table.source.linked !== false,
-        lastWriteError: table.source.lastWriteError || null,
-    };
-}
-
-// "Build it with AI": draft or revise a form's questions from a brief.
-// Lazy for the reason routes/skills.js gives for its `ai()`: the DB-free
-// suites of this router stub its dependencies by parent, and an eager
-// require would pull the LLM client and the provider adapters into them.
-// Literal path, so it sits above `/forms/:automationId` like the rest.
-const formsAi = () => require('./formsAi');
-router.post('/forms/ai/draft',
-    (req, res, next) => formsAi().limiter(req, res, next),
-    // Lazily, like everything else that reaches into formsAi from here: the
-    // schema lives beside the handler that reads it.
-    (req, res, next) => validate({ body: formsAi().DraftBody })(req, res, next),
-    (req, res) => formsAi().draft(req, res));
-
-/**
- * GET /forms/:automationId — one form, for the Form page.
- *
- * Same audience as the directory (the organisation that owns it; 404
- * outside it, exactly like the visitor page). The DEFINITION travels only
- * to the owner — it is what the Questions and Settings tabs save through
- * PUT /:id, and a colleague who may read the answers may not read the
- * automation. Registered before `/:id` like GET /forms.
- */
-router.get('/forms/:automationId', async (req, res) => {
-    const rows = await automationStore.listFormPagesForOrg(await orgOf(req), req.session.user.id);
-    const mine = rows.filter(r => r.automationId === req.params.automationId);
-    if (!mine.length) return res.status(404).json({ error: 'Not found' });
-    // the primary trigger's page, busiest first, like the directory
-    const row = mine.filter(r => !r.triggerStepId).sort((a, b) => (b.submissions || 0) - (a.submissions || 0))[0] || mine[0];
-    const isOwner = row.userId === req.session.user.id;
-    // Who may edit the questions (handoff 5): the owner, an org admin, or a
-    // colleague with an `edit` share. Only they get the definition.
-    const formAccess = isOwner ? { role: 'owner', via: 'owner' } : await automationAccess.roleFor(
-        { id: row.automationId, userId: row.userId, organizationId: row.organizationId || null },
-        req.session.user.id, { session: req.session });
-    const mayEdit = roleSatisfies(formAccess.role, 'edit');
-    // An editor edits the WORKING copy (saved back through PUT /:id); anyone
-    // else reads the questions visitors are served, the live copy when there
-    // is one (handoff 5), like the directory above.
-    const def = (mayEdit ? row.definition : (row.liveDefinition || row.definition)) || {};
-    const trigger = def.trigger;
-    if (trigger?.kind !== 'form') return res.status(404).json({ error: 'Not found' });
-    const answersByAutomation = await answersInfoFor([row.automationId], req);
-    const admits = await admitsFor([row], req);
-    const { normalizeFields } = require('../../automation/formTriggerContract');
-    const formAnswers = require('../../automation/formAnswers');
-    const form = {
-        id: row.id,
-        url: `/f/${row.id}`,
-        automationId: row.automationId,
-        triggerStepId: null,
-        title: trigger.form?.title || row.title || 'Untitled form',
-        description: trigger.form?.description || row.description || null,
-        live: row.isActive && !row.isDraft,
-        isActive: !!row.isActive,
-        isDraft: !!row.isDraft,
-        submissions: row.submissions,
-        lastSeenAt: row.lastSeenAt,
-        createdAt: row.createdAt,
-        mine: isOwner,
-        canOpen: admits(row),
-        audience: publicAudience(row, { owner: isOwner }),
-        questions: {
-            title: trigger.form?.title || '',
-            description: trigger.form?.description || '',
-            submitLabel: trigger.form?.submitLabel || '',
-            successMessage: trigger.form?.successMessage || '',
-            collect: trigger.form?.collect === true,
-            fields: normalizeFields(trigger.form),
-            theme: trigger.form?.theme || null,
-        },
-        pages: formAnswers.inputPagesOf(def).map(p => ({ stepId: p.stepId, label: p.label, mode: 'input', fields: normalizeFields(p.form) })),
-        answers: answersFor(row, trigger, answersByAutomation),
-        myRole: formAccess.role,
-        ...(mayEdit ? { definition: def, automationTitle: row.title || '' } : {}),
-    };
-    res.json({ form });
-});
-
-/**
- * PUT /forms/:automationId/audience — who may fill the form in. Owner only.
- * Body `{ audience: 'org'|'restricted', sharedGroups: [groupId], sharedUserIds: [userId] }`,
- * validated against the caller's organisation (a group that is not the
- * org's, or a person outside it, is a 400 — never dropped). Written on the
- * PRIMARY trigger's page row; a rotated link keeps it (the store carries the
- * audience over). Answers with the owner's view of the audience.
- */
-router.put('/forms/:automationId/audience', validate({ body: AudienceBody }), async (req, res) => {
-    const a = await automationStore.getAutomation(req.params.automationId);
-    if (!a) return res.status(404).json({ error: 'Not found' });
-    if (!await automationAccess.guard(req, res, a, 'edit')) return;
-    if (a.definition?.trigger?.kind !== 'form') return res.status(404).json({ error: 'Not found' });
-    let wanted;
-    try {
-        wanted = await readAudienceBody(req.body, a.organizationId || (await orgOf(req)));
-    } catch (err) {
-        return res.status(err.status || 400).json({ error: err.message, code: err.code || 'audience_invalid' });
-    }
-    // the primary trigger's page — made if a save never minted one
-    const page = await automationStore.ensureFormPage(a.id, null);
-    const updated = await automationStore.setFormPageAudience(page.id, a.id, wanted);
-    if (!updated) return res.status(404).json({ error: 'Not found' });
-    res.json({ audience: publicAudience(updated, { owner: true }) });
-});
-
-/**
- * POST /forms/:automationId/answers-table — make (or re-make) the answers
- * table for a form that collects. Owner only. Exists for "provisioning
- * failed, try again" and for a form whose table was deleted by hand.
- */
-router.post('/forms/:automationId/answers-table', async (req, res) => {
-    const a = await automationStore.getAutomation(req.params.automationId);
-    if (!a) return res.status(404).json({ error: 'Not found' });
-    if (!await automationAccess.guard(req, res, a, 'edit')) return;
-    const formAnswers = require('../../automation/formAnswers');
-    if (!formAnswers.collectEnabled(a.definition)) {
-        return res.status(409).json({ error: 'This form does not collect its answers in a table — switch that on first', code: 'collect_disabled' });
-    }
-    const { answers, usage } = await ensureAnswersTable(a, a.definition);
-    if (answers?.error?.code === 'quota_exceeded') return res.status(409).json({ error: answers.error.message, code: 'quota_exceeded' });
-    // The org comes from orgOf, as at every other call site: the usage
-    // INSERT has a WHERE EXISTS on the org, so an automation from before
-    // organization_id was stored (NULL) indexed nothing — and said nothing.
-    await syncDatatableUsage(a.id, await orgOf(req), a.definition, { label: 'answers table', extraEntries: usage });
-    res.json({ answers });
-});
-// Handoff 5: the organisation's own templates ("Save as template", source
-// 'org') lead the list; the built-in ones follow (source 'builtin').
-router.get('/templates', async (req, res) => {
-    const { listTemplatesFor, CATEGORIES } = require('../../automation/templates');
-    const templates = await listTemplatesFor({ userId: req.session.user.id, orgId: await orgOf(req) });
-    res.json({ templates, categories: CATEGORIES });
-});
-
-router.get('/templates/:id', async (req, res) => {
-    const { getTemplateFor } = require('../../automation/templates');
-    const tmpl = await getTemplateFor(req.params.id, { userId: req.session.user.id, orgId: await orgOf(req) });
-    if (!tmpl) return res.status(404).json({ error: 'Template not found' });
-    res.json({ template: tmpl });
-});
-
-/**
- * Import a portability envelope (produced by GET /:id/export, or a bare
- * `{ automation }` body) as a NEW inactive draft owned by the caller.
- *
- * Like /templates, this MUST be registered before `/:id` — route order is
- * what keeps Express from treating the literal "import" as an automation id.
- *
- * Flow: sanitizeImport (allowlist + format/schemaVersion gate) →
- * validateDefinition hard-fail (on the file as sent) → rekeyDefinition (fresh
- * step ids per graph) → second, catalog-aware validation pass on the draft AS
- * STORED (built exactly like /:id/activate builds it) whose findings are
- * NON-BLOCKING here — the draft lands inactive, and activate re-checks
- * hard — → createAutomation (which already forces is_active=FALSE,
- * is_draft=TRUE).
- *
- * Rate-limited per user: imports validate against the full tool catalog and
- * write a row, so 10/min is plenty for legitimate use and starves bulk abuse.
- */
-const importLimiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
-router.post('/import', importLimiter, async (req, res) => {
-    const userId = req.session.user.id;
-    const { automation: incoming, errors: importErrors } = sanitizeImport(req.body);
-    if (!incoming || importErrors.length > 0) {
-        return res.status(400).json({ error: 'Invalid import file', details: importErrors });
-    }
-
-    // Re-link datatable steps BEFORE validating: export blanks the id (a
-    // datatable id names a table in ONE organisation) and keeps the key, and
-    // `datatable.table_missing` blocks at this stage — so until this ran, a
-    // automation with a datatable step could not be imported at all, not even
-    // as a draft to repair by hand. Only the caller's own tables are offered
-    // to it, so a re-link cannot cross a scope boundary.
-    const { entries: datatableEntries } = rebindDatatables(incoming.definition, await importableDatatables(req));
-    const datatableFindings = (stepIdOf = (_layer, id) => id) => datatableEntries.map(e => {
-        const stepId = stepIdOf(e.layerKey, e.stepId) || '';
-        return {
-            code: e.datatableId ? 'datatable.relinked' : 'datatable.unlinked',
-            severity: 'warning',
-            path: e.layerKey ? `layers.${e.layerKey}.steps.${stepId}` : `steps.${stepId}`,
-            message: e.message,
-            hint: e.datatableId ? 'A table key travels with an exported automation; the table it names here is yours.' : 'Open the step in the builder and pick a table.',
-        };
-    });
-
-    const v = validateDefinition(incoming.definition);
-    // The datatable findings ride along on the failure too: without them a
-    // automation that could not be re-linked is refused with "pick which
-    // datatable to use" and nothing that says which one it wanted. A refused
-    // file is reported in the ids the file itself uses.
-    if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: [...v.errors, ...datatableFindings()] });
-
-    // Fresh step ids per graph (root + each inline layer) so importing
-    // the same file twice never collides and crafted ids can't alias
-    // existing drafts' replay data. Done BEFORE the findings below, which
-    // describe the draft as it is STORED: a reference the rename missed used
-    // to land as a broken draft with nothing said, because only the
-    // pre-rename copy was ever validated.
-    const { definition, renameMap } = rekeyDefinition(incoming.definition);
-    const renamedId = (layerKey, id) => {
-        const map = layerKey ? renameMap?.layers?.[layerKey] : renameMap?.root;
-        return map && Object.prototype.hasOwnProperty.call(map, id) ? map[id] : id;
-    };
-
-    // Catalog-aware pass — same construction as the activate route
-    // (permission-based, fail-open). Because the catalog-free pass above
-    // already succeeded, everything this pass flags is a tool-availability /
-    // required-param / deliverability finding: surfaced as warnings so the
-    // user knows which integrations they still need to connect.
-    // Fallback when the catalog cannot be built: the stored draft, catalog-free.
-    // Its errors are warnings here (the draft lands inactive; activate re-checks).
-    const stored = definition === incoming.definition ? v : validateDefinition(definition);
-    let warnings = [...(stored === v ? [] : stored.errors || []), ...(stored.warnings || [])];
-    try {
-        const { getUserPermittedApps } = require('../../core/integrations/integrationTools');
-        const permitted = await getUserPermittedApps({ userId, session: req.session, isAdmin: !!req.session?.isAdmin });
-        const availableTools = new Set();
-        const toolRequiredParams = {};
-        for (const entry of TOOL_REGISTRY) {
-            const permittedApp = permitted.has(entry.app);
-            for (const t of loadTools(entry)) {
-                const name = t?.function?.name;
-                if (!name) continue;
-                if (permittedApp) availableTools.add(name);
-                const rq = t?.function?.parameters?.required;
-                if (Array.isArray(rq)) toolRequiredParams[name] = rq;
-            }
-        }
-        const v2 = validateDefinition(definition, {
-            availableTools, toolRequiredParams, deliverableEvents: getDeliverableEvents(),
-        });
-        warnings = [...(v2.errors || []), ...(v2.warnings || [])];
-    } catch (e) {
-        log.warn('[automation/import] tool catalog build failed; importing without tool warnings:', e.message);
-    }
-    // An exported automation carries knowledge-base ids from wherever it was
-    // built. Non-blocking, like every other import finding: the draft lands
-    // inactive and activate re-checks — but the author is told now, while
-    // they still remember what the automation was supposed to read.
-    warnings = [...warnings, ...await kbFindingsFor(definition, req, req.session.user.id, 'draft')];
-
-    // En de back-pointer naar een app-knop eraf — DEZELFDE regel als bij
-    // export, nu ook op de weg naar binnen. `buildExport` haalde hem weg,
-    // dus een echt geëxporteerd bestand heeft er geen; een met de hand
-    // geschreven bestand wel, en dan landde hier een automatisering met een
-    // verwijzing naar andermans app terwijl de poort op POST / (`appRef`
-    // → appRefOwnerVerdict) exact dezelfde definitie met 403
-    // `owner_mismatch` weigert. Twee create-paden, één antwoord.
-    // Weigeren zou hier te hard zijn: het is een label, geen recht, en de
-    // rest van het bestand is prima te importeren.
-    const strippedRefs = stripAppRefs(definition, []);
-    if (strippedRefs) {
-        warnings = [...warnings, {
-            code: 'import.app_ref_removed', severity: 'warning', path: 'definition.trigger.appRef',
-            message: 'Removed the link back to an app button — it names a screen in the installation this file came from.',
-            hint: 'Open the button in App Studio and pick this automation there to link them again.',
-        }];
-    }
-
-    // Best-effort schedule arming — a bad cron in the file shouldn't
-    // block the import (the draft is inactive); activate recomputes.
-    let nextRunAt = null;
-    if (incoming.triggerType === 'schedule' && incoming.scheduleCron) {
-        try { nextRunAt = cron.nextRunAt(incoming.scheduleCron, incoming.scheduleTz || 'Europe/Amsterdam', Date.now()); }
-        catch (e) {
-            warnings = [...warnings, { code: 'import.bad_cron', severity: 'warning', path: 'scheduleCron', message: `Schedule "${incoming.scheduleCron}" did not parse (${e.message}).`, hint: 'Open the trigger and pick a schedule again before activating.' }];
-        }
-    }
-
-    const organizationId = await orgOf(req);   // see the note on the create route above
-    const a = await automationStore.createAutomation({
-        userId,
-        organizationId,
-        title: incoming.title,
-        description: incoming.description,
-        definition,
-        triggerType: incoming.triggerType,
-        scheduleCron: incoming.scheduleCron,
-        scheduleTz: incoming.scheduleTz || 'Europe/Amsterdam',
-        nextRunAt,
-    });
-    // portability blanks datatableId on export, so an imported automation
-    // usually indexes nothing — but one imported into the org it came from
-    // keeps its ids, and those steps have to appear in "used by".
-    await syncDatatableUsage(a.id, organizationId, definition, { label: 'automation import' });
-    // An import arrives with its knowledge base BLANKED (portability scrubs
-    // it), so this usually attaches nothing — until the importer picks a
-    // base of their own, at which point the next save attaches it.
-    await syncKbSources(a.id, definition, { userId: req.session.user.id, title: a.title });
-    // Appended LAST because the catalog pass above reassigns `warnings`
-    // wholesale — pushing them earlier would drop every one of them.
-    res.json({ automation: a, warnings: [...warnings, ...datatableFindings(renamedId)] });
-});
 
 // The caller's trash (handoff 5). A literal, so it sits above GET /:id.
 router.get('/_trash', (req, res) => trashHandlers.listTrash(req, res));
@@ -949,7 +348,7 @@ router.get('/_trash', (req, res) => trashHandlers.listTrash(req, res));
 async function managedOf(a) {
     if (!a || !a.projectId) return null;
     try {
-        if (!await require('../../stores/lib/managedParts').managedInfo(a.projectId)) return null;
+        if (!await require('../../stores/managedPartsDefault').managedInfo(a.projectId)) return null;
         return await require('../../stores/solutionStageStore')
             .managedPayloadFor({ projectId: a.projectId, kind: 'automation', entityId: a.id });
     } catch (e) {
@@ -1050,18 +449,8 @@ router.get('/:id/usage', async (req, res) => {
     }
 });
 
-// §WS4.3 — the export route was documented and buildExport imported, but the
-// handler was never registered (dead import). Implement it with the same
-// ownership guard as the rest of the file so a user can download a sanitized,
-// portable envelope of their own automation (matching POST /import).
-router.get('/:id/export', require('../../compliance/dataPortability/stampExport')('automations'), async (req, res) => {
-    const a = await automationStore.getAutomation(req.params.id);
-    if (!a) return res.status(404).json({ error: 'Not found' });
-    // `view` reads every step already; the export is the same data, sanitised.
-    if (!await automationAccess.guard(req, res, a, 'view')) return;
-    const { envelope, warnings } = buildExport(a);
-    res.json({ envelope, warnings });
-});
+// GET /:id/export (importExport.js), in its original place among the `/:id` routes.
+registerExportRoute(router);
 
 router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) => {
     // The person saving (stamped as the version's author) and the OWNER the

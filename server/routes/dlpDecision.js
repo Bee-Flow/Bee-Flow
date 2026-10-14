@@ -26,6 +26,7 @@ const router = express.Router();
 const decisionQueue = require('../core/dlp/decisionQueue');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
@@ -34,9 +35,6 @@ const { requireAuth } = require('../auth/permissions');
 // Cap: this is UI-driven text selection, not a bulk API — a legitimate
 // review never produces hundreds of manual marks in one message.
 const MAX_MANUAL_ADDITIONS = 200;
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A whole number with one sentence for every way it can be wrong. */
 const whole = (message, min) => z.number({ error: message })

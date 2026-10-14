@@ -49,7 +49,6 @@ Drop a new file in. If the folder ends up with two images, the alphabetically-fi
 | `studio/agent-designer/` | Advanced agent designer |
 | `studio/agent-wizard/` | Guided agent creator |
 | `studio/templates-marketplace/` | Template marketplace browse view |
-| `studio/component-designer/` | Component designer working pane |
 | `studio/knowledge-bases-list/` | KB library |
 | `studio/skills-marketplace/` | Skills marketplace |
 | `admin/users-and-groups/` | User management panel |

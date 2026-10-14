@@ -47,7 +47,7 @@ def _is_valid_pl_pesel(candidate: str) -> bool:
     if len(d) != 11:
         return False
     weights = (1, 3, 7, 9, 1, 3, 7, 9, 1, 3)
-    total = sum(w * int(x) for w, x in zip(weights, d))
+    total = sum(w * int(x) for w, x in zip(weights, d, strict=False))
     return (10 - total % 10) % 10 == int(d[10])
 
 
@@ -57,5 +57,5 @@ def _is_valid_pl_nip(candidate: str) -> bool:
     if len(d) != 10:
         return False
     weights = (6, 5, 7, 2, 3, 4, 5, 6, 7)
-    total = sum(w * int(x) for w, x in zip(weights, d)) % 11
+    total = sum(w * int(x) for w, x in zip(weights, d, strict=False)) % 11
     return total != 10 and total == int(d[9])

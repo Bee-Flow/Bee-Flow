@@ -48,9 +48,10 @@ const { deps: d, init } = lazyDeps({
 });
 
 const log = require('../../telemetry/log');
+const kit = require('./importJobKit');
 
-const BACKOFF_MINUTES = [2, 5, 10, 20, 40];
-const HOURLY_MS = 60 * 60_000;
+const { codedError, backoffMsFor, meetingEndMs } = kit;
+
 // A Teams recording lands in OneDrive/SharePoint shortly after the meeting;
 // nothing 24 h after the end means it was not recorded (the common case).
 const NO_RECORDING_DEADLINE_MS = 24 * 3600_000;
@@ -66,60 +67,24 @@ const TERMINAL_CODES = new Set([
 ]);
 const QUIET_CODES = new Set(['no_recording', 'not_organizer']);
 
-let _userCursor = 0;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-function codedError(message, code) {
-    const e = /** @type {Error & {code?: string}} */ (new Error(message));
-    e.code = code;
-    return e;
-}
-
-function backoffMsFor(attempts) {
-    const min = BACKOFF_MINUTES[Math.max(0, attempts || 0)];
-    return min != null ? min * 60_000 : HOURLY_MS;
-}
-
-function meetingEndMs(job) {
-    const end = job.meetingEnd ? new Date(job.meetingEnd).getTime() : NaN;
-    if (Number.isFinite(end)) return end;
-    const created = job.createdAt ? new Date(job.createdAt).getTime() : NaN;
-    return Number.isFinite(created) ? created : Date.now();
-}
-
 /** A Microsoft-only session over a vault credential; refreshes write back to the vault. */
 async function vaultSession(auth, userId) {
     return d.resolveMicrosoftSession({ automationProviders: { microsoft: auth } }, userId);
 }
 
 async function resolveOrgIdForUser(userId) {
-    try {
-        return (await d.userStore.getUser(userId))?.organizationId || null;
-    } catch (_) { return null; }
+    return kit.resolveOrgIdForUser(userId, () => d.userStore);
 }
 
 /** Users with their own Teams settings, plus members of orgs that turned autoImport on. */
 async function listCandidateUsers() {
-    const all = await d.configStore.getAllConfig().catch(() => ({}));
-    const userIds = new Set();
-    const orgIds = new Set();
-    for (const key of Object.keys(all || {})) {
-        if (key.startsWith('user_teams_notes_')) userIds.add(key.slice('user_teams_notes_'.length));
-        else if (key.startsWith('org_teams_notes_')) orgIds.add(key.slice('org_teams_notes_'.length));
-    }
-    const enabledOrgs = [];
-    for (const orgId of orgIds) {
-        const s = await d.resolveTeamsNotesSettings({ orgId }).catch(() => null);
-        if (s?.autoImport) enabledOrgs.push(orgId);
-    }
-    if (enabledOrgs.length) {
-        try {
-            for (const u of await d.userStore.getAllUsers()) {
-                if (u.organizationId && enabledOrgs.includes(u.organizationId)) userIds.add(u.id);
-            }
-        } catch (_) { /* best-effort */ }
-    }
-    return Array.from(userIds);
+    return kit.listCandidateUsers({
+        configStore: d.configStore,
+        kind: 'teams_notes',
+        resolveSettings: (args) => d.resolveTeamsNotesSettings(args),
+        flag: 'autoImport',
+        getUserStore: () => d.userStore,
+    });
 }
 
 async function discoverUser(userId) {
@@ -164,23 +129,13 @@ async function discoverUser(userId) {
 }
 
 /** Phase A: seed jobs from candidates' calendars (caller holds the advisory lock). */
-async function discover() {
-    let users;
-    try { users = await listCandidateUsers(); }
-    catch (e) { log.error('[TeamsAutoImport] candidate scan failed:', e.message); return; }
-    if (!users.length) return;
-
-    const count = Math.min(users.length, MAX_USERS_PER_TICK);
-    const start = _userCursor % users.length;
-    _userCursor = (start + count) % users.length;
-    for (let i = 0; i < count; i++) {
-        const userId = users[(start + i) % users.length];
-        // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- scheduling jitter between users, not a secret
-        if (i > 0) await sleep(Math.floor(Math.random() * USER_JITTER_MS));
-        try { await discoverUser(userId); }
-        catch (e) { log.error(`[TeamsAutoImport] discovery failed for user ${userId}: ${e.message}`); }
-    }
-}
+const discover = kit.makeDiscovery({
+    label: 'TeamsAutoImport',
+    maxUsersPerTick: MAX_USERS_PER_TICK,
+    jitterMs: USER_JITTER_MS,
+    listCandidateUsers,
+    discoverUser,
+});
 
 /** Attendees of the job's calendar event (speaker roster + sharing). [] on failure. */
 async function fetchEventAttendees(session, job) {
@@ -216,26 +171,15 @@ async function findArtifact(session, meetingId, job, { transcriptAllowed }) {
     return null;
 }
 
-function ingestAttempt(job) {
-    if (job.errorCode !== 'failed') return 0;
-    const m = /^attempt (\d+)\//.exec(job.lastError || '');
-    return m ? Number(m[1]) : 1;
-}
-
 // Always throws: classified codes freeze the job; anything else retries up to
 // MAX_INGEST_ATTEMPTS, then freezes as 'failed'.
 async function failIngest(job, err) {
-    const code = err?.code || null;
-    if (code && TERMINAL_CODES.has(code)) {
-        await d.teamsImportStore.failJob(job.id, { errorCode: code, terminal: true, lastError: err.message });
-        throw err;
-    }
-    const attempt = ingestAttempt(job) + 1;
-    const lastError = `attempt ${attempt}/${MAX_INGEST_ATTEMPTS}: ${String(err?.message || err).slice(0, 500)}`;
-    await d.teamsImportStore.failJob(job.id, attempt >= MAX_INGEST_ATTEMPTS
-        ? { errorCode: 'failed', terminal: true, lastError }
-        : { errorCode: 'failed', lastError, terminal: false, status: 'pending', backoffMs: backoffMsFor(job.attempts) });
-    throw codedError(err?.message || 'Teams import failed', 'failed');
+    return kit.failIngest({
+        store: d.teamsImportStore, job, err,
+        terminalCodes: TERMINAL_CODES,
+        maxAttempts: MAX_INGEST_ATTEMPTS,
+        fallbackMessage: 'Teams import failed',
+    });
 }
 
 /**
@@ -337,19 +281,13 @@ async function processClaimedJob(job) {
 
 /** Phase B: claim and process due jobs (every pod may run this). */
 async function processDue({ limit = 2 } = {}) {
-    let jobs;
-    try { jobs = await d.teamsImportStore.claimDueJobs(limit); }
-    catch (e) { log.error('[TeamsAutoImport] claim failed:', e.message); return; }
-    for (const job of jobs) {
-        try {
-            await processClaimedJob(job);
-        } catch (e) {
-            const code = e?.code || 'failed';
-            const line = `[TeamsAutoImport] job ${job.id}: ${code}: ${e.message}`;
-            if (QUIET_CODES.has(code)) log.info(line);
-            else log.warn(line);
-        }
-    }
+    return kit.processDueJobs({
+        store: d.teamsImportStore, limit,
+        label: 'TeamsAutoImport',
+        describe: (job) => String(job.id),
+        processClaimedJob,
+        quietCodes: QUIET_CODES,
+    });
 }
 
 module.exports = { init, discover, processDue, processJobInline, findArtifact };

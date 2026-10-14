@@ -117,7 +117,7 @@ def _model_reference() -> tuple[dict | None, str | None]:
 def _value_kind_recall(records, preds) -> dict[tuple[str, str], list[int]]:
     """(category, value_kind) -> [matched, total] over gold spans."""
     out: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0])
-    for rec, pred in zip(records, preds):
+    for rec, pred in zip(records, preds, strict=False):
         golds = [SpanTuple(s.start, s.end, s.category) for s in rec.spans]
         mr = match_spans(golds, list(pred), mode="overlap", iou_threshold=0.5)
         matched = {gi for gi, _pi, _score in mr.tp}

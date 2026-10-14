@@ -30,8 +30,8 @@
 'use strict';
 
 const { HttpError } = require('../../core/http/errors');
-const { fromRefs, HOLDER_KINDS } = require('../packaging/pointers');
-const { REF_PREFIX } = require('../packaging/manifest');
+const { fromRefs, HOLDER_KINDS } = require('../../core/packaging/pointers');
+const { REF_PREFIX } = require('../../core/packaging/manifest');
 const { substituteTableTokens } = require('../packaging/idSweep');
 const { RELEASE_KINDS, eligibleForStage, needsApproval, stableStringify, planHash } = require('./model');
 const { KIND_OF_SECTION, canonicalOf, hashPayload, readStageShape } = require('./stagePayload');

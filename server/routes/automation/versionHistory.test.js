@@ -21,7 +21,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const express = require('express');
 const { makeVersionHistoryHandlers } = require('./versionHistory');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 const { accessByRole } = require('./testing/accessByRole');
 
 const V1 = {

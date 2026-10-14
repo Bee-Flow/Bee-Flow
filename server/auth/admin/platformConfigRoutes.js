@@ -14,14 +14,12 @@ const freeEmailDomains = require('../../utils/freeEmailDomains');
 const { ALL_INTEGRATIONS } = require('./integrationCatalog');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // Declared up here because the request schema names it in its refusal message;
 // the route below documents what each mode means.
 /** @type {[string, ...string[]]} */
 const CONNECTOR_PROVISIONING_MODES = ['open', 'pairing_only'];
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const DEFAULTS_TEXT = 'Send a list of integration ids, or null for "all enabled".';
 /**

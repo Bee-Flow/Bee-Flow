@@ -38,7 +38,7 @@ const {
 const orgHealth = require('../../../services/orgHealth');
 const { encryptionOpts, emitThreadEvent, _resolveChatProblemsThrottled } = require('./shared');
 const { emitPhase, emitPhaseEnd } = require('../../../core/agentRuntime/phaseEvents');
-const { startSseHeartbeat } = require('../../../core/http/sseHelpers');
+const { openSse } = require('../../../core/http/sseHelpers');
 const { getUserAuth } = require('../../../utils/routeHelpers');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
@@ -97,21 +97,14 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
     const turnSetup = await resolveTurnSetup({ req, res, userId, message, modelTier, conversationId, attachments });
     if (res.headersSent) return;
 
-    // Set SSE headers
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-
-    const send = (event, data) => {
-        // Best-effort side channels (title generation, memory extraction)
-        // outlive the turn; a write after end() raises on the response and,
-        // unhandled, takes the process down.
-        if (res.writableEnded || res.destroyed) return;
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    };
+    // Best-effort side channels (title generation, memory extraction) outlive
+    // the turn; openSse's send is a no-op after end(), because a write after
+    // end() raises on the response and, unhandled, takes the process down.
+    // The keep-alive holds the stream warm through the NC AppAPI proxy during
+    // long, silent tool loops (e.g. webpage builds) so it isn't idle-timed-out
+    // into a 504 that the client misreports as "Error generating response."
+    // (BFSF-221).
+    const { send } = openSse(res, { heartbeat: true });
     // STOP. The composer's stop button aborts the browser's fetch, which closes
     // this response — and until 2026-09-16 nothing here listened, so the turn
     // ran to the end: every tool round, every token. On a single-slot local
@@ -135,10 +128,6 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         log.info('[DirectChat] client disconnected — aborting the generation');
         try { clientAbort.abort(); } catch (_) { /* already aborted */ }
     });
-    // Keep the stream warm through the NC AppAPI proxy during long, silent tool
-    // loops (e.g. webpage builds) so it isn't idle-timed-out into a 504 that the
-    // client misreports as "Error generating response." (BFSF-221).
-    startSseHeartbeat(res);
 
     // Emit on every turn so the "How I got this answer" panel always knows
     // which concrete model produced this reply, including for fixed tiers.

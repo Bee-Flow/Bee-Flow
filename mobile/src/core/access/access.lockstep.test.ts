@@ -30,7 +30,8 @@ describe('the server answers the snapshot is read from', () => {
         expect(src).toContain("router.get('/my-entitlements', requireAuth");
         expect(contains(src, 'licenseFeature: c.licenseFeature || null')).toBe(true);
         expect(read('server/auth/adminRoutes.js')).toContain("require('./admin/featureAccessRoutes')");
-        expect(read('server/auth/index.js')).toContain("require('./adminRoutes')");
+        expect(read('server/auth/router.js')).toContain("require('./adminRoutes')");
+        expect(read('server/index.js')).toContain("const authRouter = require('./auth/router');");
         expect(read('server/index.js')).toContain("app.use('/auth', authRouter)");
     });
 
@@ -66,12 +67,22 @@ describe('the server answers the snapshot is read from', () => {
 });
 
 describe('the server role predicates', () => {
-    const src = read('server/auth/permissions.js');
+    // auth/permissions.js is the barrel; the role table is in permissionsCatalog.js,
+    // the gates (requireOrgAdmin, isSuperAdmin) in permissionsOrgGates.js.
+    const barrel = read('server/auth/permissions.js');
+    const catalog = read('server/auth/permissionsCatalog.js');
+    const src = read('server/auth/permissionsOrgGates.js');
+
+    it('the barrel exports the gates from permissionsOrgGates.js', () => {
+        expect(barrel).toContain("const orgGates = require('./permissionsOrgGates');");
+        expect(barrel).toContain('requireOrgAdmin: orgGates.requireOrgAdmin,');
+        expect(barrel).toContain('isSuperAdmin: orgGates.isSuperAdmin,');
+    });
 
     it('ORG_ADMIN_ROLES is ORG_ADMIN_VARIANTS, which requireOrgAdmin checks', () => {
-        expect(contains(src, 'const ORG_ADMIN_VARIANTS = Object.freeze([OrgRoles.ORG_ADMIN, OrgRoles.LEGACY_ADMIN]);')).toBe(true);
-        expect(contains(src, "ORG_ADMIN: 'org_admin',")).toBe(true);
-        expect(contains(src, "LEGACY_ADMIN: 'admin',")).toBe(true);
+        expect(contains(catalog, 'const ORG_ADMIN_VARIANTS = Object.freeze([OrgRoles.ORG_ADMIN, OrgRoles.LEGACY_ADMIN]);')).toBe(true);
+        expect(contains(catalog, "ORG_ADMIN: 'org_admin',")).toBe(true);
+        expect(contains(catalog, "LEGACY_ADMIN: 'admin',")).toBe(true);
         expect([...ORG_ADMIN_ROLES].sort()).toEqual(['admin', 'org_admin']);
         const gate = src.slice(src.indexOf('function requireOrgAdmin('), src.indexOf('function isSuperAdmin('));
         expect(gate).toContain('!isOrgAdminRole(user.orgRole)');
@@ -123,7 +134,9 @@ describe('the web logic this ports', () => {
     });
 
     it('studioApps: makeCanUse and the lock hint keys', () => {
-        const src = read('agent-hub/src/components/admin/Studio/studioApps.jsx');
+        // studioApps.jsx re-exports makeCanUse from studioGates.ts, where the lock hints live too.
+        expect(read('agent-hub/src/components/admin/Studio/studioApps.jsx')).toMatch(/\bmakeCanUse\b[\s\S]*?from '\.\/studioGates'/);
+        const src = read('agent-hub/src/components/admin/Studio/studioGates.ts');
         expect(
             contains(
                 src,

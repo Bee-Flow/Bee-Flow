@@ -1,5 +1,5 @@
 import React from 'react';
-import { BLOCK_VARIANTS } from './catalogue';
+import { BLOCK_VARIANTS } from './blockData.generated.mjs';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // Human labels for variant slugs; unknown slugs fall back to the slug.

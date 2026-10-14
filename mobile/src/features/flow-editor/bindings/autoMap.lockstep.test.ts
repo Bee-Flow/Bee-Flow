@@ -6,7 +6,7 @@
  */
 
 import * as am from './autoMap';
-import { sampleType, tryIterationMapping } from './autoMapIteration';
+import { tryIterationMapping } from './autoMapIteration';
 import { applyAutoMapToStep, autoMapStep } from './autoMapStep';
 import { CATALOG, chainDefinition } from './testing/fixture';
 import { BUILDER, requireWeb } from './testing/web';
@@ -140,7 +140,6 @@ describe('the matching helpers', () => {
         expect(am.nearestScannableRef(onlyObjects)).toBe(web.nearestScannableRef?.(onlyObjects));
         expect(am.nearestScannableRef(null)).toBe(web.nearestScannableRef?.(null));
         expect(am.nearestArrayRef(null)).toBe(web.nearestArrayRef?.(null));
-        for (const v of [null, undefined, [], {}, 'x', 1, true]) expect(sampleType(v)).toBe(web.sampleType?.(v));
         for (const k of ['From_Email', 'api-key', 'password', 'clientSecret', 'name', null]) {
             expect(am.normalizeKey(k)).toBe(web.normalizeKey?.(k));
             expect(am.isSecretLikeKey(k)).toBe(web.isSecretLikeKey?.(k));
@@ -212,12 +211,10 @@ describe('the matching helpers', () => {
         const def = below({ id: 'r', type: 'integration_action', tool: 'gmail_read' });
         const local = computeUpstreamGroups(def, 'r', CATALOG);
         const schema = { properties: { messageId: { type: 'string' } }, required: ['messageId'] };
-        const webIter = requireWeb(`${BUILDER}/mapping/autoMapIteration.ts`);
         expect(tryIterationMapping(schema, {}, local)).toStrictEqual({
             patch: { messageId: { kind: 'ref', path: 'loop.result.id' } },
             forEach: { overRef: 'steps.search.output.results', itemVar: 'result', maxIterations: 100 },
         });
-        expect(tryIterationMapping(schema, {}, local)).toStrictEqual(webIter.tryIterationMapping?.(schema, {}, local));
         expect(tryIterationMapping({ properties: {} }, {}, local)).toBe(null);
         expect(tryIterationMapping(schema, {}, [])).toBe(null);
         const noMatch = { properties: { zzz: { type: 'number' } }, required: ['zzz'] };

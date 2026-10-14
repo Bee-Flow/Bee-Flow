@@ -9,6 +9,7 @@
 // logout (AuthedApp), so putting the list here is also what fixes that.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { API_BASE, authFetch } from '../../utils/helpers';
 import { ApiError, apiClient } from '../client';
 
 /** A skill row. The editor round-trips fields this layer never reads, so the
@@ -40,6 +41,16 @@ async function fetchSkills(signal?: AbortSignal): Promise<Skill[]> {
         if (e instanceof ApiError && (e.status === 403 || e.status === 404)) return [];
         throw new Error('Failed to load skills');
     }
+}
+
+/**
+ * One plain read of the list, for the callers that keep it in their own state
+ * (the agent editor's bootstrap): the rows, or null when the server refused
+ * (non-2xx) so the caller can keep what it shows. A network failure throws.
+ */
+export async function readSkills(signal?: AbortSignal): Promise<Skill[] | null> {
+    const res = await authFetch(`${API_BASE}/api/skills`, signal ? { signal } : undefined);
+    return res.ok ? res.json() : null;
 }
 
 export function useSkillsQuery() {

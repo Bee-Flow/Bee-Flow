@@ -455,7 +455,7 @@ test('the paths the canvas picker builds for a code step resolve at run time', a
     // agent-hub mapping/upstream/realOverlay.js offers a ran code step's
     // record fields at `<basePath>.result.<key>` (pinned with these same
     // paths in agent-hub …/Builder/mapping/upstream.realOverlay.test.js).
-    const { resolveInputs } = require('../automation/bind');
+    const { resolveInputs } = require('./automationModel/bind');
     const runState = { steps: { fmt: { output: codeEnvelope({ count: 15, tickets: TICKETS }) } } };
     const r = resolveInputs({
         count: { kind: 'ref', path: 'steps.fmt.output.result.count' },

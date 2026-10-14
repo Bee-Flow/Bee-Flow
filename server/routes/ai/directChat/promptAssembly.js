@@ -8,9 +8,9 @@
  */
 
 const configStore = require('../../../stores/configStore');
-const { getAIConfig } = require('../../../core/aiAgent');
 const agentStore = require('../../../stores/agentStore');
 const userStore = require('../../../stores/userStore');
+const { protectMemoryContext } = require('./memoryProtection');
 const { buildToolHint } = require('../../../core/integrations/integrationTools');
 const { emitPhase, emitPhaseEnd } = require('../../../core/agentRuntime/phaseEvents');
 const { DEFAULT_SYSTEM_PROMPT } = require('./systemPrompt');
@@ -213,49 +213,16 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
                 // Once per turn, before the answer streams.
                 memoryUsed = memoryUsedItems(relevantMemories);
                 emitMemoryUsed(send, memoryUsed);
-
-                // Defence in depth: scrub PII out of the memory context before
-                // it reaches the LLM. Stored memories can contain real values
-                // from earlier turns that would otherwise bypass this turn's
-                // tokeniser. We replace with generic labels (non-reversible)
-                // so the AI can't reconstruct the underlying data.
-                try {
-                    // Resolve the user's org locally — the outer-scope
-                    // `userOrgId` const is only declared further down (≈line
-                    // 1560), so referencing it here would hit the TDZ.
-                    let scrubOrgId = null;
-                    try {
-                        const userStoreLocal = require('../../../stores/userStore');
-                        const localUser = await userStoreLocal.getUser(userId).catch(() => null);
-                        scrubOrgId = localUser?.organizationId || null;
-                    } catch { /* best-effort */ }
-                    const orgShieldForScrub = scrubOrgId
-                        ? await configStore.getConfig(`org_privacy_shield_${scrubOrgId}`)
-                        : null;
-                    // Shield's master flag is the only switch for PII scrubbing;
-                    // detectPii() routes to whichever backend is available.
-                    const scrubEnabled = !!orgShieldForScrub?.enabled
-                        || !!(await getAIConfig())?.piiDetectionEnabled;
-                    if (scrubEnabled) {
-                        // Reversible conversation tokens when the chat has an id (the
-                        // streaming un-tokeniser restores them), labels otherwise.
-                        const { tokenizeMemoryContext } = require('../../../core/memory/scrubMemoryContext');
-                        const { text: safeText, replacedCategories, mode } = await tokenizeMemoryContext(memoryContext, orgShieldForScrub, { conversationId: conversationId || null, userId });
-                        if (replacedCategories.length > 0) {
-                            log.info(`[DirectChat] Memory context ${mode === 'tokens' ? 'tokenised' : 'scrubbed'}: ${replacedCategories.join(', ')}`);
-                            if (!conversationId && mode === 'labels') memorySwap = { raw: memoryContext, labelled: safeText, orgShield: orgShieldForScrub };
-                            memoryContext = safeText;
-                        }
-                    }
-                } catch (scrubErr) {
-                    log.warn('[DirectChat] Memory scrub failed (fail-open):', scrubErr.message);
-                }
             }
         } catch (e) {
             log.warn('[DirectChat] Memory retrieval failed:', e.message);
         } else {
             log.info(`[DirectChat] Memory read skipped (${memoryPolicy.reason})`);
         }
+
+        // Who the user is (from the account) goes in front, then the memory
+        // block is tokenised or scrubbed (memoryProtection.js).
+        ({ memoryContext, memorySwap } = await protectMemoryContext({ memoryContext, userId, conversationId }));
 
         // ─── House style awareness ──────────────────────────────────
         // When the org has a default kantoorstijl, tell the model so it can
@@ -496,7 +463,7 @@ async function applyMemorySwap(turn, userId) {
     turn.memorySwap = null;
     if (!swap || !turn.convId || !turn.volatileMessage || typeof turn.volatileMessage.content !== 'string') return false;
     const { tokenizeMemoryContext } = require('../../../core/memory/scrubMemoryContext');
-    const r = await tokenizeMemoryContext(swap.raw, swap.orgShield, { conversationId: turn.convId, userId });
+    const r = await tokenizeMemoryContext(swap.raw, swap.orgShield, { conversationId: turn.convId, userId, knownEntities: swap.knownEntities || [] });
     if (r.mode !== 'tokens' || !turn.volatileMessage.content.includes(swap.labelled)) return false;
     turn.volatileMessage.content = turn.volatileMessage.content.replace(swap.labelled, () => r.text);
     return true;

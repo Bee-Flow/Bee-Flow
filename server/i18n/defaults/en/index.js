@@ -48,7 +48,6 @@ const NAMESPACES = {
     "comments":        require('./comments.js'),
     "common":          require('./common.js'),
     "compliance":      require('./compliance.js'),
-    "component_studio": require('./component_studio.js'),
     "condition_node":  require('./condition_node.js'),
     "connections":     require('./connections.js'),
     "consent":         require('./consent.js'),

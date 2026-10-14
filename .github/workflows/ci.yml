@@ -99,6 +99,7 @@ jobs:
       guard-unit: ${{ steps.filter.outputs.guard-unit || steps.all.outputs.all }}
       nextcloud: ${{ steps.filter.outputs.nextcloud || steps.all.outputs.all }}
       hub-module-sdk: ${{ steps.filter.outputs.hub-module-sdk || steps.all.outputs.all }}
+      components: ${{ steps.filter.outputs.components || steps.all.outputs.all }}
       e2e: ${{ steps.filter.outputs.e2e || steps.all.outputs.all }}
       desktop: ${{ steps.filter.outputs.desktop || steps.all.outputs.all }}
     steps:
@@ -151,7 +152,17 @@ jobs:
               - 'server/routes/{agents,ai,knowledgeBases}/**'
               - 'server/routes/{healthSchema,skills}.js'
               - 'server/routes/automation/crud.js'
-              - 'server/stores/{coworkStore,notificationStore,projectStore,skillStore,transcriptionStore}.js'
+              - 'server/stores/{coworkStore,notificationStore,skillStore}.js'
+              - 'server/stores/transcription/rowShape.js'
+              - 'server/stores/project/{projects,rows,events}.js'
+              - 'server/stores/studioApp/rowMappers.js'
+              - 'server/stores/kb/model.js'
+              - 'server/stores/compliance/settingsFields.js'
+              - 'server/stores/notebook/{rowMappers,notebooks}.js'
+              - 'server/stores/usage/{queries,breakdowns}.js'
+              - 'server/services/stripe/invoicesPromos.js'
+              - 'server/utils/stableJson.js'
+              - 'server/shared/appDefinition/{sectionStyle,ids,variables}.mjs'
               - 'server/stores/agent/{agentTools,directConversations,initSchema}.js'
               - 'server/stores/automationStore/rowMappers.js'
               - 'server/stores/document/rowMappers.js'
@@ -175,7 +186,7 @@ jobs:
               # The mobile parity series (flow editor, access, compliance,
               # Studio, billing): lockstep tests and serverContract.test.ts
               # read these as text or require() them.
-              - 'server/auth/{adminRoutes.js,index.js,ncBindingRoutes.js,permissions.js}'
+              - 'server/auth/{adminRoutes.js,ncBindingRoutes.js,permissions.js,router.js,permissionsCatalog.js,permissionsOrgGates.js}'
               - 'server/auth/admin/{featureAccessRoutes.js,groupRoleRoutes.js,invitationRoutes.js,orgRoutes.js,userRoutes.js}'
               - 'server/auth/login/{currentUserRoutes.js,myPermissionsRoutes.js}'
               - 'server/automation/{deliverableEvents.js,formPickSources.js}'
@@ -199,6 +210,11 @@ jobs:
               - 'server/routes/*'
               - 'server/routes/admin/*'
               - 'server/routes/automation/*'
+              # read as text by src/features/forms/api/serverShapes.lockstep.test.ts:
+              # formPublic.js's route modules, the queue that answers the 202,
+              # and the answers dashboard
+              - 'server/routes/automation/formPublic/{page,submit,session,results}.js'
+              - 'server/automation/{formQueue.js,formAnswers/summary.js}'
               - 'server/routes/compliance/*'
               - 'server/routes/datatables/*'
               - 'server/routes/integrations/*'
@@ -211,7 +227,7 @@ jobs:
               - 'server/routes/subscriptions/*'
               - 'server/routes/transcriptions/*'
               - 'server/routes/webpages/*'
-              - 'server/services/{ncUserGroupSync.js,stripeService.js}'
+              - 'server/services/ncUserGroupSync.js'
               - 'server/shared/expr/*'
               - 'server/stores/*'
               - 'server/stores/agent/sharedConversations.js'
@@ -229,7 +245,6 @@ jobs:
               - '.nvmrc'
               - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
               - 'scripts/eslint/**'
-              - 'scripts/rotate-master-key.js'
               - 'docs/docs/**'
               - 'components/**'
               - 'docker-compose.yml'
@@ -276,6 +291,7 @@ jobs:
               - 'server/auth/{audience,datatableAccess,gateMeta,orgMembership,orgScope,permissions,projectAccess}.js'
               - 'server/automation/{approvalStages,expr}.js'
               - 'server/automation/validate/{constants,helpers}.js'
+              - 'server/core/automationModel/**'
               - 'server/core/cms/themeSpec.js'
               - 'server/core/documents/{deckThemeOptions,documentContract,documentDiscovery,documentTemplate}.js'
               - 'server/core/llm/{leakedToolCalls,partialJsonScan,screenConstraints,toolCallHygiene}.js'
@@ -352,6 +368,7 @@ jobs:
               - 'server/automation/triggerBus*'
               - 'server/automation/deliverableEvents.js'
               - 'server/automation/sideEffectMap.js'
+              - 'server/core/automationModel/sideEffectMap*'
               - 'server/automation/builderTools/trigger*'
               - 'server/auth/connectorJwt*'
               - 'server/utils/ncIntegrationCatalog.js'
@@ -366,6 +383,16 @@ jobs:
               - 'hub-module-sdk/**'
               - '.nvmrc'
               - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'scripts/eslint-service-config.cjs'
+              - 'scripts/eslint/**'
+              - '.github/workflows/ci.yml'
+            # The shipped components (components/*). Also in the server
+            # filter above: server tests read the catalog's component.json
+            # and package.json files.
+            components:
+              - 'components/**'
+              - '.nvmrc'
+              - 'scripts/{eslint-budget,entry-point}.mjs'
               - 'scripts/eslint-service-config.cjs'
               - 'scripts/eslint/**'
               - '.github/workflows/ci.yml'
@@ -990,12 +1017,27 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
+      # The pin lives in ruff.toml (required-version); install exactly that.
       - name: Install ruff
-        run: pip install --no-cache-dir ruff==0.16.4
+        run: pip install --no-cache-dir "ruff$(sed -n 's/^required-version = "\(.*\)"$/\1/p' ruff.toml)"
       - name: ruff check
         run: ruff check guard-service classify-service --output-format=github
       - name: ruff format --check
         run: ruff format --check guard-service classify-service
+      # NOT a gate yet: pyright on app/ still reports findings (guard-service:
+      # ~50, mostly attributes the PiiService mixins read from the class they
+      # are mixed into; classify-service: the model-only imports and the
+      # pydantic-settings constructor). Visible in the log; once both trees are
+      # clean, drop continue-on-error and it gates like ruff.
+      - name: pyright app/ (non-blocking)
+        continue-on-error: true
+        run: |
+          rc=0
+          pip install --no-cache-dir pyright==1.1.408 -r guard-service/requirements-dev.txt
+          pyright --pythonpath "$(command -v python)" guard-service/app || rc=1
+          pip install --no-cache-dir -r classify-service/requirements-dev.txt
+          pyright --pythonpath "$(command -v python)" classify-service/app || rc=1
+          exit $rc
 
   # The sidecar suites exercise parsing, request models and the auth
   # middleware: no model, no torch. Each service
@@ -1206,9 +1248,9 @@ jobs:
           directory: server
       # An explicit file list, not a glob: this job's contract is that it
       # stays infra-free and fast. No --test-force-exit: the module-level
-      # timers that once kept automation/sideEffectMap.test.js alive are
-      # unref'd now, and the flag drops whatever has not been reported yet —
-      # a hang here should fail the job, not shorten the tally.
+      # timers that once kept core/automationModel/sideEffectMap.test.js
+      # alive are unref'd now, and the flag drops whatever has not been
+      # reported yet — a hang here should fail the job, not shorten the tally.
       - name: Unit tests
         run: |
           node --test \
@@ -1217,7 +1259,7 @@ jobs:
             integrations/nextcloudTablesTools.test.js \
             integrations/nextcloudFormsTools.test.js \
             integrations/nextcloudTeamsTools.test.js \
-            automation/sideEffectMap.test.js \
+            core/automationModel/sideEffectMap.test.js \
             automation/templates.test.js \
             automation/builderTools/promptCatalogSync.test.js \
             automation/triggerSources/registry.test.js \
@@ -1225,7 +1267,7 @@ jobs:
             automation/builderTools/triggerRegistry.golden.test.js \
             automation/triggerBus.dispatch.test.js \
             automation/triggerBus.dsl.test.js \
-            automation/triggerBus.ncfilenew.test.js \
+            automation/triggerBus/pollers/nextcloud.test.js \
             routes/mcpServer.test.js \
             routes/nextcloudTaskProcessing.agent.test.js \
             core/integrations/integrationToolMap.test.js \
@@ -1264,6 +1306,37 @@ jobs:
         run: npm run test:coverage
       - name: Coverage floor
         run: node ../scripts/coverage-ratchet.mjs hub-module-sdk
+
+  # The components the server runs as tools (`node index.js`, inputs as JSON
+  # on stdin, one JSON object on stdout). components/ itself is their tooling
+  # package (eslint, the smoke test); each component installs from its own
+  # lockfile, as componentManager does at boot. The smoke test runs every
+  # component against a loopback stand-in, so nothing leaves the runner.
+  components:
+    name: Components
+    needs: changes
+    if: needs.changes.outputs.components == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: components
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            components/package-lock.json
+            components/*/package-lock.json
+      - run: npm ci
+      - name: Install each component from its lockfile
+        run: for c in */; do if [ -f "$c/package-lock.json" ]; then (cd "$c" && npm ci); fi; done
+      - name: Lint (errors fail, warnings budgeted)
+        run: node ../scripts/eslint-budget.mjs components
+      - name: Smoke and unit tests
+        run: npm test
 
   # ── Desktop client ─────────────────────────────────────────────────────
   # `npm run verify` (typecheck, lint, unit tests) plus a build and a load
@@ -1388,7 +1461,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, desktop, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
+    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

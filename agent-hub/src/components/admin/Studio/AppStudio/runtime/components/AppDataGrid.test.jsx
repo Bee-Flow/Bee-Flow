@@ -396,7 +396,7 @@ describe('AppDataGrid — look variants', () => {
     it('introduces no hex colors in the component source', async () => {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        const src = fs.readFileSync(path.join(__dirname, 'AppDataGrid.jsx'), 'utf8');
+        const src = ['AppDataGrid.jsx', ...fs.readdirSync(path.join(__dirname, 'grid')).map((f) => `grid/${f}`)].map((f) => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
         expect(src).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     });
 });

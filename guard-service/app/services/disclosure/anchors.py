@@ -44,7 +44,7 @@ side of the comparison.
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 # ── Bank A: this text tells its reader that AI was involved ──────────────
 # A disclosure is a STATEMENT ABOUT THIS INTERACTION, addressed to the person

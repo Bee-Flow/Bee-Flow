@@ -1,9 +1,9 @@
 {
   "_comment": "Highest counts this repository is allowed to carry, and the critical/high advisory ids it carries per target. Lower both by fixing advisories and re-running `node scripts/audit-ratchet.mjs --update`; raising a count or adding an id is a deliberate edit that belongs in a commit message with a reason. A new advisory that cannot be fixed yet goes in `accepted` as { id } or { package, range } with a reason and an expires date (YYYY-MM-DD).",
-  "_generated": "2026-10-08",
+  "_generated": "2026-10-13",
   "targets": {
     "server": {
-      "why": "the API \u2014 every request goes through it",
+      "why": "the API — every request goes through it",
       "production": true
     },
     "agent-hub": {
@@ -18,8 +18,12 @@
       "why": "runs on the user's own machine, outside any sandbox we control",
       "production": true
     },
+    "mobile": {
+      "why": "the Android client shipped as an APK to users' phones",
+      "production": true
+    },
     ".": {
-      "why": "root dev tooling \u2014 dev:all, build scripts",
+      "why": "root dev tooling — dev:all, build scripts",
       "production": false
     }
   },
@@ -40,6 +44,10 @@
       "critical": 0,
       "high": 0
     },
+    "mobile": {
+      "critical": 0,
+      "high": 27
+    },
     ".": {
       "critical": 0,
       "high": 0
@@ -50,20 +58,36 @@
     "agent-hub": [],
     "nextcloud-connector": [],
     "desktop": [],
+    "mobile": [
+      "GHSA-86w9-cpqp-85rv",
+      "GHSA-vfj7-8cjw-p6xm"
+    ],
     ".": []
   },
   "accepted": [
     {
       "id": "GHSA-vfj7-8cjw-p6xm",
       "package": "braces",
-      "reason": "No fixed release exists (3.0.3 is the latest). braces is reached only through http-proxy-middleware -> micromatch (server, nextcloud-connector) and nodemon (dev). The advisory needs attacker-controlled glob PATTERNS; none of our createProxyMiddleware calls (server/routes/webpagesFullTierProxy.js, nextcloud-connector/src/proxy.js, ncProxy.js) passes a pathFilter, so micromatch never expands a pattern, let alone one from a request. Revisit when braces publishes a fix.",
+      "reason": "No fixed release exists (3.0.3 is the latest). braces is reached only through http-proxy-middleware -> micromatch (server, nextcloud-connector) and nodemon (dev). The advisory needs attacker-controlled glob PATTERNS; none of our createProxyMiddleware calls (server/routes/webpagesFullTierProxy.js, nextcloud-connector/src/proxy.js, ncProxy.js) passes a pathFilter, so micromatch never expands a pattern, let alone one from a request. In mobile it is reached only through expo -> @expo/metro -> metro-file-map -> micromatch: the bundler on the build machine, never in the APK, with glob patterns from our own config. Revisit when braces publishes a fix.",
       "expires": "2027-01-04",
       "reviewedAt": "2026-10-08",
       "reachability": "Reviewed all production createProxyMiddleware calls in server/routes/webpagesFullTierProxy.js, nextcloud-connector/src/proxy.js and nextcloud-connector/src/ncProxy.js against http-proxy-middleware 4.2.0 and micromatch 4.0.8. None configures a glob pathFilter; no user-controlled pattern reaches braces. Proxy HTTP/WebSocket regression suites cover these call sites. Nodemon is development-only.",
       "images": [
         "server",
         "nextcloud-connector",
-        "connector"
+        "connector",
+        "mobile"
+      ]
+    },
+    {
+      "id": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "reason": "No fixed release exists (1.4.0 is the latest). In mobile, node-forge is reached only through expo -> @expo/cli -> @expo/code-signing-certificates: the Expo command-line tool that runs on the build machine (expo prebuild/export, dev server). It is not imported by the app, so Metro never bundles it into the APK, and the app does not use expo-updates code signing. Revisit when node-forge publishes a fix.",
+      "expires": "2027-01-13",
+      "reviewedAt": "2026-10-13",
+      "reachability": "npm ls in mobile/ shows node-forge 1.4.0 only under @expo/cli/@expo/code-signing-certificates; no file in mobile/src, mobile/modules or the app config imports node-forge or @expo/code-signing-certificates, and expo-updates is not a dependency. The vulnerable path (PKCS#1 v1.5 signature verification) runs only inside the CLI on a developer or CI machine, never on a user device.",
+      "images": [
+        "mobile"
       ]
     }
   ]

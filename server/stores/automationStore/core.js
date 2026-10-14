@@ -123,6 +123,11 @@ const MIGRATIONS = [
     // automation_agent_bindings: which agents may call an agent_call automation.
     // A table, not a definition field, so no copy of an automation carries a grant.
     'automation-agent-bindings-2026-10',
+    // pending_work / pending_lease_until / pending_attempts on
+    // automation_form_sessions: an accepted form submission is persisted
+    // before its 202, so a deploy or crash no longer drops it
+    // (automation/formQueue.js). Additive, no backfill.
+    'automation-form-session-pending-2026-10',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

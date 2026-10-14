@@ -7,7 +7,7 @@
  * and the project change feed told about edits and renames. Plus the library
  * list's totals and the archive's way back.
  *
- * The real router behind a real express app (core/http/routeHarness.js), with
+ * The real router behind a real express app (testUtils/routeHarness.js), with
  * the store's and the feed helper's functions swapped on their module objects
  * (testUtils/swaps.js). No module mocking.
  *
@@ -16,7 +16,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 const { makeSwaps } = require('../testUtils/swaps');
 
 h.recordDb();

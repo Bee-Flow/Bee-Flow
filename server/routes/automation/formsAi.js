@@ -5,8 +5,9 @@
  *   POST /api/automation/forms/ai/draft
  *        { mode: 'create'|'revise', brief?, note?, current? } → { draft: { form, notes } }
  *
- * Wired into `routes/automation/crud.js`, which owns the router and its
- * gates (requireAuth, the automations feature, the active-org block). Plain
+ * Wired into `routes/automation/forms.js`, registered on the router
+ * `routes/automation/crud.js` owns, behind that router's gates (requireAuth,
+ * the automations feature, the active-org block). Plain
  * `(req, res)` functions, required LAZILY there, for the reason
  * routes/skills/ai.js records: crud's DB-free suites stub its dependencies
  * through a parent-keyed resolve hook, and an eager require here would drag

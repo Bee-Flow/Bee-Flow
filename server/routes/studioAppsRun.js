@@ -128,6 +128,7 @@ const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate')
 // for one index to mean two different steps. See that module's header.
 const { normalizeSequence, flattenSteps, sanitizeBag } = require('../appStudio/actionSequence');
 const { validate } = require('../core/http/validate');
+const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
 // routes, which carry the same bodies (routes/studio/appRuntimeSchemas.js).
 const R = require('./studio/appRuntimeSchemas');
@@ -600,13 +601,8 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
             ground.context ? `\n\nReference material:\n${ground.context}` : '',
         ].join(' ').trim();
 
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache, no-transform');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no'); // nginx: don't buffer the stream
-        if (typeof res.flushHeaders === 'function') res.flushHeaders();
-
-        const send = (obj) => { try { res.write(`data: ${JSON.stringify(obj)}\n\n`); } catch { /* client gone */ } };
+        const { sendRaw } = openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform' }, flush: true, viaSetHeader: true });
+        const send = (obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
         try {
             await aiRuntime.streamChat(app, model, { system, messages }, (type, data) => {
                 if (type === 'text' && data && data.text) send({ type: 'text', text: data.text });

@@ -15,7 +15,8 @@ const SERVER = path.resolve(__dirname, '../../../../../server');
 const read = (rel: string) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
 const usage = read('routes/usage.js');
-const usageStore = read('stores/usageStore.js');
+// The store is a barrel over stores/usage/; the report SQL lives in its parts.
+const usageStore = ['stores/usageStore.js', 'stores/usage/queries.js', 'stores/usage/breakdowns.js'].map(read).join('\n');
 const azureStore = read('stores/azureServiceUsageStore.js');
 const feedback = read('routes/feedback.js');
 const feedbackStore = read('stores/feedbackStore.js');

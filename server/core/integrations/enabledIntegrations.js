@@ -104,8 +104,84 @@ async function resolveEnabledIntegrations(userId, organizationId, { include = []
     return forced.length ? [...new Set([...merged, ...forced])] : merged;
 }
 
+// ── The org allow-list as the request paths read it ──────────────────
+//
+// Before this helper the "super-admin allow-list, else the global default"
+// read lived inline in eight places with three different readings. They are
+// kept apart on purpose (each caller passes the options that reproduce what it
+// did before); unifying them would change what users see.
+//
+//   overrideWhen 'truthy'  — `organizations."enabledIntegrations"` overrides when
+//                            it is truthy ('' falls through to the default).
+//                            Runtime gates, /auth/me, the wizard, the n8n check.
+//   overrideWhen 'present' — it overrides whenever it is not null/undefined.
+//                            The org-admin Integration access screens.
+//   parse 'strict'         — a string is JSON.parse'd (a bad string THROWS, the
+//                            caller's own catch decides), anything else as is.
+//   parse 'lenient'        — an array as is, a string that parses to an array,
+//                            anything else [] (featureAccessRoutes).
+//   whenUnset              — the answer when neither the org nor the global
+//                            default says anything: null ("all enabled") or a
+//                            caller-supplied list.
+//
+// configStore/userStore are required lazily so a test that swaps them in
+// require.cache after this module loaded still reaches its stub.
+
+function parseStrict(value) {
+    return typeof value === 'string' ? JSON.parse(value) : value;
+}
+
+function parseLenient(raw) {
+    if (raw === null || raw === undefined) return [];
+    if (Array.isArray(raw)) return raw;
+    try { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; }
+    catch (_) { return []; }
+}
+
+/**
+ * @param {object|null|undefined} org  an organizations row (getOrganization)
+ * @param {object} [opts]
+ * @param {'truthy'|'present'} [opts.overrideWhen='truthy']
+ * @param {'strict'|'lenient'} [opts.parse='strict']
+ * @param {string[]|null} [opts.whenUnset=null]
+ * @returns {Promise<{ list: any, source: 'org_override'|'global_default'|'all_enabled' }>}
+ */
+async function resolveOrgAllowListWithSource(org, { overrideWhen = 'truthy', parse = 'strict', whenUnset = null } = {}) {
+    const parseFn = parse === 'lenient' ? parseLenient : parseStrict;
+    const raw = org?.enabledIntegrations;
+    const overrides = overrideWhen === 'present' ? (raw !== null && raw !== undefined) : !!raw;
+    if (overrides) return { list: parseFn(raw), source: 'org_override' };
+    const store = require('../../stores/configStore');
+    const globalDefaults = await store.getConfig('default_org_integrations');
+    if (globalDefaults) return { list: parseFn(globalDefaults), source: 'global_default' };
+    return { list: whenUnset, source: 'all_enabled' };
+}
+
+/** The org's super-admin allow-list; see resolveOrgAllowListWithSource for opts. */
+async function resolveOrgAllowList(org, opts) {
+    return (await resolveOrgAllowListWithSource(org, opts)).list;
+}
+
+/**
+ * The org-admin "active integrations" subset as a Set, or null when it does not
+ * apply: for a super admin (`bypass`) and for design-time palettes
+ * (`forPalette`), which deliberately ignore it. A store failure yields an EMPTY
+ * set, which is what the runtime gates did inline.
+ */
+async function resolveOrgActiveSet(orgId, { forPalette = false, bypass = false } = {}) {
+    if (forPalette || bypass) return null;
+    try {
+        const store = require('../../stores/userStore');
+        const activeList = await store.getOrgEnabledIntegrations(orgId);
+        return new Set(activeList);
+    } catch (_) { return new Set(); }
+}
+
 module.exports = {
     mergeEnabled,
+    resolveOrgAllowList,
+    resolveOrgAllowListWithSource,
+    resolveOrgActiveSet,
     resolveEnabledIntegrations,
     resolveOrgIntegrations,
     _parseList: parseList,

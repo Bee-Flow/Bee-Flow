@@ -97,7 +97,7 @@ test('the theme built on a template: white text on the blue, no band, the templa
 test('a deck built on a template carries its pictures in the masters and the logo overlay on every slide, in .pptx and PDF', async () => {
     const tpl = await extractDeckTemplate(await buildTemplate());
     const { normalizeDeck } = require('./deckModel');
-    const officegen = require('../../integrations/officegen');
+    const officegen = require('./office/officegen');
     const theme = opts.resolveDeckTheme({ enabled: true, accent: '#F5A623', ink: '#1A1A1A' }, null, { template: tpl });
     const deck = normalizeDeck({ title: 'On brand', slides: [
         { title: 'KPI', stats: [{ value: '1', label: 'a' }] },
@@ -122,7 +122,7 @@ test('a deck built on a template carries its pictures in the masters and the log
     const chart = await zip.file('ppt/charts/chart1.xml').async('string');
     assert.match(chart, /<c:spPr><a:noFill\/>/, 'the chart has no plate of its own');
     assert.match(chart, /srgbClr val="FFFFFF"/, 'the first series is drawn in the text colour');
-    const { _test: dr } = require('../../services/documentRenderer');
+    const { _test: dr } = require('./render/documentRenderer');
     const html = dr.deckToSlidesHtml(deck, { theme });
     assert.match(html, /\.slide, \.cover \{ background-image: url\("data:image\/jpeg/);
     assert.strictEqual((html.match(/class="deck-overlay"/g) || []).length, 4, 'cover + three slides carry the overlay');

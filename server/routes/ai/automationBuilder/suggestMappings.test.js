@@ -22,7 +22,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../../../core/http/routeHarness');
+const h = require('../../../testUtils/routeHarness');
 const {
     makeSuggestMappingsRouter, normaliseSuggestRequest, buildSuggestPrompt, verifySuggestions,
     suggestMappings, pairNameKey, SuggestMappingsBody, SUGGEST_MAPPINGS_TOOL,

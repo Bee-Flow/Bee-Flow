@@ -246,7 +246,7 @@ function convert(records, kind, target, miss, gapLabel) {
  * @returns {{items: object[], counts: object, unreadable: string[]}}
  */
 function collectRequires({ automations = [], graph = null } = {}) {
-    const { scrubAutomationDefinition, RULES } = require('./packaging/scrub');
+    const { scrubAutomationDefinition, RULES } = require('../core/packaging/scrub');
     const items = [];
     const unreadable = [];
     const cannotRead = (label) => { if (!unreadable.includes(label)) unreadable.push(label); };

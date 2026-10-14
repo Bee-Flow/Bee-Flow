@@ -21,7 +21,7 @@ const { applyToolCall } = require('../../../automation/builderTools');
 const { runLayerAgent, resolveLayerAgentModel } = require('../../../automation/flowletAgent');
 const { buildCatalogForUser } = require('../../../automation/builderCatalog');
 const { buildDatatableCatalogForUser } = require('../../../automation/builderDatatableCatalog');
-const { startSseHeartbeat } = require('../../../core/http/sseHelpers');
+const { openSse } = require('../../../core/http/sseHelpers');
 const { requireAuth } = require('../../../auth/permissions');
 const { layerAgentRateLimit } = require('./rateLimits');
 const { loadOrCreateDraft, persistDraftWrap } = require('./builderDraft');
@@ -62,18 +62,10 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
     const userId = req.session.user.id;
     const { automationId, instruction, mode, layerKey: existingKey, title } = req.body;
 
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
     // Flush headers + 10s heartbeat — the flowlet agent (with sub-agents)
     // can run for a while; without pings an upstream gateway idle-times-out
     // and the embedded app sees a false 504. Auto-stops on res close/finish.
-    if (typeof res.flushHeaders === 'function') res.flushHeaders();
-    const stopLayerHeartbeat = startSseHeartbeat(res);
-    const send = (event, data) => { try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {} };
+    const { send, stopHeartbeat: stopLayerHeartbeat } = openSse(res, { heartbeat: true, flush: true });
 
     try {
         const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');

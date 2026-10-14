@@ -42,14 +42,9 @@ const {
 } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded, orEmpty } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
-
-/** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
-const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
 /** GET /:id takes no options: the base, its documents, its counts. */
 const NoQuery = orEmpty(z.object({}).strict());

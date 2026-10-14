@@ -19,15 +19,11 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../../testUtils/pglitePool');
 const pg = new PGlite();
 
-async function q(sql, params) {
-    const res = Array.isArray(params) && params.length
-        ? await pg.query(sql, params)
-        : (/;\s*\S/.test(String(sql).trim()) ? await pg.exec(sql) : await pg.query(sql));
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    return { rows: r.rows || [], rowCount: (r.rows || []).length };
-}
+// node-postgres's `query(sql, params)` over this PGlite.
+const q = pgliteQuery(pg);
 
 // The table as ensureKBChunksTable brings it forward, minus the vector column
 // (pgvector is not in PGlite's default build, and the page has nothing to do
@@ -113,7 +109,8 @@ test('both search projections return page_start, not just one of them', async ()
     // A column returned by the vector query and left out of the full-text one
     // means the page appears or vanishes depending on which retriever won —
     // which reads as flakiness, not as a missing column.
-    const src = require('node:fs').readFileSync(require.resolve('./localKBIngest'), 'utf8');
+    // The search SQL lives in localSearch.js since the localKBIngest split.
+    const src = require('node:fs').readFileSync(require.resolve('./localSearch'), 'utf8');
     // THREE, not two: the full-text search has an AND-join and an OR-join
     // fallback, and the fallback is the one that was missed. A page that
     // appears or vanishes depending on which retriever won reads as

@@ -108,6 +108,7 @@ def engine_fingerprint_digest(enabled_regions=None, custom_digest=None) -> str:
     part of the answer.
     """
     import hashlib as _h
+
     from app.config import settings
 
     parts = [

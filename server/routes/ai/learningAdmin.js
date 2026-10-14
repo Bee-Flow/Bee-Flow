@@ -37,6 +37,7 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { z, typeError } = require('../../utils/zod');
+const { orEmpty: bodyOf } = require('../../core/http/schemaParts');
 
 const { requirePrimaryOrgAdmin } = require('../../auth/permissions');
 const store = require('../../stores/learningContentStore');
@@ -53,9 +54,6 @@ router.use(requireAuth, requirePrimaryOrgAdmin());
 const L = store.LIMITS;
 const ICON_CHARS = 8;
 const ICON_TEXT = 'is one emoji (at most 8 characters).';
-
-/** An absent body is an empty one, so each missing field gets its own sentence rather than "Required". */
-const bodyOf = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
 /** "Step 3: " for an issue inside steps[2] — the editor shows only the message, so it has to say where. */
 function stepPrefix(path) {

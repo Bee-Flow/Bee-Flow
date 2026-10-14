@@ -3,6 +3,7 @@ const agentStore = require('../../stores/agentStore');
 const skillStore = require('../../stores/skillStore');
 const userStore = require('../../stores/userStore');
 const configStore = require('../../stores/configStore');
+const { resolveOrgAllowList, resolveOrgActiveSet } = require('../../core/integrations/enabledIntegrations');
 const { requirePermission, resolveUserOrgIds } = require('../../auth');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { extractJSON } = require('../../pipeline/llmHelpers');
@@ -14,6 +15,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -24,9 +26,6 @@ const { z, typeError } = require('../../utils/zod');
 // misspelled `refinment` on /refine read as "no refinement", which the route
 // refuses, but a misspelled `locale` or `modelTier` was dropped in silence and
 // the wizard drew a plan in the wrong language on the wrong tier.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -108,23 +107,10 @@ async function getAvailableIntegrations(userId) {
     if (orgId) {
         try {
             const org = await userStore.getOrganization(orgId);
-            if (org?.enabledIntegrations) {
-                orgEnabled = typeof org.enabledIntegrations === 'string'
-                    ? JSON.parse(org.enabledIntegrations) : org.enabledIntegrations;
-            } else {
-                const globalDefaults = await configStore.getConfig('default_org_integrations');
-                if (globalDefaults) {
-                    orgEnabled = typeof globalDefaults === 'string' ? JSON.parse(globalDefaults) : globalDefaults;
-                }
-            }
+            orgEnabled = await resolveOrgAllowList(org);
             // Super admins bypass — they always see everything the platform
             // allows in the wizard's suggestions.
-            if (user?.role !== 'admin') {
-                try {
-                    const active = await userStore.getOrgEnabledIntegrations(orgId);
-                    orgActiveSet = new Set(active);
-                } catch (_) { orgActiveSet = new Set(); }
-            }
+            orgActiveSet = await resolveOrgActiveSet(orgId, { bypass: user?.role === 'admin' });
         } catch (_) { /* ignore */ }
     }
     // NC catalog — NC IDs aren't gated by the org-admin active list (they
@@ -678,7 +664,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
             const allowed = await userHasBetaFeature(userId, 'agent_routines', req.session).catch(() => false);
             if (allowed) {
                 const coworkStore = require('../../stores/coworkStore');
-                const { computeScheduleNextRun } = require('../../utils/scheduleNextRun');
+                const { computeScheduleNextRun } = require('../../shared/schedule/nextRun.mjs');
                 const r = plan.schedule;
                 // Shared TZ-aware helper — same one the modal and wizard chat
                 // use, so behavior is identical regardless of entry point.

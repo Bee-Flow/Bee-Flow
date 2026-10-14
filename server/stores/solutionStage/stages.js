@@ -10,7 +10,7 @@
 
 'use strict';
 
-const { storeError } = require('../lib/managedParts');
+const { storeError } = require('../lib/storeError');
 
 const STAGES = Object.freeze(['uat', 'prd']);
 

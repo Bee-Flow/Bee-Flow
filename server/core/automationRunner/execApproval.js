@@ -4,9 +4,9 @@
  * their renderers, and the isRunPause predicate every dispatcher checks.
  */
 
-const { interpolateTemplate } = require('../../automation/bind');
+const { interpolateTemplate } = require('../automationModel/bind');
 const { evaluate } = require('../../automation/expr');
-const { desugarApprovalStages } = require('../../automation/approvalStages');
+const { desugarApprovalStages } = require('../automationModel/approvalStages');
 const { resolveApprovalTtlMs } = require('./shared');
 
 // ── Approval step ───────────────────────────────────────

@@ -41,6 +41,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const stableJson = require('../../utils/stableJson');
 
 const DEFAULT_TTL_MS = 300_000;          // 5 minutes
 // 64, not 200. An http_request answer may be up to 1 MiB (see the per-entry
@@ -56,11 +57,7 @@ const MAX_TOTAL_BYTES = 16 << 20;        // 16 MiB
  * regardless of key order. Arrays keep their order — filter order is meaningful.
  */
 function stableStringify(value) {
-    if (value === null || value === undefined) return 'null';
-    if (typeof value !== 'object') return JSON.stringify(value);
-    if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
-    const keys = Object.keys(value).sort();
-    return '{' + keys.map(k => JSON.stringify(k) + ':' + stableStringify(value[k])).join(',') + '}';
+    return stableJson.stableStringify(value);
 }
 
 /** Deep clone on every hand-back. */

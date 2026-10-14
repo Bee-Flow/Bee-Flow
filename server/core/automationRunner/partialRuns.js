@@ -160,7 +160,7 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
     const runVars = await runVarsFor(automation);
 
     // ── rebuild the iteration ──
-    const { walkPath } = require('../../automation/bind');
+    const { walkPath } = require('../automationModel/bind');
     const loopVars = {};
     let unresolved = null;
     for (const lp of chain) {

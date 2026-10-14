@@ -21,15 +21,13 @@ const {
 const { getUserId, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
 // Both schemas are `.strict()`: a key this router does not read is a client
 // bug, and answering 201 to it means the document is filed without the title
 // the person typed, with nothing on screen to say so.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const CONTENT_TEXT = 'A text snippet needs at least three characters of text.';
 const IngestTextBody = z.object({

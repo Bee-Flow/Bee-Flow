@@ -33,7 +33,7 @@ const storage = {
 const restore = installResolveStub({
     '../../stores/automationStore': automationStore,
     '../../stores/storageStore': storage,
-    '../../services/documentRenderer': { renderDocument: async () => ({}), FORMATS: ['pdf'], CONTENT_TYPES: {} },
+    '../documents/render/documentRenderer': { renderDocument: async () => ({}), FORMATS: ['pdf'], CONTENT_TYPES: {} },
 });
 const { readGeneratedFile, isGeneratedFileHandle, journeyRunIds } = require('./generatedFileHandle');
 after(restore);

@@ -38,14 +38,14 @@
 
 'use strict';
 
-const { assignRefs, buildManifest } = require('./manifest');
+const { assignRefs, buildManifest } = require('../../core/packaging/manifest');
 const {
     scrubAppDefinition, RULES,
     captureDatatableShape, captureAgentShape, captureKnowledgeBaseShape, captureBridgeGrants,
     liftAutomationHoles, liftAppHoles, captureAppDataModel, captureWebpageKnowledgeBases,
     noteUnlisted, note, finding,
-} = require('./scrub');
-const { toRefs, variablesInSteeringFields, splitIds, isRef } = require('./pointers');
+} = require('../../core/packaging/scrub');
+const { toRefs, variablesInSteeringFields, splitIds, isRef } = require('../../core/packaging/pointers');
 const { sweepRawIds, isTableToken } = require('./idSweep');
 const { buildProjectGraph } = require('../graph');
 

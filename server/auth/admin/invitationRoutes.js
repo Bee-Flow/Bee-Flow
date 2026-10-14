@@ -17,9 +17,7 @@ const { getOrgRolePermissions } = require('../permissions');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 const EMAIL_TEXT = 'Email is required';
 // `role` is checked against the installation's own org-role list inside the

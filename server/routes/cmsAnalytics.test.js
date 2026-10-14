@@ -5,7 +5,7 @@
  * ZERO coverage, which is how the `type: 'url'` 400 on Umami 3.x survived: the
  * overview swallowed it per-dimension and rendered an empty card.
  *
- * Same harness style as cms.public.test.js — a MOCKS table injected through
+ * Same harness style as cmsPublicSite.test.js — a MOCKS table injected through
  * Module._resolveFilename, then the REAL router mounted on a real HTTP server.
  * umamiClient is stubbed so we assert on the exact upstream calls the router
  * makes without touching a live Umami.

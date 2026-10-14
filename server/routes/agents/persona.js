@@ -35,6 +35,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -42,9 +43,6 @@ const { z } = require('../../utils/zod');
 // agent's STORED text, so the parse ran over the saved prompt instead of the
 // edit in front of the person -- and came back 200 with cards that described
 // something else.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

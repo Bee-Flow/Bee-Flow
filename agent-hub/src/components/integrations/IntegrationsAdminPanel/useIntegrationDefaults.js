@@ -4,14 +4,15 @@
 import { useMemo } from 'react';
 import { ALL_INTEGRATIONS } from './sections';
 import { orderCategories } from '../../../config/integrationCatalog';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { mutate } from '../../../api/mutate';
 
 export default function useIntegrationDefaults({ defaults, setDefaults, setSaving, setMessage, mcpServers }) {
     const saveDefaults = async (newDefaults) => {
         setDefaults(newDefaults);
         setSaving(true);
         try {
-            await authFetch(`${API_BASE}/auth/default-integrations`, {
+            await mutate(`${API_BASE}/auth/default-integrations`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ defaults: newDefaults }),

@@ -66,6 +66,7 @@ const { resolveMemoryPolicy, getOrgMemorySettings } = memoryPolicy;
 const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded, orEmpty } = require('../core/http/schemaParts');
 
 const router = express.Router();
 
@@ -101,11 +102,6 @@ const MEMORY_TYPES = [
 // One set of field schemas for POST and PUT alike — fixing only the create
 // path would leave the identical hole one verb away.
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
-
-/** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
-const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 const NoQuery = orEmpty(z.object({}).strict());
 
 const CONTENT_TEXT = 'Content is required';

@@ -1,11 +1,5 @@
-import { FlaskConical, Sparkles, X } from 'lucide-react';
-import React, { useState, useRef, useEffect, useEffectEvent, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useEffectEvent, useCallback } from 'react';
 import AgentConflictModal from './AgentConflictModal';
-import { useAgentEditorBootstrap } from './AgentEditorBootstrapContext';
-import { API_BASE, authFetch, parseSaveError } from '../../../utils/helpers';
-import useUsage from '../../../hooks/useUsage';
-import EmptyState from '../../shared/EmptyState';
-import UsedByTab from '../../shared/UsedByTab';
 import { filterAvailableIntegrations } from '../AgentDesigner/integrationAvailability';
 import { INTEGRATION_CATALOG } from '../AgentDesigner/integrations';
 import AgentEditorHeader, { AGENT_TAB_IDS, buildAgentTabs, publishedVersionOf } from './builderSplit/AgentEditorHeader';
@@ -13,35 +7,31 @@ import AgentHero from './builderSplit/AgentHero';
 import BuilderChatPanel from './builderSplit/BuilderChatPanel';
 import BuilderConfigPanel from './builderSplit/BuilderConfigPanel';
 import { createCategoryActions, createFieldUpdaters, createPublishActions } from './builderSplit/builderSplitActions';
+import { CanUseTabPanel, LimitWarningBanner, TestTabPanel, UsedByTabPanel } from './builderSplit/BuilderTabPanels';
 import EnableEmbedConfirmModal from './builderSplit/EnableEmbedConfirmModal';
 import { createHandleRefine } from './builderSplit/refineActions';
 import ScheduleDeleteModal from './builderSplit/ScheduleDeleteModal';
 import { uploadDocCountOf, uploadKbIdOf } from './builderSplit/uploadKb';
+import useAgentBootstrapData from './builderSplit/useAgentBootstrapData';
 import useAgentConceptFacts from './builderSplit/useAgentConceptFacts';
+import useAgentSave from './builderSplit/useAgentSave';
+import useAgentSchedules from './builderSplit/useAgentSchedules';
 import useBehaviorToggles from './builderSplit/useBehaviorToggles';
+import useCanUseTab from './builderSplit/useCanUseTab';
 import useChatPanelResize from './builderSplit/useChatPanelResize';
 import useKnowledgeBases from './builderSplit/useKnowledgeBases';
-import { READ, datatableGrantsOf, datatableRows, knowledgeBaseRows, skillRows } from './canUse/canUseFacts';
-import KnowledgeCard from './canUse/KnowledgeCard';
-import SkillsCard from './canUse/SkillsCard';
-import { CHOOSER_SECTION } from './canUse/toolChooser';
-import { automationGrantsOf, automationRows, keepRequiresGrantApps, setAppActAs, setAppConfirm, toolRows } from './canUse/toolGrants';
+import { createVersionRestore } from './builderSplit/versionRestore';
+import { READ } from './canUse/canUseFacts';
 import ToolChooser from './canUse/ToolChooser';
-import ToolsCard from './canUse/ToolsCard';
-import useCanUseSources from './canUse/useCanUseSources';
-import useToolCatalog from './canUse/useToolCatalog';
 import AdvancedDrawer from './pickers/AdvancedDrawer';
 import FilesUploadModal from './pickers/FilesUploadModal';
 import { ScheduleModal } from './pickers/SchedulePickers';
-import { adoptedPromptAfterSave, saveAgent } from './state/agentSaveApi';
-import TestSetCard from './tests/TestSetCard';
 import useAgentTests from './tests/useAgentTests';
-import useAgentAutosave from './state/useAgentAutosave';
-import { useLinkedAutomationIds } from '../../../api/queries/automation/agentBindings';
+import { agentUsageFetcher, restoreAgentVersion } from '../../../api/agentEditor';
 import useRelativeTime from '../../../hooks/useRelativeTime';
 import useTranslation from '../../../hooks/useTranslation';
+import useUsage from '../../../hooks/useUsage';
 import { pickAgentAvatar, DEFAULT_AGENT_EMOJI } from '../../../utils/agentAvatar';
-import { useCan } from '../../licensing/Gate';
 import { managedOf } from '../../shared/managedPart';
 
 export default function BuilderSplit({ agent: initialAgent, plan, history, tier, locale, onBack, onPublished, onDirtyChange, rightHeaderExtras = null, user = null, initialRefinement = null, readOnly = false, onNavigate = null }) {
@@ -73,14 +63,14 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     const [starterPrompts, setStarterPrompts] = useState(() => {
         const sp = initialAgent?.starter_prompts;
         if (Array.isArray(sp)) return sp;
-        if (typeof sp === 'string') { try { return JSON.parse(sp); } catch (_) { return []; } }
+        if (typeof sp === 'string') { try { return JSON.parse(sp); } catch { return []; } }
         return [];
     });
     const [isPublished, setIsPublished] = useState(initialAgent?.is_published === 1 || initialAgent?.is_published === true);
     const [sharedGroups, setSharedGroups] = useState(() => {
         const g = initialAgent?.shared_groups;
         if (Array.isArray(g)) return g;
-        if (typeof g === 'string') { try { return JSON.parse(g); } catch (_) { return []; } }
+        if (typeof g === 'string') { try { return JSON.parse(g); } catch { return []; } }
         return [];
     });
 
@@ -125,18 +115,9 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     const [bubbleIcon, setBubbleIcon] = useState(initialAgent?.config?.bubbleIcon || '💬');
 
     // Tier (for chat input)
-    const [tiers, setTiers] = useState({});
     const [selectedTier, setSelectedTier] = useState('fast');
     // Separate tier for the chat/refine panel — does not affect the saved agent model.
     const [chatTier, setChatTier] = useState('fast');
-
-    // Categories + groups (for selectors)
-    const [categories, setCategories] = useState([]);
-    // "Kon de categorielijst gelezen worden?" — apart van de lijst zelf, zodat
-    // een mislukte lezing niet als "deze org heeft geen categorieën" leest.
-    const [categoriesState, setCategoriesState] = useState(READ.LOADING);
-    const [orgGroups, setOrgGroups] = useState([]);
-    const [automations, setAutomations] = useState([]);
 
     const [savingState, setSavingState] = useState(() => initialAgent?.updated_at ? 'saved' : 'idle');
     const [savedAt, setSavedAt] = useState(() => initialAgent?.updated_at ? new Date(initialAgent.updated_at) : null);
@@ -159,22 +140,12 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     // A refine is applying the AI's plan — locks the instructions editor and
     // marks the whole refine as one atomic operation (one save at the end).
     const [refining, setRefining] = useState(false);
-    // A save came back 409: the agent changed elsewhere. Holds the server's copy
-    // so the user can reconcile (load latest vs overwrite mine).
-    const [conflict, setConflict] = useState(null); // null | { currentVersion, agent }
-    const [conflictBusy, setConflictBusy] = useState(false);
 
     // De vier tabs van de kop (AgentEditorHeader). De inhoud van elke tab
     // hangt hieronder; de tellers worden verderop berekend, waar de bronnen
     // die ze tellen bekend zijn.
     const [activeTab, setActiveTab] = useState(AGENT_TAB_IDS.ROLE);
-    // Inhoud publiceren loopt over een eigen endpoint en heeft dus zijn eigen
-    // bezig-vlag, los van de opslagstatus van het concept.
-    const [publishing, setPublishing] = useState(false);
 
-    // Loaded once for pickers
-    const [allSkills, setAllSkills] = useState(null);          // null = not loaded, [] = loaded but empty
-    const [integrationStatus, setIntegrationStatus] = useState(null);
     const [skillPickerOpen, setSkillPickerOpen] = useState(false);
     const [appsPickerOpen, setAppsPickerOpen] = useState(false);
     // De tool-kiezer van A2 stap 4: welke ACTIES van een app deze agent mag.
@@ -184,7 +155,6 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     const [knowledgeOpen, setKnowledgeOpen] = useState(false);
     const [schedulesPickerOpen, setSchedulesPickerOpen] = useState(false);
     const [scheduleModal, setScheduleModal] = useState(null); // null | { mode: 'create' } | { mode: 'edit', schedule }
-    const [agentSchedules, setAgentSchedules] = useState([]);
     const [scheduleDeleteTarget, setScheduleDeleteTarget] = useState(null);
     const [scheduleDeleting, setScheduleDeleting] = useState(false);
     const [publishPickerOpen, setPublishPickerOpen] = useState(false);
@@ -209,7 +179,7 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
         unmountAbortRef.current = new AbortController();
         return () => {
             mountedRef.current = false;
-            try { unmountAbortRef.current?.abort(); } catch (_) { /* noop */ }
+            try { unmountAbortRef.current?.abort(); } catch { /* noop */ }
         };
     }, []);
 
@@ -227,72 +197,8 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     const updateBubblePosition = (v) => { setBubblePosition(v); patchConfig({ bubblePosition: v }); };
     const updateBubbleIcon = (v) => { setBubbleIcon(v); patchConfig({ bubbleIcon: v }); };
 
-    // Unified entitlements check (false while the snapshot loads — the
-    // schedules panel pops in once it resolves; refreshAgentSchedules re-fires
-    // via its dependency when the flag flips true).
-    const schedulesAllowed = useCan('agent_routines');
-    const refreshAgentSchedules = useCallback(async () => {
-        if (!schedulesAllowed || !agent?.id) return;
-        try {
-            // The Cowork list is per user; this panel shows the items that run as this agent.
-            const res = await authFetch(`${API_BASE}/api/cowork`);
-            if (res.ok) {
-                const data = await res.json();
-                const all = Array.isArray(data?.schedules) ? data.schedules : [];
-                setAgentSchedules(all.filter(s => s.agentId === agent.id));
-            }
-        } catch (_) { /* non-fatal */ }
-    }, [schedulesAllowed, agent?.id]);
-    useEffect(() => { refreshAgentSchedules(); }, [refreshAgentSchedules]);
-    const handleVersionRestore = async () => {
-        if (!agent?.id) return;
-        try {
-            const res = await authFetch(`${API_BASE}/agents/${agent.id}`);
-            if (res.ok) {
-                const fresh = await res.json();
-                setAgent(fresh);
-                setName(fresh.name || '');
-                setDescription(fresh.description || '');
-                setInstructions(fresh.system_prompt || '');
-                setAvatar(pickAgentAvatar(fresh) || DEFAULT_AGENT_EMOJI);
-                setModel(fresh.model || '');
-                if (fresh.model && fresh.model.startsWith('tier:')) setSelectedTier(fresh.model.slice(5));
-
-                // Mirror the restored values into stateRef so the next save
-                // sends the restored snapshot, not the pre-restore one. Also
-                // clear the dirty flag so a queued autosave doesn't re-PUT
-                // stale data on top of the restore.
-                stateRef.current.name = fresh.name || '';
-                stateRef.current.description = fresh.description || '';
-                stateRef.current.systemPrompt = fresh.system_prompt || '';
-                stateRef.current.model = fresh.model || '';
-                stateRef.current.categoryId = fresh.category_id || null;
-                stateRef.current.embedEnabled = fresh.embed_enabled === 1 || fresh.embed_enabled === true;
-                stateRef.current.config = { ...(fresh.config || {}) };
-                // De grants horen bij de herstelde versie.
-                setToolsConfig(fresh.config?.tools ?? null);
-                // En de drie lijsten die de kaarten tekenen ook. Ze stonden
-                // hier lang niet, en dat viel niet op zolang een restore uit
-                // de versiegeschiedenis kwam en je daarna toch wegklikte.
-                // Sinds A2 stap 5 is een restore óók de "ongedaan maken" van
-                // een verfijning — en die verfijning ZET deze drie. Zonder
-                // deze regels blijft een app die de verfijning aanzette na het
-                // ongedaan maken gewoon aangevinkt staan, terwijl stateRef hem
-                // al niet meer heeft: het scherm liegt dan over wat er is
-                // hersteld.
-                setEnabledIntegrations(fresh.config?.enabledIntegrations || []);
-                setAttachedSkillIds(fresh.config?.attachedSkillIds || []);
-                setKnowledgeBaseIds(fresh.config?.knowledge_base_ids || []);
-                dirtyRef.current = false;
-                setDirty(false);
-                // Adopt the restored version so the next autosave uses it as the
-                // CAS base (a stale pending save can't clobber the restore).
-                setBaseVersion(Number.isInteger(fresh.rev) ? fresh.rev : null);
-                hookMarkSaved(fresh, fresh.rev);
-                setSavingState('saved'); setSavedAt(new Date());
-            }
-        } catch (_) { /* ignore */ }
-    };
+    // The Cowork items that run as this agent — moved to builderSplit/useAgentSchedules.ts.
+    const { schedulesAllowed, agentSchedules, refreshAgentSchedules } = useAgentSchedules(agent?.id);
 
     const [chat, setChat] = useState(history || []);
     const [chatInput, setChatInput] = useState('');
@@ -314,23 +220,12 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     }, [chat]);
 
     // Bootstrap data (skills, integration status, categories, org groups,
-    // tiers, automations). When mounted under AgentStudio the data comes from
-    // the shared AgentEditorBootstrapProvider — one fetch per session, not
-    // one per agent switch. When mounted standalone (the wizard landing
-    // path), the context returns empty defaults and we fall back to the local
-    // fetch below.
-    const bootstrap = useAgentEditorBootstrap();
-    const usingProvider = bootstrap.loaded || bootstrap.allSkills !== null;
-    useEffect(() => {
-        if (!usingProvider) return;
-        setAllSkills(bootstrap.allSkills);
-        setIntegrationStatus(bootstrap.integrationStatus);
-        setCategories(bootstrap.categories);
-        setCategoriesState(bootstrap.categoriesState || READ.OK);
-        setOrgGroups(bootstrap.orgGroups);
-        setTiers(bootstrap.tiers);
-        setAutomations(bootstrap.automations);
-    }, [usingProvider, bootstrap.allSkills, bootstrap.integrationStatus, bootstrap.categories, bootstrap.categoriesState, bootstrap.orgGroups, bootstrap.tiers, bootstrap.automations]);
+    // tiers, automations): from the shared AgentEditorBootstrapProvider, or the
+    // standalone six-request fallback — moved to builderSplit/useAgentBootstrapData.ts.
+    const {
+        bootstrap, allSkills, setAllSkills, integrationStatus, tiers,
+        categories, setCategories, categoriesState, orgGroups, automations,
+    } = useAgentBootstrapData();
 
     useEffect(() => {
         // Sync the chat-input tier pill with the agent's persisted tier on mount
@@ -340,52 +235,6 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
             setSelectedTier(initialAgent.model.slice('tier:'.length));
         }
     }, [initialAgent?.id, initialAgent?.model]);
-
-    // Standalone fallback — only fires when we're NOT under the provider.
-    // Uses the same 6-request bootstrap so the legacy wizard landing keeps working.
-    useEffect(() => {
-        if (usingProvider) return;
-        let cancelled = false;
-        (async () => {
-            try {
-                const [skillsRes, statusRes, catsRes, groupsRes, tiersRes, autosRes] = await Promise.all([
-                    authFetch(`${API_BASE}/api/skills`),
-                    authFetch(`${API_BASE}/ai/user-settings`),
-                    authFetch(`${API_BASE}/agents/categories`),
-                    authFetch(`${API_BASE}/auth/groups`),
-                    authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`),
-                    authFetch(`${API_BASE}/automation`).catch(() => ({ ok: false })),
-                ]);
-                if (cancelled) return;
-                setAllSkills(skillsRes.ok ? await skillsRes.json() : []);
-                setIntegrationStatus(statusRes.ok ? await statusRes.json() : {});
-                if (catsRes.ok) {
-                    const list = await catsRes.json();
-                    const okList = Array.isArray(list);
-                    setCategories(okList ? list : []);
-                    setCategoriesState(okList ? READ.OK : READ.ERROR);
-                } else {
-                    setCategories([]);
-                    setCategoriesState(READ.ERROR);
-                }
-                setOrgGroups(groupsRes.ok ? await groupsRes.json() : []);
-                setTiers(tiersRes.ok ? await tiersRes.json() : {});
-                if (autosRes.ok) {
-                    try {
-                        const data = await autosRes.json();
-                        setAutomations(Array.isArray(data?.automations) ? data.automations : []);
-                    } catch (_) { setAutomations([]); }
-                }
-            } catch (_) {
-                if (!cancelled) {
-                    setAllSkills([]);
-                    setIntegrationStatus({});
-                    setCategoriesState(READ.ERROR);
-                }
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [usingProvider]);
 
     // ── Save pipeline ─────────────────────────────────────────────
     // The PUT /agents/:id endpoint writes columns from whatever it receives
@@ -422,298 +271,27 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     // flag for the save loop; this one is UX-only.
     const dirtyRef = useRef(false);
 
-    // De persona die één keer mee moet — zie sentPersonaRef hieronder. Het
-    // prompt dat ERBIJ hoorde reist mee zodat `adoptedPromptAfterSave` kan zien
-    // of de gebruiker sindsdien getypt heeft.
-    const sentPersonaRef = useRef(undefined);
-    const sentSystemPromptRef = useRef(undefined);
-
-    // The full canonical snapshot the autosave hook persists on each save.
-    const getSnapshot = useCallback(() => {
-        // `persona` is EENMALIG: alleen een verfijning zet hem (die rekent hem
-        // uit, A1c), en de bevestigde opslag ruimt hem weer op. Ongezet is hij
-        // `undefined` en valt hij uit de JSON — en dat is precies wat de server
-        // leest als "laat de kolom staan". Zou hij blijven staan, dan stuurt
-        // elke latere opslag een persona mee die intussen door een ander
-        // scherm veranderd kan zijn, en overschrijft die hem stilletjes.
-        sentPersonaRef.current = stateRef.current.persona;
-        sentSystemPromptRef.current = stateRef.current.systemPrompt;
-        return {
-            name: stateRef.current.name,
-            description: stateRef.current.description,
-            systemPrompt: stateRef.current.systemPrompt,
-            model: stateRef.current.model,
-            categoryId: stateRef.current.categoryId,
-            embedEnabled: stateRef.current.embedEnabled,
-            // Top-level avatar so the agents column reflects the picker (the
-            // marketplace card reads agent.avatar, not config.avatar).
-            avatar: stateRef.current.avatar,
-            config: { ...stateRef.current.config },
-            persona: stateRef.current.persona,
-        };
-    }, []);
-
-    const autosave = useAgentAutosave({
-        agentId: agent?.id,
-        getSnapshot,
-        baseVersion,
-        enabled: !!agent?.id && !ro,
-        saveFn: saveAgent,
-        onError: (err) => {
-            // Permission 403 → flip into read-only instead of retrying
-            // (server rejects every subsequent save anyway).
-            if (err?.code === 'agent_not_editable' && mountedRef.current) {
-                setForcedReadOnly(true);
-            }
-        },
-        onSaved: (updated, version, meta) => {
-            // Refresh the `agent` shell only (id, timestamps, derived fields).
-            // Do NOT copy the response into stateRef — by the time it resolves
-            // the user may have typed more, and that newer text lives only in
-            // stateRef; overwriting would silently lose keystrokes.
-            if (updated && mountedRef.current) setAgent(updated);
-            if (Number.isInteger(version)) setBaseVersion(version);
-            // De eenmalige persona is geland. Alleen opruimen als er sindsdien
-            // geen NIEUWE is gezet (identiteit, want elke merge levert een vers
-            // object) — anders zou een verfijning tijdens een lopende opslag
-            // zijn eigen persona kwijtraken.
-            if (stateRef.current.persona !== undefined && stateRef.current.persona === sentPersonaRef.current) {
-                stateRef.current.persona = undefined;
-            }
-            // De persona is de BRON van het prompt: de server rendert hem en
-            // negeert het prompt dat we meestuurden. Zonder deze overname houdt
-            // de editor zijn eigen tekst vast en schrijft de eerstvolgende
-            // opslag (die geen persona draagt) die er weer overheen — waarna de
-            // kolom een prompt beschrijft dat de agent niet meer draait.
-            const adopted = adoptedPromptAfterSave({
-                sentPersona: sentPersonaRef.current,
-                sentSystemPrompt: sentSystemPromptRef.current,
-                localSystemPrompt: stateRef.current.systemPrompt,
-                savedSystemPrompt: updated?.system_prompt,
-            });
-            if (adopted !== null && mountedRef.current) {
-                stateRef.current.systemPrompt = adopted;
-                setInstructions(adopted);
-            }
-            dirtyRef.current = false; setDirty(false);
-            setLimitWarning(null);
-            const warnings = meta?.warnings || [];
-            if (warnings.length && mountedRef.current) {
-                setChat(prev => [...prev, { role: 'system', content: `⚠️ ${warnings.length} ${warnings.length === 1 ? 'reference' : 'references'} couldn't be linked and ${warnings.length === 1 ? 'was' : 'were'} skipped.` }]);
-            }
-        },
-        onConflict: ({ currentVersion, agent: serverAgent }) => {
-            if (mountedRef.current) setConflict({ currentVersion, agent: serverAgent });
-        },
-        onLimit: ({ message, resource }) => {
-            if (mountedRef.current) setLimitWarning({ message, resource });
-        },
+    // Re-read the agent and rehydrate the editor (version restore, "Load
+    // latest", undo of a refine) — moved to builderSplit/versionRestore.ts.
+    // `hookMarkSaved` comes from the save pipeline below and is read at call time.
+    const handleVersionRestore = createVersionRestore({
+        getAgentId: () => agent?.id, stateRef, dirtyRef, setAgent, setName, setDescription, setInstructions,
+        setAvatar, setModel, setSelectedTier, setToolsConfig, setEnabledIntegrations, setAttachedSkillIds,
+        setKnowledgeBaseIds, setDirty, setBaseVersion, setSavingState, setSavedAt,
+        markSaved: (updated, version) => hookMarkSaved(updated, version),
     });
-    const { queueSave: hookQueueSave, flush: hookFlush, markSaved: hookMarkSaved, status: autosaveStatus, error: autosaveError, savedAt: autosaveSavedAt } = autosave;
 
-    // Mirror the hook's save status into the pill state. The initial 'saved'
-    // (for an already-persisted agent) survives until the hook transitions.
-    useEffect(() => {
-        if (autosaveStatus && autosaveStatus !== 'idle') setSavingState(autosaveStatus);
-        setSaveErrorMsg(autosaveError || '');
-    }, [autosaveStatus, autosaveError]);
-    useEffect(() => { if (autosaveSavedAt) setSavedAt(autosaveSavedAt); }, [autosaveSavedAt]);
-
-    // Public save helpers used by the ~20 edit handlers below. queueSave also
-    // marks the local dirty flag for the parent's unsaved-changes guard.
-    const queueSave = useCallback((immediate = false) => {
-        // Read-only: belt-and-braces so any edit handler that slipped through
-        // the disabled UI can never mark dirty or fire a save.
-        if (roRef.current) return;
-        dirtyRef.current = true;
-        setDirty(true);
-        hookQueueSave(immediate);
-    }, [hookQueueSave]);
-    const flush = useCallback(() => hookFlush(), [hookFlush]);
-
-    // ── Inhoud publiceren (POST /agents/:id/publish-version) ──────
-    // Het TWEEDE publiceer-werkwoord van een agent: welke config en welk
-    // systeemprompt de RUNTIME serveert. De capsule ernaast in de kop regelt
-    // het PUBLIEK (PATCH /:id/publish). Ze staan naast elkaar omdat ze
-    // allebei "publiceren" heten; ze mogen nooit dezelfde knop worden.
-    //
-    // Eerst flushen: een concept dat nog niet op de server staat kan niet
-    // gepubliceerd worden, en de server kopieert wat er ligt — niet wat er in
-    // dit tabblad getypt is. Bij een fout blijft de gepubliceerde versie staan
-    // die er stond; er wordt niets optimistisch opgehoogd.
-    const publishVersion = useCallback(async () => {
-        if (roRef.current || !agentIdRef.current) return;
-        setPublishing(true);
-        try {
-            if (dirtyRef.current) await flush();
-            const res = await authFetch(`${API_BASE}/agents/${agentIdRef.current}/publish-version`, { method: 'POST' });
-            if (!res.ok) {
-                const info = await parseSaveError(res);
-                if (mountedRef.current) { setSavingState('error'); setSaveErrorMsg(info.message); }
-                return;
-            }
-            const body = await res.json().catch(() => ({}));
-            if (!mountedRef.current) return;
-            setSaveErrorMsg('');
-            const version = Number(body?.publishedVersion);
-            // Alleen ophogen als de server een versie NOEMT. Een antwoord dat
-            // we niet kunnen lezen laat de kop staan waar hij stond; "v?" of
-            // een opgehoogde gok zou een publicatie claimen die niemand zag.
-            if (Number.isFinite(version) && version > 0) {
-                setAgent(prev => (prev ? { ...prev, published_version: version } : prev));
-            }
-        } catch (err) {
-            if (mountedRef.current) {
-                setSavingState('error');
-                setSaveErrorMsg(String(err?.message || err || 'Publish failed').slice(0, 500));
-            }
-        } finally {
-            if (mountedRef.current) setPublishing(false);
-        }
-    }, [flush]);
-
-    // ── Conflict (409) reconcile ──────────────────────────────────
-    // Load latest: re-fetch the server copy and rehydrate (discards local
-    // unsaved edits — the modal warns about this). Reuses handleVersionRestore.
-    const handleConflictLoadLatest = async () => {
-        if (conflictBusy) return;
-        setConflictBusy(true);
-        try { await handleVersionRestore(); } finally {
-            if (mountedRef.current) { setConflict(null); setConflictBusy(false); }
-        }
-    };
-    // Overwrite: re-send the local snapshot with the server's current version as
-    // the CAS base. If it conflicts again, re-open with the newer version.
-    const handleConflictOverwrite = async () => {
-        if (conflictBusy || !agentIdRef.current || !conflict) return;
-        setConflictBusy(true);
-        try {
-            const res = await saveAgent(agentIdRef.current, getSnapshot(), conflict.currentVersion);
-            if (!mountedRef.current) return;
-            if (res.ok) {
-                if (res.updated) setAgent(res.updated);
-                if (Number.isInteger(res.version)) setBaseVersion(res.version);
-                hookMarkSaved(res.updated, res.version);
-                dirtyRef.current = false; setDirty(false);
-                setConflict(null);
-            } else if (res.conflict) {
-                setConflict({ currentVersion: res.currentVersion, agent: res.agent });
-            } else if (res.limit) {
-                setLimitWarning({ message: res.message, resource: res.resource });
-                setConflict(null);
-            }
-        } catch (err) {
-            if (mountedRef.current) {
-                setSavingState('error');
-                setSaveErrorMsg(String(err?.message || err || 'Save failed').slice(0, 500));
-                setConflict(null);
-            }
-        } finally {
-            if (mountedRef.current) setConflictBusy(false);
-        }
-    };
-    const handleConflictDismiss = () => { if (!conflictBusy) setConflict(null); };
-
-    useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
-
-    // Explicit first-save for drafts. Until this runs, the agent only exists
-    // in memory — POST creates it on the server, then the editor switches to
-    // its normal auto-save behaviour.
-    const saveDraft = useCallback(async () => {
-        if (agentIdRef.current) return;
-        setSavingState('saving');
-        const sentPersona = stateRef.current.persona;
-        const sentSystemPrompt = stateRef.current.systemPrompt;
-        try {
-            const res = await authFetch(`${API_BASE}/agents`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: stateRef.current.name,
-                    description: stateRef.current.description,
-                    systemPrompt: stateRef.current.systemPrompt,
-                    model: stateRef.current.model,
-                    categoryId: stateRef.current.categoryId,
-                    embedEnabled: stateRef.current.embedEnabled,
-                    avatar: stateRef.current.avatar,
-                    config: { ...stateRef.current.config },
-                    // Zelfde eenmalige persona als getSnapshot: een concept dat
-                    // vóór zijn eerste opslag verfijnd is, hoort zijn rol mee
-                    // te krijgen. Ongezet valt hij uit de JSON.
-                    persona: stateRef.current.persona,
-                }),
-            });
-            if (!res.ok) {
-                const info = await parseSaveError(res);
-                if (info.isLimit) {
-                    setLimitWarning({ message: info.message, resource: info.resource });
-                    setSavingState('error');
-                    setSaveErrorMsg(info.message);
-                    return;
-                }
-                throw new Error(info.message);
-            }
-            const created = await res.json();
-            // Zelfde overname als in onSaved: het antwoord draagt het prompt
-            // dat de server uit de persona rendeerde, niet het onze.
-            const adopted = adoptedPromptAfterSave({
-                sentPersona: sentPersona,
-                sentSystemPrompt,
-                localSystemPrompt: stateRef.current.systemPrompt,
-                savedSystemPrompt: created?.system_prompt,
-            });
-            if (adopted !== null) {
-                stateRef.current.systemPrompt = adopted;
-                setInstructions(adopted);
-            }
-            stateRef.current.persona = undefined; // geland
-            setAgent(created);
-            agentIdRef.current = created.id;
-            // Seed the concurrency token so post-create autosaves use CAS.
-            setBaseVersion(Number.isInteger(created.rev) ? created.rev : 1);
-            hookMarkSaved(created, created.rev);
-            dirtyRef.current = false;
-            setDirty(false);
-            setSavingState('saved');
-            setSavedAt(new Date());
-            setSaveErrorMsg('');
-            setLimitWarning(null);
-            if (onPublished) onPublished(created);
-        } catch (err) {
-            console.error('Save draft failed:', err);
-            setSavingState('error');
-            setSaveErrorMsg(String(err?.message || err || 'Unknown error').slice(0, 500));
-        }
-    }, [onPublished, hookMarkSaved]);
-
-    // Best-effort flush of any pending auto-save when the tab is being closed.
-    // We deliberately don't preventDefault / set returnValue here — the unsaved
-    // changes UX is handled in-app via the parent's confirmation modal, not
-    // the browser's native "Leave site?" dialog.
-    useEffect(() => {
-        const onBeforeUnload = () => {
-            if (roRef.current) return; // read-only sessions never save
-            if (agentIdRef.current && dirtyRef.current) {
-                // Best-effort last save on tab close. Deliberately WITHOUT a
-                // baseVersion so it lands unguarded (a 409 has no UI to reconcile
-                // against during unload).
-                const snapshot = {
-                    name: stateRef.current.name,
-                    description: stateRef.current.description,
-                    systemPrompt: stateRef.current.systemPrompt,
-                    config: stateRef.current.config,
-                };
-                try {
-                    navigator.sendBeacon(
-                        `${API_BASE}/agents/${agentIdRef.current}`,
-                        new Blob([JSON.stringify(snapshot)], { type: 'application/json' })
-                    );
-                } catch (_) { /* ignore */ }
-            }
-        };
-        window.addEventListener('beforeunload', onBeforeUnload);
-        return () => window.removeEventListener('beforeunload', onBeforeUnload);
-    }, []);
+    // The save pipeline (snapshot, autosave, first save of a draft, publish-version,
+    // 409 reconcile, unload beacon) — moved to builderSplit/useAgentSave.ts.
+    const {
+        queueSave, flush, hookMarkSaved, publishVersion, saveDraft,
+        conflict, conflictBusy, publishing,
+        handleConflictLoadLatest, handleConflictOverwrite, handleConflictDismiss,
+    } = useAgentSave({
+        agent, setAgent, ro, roRef, mountedRef, stateRef, agentIdRef, dirtyRef, dirty, setDirty,
+        baseVersion, setBaseVersion, setForcedReadOnly, setInstructions, setLimitWarning, setChat,
+        setSavingState, setSaveErrorMsg, setSavedAt, onDirtyChange, onPublished, handleVersionRestore,
+    });
 
     const patchConfig = useCallback((patch, { immediate = true } = {}) => {
         stateRef.current.config = { ...stateRef.current.config, ...patch };
@@ -759,39 +337,18 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
         reported: reportedDocCount,
     });
 
-    // ── De tab "Kan gebruiken" (A2 stap 2) ────────────────────────
-    // De grants staan in de OPGESLAGEN config: `config.tools.datatables` is
-    // wat de runtime leest, en de editor schrijft er (nog) niet aan. `agent`
-    // wordt na elke opslag ververst, dus dit blijft meelopen.
-    const datatableGrantCount = datatableGrantsOf(toolsConfig).grants.length;
-    const automationGrantCount = automationGrantsOf(toolsConfig).length;
-    const canUseActive = activeTab === AGENT_TAB_IDS.CAN_USE;
-    const { tables, tablesState, refetchTables, usage: skillUsage, usageState: skillUsageState } =
-        useCanUseSources({
-            enabled: canUseActive,
-            toolsConfig,
-            attachedSkillIds,
-            // De OPGESLAGEN lijst hoort erbij: de gebruikstelling van de server
-            // kent alleen die, dus hij moet opnieuw gelezen worden zodra de
-            // opslag landt. Zie useCanUseSources.
-            savedSkillIds: agent?.config?.attachedSkillIds || [],
-        });
-    // De statische naamkaart van de frontend, ÉÉN keer. Inline opgebouwd is
-    // hij elke render een nieuw object, en dan rekent elke consument opnieuw —
-    // wat de tool-kiezer middenin het vinken opnieuw liet beginnen.
-    const integrationLabels = useMemo(
-        () => Object.fromEntries(INTEGRATION_CATALOG.map(a => [a.id, a.label])),
-        [],
-    );
-
-    // De app-actiecatalogus en de leen-grants (A2 stap 3). De catalogus komt
-    // van `GET /agents/tool-catalog` — de ONGEGATE tweede bron, want
-    // /api/automation/catalog hangt achter de automations-module en
-    // agent-tool-grants hebben daar niets mee te maken. Zie useToolCatalog.
+    // The "Can use" tab (A2 steps 2-4): sources, rows and grant mutations —
+    // moved to builderSplit/useCanUseTab.ts; its rows go to CanUseTabPanel as is.
+    const canUse = useCanUseTab({
+        activeTab, setActiveTab, agent, toolsConfig, setToolsConfig, enabledIntegrations, setEnabledIntegrations,
+        attachedSkillIds, knowledgeBaseIds, allKbs, kbsState, allSkills, automations, stateRef, patchConfig,
+        setKnowledgeOpen, setSkillPickerOpen, setToolChooserOpen, setToolChooserAppId,
+    });
     const {
-        apps: catalogApps, catalogState, catalogDegraded, providersKnown, lendingEnabled,
-        refetchCatalog, lentApps, lentState, refetchLent, runtimeCurated,
-    } = useToolCatalog({ enabled: canUseActive, agentId: agent?.id || null });
+        datatableGrantCount, automationGrantCount, integrationLabels,
+        catalogApps, catalogState, catalogDegraded, refetchCatalog, onCommitTools,
+    } = canUse;
+
 
     // De testset (A4 deel D). Zelfde vorm als de kaarten hierboven: de lezing
     // gaat pas de deur uit als de tab open staat, en een mislukte lezing komt
@@ -836,176 +393,16 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
 
     // "Gebruikt door": GET /agents/:id/usage. De URL-tabel van useUsage wijst
     // naar /api/agents/:id/usage, en die mount bestaat niet — de agents-router
-    // hangt op /agents (server/index.js). Vandaar een eigen fetcher; zonder
+    // hangt op /agents (server/index.js). Vandaar een eigen fetcher (agentUsageFetcher
+    // in api/agentEditor.ts); zonder
     // die zou elke lezing een 404 zijn en de tab permanent "niet gelezen".
-    const usageFetcher = useCallback(async (_kind, id) => {
-        const res = await authFetch(`${API_BASE}/agents/${encodeURIComponent(String(id))}/usage`);
-        let body = null;
-        try { body = await res.json(); } catch (_) { /* leeg of geen JSON */ }
-        if (!res.ok) {
-            const err = new Error(body?.error || `Request failed (${res.status})`);
-            err.status = res.status;
-            err.code = body?.code || null;
-            throw err;
-        }
-        return body;
-    }, []);
-    const { usage: agentUsage, error: usageError, refetch: refetchUsage } = useUsage('agent', agent?.id || null, { fetcher: usageFetcher });
+    const { usage: agentUsage, error: usageError, refetch: refetchUsage } = useUsage('agent', agent?.id || null, { fetcher: agentUsageFetcher });
     // Een mislukte lezing laat useUsage op [] landen MET een error ernaast.
     // Die [] mag nooit als "niemand gebruikt dit" op het scherm komen, dus de
     // teller is dan onbekend — niet 0.
     const usedByCount = usageError ? undefined : (Array.isArray(agentUsage) ? agentUsage.length : undefined);
 
     const tabs = buildAgentTabs(t, { canUseCount, usedByCount });
-
-    // ── De rijen van "Kan gebruiken" ──────────────────────────────
-    // Puur afgeleid (canUse/canUseFacts.js): de KOPPELING komt uit de config
-    // en is dus altijd bekend, de NAMEN komen uit lezingen die kunnen
-    // ontbreken. Een koppeling zonder naam blijft staan — wegfilteren zou de
-    // kaart laten beweren dat de agent die kennis niet heeft.
-    const knowledgeRows = knowledgeBaseRows({ ids: knowledgeBaseIds, kbs: allKbs, state: kbsState });
-    const { rows: tableGrantRows, truncated: tablesTruncated } = datatableRows({ toolsConfig, tables, state: tablesState });
-    const attachedSkillRows = skillRows({
-        ids: attachedSkillIds,
-        skills: allSkills,
-        // `allSkills` is `null` tot de bootstrap klaar is — dat is LADEN, niet
-        // "deze organisatie heeft geen skills".
-        state: allSkills === null ? READ.LOADING : READ.OK,
-        usage: skillUsage,
-        usageState: skillUsageState,
-        // De server telt de OPGESLAGEN config; een zojuist aangevinkte skill
-        // zit daar nog niet in, dus dan gaat de agent zelf er ook niet af.
-        savedSkillIds: agent?.config?.attachedSkillIds || [],
-        agentSaved: !!agent?.id,
-    });
-
-    // ── De Tools-kaart (A2 stap 3) ────────────────────────────────
-    // De rijen komen uit `enabledIntegrations` (de app-niveau aan/uit-lijst)
-    // plus elke app die in `config.tools` een entry heeft. De catalogus vult
-    // de tellingen, de werkwoorden en het effect aan — en als hij ontbreekt
-    // blijven de rijen staan met de SMALLE lezing: onbekend effect telt als
-    // "het verstuurt". Zie canUse/toolGrants.js.
-    const appToolRows = toolRows({
-        toolsConfig,
-        enabledIntegrations,
-        apps: catalogApps,
-        catalogState,
-        providersKnown,
-        // De NAAM van een app hoeft geen server te beantwoorden: de statische
-        // catalogus van de frontend kent hem. Zonder deze val de rij bij een
-        // mislukte lezing terug op het kale id.
-        labels: integrationLabels,
-        lentApps,
-        lendingEnabled,
-        // De leen-meldingen gaan over de RUNTIME, en die leest de gepubliceerde
-        // config — niet de draft die hier in handen is. Het antwoord komt dus
-        // van de server; `null` betekent "niet na te gaan" en dan zegt de kaart
-        // er niets over.
-        runtimeCurated,
-    });
-    // Welke automatiseringen aan DEZE agent zijn gekoppeld: de runtime biedt een
-    // gegrante automatisering alleen aan als hij ook gekoppeld is. Alleen voor een
-    // opgeslagen agent; een mislukte lezing is `null` en dan zegt de rij er niets over.
-    const linkedAutomations = useLinkedAutomationIds(canUseActive ? agent?.id : null);
-    const grantedAutomationRows = automationRows({
-        toolsConfig,
-        automations,
-        linkedIds: linkedAutomations.data ?? null,
-        // `automations` is `[]` zolang de bootstrap loopt én wanneer de
-        // organisatie de module niet heeft. Dat verschil kunnen we hier niet
-        // zien, dus de grant blijft staan en de naam ontbreekt met uitleg —
-        // dezelfde degradatie als bij de tabel-grants.
-        state: Array.isArray(automations) && automations.length > 0 ? READ.OK : READ.ERROR,
-    });
-
-    /**
-     * Eén grant-mutatie: pas de map aan, teken hem meteen, en sla hem op.
-     *
-     * `patchConfig` schrijft in `stateRef` (wat de autosave verstuurt); de
-     * lokale state is er alleen om de kaart niet te laten wachten op de
-     * server. Beide krijgen dezelfde map, uit `toolGrants.js` — dat is de
-     * enige plek waar een grants-map gebouwd wordt.
-     */
-    const writeTools = useCallback((next) => {
-        // De eerste entry zet de agent in het bevestigingsregime, en verandert
-        // daarmee de betekenis van zwijgen voor de apps die de kiezer nooit kon
-        // tonen. Dat mag geen BIJVANGST zijn van een klik op een andere rij:
-        // leg vast wat er stond. Zie `keepRequiresGrantApps`.
-        const before = stateRef.current.config?.tools ?? null;
-        const kept = keepRequiresGrantApps(before, next, {
-            apps: catalogApps,
-            enabledIntegrations: stateRef.current.config?.enabledIntegrations ?? null,
-        });
-        setToolsConfig(kept);
-        patchConfig({ tools: kept });
-    }, [patchConfig, catalogApps]);
-
-    /**
-     * Moet deze app expliciet genoemd worden voordat een gecureerde agent er
-     * iets van krijgt? (`requiresGrant` uit de catalogus.)
-     *
-     * De twee mutaties hieronder ZETTEN een entry bij, en een entry bijzetten
-     * mag de acties niet veranderen — bij zo'n app is "geen actielijst" namelijk
-     * niets in plaats van alles. Zonder dit antwoord zou "Confirm first"
-     * aanzetten een agent stilzwijgend een volledige browser geven.
-     */
-    const requiresGrantOf = useCallback((appId) => {
-        const app = Array.isArray(catalogApps) ? catalogApps.find(a => a && a.id === appId) : null;
-        return !!(app && app.requiresGrant);
-    }, [catalogApps]);
-
-    const onChangeConfirm = useCallback((appId, confirm) => {
-        writeTools(setAppConfirm(stateRef.current.config?.tools ?? null, appId, confirm,
-            { requiresGrant: requiresGrantOf(appId) }));
-    }, [writeTools, requiresGrantOf]);
-    const onChangeActAs = useCallback((appId, actAs) => {
-        writeTools(setAppActAs(stateRef.current.config?.tools ?? null, appId, actAs,
-            { requiresGrant: requiresGrantOf(appId) }));
-    }, [writeTools, requiresGrantOf]);
-
-    /**
-     * Wat de tool-kiezer oplevert: ÉÉN opslag voor allebei de poorten.
-     *
-     * De kiezer bedient de app-niveau lijst (`enabledIntegrations`) én de
-     * actie-niveau map (`config.tools`), en die horen in dezelfde patch: twee
-     * losse patches zouden een moment opleveren waarin de app aanstaat zonder
-     * dat er acties bij staan (of andersom), en dát is het moment waarop een
-     * autosave kan landen.
-     */
-    const onCommitTools = useCallback(({ tools, enabledIntegrations: nextEnabled, enabledChanged }) => {
-        setToolsConfig(tools);
-        if (enabledChanged && Array.isArray(nextEnabled)) {
-            setEnabledIntegrations(nextEnabled);
-            patchConfig({ tools, enabledIntegrations: nextEnabled });
-            return;
-        }
-        patchConfig({ tools });
-    }, [patchConfig]);
-
-    /**
-     * "+ Koppelen" op een kaart. DE naad naar de tool-kiezer van A2 stap 4.
-     *
-     * Zolang die kiezer er niet is opent dit wat er vandaag bestaat, in plaats
-     * van een knop die niets doet: de kennisbankenlijst en de skill-popover.
-     * Beide zitten op de Rol-tab, dus daar gaan we heen — een popover die
-     * "open" staat op een tab die hem niet tekent is precies het stille
-     * niet-doen dat we vermijden. Stap 4 vervangt dit lichaam, niet de
-     * aanroepen op de kaarten.
-     */
-    const openChooser = useCallback((request) => {
-        if (!request) return;
-        if (request.section === CHOOSER_SECTION.KNOWLEDGE_BASES) { setKnowledgeOpen(true); return; }
-        if (request.section === CHOOSER_SECTION.SKILLS) { setActiveTab(AGENT_TAB_IDS.ROLE); setSkillPickerOpen(true); return; }
-        // De ↗ op een tool-rij opent de kiezer op DIE app; de "+ Koppelen" van
-        // de kaart opent hem zonder focus. Hij hoort bij de kaart, dus we
-        // blijven op "Kan gebruiken" — de catalogus die hij nodig heeft wordt
-        // ook alleen op die tab gelezen (useToolCatalog).
-        if (request.section === CHOOSER_SECTION.APPS) {
-            setActiveTab(AGENT_TAB_IDS.CAN_USE);
-            setToolChooserAppId(request.appId || null);
-            setToolChooserOpen(true);
-        }
-    }, []);
 
     // De conceptweergave draagt de persona (en dus de taal); de agentenlijst
     // waaruit de editor geopend wordt niet. Zie useAgentConceptFacts.
@@ -1065,12 +462,12 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
             });
         };
         try {
-            try { await flush(); } catch (_) { /* best effort — de restore is de waarheid */ }
-            const res = await authFetch(`${API_BASE}/versions/${agentIdRef.current}/${versionId}/restore`, { method: 'POST' });
+            try { await flush(); } catch { /* best effort — de restore is de waarheid */ }
+            const res = await restoreAgentVersion(agentIdRef.current, versionId);
             if (!res.ok) { finish('failed'); return; }
             await handleVersionRestore();
             finish('undone');
-        } catch (_) {
+        } catch {
             finish('failed');
         }
     };
@@ -1107,28 +504,7 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
             {/* Plan-limit warning — a prominent, dismissible banner shown when a
                 save is blocked by the org's subscription limits (e.g. max agents).
                 Replaces the silent console error so the user can act on it. */}
-            {limitWarning && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[min(560px,92vw)]">
-                    <div className="rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 shadow-lg px-4 py-3 flex items-start gap-3">
-                        <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-[var(--text-primary)]">
-                                {t('agent_wizard.limit_reached_title', 'Plan limit reached')}
-                            </p>
-                            <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{limitWarning.message}</p>
-                            <a
-                                href="/app/settings/organisation/license"
-                                className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500 text-white hover:bg-amber-600"
-                            >
-                                {t('agent_wizard.view_plans', 'View plans & upgrade')}
-                            </a>
-                        </div>
-                        <button onClick={() => setLimitWarning(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0" aria-label={t('agent_wizard.builder_split_dismiss', 'Dismiss')}>
-                            <X size={16} />
-                        </button>
-                    </div>
-                </div>
-            )}
+            {limitWarning && <LimitWarningBanner t={t} limitWarning={limitWarning} setLimitWarning={setLimitWarning} />}
 
             {/* De gedeelde Studio-kop. Bewust NIET inert bij alleen-lezen: de
                 terugpijl en de tabs moeten blijven werken voor iemand die de
@@ -1220,117 +596,18 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
                         de "+ Koppelen"- en ↗-knoppen wijzen tot dan naar de
                         pickers die vandaag bestaan (zie openChooser). */}
                     {activeTab === AGENT_TAB_IDS.CAN_USE && (
-                        <div className="max-w-4xl mx-auto px-10 py-6">
-                            <KnowledgeCard
-                                t={t}
-                                ro={ro}
-                                rel={rel}
-                                kbRows={knowledgeRows}
-                                kbState={kbsState}
-                                onRetryKbs={refreshKbs}
-                                tableRows={tableGrantRows}
-                                tableState={tablesState}
-                                tableTruncated={tablesTruncated}
-                                onRetryTables={refetchTables}
-                                includeSourceReferences={includeSourceReferences}
-                                onIncludeSourceReferencesChange={onIncludeSourceReferencesChange}
-                                onOpenChooser={openChooser}
-                                onNavigate={onNavigate}
-                                tipKbId={knowledgeBaseIds[0] || null}
-                            />
-                            <SkillsCard
-                                t={t}
-                                ro={ro}
-                                rows={attachedSkillRows}
-                                state={allSkills === null ? READ.LOADING : READ.OK}
-                                usageState={skillUsageState}
-                                onOpenChooser={openChooser}
-                            />
-                            <ToolsCard
-                                t={t}
-                                ro={ro}
-                                rows={appToolRows}
-                                apps={catalogApps}
-                                catalogState={catalogState}
-                                catalogDegraded={catalogDegraded}
-                                onRetryCatalog={refetchCatalog}
-                                lentState={lentState}
-                                onRetryLent={refetchLent}
-                                automationRows={grantedAutomationRows}
-                                automationsState={grantedAutomationRows.some(r => !r.readable) ? READ.ERROR : READ.OK}
-                                onChangeConfirm={onChangeConfirm}
-                                onChangeActAs={onChangeActAs}
-                                onOpenChooser={openChooser}
-                            />
-                        </div>
+                        <CanUseTabPanel
+                            t={t} ro={ro} rel={rel} onNavigate={onNavigate} allSkills={allSkills}
+                            knowledgeBaseIds={knowledgeBaseIds} includeSourceReferences={includeSourceReferences}
+                            onIncludeSourceReferencesChange={onIncludeSourceReferencesChange}
+                            kbsState={kbsState} refreshKbs={refreshKbs} {...canUse}
+                        />
                     )}
 
-                    {activeTab === AGENT_TAB_IDS.TEST && (
-                        <div className="max-w-4xl mx-auto px-10 py-10">
-                            {agent?.id ? (
-                                <TestSetCard
-                                    t={t}
-                                    ro={ro}
-                                    rel={rel}
-                                    tests={testSet.tests}
-                                    testsState={testSet.testsState}
-                                    onRetryTests={testSet.refetch}
-                                    readRefusal={testSet.readRefusal}
-                                    lastRun={testSet.lastRun}
-                                    lastRunUnknown={testSet.lastRunUnknown}
-                                    runs={testSet.runs}
-                                    runsState={testSet.runsState}
-                                    runsUnknown={testSet.runsUnknown}
-                                    runsKeep={testSet.runsKeep}
-                                    onOpenDetail={testSet.loadRuns}
-                                    progress={testSet.progress}
-                                    running={testSet.running}
-                                    refusal={testSet.refusal}
-                                    onRetryRun={testSet.runTests}
-                                    onRun={testSet.runTests}
-                                />
-                            ) : (
-                                // Een agent zonder id is nog nergens opgeslagen,
-                                // dus er is niets om vragen aan te hangen.
-                                <EmptyState
-                                    icon={<FlaskConical size={28} aria-hidden="true" />}
-                                    title={t('agent_studio.test.soon_title', 'Test questions land here')}
-                                    description={t('agent_studio.test.soon_body', 'Ask this agent a set of questions and see what it answers before anyone else does.')}
-                                />
-                            )}
-                        </div>
-                    )}
+                    {activeTab === AGENT_TAB_IDS.TEST && <TestTabPanel t={t} ro={ro} rel={rel} agent={agent} testSet={testSet} />}
 
                     {activeTab === AGENT_TAB_IDS.USED_BY && (
-                        <div className="max-w-4xl mx-auto px-10 py-6">
-                            {usageError ? (
-                                // "Niet gelezen" mag nooit als "niemand gebruikt
-                                // dit" op het scherm komen. UsedByTab zet bij een
-                                // fout de waarschuwing BOVEN zijn lege-lijst-zin
-                                // ("Nothing uses this yet."), en die zin is precies
-                                // de bewering die een mislukte lezing niet mag doen
-                                // — dus tekenen we hem hier niet, we vragen het
-                                // opnieuw.
-                                <div role="status" data-testid="agent-usage-error" className="text-sm text-[var(--text-secondary)] flex flex-col items-start gap-2">
-                                    <span style={{ color: 'var(--warning)' }}>
-                                        {t('agent_studio.used_by.unreadable', 'Could not load who uses this agent, so nothing is claimed here.')}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={refetchUsage}
-                                        className="px-3 py-1.5 rounded-lg text-xs border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] transition"
-                                    >
-                                        {t('agent_studio.retry', 'Retry')}
-                                    </button>
-                                </div>
-                            ) : (
-                                <UsedByTab
-                                    rows={agentUsage}
-                                    currentUserId={user?.id || null}
-                                    emptyText={t('agent_studio.used_by.empty', 'Nothing uses this agent yet.')}
-                                />
-                            )}
-                        </div>
+                        <UsedByTabPanel t={t} user={user} usageError={usageError} refetchUsage={refetchUsage} agentUsage={agentUsage} />
                     )}
                 </main>
 

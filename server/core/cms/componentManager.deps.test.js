@@ -2,16 +2,12 @@
  * A component cannot name its own npm dependencies.
  *
  * `npm install` runs lifecycle scripts — preinstall/install/postinstall — by
- * default, as this process, in a directory whose package.json a CALLER wrote:
- * routes/components.js and routes/ai/agentChat.js both build that file from a
- * request body. So "create a component" used to mean "run arbitrary code on
- * the host", before the component itself executed a single line. The container
- * carries no USER directive (server/Dockerfile), so that was root.
- *
- * Three separate call sites ran a bare `exec('npm install --silent')` — the
- * boot scan, single install, and the package.json edit, which a caller can
- * drive repeatedly. They share one gate now, so a fourth caller cannot
- * reintroduce the hole by copying the old line.
+ * default, as this process, in the component's directory. While the Component
+ * Designer existed (removed 2026-10), a caller wrote that package.json from a
+ * request body, so "create a component" meant "run arbitrary code on the
+ * host". Only the shipped components install now, at boot, and they still go
+ * through one gate, so a new caller cannot reintroduce the hole by copying a
+ * bare `exec('npm install --silent')`.
  *
  * An allowlist rather than `--ignore-scripts`: two shipped components depend on
  * better-sqlite3, a native module that cannot install without its build script.

@@ -67,18 +67,23 @@ require.cache[userStorePath] = {
     exports: { getUser: async () => ({ orgRole: fx.orgRole }) },
 };
 
-const authPath = require.resolve('../auth');
-const realAuth = require('../auth');
-require.cache[authPath] = {
-    id: authPath, filename: authPath, loaded: true,
+// kbAccess imports its auth helpers from auth/permissions and auth/audience.
+const permissionsPath = require.resolve('../auth/permissions');
+const realPermissions = require('../auth/permissions');
+require.cache[permissionsPath] = {
+    id: permissionsPath, filename: permissionsPath, loaded: true,
     exports: {
         resolveUserOrgIds: async () => {
             if (fx.resolverThrows) throw new Error('org resolver unavailable');
             return fx.orgIds;
         },
-        resolveUserGroups: async () => fx.groups,
-        isOrgAdminRole: realAuth.isOrgAdminRole,
+        isOrgAdminRole: realPermissions.isOrgAdminRole,
     },
+};
+const audiencePath = require.resolve('../auth/audience');
+require.cache[audiencePath] = {
+    id: audiencePath, filename: audiencePath, loaded: true,
+    exports: { resolveUserGroups: async () => fx.groups },
 };
 
 const { usableKbIdsForRequest, partitionAccessibleKBIds } = require('./kbAccess');

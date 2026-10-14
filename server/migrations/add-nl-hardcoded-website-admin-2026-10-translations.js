@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Dutch for the website admin (Product Website builder: pages, blocks, design,
- * analytics, release notes, translation panel) and the Component Studio
- * (component builder and AI component designer), 2026-10. These screens had
+ * analytics, release notes, translation panel), 2026-10. (The Component Studio
+ * keys it also carried went with the Component Designer.) These screens had
  * English literals that never went through t(); they now do, and the Dutch
  * is seeded here.
  *
@@ -30,7 +30,7 @@ const DATA = require(path.join(__dirname, 'data', 'hardcoded-website-admin-2026-
  * install that already ran this migration. Pinning the data's hash here makes
  * every data change a change to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = '49ddca22a5c5eb24bef97738dea6baac2e86c349241f80bd81469390438ff48b';
+const DATA_SHA256 = '60aeddf34df05abfd6aedb51d1c4674957304cecd762a7defdd30846f4873023';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

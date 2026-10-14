@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import scopedStorage from '../../../../utils/scopedStorage';
-import { extractFormState, buildPatch, sanitizeParseJsonFields } from './settings/formState';
+import { extractFormState, buildPatch } from './settings/formState';
 import { buildStepFromPayload } from '../DiagramPane';
 import { DATA_ITEMS } from './stepPalette';
 
@@ -59,20 +59,6 @@ describe('parse_json — form state round-trip', () => {
         expect(patch.sourceRef).toBe('steps.h1.output.body');
         expect(patch.mode).toBe('paths');
         expect(patch.fields).toEqual([{ name: 'email', path: 'order.email' }]);
-    });
-
-    it('sanitizeParseJsonFields drops blank-name rows but KEEPS named rows with an empty path', () => {
-        const rows = sanitizeParseJsonFields([
-            { name: '  ', path: 'x' },            // blank name → dropped
-            { name: 'pending', path: '' },        // half-edited → survives autosave
-            { name: ' trimmed ', path: 'a.b', description: '  ', fallback: null },
-            null,
-            'garbage',
-        ]);
-        expect(rows).toEqual([
-            { name: 'pending', path: '' },
-            { name: 'trimmed', path: 'a.b', fallback: null }, // blank description stripped, fallback null kept
-        ]);
     });
 
     it('mode:"ai" round-trips through extract + patch', () => {

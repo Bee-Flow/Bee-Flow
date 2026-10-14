@@ -19,6 +19,7 @@
 process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
+const { quietSse } = require('../../../testUtils/quietSse');
 const assert = require('node:assert');
 const Module = require('module');
 
@@ -39,7 +40,7 @@ const MOCKS = {
     '../../../automation/builderDatatableCatalog': { buildDatatableCatalogForUser: async () => [] },
     '../../../automation/builderDocumentCatalog': { buildDocumentCatalogForUser: async () => [] },
     '../../../core/entitlements/betaFeatures': { userHasBetaFeature: async () => true },
-    '../../../core/http/sseHelpers': { startSseHeartbeat: () => () => {} },
+    '../../../core/http/sseHelpers': quietSse(),
     '../../../auth/permissions': { requireAuth: pass },
     './rateLimits': { layerAgentRateLimit: pass },
     './builderDraft': {

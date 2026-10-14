@@ -36,7 +36,7 @@ builder themselves — those are free in Community. What Enterprise adds is the
 beta — a later implementation; see the [MCP library](../integrations/mcp-library.md))*,
 **SSO beyond Nextcloud** (Google / Microsoft / SAML — Nextcloud OAuth login stays
 Community) together with the rest of the Studio-class capabilities (voice chat,
-webpage creation, meeting notes, notebooks, component designer), the
+webpage creation, meeting notes, notebooks), the
 advanced Privacy Shield modes, guardrail DLP, the compliance hub (GDPR + AI
 Act) — **the remaining beta features also require Enterprise** (the automation
 builder + scheduled agent runs are the exception: they are GA features free in
@@ -152,7 +152,6 @@ you'll see in 403 responses:
 | `automation_sharing` | Enterprise | Sharing automations across a team. **Reserve gate** — pins the paid collaboration boundary for the free builder; no route consumes it yet |
 | `approvals` | Enterprise | Approvals — the human decision surface for paused automations and App Studio apps. Gates BROWSING: `GET /api/automation/approvals`, `/approvals/facets`, `/approvals/directory`. **Deliberately does not gate** `GET /approvals/:id`, `POST /approvals/:id/decide`, `POST /approvals/:id/withdraw`, the approval's attachment download, or the legacy `POST /api/automation/runs/:runId/approve-step` — a lapsed or downgraded licence must still be able to finish approvals already pending, or the paused runs behind them would be stuck for good |
 | `meeting_notes` | Enterprise | Transcription + summarisation, `/api/transcriptions`, `/api/meet-bot`. GA (no longer beta): on for every organisation on an Enterprise install without an opt-in |
-| `component_designer` | Enterprise | Custom UI components, `/components` |
 | `notebooks` | Enterprise | Per-user research notebooks, `/api/notebooks` |
 | `projects` | Enterprise | Projects / team workspaces (sidebar accordion + `/api/projects`) |
 | `blueprint_packaging` | Enterprise | Packaging a Solution (Blueprint export, publish, upgrade) **and** the Dev / UAT / Production pipeline: `/api/projects/:id/{stages,releases,deployments,release-and-deploy,variables,parts}`. Applied per route on top of `projects`; the Production approval gate also needs `approvals` (only when it is switched on). **Deliberately not gated** (the drain exemption, `/api/solution-stages`): reading a stage, switching parts on and off, pause and resume, non-steering variable values and detach, plus deciding approvals already pending — a lapsed licence must never strand a stage that already runs in production. See [Solutions → Stages and deployments](../studio/solutions.md#stages-and-deployments) |
@@ -213,7 +212,7 @@ Counters reset on the first day of each calendar month at 00:00 UTC.
 | Need | Suggested tier |
 |------|----------------|
 | Free self-hosted core — chat, KB, agents, skills, **all built-in integrations**, the **no-code automation builder + scheduled agent runs (Cowork)** (personal use), and the Nextcloud connector (incl. signing in from the NC App Store app) | Community |
-| Team that wants **collaboration** on top of the free builder (sharing automations across a team, **Projects** team workspaces), the MCP Server Marketplace, the rest of Studio (voice, webpage creation, notebooks, meeting notes, component designer), the advanced Privacy Shield modes (tokenize PII, web-search guard), the paid admin tabs (Agents, Monitoring, Compliance, Support, Appearance, Product Website), the remaining beta features, or compliance (SSO, GDPR/AI-Act) | Enterprise |
+| Team that wants **collaboration** on top of the free builder (sharing automations across a team, **Projects** team workspaces), the MCP Server Marketplace, the rest of Studio (voice, webpage creation, notebooks, meeting notes), the advanced Privacy Shield modes (tokenize PII, web-search guard), the paid admin tabs (Agents, Monitoring, Compliance, Support, Appearance, Product Website), the remaining beta features, or compliance (SSO, GDPR/AI-Act) | Enterprise |
 | Reseller / private-label deployment | Full |
 
 Custom plans (e.g. capped seats, specific feature sets) are available —

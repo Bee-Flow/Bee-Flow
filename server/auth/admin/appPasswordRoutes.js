@@ -14,9 +14,7 @@ const { loadConfig, requireAuth } = require('../permissions');
 const { assertAllowedNextcloudHost, nextcloudFetch, MAX_URL_LENGTH: NEXTCLOUD_MAX_URL_LENGTH } = require('../../integrations/nextcloudTarget');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 const CREDENTIALS_TEXT = 'Username and password are required';
 // `url` is optional — blank leaves resolution to the org-wide config — but the

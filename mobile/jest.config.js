@@ -15,11 +15,13 @@ const path = require('path');
 // `@babel/runtime` helper imports, which resolve from the SERVER directory —
 // and the server's node_modules are not installed in the mobile CI job, so
 // the suite died on "Cannot find module '@babel/runtime/helpers/…'". Listing
-// the server tree here makes Jest load it as-is. One exception: the shared
-// expression engine (server/shared/expr/*.mjs) is ESM, and server modules such
-// as fieldDiff.js require it, so it goes through Babel like the vendored copy;
-// its helper imports resolve through the @babel/runtime mapper below.
-const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(?!shared/expr/)';
+// the server tree here makes Jest load it as-is. Two exceptions: the shared
+// expression engine (server/shared/expr/*.mjs) and the shared App Studio
+// definition helpers (server/shared/appDefinition/*.mjs) are ESM, and server
+// modules such as fieldDiff.js and appStudio/componentSpecs/ids.js require
+// them, so they go through Babel like the vendored copy; their helper imports
+// resolve through the @babel/runtime mapper below.
+const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(?!shared/(?:expr|appDefinition)/)';
 
 // `.mjs` goes through the same Babel as `.ts`/`.js`: the expression engine is
 // vendored verbatim as .mjs (src/shared/expr/vendor), and the preset's

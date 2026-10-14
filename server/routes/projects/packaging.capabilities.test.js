@@ -20,15 +20,38 @@ const path = require('path');
 
 const { INSTALLER_FEATURES } = require('./packaging');
 
+const PACKAGING_DIR = path.join(__dirname, '../../projects/packaging');
+
 function featuresAskedFor(file) {
-    const src = fs.readFileSync(path.join(__dirname, '../../projects/packaging', file), 'utf8');
+    const src = fs.readFileSync(path.join(PACKAGING_DIR, file), 'utf8');
     const found = new Set();
     for (const m of src.matchAll(/\bctx\.can\(\s*['"]([^'"]+)['"]\s*\)/g)) found.add(m[1]);
     return found;
 }
 
+// The installer is the install.js barrel plus every module under install/
+// (the per-entity parts hold the ctx.can() gates since the split).
+function installerFiles() {
+    const files = ['install.js'];
+    const walk = (rel) => {
+        for (const e of fs.readdirSync(path.join(PACKAGING_DIR, rel), { withFileTypes: true })) {
+            const child = path.join(rel, e.name);
+            if (e.isDirectory()) walk(child);
+            else if (e.name.endsWith('.js') && !e.name.endsWith('.test.js')) files.push(child);
+        }
+    };
+    walk('install');
+    return files;
+}
+
+function installerFeatures() {
+    const asked = new Set(featuresAskedFor('upgrade.js'));
+    for (const file of installerFiles()) for (const f of featuresAskedFor(file)) asked.add(f);
+    return asked;
+}
+
 test('every feature the installer gates on is one the predicate actually fetches', () => {
-    const asked = new Set([...featuresAskedFor('install.js'), ...featuresAskedFor('upgrade.js')]);
+    const asked = installerFeatures();
     assert.ok(asked.size > 0, 'found no ctx.can() calls at all — the scan is broken, not the code');
 
     const missing = [...asked].filter(f => !INSTALLER_FEATURES.includes(f));
@@ -40,7 +63,7 @@ test('the predicate fetches nothing the installer never asks about', () => {
     // Not a safety property — a stale name costs a licence round-trip per
     // install and, more to the point, is a claim about the installer that is
     // no longer true.
-    const asked = new Set([...featuresAskedFor('install.js'), ...featuresAskedFor('upgrade.js')]);
+    const asked = installerFeatures();
     const stale = INSTALLER_FEATURES.filter(f => !asked.has(f));
     assert.deepStrictEqual(stale, [], 'these are fetched but no longer gated on anywhere — remove them');
 });

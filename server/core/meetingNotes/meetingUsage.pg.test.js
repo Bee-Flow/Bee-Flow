@@ -26,17 +26,11 @@ const { test, before } = require('node:test');
 const assert = require('node:assert');
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../../testUtils/pglitePool');
 const pg = new PGlite();
 
-function adapt(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    return { rows: r.rows || [], command: String(sql).trim().split(/\s+/)[0].toUpperCase() };
-}
-async function q(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adapt(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adapt(await pg.exec(sql), sql);
-    return adapt(await pg.query(sql), sql);
-}
+// node-postgres's `query(sql, params)` over this PGlite.
+const q = pgliteQuery(pg);
 const db = { query: q };
 
 const { usageForMeeting, filedTranscriptSources, MEETING_SOURCE_CONFIG_KEY } = require('./meetingUsage');

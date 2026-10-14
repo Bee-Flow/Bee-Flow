@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from app import main
 from app.models import MAX_LABELS, MAX_TEXTS
 

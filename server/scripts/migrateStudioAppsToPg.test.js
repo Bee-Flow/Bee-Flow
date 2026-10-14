@@ -23,6 +23,7 @@ process.env.STUDIO_APP_ENGINE = 'pg';
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { pgliteQuery } = require('../testUtils/pglitePool');
 const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -37,19 +38,8 @@ let sqliteUsable = true;
 let sqlitePath = null;
 
 // ── node-pg-shaped adapters over pglite (same seam the engine uses) ──
-function adaptResult(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
-    const rowCount = fields.length > 0 ? rows.length : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, fields, rowCount, command };
-}
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adaptResult(await pg.exec(sql), sql);
-    return adaptResult(await pg.query(sql), sql);
-}
+// node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
+const rawQuery = (sql, params) => pgliteQuery(pg)(sql, params);
 const client = { query: (sql, params) => rawQuery(sql, params), release() {} };
 
 // ── The source app: two tables, mixed types, a stored computed column ──

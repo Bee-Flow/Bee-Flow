@@ -15,19 +15,14 @@
 
 'use strict';
 
-function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+const { sortedKeysJson } = require('../../utils/stableJson');
 
 /**
  * JSON with object keys sorted at every depth — "is this the same call?"
  * must answer yes when the model only serialised its keys in another order.
  */
 function canonicalJson(value) {
-    const out = JSON.stringify(value, (_k, v) => {
-        if (!isPlainObject(v)) return v;
-        const sorted = {};
-        for (const key of Object.keys(v).sort()) sorted[key] = v[key];
-        return sorted;
-    });
+    const out = sortedKeysJson(value);
     return out === undefined ? 'undefined' : out;
 }
 

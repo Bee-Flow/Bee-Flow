@@ -10,6 +10,7 @@ the token-aware production path and the conservative character fallback.
 from __future__ import annotations
 
 import threading
+from contextlib import suppress
 from typing import NamedTuple
 
 # ── Chunking ───────────────────────────────────────────────────────────
@@ -116,12 +117,10 @@ def _model_limits(model) -> tuple[object | None, int]:
     paths. Returns ``tokenizer=None`` when none is found (→ char fallback).
     """
     max_len = _FALLBACK_MAX_LEN
-    try:
+    with suppress(Exception):
         ml = getattr(getattr(model, "config", None), "max_len", None)
         if isinstance(ml, int) and ml > 0:
             max_len = ml
-    except Exception:
-        pass
 
     tokenizer = None
     for path in (("data_processor", "transformer_tokenizer"), ("tokenizer",)):

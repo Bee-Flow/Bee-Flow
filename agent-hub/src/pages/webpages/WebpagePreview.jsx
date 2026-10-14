@@ -295,9 +295,16 @@ export default function WebpagePreview({ webpageId, html, css, js, extraFiles = 
             const currentId = webpageIdRef.current;
             if (!currentId) return;
             const reqId = data.requestId;
+            // targetOrigin must be '*': the sandboxed iframe has an opaque
+            // origin, so event.origin is the string 'null', and
+            // postMessage(msg, 'null') throws a SyntaxError (it is not a
+            // parseable URL) — the reply would never arrive and the iframe's
+            // refresh would time out. The real guard is isFromPreviewIframe
+            // above (event.source is the preview iframe's own window), and the
+            // token is scoped to this preview.
             const respond = (body) => {
                 try {
-                    event.source?.postMessage({ __beeflowTokenResponse: true, requestId: reqId, ...body }, event.origin || '*');
+                    event.source?.postMessage({ __beeflowTokenResponse: true, requestId: reqId, ...body }, '*');
                 } catch (_) { /* ignore */ }
             };
             try {

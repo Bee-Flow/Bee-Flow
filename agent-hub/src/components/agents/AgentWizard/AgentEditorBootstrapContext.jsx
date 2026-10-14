@@ -9,6 +9,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { READ } from './canUse/canUseFacts';
+import { readSkills } from '../../../api/queries/skills';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 
 const EMPTY = {
@@ -50,8 +51,8 @@ export function AgentEditorBootstrapProvider({ children }) {
 
     const refreshSkills = useCallback(async () => {
         try {
-            const r = await authFetch(`${API_BASE}/api/skills`);
-            if (r.ok) setAllSkills(await r.json());
+            const list = await readSkills();
+            if (list) setAllSkills(list);
         } catch (e) {
             console.warn('[AgentEditorBootstrap] refreshSkills failed', e);
         }

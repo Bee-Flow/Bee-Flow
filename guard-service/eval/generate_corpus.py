@@ -24,8 +24,8 @@ import random
 import re
 import sys
 
-from .schema import Record, Span, normalize, validate_record, dump_jsonl
 from . import value_banks as vb
+from .schema import Record, Span, dump_jsonl, normalize, validate_record
 
 _SLOT_RE = re.compile(r"\{\{(\w+)\}\}|⟦(\w+)\|([^⟧]*)⟧")
 
@@ -155,7 +155,7 @@ def build_large_doc(rng: random.Random, lang: str, doc_type: str) -> str:
     rng.shuffle(sections)
     # Interleave each section with a paragraph of filler so entities land at a
     # range of depths, including well past the first chunk (truncation stress).
-    for i, sec in enumerate(sections):
+    for _i, sec in enumerate(sections):
         parts.append(sec)
         n_filler = rng.randint(2, 4)
         for _ in range(n_filler):
@@ -472,7 +472,7 @@ def build_lock(corpus: dict[str, list[Record]], seed: int) -> dict:
         for r in records:
             h.update(r.text.encode("utf-8"))
             for s in r.spans:
-                h.update(f"{s.start}:{s.end}:{s.category}".encode("utf-8"))
+                h.update(f"{s.start}:{s.end}:{s.category}".encode())
                 by_category[s.category] = by_category.get(s.category, 0) + 1
                 by_value_kind[s.value_kind] = by_value_kind.get(s.value_kind, 0) + 1
         files[name] = {

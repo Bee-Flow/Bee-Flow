@@ -4,6 +4,7 @@ import WebpageDeleteDialog from './webpages/WebpageDeleteDialog';
 import WebpageEditorPage from './webpages/WebpageEditorPage';
 import { api, fetchWebpageBundle } from './webpages/webpagesApi';
 import WebpagesList from './webpages/WebpagesList';
+import { readOrgGroups } from '../api/queries/orgGroups';
 import { useCan } from '../components/licensing/Gate';
 import { RequireTier } from '../components/licensing/LicenseContext';
 import useTranslation from '../hooks/useTranslation';
@@ -42,8 +43,8 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
     useEffect(() => {
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/auth/groups`);
-                if (res.ok) setOrgGroups(await res.json());
+                const list = await readOrgGroups();
+                if (list) setOrgGroups(list);
             } catch { /* ignore */ }
         })();
     }, []);

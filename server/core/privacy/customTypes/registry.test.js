@@ -11,7 +11,7 @@ const assert = require('node:assert/strict');
 
 // An unknown id makes planScan re-read every org shield; answer that from an
 // empty database instead of a real one.
-require('../../http/routeHarness').recordDb();
+require('../../../testUtils/routeHarness').recordDb();
 
 const registry = require('./registry');
 const { planScan, hasCustomIds, withBuiltinDefault, scanCategoriesFor } = require('./plan');

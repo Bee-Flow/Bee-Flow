@@ -3,6 +3,7 @@ const { getAdapter, baseAdapter } = require('../../core/providers');
 
 const router = require('express').Router();
 const { z, typeError } = require('../../utils/zod');
+const { orEmpty: bodyOf } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 
 // Middleware
@@ -74,9 +75,6 @@ const providerFields = {
     apiVersion: text('The Azure API version'),
 };
 const optional = (shape) => Object.fromEntries(Object.entries(shape).map(([k, s]) => [k, s.optional()]));
-
-/** An absent body is an empty one, so each missing field gets its sentence rather than "Required". */
-const bodyOf = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
 const CreateProviderBody = bodyOf(z.object({
     name: z.string({ error: NAME_TEXT }).trim().min(1, NAME_TEXT),

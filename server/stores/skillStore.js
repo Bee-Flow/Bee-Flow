@@ -49,7 +49,7 @@ const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const userStore = require('./userStore');
-const managedParts = require('./lib/managedParts');
+const managedParts = require('./managedPartsDefault');
 const {
     resolveBodyWrite,
     validateOutputSchema,

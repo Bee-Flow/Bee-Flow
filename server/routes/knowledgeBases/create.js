@@ -13,6 +13,7 @@ const { requireAuth, requirePermission, assertUserCanUseOrg } = require('../../a
 const { getUserId, canAccessKB, sanitizeUsageContexts } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -21,9 +22,6 @@ const { z, typeError } = require('../../utils/zod');
 // the person typed, with nothing on screen to say so. `sourceKind` is the
 // one to watch — anything made here is a manual KB, and a caller asking for
 // another kind should hear so rather than be quietly overruled.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'A knowledge base needs a name.';
 const CreateKbBody = z.object({

@@ -19,10 +19,10 @@ import json
 import os
 import sys
 
-from .schema import Record
 from .matcher import SpanTuple, match_spans
 from .metrics import _fbeta
-from .run_eval import load_corpus, _to_spans
+from .run_eval import _to_spans, load_corpus
+from .schema import Record
 
 # Per-category operating-point policy. High-leak categories are recall-biased
 # (beta=2) with a modest precision floor; noisier ones favour precision.
@@ -74,7 +74,7 @@ def _collect_candidates(records, preds):
     """Group gold and candidate spans by category. Candidates carry confidence."""
     gold_by_cat: dict[str, list[tuple[int, int, int]]] = {}
     cand_by_cat: dict[str, list[tuple[int, int, int, float]]] = {}
-    for ri, (rec, ps) in enumerate(zip(records, preds)):
+    for ri, (rec, ps) in enumerate(zip(records, preds, strict=False)):
         for s in rec.spans:
             gold_by_cat.setdefault(s.category, []).append((ri, s.start, s.end))
         for p in ps:
@@ -112,9 +112,9 @@ def calibrate(
     tier: str = "off",
     label_groups: list[list[str]] | None = None,
 ) -> dict:
+    import app.services.pii as pii_mod
     from app.config import settings
     from app.services.pii import get_pii_service
-    import app.services.pii as pii_mod
 
     svc = get_pii_service()
     svc.load(settings.pii_model)

@@ -40,7 +40,7 @@ function rowToShare(r) {
  */
 function makeSharesStore(db, { ready = async () => {}, managedParts = null } = {}) {
     const { rowToAutomation } = require('./rowMappers');
-    const guard = () => managedParts || require('../lib/managedParts');
+    const guard = () => managedParts || require('../managedPartsDefault');
     const stageOf = makeStageLookup();
 
     /** Every share of one automation, oldest first. */

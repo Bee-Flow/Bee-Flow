@@ -2,7 +2,46 @@ const { spawn } = require('child_process');
 const path = require('path');
 const componentManager = require('./cms/componentManager');
 const watcherStateStore = require('../stores/watcherStateStore');
+const { buildMcpChildEnv } = require('./mcpChildEnv');
 const log = require('../telemetry/log');
+
+/**
+ * Variables a component child gets on top of the MCP child allow-list.
+ *
+ * NODE_EXTRA_CA_CERTS is a file path, not a secret: a self-host behind a
+ * TLS-inspecting proxy sets it so outbound HTTPS verifies, and the components
+ * that fetch web pages (webpage-to-markdown, website-sitemap-fetcher) would
+ * start failing on such a host without it.
+ */
+const COMPONENT_EXTRA_ENV = Object.freeze(['NODE_EXTRA_CA_CERTS']);
+
+/**
+ * The environment a component's index.js runs with.
+ *
+ * A component is a directory of code (until 2026-10 it could be written from a
+ * request). It used to be spawned with `env: process.env`, which handed
+ * that code every
+ * secret the server holds (MASTER_ENCRYPTION_KEY, DATABASE_URL,
+ * OPAQUE_SERVER_SETUP, provider API keys, licence and session secrets). A
+ * component needs none of them: what it needs from the server (the caller's
+ * Nextcloud credentials) arrives on stdin as `_accessToken`/`_appPassword`
+ * inputs, per run and per user.
+ *
+ * Same allow-list as MCP children (core/mcpChildEnv.js), for the same reason:
+ * a deny-list leaks the next secret somebody adds to the server's env.
+ *
+ * @param {Record<string, string | undefined>} [source=process.env]
+ * @returns {Record<string, string>} a fresh object, never process.env itself
+ */
+function buildComponentEnv(source = process.env) {
+    /** @type {Record<string, string>} */
+    const extra = {};
+    for (const name of COMPONENT_EXTRA_ENV) {
+        const value = source[name];
+        if (value !== undefined) extra[name] = value;
+    }
+    return buildMcpChildEnv(extra, source);
+}
 
 async function executeWorkflow(workflow, userAuth = {}) {
     log.info('Executing workflow with', workflow.nodes.length, 'nodes');
@@ -263,7 +302,41 @@ async function executeWorkflow(workflow, userAuth = {}) {
     return executionResults;
 }
 
-function runComponent(componentPath, inputs) {
+/**
+ * Wall-clock limit for one component run. A component that hangs (an endless
+ * loop, a socket that never answers) used to keep its workflow, and the chat
+ * turn or HTTP request awaiting it, pending forever. Generous on purpose: the
+ * bundled components that fetch the web (website-sitemap-fetcher walks nested
+ * sitemaps with a per-request timeout of its own) finish far inside it.
+ */
+const COMPONENT_TIMEOUT_MS = 10 * 60 * 1000;
+
+/**
+ * Most stdout a component may produce. Its stdout is buffered in the server's
+ * heap until the child exits, so a component that floods it could exhaust the
+ * memory of a server every tenant shares. Above the cap the child is killed
+ * and the run fails, like exec's maxBuffer.
+ */
+const COMPONENT_MAX_STDOUT_BYTES = 32 * 1024 * 1024;
+
+/**
+ * stderr only ends up in the error message of a failed run, so it is not a
+ * reason to fail: past this many bytes the rest is dropped.
+ */
+const COMPONENT_MAX_STDERR_BYTES = 64 * 1024;
+
+/**
+ * @param {string} componentPath
+ * @param {unknown} inputs
+ * @param {{ timeoutMs?: number, maxStdoutBytes?: number, maxStderrBytes?: number }} [limits]
+ *   overridable for tests; production callers use the defaults.
+ * @returns {Promise<any>}
+ */
+function runComponent(componentPath, inputs, limits = {}) {
+    const timeoutMs = limits.timeoutMs ?? COMPONENT_TIMEOUT_MS;
+    const maxStdoutBytes = limits.maxStdoutBytes ?? COMPONENT_MAX_STDOUT_BYTES;
+    const maxStderrBytes = limits.maxStderrBytes ?? COMPONENT_MAX_STDERR_BYTES;
+
     return new Promise((resolve, reject) => {
         const entryFile = path.join(componentPath, 'index.js');
 
@@ -271,34 +344,82 @@ function runComponent(componentPath, inputs) {
         // We pass inputs via STDIN JSON string.
         const child = spawn('node', [entryFile], {
             cwd: componentPath, // FORCE CWD to component folder for node_modules resolution
-            env: process.env
+            // Never process.env: see buildComponentEnv.
+            env: buildComponentEnv(),
         });
 
-        let stdoutData = '';
+        /** @type {Buffer[]} */
+        const stdoutChunks = [];
+        let stdoutBytes = 0;
         let stderrData = '';
+        let stderrBytes = 0;
+        let settled = false;
+        /** @type {Error | null} why the server killed the child, if it did */
+        let killReason = null;
+
+        const kill = (/** @type {Error} */ reason) => {
+            if (killReason) return;
+            killReason = reason;
+            child.kill('SIGKILL');
+        };
+
+        const fail = (/** @type {Error} */ err) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            reject(err);
+        };
+
+        const timer = setTimeout(() => {
+            kill(new Error(`Component timed out after ${timeoutMs} ms`));
+        }, timeoutMs);
+        // A pending run must not keep the process alive on shutdown by itself.
+        timer.unref?.();
 
         child.stdout.on('data', (data) => {
-            stdoutData += data.toString();
+            if (killReason) return;
+            stdoutBytes += data.length;
+            if (stdoutBytes > maxStdoutBytes) {
+                stdoutChunks.length = 0;
+                kill(new Error(`Component output exceeded ${maxStdoutBytes} bytes`));
+                return;
+            }
+            stdoutChunks.push(data);
         });
 
         child.stderr.on('data', (data) => {
-            stderrData += data.toString();
+            if (stderrBytes >= maxStderrBytes) return;
+            const room = maxStderrBytes - stderrBytes;
+            const slice = data.length > room ? data.subarray(0, room) : data;
+            stderrBytes += slice.length;
+            stderrData += slice.toString();
         });
 
+        // spawn failures (ENOENT, EAGAIN) arrive here, not on 'close'.
+        child.on('error', (err) => {
+            fail(err);
+        });
+
+        // A child that dies before reading its input makes the write fail
+        // with EPIPE; the exit code on 'close' is the error that matters.
+        child.stdin.on('error', () => {});
+
         child.on('close', (code) => {
+            clearTimeout(timer);
+            if (settled) return;
+            if (killReason) return fail(killReason);
             if (code !== 0) {
-                return reject(new Error(`Component exited with code ${code}: ${stderrData}`));
+                return fail(new Error(`Component exited with code ${code}: ${stderrData}`));
             }
+            const stdoutData = Buffer.concat(stdoutChunks).toString();
             try {
-                // Attempt to parse last line as JSON output? 
-                // Or expect entire stdout to be JSON?
-                // Rule: Component MUST output a JSON string as the last line or purely JSON.
-                // Let's try parsing the whole output first, if fail, try finding JSON.
+                // Rule: Component MUST output a JSON string as its whole stdout.
                 const jsonOutput = JSON.parse(stdoutData.trim());
+                settled = true;
                 resolve(jsonOutput);
             } catch (e) {
                 log.error("Failed to parse output:", stdoutData);
-                reject(new Error(`Invalid JSON output from component: ${e.message}`));
+                fail(new Error(`Invalid JSON output from component: ${e.message}`));
             }
         });
 
@@ -309,5 +430,8 @@ function runComponent(componentPath, inputs) {
 }
 
 module.exports = {
-    executeWorkflow
+    executeWorkflow,
+    // Exported for executionEngine.env.test.js.
+    runComponent,
+    buildComponentEnv,
 };

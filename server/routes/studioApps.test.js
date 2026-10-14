@@ -5,8 +5,8 @@
  * helpers are mocked via the Module._resolveFilename harness (same pattern
  * as auth/studioAuthz.test.js) so no DB/pool is opened; the appStudio layer
  * (componentSpecs / canonicalize / validate / templates) runs for real.
- * Requests go over real HTTP against express app.listen(0).
- *
+ * Requests go over real HTTP against express app.listen(0). The router's parts
+ * (routes/studioApps/*.js) ask for '../../x': they get the mock the router's '../x' got.
  * Run: node --test routes/studioApps.test.js
  */
 
@@ -476,13 +476,13 @@ const MOCKS = {
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:${request}`;
-    MOCK_IDS[request] = mockId;
+    const mockId = (MOCK_IDS[request] = `mock:${request}`);
     require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) return MOCK_IDS[request];
+    const key = request.startsWith('../../') && parent?.filename?.startsWith(`${__dirname}${require('node:path').sep}studioApps${require('node:path').sep}`) ? request.slice(3) : request;
+    if (Object.prototype.hasOwnProperty.call(MOCK_IDS, key)) return MOCK_IDS[key];
     return originalResolve.call(this, request, parent, ...rest);
 };
 

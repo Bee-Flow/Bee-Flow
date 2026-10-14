@@ -44,6 +44,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const { validate } = require('../core/http/validate');
 // configStore and userStore are required lazily inside the handlers, not here:
 // importing configStore stands up the Postgres pool at module load, which makes
@@ -338,9 +339,6 @@ async function runAgentTurn({ input, org, user, ncUid }) {
 }
 
 // ── Request schema (see the header) ─────────────────────────────────
-
-/** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const TASK_TYPE_TEXT = 'taskType names the Nextcloud task type, like core:text2text:summary.';
 const TEXT_INPUT_TEXT = 'A text task needs input.input: the text to work on.';

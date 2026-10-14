@@ -852,7 +852,7 @@ describe('E15b self-hosted single-switch core: menu is the org-wide grant', () =
     });
     it('self-hosted normal user does NOT get an out-of-menu core feature (E15b)', () => {
         const snap = S.e15b;
-        assert.ok(!snap.effective.core.includes('component_designer'), 'self-hosted normal user does NOT get an out-of-menu core feature (E15b)');
+        assert.ok(!snap.effective.core.includes('projects'), 'self-hosted normal user does NOT get an out-of-menu core feature (E15b)');
     });
 });
 
@@ -870,7 +870,7 @@ describe('E16 self-hosted global admin (null org) bound by the single org menu',
     });
     it('global admin loses an out-of-menu core feature (E16)', () => {
         const snap = S.e16;
-        assert.ok(!snap.effective.core.includes('component_designer'), 'global admin loses an out-of-menu core feature (E16)');
+        assert.ok(!snap.effective.core.includes('projects'), 'global admin loses an out-of-menu core feature (E16)');
     });
     it('global admin loses out-of-menu betas (E16)', () => {
         const snap = S.e16;

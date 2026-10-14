@@ -92,7 +92,7 @@ jobs:
       - name: Verify lockfiles are in sync with their manifests
         run: |
           set -euo pipefail
-          for d in . server agent-hub nextcloud-connector desktop; do
+          for d in . server agent-hub nextcloud-connector desktop mobile; do
             # Label deliberately does NOT repeat the command: audit-ratchet.test.mjs
             # asserts there is exactly ONE `npm ci --dry-run` in this file.
             echo "::group::lockfile sync ($d)"

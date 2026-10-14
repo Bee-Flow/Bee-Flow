@@ -26,6 +26,7 @@ const { getAdapter } = require('../../core/providers');
 const { LOCAL_RUNTIMES, isLocalProviderType } = require('../../core/providers/localModels');
 const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
+const { openSse } = require('../../core/http/sseHelpers');
 
 async function isAdminUser(req) {
     if (req.session?.isAdmin || req.session?.user?.role === 'admin') return true;
@@ -225,12 +226,8 @@ router.post('/local-runtimes/:id/pull', requireAuth, requireAdmin, validate({ bo
         });
     }
 
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders?.();
-
-    const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    // This head never carried X-Accel-Buffering; it keeps its own wire head.
+    const { send, end } = openSse(res, { headers: { 'X-Accel-Buffering': null }, flush: true, viaSetHeader: true });
 
     try {
         await adapter.pullModel(provider.apiKey || '', provider.url, model, (progress) => {
@@ -246,7 +243,7 @@ router.post('/local-runtimes/:id/pull', requireAuth, requireAdmin, validate({ bo
     } catch (e) {
         send('error', { error: e.message });
     } finally {
-        res.end();
+        end();
     }
 });
 

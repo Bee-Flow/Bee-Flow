@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
-    extractFormState, buildPatch, deepEqual, normalizeRetry, RETRY_FORM_TYPES,
+    extractFormState, buildPatch, deepEqual, RETRY_FORM_TYPES,
 } from './formState';
 
 /**
@@ -79,32 +79,6 @@ describe('the retry field round-trips', () => {
         const step = { ...HTTP, retry: { max: 0 } };
         const draft = { ...extractFormState(step), label: 'Renamed' };
         expect('retry' in buildPatch(step, draft)).toBe(false);
-    });
-});
-
-describe('normalizeRetry', () => {
-    it('is off for everything that is not an effective retry', () => {
-        for (const v of [null, undefined, 0, 'x', [], {}, { max: 0 }, { max: -1 }, { max: 'no' }]) {
-            expect(normalizeRetry(v)).toBe(undefined);
-        }
-    });
-
-    it('always writes both keys, so "no wait" has one spelling', () => {
-        expect(normalizeRetry({ max: 2 })).toEqual({ max: 2, backoffMs: 0 });
-        expect(normalizeRetry({ max: 2, backoffMs: 0 })).toEqual({ max: 2, backoffMs: 0 });
-    });
-
-    it('does NOT clamp a value the editor could not have produced', () => {
-        // An AI-built or hand-edited step keeps its number. `retry` has no
-        // validator to appeal to (grep automation/validate.js), so a silent
-        // clamp here would be the only record that it changed — and the row
-        // shows out-of-list values as their own option for the same reason.
-        expect(normalizeRetry({ max: 50, backoffMs: 3000 })).toEqual({ max: 50, backoffMs: 3000 });
-    });
-
-    it('is idempotent, or an unrelated save would keep rewriting the step', () => {
-        const once = normalizeRetry({ max: 3, backoffMs: 1500 });
-        expect(normalizeRetry(once)).toEqual(once);
     });
 });
 

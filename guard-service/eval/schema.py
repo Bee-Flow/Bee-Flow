@@ -18,9 +18,8 @@ from __future__ import annotations
 
 import json
 import unicodedata
-from dataclasses import dataclass, field, asdict
-from typing import Iterable, Iterator
-
+from collections.abc import Iterable, Iterator
+from dataclasses import asdict, dataclass, field
 
 # ── The 21 canonical category IDs (the contract) ───────────────────────────
 # Kept in sync with agent-hub/src/config/piiCategories.ts and
@@ -83,7 +82,7 @@ class Span:
         return d
 
     @classmethod
-    def from_json(cls, d: dict) -> "Span":
+    def from_json(cls, d: dict) -> Span:
         return cls(
             start=int(d["start"]),
             end=int(d["end"]),
@@ -115,7 +114,7 @@ class Record:
         }
 
     @classmethod
-    def from_json(cls, d: dict) -> "Record":
+    def from_json(cls, d: dict) -> Record:
         return cls(
             id=str(d["id"]),
             text=str(d["text"]),
@@ -175,7 +174,7 @@ def validate_record(rec: Record, *, strict_categories: bool = True) -> None:
 def load_jsonl(path: str, *, validate: bool = True) -> list[Record]:
     """Load a corpus JSONL file into validated ``Record``s."""
     records: list[Record] = []
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, 1):
             line = line.strip()
             if not line:

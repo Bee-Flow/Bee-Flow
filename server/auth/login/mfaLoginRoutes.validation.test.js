@@ -64,7 +64,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./mfaLoginRoutes');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-const { dispatcher } = require('../../core/http/routeHarness');
+const { dispatcher } = require('../../testUtils/routeHarness');
 
 const dispatch = dispatcher(router, { session: () => ({ mfaPending: { userId: 'u1', user: { id: 'u1' }, isAdmin: false, password: 'pw' } }) });
 

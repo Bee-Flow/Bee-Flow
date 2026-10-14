@@ -102,7 +102,9 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /admin[\\/](?:featureAccessRoutes|orgAccessCarryOver)\.js$/.test(parent.filename)
+    // core/integrations/enabledIntegrations.js reads the org allow-list for
+    // the route (configStore, lazily), so it sees the same mocks.
+    if (parent && /(?:admin[\\/](?:featureAccessRoutes|orgAccessCarryOver)|integrations[\\/]enabledIntegrations)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -112,7 +114,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./featureAccessRoutes');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-const { dispatcher } = require('../../core/http/routeHarness');
+const { dispatcher } = require('../../testUtils/routeHarness');
 
 const dispatch = dispatcher(router, { session: () => ({ user: { id: 'root' }, isAdmin: true }) });
 

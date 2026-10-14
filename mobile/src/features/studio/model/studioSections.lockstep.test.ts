@@ -1,12 +1,14 @@
 /**
  * The Studio registry, held to the web's (textual lockstep).
  *
- * agent-hub/src/components/admin/Studio/studioApps.jsx is the single source
- * of truth for which sections Studio has, in what order, under which heading,
- * behind which gate and with which "New" entry. The phone's port
- * (registry.ts) must say the same, section by section. The web file is read
- * as TEXT — Metro cannot import it, and a lockstep must not need a bundler —
- * and each descriptor is cut out by its indentation.
+ * agent-hub/src/components/admin/Studio/studioRegistry.tsx (STUDIO_APPS) and
+ * studioGates.ts (STUDIO_CATEGORIES) are the single source of truth for which
+ * sections Studio has, in what order, under which heading, behind which gate
+ * and with which "New" entry; studioApps.jsx, where both used to live,
+ * re-exports them. The phone's port (registry.ts) must say the same, section
+ * by section. The web files are read as TEXT — Metro cannot import them, and
+ * a lockstep must not need a bundler — and each descriptor is cut out by its
+ * indentation.
  *
  * When this fails, the web side changed: update registry.ts to match (and
  * decide where the new section opens on the phone). Don't loosen the test.
@@ -19,12 +21,15 @@ import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
 
 import { STUDIO_CATEGORIES, STUDIO_SECTIONS } from './registry';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/studioApps.jsx');
-const src = fs.readFileSync(WEB, 'utf8');
+const WEB_STUDIO = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio');
+const readStudio = (file: string) => fs.readFileSync(path.join(WEB_STUDIO, file), 'utf8');
+const src = readStudio('studioRegistry.tsx');
+const gatesSrc = readStudio('studioGates.ts');
+const barrel = readStudio('studioApps.jsx');
 
 /** The body of `export const STUDIO_APPS = [ … ];`, split into one string per descriptor. */
 function webDescriptors(): string[] {
-    const start = src.indexOf('export const STUDIO_APPS = [');
+    const start = src.indexOf('export const STUDIO_APPS: StudioAppDescriptor[] = [');
     const end = src.indexOf('\n];', start);
     const body = src.slice(start, end);
     return body.split(/\n {4}\{\n/).slice(1).map((chunk) => chunk.split(/\n {4}\},?\n?/)[0] ?? chunk);
@@ -108,6 +113,11 @@ describe('the web registry is readable at all', () => {
         expect(web.length).toBeGreaterThanOrEqual(14);
         expect(web.every((w) => w.id && w.segment)).toBe(true);
     });
+
+    it('studioApps.jsx still re-exports the registry and the categories', () => {
+        expect(barrel).toContain("export { STUDIO_APPS, STUDIO_ICONS, default } from './studioRegistry';");
+        expect(barrel).toMatch(/export \{[^}]*\bSTUDIO_CATEGORIES\b[^}]*\} from '\.\/studioGates';/);
+    });
 });
 
 describe('the phone registry against STUDIO_APPS', () => {
@@ -170,7 +180,9 @@ describe('the phone registry against STUDIO_APPS', () => {
 
 describe('STUDIO_CATEGORIES', () => {
     it('are the web headings, in order, with their keys', () => {
-        const body = src.slice(src.indexOf('export const STUDIO_CATEGORIES = ['), src.indexOf('];', src.indexOf('export const STUDIO_CATEGORIES')));
+        const start = gatesSrc.indexOf('export const STUDIO_CATEGORIES: readonly StudioCategory[] = [');
+        expect(start).toBeGreaterThanOrEqual(0);
+        const body = gatesSrc.slice(start, gatesSrc.indexOf('];', start));
         const webCategories = [...body.matchAll(/\{ id: '([^']+)', labelKey: '([^']+)', labelFallback: '([^']+)' \}/g)].map(
             ([, id, labelKey, labelFallback]) => ({ id, labelKey, labelFallback }),
         );

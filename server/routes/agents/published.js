@@ -148,6 +148,7 @@ async function withListStats(agents, req, viewerId = null) {
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -159,9 +160,6 @@ const { z, typeError } = require('../../utils/zod');
 // On PATCH /:id/publish a misspelled `sharedGroups` meant "leave the sharing
 // as it is" (the route reads `undefined` that way on purpose), so an agent
 // published to a new group stayed shared with the old one under a 200.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

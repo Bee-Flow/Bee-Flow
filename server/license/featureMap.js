@@ -30,7 +30,6 @@ module.exports = {
     // Studio-class features below were promoted to enterprise in the tier
     // tightening — see docs/docs/licensing/tiers.md — and now enforce on
     // every community install.
-    '/components': { gate: 'component_designer', beta: null, notes: 'Enterprise tier; AI custom-UI component builder. Top-level (non-/api) path.' },
     // n8n-style free builder: the builder + CRUD are Community (building is
     // free). `automations` is a Community licence feature AND a GA beta that's
     // Community-exempt from BETA_TIER_FLOOR (server/core/betaFeatures.js). The

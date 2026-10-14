@@ -1,5 +1,5 @@
 /**
- * Dutch for the website admin and the Component Studio. Two silent failure
+ * Dutch for the website admin. Two silent failure
  * modes are pinned here: a Dutch key that matches no English key is stored and
  * never read, and an English key without Dutch leaves one English sentence in
  * an otherwise Dutch screen.
@@ -15,7 +15,7 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 // Namespaces that exist only because of this round: every English key under
 // them must have Dutch here (or be declared identical).
-const OWNED_PREFIXES = ['cms_site.', 'component_studio.'];
+const OWNED_PREFIXES = ['cms_site.'];
 
 test('every English key in the owned namespaces has Dutch (or is declared identical)', () => {
     const same = new Set(SAME_AS_ENGLISH);

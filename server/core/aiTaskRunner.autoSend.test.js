@@ -27,11 +27,15 @@ const DISPATCHER = fs.readFileSync(path.join(__dirname, 'tools', 'toolDispatcher
 // agentRuntime/toolRoundExecutor.js — scan the spine and the round together.
 // The spine is a FOLDER (agentRuntime/chatStream/), so every module in it is
 // read: a scan that stopped at the entry point would cover almost none of it.
-const CHAT_STREAM_DIR = path.join(__dirname, 'agentRuntime', 'chatStream');
+// The round's steps live in agentRuntime/toolRound/ (the dispatch context in
+// toolRound/dispatch.js), read the same way.
+const folderModules = (dir) => fs.readdirSync(path.join(__dirname, 'agentRuntime', dir))
+    .filter(f => f.endsWith('.js') && !f.endsWith('.test.js')).sort()
+    .map(f => path.join(dir, f));
 const CHAT_STREAM = [
-    ...fs.readdirSync(CHAT_STREAM_DIR).filter(f => f.endsWith('.js')).sort()
-        .map(f => path.join('chatStream', f)),
+    ...folderModules('chatStream'),
     'toolRoundExecutor.js',
+    ...folderModules('toolRound'),
 ].map(f => fs.readFileSync(path.join(__dirname, 'agentRuntime', f), 'utf8'))
     .join('\n');
 

@@ -10,7 +10,7 @@
 
 'use strict';
 
-const { effectOf } = require('../../../automation/sideEffectMap');
+const { effectOf } = require('../../automationModel/sideEffectMap');
 const { _plainObject, toolsConfigOf, CONFIRM_MODES, ACT_AS_MODES } = require('./configShape');
 const { appIdForTool, isAttributionAvailable, _decidingApps, _warnDegraded } = require('./appIndex');
 const { hasCuratedGrants } = require('./grantResolution');

@@ -39,10 +39,10 @@ const { resolveUserOrgIds } = require('../auth');
 const talkNotes = require('../core/meetingNotes/talkNotesSettings');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { choice } = require('../core/http/schemaParts');
 
 /** A real boolean, never the text "false" — which is true. */
 const bool = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
-const choice = (values, message) => z.enum(values, { error: () => message });
 
 const SCOPE_TEXT = 'autoRecordScope is "calendar" (scheduled meetings) or "all" (any moderated call).';
 const MODE_TEXT = 'recordingMode is "audio" or "video".';

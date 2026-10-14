@@ -63,8 +63,7 @@ server crash can lose that minute, so the figures say "Counts are approximate."
 support conversations, Nextcloud Talk and mail. Neither are these AI surfaces, which
 have no Privacy Shield result to reuse or show no notice: the **mobile app** (in this
 release), voice, template chat, the webpage builder, the public webpage AI bridge, App
-Studio AI chat, the Nextcloud Assistant, the learning coach, the component designer, the
-builders, the meeting-notes assistant, non-streaming agent chat, the support responder
+Studio AI chat, the Nextcloud Assistant, the learning coach, the builders, the meeting-notes assistant, non-streaming agent chat, the support responder
 and attachments.
 
 ### What is counted for each message

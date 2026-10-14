@@ -1,27 +1,60 @@
 /**
  * TEXTUAL lockstep: the routes and answer shapes the forms calls rely on,
- * read out of the server source (routes/automation/{crud,formPublic,
- * webhooksAndRunOps}.js, routes/datatables/*, automation/formAnswers/
- * summary.js). A renamed route or field fails here, not as an `undefined` on
- * somebody's phone.
+ * read out of the server source (routes/automation/{forms,formPublic/*,
+ * webhooksAndRunOps}.js, automation/formQueue.js, routes/datatables/*,
+ * automation/formAnswers/summary.js). A renamed route or field fails here,
+ * not as an `undefined` on somebody's phone.
+ *
+ * The form routes moved out of crud.js into forms.js (registerFormRoutes),
+ * and formPublic.js into one module per concern under formPublic/, each with
+ * a register(router); the first test pins that crud.js and formPublic.js
+ * still mount them.
  */
 
-import { readServer } from '../testing/sources';
+import fs from 'node:fs';
+import path from 'node:path';
+
+// Read off a SERVER handle with plain path literals, so src/meta/serverClosure.test.ts
+// sees every file this test reads and holds ci.yml's mobile filter to them.
+const SERVER = path.resolve(__dirname, '../../../../../server');
+const readServer = (rel: string): string => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
 const crud = readServer('routes/automation/crud.js');
-const formPublic = readServer('routes/automation/formPublic.js');
+const forms = readServer('routes/automation/forms.js');
+const formPublicRouter = readServer('routes/automation/formPublic.js');
+const FORM_PUBLIC_MODULES = ['page', 'submit', 'session', 'results'];
+const formPublic = [
+    readServer('routes/automation/formPublic/page.js'),
+    readServer('routes/automation/formPublic/submit.js'),
+    readServer('routes/automation/formPublic/session.js'),
+    readServer('routes/automation/formPublic/results.js'),
+].join('\n');
+// The accepted-submission 202 is answered by the queue a submission waits in.
+const formQueue = readServer('automation/formQueue.js');
 const links = readServer('routes/automation/webhooksAndRunOps.js');
 const answersRoute = readServer('routes/datatables/answers.js');
 const rows = readServer('routes/datatables/rows.js');
 const summary = readServer('automation/formAnswers/summary.js');
 const index = readServer('index.js');
 
-/** The source of one route handler: from its registration to the next one. */
+/**
+ * The source of one route handler. Inline (`router.get('/x', async (req, res) => {…`):
+ * from its registration to the next one. Named (`router.get('/x', limiter, handlerFn);`):
+ * that function's own source.
+ */
 function handler(src: string, registration: string): string {
     const at = src.indexOf(registration);
     if (at < 0) throw new Error(`${registration} is gone`);
-    const next = src.indexOf('\nrouter.', at + registration.length);
-    return src.slice(at, next < 0 ? undefined : next);
+    const lineEnd = src.indexOf('\n', at);
+    const named = /,\s*([A-Za-z_$][\w$]*)\);\s*$/.exec(src.slice(at, lineEnd < 0 ? undefined : lineEnd));
+    if (named) {
+        const start = src.search(new RegExp(`^(?:async )?function ${named[1]}\\(`, 'm'));
+        if (start < 0) throw new Error(`${named[1]} (the handler of ${registration}) is gone`);
+        const end = src.indexOf('\n}\n', start);
+        return src.slice(start, end < 0 ? undefined : end + 2);
+    }
+    const next = src.slice(at + registration.length).search(/\n\s*router\./);
+    return src.slice(at, next < 0 ? undefined : at + registration.length + next);
 }
 
 const missing = (src: string, keys: string[]) => keys.filter((k) => !new RegExp(`\\b${k}\\b`).test(src));
@@ -29,8 +62,14 @@ const missing = (src: string, keys: string[]) => keys.filter((k) => !new RegExp(
 it('mounts the routes where the phone calls them', () => {
     expect(index).toContain("app.use('/api/automation'");
     expect(index).toContain("app.use('/api/datatables'");
+    expect(crud).toContain("const { registerFormRoutes } = require('./forms');");
+    expect(crud).toMatch(/^registerFormRoutes\(router\);$/m);
     for (const route of ["router.get('/forms'", "router.get('/forms/:automationId'", "router.put('/forms/:automationId/audience'", "router.post('/forms/:automationId/answers-table'", "router.post('/forms/ai/draft'"]) {
-        expect(crud).toContain(route);
+        expect(forms).toContain(route);
+    }
+    for (const m of FORM_PUBLIC_MODULES) expect(formPublicRouter).toContain(`require('./formPublic/${m}')`);
+    for (const call of ['page.register(router)', 'submit.registerSubmit(router)', 'session.register(router)', 'results.register(router)', 'submit.registerResume(router)']) {
+        expect(formPublicRouter).toContain(call);
     }
     for (const route of ["router.post('/:id/form'", "router.post('/:id/form/:token/rotate'", "router.delete('/:id/form/:token'"]) expect(links).toContain(route);
     for (const route of [
@@ -45,14 +84,14 @@ it('mounts the routes where the phone calls them', () => {
 });
 
 it('still builds every field the Form page reads', () => {
-    const detail = handler(crud, "router.get('/forms/:automationId'");
+    const detail = handler(forms, "router.get('/forms/:automationId'");
     expect(
         missing(detail, ['id', 'url', 'automationId', 'title', 'description', 'live', 'isActive', 'isDraft', 'submissions', 'mine', 'canOpen', 'audience', 'questions', 'pages', 'answers', 'definition', 'automationTitle', 'collect', 'fields', 'theme', 'submitLabel', 'successMessage']),
     ).toEqual([]);
-    const list = handler(crud, "router.get('/forms'");
+    const list = handler(forms, "router.get('/forms'");
     expect(missing(list, ['canOpen', 'audience', 'answers'])).toEqual([]);
-    expect(missing(crud, ['collecting', 'datatableId', 'grade', 'rowCount', 'linked', 'lastWriteError'])).toEqual([]);
-    expect(handler(crud, "router.put('/forms/:automationId/audience'")).toContain('audience: publicAudience(');
+    expect(missing(forms, ['collecting', 'datatableId', 'grade', 'rowCount', 'linked', 'lastWriteError'])).toEqual([]);
+    expect(handler(forms, "router.put('/forms/:automationId/audience'")).toContain('audience: publicAudience(');
 });
 
 it('still answers filling a form in with the shapes the phone reads', () => {
@@ -63,7 +102,7 @@ it('still answers filling a form in with the shapes the phone reads', () => {
     for (const state of ['working', 'form', 'done', 'expired', 'error']) expect(poll).toContain(`state: '${state}'`);
     expect(missing(poll, ['progress', 'progressNote', 'stepId', 'ending'])).toEqual([]);
     // A 202 carries the session id; the silent bot answers do not.
-    expect(formPublic).toContain('res.status(202).json({ accepted: true, ...extra })');
+    expect(formQueue).toContain('res.status(202).json({ accepted: true, ...extra });');
     expect(formPublic).toContain('{ sessionId: session.id }');
     expect(formPublic).toContain("res.status(400).json({ error: 'Some answers need attention', fields: errors })");
     expect(formPublic).toContain('res.json({ notebookId: notebook.id })');

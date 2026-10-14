@@ -17,7 +17,11 @@
  *     the body says;
  *   - a refused body is a 400 that names the field, in a sentence;
  *   - the sync is never reached for a refused body;
- *   - the body the connector sends still applies.
+ *   - the body the connector sends still applies;
+ *   - a signed delivery is accepted ONCE: the same bytes replayed inside the
+ *     5-minute window are a 401 and never reach the sync again (a captured
+ *     `user.deleted` used to be replayable for the whole window);
+ *   - a failing org lookup is the same 401 as an unknown org, not a 500.
  *
  * A real Express app on 127.0.0.1:0, with the same raw-body hook index.js
  * installs globally, so the HMAC is computed over the bytes that were sent.
@@ -42,13 +46,20 @@ const ORG = { id: 'org1', nc_sync_mode: 'mirror_all' };
 // Every sync call lands in `touched`. A refused request must leave it empty.
 const touched = [];
 
+// The org lookup the signature check makes; a test may make it throw.
+let lookupOrg = async (id) => (id === INSTANCE_ID ? { ...ORG } : null);
+const userStoreMock = { getOrganizationByNcInstanceId: (id) => lookupOrg(id) };
+const configStoreMock = {
+    getSecret: async (key) => (key === `connector_tenant_key_${ORG.id}` ? TENANT_KEY : null),
+};
+
 const MOCKS = {
-    '../../stores/userStore': {
-        getOrganizationByNcInstanceId: async (id) => (id === INSTANCE_ID ? { ...ORG } : null),
-    },
-    '../../stores/configStore': {
-        getSecret: async (key) => (key === `connector_tenant_key_${ORG.id}` ? TENANT_KEY : null),
-    },
+    // The route's own requires, and the ones auth/connectorSig.js (the shared
+    // signature check the route calls) makes from its own directory.
+    '../../stores/userStore': userStoreMock,
+    '../../stores/configStore': configStoreMock,
+    '../stores/userStore': userStoreMock,
+    '../stores/configStore': configStoreMock,
     '../../services/ncUserGroupSync': {
         applyUserCreated: async (org, ncUid) => { touched.push({ what: 'applyUserCreated', args: [org.id, ncUid] }); return { action: 'update' }; },
         applyUserDeleted: async (org, ncUid) => { touched.push({ what: 'applyUserDeleted', args: [org.id, ncUid] }); return { action: 'deactivate', userId: 'nc_org1_alice' }; },
@@ -64,7 +75,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /webhooks[\\/]ncEvents\.js$/.test(parent.filename)
+    if (parent && /(webhooks[\\/]ncEvents|auth[\\/]connectorSig)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -96,20 +107,29 @@ test.after(() => {
 
 test.beforeEach(() => { touched.length = 0; });
 
-/** POST exactly `raw`, signed the way the connector signs it. */
-async function post(raw, { signed = true } = {}) {
-    const ts = Math.floor(Date.now() / 1000);
-    const sig = crypto.createHmac('sha256', TENANT_KEY).update(`${ts}\nPOST\n${PATH}\n${raw}`).digest('hex');
+/** The X-Beeflow-Sig header the connector would send for `raw`. */
+function sign(raw, ts = Math.floor(Date.now() / 1000)) {
+    return `${ts}.${crypto.createHmac('sha256', TENANT_KEY).update(`${ts}\nPOST\n${PATH}\n${raw}`).digest('hex')}`;
+}
+
+/** POST exactly `raw` with exactly `sigHeader`. */
+async function send(raw, sigHeader) {
     const res = await fetch(`${base}${PATH}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Beeflow-NC-Instance-Id': INSTANCE_ID,
-            'X-Beeflow-Sig': signed ? `${ts}.${sig}` : `${ts}.${'0'.repeat(64)}`,
+            'X-Beeflow-Sig': sigHeader,
         },
         body: raw,
     });
     return { status: res.status, body: await res.json() };
+}
+
+/** POST exactly `raw`, signed the way the connector signs it. */
+async function post(raw, { signed = true } = {}) {
+    const ts = Math.floor(Date.now() / 1000);
+    return send(raw, signed ? sign(raw, ts) : `${ts}.${'0'.repeat(64)}`);
 }
 
 async function refuses(payload, field) {
@@ -189,4 +209,54 @@ test('user.updated still re-syncs the user through applyUserCreated', async () =
     const res = await post(JSON.stringify({ event: 'user.updated', ncUid: 'alice', groupId: null }));
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(touched, [{ what: 'applyUserCreated', args: ['org1', 'alice'] }]);
+});
+
+// ═══ replay ═════════════════════════════════════════════════════════
+
+test('a captured user.deleted replayed inside the window is a 401 and does not reach the sync again', async () => {
+    const raw = JSON.stringify({ event: 'user.deleted', ncUid: 'replayed-bob', groupId: null });
+    const header = sign(raw);
+    const first = await send(raw, header);
+    assert.strictEqual(first.status, 200);
+    assert.deepStrictEqual(touched, [{ what: 'applyUserDeleted', args: ['org1', 'replayed-bob'] }]);
+
+    touched.length = 0;
+    const replay = await send(raw, header);
+    assert.strictEqual(replay.status, 401);
+    assert.deepStrictEqual(replay.body, { error: 'Invalid or missing signature' }, 'the same answer as any bad signature');
+    assert.deepStrictEqual(touched, [], 'a replay must not deactivate anyone again');
+});
+
+test('re-casing the hex digest does not make a replay look new', async () => {
+    const raw = JSON.stringify({ event: 'user.deleted', ncUid: 'recased-carol', groupId: null });
+    const header = sign(raw);
+    assert.strictEqual((await send(raw, header)).status, 200);
+    touched.length = 0;
+    const [ts, hex] = header.split('.');
+    const res = await send(raw, `${ts}.${hex.toUpperCase()}`);
+    assert.strictEqual(res.status, 401);
+    assert.deepStrictEqual(touched, []);
+});
+
+test('a different event in the same second is still accepted', async () => {
+    const ts = Math.floor(Date.now() / 1000);
+    const a = JSON.stringify({ event: 'user.created', ncUid: 'dave', groupId: null });
+    const b = JSON.stringify({ event: 'group.member_added', ncUid: 'dave', groupId: 'sales' });
+    assert.strictEqual((await send(a, sign(a, ts))).status, 200);
+    assert.strictEqual((await send(b, sign(b, ts))).status, 200);
+    assert.strictEqual(touched.length, 2);
+});
+
+// ═══ a failing lookup ═══════════════════════════════════════════════
+
+test('an org lookup that throws is the same 401 as an unknown org, not a 500', async () => {
+    const saved = lookupOrg;
+    lookupOrg = async () => { throw new Error('db down'); };
+    try {
+        const res = await post(JSON.stringify({ event: 'user.deleted', ncUid: 'erin', groupId: null }));
+        assert.strictEqual(res.status, 401);
+        assert.deepStrictEqual(touched, []);
+    } finally {
+        lookupOrg = saved;
+    }
 });

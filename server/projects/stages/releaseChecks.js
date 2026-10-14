@@ -30,7 +30,7 @@
 
 'use strict';
 
-const { isRef } = require('../packaging/pointers');
+const { isRef } = require('../../core/packaging/pointers');
 
 const walkAllSteps = (definition, fn) => require('../../automation/portability').walkAllSteps(definition, fn);
 
@@ -96,7 +96,7 @@ function variableFindings(manifest, variables) {
 function referenceWriteFindings(manifest, referenceRefs) {
     const refs = referenceRefs instanceof Set ? referenceRefs : new Set(referenceRefs || []);
     if (!refs.size) return [];
-    const { DATATABLE_WRITE_OPS } = require('../../automation/validate/constants');
+    const { DATATABLE_WRITE_OPS } = require('../../core/automationModel/constants');
     const out = [];
     const target = (v) => (isRef(v) && refs.has(v.$ref) ? v.$ref : null);
     for (const a of entitiesOf(manifest, 'automations')) {

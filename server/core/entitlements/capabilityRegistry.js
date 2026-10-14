@@ -160,7 +160,7 @@ const MCP_SERVER_CATEGORY = 'MCP servers';
 //     reads this exported set, so adding an id here is enough for that side;
 //   - stores/user/schema.js owns the column DEFAULT + '[]'-backfill that gives
 //     NEW orgs their out-of-the-box grants — a new id must be added there too.
-const USER_FACING_CORE = new Set(['notebooks', 'projects', 'component_designer']);
+const USER_FACING_CORE = new Set(['notebooks', 'projects']);
 
 let _cache = null;
 

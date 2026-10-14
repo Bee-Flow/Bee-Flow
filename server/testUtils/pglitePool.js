@@ -4,7 +4,7 @@
  * pool's `query` and `connect`. The store runs its own schema init and its own
  * SQL, `withTransaction` and `runDdl` included, with no module mocking
  * (`count-ratchet.mjs module-mock`): the pool object is the seam, exactly the
- * one core/http/routeHarness.js `recordDb()` uses to RECORD queries; this one
+ * one testUtils/routeHarness.js `recordDb()` uses to RECORD queries; this one
  * ANSWERS them.
  *
  *   const { pg, close } = usePglitePool();
@@ -22,15 +22,41 @@
 
 const { PGlite } = require('@electric-sql/pglite');
 
-/** PGlite's answer in node-postgres's shape; a multi-statement exec answers with its last result. */
-function asPgResult(res) {
+/**
+ * PGlite's answer in node-postgres's shape; a multi-statement exec answers
+ * with its last result. `fields` and `command` are there because
+ * stores/lib/pgAppEngine reads them (column names, SELECT vs. a write), the
+ * way node-postgres fills them: a statement with result columns is a SELECT,
+ * anything else is named by its first keyword.
+ */
+function asPgResult(res, sql = '') {
     const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
     const rows = r.rows || [];
     const fields = r.fields || [];
+    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
     const rowCount = fields.length > 0
         ? rows.length
         : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, rowCount };
+    return { rows, fields, rowCount, command };
+}
+
+/**
+ * node-postgres's `query(sql, params)` over one PGlite, without touching
+ * db.js: for a store that takes its `db` injected (`{ query }`). A string of
+ * several statements runs through exec(), as a schema init sends it.
+ *
+ * @param {PGlite} pg
+ */
+function pgliteQuery(pg) {
+    return async function query(sql, params) {
+        const text = typeof sql === 'string' ? sql : String(sql?.text || '');
+        const values = Array.isArray(params) ? params : sql?.values;
+        if (Array.isArray(values) && values.length > 0) return asPgResult(await pg.query(text, values), text);
+        // Several statements in one string (schema init) need the simple
+        // protocol, which PGlite serves through exec().
+        if (/;\s*\S/.test(text.trim())) return asPgResult(await pg.exec(text), text);
+        return asPgResult(await pg.query(text), text);
+    };
 }
 
 /**
@@ -43,15 +69,7 @@ function usePglitePool(pg = new PGlite()) {
     const db = require('../db');
     const saved = { query: db.pool.query, connect: db.pool.connect };
 
-    async function query(sql, params) {
-        const text = typeof sql === 'string' ? sql : String(sql?.text || '');
-        const values = Array.isArray(params) ? params : sql?.values;
-        if (Array.isArray(values) && values.length > 0) return asPgResult(await pg.query(text, values));
-        // Several statements in one string (schema init) need the simple
-        // protocol, which PGlite serves through exec().
-        if (/;\s*\S/.test(text.trim())) return asPgResult(await pg.exec(text));
-        return asPgResult(await pg.query(text));
-    }
+    const query = pgliteQuery(pg);
 
     db.pool.query = query;
     db.pool.connect = async () => ({ query, release() {} });
@@ -70,4 +88,4 @@ function usePglitePool(pg = new PGlite()) {
     return { pg, query, restore, close };
 }
 
-module.exports = { usePglitePool };
+module.exports = { usePglitePool, pgliteQuery };

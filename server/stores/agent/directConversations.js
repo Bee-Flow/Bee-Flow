@@ -23,6 +23,16 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 // the access decision belongs to the caller.
 const { normaliseKbIds } = require('../../core/kb/kbIdList');
 const log = require('../../telemetry/log');
+const { searchConversationRows, byUpdatedDesc, DIRECT_SEARCH } = require('../lib/conversationSearch');
+
+/** What the shared search needs from this store's db and crypto modules. */
+const SEARCH_DEPS = {
+    getAll: (sql, params) => getAll(sql, params),
+    resolveCrypto,
+    openTitle,
+    decryptMessages,
+    getMessages: (id, ctx) => convMessages.getMessages(id, ctx),
+};
 
 /**
  * Error thrown when a write reached zero rows.
@@ -467,122 +477,10 @@ async function listDirectConversations(userId) {
 
 async function searchDirectConversations(userId, query, filters = {}, encryptionKey) {
     await initDB();
-
-    const likeQuery = `%${query}%`;
-    const lowerQuery = query.toLowerCase();
-
-    const filterParams = [userId];
-    let filterClauses = '';
-    let filterIdx = 2;
-    if (filters.startDate) { filterClauses += ` AND c.updated_at >= $${filterIdx++}`; filterParams.push(filters.startDate); }
-    if (filters.endDate) { filterClauses += ` AND c.updated_at <= $${filterIdx++}`; filterParams.push(filters.endDate); }
-    const likeIdx = filterIdx;
-
-    // Strategy A: title OR migrated message content
-    const stratA = await getAll(`
-        SELECT DISTINCT
-            c.id, c.user_id, c.title, c.updated_at, c.model_tier,
-            c.messages_migrated
-        FROM direct_conversations c
-        LEFT JOIN conversation_messages cm
-            ON cm.conversation_id = c.id
-           AND cm.conversation_type = 'direct'
-           AND c.messages_migrated = TRUE
-        WHERE c.user_id = $1
-          AND (c.title ILIKE $${likeIdx} OR cm.content ILIKE $${likeIdx})
-          ${filterClauses}
-        ORDER BY c.updated_at DESC
-        LIMIT 50
-    `, [...filterParams, likeQuery]);
-
-    const results = [...stratA];
-    const matchedIds = new Set(results.map(r => r.id));
-
-    // Strategy A2: migrated conversations whose content is ENCRYPTED.
-    // `cm.content ILIKE` above matches nothing against ciphertext (and the GIN
-    // trigram index on that column is equally useless), so without this pass
-    // conversation search would silently degrade to title-only the moment the
-    // messages surface is switched on. Decrypt a bounded candidate set in the
-    // app instead — the same approach the legacy encrypted branch below uses.
-    const searchCtx = await resolveCrypto({ userId, encryptionKey });
-    if (searchCtx.encryptMessages || searchCtx.encryptTitle) {
-        const encCandidates = await getAll(`
-            SELECT c.id, c.user_id, c.title, c.updated_at, c.model_tier, c.messages_migrated
-            FROM direct_conversations c
-            WHERE c.user_id = $1
-              ${searchCtx.encryptMessages ? 'AND c.messages_migrated = TRUE' : ''}
-              ${filterClauses}
-            ORDER BY c.updated_at DESC
-            LIMIT 200
-        `, filterParams);
-        let added = 0;
-        for (const conv of encCandidates) {
-            if (matchedIds.has(conv.id)) continue;
-            try {
-                const title = openTitle(conv.title, conv.id, 'direct', searchCtx);
-                let hit = !!title && String(title).toLowerCase().includes(lowerQuery);
-                if (!hit && searchCtx.encryptMessages && conv.messages_migrated) {
-                    const msgs = await convMessages.getMessages(conv.id, searchCtx);
-                    hit = JSON.stringify(msgs).toLowerCase().includes(lowerQuery);
-                }
-                if (hit) {
-                    results.push({ ...conv, title });
-                    matchedIds.add(conv.id);
-                    if (++added >= 50) break;
-                }
-            } catch (e) {
-                // One unreadable conversation must not fail the whole search.
-                log.error('[DirectConversations] Search decrypt error for', conv.id, '-', e.message);
-            }
-        }
-    }
-
-    if (!encryptionKey) {
-        const stratB = await getAll(`
-            SELECT
-                c.id, c.user_id, c.title, c.updated_at, c.model_tier,
-                c.messages_migrated
-            FROM direct_conversations c
-            WHERE c.user_id = $1
-              AND c.messages_migrated = FALSE
-              AND c.messages_json ILIKE $${likeIdx}
-              ${filterClauses}
-            ORDER BY c.updated_at DESC
-            LIMIT 50
-        `, [...filterParams, likeQuery]);
-        for (const r of stratB) {
-            if (!matchedIds.has(r.id)) { results.push(r); matchedIds.add(r.id); }
-        }
-    } else {
-        const encCandidates = await getAll(`
-            SELECT
-                c.id, c.user_id, c.title, c.updated_at, c.model_tier,
-                c.messages_json, c.messages_migrated
-            FROM direct_conversations c
-            WHERE c.user_id = $1
-              AND c.messages_migrated = FALSE
-              ${filterClauses}
-            ORDER BY c.updated_at DESC
-            LIMIT 200
-        `, filterParams);
-        let cAdded = 0;
-        for (const conv of encCandidates) {
-            if (matchedIds.has(conv.id)) continue;
-            try {
-                const decrypted = decryptMessages(conv.messages_json || '[]', encryptionKey, conv.id, userId);
-                if (decrypted.toLowerCase().includes(lowerQuery)) {
-                    results.push({ ...conv, messages_json: decrypted });
-                    matchedIds.add(conv.id);
-                    if (++cAdded >= 50) break;
-                }
-            } catch (e) {
-                log.error('[DirectConversations] Search decrypt error:', e);
-            }
-        }
-    }
-
+    // SQL-side search in four strategies (A, A2, B, C): see stores/lib/conversationSearch.js.
+    const { results, searchCtx } = await searchConversationRows(DIRECT_SEARCH, SEARCH_DEPS, userId, query, filters, encryptionKey);
     return openTitles(results, 'direct', searchCtx)
-        .sort((a, b) => /** @type {any} */ (new Date(b.updated_at)) - /** @type {any} */ (new Date(a.updated_at)))
+        .sort(byUpdatedDesc)
         .slice(0, 50)
         .map(r => ({
             id: r.id,

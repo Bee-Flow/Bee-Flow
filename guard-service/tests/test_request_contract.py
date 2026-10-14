@@ -21,9 +21,8 @@ from __future__ import annotations
 import unittest
 
 try:
-    from pydantic import ValidationError
-
     from app.models import PiiRequest, ProbeRequest
+    from pydantic import ValidationError
 
     _IMPORT_ERROR: Exception | None = None
 except Exception as _exc:  # pragma: no cover - environment-dependent
@@ -32,10 +31,9 @@ except Exception as _exc:  # pragma: no cover - environment-dependent
 
 # The HTTP layer needs fastapi (router import) and httpx (TestClient).
 try:
+    from app.routers.pii import router as _pii_router
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-
-    from app.routers.pii import router as _pii_router
 
     _HTTP_IMPORT_ERROR: Exception | None = None
 except Exception as _exc:  # pragma: no cover - environment-dependent

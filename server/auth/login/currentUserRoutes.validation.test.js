@@ -66,7 +66,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./currentUserRoutes');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-const { dispatcher } = require('../../core/http/routeHarness');
+const { dispatcher } = require('../../testUtils/routeHarness');
 
 const dispatch = dispatcher(router, { session: () => ({ isAuthenticated: true, user: { id: 'u1' } }) });
 

@@ -6,6 +6,7 @@
 const { getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { parseJSON, mapWebpageRow } = require('./shared');
+const log = require('../../telemetry/log');
 
 /**
  * List webpages the user can see: ones they own + ones published into their
@@ -42,13 +43,30 @@ async function getAccessibleWebpages(userId, userGroupIds = [], userOrgIds = [],
 }
 
 /**
+ * The group-share rule as SQL, on the TEXT column `shared_groups` ($2 is the
+ * caller's group ids, text[]). Same reading as parseJSON + the JS rule: a
+ * NULL, a non-array or an empty array is an entire-org publish; otherwise one
+ * shared group must be one of the caller's. The CASE only casts a value that
+ * starts like a JSON array, so a non-array value never reaches ::jsonb.
+ */
+const SHARED_GROUPS_ADMIT_SQL = `(CASE
+           WHEN ltrim(shared_groups, E' \\t\\n\\r') LIKE '[%'
+             THEN (jsonb_array_length(shared_groups::jsonb) = 0
+                   OR shared_groups::jsonb ?| $2::text[])
+           ELSE TRUE
+         END)`;
+
+/**
  * Cheap existence check: does the user have at least one webpage they can
- * act on (own, or org-published into their org)? Used to grant the webpage
- * automation tools to a user who demonstrably has webpage access even when
- * the separate `webpages` beta toggle is off — the per-call canWriteWebpage
- * gate still enforces access to each specific page. Group-share membership
- * is checked in JS (mirrors getAccessibleWebpages), so we fetch a tiny
- * candidate window rather than a bare EXISTS.
+ * act on (own, or org-published into their org/groups)? Used to grant the
+ * webpage automation tools to a user who demonstrably has webpage access even
+ * when the separate `webpages` beta toggle is off — the per-call
+ * canWriteWebpage gate still enforces access to each specific page.
+ *
+ * The group-share rule (mirrors getAccessibleWebpages / canReadWebpage) runs
+ * in SQL as one EXISTS, so the answer covers EVERY published page in the org.
+ * It used to fetch an unordered window of 50 candidates and filter that in
+ * JS, which answered "no" to someone whose only page sat outside the window.
  */
 async function userHasAnyWebpageAccess(userId, userGroupIds = [], userOrgIds = []) {
     await initDB();
@@ -59,20 +77,35 @@ async function userHasAnyWebpageAccess(userId, userGroupIds = [], userOrgIds = [
     const owned = await getOne(`SELECT 1 FROM webpages WHERE user_id = $1 LIMIT 1`, [userId]);
     if (owned) return true;
     if (orgIds.length === 0) return false;
-    // Org-published candidates: fetch a small window and apply the same
-    // group-share filter getAccessibleWebpages uses.
-    const rows = await getAll(
-        `SELECT id, is_published, organization_id, shared_groups
-           FROM webpages
-          WHERE is_published = TRUE AND organization_id = ANY($1::text[])
-          LIMIT 50`,
-        [orgIds]
-    );
-    return rows.some(r => {
-        const groups = parseJSON(r.shared_groups, []);
-        if (!Array.isArray(groups) || groups.length === 0) return true; // entire-org publish
-        return groups.some(g => groupIds.includes(g));
-    });
+    try {
+        const hit = await getOne(
+            `SELECT 1 FROM webpages
+              WHERE is_published = TRUE AND organization_id = ANY($1::text[])
+                AND ${SHARED_GROUPS_ADMIT_SQL}
+              LIMIT 1`,
+            [orgIds, groupIds.filter(g => typeof g === 'string')]
+        );
+        return !!hit;
+    } catch (err) {
+        // Only a shared_groups value that starts like an array but is not
+        // valid JSON gets here (no writer produces one: they all
+        // JSON.stringify). Keep the old JS reading for it — parse failure
+        // means entire-org — over the distinct sharing configurations, which
+        // are few, instead of answering "no".
+        log.warn('[WebpageStore] userHasAnyWebpageAccess SQL check failed, using JS fallback:', err?.message);
+        const rows = await getAll(
+            `SELECT DISTINCT shared_groups FROM webpages
+              WHERE is_published = TRUE AND organization_id = ANY($1::text[])`,
+            [orgIds]
+        );
+        return rows.some(r => sharedGroupsAdmit(parseJSON(r.shared_groups, []), groupIds));
+    }
+}
+
+/** @param {unknown} groups @param {unknown[]} groupIds */
+function sharedGroupsAdmit(groups, groupIds) {
+    if (!Array.isArray(groups) || groups.length === 0) return true; // entire-org publish
+    return groups.some(g => groupIds.includes(g));
 }
 
 /**

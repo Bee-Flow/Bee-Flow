@@ -247,7 +247,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             // to the service's own env defaults when unresolved.
             let inferenceRouting = null;
             try {
-                const { resolveInferenceTargetsWithSecrets } = require('../core/webSearchInferenceResolver');
+                const { resolveInferenceTargetsWithSecrets } = require('../core/llm/webSearchInferenceResolver');
                 inferenceRouting = await resolveInferenceTargetsWithSecrets();
             } catch (_) { /* non-fatal */ }
             const sidecarT0 = Date.now();

@@ -77,6 +77,7 @@ const configStore = require('../stores/configStore');
 const { googleAdapter } = require('../core/providers');
 const { EMOJI_CATEGORIES, ALL_EMOJI_IDS, EMOJI_BY_ID } = require('../core/cms/emojiCatalog');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const { validate } = require('../core/http/validate');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
@@ -124,9 +125,6 @@ const uploadIcon = uploadGuard({
 const imageGenLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
 
 // ── Request schemas (see the header) ────────────────────────────────
-
-/** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

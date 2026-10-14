@@ -197,6 +197,20 @@ test('authfetch-effect needs both halves, and leaves tests alone', () => {
     assert.strictEqual(budgetOf(dir, 'authfetch-effect'), 1);
 });
 
+test('authfetch-outside-api counts files calling authFetch outside src/api, not api/, helpers or tests', () => {
+    const dir = sandbox({
+        files: {
+            'components/Hand.jsx': 'const r = await authFetch(url);\nconst s = await authFetch(other);\n',
+            'pages/Imports.jsx': "import { authFetch } from '../utils/helpers';\nexport { authFetch };\n",
+            'api/client.ts': 'const res = await authFetch(url, init);\n',
+            'utils/helpers.js': 'export async function authFetch(url) { return fetch(url); }\nauthFetch(x);\n',
+            'components/Hand.test.jsx': 'authFetch(url);\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'authfetch-outside-api').code, 0);
+    assert.strictEqual(budgetOf(dir, 'authfetch-outside-api'), 1);
+});
+
 test('big-file uses the package limit: 400 lines in agent-hub, 800 in server', () => {
     const hub = sandbox({ pkg: 'agent-hub', files: { 'at.jsx': lines(400), 'over.jsx': lines(401) } });
     assert.strictEqual(run(hub, 'big-file', [], 'agent-hub').code, 0);
@@ -292,4 +306,244 @@ test('status-5xx counts literal 5xx statuses in source, and leaves 4xx, computed
     });
     assert.strictEqual(run(dir, 'status-5xx').code, 0);
     assert.strictEqual(budgetOf(dir, 'status-5xx'), 2);
+});
+
+test('import-zones counts files importing against the layer direction, once each, and leaves the allowed direction alone', () => {
+    const dir = sandbox({
+        pkg: 'agent-hub',
+        files: {
+            // Upward: each counts once, however many wrong imports it has.
+            'api/queries/a.ts': "import { X } from '../../components/x/X';\nimport { P } from '../../pages/P';\n",
+            'hooks/useB.ts': "import { Ctx } from '@/components/licensing/Ctx';\n",
+            'hooks/deep/c.ts': "export { fmt } from '../../pages/settings/format';\n",
+            'components/admin/d.tsx': "const Page = lazy(() => import('../../pages/DocumentsPage'));\n",
+            'components/e.js': "const p = require('../pages/p');\n",
+            // Allowed: downward, sideways, packages, and names that only look like a zone.
+            'components/ok.tsx': "import { q } from '../api/queries/q';\nimport { useX } from '@/hooks/useX';\nimport { C } from './other/C';\nimport { Q } from '@tanstack/react-query';\n",
+            'hooks/ok.ts': "import { api } from '../api/client';\nimport { pagesOf } from '../utils/pages';\nimport x from 'components';\n",
+            'pages/P.jsx': "import { X } from '../components/x/X';\n",
+            'utils/u.js': "import { P } from '../pages/P';\n",
+            'api/comment.ts': "// see components/x/X for the shape; not an import\n",
+            // Tests may render a page: not a dependency of the product.
+            'hooks/useB.test.ts': "import P from '../pages/P';\n",
+            'components/f.test.tsx': "import P from '@/pages/P';\n",
+        },
+    });
+    const r = run(dir, 'import-zones', ['--list'], 'agent-hub');
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.strictEqual(budgetOf(dir, 'import-zones', 'agent-hub'), 5);
+    assert.doesNotMatch(r.stdout, /ok\.tsx?|pages\/P|utils\/u|comment|\.test\./);
+});
+
+test('import-zones fails a new upward import over the budget', () => {
+    const dir = sandbox({
+        pkg: 'agent-hub',
+        metric: 'import-zones',
+        budget: 0,
+        files: { 'hooks/useNew.ts': "import { Panel } from '../components/Panel';\n" },
+    });
+    const r = run(dir, 'import-zones', [], 'agent-hub');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /1 files importing against the layer direction .* budget is 0/);
+    assert.match(r.stderr, /move the shared piece down/);
+});
+
+test('unchecked-mutation counts non-GET authFetch calls nobody checks, and leaves checked, returned and GET calls alone', () => {
+    const unchecked = [
+        "export async function del(id) {\n    await authFetch(`/api/x/${id}`, { method: 'DELETE' });\n    setList((l) => l.filter((x) => x.id !== id));\n}\n",
+        "export function bg() {\n    authFetch('/api/ping', { method: 'POST' }).catch(() => {});\n}\n",
+        "export async function save() {\n    const res = await authFetch('/api/x', { method: 'PUT', body: '{}' });\n    const data = await res.json();\n    console.error(data);\n}\n",
+    ].join('');
+    const checked = [
+        // .ok read on the name
+        "export async function a() {\n    const res = await authFetch('/api/a', { method: 'POST' });\n    if (!res.ok) throw new Error('x');\n}\n",
+        // typed name, .status read
+        "export async function b() {\n    const res: Response = await authFetch('/api/b', { method: 'PATCH' });\n    return res.status;\n}\n",
+        // returned: the caller owns the check
+        "export const c = () => authFetch('/api/c', { method: 'DELETE' });\nexport function d() {\n    return authFetch('/api/d', { method: 'POST' });\n}\n",
+        // handed straight to a reader
+        "export async function e() {\n    await readJson(await authFetch('/api/e', { method: 'DELETE' }));\n}\n",
+        // ternary assignment
+        "export async function f(x) {\n    const res = x\n        ? await authFetch('/api/f', { method: 'DELETE' })\n        : await authFetch('/api/f', { method: 'POST' });\n    if (!res.ok) return;\n}\n",
+        // Promise.all destructuring
+        "export async function g() {\n    const [r1, r2] = await Promise.all([\n        authFetch('/api/g1', { method: 'POST' }),\n        authFetch('/api/g2', { method: 'POST' }),\n    ]);\n    return r1.ok && r2.ok;\n}\n",
+        // .then that reads .ok
+        "export function h() {\n    authFetch('/api/h', { method: 'POST' }).then((r) => { if (r.ok) done(); });\n}\n",
+        // body branched on
+        "export async function i() {\n    const res = await authFetch('/api/i', { method: 'DELETE' });\n    const data = await res.json();\n    if (data.success) done();\n}\n",
+        // a GET, and the definition itself
+        "export async function j() {\n    await authFetch('/api/j');\n    await authFetch('/api/j', { method: 'GET' });\n}\nexport const authFetch = async (url, options = {}) => fetch(url, options);\n",
+    ].join('');
+    const dir = sandbox({
+        pkg: 'agent-hub',
+        metric: 'unchecked-mutation',
+        files: {
+            'components/Bad.jsx': unchecked,
+            'components/Good.tsx': checked,
+            'components/Bad.test.jsx': unchecked,
+        },
+    });
+    const r = run(dir, 'unchecked-mutation', ['--list'], 'agent-hub');
+    assert.strictEqual(r.code, 0);
+    assert.strictEqual(budgetOf(dir, 'unchecked-mutation', 'agent-hub'), 3);
+    assert.match(r.stdout, /3 {2}src\/components\/Bad\.jsx/);
+    assert.doesNotMatch(r.stdout, /Good|\.test\./);
+});
+
+test('unchecked-mutation fails a new unchecked mutation over the budget and points at mutate()', () => {
+    const dir = sandbox({
+        pkg: 'agent-hub',
+        metric: 'unchecked-mutation',
+        budget: 0,
+        files: { 'pages/P.jsx': "export async function p() {\n    await authFetch('/api/p', { method: 'DELETE' });\n}\n" },
+    });
+    const r = run(dir, 'unchecked-mutation', [], 'agent-hub');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /1 non-GET authFetch calls whose Response is not checked under src, budget is 0/);
+    assert.match(r.stderr, /mutate\(\) from src\/api\/mutate\.ts/);
+});
+
+test('sse-head counts hand-written event-stream heads, and leaves core/http, readers, Accept headers and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'routes/a.js': "res.writeHead(200, {\n    'Content-Type': 'text/event-stream',\n});\nres.setHeader(\"Content-Type\", 'text/event-stream');\n",
+            'routes/b.js': "res.set({ 'content-type': 'text/event-stream' });\nres.type('text/event-stream');\n",
+            'routes/c.js': "if (ct.includes('text/event-stream')) return;\nfetch(u, { headers: { Accept: 'text/event-stream' } });\n",
+            'core/http/sseHelpers.js': "res.setHeader('Content-Type', 'text/event-stream');\n",
+            'routes/a.test.js': "res.writeHead(200, { 'Content-Type': 'text/event-stream' });\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'sse-head').code, 0);
+    assert.strictEqual(budgetOf(dir, 'sse-head'), 4);
+});
+
+test('inline-pglite counts test files with their own PGlite adapter, and leaves the shared helpers, plain pg.query use and non-tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'stores/a.test.js': "const pg = new PGlite();\nfunction adaptResult(res) {\n    return { rows: res.rows };\n}\n",
+            'stores/b.test.js': "const pg = new PGlite();\nconst db = { run: async (s, p) => ({ rows: [], rowCount: 0 }) };\n",
+            'routes/c.test.js': "const pg = new PGlite();\ndb.pool.query = (s, p) => pg.query(s, p);\n",
+            'stores/d.test.js': "const pg = new PGlite();\nconst q = pgliteQuery(pg);\nconst n = (await pg.query('SELECT 1')).rows.length;\n",
+            'testUtils/pglitePool.js': "const pg = new PGlite();\nfunction asPgResult(r) { return { rows: r.rows, rowCount: 0 }; }\n",
+            'testUtils/x.test.js': "const pg = new PGlite();\nasync function query(s) { return pg.query(s); }\n",
+            'stores/e.js': "const pg = new PGlite();\nasync function query(s) { return pg.query(s); }\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'inline-pglite').code, 0);
+    assert.strictEqual(budgetOf(dir, 'inline-pglite'), 3);
+});
+
+test('local-zod-helper counts top-level schema-helper copies in routes/ and auth/, and leaves nested names, other folders and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'routes/a.js': "const worded = (message) => z.string({ error: message });\nfunction bodyOf(shape) { return shape; }\n",
+            'auth/b.js': "const idList = (m) => z.array(z.string());\n",
+            'routes/c.js': "const { worded, choice } = require('../core/http/schemaParts');\nfunction h() {\n    const choice = data.choices?.[0];\n}\nconst wordedText = 1;\n",
+            'integrations/shared/idList.js': "function idList(value) { return value; }\n",
+            'routes/a.test.js': "const worded = (message) => z.string({ error: message });\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'local-zod-helper').code, 0);
+    assert.strictEqual(budgetOf(dir, 'local-zod-helper'), 3);
+});
+
+test('empty-catch counts empty and comment-only catch clauses, and leaves handled ones, promise .catch() and tests alone', () => {
+    const dir = sandbox({
+        files: {
+            'a.js': 'try { a(); } catch {}\ntry { b(); } catch (e) { }\ntry { c(); } catch (_) { /* best effort */ }\ntry { d(); } catch {\n    // already gone\n}\n',
+            'b.js': 'try { a(); } catch (e) { log.warn(e); }\ntry { b(); } catch { /* fall back */ return null; }\np.catch(() => {});\nx.catch((e) => {});\n',
+            'a.test.js': 'try { a(); } catch {}\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'empty-catch').code, 0);
+    assert.strictEqual(budgetOf(dir, 'empty-catch'), 4);
+});
+
+test('empty-catch fails a new swallowed error over the budget and says what to do', () => {
+    const r = run(sandbox({ metric: 'empty-catch', files: { 'a.js': 'try { a(); } catch {}\n' }, budget: 0 }), 'empty-catch');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /1 empty catch blocks under src, budget is 0/);
+    assert.match(r.stderr, /rethrow/);
+});
+
+test('rollback-in-store counts hand-written ROLLBACKs in stores/, and leaves savepoints, comments, other folders and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'stores/a.js': "await client.query('BEGIN');\nawait client.query(\"ROLLBACK\");\nawait client.query(ok ? 'COMMIT' : 'ROLLBACK');\nawait client.query(`ROLLBACK`).catch(() => {});\n",
+            'stores/lib/b.js': "await c.query('ROLLBACK TO SAVEPOINT sp');\n// withTransaction owns COMMIT/ROLLBACK\n",
+            'stores/c.js': "return db.withTransaction(async (client) => client.query('UPDATE t SET a = 1'));\n",
+            'core/d.js': "await client.query('ROLLBACK');\n",
+            'stores/a.test.js': "await client.query('ROLLBACK');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'rollback-in-store').code, 0);
+    assert.strictEqual(budgetOf(dir, 'rollback-in-store'), 3);
+});
+
+test('db-in-routes counts every spelling that resolves to db.js from routes/, and leaves other db modules, other folders and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'routes/a.js': "const db = require('../db');\nconst { query } = require('../db.js');\n",
+            'routes/admin/b.js': "const db = require('../../db');\nimport { exec } from '../../db.js';\n",
+            'routes/admin/deep/c.js': "const { pool } = require('../../../db');\n",
+            'routes/d.js': "const s = require('../stores/db');\nconst r = require('./db');\nconst k = require('../db/index');\nconst pkg = require('db');\n",
+            'core/e.js': "const db = require('../db');\n",
+            'routes/a.test.js': "const db = require('../db');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'db-in-routes').code, 0);
+    assert.strictEqual(budgetOf(dir, 'db-in-routes'), 5);
+});
+
+const longBody = (n) => `${'    x();\n'.repeat(n)}`;
+
+test('long-function counts functions over 200 lines, of every shape, and not long blocks or object literals', () => {
+    const dir = sandbox({
+        files: {
+            // 202 lines from `{` to `}`: counted.
+            'a.js': `function big() {\n${longBody(200)}}\n`,
+            // 200 lines: at the limit, not over it.
+            'b.js': `function edge() {\n${longBody(198)}}\n`,
+            'c.ts': `export const arrow = async (a: number): Promise<void> => {\n${longBody(201)}};\nclass K {\n    method(a): string {\n${longBody(201)}    }\n}\n`,
+            'd.js': `if (a) {\n${longBody(250)}}\nconst o = {\n${longBody(250)}};\nfor (const x of y) {\n${longBody(250)}}\n`,
+            'a.test.js': `function big() {\n${longBody(250)}}\n`,
+        },
+    });
+    assert.strictEqual(run(dir, 'long-function').code, 0);
+    assert.strictEqual(budgetOf(dir, 'long-function'), 3);
+});
+
+test('long-function is not misled by braces in strings, templates, comments or regex literals', () => {
+    const noise = "    const s = '{{{'; const d = \"}\"; const t = `${'{'} } {`; // }}}\n    /* { */ const r = /[{]+/.test(s);\n";
+    const dir = sandbox({
+        files: {
+            // A short function full of stray braces must close where it really ends,
+            // so the long one after it is measured from its own `{`.
+            'a.js': `function short() {\n${noise}}\nfunction long() {\n${noise}${longBody(205)}}\n`,
+            // Stray braces inside a long function must not make it look shorter.
+            'b.js': `function long() {\n${noise.repeat(3)}${longBody(200)}}\n`,
+        },
+    });
+    assert.strictEqual(run(dir, 'long-function').code, 0);
+    assert.strictEqual(budgetOf(dir, 'long-function'), 2);
+});
+
+test('long-function --list names the files, and --update only lowers', () => {
+    const big = `function big() {\n${longBody(205)}}\n`;
+    const dir = sandbox({ metric: 'long-function', files: { 'two.js': `${big}${big}`, 'one.js': big, 'small.js': 'function s() {}\n' }, budget: 9 });
+    const r = run(dir, 'long-function', ['--list']);
+    assert.strictEqual(r.code, 0);
+    assert.match(r.stdout, /2 {2}src\/two\.js\n\s+1 {2}src\/one\.js/);
+    assert.doesNotMatch(r.stdout, /small\.js/);
+    run(dir, 'long-function', ['--update']);
+    assert.strictEqual(budgetOf(dir, 'long-function'), 3);
+    fs.writeFileSync(path.join(dir, 'pkg/src/three.js'), big);
+    run(dir, 'long-function', ['--update']);
+    assert.strictEqual(budgetOf(dir, 'long-function'), 3, 'an --update must not raise the budget');
+    assert.strictEqual(run(dir, 'long-function').code, 1);
 });

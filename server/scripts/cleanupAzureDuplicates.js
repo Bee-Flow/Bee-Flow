@@ -22,8 +22,9 @@
  *
  * Safety:
  *   - Dry-run by default.
- *   - Refuses to delete an orphan that has chat/memory/execution history
- *     unless --force is supplied.
+ *   - Refuses to delete an orphan that owns rows in ANY user table (found
+ *     from the catalog by scripts/lib/userDataFootprint.js, not a fixed list)
+ *     unless --force is supplied. A table whose count fails counts as data.
  *   - Re-running is a no-op.
  */
 
@@ -31,37 +32,14 @@ const path = require('path');
 const { pool } = require(path.join(__dirname, '..', 'db'));
 const userStore = require(path.join(__dirname, '..', 'stores', 'userStore'));
 const { isAzureOid } = require(path.join(__dirname, '..', 'auth', 'ssoUserResolver'));
+const { discoverUserTables, userDataFootprint, isSafeToDelete } = require('./lib/userDataFootprint');
 
-const APPLY = process.argv.includes('--apply');
-const FORCE = process.argv.includes('--force');
+const { parseOpsArgsOrExit } = require('./lib/opsArgs');
 
-// Tables that store per-user rows. Used to decide whether an orphan is "empty"
-// and safe to drop, or holds content that a human needs to review first.
-const USER_DATA_TABLES = [
-    { table: 'user_memories',        column: 'user_id' },
-    { table: 'agent_conversations',  column: 'user_id' },
-    { table: 'direct_conversations', column: 'user_id' },
-    { table: 'execution_history',    column: 'user_id' },
-];
-
-async function countUserRows(userId) {
-    const counts = {};
-    let total = 0;
-    for (const { table, column } of USER_DATA_TABLES) {
-        try {
-            const { rows } = await pool.query(
-                `SELECT COUNT(*)::int AS n FROM ${table} WHERE ${column} = $1`,
-                [userId],
-            );
-            const n = rows[0]?.n || 0;
-            if (n > 0) counts[table] = n;
-            total += n;
-        } catch (_) {
-            // Table may not exist in this deployment — treat as zero.
-        }
-    }
-    return { counts, total };
-}
+const ARGS = parseOpsArgsOrExit({ force: { type: 'boolean', default: false } },
+    { usage: 'Usage: node server/scripts/cleanupAzureDuplicates.js [--apply [--force]]' });
+const APPLY = ARGS.apply;
+const FORCE = ARGS.force;
 
 function pickCanonical(a, b) {
     // Prefer the non-GUID id; if both look canonical or both look like GUIDs,
@@ -159,15 +137,22 @@ async function main() {
 
     console.log(`Found ${pairs.length} duplicate pair(s):\n`);
 
+    // Discover once; a failure here aborts before anything is changed.
+    const userTables = await discoverUserTables(pool);
+    console.log(`Checking orphans against ${userTables.length} table(s) that hold user data.\n`);
+
     let deleted = 0;
     let backfilled = 0;
     let skipped = 0;
 
     for (const { canonical, orphan, email } of pairs) {
-        const { counts, total } = await countUserRows(orphan.id);
-        const refsStr = total === 0
-            ? 'no downstream data'
-            : `refs: ${Object.entries(counts).map(([t, n]) => `${t}=${n}`).join(', ')}`;
+        const footprint = await userDataFootprint(pool, orphan.id, userTables);
+        const { counts, total, errors } = footprint;
+        const failed = Object.keys(errors);
+        const parts = [];
+        if (total > 0) parts.push(`refs: ${Object.entries(counts).map(([t, n]) => `${t}=${n}`).join(', ')}`);
+        if (failed.length > 0) parts.push(`unchecked (count failed): ${failed.join(', ')}`);
+        const refsStr = parts.length === 0 ? 'no downstream data' : parts.join('; ');
 
         console.log(`• ${email || '(no email)'}`);
         console.log(`    canonical: id=${canonical.id}  azureUserId=${canonical.azureUserId || 'NULL'}  org=${canonical.organizationId || 'NULL'}`);
@@ -187,8 +172,11 @@ async function main() {
         }
 
         // 2. Delete orphan unless it holds data without --force.
-        if (total > 0 && !FORCE) {
-            console.log(`    ⚠ orphan holds ${total} row(s) of user data — skipping delete (re-run with --force to discard)`);
+        if (!isSafeToDelete(footprint) && !FORCE) {
+            const why = failed.length > 0
+                ? `orphan holds ${total} row(s) of user data and ${failed.length} table(s) could not be checked`
+                : `orphan holds ${total} row(s) of user data`;
+            console.log(`    ⚠ ${why} — skipping delete (re-run with --force to discard)`);
             skipped++;
         } else if (APPLY) {
             const ok = await userStore.deleteUser(orphan.id);
@@ -199,7 +187,7 @@ async function main() {
                 console.log(`    ! delete failed for ${orphan.id}`);
             }
         } else {
-            console.log(`    ✖ would delete orphan ${orphan.id}${total > 0 ? ` (${total} row(s) would be discarded with --force)` : ''}`);
+            console.log(`    ✖ would delete orphan ${orphan.id}${isSafeToDelete(footprint) ? '' : ` (${total} row(s)${failed.length ? ` + ${failed.length} unchecked table(s)` : ''} would be discarded with --force)`}`);
             deleted++;
         }
         console.log('');

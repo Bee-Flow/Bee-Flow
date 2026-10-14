@@ -18,16 +18,7 @@ function asObject(v) { return v && typeof v === 'object' && !Array.isArray(v) ? 
 function plural(n, noun) { return `${n} ${noun}${n === 1 ? '' : 's'}`; }
 function stableJson(v) {
     // Sorted-key stringify so a reordered-but-equal object isn't "changed".
-    const sort = (x) => {
-        if (Array.isArray(x)) return x.map(sort);
-        if (x && typeof x === 'object') {
-            const out = {};
-            for (const k of Object.keys(x).sort()) out[k] = sort(x[k]);
-            return out;
-        }
-        return x;
-    };
-    return JSON.stringify(sort(v ?? null));
+    return sortedKeysJson(v ?? null, { toJSON: false });
 }
 
 function stepMap(def) {
@@ -108,6 +99,7 @@ function summarizeDefinitionDiffLine(prevDef, nextDef) {
 // Handoff 5 (artboard 5d): the per-field diff, the plain-language version
 // description and the layout-only test live in fieldDiff.js; re-exported here
 // so the version writer reads every "what changed" answer from one module.
+const { sortedKeysJson } = require('../utils/stableJson');
 const { fieldDiff, describeChange, describeVersion, describeText, isLayoutOnlyChange, stepIdsOf } = require('./fieldDiff');
 const { SETTINGS_KEYS } = require('../core/automationRunner/definitionForRun');
 

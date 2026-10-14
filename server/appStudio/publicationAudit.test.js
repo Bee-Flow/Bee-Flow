@@ -120,7 +120,11 @@ test('every route that changes who can reach an app writes a row', () => {
     // routes below are the ones that move an app between audiences; a fifth
     // would need adding here and in publicationAudit.js, and this fails naming
     // it rather than shipping an unlogged exposure change.
-    const src = fs.readFileSync(path.resolve(__dirname, '../routes/studioApps.js'), 'utf8');
+    // The router is split per resource group under routes/studioApps/; every
+    // part is read, so a route moving between them cannot slip past this check.
+    const dir = path.resolve(__dirname, '../routes/studioApps');
+    const src = fs.readdirSync(dir).filter((n) => n.endsWith('.js') && !n.includes('.test.')).sort()
+        .map((n) => fs.readFileSync(path.join(dir, n), 'utf8')).join('\n');
 
     const EXPOSURE_ROUTES = [
         ["router.patch('/:id/publish'", 'auditPublishChange', 'publishing to the org or to groups'],
@@ -143,5 +147,5 @@ test('every route that changes who can reach an app writes a row', () => {
     }
 
     // And the module is required, not re-implemented per route.
-    assert.match(src, /require\('\.\.\/appStudio\/publicationAudit'\)/);
+    assert.match(src, /require\('(?:\.\.\/)+appStudio\/publicationAudit'\)/);
 });

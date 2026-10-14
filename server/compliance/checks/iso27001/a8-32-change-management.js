@@ -7,7 +7,7 @@
  * CI run conclusions ride along as supporting evidence (A.8.29 testing).
  */
 
-const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { readConnectorSnapshots, noSnapshotYet } = require('../lib/connectorSnapshots');
 
 const FAIL_RATIO = 0.30;
 
@@ -26,22 +26,10 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'github').catch(() => null);
-        if (!config?.enabled) {
-            return {
-                status: 'not_applicable',
-                evidence: { connector: 'github', enabled: false },
-                details: 'GitHub connector not enabled — link a token and list your repositories under ISO 27001 → Connectors.',
-            };
-        }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'github').catch(() => []);
-        if (!snaps.length) {
-            return {
-                status: 'warn',
-                evidence: { connector: 'github', enabled: true, snapshots: 0 },
-                details: 'Connector enabled but no snapshot yet — run a sweep or check the configured repositories.',
-            };
-        }
+        const read = await readConnectorSnapshots(orgId, 'github', 'GitHub connector not enabled — link a token and list your repositories under ISO 27001 → Connectors.');
+        if (read.result) return read.result;
+        const { snaps } = read;
+        if (!snaps.length) return noSnapshotYet('github', 'Connector enabled but no snapshot yet — run a sweep or check the configured repositories.');
         const repos = snaps.map(s => s.payload || {});
         let sampled = 0;
         let approved = 0;

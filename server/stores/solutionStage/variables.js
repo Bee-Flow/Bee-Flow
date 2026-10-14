@@ -31,7 +31,7 @@
 
 'use strict';
 
-const { storeError } = require('../lib/managedParts');
+const { storeError } = require('../lib/storeError');
 
 const VARIABLE_NAME_RE = /^[a-z][a-z0-9_]{0,62}$/;
 const VARIABLE_TYPES = Object.freeze(['text', 'number', 'boolean', 'url', 'email', 'choice']);

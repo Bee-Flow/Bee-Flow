@@ -5,7 +5,7 @@
  * operating-effectiveness side an auditor can verify from outside.
  */
 
-const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { readConnectorSnapshots, noSnapshotYet } = require('../lib/connectorSnapshots');
 
 const MIN_DAYS_WARN = 30;
 
@@ -24,23 +24,11 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'tls-endpoints').catch(() => null);
-        if (!config?.enabled) {
-            return {
-                status: 'not_applicable',
-                evidence: { connector: 'tls-endpoints', enabled: false },
-                details: 'TLS-endpoint connector not enabled — list your public endpoints under ISO 27001 → Connectors.',
-            };
-        }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'tls-endpoints').catch(() => []);
+        const read = await readConnectorSnapshots(orgId, 'tls-endpoints', 'TLS-endpoint connector not enabled — list your public endpoints under ISO 27001 → Connectors.');
+        if (read.result) return read.result;
+        const { snaps } = read;
         const probed = snaps.filter(s => !s.payload?.skipped);
-        if (!probed.length) {
-            return {
-                status: 'warn',
-                evidence: { connector: 'tls-endpoints', enabled: true, endpoints: 0 },
-                details: 'Connector enabled but no endpoints probed yet — add endpoints or run a sweep.',
-            };
-        }
+        if (!probed.length) return noSnapshotYet('tls-endpoints', 'Connector enabled but no endpoints probed yet — add endpoints or run a sweep.', { endpoints: 0 });
         const rows = probed.map(s => ({
             host: s.payload.host,
             reachable: !!s.payload.reachable,

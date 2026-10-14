@@ -34,6 +34,7 @@ const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { z, typeError } = require('../../../utils/zod');
+const { orEmpty: bodyOf } = require('../../../core/http/schemaParts');
 
 async function requireAdmin(req, res, next) {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
@@ -41,9 +42,6 @@ async function requireAdmin(req, res, next) {
 }
 
 // ── What an admin may send ────────────────────────────────────────────────
-
-/** An absent body is an empty one, so each missing field gets its sentence rather than "Required". */
-const bodyOf = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
 const PROMPT_TEXT = 'systemPrompt is the prompt text; send an empty string to use the default.';
 const SystemPromptBody = bodyOf(z.object({

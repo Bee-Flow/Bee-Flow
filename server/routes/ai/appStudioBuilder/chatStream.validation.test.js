@@ -17,6 +17,7 @@
 process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
+const { quietSse } = require('../../../testUtils/quietSse');
 const assert = require('node:assert');
 const Module = require('module');
 
@@ -30,7 +31,7 @@ const MOCKS = {
     '../../../stores/studioAppStore': {},
     '../../../core/providers': { getAdapter: () => { touched.push('adapter'); return {}; } },
     '../../../utils/perUserRateLimit': { perUserRateLimit: () => pass },
-    '../../../core/http/sseHelpers': { startSseHeartbeat: () => () => {} },
+    '../../../core/http/sseHelpers': quietSse(),
     '../../../auth/permissions': { requireAuth: pass },
     '../../../auth': { resolveUserOrgIds: async () => { touched.push('orgs'); return new Set(['orgA']); } },
     // A valid turn is stopped here, still pre-SSE, by a spent allowance.

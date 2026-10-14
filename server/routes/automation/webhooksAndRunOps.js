@@ -8,6 +8,7 @@ const { webhookUrlForSlug, formUrlForToken } = require('../../automation/publicU
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 // Handoff 5 sharing: what a role may do with an automation and its runs.
 const { makeAutomationAccess, mayReadRun, roleSatisfies } = require('../../automation/access');
@@ -29,9 +30,6 @@ const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_
 // Every schema is `.strict()`: a key this router does not read is a client
 // bug, and answering 200 to it means the person watches a setting they typed
 // fail to stick with nothing on screen to explain it.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /**
  * A body that also accepts NO body at all. Express 5 leaves `req.body`

@@ -222,6 +222,33 @@ const ATTR_NAME_RX = /[A-Za-z_][A-Za-z0-9_:.-]*/y;
 const TAG_NAME_RX = /[A-Za-z_$][A-Za-z0-9_$.:-]*/y;
 
 /**
+ * Index just past the TypeScript type-argument or type-parameter list opening
+ * at `at` (a `<`). Angle brackets are counted, and the `>` of an `=>` inside a
+ * function type does not close anything. Two TSX shapes need it, both common
+ * in mobile/src: an element with type arguments (`<SectionList<Hit, Section>`,
+ * `<Segmented<View>`), whose name the tag regex stops at before the second
+ * `<`, and a generic arrow (`<K extends keyof T>(key: K) => …`), which TSX
+ * spells with `extends` or a trailing comma precisely so it is not read as an
+ * element. Without this both leave the stack in a tag frame and the file is
+ * reported as unparsed.
+ */
+function endOfTypeArgs(src, at) {
+    let depth = 0;
+    for (let i = at; i < src.length; i++) {
+        const c = src[i];
+        if (c === '<') depth++;
+        else if (c === '>' && src[i - 1] !== '=') {
+            depth--;
+            if (depth === 0) return i + 1;
+        }
+    }
+    return src.length;
+}
+
+// `<T extends …>` or `<T,>` in code: a generic arrow's parameter list, not an element.
+const GENERIC_PARAMS_RX = /<[A-Za-z_$][A-Za-z0-9_$]*\s*(?:extends\b|,)/y;
+
+/**
  * Every literal attribute value and every text node in `src`, each with the
  * tag it belongs to.
  *
@@ -265,6 +292,13 @@ function scanJsx(src) {
     // Landing back in a parent frame after a closed element: in children the
     // text picks up again, in code the element counts as a finished expression
     // (so the `<` of a sibling element is still in expression position).
+    // Push a tag frame for the element whose `<` is at `at`, stepping over
+    // type arguments written right after its name. Returns the next index.
+    const openTag = (name, at) => {
+        stack.push({ type: 'tag', tag: name });
+        const next = at + 1 + name.length;
+        return src[next] === '<' ? endOfTypeArgs(src, next) : next;
+    };
     const resume = (at) => {
         const parent = stack[stack.length - 1];
         if (parent.type === 'children') textFrom = at;
@@ -288,9 +322,11 @@ function scanJsx(src) {
                 top.braces--; top.prev = { text: c }; i++; continue;
             }
             if (c === '<' && opensExpression(top.prev)) {
+                GENERIC_PARAMS_RX.lastIndex = i;
+                if (GENERIC_PARAMS_RX.test(src)) { i = endOfTypeArgs(src, i); top.prev = { text: 'T', word: true }; continue; }
                 TAG_NAME_RX.lastIndex = i + 1;
                 const tag = TAG_NAME_RX.exec(src);
-                if (tag && tag.index === i + 1) { stack.push({ type: 'tag', tag: tag[0] }); i += 1 + tag[0].length; continue; }
+                if (tag && tag.index === i + 1) { i = openTag(tag[0], i); continue; }
                 if (src[i + 1] === '>') { stack.push({ type: 'children', tag: '' }); i += 2; textFrom = i; continue; }
             }
             IDENT_RX.lastIndex = i;
@@ -348,7 +384,7 @@ function scanJsx(src) {
             }
             TAG_NAME_RX.lastIndex = i + 1;
             const tag = TAG_NAME_RX.exec(src);
-            if (tag && tag.index === i + 1) { stack.push({ type: 'tag', tag: tag[0] }); i += 1 + tag[0].length; continue; }
+            if (tag && tag.index === i + 1) { i = openTag(tag[0], i); continue; }
             if (src[i + 1] === '>') { stack.push({ type: 'children', tag: '' }); i += 2; textFrom = i; continue; }
             i++;
             continue;

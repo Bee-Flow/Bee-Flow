@@ -9,8 +9,8 @@ decides whether the match is emitted, and at what confidence.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Callable, Iterable
 
 # The demotion factor near-miss emission shares with _apply_validators —
 # IMPORTED, not copied: a drifted copy would give the two tiers different

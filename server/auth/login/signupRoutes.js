@@ -21,9 +21,7 @@ const signupCaptcha = require('../signupCaptcha');
 const { signupIpLimiter, signupTargetLimiter } = require('../authRateLimits');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 const CREDENTIALS_TEXT = 'Username and password are required';
 

@@ -15,7 +15,7 @@
  * local text.
  *
  * The store is swapped on its shared module object (testUtils/swaps.js), the
- * database only records (core/http/routeHarness.js): no module mocking.
+ * database only records (testUtils/routeHarness.js): no module mocking.
  *
  * Run: cd server && node --test routes/notebooks.roles.test.js
  */
@@ -26,7 +26,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 const { makeSwaps } = require('../testUtils/swaps');
 
 const notebookStore = require('../stores/notebookStore');

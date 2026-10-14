@@ -28,9 +28,7 @@ const orgHealth = require('../services/orgHealth'); // fire-and-forget lifecycle
 const { ensureOrgAdminUser, bindOrgToNcInstance, getOrMintTenantKey } = bootstrapHelpers;
 const { validate } = require('../core/http/validate');
 const { z } = require('../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../core/http/schemaParts');
 
 function isExpired(row) {
     return row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now();

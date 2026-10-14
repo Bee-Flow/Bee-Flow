@@ -43,7 +43,7 @@
 
 'use strict';
 
-const { storeError } = require('../stores/lib/managedParts');
+const { storeError } = require('../stores/lib/storeError');
 
 /**
  * How a project relates to Solution stages, read uncached. `stageOf` is the

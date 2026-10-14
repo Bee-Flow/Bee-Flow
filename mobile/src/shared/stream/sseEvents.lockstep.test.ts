@@ -1,8 +1,11 @@
 /**
- * The web's SSE switch, against the phone's adapters.
+ * The web's SSE handlers, against the phone's adapters.
  *
- * agent-hub/src/hooks/useChatEngine/sseEvents.ts is the web client's handler
- * for every chat stream event. Each `case '<event>'` there must be either
+ * agent-hub/src/hooks/useChatEngine/sse/ is the web client's handler for
+ * every chat stream event: one handler map per event family in
+ * sse/handlers/*.ts, merged in sse/dispatch.ts (sseEvents.ts, once the
+ * switch itself, re-exports the dispatcher). Each event key of a family map
+ * that dispatch.ts merges must be either
  * accounted for by at least one mobile surface (routed, or IGNORE in its
  * adapter) or listed below with a one-line reason. A new event on the web
  * then fails here until somebody decides what the phone does with it —
@@ -22,7 +25,8 @@ import { MEETING_FRAMES } from './adapters/meeting';
 import { WEBPAGE_FRAMES } from './adapters/webpage';
 import { accounts, type FrameAdapter } from './chatFrameReducer';
 
-const WEB_SWITCH = path.resolve(__dirname, '../../../../agent-hub/src/hooks/useChatEngine/sseEvents.ts');
+const WEB_ENGINE = path.resolve(__dirname, '../../../../agent-hub/src/hooks/useChatEngine');
+const readEngine = (rel: string) => fs.readFileSync(path.join(WEB_ENGINE, rel), 'utf8');
 
 const SURFACES: Record<string, FrameAdapter<never>> = {
     direct: DIRECT_FRAMES as FrameAdapter<never>,
@@ -50,9 +54,27 @@ const IGNORED: Record<string, string> = {
     memory_used: 'Which memories shaped a reply: a disclosure under the message in the web chat; the phone shows none yet.',
 };
 
+/** The family maps dispatch.ts imports from ./handlers/ AND merges into SSE_HANDLERS. */
+function webFamilies(): { name: string; file: string }[] {
+    const dispatch = readEngine('sse/dispatch.ts');
+    const table = dispatch.slice(dispatch.indexOf('export const SSE_HANDLERS = buildHandlerTable(['));
+    const merged = table.slice(0, table.indexOf(']);'));
+    return [...dispatch.matchAll(/^import \{ ([A-Za-z]+Handlers) \} from '\.\/handlers\/([A-Za-z]+)';$/gm)]
+        .map((m) => ({ name: m[1] as string, file: `sse/handlers/${m[2] as string}.ts` }))
+        .filter(({ name }) => new RegExp(`\\b${name},`).test(merged));
+}
+
+/** The event keys of one `export const xHandlers: SseHandlerMap = { … };`, each a method at the map's indent. */
+function familyEvents(file: string, name: string): string[] {
+    const source = readEngine(file);
+    const start = source.indexOf(`export const ${name}: SseHandlerMap = {`);
+    if (start < 0) throw new Error(`${name} is gone from ${file}`);
+    const body = source.slice(start, source.indexOf('\n};', start));
+    return [...body.matchAll(/^ {4}(?:'([a-z_]+)'|([a-z_]+))\s*(?:\(|:)/gm)].map((m) => (m[1] ?? m[2]) as string);
+}
+
 function webEvents(): string[] {
-    const source = fs.readFileSync(WEB_SWITCH, 'utf8');
-    return [...new Set([...source.matchAll(/case '([a-z_]+)'/g)].map((m) => m[1] as string))];
+    return [...new Set(webFamilies().flatMap(({ file, name }) => familyEvents(file, name)))];
 }
 
 const handledOnPhone = (event: string) => Object.values(SURFACES).some((adapter) => accounts(adapter, event));
@@ -62,6 +84,15 @@ describe('the web chat switch and the phone adapters', () => {
 
     it('reads enough events for the check to mean something', () => {
         expect(events.length).toBeGreaterThan(50);
+    });
+
+    it('reads every family the dispatcher merges, and the old path still dispatches through it', () => {
+        const families = webFamilies();
+        expect(families.length).toBeGreaterThanOrEqual(11);
+        const dispatch = readEngine('sse/dispatch.ts');
+        expect(dispatch.match(/^import \{ [A-Za-z]+Handlers \} from '\.\/handlers\//gm)?.length).toBe(families.length);
+        expect(dispatch).toContain('SSE_HANDLERS.get(event)?.(ctx, data, ids);');
+        expect(readEngine('sseEvents.ts')).toContain("export { dispatchSSEEvent } from './sse/dispatch';");
     });
 
     it('accounts for every web event on some surface, or says why not', () => {

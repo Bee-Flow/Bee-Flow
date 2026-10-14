@@ -153,7 +153,7 @@ function createBuilderStream() {
         async runDelegationTool(name, args, ctx) { return script.dispatch(name, args, ctx.draftWrap, ctx); },
     });
     // A 10s ping interval would outlive the turn and hold the test process.
-    swap('core/http/sseHelpers', { startSseHeartbeat: () => () => {} });
+    swap('core/http/sseHelpers', require('./quietSse').quietSse());
     swap('routes/ai/automationBuilder/rateLimits', { builderRateLimit: (_req, _res, next) => next() });
 
     // The real gate verifies the session against the database; the harness

@@ -1,7 +1,21 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { centreOn, DEFAULT_BOUNDS, isVisibleOn, MIN_HEIGHT, MIN_WIDTH, normaliseWindowState, restoreBounds, type DisplayLike } from './windowState.ts';
+import {
+    centreOn,
+    DEFAULT_BOUNDS,
+    isVisibleOn,
+    MIN_HEIGHT,
+    MIN_WIDTH,
+    normaliseWindowState,
+    readWindowState,
+    restoreBounds,
+    serialiseWindowState,
+    windowStateOf,
+    writeWindowState,
+    type DisplayLike,
+    type WindowLike,
+} from './windowState.ts';
 
 const laptop: DisplayLike = { workArea: { x: 0, y: 0, width: 1920, height: 1080 } };
 const external: DisplayLike = { workArea: { x: 1920, y: 0, width: 2560, height: 1440 } };
@@ -80,5 +94,50 @@ describe('normaliseWindowState', () => {
         for (const junk of [null, undefined, 'x', 42, []]) {
             assert.deepEqual(normaliseWindowState(junk), {});
         }
+    });
+});
+
+describe('windowStateOf', () => {
+    const normal = { x: 100, y: 80, width: 1200, height: 800 };
+    const full = { x: 0, y: 0, width: 1920, height: 1080 };
+    const window = (maximised: boolean, fullScreen: boolean): WindowLike => ({
+        isMaximized: () => maximised,
+        isFullScreen: () => fullScreen,
+        getBounds: () => (maximised || fullScreen ? full : normal),
+        getNormalBounds: () => normal,
+    });
+
+    it('remembers the bounds of an ordinary window', () => {
+        assert.deepEqual(windowStateOf(window(false, false)), { ...normal, maximised: false, fullScreen: false });
+    });
+
+    it('remembers the normal bounds of a maximised or full-screen window, not the screen', () => {
+        assert.deepEqual(windowStateOf(window(true, false)), { ...normal, maximised: true, fullScreen: false });
+        assert.deepEqual(windowStateOf(window(false, true)), { ...normal, maximised: false, fullScreen: true });
+    });
+});
+
+describe('reading and writing the state file', () => {
+    const state = { x: 10, y: 20, width: 1000, height: 700, maximised: false, fullScreen: false };
+
+    it('writes indented JSON with a trailing newline, and reads it back', async () => {
+        const files = new Map<string, string>();
+        await writeWindowState('/state.json', state, async (file, contents) => {
+            files.set(file, contents);
+        });
+        assert.equal(files.get('/state.json'), serialiseWindowState(state));
+        assert.equal(serialiseWindowState(state), `${JSON.stringify(state, null, 4)}\n`);
+        assert.deepEqual(await readWindowState('/state.json', async (file) => files.get(file) ?? ''), state);
+    });
+
+    it('reads a missing or broken file as no state', async () => {
+        assert.deepEqual(
+            await readWindowState('/missing.json', async () => {
+                throw new Error('ENOENT');
+            }),
+            {},
+        );
+        assert.deepEqual(await readWindowState('/broken.json', async () => '{"x": 1,'), {});
+        assert.deepEqual(await readWindowState('/odd.json', async () => '{"x": "left", "width": 900.4}'), { width: 900 });
     });
 });

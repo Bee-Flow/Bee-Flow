@@ -12,7 +12,7 @@ const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 const { PGlite } = require('@electric-sql/pglite');
 
-const { serve, assertRefused } = require('../../core/http/routeHarness');
+const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const { applyProjectCheckSchema, queryOf } = require('../../compliance/projects/testSchema');
 const { makeProjectRegistrationRouter } = require('./projectRegistrations');
 

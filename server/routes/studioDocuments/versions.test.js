@@ -13,7 +13,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const { makeDocumentVersionsRouter } = require('./versions');
 
 const DOC = { id: 'd1', userId: 'owner', name: 'Plan', docType: 'report', versionId: 'v2', baselineVersionId: 'v1', projectId: 'p1', bodyHtml: '<p>now</p>' };

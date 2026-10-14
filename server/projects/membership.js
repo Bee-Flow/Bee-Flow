@@ -134,7 +134,7 @@ const WORKSPACE_ONLY = Object.freeze(['workspace']);
  */
 const stageGuard = {
     /** @returns {{ assertManagedWrite: Function }} */
-    managedParts: () => require('../stores/lib/managedParts'),
+    managedParts: () => require('../stores/managedPartsDefault'),
     /**
      * The project an item of `table` is filed in, or null (none, or no such
      * item). `table` and `column` are literals from the registry below, never input.

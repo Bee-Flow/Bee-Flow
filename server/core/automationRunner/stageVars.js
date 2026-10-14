@@ -36,7 +36,7 @@ function ownVars(definition) {
 
 const defaultDeps = {
     variableValuesFor: (projectId) => require('../../stores/solutionStageStore').variableValuesFor(projectId),
-    managedInfo: (projectId) => require('../../stores/lib/managedParts').managedInfo(projectId),
+    managedInfo: (projectId) => require('../../stores/managedPartsDefault').managedInfo(projectId),
     log,
 };
 

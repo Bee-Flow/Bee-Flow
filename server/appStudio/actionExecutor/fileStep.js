@@ -106,7 +106,7 @@ async function generateFileStep(app, model, step, ctx) {
     if (rows.length > MAX_EXPORT_ROWS) { rows = rows.slice(0, MAX_EXPORT_ROWS); truncated = true; }
 
     // columns — the editable format profile.
-    const officegen = require('../../integrations/officegen');
+    const officegen = require('../../core/documents/office/officegen');
     const columns = normalizeExportColumns(
         stepDataSource.isDataBinding(step.columns)
             ? await stepDataSource.resolveDataBinding(app, model, step.columns, {

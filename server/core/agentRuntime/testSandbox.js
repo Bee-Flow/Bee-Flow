@@ -70,7 +70,7 @@
  * Run: cd server && node --test --test-force-exit core/agentRuntime/testSandbox.test.js
  */
 
-const { effectOf } = require('../../automation/sideEffectMap');
+const { effectOf } = require('../automationModel/sideEffectMap');
 const { confirmForTool, toolsConfigOf } = require('./toolPolicy');
 
 /** Bounds on everything a person (or a model) can type into a test. */

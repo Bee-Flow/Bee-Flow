@@ -191,9 +191,14 @@ const mockDbStore = {
 
 const Module = require('module');
 const originalResolve = Module._resolveFilename;
+// The store's parts live in stores/studioAppData/ and reach the same two
+// collaborators one directory further up.
+const path = require('path');
+const partsDir = path.join(__dirname, 'studioAppData');
+const fromParts = (parent) => !!parent && typeof parent.filename === 'string' && path.dirname(parent.filename) === partsDir;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (request === '../db') return 'mock-db';
-    if (request === './studioAppDbStore') return 'mock-dbstore';
+    if (request === '../db' || (request === '../../db' && fromParts(parent))) return 'mock-db';
+    if (request === './studioAppDbStore' || (request === '../studioAppDbStore' && fromParts(parent))) return 'mock-dbstore';
     return originalResolve.call(this, request, parent, ...rest);
 };
 require.cache['mock-db'] = { id: 'mock-db', exports: mockDb };

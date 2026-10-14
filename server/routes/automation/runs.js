@@ -602,23 +602,21 @@ router.get('/_runs/stream', validate({ query: StreamQuery }), async (req, res) =
     const me = req.session.user.id;
     const scopeAutomationId = req.query.automationId || null;
     const { onAny } = require('../../core/runEventBus');
-    const { startSseHeartbeat } = require('../../core/http/sseHelpers');
-    res.set({
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-        'X-Accel-Buffering': 'no',
+    const { openSse } = require('../../core/http/sseHelpers');
+    // The head Express's res.set wrote (it appends the charset), and a 25 s
+    // `: keepalive` comment: unref'd, and it self-stops on res
+    // close/finish/error — previously a bare setInterval that leaked if
+    // 'close' never fired.
+    const { sendRaw, stopHeartbeat } = openSse(res, {
+        charset: 'utf-8', viaSetHeader: true, flush: true,
+        heartbeat: { intervalMs: 25_000, frame: ': keepalive\n\n' },
     });
-    res.flushHeaders?.();
     const unsubscribe = onAny((event) => {
         // Per-user scoping — never leak another user's run activity.
         if (event.userId && event.userId !== me) return;
         if (scopeAutomationId && event.automationId && event.automationId !== scopeAutomationId) return;
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        sendRaw(`data: ${JSON.stringify(event)}\n\n`);
     });
-    // unref'd heartbeat that also self-stops on res close/finish/error —
-    // previously a bare setInterval that leaked if 'close' never fired.
-    const stopHeartbeat = startSseHeartbeat(res, 25_000, { frame: ': keepalive\n\n' });
     req.on('close', () => {
         stopHeartbeat();
         unsubscribe();

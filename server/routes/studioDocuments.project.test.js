@@ -10,7 +10,7 @@
  * for a member who tries to delete a colleague's document, where a stranger
  * still gets the 404 that hides the document exists.
  *
- * The real router behind a real express app (core/http/routeHarness.js): the
+ * The real router behind a real express app (testUtils/routeHarness.js): the
  * database is recorded, the session gates are session-only, and the store's
  * functions are swapped on the module object the router calls at request time
  * (testUtils/swaps.js). No module mocking.
@@ -20,7 +20,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 const { makeSwaps } = require('../testUtils/swaps');
 
 h.recordDb();

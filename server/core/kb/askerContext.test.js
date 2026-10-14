@@ -42,7 +42,7 @@ stub('../../stores/userStore', {
         return fx.groups;
     },
 });
-stub('../../auth', {
+stub('../../auth/audience', {
     resolveUserGroups: async (id) => {
         if (fx.resolveGroupsThrows) throw new Error('auth is down');
         const u = fx.users[id];

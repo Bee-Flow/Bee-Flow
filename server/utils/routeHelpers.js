@@ -59,7 +59,7 @@ function getEffectiveUserId(req) {
  * @returns {Promise<object>} { accessToken, nextcloudUrl, appPasswordUsername, appPassword, encryptionKey }
  */
 async function getUserAuth(req) {
-    const { resolveUserOrgIds } = require('../auth');
+    const { resolveUserOrgIds } = require('../auth/permissions');
 
     // Resolve user's org for EU mode and other org-scoped features.
     //

@@ -670,18 +670,6 @@ server {
         proxy_buffering off;
     }
 
-    # Proxy /components requests
-    location /components {
-        proxy_pass $backend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $forwarded_proto;
-        proxy_cache_bypass $http_upgrade;
-    }
-
     # Proxy /group-chats requests (roundtable / multi-agent chats)
     location /group-chats {
         proxy_pass $backend;
@@ -777,18 +765,6 @@ server {
 
     # Proxy /execute requests
     location /execute {
-        proxy_pass $backend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $forwarded_proto;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Proxy /test-component requests
-    location /test-component {
         proxy_pass $backend;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;

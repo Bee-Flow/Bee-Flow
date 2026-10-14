@@ -89,7 +89,8 @@ test('connectorJwt establishes the session in-memory, not via establishSession',
 });
 
 test('the x-session-token bridge suppresses; login routes do not', () => {
-    const indexSrc = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+    // The bridge middleware lives in boot/session.js (applySessionBridge).
+    const indexSrc = fs.readFileSync(path.join(__dirname, '..', 'boot', 'session.js'), 'utf8');
     const bridge = indexSrc.slice(indexSrc.indexOf("x-session-token"), indexSrc.indexOf("x-session-token") + 1500);
     assert.ok(bridge.includes('suppressSessionPersistence'),
         'bridged requests rebuild the session per request — persisting it is pure churn');

@@ -1,0 +1,1455 @@
+{
+ "chunks": [
+  {
+   "chunk_id": 0,
+   "text": "# Personeelshandboek\n\nDit handboek beschrijft de arbeidsvoorwaarden van alle medewerkers in de organisatie, inclusief verlof en salaris.\n\n## 3.2 Salarisschalen",
+   "token_count": 45,
+   "chunk_type": "content"
+  },
+  {
+   "chunk_id": 1,
+   "text": "# Personeelshandboek\n## 3.2 Salarisschalen\n\n| Schaal | Minimum | Maximum |\n|---|---|---|\n| 1 | 2000 | 2500 |\n| 2 | 2500 | 3100 |",
+   "token_count": 37,
+   "chunk_type": "toc"
+  },
+  {
+   "chunk_id": 2,
+   "text": "# Personeelshandboek\n## 3.2 Salarisschalen\n\nDe schalen worden jaarlijks geindexeerd op basis van de cao en de inflatie van het voorgaande jaar.\n\n```\ncode blok dat heel moet blijven en nooit gesplitst mag worden door de chunker\n```",
+   "token_count": 66,
+   "chunk_type": "content"
+  }
+ ],
+ "longTokens": [
+  1429
+ ],
+ "ingest": {
+  "out": {
+   "chunks_created": 3
+  },
+  "trace": [
+   {
+    "via": "exec",
+    "sql": "CREATE EXTENSION IF NOT EXISTS vector"
+   },
+   {
+    "via": "exec",
+    "sql": "CREATE TABLE IF NOT EXISTS kb_chunks ( id BIGSERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, knowledge_base_id TEXT NOT NULL, document_id TEXT NOT NULL, chunk_id INT NOT NULL, lang TEXT, title TEXT, content TEXT NOT NULL, tsv TSVECTOR, embedding VECTOR(1024), source_uri TEXT, chunk_type TEXT DEFAULT 'content', created_at TIMESTAMPTZ DEFAULT now() )"
+   },
+   {
+    "via": "exec",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_kb_chunks_tsv ON kb_chunks USING GIN (tsv)"
+   },
+   {
+    "via": "exec",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)"
+   },
+   {
+    "via": "exec",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_kb_chunks_tenant_kb ON kb_chunks (tenant_id, knowledge_base_id)"
+   },
+   {
+    "via": "exec",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_kb_chunks_tenant_kb_doc ON kb_chunks (tenant_id, knowledge_base_id, document_id)"
+   },
+   {
+    "via": "exec",
+    "sql": "ALTER TABLE kb_chunks ADD COLUMN IF NOT EXISTS chunk_type TEXT DEFAULT 'content'"
+   },
+   {
+    "via": "exec",
+    "sql": "ALTER TABLE kb_chunks ADD COLUMN IF NOT EXISTS page_start INT"
+   },
+   {
+    "via": "exec",
+    "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_content TEXT"
+   },
+   {
+    "via": "migrate",
+    "o": {
+     "reason": "ingest"
+    }
+   },
+   {
+    "via": "embed",
+    "n": 3,
+    "opts": null
+   },
+   {
+    "via": "getAll",
+    "sql": "SELECT a.atttypmod AS typmod FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid WHERE c.relname = 'kb_chunks' AND a.attname = 'embedding' AND a.attnum > 0"
+   },
+   {
+    "via": "cost",
+    "t": 149
+   },
+   {
+    "via": "usage",
+    "u": {
+     "service_type": "embedding",
+     "tokens": 149,
+     "estimated_cost": 0,
+     "source": "kb_upload"
+    }
+   },
+   {
+    "via": "client",
+    "sql": "BEGIN",
+    "params": null
+   },
+   {
+    "via": "client",
+    "sql": "DELETE FROM kb_chunks WHERE tenant_id = $1 AND knowledge_base_id = $2 AND document_id = $3",
+    "params": [
+     "t1",
+     "kb1",
+     "doc1"
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "UPDATE documents SET original_content = $1 WHERE id = $2::uuid",
+    "params": [
+     "# Personeelshandboek\n\nDit handboek beschrijft de arbeidsvoorwaarden van alle medewerkers in de organisatie, inclusief verlof en salaris.\n\n## 3.2 Salarisschalen\n\n| Schaal | Minimum | Maximum |\n|---|---|---|\n| 1 | 2000 | 2500 |\n| 2 | 2500 | 3100 |\n\nDe schalen worden jaarlijks geindexeerd op basis van de cao en de inflatie van het voorgaande jaar.\n\n```\ncode blok dat heel moet blijven en nooit gesplitst mag worden door de chunker\n```",
+     "doc1"
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "INSERT INTO kb_chunks ( tenant_id, knowledge_base_id, document_id, chunk_id, lang, title, content, tsv, embedding, source_uri, chunk_type, page_start ) VALUES ($1, $2, $3, $4, $5, $6, $7, setweight(to_tsvector('dutch', $7), 'A') || setweight(to_tsvector('simple', $7), 'B'), $8::vector, $9, $10, $11), ($12, $13, $14, $15, $16, $17, $18, setweight(to_tsvector('dutch', $18), 'A') || setweight(to_tsvector('simple', $18), 'B'), $19::vector, $20, $21, $22), ($23, $24, $25, $26, $27, $28, $29, setweight(to_tsvector('dutch', $29), 'A') || setweight(to_tsvector('simple', $29), 'B'), $30::vector, $31, $32, $33)",
+    "params": [
+     "t1",
+     "kb1",
+     "doc1",
+     0,
+     "nl",
+     "Handboek",
+     "# Personeelshandboek\n\nDit handboek beschrijft de arbeidsvoorwaarden van alle medewerkers in de organisatie, inclusief verlof en salaris.\n\n## 3.2 Salarisschalen",
+     "[0.1,0.2,0]",
+     "u1",
+     "content",
+     null,
+     "t1",
+     "kb1",
+     "doc1",
+     1,
+     "nl",
+     "Handboek",
+     "# Personeelshandboek\n## 3.2 Salarisschalen\n\n| Schaal | Minimum | Maximum |\n|---|---|---|\n| 1 | 2000 | 2500 |\n| 2 | 2500 | 3100 |",
+     "[0.1,0.2,1]",
+     "u1",
+     "toc",
+     null,
+     "t1",
+     "kb1",
+     "doc1",
+     2,
+     "nl",
+     "Handboek",
+     "# Personeelshandboek\n## 3.2 Salarisschalen\n\nDe schalen worden jaarlijks geindexeerd op basis van de cao en de inflatie van het voorgaande jaar.\n\n```\ncode blok dat heel moet blijven en nooit gesplitst mag worden door de chunker\n```",
+     "[0.1,0.2,2]",
+     "u1",
+     "content",
+     null
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "COMMIT",
+    "params": null
+   },
+   {
+    "via": "client",
+    "release": true
+   }
+  ]
+ },
+ "ingest2": [
+  {
+   "via": "migrate",
+   "o": {
+    "reason": "ingest"
+   }
+  },
+  {
+   "via": "embed",
+   "n": 3,
+   "opts": null
+  },
+  {
+   "via": "getAll",
+   "sql": "SELECT a.atttypmod AS typmod FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid WHERE c.relname = 'kb_chunks' AND a.attname = 'embedding' AND a.attnum > 0"
+  },
+  {
+   "via": "cost",
+   "t": 149
+  },
+  {
+   "via": "usage",
+   "u": {
+    "service_type": "embedding",
+    "tokens": 149,
+    "estimated_cost": 0,
+    "source": "kb_upload"
+   }
+  },
+  {
+   "via": "client",
+   "sql": "BEGIN",
+   "params": null
+  },
+  {
+   "via": "client",
+   "sql": "DELETE FROM kb_chunks WHERE tenant_id = $1 AND knowledge_base_id = $2 AND document_id = $3",
+   "params": [
+    "t1",
+    "kb1",
+    "doc2"
+   ]
+  },
+  {
+   "via": "client",
+   "sql": "UPDATE documents SET original_content = $1 WHERE id = $2::uuid",
+   "params": [
+    "# Personeelshandboek\n\nDit handboek beschrijft de arbeidsvoorwaarden van alle medewerkers in de organisatie, inclusief verlof en salaris.\n\n## 3.2 Salarisschalen\n\n| Schaal | Minimum | Maximum |\n|---|---|---|\n| 1 | 2000 | 2500 |\n| 2 | 2500 | 3100 |\n\nDe schalen worden jaarlijks geindexeerd op basis van de cao en de inflatie van het voorgaande jaar.\n\n```\ncode blok dat heel moet blijven en nooit gesplitst mag worden door de chunker\n```",
+    "doc2"
+   ]
+  },
+  {
+   "via": "client",
+   "sql": "INSERT INTO kb_chunks ( tenant_id, knowledge_base_id, document_id, chunk_id, lang, title, content, tsv, embedding, source_uri, chunk_type, page_start ) VALUES ($1, $2, $3, $4, $5, $6, $7, setweight(to_tsvector('dutch', $7), 'A') || setweight(to_tsvector('simple', $7), 'B'), $8::vector, $9, $10, $11), ($12, $13, $14, $15, $16, $17, $18, setweight(to_tsvector('dutch', $18), 'A') || setweight(to_tsvector('simple', $18), 'B'), $19::vector, $20, $21, $22), ($23, $24, $25, $26, $27, $28, $29, setweight(to_tsvector('dutch', $29), 'A') || setweight(to_tsvector('simple', $29), 'B'), $30::vector, $31, $32, $33)",
+   "params": [
+    "t1",
+    "kb1",
+    "doc2",
+    0,
+    "auto",
+    "",
+    "# Personeelshandboek\n\nDit handboek beschrijft de arbeidsvoorwaarden van alle medewerkers in de organisatie, inclusief verlof en salaris.\n\n## 3.2 Salarisschalen",
+    "[0.1,0.2,0]",
+    "",
+    "content",
+    1,
+    "t1",
+    "kb1",
+    "doc2",
+    1,
+    "auto",
+    "",
+    "# Personeelshandboek\n## 3.2 Salarisschalen\n\n| Schaal | Minimum | Maximum |\n|---|---|---|\n| 1 | 2000 | 2500 |\n| 2 | 2500 | 3100 |",
+    "[0.1,0.2,1]",
+    "",
+    "toc",
+    null,
+    "t1",
+    "kb1",
+    "doc2",
+    2,
+    "auto",
+    "",
+    "# Personeelshandboek\n## 3.2 Salarisschalen\n\nDe schalen worden jaarlijks geindexeerd op basis van de cao en de inflatie van het voorgaande jaar.\n\n```\ncode blok dat heel moet blijven en nooit gesplitst mag worden door de chunker\n```",
+    "[0.1,0.2,2]",
+    "",
+    "content",
+    1
+   ]
+  },
+  {
+   "via": "client",
+   "sql": "COMMIT",
+   "params": null
+  },
+  {
+   "via": "client",
+   "release": true
+  }
+ ],
+ "searchRrf": {
+  "out": {
+   "rows": [
+    {
+     "id": 1,
+     "content": "## Salaris schalen\nDe tabel met schalen.",
+     "title": "Handboek",
+     "source_uri": "u1",
+     "score": 0.05203595980962455,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 0,
+     "page_start": 3,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    },
+    {
+     "id": 4,
+     "content": "Inhoudsopgave salaris",
+     "title": "Lijst",
+     "source_uri": "u2",
+     "score": 0.004918032786885246,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 1,
+     "page_start": 1,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    }
+   ],
+   "orphanFiltered": true,
+   "metrics": {
+    "vecCandidates": 3,
+    "ftsCandidates": 2,
+    "ftsMode": "AND",
+    "topScore": 0.05203595980962455,
+    "resultCount": 2
+   }
+  },
+  "trace": [
+   {
+    "via": "embed",
+    "n": 1,
+    "opts": {
+     "kind": "query"
+    }
+   },
+   {
+    "via": "client",
+    "sql": "SET hnsw.ef_search = 100",
+    "params": null
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, page_start, 1 - (embedding <=> $1::vector) AS vec_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) ORDER BY embedding <=> $1::vector LIMIT $3",
+    "params": [
+     "[0.1,0.2,0]",
+     [
+      "kb1"
+     ],
+     4
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris AND schalen AND tabel",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id::text FROM documents WHERE knowledge_base_id = ANY($1::uuid[])",
+    "params": [
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris OR schalen OR tabel",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT DISTINCT ON (c.id) c.id, c.title, c.content, c.source_uri, c.document_id, c.chunk_id FROM kb_chunks c INNER JOIN ( SELECT document_id, chunk_id FROM kb_chunks WHERE id = ANY($1::bigint[]) ) h ON c.document_id = h.document_id AND c.chunk_id BETWEEN h.chunk_id - 1 AND h.chunk_id + 1 WHERE c.id != ALL($1::bigint[]) LIMIT 10",
+    "params": [
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_endpoint"
+   },
+   {
+    "via": "getSecret",
+    "k": "azure_reranker_key"
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_model"
+   },
+   {
+    "via": "getConfig",
+    "k": "cpu_reranker_enabled"
+   },
+   {
+    "via": "cpu",
+    "q": "salaris schalen tabel",
+    "docs": [
+     "## Salaris schalen\nDe tabel met schalen.",
+     "Inhoudsopgave salaris",
+     "buur"
+    ],
+    "k": 2
+   },
+   {
+    "via": "client",
+    "sql": "SELECT LOWER(d.id::text) AS doc_id, d.source_type, d.metadata FROM documents d WHERE d.id = ANY($1::uuid[])",
+    "params": [
+     [
+      "11111111-2222-3333-4444-555555555555"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "hop",
+    "ids": [
+     1,
+     4
+    ],
+    "o": {
+     "kbIds": [
+      "kb1"
+     ],
+     "query": "salaris schalen tabel",
+     "vectorStr": "[0.1,0.2,0]"
+    }
+   }
+  ]
+ },
+ "searchCpu": {
+  "out": {
+   "rows": [
+    {
+     "id": 5,
+     "content": "buur",
+     "title": "Handboek",
+     "source_uri": "u1",
+     "score": 0.9,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 2,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    },
+    {
+     "id": 1,
+     "content": "## Salaris schalen\nDe tabel met schalen.",
+     "title": "Handboek",
+     "source_uri": "u1",
+     "score": 0.4,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 0,
+     "page_start": 3,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    }
+   ],
+   "orphanFiltered": true,
+   "metrics": {
+    "vecCandidates": 3,
+    "ftsCandidates": 2,
+    "ftsMode": "AND",
+    "topScore": 0.9,
+    "resultCount": 2
+   }
+  },
+  "trace": [
+   {
+    "via": "client",
+    "sql": "SET hnsw.ef_search = 100",
+    "params": null
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, page_start, 1 - (embedding <=> $1::vector) AS vec_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) ORDER BY embedding <=> $1::vector LIMIT $3",
+    "params": [
+     "[0.1,0.2,0]",
+     [
+      "kb1"
+     ],
+     4
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris AND schalen AND tabel",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id::text FROM documents WHERE knowledge_base_id = ANY($1::uuid[])",
+    "params": [
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris OR schalen OR tabel",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT DISTINCT ON (c.id) c.id, c.title, c.content, c.source_uri, c.document_id, c.chunk_id FROM kb_chunks c INNER JOIN ( SELECT document_id, chunk_id FROM kb_chunks WHERE id = ANY($1::bigint[]) ) h ON c.document_id = h.document_id AND c.chunk_id BETWEEN h.chunk_id - 1 AND h.chunk_id + 1 WHERE c.id != ALL($1::bigint[]) LIMIT 10",
+    "params": [
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_endpoint"
+   },
+   {
+    "via": "getSecret",
+    "k": "azure_reranker_key"
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_model"
+   },
+   {
+    "via": "getConfig",
+    "k": "cpu_reranker_enabled"
+   },
+   {
+    "via": "cpu",
+    "q": "salaris schalen tabel",
+    "docs": [
+     "## Salaris schalen\nDe tabel met schalen.",
+     "Inhoudsopgave salaris",
+     "buur"
+    ],
+    "k": 2
+   },
+   {
+    "via": "client",
+    "sql": "SELECT LOWER(d.id::text) AS doc_id, d.source_type, d.metadata FROM documents d WHERE d.id = ANY($1::uuid[])",
+    "params": [
+     [
+      "11111111-2222-3333-4444-555555555555"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "hop",
+    "ids": [
+     5,
+     1
+    ],
+    "o": {
+     "kbIds": [
+      "kb1"
+     ],
+     "query": "salaris schalen tabel",
+     "vectorStr": "[0.1,0.2,0]"
+    }
+   }
+  ]
+ },
+ "searchCpuToGpu": {
+  "out": {
+   "rows": [
+    {
+     "id": 4,
+     "content": "Inhoudsopgave salaris",
+     "title": "Lijst",
+     "source_uri": "u2",
+     "score": 0.7,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 1,
+     "page_start": 1,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    }
+   ],
+   "orphanFiltered": true,
+   "metrics": {
+    "vecCandidates": 3,
+    "ftsCandidates": 2,
+    "ftsMode": "OR",
+    "topScore": 0.7,
+    "resultCount": 1
+   }
+  },
+  "trace": [
+   {
+    "via": "embed",
+    "n": 1,
+    "opts": {
+     "kind": "query"
+    }
+   },
+   {
+    "via": "client",
+    "sql": "SET hnsw.ef_search = 100",
+    "params": null
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, page_start, 1 - (embedding <=> $1::vector) AS vec_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) ORDER BY embedding <=> $1::vector LIMIT $3",
+    "params": [
+     "[0.1,0.2,0]",
+     [
+      "kb1"
+     ],
+     6
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id::text FROM documents WHERE knowledge_base_id = ANY($1::uuid[])",
+    "params": [
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT DISTINCT ON (c.id) c.id, c.title, c.content, c.source_uri, c.document_id, c.chunk_id FROM kb_chunks c INNER JOIN ( SELECT document_id, chunk_id FROM kb_chunks WHERE id = ANY($1::bigint[]) ) h ON c.document_id = h.document_id AND c.chunk_id BETWEEN h.chunk_id - 1 AND h.chunk_id + 1 WHERE c.id != ALL($1::bigint[]) LIMIT 10",
+    "params": [
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_endpoint"
+   },
+   {
+    "via": "getSecret",
+    "k": "azure_reranker_key"
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_model"
+   },
+   {
+    "via": "getConfig",
+    "k": "cpu_reranker_enabled"
+   },
+   {
+    "via": "cpu",
+    "q": "salaris",
+    "docs": [
+     "## Salaris schalen\nDe tabel met schalen.",
+     "Inhoudsopgave salaris",
+     "buur"
+    ],
+    "k": 3
+   },
+   {
+    "via": "fetch",
+    "url": "http://rr/rerank",
+    "headers": {
+     "x-service": "k"
+    },
+    "body": {
+     "query": "salaris",
+     "documents": [
+      "## Salaris schalen\nDe tabel met schalen.",
+      "Inhoudsopgave salaris",
+      "buur"
+     ],
+     "top_n": 3
+    }
+   },
+   {
+    "via": "client",
+    "sql": "SELECT LOWER(d.id::text) AS doc_id, d.source_type, d.metadata FROM documents d WHERE d.id = ANY($1::uuid[])",
+    "params": [
+     [
+      "11111111-2222-3333-4444-555555555555"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "hop",
+    "ids": [
+     4
+    ],
+    "o": {
+     "kbIds": [
+      "kb1"
+     ],
+     "query": "salaris",
+     "vectorStr": "[0.1,0.2,0]"
+    }
+   }
+  ]
+ },
+ "searchGpu": {
+  "out": {
+   "rows": [
+    {
+     "id": 1,
+     "content": "## Salaris schalen\nDe tabel met schalen.",
+     "title": "Handboek",
+     "source_uri": "u1",
+     "score": 0.06324695928080382,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 0,
+     "page_start": 3,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    },
+    {
+     "id": 4,
+     "content": "Inhoudsopgave salaris",
+     "title": "Lijst",
+     "source_uri": "u2",
+     "score": 0.009836065573770493,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 1,
+     "page_start": 1,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    },
+    {
+     "id": 5,
+     "content": "buur",
+     "title": "Handboek",
+     "source_uri": "u1",
+     "score": 0,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 2,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    }
+   ],
+   "orphanFiltered": true,
+   "metrics": {
+    "vecCandidates": 3,
+    "ftsCandidates": 2,
+    "ftsMode": "OR",
+    "topScore": 0.06324695928080382,
+    "resultCount": 3
+   }
+  },
+  "trace": [
+   {
+    "via": "client",
+    "sql": "SET hnsw.ef_search = 100",
+    "params": null
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, page_start, 1 - (embedding <=> $1::vector) AS vec_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) ORDER BY embedding <=> $1::vector LIMIT $3",
+    "params": [
+     "[0.1,0.2,0]",
+     [
+      "kb1"
+     ],
+     6
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id::text FROM documents WHERE knowledge_base_id = ANY($1::uuid[])",
+    "params": [
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT DISTINCT ON (c.id) c.id, c.title, c.content, c.source_uri, c.document_id, c.chunk_id FROM kb_chunks c INNER JOIN ( SELECT document_id, chunk_id FROM kb_chunks WHERE id = ANY($1::bigint[]) ) h ON c.document_id = h.document_id AND c.chunk_id BETWEEN h.chunk_id - 1 AND h.chunk_id + 1 WHERE c.id != ALL($1::bigint[]) LIMIT 10",
+    "params": [
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_endpoint"
+   },
+   {
+    "via": "getSecret",
+    "k": "azure_reranker_key"
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_model"
+   },
+   {
+    "via": "getConfig",
+    "k": "cpu_reranker_enabled"
+   },
+   {
+    "via": "fetch",
+    "url": "http://rr/rerank",
+    "headers": {
+     "x-service": "k"
+    },
+    "body": {
+     "query": "salaris",
+     "documents": [
+      "## Salaris schalen\nDe tabel met schalen.",
+      "Inhoudsopgave salaris",
+      "buur"
+     ],
+     "top_n": 3
+    }
+   },
+   {
+    "via": "sidecar",
+    "service": "rerank",
+    "status": "error"
+   },
+   {
+    "via": "client",
+    "sql": "SELECT LOWER(d.id::text) AS doc_id, d.source_type, d.metadata FROM documents d WHERE d.id = ANY($1::uuid[])",
+    "params": [
+     [
+      "11111111-2222-3333-4444-555555555555"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "hop",
+    "ids": [
+     1,
+     4,
+     5
+    ],
+    "o": {
+     "kbIds": [
+      "kb1"
+     ],
+     "query": "salaris",
+     "vectorStr": "[0.1,0.2,0]"
+    }
+   }
+  ]
+ },
+ "searchAzure": {
+  "first": {
+   "rows": [
+    {
+     "id": 1,
+     "content": "## Salaris schalen\nDe tabel met schalen.",
+     "title": "Handboek",
+     "source_uri": "u1",
+     "score": 0.99,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 0,
+     "page_start": 3,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    }
+   ],
+   "orphanFiltered": true,
+   "metrics": {
+    "vecCandidates": 3,
+    "ftsCandidates": 2,
+    "ftsMode": "OR",
+    "topScore": 0.99,
+    "resultCount": 1
+   }
+  },
+  "second": {
+   "rows": [
+    {
+     "id": 1,
+     "content": "## Salaris schalen\nDe tabel met schalen.",
+     "title": "Handboek",
+     "source_uri": "u1",
+     "score": 0.99,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 0,
+     "page_start": 3,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    }
+   ],
+   "orphanFiltered": true,
+   "metrics": {
+    "vecCandidates": 3,
+    "ftsCandidates": 2,
+    "ftsMode": "OR",
+    "topScore": 0.99,
+    "resultCount": 1
+   }
+  },
+  "trace": [
+   {
+    "via": "client",
+    "sql": "SET hnsw.ef_search = 100",
+    "params": null
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, page_start, 1 - (embedding <=> $1::vector) AS vec_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) ORDER BY embedding <=> $1::vector LIMIT $3",
+    "params": [
+     "[0.1,0.2,0]",
+     [
+      "kb1"
+     ],
+     6
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id::text FROM documents WHERE knowledge_base_id = ANY($1::uuid[])",
+    "params": [
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT DISTINCT ON (c.id) c.id, c.title, c.content, c.source_uri, c.document_id, c.chunk_id FROM kb_chunks c INNER JOIN ( SELECT document_id, chunk_id FROM kb_chunks WHERE id = ANY($1::bigint[]) ) h ON c.document_id = h.document_id AND c.chunk_id BETWEEN h.chunk_id - 1 AND h.chunk_id + 1 WHERE c.id != ALL($1::bigint[]) LIMIT 10",
+    "params": [
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_endpoint"
+   },
+   {
+    "via": "getSecret",
+    "k": "azure_reranker_key"
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_model"
+   },
+   {
+    "via": "getConfig",
+    "k": "cpu_reranker_enabled"
+   },
+   {
+    "via": "fetch",
+    "url": "https://az/providers/cohere/v2/rerank",
+    "headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer k"
+    },
+    "body": {
+     "model": "Cohere-rerank-v4.0-fast",
+     "query": "salaris",
+     "documents": [
+      "## Salaris schalen\nDe tabel met schalen.",
+      "Inhoudsopgave salaris",
+      "buur"
+     ],
+     "top_n": 3
+    }
+   },
+   {
+    "via": "fetch",
+    "url": "https://az/v1/rerank",
+    "headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer k"
+    },
+    "body": {
+     "model": "Cohere-rerank-v4.0-fast",
+     "query": "salaris",
+     "documents": [
+      "## Salaris schalen\nDe tabel met schalen.",
+      "Inhoudsopgave salaris",
+      "buur"
+     ],
+     "top_n": 3
+    }
+   },
+   {
+    "via": "client",
+    "sql": "SELECT LOWER(d.id::text) AS doc_id, d.source_type, d.metadata FROM documents d WHERE d.id = ANY($1::uuid[])",
+    "params": [
+     [
+      "11111111-2222-3333-4444-555555555555"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "hop",
+    "ids": [
+     1
+    ],
+    "o": {
+     "kbIds": [
+      "kb1"
+     ],
+     "query": "salaris",
+     "vectorStr": "[0.1,0.2,0]"
+    }
+   },
+   {
+    "via": "client",
+    "sql": "SET hnsw.ef_search = 100",
+    "params": null
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, page_start, 1 - (embedding <=> $1::vector) AS vec_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) ORDER BY embedding <=> $1::vector LIMIT $3",
+    "params": [
+     "[0.1,0.2,0]",
+     [
+      "kb1"
+     ],
+     6
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id::text FROM documents WHERE knowledge_base_id = ANY($1::uuid[])",
+    "params": [
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT DISTINCT ON (c.id) c.id, c.title, c.content, c.source_uri, c.document_id, c.chunk_id FROM kb_chunks c INNER JOIN ( SELECT document_id, chunk_id FROM kb_chunks WHERE id = ANY($1::bigint[]) ) h ON c.document_id = h.document_id AND c.chunk_id BETWEEN h.chunk_id - 1 AND h.chunk_id + 1 WHERE c.id != ALL($1::bigint[]) LIMIT 10",
+    "params": [
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_endpoint"
+   },
+   {
+    "via": "getSecret",
+    "k": "azure_reranker_key"
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_model"
+   },
+   {
+    "via": "getConfig",
+    "k": "cpu_reranker_enabled"
+   },
+   {
+    "via": "fetch",
+    "url": "https://az/v1/rerank",
+    "headers": {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer k"
+    },
+    "body": {
+     "model": "Cohere-rerank-v4.0-fast",
+     "query": "salaris",
+     "documents": [
+      "## Salaris schalen\nDe tabel met schalen.",
+      "Inhoudsopgave salaris",
+      "buur"
+     ],
+     "top_n": 3
+    }
+   },
+   {
+    "via": "client",
+    "sql": "SELECT LOWER(d.id::text) AS doc_id, d.source_type, d.metadata FROM documents d WHERE d.id = ANY($1::uuid[])",
+    "params": [
+     [
+      "11111111-2222-3333-4444-555555555555"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "hop",
+    "ids": [
+     1
+    ],
+    "o": {
+     "kbIds": [
+      "kb1"
+     ],
+     "query": "salaris",
+     "vectorStr": "[0.1,0.2,0]"
+    }
+   }
+  ]
+ },
+ "searchLlama": {
+  "out": {
+   "rows": [
+    {
+     "id": 4,
+     "content": "Inhoudsopgave salaris",
+     "title": "Lijst",
+     "source_uri": "u2",
+     "score": 0.6,
+     "document_id": "11111111-2222-3333-4444-555555555555",
+     "chunk_id": 1,
+     "page_start": 1,
+     "kind": "meeting",
+     "row_start": 1,
+     "occurred_at": "2026-01-02",
+     "doc_meta": {
+      "meetingDate": "2026-01-02",
+      "rowStart": 1
+     },
+     "doc_kind": "meeting"
+    }
+   ],
+   "orphanFiltered": true,
+   "metrics": {
+    "vecCandidates": 3,
+    "ftsCandidates": 2,
+    "ftsMode": "OR",
+    "topScore": 0.6,
+    "resultCount": 1
+   }
+  },
+  "trace": [
+   {
+    "via": "client",
+    "sql": "SET hnsw.ef_search = 100",
+    "params": null
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, page_start, 1 - (embedding <=> $1::vector) AS vec_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) ORDER BY embedding <=> $1::vector LIMIT $3",
+    "params": [
+     "[0.1,0.2,0]",
+     [
+      "kb1"
+     ],
+     6
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start, GREATEST( ts_rank_cd(tsv, websearch_to_tsquery('dutch', $1)) * 1.5, ts_rank_cd(tsv, websearch_to_tsquery('simple', $1)) ) AS fts_score FROM kb_chunks WHERE knowledge_base_id = ANY($2::text[]) AND ( tsv @@ websearch_to_tsquery('dutch', $1) OR tsv @@ websearch_to_tsquery('simple', $1) ) ORDER BY fts_score DESC LIMIT 15",
+    "params": [
+     "salaris",
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT id::text FROM documents WHERE knowledge_base_id = ANY($1::uuid[])",
+    "params": [
+     [
+      "kb1"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "sql": "SELECT DISTINCT ON (c.id) c.id, c.title, c.content, c.source_uri, c.document_id, c.chunk_id FROM kb_chunks c INNER JOIN ( SELECT document_id, chunk_id FROM kb_chunks WHERE id = ANY($1::bigint[]) ) h ON c.document_id = h.document_id AND c.chunk_id BETWEEN h.chunk_id - 1 AND h.chunk_id + 1 WHERE c.id != ALL($1::bigint[]) LIMIT 10",
+    "params": [
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_endpoint"
+   },
+   {
+    "via": "getSecret",
+    "k": "azure_reranker_key"
+   },
+   {
+    "via": "getConfig",
+    "k": "azure_reranker_model"
+   },
+   {
+    "via": "getConfig",
+    "k": "cpu_reranker_enabled"
+   },
+   {
+    "via": "llama",
+    "q": "salaris",
+    "docs": [
+     "## Salaris schalen\nDe tabel met schalen.",
+     "Inhoudsopgave salaris",
+     "buur"
+    ],
+    "k": 3
+   },
+   {
+    "via": "client",
+    "sql": "SELECT LOWER(d.id::text) AS doc_id, d.source_type, d.metadata FROM documents d WHERE d.id = ANY($1::uuid[])",
+    "params": [
+     [
+      "11111111-2222-3333-4444-555555555555"
+     ]
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "hop",
+    "ids": [
+     4
+    ],
+    "o": {
+     "kbIds": [
+      "kb1"
+     ],
+     "query": "salaris",
+     "vectorStr": "[0.1,0.2,0]"
+    }
+   }
+  ]
+ },
+ "maintenance": {
+  "content": "a\n\nb",
+  "purged": 7,
+  "trace": [
+   {
+    "via": "client",
+    "sql": "DELETE FROM kb_chunks WHERE tenant_id = $1 AND knowledge_base_id = $2 AND document_id = $3",
+    "params": [
+     "t1",
+     "kb1",
+     "doc1"
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "client",
+    "sql": "DELETE FROM kb_chunks WHERE tenant_id = $1 AND knowledge_base_id = $2",
+    "params": [
+     "t1",
+     "kb1"
+    ]
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "pool",
+    "sql": "SELECT content FROM kb_chunks WHERE tenant_id = $1 AND knowledge_base_id = $2 AND document_id = $3 ORDER BY chunk_id ASC",
+    "params": [
+     "t1",
+     "kb1",
+     "doc1"
+    ]
+   },
+   {
+    "via": "pool",
+    "release": true
+   },
+   {
+    "via": "client",
+    "sql": "DELETE FROM kb_chunks c WHERE NOT EXISTS ( SELECT 1 FROM documents d WHERE LOWER(d.id::text) = LOWER(c.document_id) )",
+    "params": null
+   },
+   {
+    "via": "client",
+    "release": true
+   },
+   {
+    "via": "cost",
+    "t": 3
+   },
+   {
+    "via": "usage",
+    "u": {
+     "service_type": "embedding",
+     "tokens": 3,
+     "estimated_cost": 0,
+     "source": "kb_upload"
+    }
+   },
+   {
+    "via": "cost",
+    "t": 0
+   },
+   {
+    "via": "usage",
+    "u": {
+     "service_type": "embedding",
+     "tokens": 0,
+     "estimated_cost": 0,
+     "source": "kb_upload"
+    }
+   }
+  ]
+ }
+}

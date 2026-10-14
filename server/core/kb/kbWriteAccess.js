@@ -117,7 +117,7 @@ async function canOwnerWriteToKb(kbId, ownerId, { deps = {} } = {}) {
     }
     let canManage = false;
     try {
-        const hasPermission = deps.hasPermission || require('../../auth').hasPermission;
+        const hasPermission = deps.hasPermission || require('../../auth/permissions').hasPermission;
         canManage = await hasPermission(ownerId, 'manage_knowledge');
     } catch (_) {
         canManage = false;

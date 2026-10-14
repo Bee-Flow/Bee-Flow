@@ -13,7 +13,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 
 const { db, api } = h.routeUnderTest(test, '/ai', () => require('./notebookChat'));
 const post = (body, user) => api.call('POST', '/ai/chat/notebook/stream', { body, user });

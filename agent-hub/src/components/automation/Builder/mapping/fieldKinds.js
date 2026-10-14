@@ -15,6 +15,7 @@
  * placeholder (`'<string>'`, null) is not evidence of anything, and the UI
  * says "not seen yet — run the step above" rather than guessing a word.
  */
+import { ISO_DATE_RE } from './core';
 import { pathListShape } from './listShape';
 import { jsonTextValue } from './upstream/fieldTree';
 import { walkPath } from '../../../../utils/bindingHelpers';
@@ -55,12 +56,8 @@ export const KIND_TECHNICAL = Object.freeze({
     list: 'array', group: 'object', table: 'array of objects', file: 'file', unknown: '?',
 });
 
-/**
- * The ONE ISO-date regex. utils/conditionModel.js used to carry its own;
- * it imports this now so a value cannot be a date in one picker and text in
- * another.
- */
-export const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}|$)/;
+/** The ONE ISO-date regex (mapping/core.ts), re-exported for this module's importers. */
+export { ISO_DATE_RE };
 
 /**
  * One e-mail address, nothing around it (round 2 leftover: the `email` kind).

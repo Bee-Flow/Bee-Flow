@@ -61,7 +61,7 @@ const { validateSiteDraft } = require('../../cmsBuilder/validate');
 const { getProfileForModel, effortForIteration } = require('../../cmsBuilder/builderModelProfiles');
 const { isTransientChatError, applyBuilderTierFloor, streamWithRetry: sharedStreamWithRetry } = require('./builderShared');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { startSseHeartbeat } = require('../../core/http/sseHelpers');
+const { openSse } = require('../../core/http/sseHelpers');
 
 // The same admin gate + siteId validation the CMS CRUD routes use — the
 // builder must never be reachable below the admin bar.
@@ -247,17 +247,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
     //    thinking model can go silent for 30–60s and an idle gateway would
     //    otherwise drop the stream into a false 504 (same class as the
     //    automation-builder incident / BFSF-221). ──
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-    if (typeof res.flushHeaders === 'function') res.flushHeaders();
-    const stopHeartbeat = startSseHeartbeat(res);
-    const send = (event, data) => {
-        try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) { /* stream gone */ }
-    };
+    const { send, stopHeartbeat } = openSse(res, { heartbeat: true, flush: true });
 
     // SSE `error` carries a machine `code` AND leaves a structured stderr
     // line (shipped to OpenObserve via stdout — no monitoring tables).

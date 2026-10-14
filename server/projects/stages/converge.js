@@ -30,7 +30,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
-const { storesOf } = require('./prepare');
+const { storesOf } = require('./journal');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 
@@ -132,7 +132,7 @@ async function feedEvent({ deployment, stage }, report, deps) {
  * or `succeeded_with_warnings` when a task still failed after MAX_ATTEMPTS.
  *
  * @param {{ deployment: object, stage: object }} input  the row is `converging`
- * @param {object} [deps]  stores (prepare.storesOf), `goLive`, `goLiveDeps`, `reconcileAppUsage`,
+ * @param {object} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`, `reconcileAppUsage`,
  *   `revokeRemoteSubscriptions`, `emitProjectEvent`, `sleep(ms)`, `maxAttempts`, `tasks` (a test's own list)
  * @returns {Promise<{ deployment: object|null, report: { warnings: object[], attempts: number } }>}
  */

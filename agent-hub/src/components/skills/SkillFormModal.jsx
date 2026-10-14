@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, X, Users, Lock } from 'lucide-react';
+import { readOrgGroups } from '../../api/queries/orgGroups';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { SKILL_EMOJI_ICONS } from '../../constants/icons';
 import useTranslation from '../../hooks/useTranslation';
@@ -220,12 +221,9 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
     useEffect(() => {
         if (groups && groups.length > 0) return;
         let cancelled = false;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/auth/groups`);
-                if (!cancelled && res.ok) setFetchedGroups(await res.json());
-            } catch (_) { /* non-fatal */ }
-        })();
+        readOrgGroups()
+            .then((list) => { if (!cancelled && list) setFetchedGroups(list); })
+            .catch(() => { /* non-fatal */ });
         return () => { cancelled = true; };
     }, [groups]);
     const effectiveGroups = (groups && groups.length > 0) ? groups : (fetchedGroups || []);

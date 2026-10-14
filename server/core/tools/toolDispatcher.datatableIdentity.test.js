@@ -89,7 +89,8 @@ const OPERATOR = 'user-support-operator';
     // for its own, different assertions; a second copy of that harness here
     // just to read one field off the context object is not a cheaper test.
     const fs = require('fs');
-    for (const f of ['../agentRuntime/toolRoundExecutor.js', '../agentRuntime/chatWithAgent.js']) {
+    // The streaming round builds its dispatch context in toolRound/dispatch.js.
+    for (const f of ['../agentRuntime/toolRound/dispatch.js', '../agentRuntime/chatWithAgent.js']) {
         const src = fs.readFileSync(path.join(__dirname, f), 'utf8');
         assert.ok(/askerUserId:\s*userId/.test(src), `${f} must pass the real asker through`);
     }

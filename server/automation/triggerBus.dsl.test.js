@@ -149,4 +149,14 @@ const tb = require('./triggerBus');
     assert.strictEqual(tb.matchNextcloudShareGenericFilter(payload, { kindEquals: 'folder' }), false);
 }
 
+// ── Barrel: the split-out modules are re-exported as the same functions ──
+{
+    const graph = require('./triggerBus/msGraphSubscriptions');
+    for (const k of ['provisionSubscription', 'revokeSubscription', 'buildClientState', 'getPublicBaseUrl']) {
+        assert.strictEqual(tb[k], graph[k], `triggerBus.${k} is msGraphSubscriptions.${k}`);
+    }
+    assert.strictEqual(tb._ncNormaliseActivity, require('./triggerBus/pollers/nextcloud')._ncNormaliseActivity);
+    assert.strictEqual(tb.dispatchEvent, require('./triggerBus/dispatch').dispatchEvent);
+}
+
 console.log('triggerBus.dsl.test.js — all checks passed');

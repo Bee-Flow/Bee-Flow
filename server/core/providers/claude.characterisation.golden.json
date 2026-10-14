@@ -1,0 +1,5079 @@
+{
+  "helpers": {
+    "protoKeys": [
+      "_buildSdkParams",
+      "_injectClaudeCodeIdentity",
+      "_isContextManagementRejection",
+      "_requestOptionsFor",
+      "_resolveAuth",
+      "buildThinking",
+      "chat",
+      "constructor",
+      "createClient",
+      "extractSystem",
+      "isAdaptiveOnlyReasoning",
+      "listModels",
+      "normalizeContent",
+      "normalizeMessages",
+      "normalizeTools",
+      "replayThinkingBlocks",
+      "stream",
+      "supportsContextEditing",
+      "supportsDocuments",
+      "supportsForcedToolChoice",
+      "supportsReasoning",
+      "supportsStructuredOutput",
+      "supportsVision"
+    ],
+    "exportType": "function",
+    "name": "claude",
+    "inject": {
+      "none": {
+        "system": [
+          {
+            "type": "text",
+            "text": "You are Claude Code, Anthropic's official CLI for Claude."
+          }
+        ]
+      },
+      "emptyString": {
+        "system": [
+          {
+            "type": "text",
+            "text": "You are Claude Code, Anthropic's official CLI for Claude."
+          }
+        ]
+      },
+      "string": {
+        "system": [
+          {
+            "type": "text",
+            "text": "You are Claude Code, Anthropic's official CLI for Claude."
+          },
+          {
+            "type": "text",
+            "text": "sys"
+          }
+        ]
+      },
+      "array": {
+        "system": [
+          {
+            "type": "text",
+            "text": "You are Claude Code, Anthropic's official CLI for Claude."
+          },
+          {
+            "type": "text",
+            "text": "a",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      }
+    },
+    "extractSystem": {
+      "none": null,
+      "some": [
+        {
+          "type": "text",
+          "text": "You are the stable identity block.",
+          "cache_control": {
+            "type": "ephemeral",
+            "ttl": "1h"
+          }
+        },
+        {
+          "type": "text",
+          "text": "{\"volatile\":\"timestamp\"}"
+        }
+      ]
+    },
+    "normalizeContent": [
+      "",
+      "str",
+      "{\"obj\":1}",
+      [
+        {
+          "type": "text",
+          "text": "[Attachment could not be processed]"
+        }
+      ]
+    ],
+    "normalizeTools": [
+      {
+        "name": "agent_search",
+        "description": "search",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "q": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "bare_tool",
+        "description": "",
+        "input_schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ],
+    "normalizeShort": [
+      {
+        "role": "user",
+        "content": "hello"
+      }
+    ],
+    "normalizeNoThinking": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "[Conversation Summary] earlier turns folded here",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "Noted."
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "look at these"
+          },
+          {
+            "type": "image",
+            "source": {
+              "type": "base64",
+              "media_type": "image/png",
+              "data": "AAAA"
+            }
+          },
+          {
+            "type": "image",
+            "source": {
+              "type": "url",
+              "url": "https://example.test/a.png"
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "calling tools"
+          },
+          {
+            "type": "tool_use",
+            "id": "tu_1",
+            "name": "agent_search",
+            "input": {
+              "q": "a"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "tu_2",
+            "name": "agent_search",
+            "input": {}
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "tu_1",
+            "content": "result one"
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "tu_2",
+            "content": [
+              {
+                "type": "text",
+                "text": "result two"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": "previous question"
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "array answer"
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "   "
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "current question",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      }
+    ],
+    "caps": {
+      "claude-sonnet-4-6": {
+        "structured": false,
+        "structuredSchema": false,
+        "forced": true,
+        "adaptiveOnly": false,
+        "reasoning": true,
+        "vision": true,
+        "documents": true,
+        "contextEditing": true,
+        "thinking": {
+          "thinking": {
+            "type": "adaptive",
+            "display": "summarized"
+          },
+          "effort": "medium"
+        },
+        "thinkingNone": null,
+        "thinkingBudget": {
+          "thinking": {
+            "type": "enabled",
+            "budget_tokens": 5000
+          }
+        }
+      },
+      "claude-opus-5": {
+        "structured": true,
+        "structuredSchema": true,
+        "forced": true,
+        "adaptiveOnly": true,
+        "reasoning": true,
+        "vision": true,
+        "documents": true,
+        "contextEditing": true,
+        "thinking": {
+          "thinking": {
+            "type": "adaptive",
+            "display": "summarized"
+          },
+          "effort": "high"
+        },
+        "thinkingNone": null,
+        "thinkingBudget": {
+          "thinking": {
+            "type": "adaptive",
+            "display": "summarized"
+          },
+          "effort": "high"
+        }
+      },
+      "claude-sonnet-5-5": {
+        "structured": true,
+        "structuredSchema": true,
+        "forced": false,
+        "adaptiveOnly": true,
+        "reasoning": true,
+        "vision": true,
+        "documents": true,
+        "contextEditing": true,
+        "thinking": {
+          "thinking": {
+            "type": "adaptive",
+            "display": "summarized"
+          },
+          "effort": "medium"
+        },
+        "thinkingNone": null,
+        "thinkingBudget": {
+          "thinking": {
+            "type": "adaptive",
+            "display": "summarized"
+          },
+          "effort": "medium"
+        }
+      },
+      "claude-haiku-4-5": {
+        "structured": false,
+        "structuredSchema": false,
+        "forced": true,
+        "adaptiveOnly": false,
+        "reasoning": false,
+        "vision": true,
+        "documents": true,
+        "contextEditing": true,
+        "thinking": null,
+        "thinkingNone": null,
+        "thinkingBudget": null
+      },
+      "claude-3-5-sonnet-20241022": {
+        "structured": false,
+        "structuredSchema": false,
+        "forced": true,
+        "adaptiveOnly": false,
+        "reasoning": false,
+        "vision": true,
+        "documents": true,
+        "contextEditing": false,
+        "thinking": null,
+        "thinkingNone": null,
+        "thinkingBudget": null
+      }
+    },
+    "cmRejection": [
+      true,
+      true,
+      false
+    ]
+  },
+  "params": {
+    "legacyToolsHistory": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "[Conversation Summary] earlier turns folded here",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": "signed thought",
+                "signature": "sig-1"
+              },
+              {
+                "type": "redacted_thinking",
+                "data": "opaque"
+              },
+              {
+                "type": "text",
+                "text": "Noted."
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "look at these"
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AAAA"
+                }
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "url",
+                  "url": "https://example.test/a.png"
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": "",
+                "signature": "sig-2"
+              },
+              {
+                "type": "text",
+                "text": "calling tools"
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_1",
+                "name": "agent_search",
+                "input": {
+                  "q": "a"
+                }
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_2",
+                "name": "agent_search",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_1",
+                "content": "result one"
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_2",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "result two"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": "previous question"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": "t",
+                "signature": "sig-3"
+              },
+              {
+                "type": "text",
+                "text": "array answer"
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "   "
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "current question",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the stable identity block.",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          },
+          {
+            "type": "text",
+            "text": "{\"volatile\":\"timestamp\"}"
+          }
+        ],
+        "temperature": 1,
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "auto"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            },
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "legacyNoThinking": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "[Conversation Summary] earlier turns folded here",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Noted."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "look at these"
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AAAA"
+                }
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "url",
+                  "url": "https://example.test/a.png"
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "calling tools"
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_1",
+                "name": "agent_search",
+                "input": {
+                  "q": "a"
+                }
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_2",
+                "name": "agent_search",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_1",
+                "content": "result one"
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_2",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "result two"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": "previous question"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "array answer"
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "   "
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "current question",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 1000,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the stable identity block.",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          },
+          {
+            "type": "text",
+            "text": "{\"volatile\":\"timestamp\"}"
+          }
+        ],
+        "temperature": 0.2
+      },
+      "requestOptions": {
+        "apiKey": null,
+        "oauth": null
+      }
+    },
+    "legacyBudget": {
+      "params": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 21024,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 20000
+        },
+        "temperature": 1
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "adaptiveHigh": {
+      "params": {
+        "model": "claude-opus-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "[Conversation Summary] earlier turns folded here",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": "signed thought",
+                "signature": "sig-1"
+              },
+              {
+                "type": "redacted_thinking",
+                "data": "opaque"
+              },
+              {
+                "type": "text",
+                "text": "Noted."
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "look at these"
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AAAA"
+                }
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "url",
+                  "url": "https://example.test/a.png"
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": "",
+                "signature": "sig-2"
+              },
+              {
+                "type": "text",
+                "text": "calling tools"
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_1",
+                "name": "agent_search",
+                "input": {
+                  "q": "a"
+                }
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_2",
+                "name": "agent_search",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_1",
+                "content": "result one"
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_2",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "result two"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": "previous question"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": "t",
+                "signature": "sig-3"
+              },
+              {
+                "type": "text",
+                "text": "array answer"
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "   "
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "current question",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the stable identity block.",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          },
+          {
+            "type": "text",
+            "text": "{\"volatile\":\"timestamp\"}"
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            },
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "adaptiveXhigh": {
+      "params": {
+        "model": "claude-opus-4-8",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 32000,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "xhigh"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "forcedNamedLegacy": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "agent_search"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "forcedBareNameLegacy": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "bare_tool"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "forcedAnyLegacy": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "any"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "forcedUnsupported": {
+      "params": {
+        "model": "claude-sonnet-5-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          },
+          {
+            "type": "text",
+            "text": "Respond by calling the `agent_search` tool exactly once, with arguments that follow its input schema. Do not answer in plain text."
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "auto"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            },
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "forcedAnyUnsupported": {
+      "params": {
+        "model": "claude-sonnet-5-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          },
+          {
+            "type": "text",
+            "text": "Respond by calling one of the provided tools, with arguments that follow its input schema. Do not answer in plain text."
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "auto"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            },
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "forcedNoForcedFlag": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          },
+          {
+            "type": "text",
+            "text": "Respond by calling one of the provided tools, with arguments that follow its input schema. Do not answer in plain text."
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "auto"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            },
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "temperature": 1,
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "noThinkingReplay": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "[Conversation Summary] earlier turns folded here",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Noted."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "look at these"
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AAAA"
+                }
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "url",
+                  "url": "https://example.test/a.png"
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "calling tools"
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_1",
+                "name": "agent_search",
+                "input": {
+                  "q": "a"
+                }
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_2",
+                "name": "agent_search",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_1",
+                "content": "result one"
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_2",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "result two"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": "previous question"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "array answer"
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "   "
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "current question",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the stable identity block.",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          },
+          {
+            "type": "text",
+            "text": "{\"volatile\":\"timestamp\"}"
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "temperature": 1,
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "noContextEditing": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "temperature": 1,
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": null,
+        "oauth": null
+      }
+    },
+    "oldModel": {
+      "params": {
+        "model": "claude-3-5-sonnet-20241022",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "[Conversation Summary] earlier turns folded here",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Noted."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "look at these"
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AAAA"
+                }
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "url",
+                  "url": "https://example.test/a.png"
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "calling tools"
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_1",
+                "name": "agent_search",
+                "input": {
+                  "q": "a"
+                }
+              },
+              {
+                "type": "tool_use",
+                "id": "tu_2",
+                "name": "agent_search",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_1",
+                "content": "result one"
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "tu_2",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "result two"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": "previous question"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "array answer"
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "   "
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "current question",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the stable identity block.",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          },
+          {
+            "type": "text",
+            "text": "{\"volatile\":\"timestamp\"}"
+          }
+        ],
+        "temperature": 0.5,
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ]
+      },
+      "requestOptions": {
+        "apiKey": null,
+        "oauth": null
+      }
+    },
+    "haiku": {
+      "params": {
+        "model": "claude-haiku-4-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "temperature": 0.1
+      },
+      "requestOptions": {
+        "apiKey": null,
+        "oauth": null
+      }
+    },
+    "jsonSchema": {
+      "params": {
+        "model": "claude-opus-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "low",
+          "format": {
+            "type": "json_schema",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "n": {
+                  "type": "number"
+                },
+                "s": {
+                  "type": "string",
+                  "maxLength": "x"
+                },
+                "a": {
+                  "type": "array",
+                  "items": [
+                    {
+                      "type": "integer"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    }
+  },
+  "chat": {
+    "responses": {
+      "textAndTools": {
+        "content": "Hello world",
+        "toolCalls": [
+          {
+            "id": "t1",
+            "type": "function",
+            "function": {
+              "name": "agent_search",
+              "arguments": "{\"q\":\"z\"}"
+            }
+          }
+        ],
+        "stopReason": "tool_use",
+        "stopDetails": null,
+        "usage": {
+          "prompt_tokens": 10,
+          "completion_tokens": 5,
+          "total_tokens": 15,
+          "cached_tokens": 3,
+          "cache_creation_tokens": 0,
+          "cache_creation_5m_tokens": 0,
+          "cache_creation_1h_tokens": 0,
+          "cache_creation_ttl_assumed": false,
+          "reasoning_tokens": 0,
+          "prompt_includes_cache": false,
+          "service_tier": null,
+          "inference_geo": null,
+          "traffic_type": null,
+          "tool_use": {},
+          "modality": {
+            "prompt": {},
+            "completion": {},
+            "cached": {}
+          },
+          "cache_ttl": null
+        },
+        "rawIsResponse": true
+      },
+      "refusal": {
+        "content": "The model declined to answer this request. It was classified as security or exploitation content. Because.",
+        "toolCalls": null,
+        "stopReason": "refusal",
+        "stopDetails": {
+          "category": "cyber",
+          "explanation": "Because."
+        },
+        "usage": {
+          "prompt_tokens": 1,
+          "completion_tokens": 0,
+          "total_tokens": 1,
+          "cached_tokens": 0,
+          "cache_creation_tokens": 0,
+          "cache_creation_5m_tokens": 0,
+          "cache_creation_1h_tokens": 0,
+          "cache_creation_ttl_assumed": false,
+          "reasoning_tokens": 0,
+          "prompt_includes_cache": false,
+          "service_tier": null,
+          "inference_geo": null,
+          "traffic_type": null,
+          "tool_use": {},
+          "modality": {
+            "prompt": {},
+            "completion": {},
+            "cached": {}
+          },
+          "cache_ttl": null
+        },
+        "rawIsResponse": true
+      },
+      "refusalUnknown": {
+        "content": "The model declined to answer this request.",
+        "toolCalls": null,
+        "stopReason": "refusal",
+        "stopDetails": {
+          "category": "other"
+        },
+        "usage": null,
+        "rawIsResponse": true
+      },
+      "contextWindow": {
+        "content": "This conversation no longer fits in the model context window.",
+        "toolCalls": null,
+        "stopReason": "model_context_window_exceeded",
+        "stopDetails": null,
+        "usage": null,
+        "rawIsResponse": true
+      },
+      "maxTokens": {
+        "content": "The model hit its output length limit before it could answer. Please try again — a shorter conversation or a higher token budget helps.",
+        "toolCalls": null,
+        "stopReason": "max_tokens",
+        "stopDetails": null,
+        "usage": null,
+        "rawIsResponse": true
+      },
+      "maxTokensWithTool": {
+        "content": null,
+        "toolCalls": [
+          {
+            "id": "t",
+            "type": "function",
+            "function": {
+              "name": "n",
+              "arguments": "{}"
+            }
+          }
+        ],
+        "stopReason": "max_tokens",
+        "stopDetails": null,
+        "usage": null,
+        "rawIsResponse": true
+      },
+      "empty": {
+        "content": null,
+        "toolCalls": null,
+        "stopReason": "end_turn",
+        "stopDetails": null,
+        "usage": null,
+        "rawIsResponse": true
+      }
+    },
+    "sequences": {
+      "thinkingReplayRetry": {
+        "clients": [
+          {
+            "token": "sk-ant-api",
+            "oauth": false
+          },
+          {
+            "token": "sk-ant-api",
+            "oauth": false
+          }
+        ],
+        "calls": [
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-sonnet-4-6",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "[Conversation Summary] earlier turns folded here",
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "thinking",
+                      "thinking": "signed thought",
+                      "signature": "sig-1"
+                    },
+                    {
+                      "type": "redacted_thinking",
+                      "data": "opaque"
+                    },
+                    {
+                      "type": "text",
+                      "text": "Noted."
+                    }
+                  ]
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "look at these"
+                    },
+                    {
+                      "type": "image",
+                      "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": "AAAA"
+                      }
+                    },
+                    {
+                      "type": "image",
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.test/a.png"
+                      },
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "thinking",
+                      "thinking": "",
+                      "signature": "sig-2"
+                    },
+                    {
+                      "type": "text",
+                      "text": "calling tools"
+                    },
+                    {
+                      "type": "tool_use",
+                      "id": "tu_1",
+                      "name": "agent_search",
+                      "input": {
+                        "q": "a"
+                      }
+                    },
+                    {
+                      "type": "tool_use",
+                      "id": "tu_2",
+                      "name": "agent_search",
+                      "input": {}
+                    }
+                  ]
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "tool_result",
+                      "tool_use_id": "tu_1",
+                      "content": "result one"
+                    },
+                    {
+                      "type": "tool_result",
+                      "tool_use_id": "tu_2",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "result two"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "role": "user",
+                  "content": "previous question"
+                },
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "thinking",
+                      "thinking": "t",
+                      "signature": "sig-3"
+                    },
+                    {
+                      "type": "text",
+                      "text": "array answer"
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": "   "
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "current question",
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "max_tokens": 16384,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "You are the stable identity block.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": "{\"volatile\":\"timestamp\"}"
+                }
+              ],
+              "tools": [
+                {
+                  "name": "agent_search",
+                  "description": "search",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {
+                      "q": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "bare_tool",
+                  "description": "",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              ],
+              "context_management": {
+                "edits": [
+                  {
+                    "type": "clear_thinking_20251015",
+                    "keep": {
+                      "type": "all"
+                    }
+                  },
+                  {
+                    "type": "clear_tool_uses_20250919",
+                    "trigger": {
+                      "type": "input_tokens",
+                      "value": 30000
+                    },
+                    "keep": {
+                      "type": "tool_uses",
+                      "value": 5
+                    },
+                    "clear_at_least": {
+                      "type": "input_tokens",
+                      "value": 5000
+                    }
+                  }
+                ]
+              },
+              "thinking": {
+                "type": "adaptive",
+                "display": "summarized"
+              },
+              "temperature": 1,
+              "output_config": {
+                "effort": "medium"
+              }
+            },
+            "requestOptions": {
+              "headers": {
+                "anthropic-beta": "context-management-2025-06-27"
+              }
+            }
+          },
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-sonnet-4-6",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "[Conversation Summary] earlier turns folded here",
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": "Noted."
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "look at these"
+                    },
+                    {
+                      "type": "image",
+                      "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": "AAAA"
+                      }
+                    },
+                    {
+                      "type": "image",
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.test/a.png"
+                      },
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "calling tools"
+                    },
+                    {
+                      "type": "tool_use",
+                      "id": "tu_1",
+                      "name": "agent_search",
+                      "input": {
+                        "q": "a"
+                      }
+                    },
+                    {
+                      "type": "tool_use",
+                      "id": "tu_2",
+                      "name": "agent_search",
+                      "input": {}
+                    }
+                  ]
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "tool_result",
+                      "tool_use_id": "tu_1",
+                      "content": "result one"
+                    },
+                    {
+                      "type": "tool_result",
+                      "tool_use_id": "tu_2",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "result two"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "role": "user",
+                  "content": "previous question"
+                },
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "array answer"
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": "   "
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "current question",
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "max_tokens": 16384,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "You are the stable identity block.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": "{\"volatile\":\"timestamp\"}"
+                }
+              ],
+              "tools": [
+                {
+                  "name": "agent_search",
+                  "description": "search",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {
+                      "q": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "bare_tool",
+                  "description": "",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              ],
+              "context_management": {
+                "edits": [
+                  {
+                    "type": "clear_thinking_20251015",
+                    "keep": {
+                      "type": "all"
+                    }
+                  },
+                  {
+                    "type": "clear_tool_uses_20250919",
+                    "trigger": {
+                      "type": "input_tokens",
+                      "value": 30000
+                    },
+                    "keep": {
+                      "type": "tool_uses",
+                      "value": 5
+                    },
+                    "clear_at_least": {
+                      "type": "input_tokens",
+                      "value": 5000
+                    }
+                  }
+                ]
+              },
+              "thinking": {
+                "type": "adaptive",
+                "display": "summarized"
+              },
+              "temperature": 1,
+              "output_config": {
+                "effort": "medium"
+              }
+            },
+            "requestOptions": {
+              "headers": {
+                "anthropic-beta": "context-management-2025-06-27"
+              }
+            }
+          }
+        ],
+        "result": {
+          "content": "ok",
+          "toolCalls": null,
+          "stopReason": "end_turn",
+          "stopDetails": null,
+          "usage": {
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
+            "total_tokens": 2,
+            "cached_tokens": 0,
+            "cache_creation_tokens": 0,
+            "cache_creation_5m_tokens": 0,
+            "cache_creation_1h_tokens": 0,
+            "cache_creation_ttl_assumed": false,
+            "reasoning_tokens": 0,
+            "prompt_includes_cache": false,
+            "service_tier": null,
+            "inference_geo": null,
+            "traffic_type": null,
+            "tool_use": {},
+            "modality": {
+              "prompt": {},
+              "completion": {},
+              "cached": {}
+            },
+            "cache_ttl": null
+          }
+        },
+        "error": null
+      },
+      "forcedRetry": {
+        "clients": [
+          {
+            "token": "sk-ant-api",
+            "oauth": false
+          },
+          {
+            "token": "sk-ant-api",
+            "oauth": false
+          }
+        ],
+        "calls": [
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-sonnet-4-6",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "hello"
+                }
+              ],
+              "max_tokens": 8192,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "sys",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                }
+              ],
+              "tools": [
+                {
+                  "name": "agent_search",
+                  "description": "search",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {
+                      "q": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "bare_tool",
+                  "description": "",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              ],
+              "tool_choice": {
+                "type": "tool",
+                "name": "agent_search"
+              },
+              "context_management": {
+                "edits": [
+                  {
+                    "type": "clear_tool_uses_20250919",
+                    "trigger": {
+                      "type": "input_tokens",
+                      "value": 30000
+                    },
+                    "keep": {
+                      "type": "tool_uses",
+                      "value": 5
+                    },
+                    "clear_at_least": {
+                      "type": "input_tokens",
+                      "value": 5000
+                    }
+                  }
+                ]
+              }
+            },
+            "requestOptions": {
+              "headers": {
+                "anthropic-beta": "context-management-2025-06-27"
+              }
+            }
+          },
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-sonnet-4-6",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "hello"
+                }
+              ],
+              "max_tokens": 16384,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "sys",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": "Respond by calling the `agent_search` tool exactly once, with arguments that follow its input schema. Do not answer in plain text."
+                }
+              ],
+              "tools": [
+                {
+                  "name": "agent_search",
+                  "description": "search",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {
+                      "q": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "bare_tool",
+                  "description": "",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              ],
+              "tool_choice": {
+                "type": "auto"
+              },
+              "context_management": {
+                "edits": [
+                  {
+                    "type": "clear_thinking_20251015",
+                    "keep": {
+                      "type": "all"
+                    }
+                  },
+                  {
+                    "type": "clear_tool_uses_20250919",
+                    "trigger": {
+                      "type": "input_tokens",
+                      "value": 30000
+                    },
+                    "keep": {
+                      "type": "tool_uses",
+                      "value": 5
+                    },
+                    "clear_at_least": {
+                      "type": "input_tokens",
+                      "value": 5000
+                    }
+                  }
+                ]
+              },
+              "thinking": {
+                "type": "adaptive",
+                "display": "summarized"
+              },
+              "temperature": 1,
+              "output_config": {
+                "effort": "medium"
+              }
+            },
+            "requestOptions": {
+              "headers": {
+                "anthropic-beta": "context-management-2025-06-27"
+              }
+            }
+          }
+        ],
+        "result": {
+          "content": "ok",
+          "toolCalls": null,
+          "stopReason": "end_turn",
+          "stopDetails": null,
+          "usage": {
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
+            "total_tokens": 2,
+            "cached_tokens": 0,
+            "cache_creation_tokens": 0,
+            "cache_creation_5m_tokens": 0,
+            "cache_creation_1h_tokens": 0,
+            "cache_creation_ttl_assumed": false,
+            "reasoning_tokens": 0,
+            "prompt_includes_cache": false,
+            "service_tier": null,
+            "inference_geo": null,
+            "traffic_type": null,
+            "tool_use": {},
+            "modality": {
+              "prompt": {},
+              "completion": {},
+              "cached": {}
+            },
+            "cache_ttl": null
+          }
+        },
+        "error": null
+      },
+      "contextMgmtRetry": {
+        "clients": [
+          {
+            "token": "sk-ant-api",
+            "oauth": false
+          }
+        ],
+        "calls": [
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-sonnet-4-6",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "hello"
+                }
+              ],
+              "max_tokens": 16384,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "sys",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                }
+              ],
+              "tools": [
+                {
+                  "name": "agent_search",
+                  "description": "search",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {
+                      "q": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "bare_tool",
+                  "description": "",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              ],
+              "context_management": {
+                "edits": [
+                  {
+                    "type": "clear_thinking_20251015",
+                    "keep": {
+                      "type": "all"
+                    }
+                  },
+                  {
+                    "type": "clear_tool_uses_20250919",
+                    "trigger": {
+                      "type": "input_tokens",
+                      "value": 30000
+                    },
+                    "keep": {
+                      "type": "tool_uses",
+                      "value": 5
+                    },
+                    "clear_at_least": {
+                      "type": "input_tokens",
+                      "value": 5000
+                    }
+                  }
+                ]
+              },
+              "thinking": {
+                "type": "adaptive",
+                "display": "summarized"
+              },
+              "temperature": 1,
+              "output_config": {
+                "effort": "medium"
+              }
+            },
+            "requestOptions": {
+              "headers": {
+                "anthropic-beta": "context-management-2025-06-27"
+              }
+            }
+          },
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-sonnet-4-6",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "hello"
+                }
+              ],
+              "max_tokens": 16384,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "sys",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                }
+              ],
+              "tools": [
+                {
+                  "name": "agent_search",
+                  "description": "search",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {
+                      "q": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "bare_tool",
+                  "description": "",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              ],
+              "thinking": {
+                "type": "adaptive",
+                "display": "summarized"
+              },
+              "temperature": 1,
+              "output_config": {
+                "effort": "medium"
+              }
+            },
+            "requestOptions": null
+          }
+        ],
+        "result": {
+          "content": "ok",
+          "toolCalls": null,
+          "stopReason": "end_turn",
+          "stopDetails": null,
+          "usage": {
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
+            "total_tokens": 2,
+            "cached_tokens": 0,
+            "cache_creation_tokens": 0,
+            "cache_creation_5m_tokens": 0,
+            "cache_creation_1h_tokens": 0,
+            "cache_creation_ttl_assumed": false,
+            "reasoning_tokens": 0,
+            "prompt_includes_cache": false,
+            "service_tier": null,
+            "inference_geo": null,
+            "traffic_type": null,
+            "tool_use": {},
+            "modality": {
+              "prompt": {},
+              "completion": {},
+              "cached": {}
+            },
+            "cache_ttl": null
+          }
+        },
+        "error": null
+      },
+      "otherErrorThrows": {
+        "clients": [
+          {
+            "token": "sk-ant-api",
+            "oauth": false
+          }
+        ],
+        "calls": [
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-sonnet-4-6",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "hello"
+                }
+              ],
+              "max_tokens": 16384,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "sys",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                }
+              ],
+              "tools": [
+                {
+                  "name": "agent_search",
+                  "description": "search",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {
+                      "q": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "bare_tool",
+                  "description": "",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              ],
+              "context_management": {
+                "edits": [
+                  {
+                    "type": "clear_thinking_20251015",
+                    "keep": {
+                      "type": "all"
+                    }
+                  },
+                  {
+                    "type": "clear_tool_uses_20250919",
+                    "trigger": {
+                      "type": "input_tokens",
+                      "value": 30000
+                    },
+                    "keep": {
+                      "type": "tool_uses",
+                      "value": 5
+                    },
+                    "clear_at_least": {
+                      "type": "input_tokens",
+                      "value": 5000
+                    }
+                  }
+                ]
+              },
+              "thinking": {
+                "type": "adaptive",
+                "display": "summarized"
+              },
+              "temperature": 1,
+              "output_config": {
+                "effort": "medium"
+              }
+            },
+            "requestOptions": {
+              "headers": {
+                "anthropic-beta": "context-management-2025-06-27"
+              }
+            }
+          }
+        ],
+        "result": null,
+        "error": {
+          "message": "overloaded",
+          "status": 529
+        }
+      },
+      "thinkingWrongStatus": {
+        "clients": [
+          {
+            "token": "sk-ant-api",
+            "oauth": false
+          }
+        ],
+        "calls": [
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-sonnet-4-6",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "[Conversation Summary] earlier turns folded here",
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "thinking",
+                      "thinking": "signed thought",
+                      "signature": "sig-1"
+                    },
+                    {
+                      "type": "redacted_thinking",
+                      "data": "opaque"
+                    },
+                    {
+                      "type": "text",
+                      "text": "Noted."
+                    }
+                  ]
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "look at these"
+                    },
+                    {
+                      "type": "image",
+                      "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": "AAAA"
+                      }
+                    },
+                    {
+                      "type": "image",
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.test/a.png"
+                      },
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "thinking",
+                      "thinking": "",
+                      "signature": "sig-2"
+                    },
+                    {
+                      "type": "text",
+                      "text": "calling tools"
+                    },
+                    {
+                      "type": "tool_use",
+                      "id": "tu_1",
+                      "name": "agent_search",
+                      "input": {
+                        "q": "a"
+                      }
+                    },
+                    {
+                      "type": "tool_use",
+                      "id": "tu_2",
+                      "name": "agent_search",
+                      "input": {}
+                    }
+                  ]
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "tool_result",
+                      "tool_use_id": "tu_1",
+                      "content": "result one"
+                    },
+                    {
+                      "type": "tool_result",
+                      "tool_use_id": "tu_2",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "result two"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "role": "user",
+                  "content": "previous question"
+                },
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "thinking",
+                      "thinking": "t",
+                      "signature": "sig-3"
+                    },
+                    {
+                      "type": "text",
+                      "text": "array answer"
+                    }
+                  ]
+                },
+                {
+                  "role": "assistant",
+                  "content": "   "
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "current question",
+                      "cache_control": {
+                        "type": "ephemeral"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "max_tokens": 16384,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "You are the stable identity block.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": "{\"volatile\":\"timestamp\"}"
+                }
+              ],
+              "context_management": {
+                "edits": [
+                  {
+                    "type": "clear_thinking_20251015",
+                    "keep": {
+                      "type": "all"
+                    }
+                  }
+                ]
+              },
+              "thinking": {
+                "type": "adaptive",
+                "display": "summarized"
+              },
+              "temperature": 1,
+              "output_config": {
+                "effort": "medium"
+              }
+            },
+            "requestOptions": {
+              "headers": {
+                "anthropic-beta": "context-management-2025-06-27"
+              }
+            }
+          }
+        ],
+        "result": null,
+        "error": {
+          "message": "thinking signature invalid",
+          "status": 500
+        }
+      },
+      "oauth": {
+        "clients": [
+          {
+            "token": "sk-ant-oat-subscription",
+            "oauth": true
+          }
+        ],
+        "calls": [
+          {
+            "call": "create",
+            "params": {
+              "model": "claude-opus-4-8",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "hello"
+                }
+              ],
+              "max_tokens": 16384,
+              "system": [
+                {
+                  "type": "text",
+                  "text": "You are Claude Code, Anthropic's official CLI for Claude."
+                },
+                {
+                  "type": "text",
+                  "text": "sys",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                }
+              ],
+              "tools": [
+                {
+                  "name": "agent_search",
+                  "description": "search",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {
+                      "q": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "bare_tool",
+                  "description": "",
+                  "input_schema": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                }
+              ],
+              "context_management": {
+                "edits": [
+                  {
+                    "type": "clear_thinking_20251015",
+                    "keep": {
+                      "type": "all"
+                    }
+                  },
+                  {
+                    "type": "clear_tool_uses_20250919",
+                    "trigger": {
+                      "type": "input_tokens",
+                      "value": 30000
+                    },
+                    "keep": {
+                      "type": "tool_uses",
+                      "value": 5
+                    },
+                    "clear_at_least": {
+                      "type": "input_tokens",
+                      "value": 5000
+                    }
+                  }
+                ]
+              },
+              "thinking": {
+                "type": "adaptive",
+                "display": "summarized"
+              },
+              "output_config": {
+                "effort": "high"
+              }
+            },
+            "requestOptions": {
+              "headers": {
+                "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+              }
+            }
+          }
+        ],
+        "result": {
+          "content": "ok",
+          "toolCalls": null,
+          "stopReason": "end_turn",
+          "stopDetails": null,
+          "usage": {
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
+            "total_tokens": 2,
+            "cached_tokens": 0,
+            "cache_creation_tokens": 0,
+            "cache_creation_5m_tokens": 0,
+            "cache_creation_1h_tokens": 0,
+            "cache_creation_ttl_assumed": false,
+            "reasoning_tokens": 0,
+            "prompt_includes_cache": false,
+            "service_tier": null,
+            "inference_geo": null,
+            "traffic_type": null,
+            "tool_use": {},
+            "modality": {
+              "prompt": {},
+              "completion": {},
+              "cached": {}
+            },
+            "cache_ttl": null
+          }
+        },
+        "error": null
+      }
+    }
+  },
+  "stream": {
+    "full": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "[Conversation Summary] earlier turns folded here",
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "thinking",
+                    "thinking": "signed thought",
+                    "signature": "sig-1"
+                  },
+                  {
+                    "type": "redacted_thinking",
+                    "data": "opaque"
+                  },
+                  {
+                    "type": "text",
+                    "text": "Noted."
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "look at these"
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "base64",
+                      "media_type": "image/png",
+                      "data": "AAAA"
+                    }
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "url",
+                      "url": "https://example.test/a.png"
+                    },
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "thinking",
+                    "thinking": "",
+                    "signature": "sig-2"
+                  },
+                  {
+                    "type": "text",
+                    "text": "calling tools"
+                  },
+                  {
+                    "type": "tool_use",
+                    "id": "tu_1",
+                    "name": "agent_search",
+                    "input": {
+                      "q": "a"
+                    }
+                  },
+                  {
+                    "type": "tool_use",
+                    "id": "tu_2",
+                    "name": "agent_search",
+                    "input": {}
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "tool_result",
+                    "tool_use_id": "tu_1",
+                    "content": "result one"
+                  },
+                  {
+                    "type": "tool_result",
+                    "tool_use_id": "tu_2",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "result two"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": "previous question"
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "thinking",
+                    "thinking": "t",
+                    "signature": "sig-3"
+                  },
+                  {
+                    "type": "text",
+                    "text": "array answer"
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": "   "
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "current question",
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "You are the stable identity block.",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              },
+              {
+                "type": "text",
+                "text": "{\"volatile\":\"timestamp\"}"
+              }
+            ],
+            "tools": [
+              {
+                "name": "agent_search",
+                "description": "search",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "bare_tool",
+                "description": "",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                },
+                {
+                  "type": "clear_tool_uses_20250919",
+                  "trigger": {
+                    "type": "input_tokens",
+                    "value": 30000
+                  },
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 5
+                  },
+                  "clear_at_least": {
+                    "type": "input_tokens",
+                    "value": 5000
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "thinking_start",
+          {
+            "partId": "claude-0"
+          }
+        ],
+        [
+          "thinking",
+          {
+            "text": "pondering",
+            "partId": "claude-0"
+          }
+        ],
+        [
+          "thinking_signature",
+          {
+            "partId": "claude-0",
+            "signature": "sig-s"
+          }
+        ],
+        [
+          "thinking_stop",
+          {
+            "partId": "claude-0"
+          }
+        ],
+        [
+          "thinking_start",
+          {
+            "partId": "claude-1",
+            "redacted": true
+          }
+        ],
+        [
+          "thinking_signature",
+          {
+            "partId": "claude-1",
+            "redactedData": "opaque-r"
+          }
+        ],
+        [
+          "thinking_stop",
+          {
+            "partId": "claude-1",
+            "redacted": true
+          }
+        ],
+        [
+          "thinking_start",
+          {
+            "partId": "claude-2",
+            "redacted": true
+          }
+        ],
+        [
+          "thinking_stop",
+          {
+            "partId": "claude-2",
+            "redacted": true
+          }
+        ],
+        [
+          "text",
+          {
+            "text": "Hi "
+          }
+        ],
+        [
+          "text",
+          {
+            "text": "there"
+          }
+        ],
+        [
+          "tool_args_delta",
+          {
+            "name": "agent_search",
+            "partial": "{\"q\":"
+          }
+        ],
+        [
+          "tool_args_delta",
+          {
+            "name": "agent_search",
+            "partial": "{\"q\":\"x\"}"
+          }
+        ],
+        [
+          "tool_use",
+          {
+            "id": "tu_a",
+            "name": "agent_search",
+            "input": {
+              "q": "x"
+            }
+          }
+        ],
+        [
+          "tool_args_delta",
+          {
+            "name": "agent_search",
+            "partial": "{broken"
+          }
+        ],
+        [
+          "tool_use",
+          {
+            "id": "tu_d",
+            "name": "bare_tool",
+            "input": {}
+          }
+        ],
+        [
+          "error",
+          {
+            "error": "mid-stream boom"
+          }
+        ],
+        [
+          "error",
+          {
+            "error": "Unknown stream error"
+          }
+        ],
+        [
+          "done",
+          {
+            "prompt_tokens": 100,
+            "completion_tokens": 20,
+            "total_tokens": 120,
+            "cached_tokens": 50,
+            "cache_creation_tokens": 30,
+            "cache_creation_5m_tokens": 10,
+            "cache_creation_1h_tokens": 20,
+            "cache_creation_ttl_assumed": false,
+            "reasoning_tokens": 0,
+            "prompt_includes_cache": false,
+            "service_tier": null,
+            "inference_geo": null,
+            "traffic_type": null,
+            "tool_use": {},
+            "modality": {
+              "prompt": {},
+              "completion": {},
+              "cached": {}
+            },
+            "cache_ttl": "1h",
+            "stop_reason": "tool_use",
+            "stopReason": "tool_use",
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "refusal": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-opus-5",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "output_config": {
+              "effort": "high"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "text",
+          {
+            "text": "The model declined to answer this request. It was classified as biological or chemical risk content."
+          }
+        ],
+        [
+          "done",
+          {
+            "stopReason": "refusal",
+            "stopDetails": {
+              "category": "bio"
+            }
+          }
+        ]
+      ],
+      "error": null
+    },
+    "refusalAfterText": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-opus-5",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "output_config": {
+              "effort": "high"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "text",
+          {
+            "text": "partial"
+          }
+        ],
+        [
+          "done",
+          {
+            "stopReason": "refusal",
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "contextWindow": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-opus-5",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "output_config": {
+              "effort": "high"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "text",
+          {
+            "text": "This conversation no longer fits in the model context window."
+          }
+        ],
+        [
+          "done",
+          {
+            "stopReason": "model_context_window_exceeded",
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "finalMessageThrows": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "text",
+          {
+            "text": "a"
+          }
+        ],
+        [
+          "done",
+          {
+            "stopReason": null,
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "noUsage": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "done",
+          {
+            "stopReason": "end_turn",
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "contextMgmtRetry": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "agent_search",
+                "description": "search",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "bare_tool",
+                "description": "",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                },
+                {
+                  "type": "clear_tool_uses_20250919",
+                  "trigger": {
+                    "type": "input_tokens",
+                    "value": 30000
+                  },
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 5
+                  },
+                  "clear_at_least": {
+                    "type": "input_tokens",
+                    "value": 5000
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        },
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "agent_search",
+                "description": "search",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "bare_tool",
+                "description": "",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": null
+        }
+      ],
+      "events": [
+        [
+          "done",
+          {
+            "stopReason": "end_turn",
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "thinkingReplayRetry": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "[Conversation Summary] earlier turns folded here",
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "thinking",
+                    "thinking": "signed thought",
+                    "signature": "sig-1"
+                  },
+                  {
+                    "type": "redacted_thinking",
+                    "data": "opaque"
+                  },
+                  {
+                    "type": "text",
+                    "text": "Noted."
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "look at these"
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "base64",
+                      "media_type": "image/png",
+                      "data": "AAAA"
+                    }
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "url",
+                      "url": "https://example.test/a.png"
+                    },
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "thinking",
+                    "thinking": "",
+                    "signature": "sig-2"
+                  },
+                  {
+                    "type": "text",
+                    "text": "calling tools"
+                  },
+                  {
+                    "type": "tool_use",
+                    "id": "tu_1",
+                    "name": "agent_search",
+                    "input": {
+                      "q": "a"
+                    }
+                  },
+                  {
+                    "type": "tool_use",
+                    "id": "tu_2",
+                    "name": "agent_search",
+                    "input": {}
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "tool_result",
+                    "tool_use_id": "tu_1",
+                    "content": "result one"
+                  },
+                  {
+                    "type": "tool_result",
+                    "tool_use_id": "tu_2",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "result two"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": "previous question"
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "thinking",
+                    "thinking": "t",
+                    "signature": "sig-3"
+                  },
+                  {
+                    "type": "text",
+                    "text": "array answer"
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": "   "
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "current question",
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "You are the stable identity block.",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              },
+              {
+                "type": "text",
+                "text": "{\"volatile\":\"timestamp\"}"
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        },
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "[Conversation Summary] earlier turns folded here",
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": "Noted."
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "look at these"
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "base64",
+                      "media_type": "image/png",
+                      "data": "AAAA"
+                    }
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "url",
+                      "url": "https://example.test/a.png"
+                    },
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "calling tools"
+                  },
+                  {
+                    "type": "tool_use",
+                    "id": "tu_1",
+                    "name": "agent_search",
+                    "input": {
+                      "q": "a"
+                    }
+                  },
+                  {
+                    "type": "tool_use",
+                    "id": "tu_2",
+                    "name": "agent_search",
+                    "input": {}
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "tool_result",
+                    "tool_use_id": "tu_1",
+                    "content": "result one"
+                  },
+                  {
+                    "type": "tool_result",
+                    "tool_use_id": "tu_2",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "result two"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": "previous question"
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "array answer"
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": "   "
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "current question",
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "You are the stable identity block.",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              },
+              {
+                "type": "text",
+                "text": "{\"volatile\":\"timestamp\"}"
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "done",
+          {
+            "stopReason": "end_turn",
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "forcedRetry": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 8192,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "agent_search",
+                "description": "search",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "bare_tool",
+                "description": "",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "any"
+            },
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_tool_uses_20250919",
+                  "trigger": {
+                    "type": "input_tokens",
+                    "value": 30000
+                  },
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 5
+                  },
+                  "clear_at_least": {
+                    "type": "input_tokens",
+                    "value": 5000
+                  }
+                }
+              ]
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        },
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Respond by calling one of the provided tools, with arguments that follow its input schema. Do not answer in plain text."
+              }
+            ],
+            "tools": [
+              {
+                "name": "agent_search",
+                "description": "search",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "bare_tool",
+                "description": "",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "auto"
+            },
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                },
+                {
+                  "type": "clear_tool_uses_20250919",
+                  "trigger": {
+                    "type": "input_tokens",
+                    "value": 30000
+                  },
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 5
+                  },
+                  "clear_at_least": {
+                    "type": "input_tokens",
+                    "value": 5000
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "done",
+          {
+            "stopReason": "end_turn",
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "errorEnriched": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [],
+      "error": {
+        "message": "API error 529: {\"type\":\"error\",\"error\":{\"message\":\"overloaded\"}}",
+        "status": 529
+      }
+    },
+    "errorNoStatus": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [],
+      "error": {
+        "message": "socket hang up",
+        "status": null
+      }
+    },
+    "oauth": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-opus-4-8",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "You are Claude Code, Anthropic's official CLI for Claude."
+              },
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "agent_search",
+                "description": "search",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "bare_tool",
+                "description": "",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                },
+                {
+                  "type": "clear_tool_uses_20250919",
+                  "trigger": {
+                    "type": "input_tokens",
+                    "value": 30000
+                  },
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 5
+                  },
+                  "clear_at_least": {
+                    "type": "input_tokens",
+                    "value": 5000
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "output_config": {
+              "effort": "high"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "done",
+          {
+            "stopReason": "end_turn",
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    }
+  },
+  "listModels": {
+    "ok": [
+      {
+        "id": "a",
+        "name": "A"
+      },
+      {
+        "id": "b",
+        "name": "b"
+      }
+    ],
+    "failed": []
+  }
+}

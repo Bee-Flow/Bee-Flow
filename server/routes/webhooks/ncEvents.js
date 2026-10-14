@@ -11,6 +11,12 @@
  *                             prefixed with `<unixSeconds>.`
  *   ±5min skew allowed; constant-time compare; tenant-key lookup is
  *   per-org so a leaked key only impersonates that org's connector.
+ *   The check itself is auth/connectorSig.js, the one copy every connector
+ *   route shares. This route asks it to refuse a REPLAY too: a signature
+ *   already accepted inside its window is a 401, so a captured
+ *   `user.deleted` cannot be played again against an account the admin
+ *   re-created. Rate-limited per IP ahead of the body parser, at the same
+ *   ceiling as the connector's /api/automation/events/* pushes.
  *
  * ── The body, after the signature ────────────────────────────────────
  *
@@ -35,11 +41,10 @@
  */
 
 const express = require('express');
-const crypto = require('crypto');
 const router = express.Router();
 
-const userStore = require('../../stores/userStore');
-const configStore = require('../../stores/configStore');
+const { verifyConnectorSig } = require('../../auth/connectorSig');
+const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const sync = require('../../services/ncUserGroupSync');
 const { badRequest } = require('../../core/http/errors');
 const { z, onUnknownKeys, typeError } = require('../../utils/zod');
@@ -65,36 +70,23 @@ const captureRaw = express.json({
     verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); },
 });
 
-async function verifySig(req) {
-    const instanceId = String(req.headers['x-beeflow-nc-instance-id'] || '');
-    if (!instanceId) return null;
-    const org = await userStore.getOrganizationByNcInstanceId(instanceId);
-    if (!org) return null;
-    const tenantKey = await configStore.getSecret(`connector_tenant_key_${org.id}`);
-    if (!tenantKey) return null;
-
-    const sigHeader = String(req.headers['x-beeflow-sig'] || '');
-    const dot = sigHeader.indexOf('.');
-    if (dot === -1) return null;
-    const ts = parseInt(sigHeader.slice(0, dot), 10);
-    const sig = sigHeader.slice(dot + 1);
-    if (!Number.isFinite(ts) || Math.abs(Math.floor(Date.now() / 1000) - ts) > 300) return null;
-
-    const message = `${ts}\n${req.method}\n${req.originalUrl}\n${req.rawBody || ''}`;
-    const expected = crypto.createHmac('sha256', tenantKey).update(message).digest('hex');
-    if (expected.length !== sig.length) return null;
-    try {
-        if (!crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(sig, 'hex'))) return null;
-    } catch { return null; }
-    return org;
-}
+// Same env knob and ceiling as the /api/automation/events/* limiter
+// (routes/automation/events.js): the connector forwards both from one IP.
+// Registered before the body parser so a flood does not pay the JSON parse.
+// A sync event lost to a 429 is picked up by jobs/ncSyncBackstop.js.
+const NC_USER_SYNC_RPM_PER_IP = parseInt(process.env.AUTOMATION_EVENTS_RPM_PER_IP, 10) || 600;
+const userSyncLimiter = perUserRateLimit({
+    windowMs: 60_000,
+    max: NC_USER_SYNC_RPM_PER_IP,
+    keyFn: (req) => `ncsync:${req.ip || 'unknown'}`,
+});
 
 /**
  * The body, held to NcEvent with the 400 core/http/validate.js gives
  * (`invalid_request`, each issue pathed `body.<field>`). It is parsed here,
- * after verifySig, not by `validate()` in the chain: in front of the handler
+ * after the signature, not by `validate()` in the chain: in front of the handler
  * it would answer an unsigned caller's body with a 400 describing the schema,
- * and splitting verifySig out into a middleware of its own makes it an
+ * and splitting the signature check out into a middleware of its own makes it an
  * untagged gate under /auth, which auth/accessRegistry.drift.test.js refuses.
  */
 function readEvent(body) {
@@ -104,8 +96,8 @@ function readEvent(body) {
     throw badRequest('invalid_request', issues[0].message, issues);
 }
 
-router.post('/webhook/nc-user-sync', captureRaw, async (req, res) => {
-    const org = await verifySig(req);
+router.post('/webhook/nc-user-sync', userSyncLimiter, captureRaw, async (req, res) => {
+    const org = await verifyConnectorSig(req, { rejectReplay: true });
     if (!org) return res.status(401).json({ error: 'Invalid or missing signature' });
 
     const { event, ncUid, groupId } = readEvent(req.body);

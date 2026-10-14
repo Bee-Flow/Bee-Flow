@@ -155,10 +155,17 @@ export function findHardCoded(src: string): Finding[] {
 // The tree
 // ---------------------------------------------------------------------------
 
+const GENERATED_DIRS = new Set(['src/features/flow-editor/bindings/mirror', 'src/shared/expr/vendor']);
+
 function* walk(dir: string): Generator<string> {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, entry.name);
         if (entry.isDirectory()) {
+            // Generated copies (scripts/gen-shared-mirror.mjs: the web mapping
+            // library under bindings/mirror, the expression engine under
+            // shared/expr/vendor) are bewaakt at their source in agent-hub and
+            // server; a literal there is the web's to fix, not a phone ledger line.
+            if (GENERATED_DIRS.has(path.relative(MOBILE, p))) continue;
             if (entry.name !== 'node_modules') yield* walk(p);
         } else if (/\.tsx?$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name)) {
             yield p;

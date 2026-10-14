@@ -63,8 +63,11 @@ describe('mkTt — the shared shim forwards what the old copies swallowed', () =
 });
 
 describe('editor/react holds no hand-rolled copy of the shim', () => {
-  const sources = fs.readdirSync(HERE)
-    .filter(f => /\.jsx?$/.test(f) && !f.includes('.test.'))
+  // The bubbles moved out of BeeEditor.jsx into bubbles/ (and into TypeScript):
+  // both stay inside the scan.
+  const sources = ['', 'bubbles']
+    .flatMap(dir => fs.readdirSync(path.join(HERE, dir)).map(f => path.join(dir, f)))
+    .filter(f => /\.[jt]sx?$/.test(f) && !f.includes('.test.'))
     .map(f => ({ f, src: fs.readFileSync(path.join(HERE, f), 'utf8') }));
 
   it('reads more than a handful of modules — a silent empty scan proves nothing', () => {

@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * stores/lib/_ddl.js tegen echte Postgres (pglite), achter dezelfde
- * db.js-mock als migrateDb.integration.test.js — geen fakeDb-stringmock.
+ * stores/lib/_ddl.js tegen echte Postgres (pglite), achter de pool van de
+ * echte db.js (testUtils/pglitePool) — geen fakeDb-stringmock.
  *
  * Bewezen wordt: (1) een falend statement komt in de failures-lijst én de
  * rest van de reeks draait door en commit; (2) een verwachte SQLSTATE
@@ -18,84 +18,30 @@
  * configStore.mutateConfig al productie-draait en dat test 3 van
  * migrateDb.integration.test.js onder pglite aantoonbaar uitvoert.
  *
- * Run: cd server && node --test --test-force-exit stores/lib/_ddl.integration.test.js
+ * Run: cd server && node --test stores/lib/_ddl.integration.test.js
  */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const path = require('node:path');
-const Module = require('node:module');
 
-const SERVER = path.join(__dirname, '..', '..');
-
-// ── Eén pglite-verbinding achter de db.js-facade ────────────────────────────
-
-const { PGlite } = require('@electric-sql/pglite');
-const pg = new PGlite();
-
-function adaptResult(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
-    const rowCount = fields.length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, fields, rowCount, command };
-}
+// ── The real db.js, its pool answered by one pglite connection ──────────────
+// Before the stores are required: they start their schema init at load.
+// pglite is ONE connection, so these tests stay sequential.
+const { usePglitePool } = require('../../testUtils/pglitePool');
+const { query: rawQuery } = usePglitePool();
 
 // Testhaak voor test 4: één statement dat "de verbinding verliest" —
 // een rejectie ZONDER SQLSTATE, zoals een pool-timeout of dode socket.
 const BOOM = 'SELECT __verbinding_weg__';
-
-async function rawQuery(sql, params) {
-    if (String(sql).includes(BOOM)) throw new Error('Connection terminated unexpectedly');
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adaptResult(await pg.exec(sql), sql);
-    return adaptResult(await pg.query(sql), sql);
+{
+    const db = require('../../db');
+    const answer = db.pool.query;
+    db.pool.query = async (sql, params) => {
+        if (String(sql).includes(BOOM)) throw new Error('Connection terminated unexpectedly');
+        return answer(sql, params);
+    };
+    db.pool.connect = async () => ({ query: db.pool.query, release() {} });
 }
-
-const client = { query: (sql, params) => rawQuery(sql, params), release: () => {} };
-
-function mock(absId, exportsObj) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exportsObj;
-    m.loaded = true;
-    require.cache[p] = m;
-}
-
-mock(path.join(SERVER, 'db.js'), {
-    pool: { query: rawQuery, connect: async () => client, end: async () => {} },
-    run: rawQuery,
-    getOne: async (sql, params) => (await rawQuery(sql, params)).rows[0] || null,
-    getAll: async (sql, params) => (await rawQuery(sql, params)).rows,
-    exec: (sql) => rawQuery(sql, []),
-    getClient: async () => client,
-    withTransaction: async (fn) => {
-        await client.query('BEGIN');
-        try {
-            const out = await fn(client);
-            await client.query('COMMIT');
-            return out;
-        } catch (e) {
-            try { await client.query('ROLLBACK'); } catch { /* already aborted */ }
-            throw e;
-        }
-    },
-    makeStoreInit: (tag, schemaFn) => {
-        let promise = null;
-        return function ensureInit() {
-            if (!promise) promise = Promise.resolve().then(schemaFn).catch((err) => { promise = null; throw err; });
-            return promise;
-        };
-    },
-    getRedis: () => null,
-    redisHealthy: () => false,
-    disconnectRedis: async () => {},
-    getPoolStats: () => ({}),
-    isSqlStateError: (e) => typeof e?.code === 'string' && /^[0-9A-Z]{5}$/.test(e.code),
-});
 
 // Alles hieronder is het echte spul.
 const { runDdl, CODES } = require('./_ddl.js');

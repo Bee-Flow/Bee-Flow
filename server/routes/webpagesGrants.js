@@ -54,9 +54,7 @@ const webpageDataCards = require('../core/webpages/webpageDataCards');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../core/http/schemaParts');
 
 const TOOL_TEXT = 'Name the integration action to grant (tool).';
 const FIXED_TEXT = 'fixedArgs is a JSON object of pinned arguments, e.g. { "channel": "#general" }.';

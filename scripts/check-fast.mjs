@@ -5,6 +5,7 @@
  *   npm run check:fast                     # or: node scripts/check-fast.mjs
  *   node scripts/check-fast.mjs --list     # what would run, without running it
  *   node scripts/check-fast.mjs --only i18n    # just the gates whose name has "i18n"
+ *   node scripts/check-fast.mjs --list --slack # each ratchet: measured vs budget
  *
  * Runs, at most os.availableParallelism() at a time:
  *   - every root package.json script whose name starts with `lint:`, except
@@ -30,6 +31,11 @@
  * Exit 0 when nothing failed, 1 when a gate failed, 2 on a usage error.
  * A gate that times out or is killed is a FAIL: it did not say yes. One that
  * passes but takes over 10 s is named in the summary as a DENYLIST candidate.
+ *
+ * --slack runs the lint:* gates (not the .sh ones, not the branch gates) and
+ * prints, per ratchet, what it measured against its budget and the room left
+ * between the two (parseSlack reads the ✅ / ➖ / ❌ line every ratchet
+ * prints). Slack above zero means an `--update` would lower that budget.
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -215,7 +221,58 @@ function npmLikeEnv(root) {
     return env;
 }
 
-const USAGE = 'usage: node scripts/check-fast.mjs [--list] [--only <substring>]';
+/**
+ * The ratchet verdicts in a gate's output: the line each ratchet prints,
+ * starting with ✅ (room left), ➖ (at budget) or ❌ (over it).
+ * A budget is a ceiling ("budget of N", "budget is N") or a floor ("floor of
+ * N", "floor is N"); slack is how far the measured value sits on the good side
+ * of it, negative when over. A verdict line without the measured number
+ * (source-text prints it on the line before) takes the last number printed
+ * before it; with none at all, `measured` and slack are null.
+ * @returns {{ label: string, measured: number|null, budget: number|null, slack: number|null, floor: boolean }[]}
+ */
+export function parseSlack(output) {
+    const rows = [];
+    let lastNumber = null; // the last number on a line before the verdict
+    for (const raw of String(output).split(/\r?\n/)) {
+        const m = /^(✅|➖|❌)\s+(?:([\w@./-]+):\s+)?(.*)$/u.exec(raw.trim());
+        if (!m) {
+            const nums = raw.match(/\d+/g);
+            if (nums) lastNumber = Number(nums[nums.length - 1]);
+            continue;
+        }
+        const [, mark, label = '', rest] = m;
+        const ceiling = /budget (?:of|is) (\d+)/.exec(rest);
+        const floorM = /floor (?:of|is) (\d+)/.exec(rest);
+        const atBudget = /\bat (?:the )?(budget|floor)\b/.exec(rest);
+        if (!ceiling && !floorM && !atBudget) continue;
+        const first = /(\d+)/.exec(rest.split(/,? (?:under|over) the |, budget is |, the floor is |, at (?:the )?(?:budget|floor)/)[0]);
+        const measured = first ? Number(first[1]) : lastNumber;
+        const floor = Boolean(floorM) || atBudget?.[1] === 'floor';
+        let budget = ceiling ? Number(ceiling[1]) : floorM ? Number(floorM[1]) : measured;
+        let slack = null;
+        if (atBudget && mark === '➖') { slack = 0; budget = measured; }
+        else if (measured !== null && budget !== null) slack = floor ? measured - budget : budget - measured;
+        rows.push({ label, measured, budget, slack, floor });
+    }
+    return rows;
+}
+
+/** The slack table: one row per ratchet verdict of each gate, sorted by gate. */
+export function slackTable(results) {
+    const rows = [];
+    for (const r of [...results].sort((a, b) => a.gate.name.localeCompare(b.gate.name))) {
+        for (const row of parseSlack(r.output)) rows.push({ gate: r.gate.name, ...row });
+    }
+    const cell = (v) => (v === null || v === undefined ? '?' : String(v));
+    const head = ['gate', 'scope', 'measured', 'budget', 'slack'];
+    const body = rows.map((r) => [r.gate, r.label || '-', cell(r.measured), `${cell(r.budget)}${r.floor ? ' (floor)' : ''}`, cell(r.slack)]);
+    const w = head.map((h, i) => Math.max(h.length, ...body.map((b) => b[i].length)));
+    const fmt = (cols) => `  ${cols.map((c, i) => (i >= 2 ? c.padStart(w[i]) : c.padEnd(w[i]))).join('  ')}`.trimEnd();
+    return { rows, lines: [fmt(head), ...body.map(fmt)] };
+}
+
+const USAGE = 'usage: node scripts/check-fast.mjs [--list [--slack]] [--only <substring>]';
 
 /**
  * @param {object} [o]
@@ -241,7 +298,7 @@ export async function main({
 } = {}) {
     let only = null;
     for (let i = 0; i < argv.length; i++) {
-        if (argv[i] === '--list') continue;
+        if (argv[i] === '--list' || argv[i] === '--slack') continue;
         if (argv[i] === '--only') {
             only = argv[++i];
             if (!only || only.startsWith('--')) {
@@ -258,6 +315,7 @@ export async function main({
         return 2;
     }
     const list = argv.includes('--list');
+    const slack = argv.includes('--slack');
 
     const { scripts } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
     let gates = [...lintGates(scripts), ...branchGatesFn(root)];
@@ -267,6 +325,27 @@ export async function main({
         return 2;
     }
     const width = Math.max(...gates.map((g) => g.name.length));
+
+    if (slack) {
+        // Ratchets only: the lint:* gates run through the shell. A .sh gate
+        // (secret scans) and the branch gates have no budget to report.
+        const ratchets = gates.filter((g) => !g.bash && g.name.startsWith('lint:'));
+        const env = npmLikeEnv(root);
+        const results = [];
+        print(`check:fast --slack: running ${ratchets.length} gate(s), up to ${parallel} at a time`);
+        await pool(ratchets, parallel, async (gate) => {
+            const res = await runGate(gate, { root, env, bash: null, timeoutMs });
+            results.push({ gate, output: res.output, ...verdict(gate, res, timeoutMs) });
+        });
+        const table = slackTable(results);
+        for (const l of table.lines) print(l);
+        const roomy = table.rows.filter((r) => r.slack > 0);
+        print(`\n${table.rows.length} ratchet(s); ${roomy.length} with slack`
+            + (roomy.length ? ` (an --update would lower: ${roomy.map((r) => `${r.gate}${r.label ? ` ${r.label}` : ''}`).join(', ')})` : ''));
+        const failed = results.filter((r) => r.status === 'FAIL');
+        if (failed.length) print(`failing: ${failed.map((r) => r.gate.name).join(', ')} (run check:fast for their output)`);
+        return failed.length ? 1 : 0;
+    }
 
     if (list) {
         print(`check:fast would run ${gates.length} gate(s), up to ${parallel} at a time:`);

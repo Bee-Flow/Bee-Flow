@@ -17,14 +17,17 @@ Stdlib only.
 
 from __future__ import annotations
 
+import random
+import re
 import unittest
 
+import app.services.pii_regex as pr
 from app.services.pii_regex import (
+    _SPECS,
     ANY_REGION,
-    PatternSpec,
     REGEX_COMPLETE_CATEGORIES,
     SHIPPED_REGIONS,
-    _SPECS,
+    PatternSpec,
     detect_regex_pii,
     normalise_regions,
     regex_complete_categories,
@@ -290,7 +293,6 @@ class SuppressionNeverOutrunsCoverageTests(unittest.TestCase):
         self.assertIn("NationalIdentificationNumber", _cats("BSN 123456782"))
 
     def test_an_anchored_spec_cannot_claim_its_category(self):
-        import re
 
         with self.assertRaises(ValueError):
             PatternSpec(
@@ -302,7 +304,6 @@ class SuppressionNeverOutrunsCoverageTests(unittest.TestCase):
             )
 
     def test_a_spec_must_declare_regions(self):
-        import re
 
         with self.assertRaises(ValueError):
             PatternSpec("Email", frozenset(), re.compile(r"x"))
@@ -468,7 +469,6 @@ class PrecisionBudgetTests(unittest.TestCase):
         only the validator and reports 100% for every shape-only spec, which
         says nothing about whether the shape is safe.
         """
-        import random
 
         rng = random.Random(20260730)
         frames = [
@@ -554,9 +554,6 @@ class PrecisionBudgetTests(unittest.TestCase):
         carry it alone — mod-97 (1 in 97) can, mod-10 and mod-11 (1 in 10, 1 in
         11) cannot. Those need an anchor, and this is what says so.
         """
-        import random
-        import re as _re
-        import app.services.pii_regex as pr
 
         rng = random.Random(777)
         offenders = []
@@ -565,9 +562,7 @@ class PrecisionBudgetTests(unittest.TestCase):
                 continue
             src = spec.pattern.pattern
             # Does the shape demand anything but digits and separators?
-            if _re.search(
-                r"[A-Za-z](?![-\]])|A-Z|a-z", _re.sub(r"\\[dsbwSWD]", "", src)
-            ):
+            if re.search(r"[A-Za-z](?![-\]])|A-Z|a-z", re.sub(r"\\[dsbwSWD]", "", src)):
                 continue  # letters required — shape carries it
             # Sample strings this pattern actually matches, from digits alone.
             matched = []
@@ -616,8 +611,6 @@ class PrecisionBudgetTests(unittest.TestCase):
         NHS spec claim? Anchored, none. Unanchored, one in eleven, because that
         is what a mod-11 check on a shape this common buys you.
         """
-        import random
-        import app.services.pii_regex as pr
 
         rng = random.Random(4242)
         runs = [
@@ -668,8 +661,6 @@ class PrecisionBudgetTests(unittest.TestCase):
 
     def test_the_nhs_number_is_the_case_this_rule_exists_for(self):
         """Pin the specific measurement, so the rule keeps its worked example."""
-        import app.services.pii_regex as pr
-        import random
 
         rng = random.Random(99)
         runs = [
@@ -1037,7 +1028,6 @@ class NearMissEmissionTests(unittest.TestCase):
         )
 
     def test_near_miss_requires_a_validator(self):
-        import re
 
         with self.assertRaises(ValueError):
             PatternSpec("Email", frozenset({"NL"}), re.compile(r"x"), near_miss=True)

@@ -15,6 +15,7 @@ const { wouldOrphanOrg } = require('./orgAdminGuards');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 /**
  * Re-parent the leaver's agents to the target, except the agents a Solution
@@ -25,9 +26,6 @@ const { z } = require('../../utils/zod');
 const REASSIGN_AGENTS_SQL = `UPDATE agents SET owner_id = $1, updated_at = NOW()
      WHERE owner_id = $2 AND organization_id = $3
        AND (project_id IS NULL OR project_id NOT IN (SELECT id FROM projects WHERE stage_of IS NOT NULL))`;
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const TRANSFER_TEXT = 'transferTo (user id) is required';
 const LeaveOrgBody = z.object({

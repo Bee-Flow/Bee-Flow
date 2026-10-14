@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest number of hand-written text/event-stream heads outside core/http server may still carry. Lower it with `node scripts/count-ratchet.mjs sse-head server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-10-13",
+  "count": 0
+}

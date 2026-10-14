@@ -10,7 +10,6 @@ health endpoints read, and the module-level instance every caller shares.
 from __future__ import annotations
 
 import threading
-from typing import Optional
 
 from .cache import _CacheAware
 from .chunking import _FALLBACK_MAX_LEN
@@ -34,10 +33,10 @@ class PiiService(
         is multi-threaded. See _locked_predict.
     """
 
-    _instance: Optional["PiiService"] = None
+    _instance: PiiService | None = None
     _lock = threading.Lock()
 
-    def __new__(cls) -> "PiiService":
+    def __new__(cls) -> PiiService:
         with cls._lock:
             if cls._instance is None:
                 obj = super().__new__(cls)
@@ -78,11 +77,11 @@ class PiiService(
         return self._ready
 
     @property
-    def load_error(self) -> Optional[str]:
+    def load_error(self) -> str | None:
         return self._load_error
 
     @property
-    def backend(self) -> Optional[str]:
+    def backend(self) -> str | None:
         return self._backend
 
 

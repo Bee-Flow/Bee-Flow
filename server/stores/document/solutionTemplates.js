@@ -26,7 +26,7 @@
 const crypto = require('crypto');
 const contentCrypto = require('../lib/documentCrypto');
 const { run, getOne, getAll, withTransaction } = contentCrypto.readingDb(require('../../db'));
-const managedParts = require('../lib/managedParts');
+const managedParts = require('../managedPartsDefault');
 const log = require('../../telemetry/log');
 const versions = require('../documentVersions');
 

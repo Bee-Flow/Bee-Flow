@@ -1,0 +1,1525 @@
+{
+ "surface": {
+  "module": [
+   "initDB",
+   "makeProjectStore",
+   "applyProjectSchema",
+   "PROJECT_KINDS",
+   "createProject",
+   "getProject",
+   "listUserProjects",
+   "setProjectKind",
+   "setArchived",
+   "stageOfProject",
+   "stageOfProjectFresh",
+   "createStageProject",
+   "detachStage",
+   "setInstalledVersion",
+   "countChatHoldings",
+   "listSharedThreads",
+   "getOwnConversationFiling",
+   "setFilesKbId",
+   "countSharedThreads",
+   "updateProject",
+   "deleteProject",
+   "shareProject",
+   "unshareProject",
+   "handOverProject",
+   "transferOwner",
+   "getProjectShares",
+   "getShareById",
+   "updateMemberRole",
+   "assignConversation",
+   "unassignConversation",
+   "getProjectRole",
+   "userHasAccess",
+   "logActivity",
+   "listActivity",
+   "normalizePermission",
+   "appendProjectEvent",
+   "listProjectEvents",
+   "getProjectEventSeq",
+   "pruneProjectEvents",
+   "EVENT_REPLAY_LIMIT",
+   "recordActivityEvent",
+   "recordContentSession",
+   "recordVisit",
+   "markAllSeen",
+   "getMemberState",
+   "markItemSeen",
+   "listItemReads",
+   "listChangeRows",
+   "listChangeLog",
+   "eraseUserChangeState"
+  ],
+  "store": [
+   "recordActivityEvent",
+   "recordContentSession",
+   "recordVisit",
+   "markAllSeen",
+   "getMemberState",
+   "markItemSeen",
+   "listItemReads",
+   "listChangeRows",
+   "listChangeLog",
+   "eraseUserChangeState",
+   "createProject",
+   "getProject",
+   "listUserProjects",
+   "setProjectKind",
+   "setArchived",
+   "stageOfProject",
+   "stageOfProjectFresh",
+   "createStageProject",
+   "detachStage",
+   "setInstalledVersion",
+   "countChatHoldings",
+   "listSharedThreads",
+   "getOwnConversationFiling",
+   "setFilesKbId",
+   "countSharedThreads",
+   "updateProject",
+   "deleteProject",
+   "shareProject",
+   "unshareProject",
+   "handOverProject",
+   "transferOwner",
+   "getProjectShares",
+   "getShareById",
+   "updateMemberRole",
+   "assignConversation",
+   "unassignConversation",
+   "getProjectRole",
+   "userHasAccess",
+   "logActivity",
+   "listActivity",
+   "appendProjectEvent",
+   "listProjectEvents",
+   "getProjectEventSeq",
+   "pruneProjectEvents"
+  ],
+  "PROJECT_KINDS": [
+   "workspace",
+   "solution"
+  ],
+  "EVENT_REPLAY_LIMIT": 500,
+  "normalizePermission": [
+   "viewer",
+   "editor",
+   "viewer",
+   "editor",
+   "viewer",
+   "viewer"
+  ]
+ },
+ "scenarios": {
+  "createProject": {
+   "calls": [
+    [
+     "run",
+     "INSERT INTO projects (id, name, description, custom_instructions, knowledge_base_ids, color, icon, owner_id, organization_id, extract_memories, installed_from_blueprint_id, installed_from_org_id, installed_version, kind) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)",
+     [
+      "<uuid>",
+      "N",
+      "",
+      "",
+      "[\"k\"]",
+      "#6366f1",
+      "📁",
+      "u1",
+      "o1",
+      false,
+      "bp",
+      null,
+      2,
+      "solution"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "id": "<uuid>",
+    "name": "N",
+    "knowledgeBaseIds": [
+     "k"
+    ],
+    "ownerId": "u1",
+    "organizationId": "o1",
+    "extractMemories": false,
+    "editorsCanInvite": true,
+    "archivedAt": null,
+    "archivedBy": null,
+    "installedFromBlueprintId": "bp",
+    "installedFromOrgId": null,
+    "installedVersion": 2,
+    "kind": "solution",
+    "kindGuessed": false,
+    "filesKbId": null
+   },
+   "error": null
+  },
+  "createProjectBadKind": {
+   "calls": [],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": null,
+   "error": {
+    "name": "TypeError",
+    "message": "A project kind is 'workspace' or 'solution', not \"nope\".",
+    "status": null,
+    "code": null,
+    "details": null
+   }
+  },
+  "getProject": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT * FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "id": "p1",
+    "name": "Alpha",
+    "description": "d",
+    "customInstructions": "ci",
+    "knowledgeBaseIds": [
+     "kb1"
+    ],
+    "color": "#111",
+    "icon": "x",
+    "ownerId": "u1",
+    "organizationId": "o1",
+    "extractMemories": true,
+    "editorsCanInvite": true,
+    "archivedAt": null,
+    "archivedBy": null,
+    "version": 3,
+    "kind": "workspace",
+    "kindGuessed": false,
+    "filesKbId": null,
+    "installedFromBlueprintId": null,
+    "installedFromOrgId": null,
+    "installedVersion": null,
+    "stage": null,
+    "stageOf": null,
+    "createdAt": "t0",
+    "updatedAt": "t1"
+   },
+   "error": null
+  },
+  "getProjectMissing": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT * FROM projects WHERE id = $1",
+     [
+      "nope"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": null,
+   "error": null
+  },
+  "listUserProjectsGroupsSolution": {
+   "calls": [
+    [
+     "getAll",
+     "SELECT DISTINCT p.*, CASE WHEN p.owner_id = $1 THEN 'owner' ELSE COALESCE( (SELECT ps2.permission FROM project_shares ps2 WHERE ps2.project_id = p.id AND ( (ps2.shared_with_type = 'user' AND ps2.shared_with_id = $1) OR (ps2.shared_with_type = 'group' AND ps2.shared_with_id IN ($2, $3)) ) ORDER BY CASE ps2.permission WHEN 'editor' THEN 0 ELSE 1 END LIMIT 1), 'viewer' ) END as user_permission FROM projects p LEFT JOIN project_shares ps ON ps.project_id = p.id WHERE (p.owner_id = $1 OR (ps.shared_with_type = 'user' AND ps.shared_with_id = $1) OR (ps.shared_with_type = 'group' AND ps.shared_with_id IN ($2, $3))) AND (p.kind = $4 OR p.kind IS NULL) AND p.stage_of IS NULL AND p.archived_at IS NULL ORDER BY p.updated_at DESC",
+     [
+      "u1",
+      "g1",
+      "g2",
+      "solution"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": [
+    {
+     "id": "p1",
+     "name": "Alpha",
+     "description": "d",
+     "customInstructions": "ci",
+     "knowledgeBaseIds": [
+      "kb1"
+     ],
+     "color": "#111",
+     "icon": "x",
+     "ownerId": "u1",
+     "organizationId": "o1",
+     "extractMemories": true,
+     "editorsCanInvite": true,
+     "archivedAt": null,
+     "archivedBy": null,
+     "version": 3,
+     "kind": "workspace",
+     "kindGuessed": false,
+     "filesKbId": null,
+     "installedFromBlueprintId": null,
+     "installedFromOrgId": null,
+     "installedVersion": null,
+     "stage": null,
+     "stageOf": null,
+     "createdAt": "t0",
+     "updatedAt": "t1",
+     "permission": "editor"
+    }
+   ],
+   "error": null
+  },
+  "listUserProjectsStagesArchived": {
+   "calls": [
+    [
+     "getAll",
+     "SELECT DISTINCT p.*, CASE WHEN p.owner_id = $1 THEN 'owner' ELSE COALESCE( (SELECT ps2.permission FROM project_shares ps2 WHERE ps2.project_id = p.id AND ( (ps2.shared_with_type = 'user' AND ps2.shared_with_id = $1) ) ORDER BY CASE ps2.permission WHEN 'editor' THEN 0 ELSE 1 END LIMIT 1), 'viewer' ) END as user_permission FROM projects p LEFT JOIN project_shares ps ON ps.project_id = p.id WHERE (p.owner_id = $1 OR (ps.shared_with_type = 'user' AND ps.shared_with_id = $1) ) AND p.stage_of IS NOT NULL ORDER BY p.updated_at DESC",
+     [
+      "u1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": [
+    {
+     "id": "p1",
+     "name": "Alpha",
+     "description": "d",
+     "customInstructions": "ci",
+     "knowledgeBaseIds": [
+      "kb1"
+     ],
+     "color": "#111",
+     "icon": "x",
+     "ownerId": "u1",
+     "organizationId": "o1",
+     "extractMemories": true,
+     "editorsCanInvite": true,
+     "archivedAt": null,
+     "archivedBy": null,
+     "version": 3,
+     "kind": "workspace",
+     "kindGuessed": false,
+     "filesKbId": null,
+     "installedFromBlueprintId": null,
+     "installedFromOrgId": null,
+     "installedVersion": null,
+     "stage": null,
+     "stageOf": null,
+     "createdAt": "t0",
+     "updatedAt": "t1",
+     "permission": "viewer"
+    }
+   ],
+   "error": null
+  },
+  "listUserProjectsBadOnlyStages": {
+   "calls": [],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": null,
+   "error": {
+    "name": "TypeError",
+    "message": "listUserProjects: onlyStages goes with kind 'solution'.",
+    "status": null,
+    "code": null,
+    "details": null
+   }
+  },
+  "setArchived": {
+   "calls": [
+    [
+     "run",
+     "UPDATE projects SET archived_at = NOW(), archived_by = $2 WHERE id = $1 AND archived_at IS NULL",
+     [
+      "p1",
+      "u1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT * FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 2,
+   "result": {
+    "id": "p1",
+    "name": "Alpha",
+    "description": "d",
+    "customInstructions": "ci",
+    "knowledgeBaseIds": [
+     "kb1"
+    ],
+    "color": "#111",
+    "icon": "x",
+    "ownerId": "u1",
+    "organizationId": "o1",
+    "extractMemories": true,
+    "editorsCanInvite": true,
+    "archivedAt": "ta",
+    "archivedBy": "u1",
+    "version": 3,
+    "kind": "workspace",
+    "kindGuessed": false,
+    "filesKbId": null,
+    "installedFromBlueprintId": null,
+    "installedFromOrgId": null,
+    "installedVersion": null,
+    "stage": null,
+    "stageOf": null,
+    "createdAt": "t0",
+    "updatedAt": "t1"
+   },
+   "error": null
+  },
+  "restoreArchived": {
+   "calls": [
+    [
+     "run",
+     "UPDATE projects SET archived_at = NULL, archived_by = NULL WHERE id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT * FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 2,
+   "result": {
+    "id": "p1",
+    "name": "Alpha",
+    "description": "d",
+    "customInstructions": "ci",
+    "knowledgeBaseIds": [
+     "kb1"
+    ],
+    "color": "#111",
+    "icon": "x",
+    "ownerId": "u1",
+    "organizationId": "o1",
+    "extractMemories": true,
+    "editorsCanInvite": true,
+    "archivedAt": null,
+    "archivedBy": null,
+    "version": 3,
+    "kind": "workspace",
+    "kindGuessed": false,
+    "filesKbId": null,
+    "installedFromBlueprintId": null,
+    "installedFromOrgId": null,
+    "installedVersion": null,
+    "stage": null,
+    "stageOf": null,
+    "createdAt": "t0",
+    "updatedAt": "t1"
+   },
+   "error": null
+  },
+  "setProjectKind": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT p.stage_of, EXISTS (SELECT 1 FROM projects s WHERE s.stage_of = p.id) AS has_stages FROM projects p WHERE p.id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT 1 AS x FROM solution_stages WHERE solution_id = $1 LIMIT 1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "run",
+     "UPDATE projects SET kind = $2, kind_guessed = FALSE, updated_at = NOW() WHERE id = $1 AND (kind IS NULL OR kind_guessed)",
+     [
+      "p1",
+      "solution"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT * FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 2,
+   "result": {
+    "id": "p1",
+    "name": "Alpha",
+    "description": "d",
+    "customInstructions": "ci",
+    "knowledgeBaseIds": [
+     "kb1"
+    ],
+    "color": "#111",
+    "icon": "x",
+    "ownerId": "u1",
+    "organizationId": "o1",
+    "extractMemories": true,
+    "editorsCanInvite": true,
+    "archivedAt": null,
+    "archivedBy": null,
+    "version": 3,
+    "kind": "workspace",
+    "kindGuessed": false,
+    "filesKbId": null,
+    "installedFromBlueprintId": null,
+    "installedFromOrgId": null,
+    "installedVersion": null,
+    "stage": null,
+    "stageOf": null,
+    "createdAt": "t0",
+    "updatedAt": "t1"
+   },
+   "error": null
+  },
+  "setProjectKindOnStage": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT p.stage_of, EXISTS (SELECT 1 FROM projects s WHERE s.stage_of = p.id) AS has_stages FROM projects p WHERE p.id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": null,
+   "error": {
+    "name": "Error",
+    "message": "This project is a stage of a Solution. Change the Solution in Dev.",
+    "status": 409,
+    "code": "stage_project",
+    "details": {
+     "solutionId": "dev1"
+    }
+   }
+  },
+  "setProjectKindHasStages": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT p.stage_of, EXISTS (SELECT 1 FROM projects s WHERE s.stage_of = p.id) AS has_stages FROM projects p WHERE p.id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": null,
+   "error": {
+    "name": "Error",
+    "message": "This Solution has stages. Detach or remove them first.",
+    "status": 409,
+    "code": "solution_has_stages",
+    "details": {
+     "solutionId": "p1"
+    }
+   }
+  },
+  "countChatHoldings": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT COUNT(*) AS n FROM direct_conversations WHERE project_id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT COUNT(*) AS n FROM agent_conversations WHERE project_id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT COUNT(*) AS n FROM project_chats WHERE project_id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "conversations": 2,
+    "teamChats": 4
+   },
+   "error": null
+  },
+  "setFilesKbId": {
+   "calls": [
+    [
+     "run",
+     "UPDATE projects SET files_kb_id = $2 WHERE id = $1 AND files_kb_id IS NOT DISTINCT FROM $3",
+     [
+      "p1",
+      "kb1",
+      "kb0"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT files_kb_id FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": "kb9",
+   "error": null
+  },
+  "countSharedThreads": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT (SELECT COUNT(*) FROM direct_conversations WHERE project_id = $1 AND shared_scope = 'project') + (SELECT COUNT(*) FROM agent_conversations WHERE project_id = $1 AND shared_scope = 'project') AS n",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": 3,
+   "error": null
+  },
+  "listSharedThreads": {
+   "calls": [
+    [
+     "getAll",
+     "SELECT id, user_id, type FROM ( SELECT id, user_id, 'direct' AS type, shared_at FROM direct_conversations WHERE project_id = $1 AND shared_scope = 'project' UNION ALL SELECT id, user_id, 'agent' AS type, shared_at FROM agent_conversations WHERE project_id = $1 AND shared_scope = 'project' ) s ORDER BY shared_at NULLS FIRST, id LIMIT $2",
+     [
+      "p1",
+      100
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": [
+    {
+     "id": "c1",
+     "type": "agent",
+     "ownerId": "u2"
+    },
+    {
+     "id": "c2",
+     "type": "direct",
+     "ownerId": "u3"
+    }
+   ],
+   "error": null
+  },
+  "getOwnConversationFiling": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT project_id, shared_scope FROM agent_conversations WHERE id = $1 AND user_id = $2",
+     [
+      "c1",
+      "u1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "projectId": "p1",
+    "shared": true
+   },
+   "error": null
+  },
+  "updateProjectConflict": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT id, owner_id, version, stage_of, knowledge_base_ids FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT * FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 2,
+   "result": {
+    "conflict": true,
+    "current": {
+     "id": "p1",
+     "name": "Alpha",
+     "description": "d",
+     "customInstructions": "ci",
+     "knowledgeBaseIds": [
+      "kb1"
+     ],
+     "color": "#111",
+     "icon": "x",
+     "ownerId": "u1",
+     "organizationId": "o1",
+     "extractMemories": true,
+     "editorsCanInvite": true,
+     "archivedAt": null,
+     "archivedBy": null,
+     "version": 3,
+     "kind": "workspace",
+     "kindGuessed": false,
+     "filesKbId": null,
+     "installedFromBlueprintId": null,
+     "installedFromOrgId": null,
+     "installedVersion": null,
+     "stage": null,
+     "stageOf": null,
+     "createdAt": "t0",
+     "updatedAt": "t1"
+    }
+   },
+   "error": null
+  },
+  "updateProjectVersioned": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT id, owner_id, version, stage_of, knowledge_base_ids FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "run",
+     "UPDATE projects SET \"knowledge_base_ids\" = $1, \"name\" = $2, \"editors_can_invite\" = $3, updated_at = NOW(), version = version + 1 WHERE \"id\" = $4 AND \"version\" = $5",
+     [
+      "[\"a\"]",
+      "X",
+      false,
+      "p1",
+      4
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT * FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 2,
+   "result": {
+    "id": "p1",
+    "name": "Alpha",
+    "description": "d",
+    "customInstructions": "ci",
+    "knowledgeBaseIds": [
+     "kb1"
+    ],
+    "color": "#111",
+    "icon": "x",
+    "ownerId": "u1",
+    "organizationId": "o1",
+    "extractMemories": true,
+    "editorsCanInvite": true,
+    "archivedAt": null,
+    "archivedBy": null,
+    "version": 3,
+    "kind": "workspace",
+    "kindGuessed": false,
+    "filesKbId": null,
+    "installedFromBlueprintId": null,
+    "installedFromOrgId": null,
+    "installedVersion": null,
+    "stage": null,
+    "stageOf": null,
+    "createdAt": "t0",
+    "updatedAt": "t1"
+   },
+   "error": null
+  },
+  "updateProjectStageKbGuarded": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT id, owner_id, version, stage_of, knowledge_base_ids FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "run",
+     "UPDATE projects SET \"knowledge_base_ids\" = $1, updated_at = NOW(), version = version + 1 WHERE \"id\" = $2",
+     [
+      "[\"b\"]",
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT * FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [
+    {
+     "kind": "project",
+     "projectId": "p1",
+     "changedKeys": [
+      "knowledgeBaseIds"
+     ],
+     "managedWrite": {
+      "deploymentId": "d1"
+     }
+    }
+   ],
+   "readyCalls": 2,
+   "result": {
+    "id": "p1",
+    "name": "Alpha",
+    "description": "d",
+    "customInstructions": "ci",
+    "knowledgeBaseIds": [
+     "kb1"
+    ],
+    "color": "#111",
+    "icon": "x",
+    "ownerId": "u1",
+    "organizationId": "o1",
+    "extractMemories": true,
+    "editorsCanInvite": true,
+    "archivedAt": null,
+    "archivedBy": null,
+    "version": 3,
+    "kind": "workspace",
+    "kindGuessed": false,
+    "filesKbId": null,
+    "installedFromBlueprintId": null,
+    "installedFromOrgId": null,
+    "installedVersion": null,
+    "stage": null,
+    "stageOf": null,
+    "createdAt": "t0",
+    "updatedAt": "t1"
+   },
+   "error": null
+  },
+  "deleteProject": {
+   "calls": [
+    [
+     "run",
+     "DELETE FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": true,
+   "error": null
+  },
+  "shareProject": {
+   "calls": [
+    [
+     "getOne",
+     "INSERT INTO project_shares (id, project_id, shared_with_type, shared_with_id, permission, invited_by) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (project_id, shared_with_type, shared_with_id) DO UPDATE SET permission = EXCLUDED.permission RETURNING id",
+     [
+      "<uuid>",
+      "p1",
+      "user",
+      "u2",
+      "editor",
+      "u1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": "share-existing",
+   "error": null
+  },
+  "getShareById": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT * FROM project_shares WHERE id = $1",
+     [
+      "s1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "id": "s1",
+    "projectId": "p1",
+    "sharedWithType": "user",
+    "sharedWithId": "u2",
+    "permission": "editor",
+    "invitedBy": "u1",
+    "createdAt": "t"
+   },
+   "error": null
+  },
+  "updateMemberRole": {
+   "calls": [
+    [
+     "run",
+     "UPDATE project_shares SET permission = $1 WHERE id = $2",
+     [
+      "viewer",
+      "s1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": true,
+   "error": null
+  },
+  "handOverProject": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT p.stage_of, EXISTS (SELECT 1 FROM projects s WHERE s.stage_of = p.id) AS has_stages FROM projects p WHERE p.id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT 1 AS x FROM solution_stages WHERE solution_id = $1 LIMIT 1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "run",
+     "WITH heir AS ( SELECT id, shared_with_id FROM project_shares WHERE project_id = $1 AND shared_with_type = 'user' AND permission = 'editor' AND shared_with_id <> $2 ORDER BY created_at, id LIMIT 1 ), moved AS ( UPDATE projects SET owner_id = (SELECT shared_with_id FROM heir), updated_at = NOW() WHERE id = $1 AND owner_id = $2 AND EXISTS (SELECT 1 FROM heir) RETURNING owner_id ), dropped AS ( DELETE FROM project_shares WHERE id IN (SELECT id FROM heir) AND EXISTS (SELECT 1 FROM moved) ) SELECT owner_id FROM moved",
+     [
+      "p1",
+      "u1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": "u7",
+   "error": null
+  },
+  "transferOwner": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT p.stage_of, EXISTS (SELECT 1 FROM projects s WHERE s.stage_of = p.id) AS has_stages FROM projects p WHERE p.id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "run",
+     "WITH moved AS ( UPDATE projects SET owner_id = $3, updated_at = NOW(), version = COALESCE(version, 0) + 1 WHERE id = $1 AND owner_id = $2 RETURNING id ), dropped AS ( DELETE FROM project_shares WHERE project_id = $1 AND shared_with_type = 'user' AND shared_with_id = $3 AND EXISTS (SELECT 1 FROM moved) ), kept AS ( INSERT INTO project_shares (id, project_id, shared_with_type, shared_with_id, permission, invited_by) SELECT $4::text, $1, 'user', $2, $5::text, $3 WHERE $5::text IS NOT NULL AND EXISTS (SELECT 1 FROM moved) ON CONFLICT (project_id, shared_with_type, shared_with_id) DO UPDATE SET permission = EXCLUDED.permission ) SELECT id FROM moved",
+     [
+      "p1",
+      "u1",
+      "u2",
+      "<uuid>",
+      "viewer"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "ok": false,
+    "reason": "owner_changed"
+   },
+   "error": null
+  },
+  "unshareProject": {
+   "calls": [
+    [
+     "run",
+     "DELETE FROM project_shares WHERE id = $1",
+     [
+      "s1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": false,
+   "error": null
+  },
+  "getProjectShares": {
+   "calls": [
+    [
+     "getAll",
+     "SELECT * FROM project_shares WHERE project_id = $1 ORDER BY created_at",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": [
+    {
+     "id": "s1",
+     "projectId": "p1",
+     "sharedWithType": "group",
+     "sharedWithId": "g",
+     "permission": "viewer",
+     "createdAt": "t"
+    }
+   ],
+   "error": null
+  },
+  "assignConversation": {
+   "calls": [
+    [
+     "run",
+     "UPDATE direct_conversations SET project_id = $1 WHERE id = $2 AND user_id = $3",
+     [
+      "p1",
+      "c1",
+      "u1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": true,
+   "error": null
+  },
+  "unassignConversation": {
+   "calls": [],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": false,
+   "error": null
+  },
+  "getProjectRoleShared": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT owner_id FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT permission FROM project_shares WHERE project_id = $1 AND ((shared_with_type = 'user' AND shared_with_id = $2) OR (shared_with_type = 'group' AND shared_with_id = ANY($3::text[]))) ORDER BY CASE permission WHEN 'editor' THEN 0 ELSE 1 END LIMIT 1",
+     [
+      "p1",
+      "u1",
+      [
+       ""
+      ]
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": "editor",
+   "error": null
+  },
+  "userHasAccessOwner": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT owner_id FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": true,
+   "error": null
+  },
+  "logActivity": {
+   "calls": [
+    [
+     "run",
+     "INSERT INTO project_activity (id, project_id, actor_id, action, target_type, target_id, details) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+     [
+      "<uuid>",
+      "p1",
+      "u1",
+      "renamed",
+      "project",
+      "p1",
+      "{\"targetType\":\"project\",\"targetId\":\"p1\",\"from\":\"a\"}"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": "<uuid>",
+   "error": null
+  },
+  "logActivityFails": {
+   "calls": [
+    [
+     "run",
+     "INSERT INTO project_activity (id, project_id, actor_id, action, target_type, target_id, details) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+     [
+      "<uuid>",
+      "p1",
+      "u1",
+      "renamed",
+      null,
+      null,
+      "{}"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": null,
+   "error": null
+  },
+  "listActivity": {
+   "calls": [
+    [
+     "getAll",
+     "SELECT * FROM project_activity WHERE project_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3",
+     [
+      "p1",
+      10,
+      5
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": [
+    {
+     "id": "a1",
+     "projectId": "p1",
+     "actorId": "u1",
+     "actorKind": "user",
+     "action": "x",
+     "targetType": null,
+     "targetId": null,
+     "itemType": null,
+     "itemId": null,
+     "versionId": null,
+     "seq": null,
+     "details": "{}",
+     "createdAt": "t",
+     "updatedAt": "t"
+    }
+   ],
+   "error": null
+  },
+  "appendProjectEvent": {
+   "calls": [
+    [
+     "client.query",
+     "BEGIN",
+     null
+    ],
+    [
+     "client.query",
+     "UPDATE projects SET event_seq = event_seq + 1 WHERE id = $1 RETURNING event_seq",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "client.query",
+     "INSERT INTO project_events (id, project_id, seq, kind, actor_id, target_type, target_id, payload) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+     [
+      "<uuid>",
+      "p1",
+      7,
+      "k",
+      "u1",
+      null,
+      null,
+      "{\"a\":1}"
+     ]
+    ],
+    [
+     "client.query",
+     "COMMIT",
+     null
+    ],
+    [
+     "client.release"
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "seq": 7,
+    "id": "<uuid>"
+   },
+   "error": null
+  },
+  "appendProjectEventVanished": {
+   "calls": [
+    [
+     "client.query",
+     "BEGIN",
+     null
+    ],
+    [
+     "client.query",
+     "UPDATE projects SET event_seq = event_seq + 1 WHERE id = $1 RETURNING event_seq",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "client.query",
+     "ROLLBACK",
+     null
+    ],
+    [
+     "client.release"
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": null,
+   "error": null
+  },
+  "listProjectEventsTruncated": {
+   "calls": [
+    [
+     "getAll",
+     "SELECT p.event_seq AS head_seq, e.* FROM projects p LEFT JOIN LATERAL ( SELECT id, seq, kind, actor_id, target_type, target_id, payload, created_at FROM project_events WHERE project_id = p.id AND seq > $2 ORDER BY seq ASC LIMIT $3 ) e ON true WHERE p.id = $1 ORDER BY e.seq ASC",
+     [
+      "p1",
+      2,
+      501
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "events": [
+     {
+      "id": "e1",
+      "seq": 5,
+      "kind": "k",
+      "actorId": "u",
+      "targetType": null,
+      "targetId": null,
+      "payload": {},
+      "createdAt": "t"
+     }
+    ],
+    "truncated": true
+   },
+   "error": null
+  },
+  "listProjectEventsResync": {
+   "calls": [
+    [
+     "getAll",
+     "SELECT p.event_seq AS head_seq, e.* FROM projects p LEFT JOIN LATERAL ( SELECT id, seq, kind, actor_id, target_type, target_id, payload, created_at FROM project_events WHERE project_id = p.id AND seq > $2 ORDER BY seq ASC LIMIT $3 ) e ON true WHERE p.id = $1 ORDER BY e.seq ASC",
+     [
+      "p1",
+      3,
+      501
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "events": [
+     {
+      "id": null,
+      "seq": 9,
+      "kind": "resync",
+      "actorId": null,
+      "targetType": null,
+      "targetId": null,
+      "payload": {
+       "reason": "pruned"
+      },
+      "createdAt": null
+     }
+    ],
+    "truncated": false
+   },
+   "error": null
+  },
+  "getProjectEventSeq": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT event_seq FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": 12,
+   "error": null
+  },
+  "pruneProjectEvents": {
+   "calls": [
+    [
+     "run",
+     "DELETE FROM project_events WHERE created_at < NOW() - ($1 || ' days')::interval",
+     [
+      "1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": 2,
+   "error": null
+  },
+  "stageOfProjectCached": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT id, stage, stage_of FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "getOne",
+     "SELECT id, stage, stage_of FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 3,
+   "result": [
+    {
+     "solutionId": "dev",
+     "stage": "uat",
+     "projectId": "p1"
+    },
+    {
+     "solutionId": "dev",
+     "stage": "uat",
+     "projectId": "p1"
+    },
+    {
+     "solutionId": "dev",
+     "stage": "uat",
+     "projectId": "p1"
+    },
+    null
+   ],
+   "error": null
+  },
+  "createStageProject": {
+   "calls": [
+    [
+     "run",
+     "INSERT INTO projects (id, name, description, color, icon, owner_id, organization_id, kind, stage, stage_of) VALUES ($1, $2, '', $3, $4, $5, $6, 'solution', $7, $8) RETURNING *",
+     [
+      "<uuid>",
+      "Dev (Production)",
+      "#6366f1",
+      "📁",
+      "u1",
+      "o1",
+      "prd",
+      "dev"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": {
+    "id": "<uuid>",
+    "name": "Dev (Production)",
+    "description": "d",
+    "customInstructions": "ci",
+    "knowledgeBaseIds": [
+     "kb1"
+    ],
+    "color": "#111",
+    "icon": "x",
+    "ownerId": "u1",
+    "organizationId": "o1",
+    "extractMemories": true,
+    "editorsCanInvite": true,
+    "archivedAt": null,
+    "archivedBy": null,
+    "version": 3,
+    "kind": "solution",
+    "kindGuessed": false,
+    "filesKbId": null,
+    "installedFromBlueprintId": null,
+    "installedFromOrgId": null,
+    "installedVersion": null,
+    "stage": "prd",
+    "stageOf": "dev",
+    "createdAt": "t0",
+    "updatedAt": "t1"
+   },
+   "error": null
+  },
+  "detachStageWithClient": {
+   "calls": [
+    [
+     "getOne",
+     "SELECT id, stage, stage_of FROM projects WHERE id = $1",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "client.query",
+     "WITH old AS ( SELECT id, stage, stage_of FROM projects WHERE id = $1 AND stage_of IS NOT NULL FOR UPDATE ) UPDATE projects p SET stage = NULL, stage_of = NULL, updated_at = NOW() FROM old WHERE p.id = old.id RETURNING old.stage, old.stage_of",
+     [
+      "p1"
+     ]
+    ],
+    [
+     "client.query",
+     "INSERT INTO project_activity (id, project_id, actor_id, action, target_type, target_id, details) VALUES ($1, $2, $3, 'stage_detached', 'project', $4, $5)",
+     [
+      "<uuid>",
+      "p1",
+      "u1",
+      "dev",
+      "{\"stage\":\"uat\",\"solutionId\":\"dev\"}"
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 2,
+   "result": [
+    {
+     "solutionId": "dev",
+     "stage": "uat",
+     "projectId": "p1"
+    },
+    true
+   ],
+   "error": null
+  },
+  "setInstalledVersion": {
+   "calls": [
+    [
+     "run",
+     "UPDATE projects SET installed_version = $2 WHERE id = $1",
+     [
+      "p1",
+      null
+     ]
+    ]
+   ],
+   "guardCalls": [],
+   "readyCalls": 1,
+   "result": true,
+   "error": null
+  }
+ },
+ "schema": [
+  [
+   "exec",
+   "CREATE TABLE IF NOT EXISTS projects ( id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT DEFAULT '', custom_instructions TEXT DEFAULT '', knowledge_base_ids JSONB DEFAULT '[]'::jsonb, color TEXT DEFAULT '#6366f1', icon TEXT DEFAULT '📁', owner_id TEXT NOT NULL, organization_id TEXT DEFAULT '', extract_memories BOOLEAN DEFAULT false, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); -- Migrations DO $$ BEGIN ALTER TABLE projects ADD COLUMN IF NOT EXISTS knowledge_base_ids JSONB DEFAULT '[]'::jsonb; EXCEPTION WHEN OTHERS THEN NULL; END $$; DO $$ BEGIN ALTER TABLE projects ADD COLUMN IF NOT EXISTS extract_memories BOOLEAN DEFAULT false; EXCEPTION WHEN OTHERS THEN NULL; END $$; DO $$ BEGIN ALTER TABLE projects ADD COLUMN IF NOT EXISTS editors_can_invite BOOLEAN NOT NULL DEFAULT true; EXCEPTION WHEN OTHERS THEN NULL; END $$; DO $$ BEGIN ALTER TABLE projects ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ; ALTER TABLE projects ADD COLUMN IF NOT EXISTS archived_by TEXT; EXCEPTION WHEN OTHERS THEN NULL; END $$; CREATE TABLE IF NOT EXISTS project_shares ( id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, shared_with_type TEXT NOT NULL, shared_with_id TEXT NOT NULL, permission TEXT DEFAULT 'viewer', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id); CREATE INDEX IF NOT EXISTS idx_projects_org ON projects(organization_id); -- listUserProjects orders by this on every call. CREATE INDEX IF NOT EXISTS idx_projects_updated ON projects(updated_at DESC); CREATE INDEX IF NOT EXISTS idx_project_shares_project ON project_shares(project_id); CREATE INDEX IF NOT EXISTS idx_project_shares_shared ON project_shares(shared_with_type, shared_with_id); -- The column default was 'view', which the CHECK constraint added below -- ('viewer' | 'editor') rejects. Latent only because shareProject is the -- sole inserter and always normalises — but it would fire the moment -- anything else wrote the table. DO $$ BEGIN ALTER TABLE project_shares ALTER COLUMN permission SET DEFAULT 'viewer'; EXCEPTION WHEN OTHERS THEN NULL; END $$; -- Migrate legacy permission vocabulary: 'view' → 'viewer', 'edit' → 'editor' DO $$ BEGIN UPDATE project_shares SET permission = 'viewer' WHERE permission = 'view'; UPDATE project_shares SET permission = 'editor' WHERE permission = 'edit'; EXCEPTION WHEN OTHERS THEN NULL; END $$; DO $$ BEGIN ALTER TABLE project_shares ADD COLUMN IF NOT EXISTS invited_by TEXT; EXCEPTION WHEN OTHERS THEN NULL; END $$; DO $$ BEGIN ALTER TABLE project_shares ADD CONSTRAINT project_shares_permission_chk CHECK (permission IN ('viewer', 'editor')); EXCEPTION WHEN OTHERS THEN NULL; END $$; -- One membership row per (project, principal). -- -- Without this, shareProject's check-then-insert let two concurrent -- invites create duplicate rows — and then REVOKING A MEMBER SILENTLY -- FAILED: unshareProject deletes one share id, while getProjectRole -- does ORDER BY ... LIMIT 1 across all matching rows, so the survivor -- kept the access the admin believed they had removed. -- -- Collapse existing duplicates first, keeping the HIGHEST permission so -- the dedupe never silently demotes someone mid-flight. -- Dedupe and index in ONE block: if the dedupe cannot complete, the index -- must not be attempted, and neither should take the whole store down — -- an unreachable projectStore breaks the feature entirely. Failure is -- logged as a WARNING so it is visible rather than swallowed; shareProject's -- ON CONFLICT then fails loudly per-request instead of racing quietly. DO $$ BEGIN DELETE FROM project_shares a USING project_shares b WHERE a.project_id = b.project_id AND a.shared_with_type = b.shared_with_type AND a.shared_with_id = b.shared_with_id AND ( CASE a.permission WHEN 'editor' THEN 1 ELSE 0 END, a.ctid ) < ( CASE b.permission WHEN 'editor' THEN 1 ELSE 0 END, b.ctid ); CREATE UNIQUE INDEX IF NOT EXISTS idx_project_shares_unique ON project_shares(project_id, shared_with_type, shared_with_id); EXCEPTION WHEN OTHERS THEN RAISE WARNING 'project_shares uniqueness migration failed: %', SQLERRM; END $$; -- Optimistic concurrency for project settings. The client PUTs the whole -- form, including a whole-array knowledge_base_ids replace, so two -- editors on the Knowledge tab silently clobbered each other and the -- activity log recorded a kb_removed nobody performed. -- Mirrors notebooks.version + notebookStore.updateNotebookCas. DO $$ BEGIN ALTER TABLE projects ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 0; EXCEPTION WHEN OTHERS THEN NULL; END $$; -- Per-project event counter. See project_events below for why this is -- not a BIGSERIAL. DO $$ BEGIN ALTER TABLE projects ADD COLUMN IF NOT EXISTS event_seq BIGINT NOT NULL DEFAULT 0; EXCEPTION WHEN OTHERS THEN NULL; END $$; -- ── Live event log ────────────────────────────────────────────────── -- -- The transient channel behind GET /:id/stream. project_activity remains -- the durable human-readable audit trail; this is the ordered feed a -- client tails, and rows are pruned after a week. -- -- seq is allocated from projects.event_seq under the project's row -- lock, NOT from a BIGSERIAL. A sequence hands out values BEFORE commit, -- so a transaction holding seq=5 can commit after one holding seq=6 — -- and a client polling \"seq > cursor\" would skip 5 forever. Serialising -- per project costs nothing at this write rate and makes the cursor -- gapless, which is the entire basis of reconnect-without-loss. CREATE TABLE IF NOT EXISTS project_events ( id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, seq BIGINT NOT NULL, kind TEXT NOT NULL, actor_id TEXT, target_type TEXT, target_id TEXT, payload JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); CREATE UNIQUE INDEX IF NOT EXISTS idx_project_events_project_seq ON project_events(project_id, seq); CREATE INDEX IF NOT EXISTS idx_project_events_created ON project_events(created_at); CREATE TABLE IF NOT EXISTS project_activity ( id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, actor_id TEXT NOT NULL, action TEXT NOT NULL, target_type TEXT, target_id TEXT, details JSONB DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); CREATE INDEX IF NOT EXISTS idx_project_activity_project_created ON project_activity(project_id, created_at DESC);"
+  ],
+  [
+   "runDdl",
+   "projectStore",
+   [
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS installed_from_blueprint_id TEXT",
+    "CREATE INDEX IF NOT EXISTS idx_projects_installed_from ON projects(installed_from_blueprint_id) WHERE installed_from_blueprint_id IS NOT NULL",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS installed_from_org_id TEXT",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS installed_version INTEGER"
+   ]
+  ],
+  [
+   "runDdl",
+   "projectStore",
+   [
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS kind TEXT CONSTRAINT projects_kind_chk CHECK (kind IS NULL OR kind IN ('workspace', 'solution'))",
+    "CREATE INDEX IF NOT EXISTS idx_projects_kind ON projects(kind)",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS files_kb_id TEXT",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS kind_guessed BOOLEAN NOT NULL DEFAULT FALSE"
+   ]
+  ],
+  [
+   "runDdl",
+   "projectStore",
+   [
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS stage TEXT CONSTRAINT projects_stage_chk CHECK (stage IS NULL OR stage IN ('uat', 'prd'))",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS stage_of TEXT",
+    "CREATE UNIQUE INDEX IF NOT EXISTS uq_projects_stage ON projects(stage_of, stage) WHERE stage_of IS NOT NULL",
+    "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'projects_stage_pair_chk') THEN ALTER TABLE projects ADD CONSTRAINT projects_stage_pair_chk CHECK ((stage IS NULL) = (stage_of IS NULL) AND (stage IS NULL OR kind = 'solution')); END IF; END $$"
+   ]
+  ],
+  [
+   "runDdl",
+   "projectStore",
+   [
+    "ALTER TABLE project_activity ALTER COLUMN actor_id DROP NOT NULL",
+    "ALTER TABLE project_activity ADD COLUMN IF NOT EXISTS actor_kind TEXT NOT NULL DEFAULT 'user'",
+    "ALTER TABLE project_activity ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ",
+    "ALTER TABLE project_activity ALTER COLUMN updated_at SET DEFAULT NOW()",
+    "ALTER TABLE project_activity ADD COLUMN IF NOT EXISTS item_type TEXT",
+    "ALTER TABLE project_activity ADD COLUMN IF NOT EXISTS item_id TEXT",
+    "ALTER TABLE project_activity ADD COLUMN IF NOT EXISTS version_id TEXT",
+    "ALTER TABLE project_activity ADD COLUMN IF NOT EXISTS seq BIGINT",
+    "ALTER TABLE project_activity ADD COLUMN IF NOT EXISTS emitted_at TIMESTAMPTZ",
+    "CREATE INDEX IF NOT EXISTS idx_project_activity_item ON project_activity(project_id, item_type, item_id) WHERE item_id IS NOT NULL",
+    "CREATE TABLE IF NOT EXISTS project_member_state ( project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL, seen_seq BIGINT NOT NULL DEFAULT 0, seen_at TIMESTAMPTZ, prev_visit_seq BIGINT NOT NULL DEFAULT 0, prev_visit_at TIMESTAMPTZ, visit_started_at TIMESTAMPTZ, last_visit_seq BIGINT NOT NULL DEFAULT 0, last_visit_at TIMESTAMPTZ, first_visit_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (project_id, user_id) )",
+    "CREATE INDEX IF NOT EXISTS idx_project_member_state_user ON project_member_state(user_id)",
+    "CREATE TABLE IF NOT EXISTS project_item_reads ( project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL, item_type TEXT NOT NULL, item_id TEXT NOT NULL, seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), seen_version_id TEXT, PRIMARY KEY (project_id, user_id, item_type, item_id) )",
+    "CREATE INDEX IF NOT EXISTS idx_project_item_reads_user ON project_item_reads(user_id)"
+   ]
+  ]
+ ]
+}

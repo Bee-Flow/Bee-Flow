@@ -10,7 +10,7 @@
  *       (routeWalk.cli.js) en verifieert de triagedPrefixes diepgaand —
  *       machinale gate-tags, chain-equivalentie, probe⟷declaratie.
  *   deze test  leest index.js en elk bereikbaar routebestand als TEKST
- *       (auth/routeSurfaceSweep.js — nooit een require van de app: dat start
+ *       (testUtils/routeSurfaceSweep.js — nooit een require van de app: dat start
  *       schedulers) en eist app-breed VERANTWOORDING: elke route heeft een
  *       gate op mount, router of route, een gate-vormige check in de handler,
  *       een declaratie in accessRegistry, of een expliciete vrijstelling
@@ -38,7 +38,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const registry = require('./accessRegistry');
-const { parseSurface, sweepSurface } = require('./routeSurfaceSweep');
+const { parseSurface, sweepSurface } = require('../testUtils/routeSurfaceSweep');
 
 const SERVER = path.resolve(__dirname, '..');
 

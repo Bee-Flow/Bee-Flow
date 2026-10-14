@@ -18,7 +18,7 @@ entity is a leak, a false positive is a nuisance.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 from .matcher import SpanTuple, match_spans
 from .schema import Record
@@ -132,12 +132,12 @@ def evaluate(  # noqa: C901, PLR0912, PLR0913, PLR0915
     iou_n = 0
     exact_n = 0
 
-    for idx, (rec, preds) in enumerate(zip(records, predictions)):
+    for _idx, (rec, preds) in enumerate(zip(records, predictions, strict=False)):
         golds = [SpanTuple(s.start, s.end, s.category) for s in rec.spans]
         preds = list(preds)
         mr = match_spans(golds, preds, mode=mode, iou_threshold=iou_threshold)
 
-        for gi, pi, score in mr.tp:
+        for gi, _pi, score in mr.tp:
             cat = golds[gi].category
             overall[cat]["tp"] += 1
             by_size[rec.size_class][cat]["tp"] += 1

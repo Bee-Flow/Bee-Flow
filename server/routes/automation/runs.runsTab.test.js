@@ -19,7 +19,7 @@ process.env.NODE_ENV = 'test';
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 const { makeSwaps } = require('../../testUtils/swaps');
 const automationStore = require('../../stores/automationStore');
 const userStore = require('../../stores/userStore');

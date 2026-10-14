@@ -7,7 +7,7 @@
 const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { parseJSON } = require('./shared');
-const managedParts = require('../lib/managedParts');
+const managedParts = require('../managedPartsDefault');
 
 // ── The managed-part guard for webpage writes ─────────────────────────
 //

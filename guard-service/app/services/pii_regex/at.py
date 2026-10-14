@@ -35,5 +35,5 @@ def _is_valid_at_svnr(candidate: str) -> bool:
     if len(d) != 10:
         return False
     weights = (3, 7, 9, 0, 5, 8, 4, 2, 1, 6)
-    total = sum(w * int(x) for w, x in zip(weights, d)) % 11
+    total = sum(w * int(x) for w, x in zip(weights, d, strict=False)) % 11
     return total != 10 and total == int(d[3])

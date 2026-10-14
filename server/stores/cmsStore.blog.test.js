@@ -20,9 +20,9 @@ const assert = require('node:assert');
 process.env.NODE_ENV = 'test';
 
 // The store runs REAL against an in-memory config table, served through the
-// database pool seam of core/http/routeHarness (no module-system mocking):
+// database pool seam of testUtils/routeHarness (no module-system mocking):
 // the handful of statements configStore issues are answered from a Map.
-const { recordDb } = require('../core/http/routeHarness');
+const { recordDb } = require('../testUtils/routeHarness');
 
 const configState = { map: new Map() };
 function likeToRegex(pattern) {

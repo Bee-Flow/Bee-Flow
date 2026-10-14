@@ -46,6 +46,7 @@ const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ───────────────── Incidents (GDPR Art. 33/34 · NIS2 · CRA · DORA) ─────────────────
 //
@@ -121,9 +122,6 @@ function _stringList(v, max = 50, len = 200) {
 }
 
 // ── What a body may carry ───────────────────────────────────────────
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

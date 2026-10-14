@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
+import { mutate } from '../../../../api/mutate';
 import { logger } from '../../../../utils/logger';
 import { filterVisibleModels, fetchAllowedModelsByAgentType } from '../../../../utils/modelMeta.js';
 import { toast } from '../../../shared/Toast';
@@ -269,13 +270,13 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
             body.categoryId = categoryId || null;
 
             if (selectedAgent) {
-                await authFetch(securityMode ? `${API_BASE}/security-agents/${selectedAgent.id}` : `${API_BASE}/agents/${selectedAgent.id}`, {
+                await mutate(securityMode ? `${API_BASE}/security-agents/${selectedAgent.id}` : `${API_BASE}/agents/${selectedAgent.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
             } else {
-                const res = await authFetch(securityMode ? `${API_BASE}/security-agents` : `${API_BASE}/agents`, {
+                const res = await mutate(securityMode ? `${API_BASE}/security-agents` : `${API_BASE}/agents`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
@@ -285,9 +286,7 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
                 setIsCreating(false);
             }
             fetchAgents();
-        } catch (err) {
-            console.error('Failed to save agent:', err);
-        } finally {
+        } catch (err) { console.error('Failed to save agent:', err); toast.error(err.message); } finally {
             setSaving(false);
         }
     };

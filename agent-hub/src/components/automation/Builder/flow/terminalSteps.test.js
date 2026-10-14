@@ -82,9 +82,9 @@ function nodeComponentFor(type) {
 
 describe('terminalSteps — the browser copy agrees with the server', () => {
     it('holds the same set the validator does', () => {
-        const src = readRepo('server/automation/validate/constants.js');
+        const src = readRepo('server/core/automationModel/constants.js');
         const m = /const TERMINAL_STEP_TYPES = new Set\((\[[^\]]*\])\)/.exec(src);
-        expect(m, 'TERMINAL_STEP_TYPES was not found in validate/constants.js — the scan has gone stale').toBeTruthy();
+        expect(m, 'TERMINAL_STEP_TYPES was not found in core/automationModel/constants.js — the scan has gone stale').toBeTruthy();
         const server = JSON.parse(m[1].replace(/'/g, '"'));
         expect([...TERMINAL_STEP_TYPES].sort()).toEqual([...server].sort());
     });

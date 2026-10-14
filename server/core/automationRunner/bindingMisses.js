@@ -17,7 +17,7 @@
  */
 'use strict';
 
-const { describeBindingMiss } = require('../../automation/bind');
+const { describeBindingMiss } = require('../automationModel/bind');
 
 // Run-level cap: the summary names two, the rest is a count.
 const MAX_RUN_MISSES = 200;

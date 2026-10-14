@@ -26,6 +26,7 @@ const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { checkResourceLimits } = require('../../core/entitlements/limits');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const {
     isActiveUserStatus,
     wouldOrphanOrg,
@@ -98,9 +99,6 @@ function buildRoleDowngradeHint(fromRole, toRole) {
  * front of it, so the two can never drift into the state the pentest found:
  * a body field accepted, answered with 200 {"success":true}, and then dropped.
  */
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const CREATE_TEXT = 'Username and password required';
 const CHANGE_TEXT = 'Old and new password required';

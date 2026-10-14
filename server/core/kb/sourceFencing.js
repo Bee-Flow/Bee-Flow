@@ -58,7 +58,7 @@
  */
 const INJECTION_MARKERS = new RegExp([
     // our own bracketed section headers, and any [/…] closer
-    String.raw`\[\s*/?\s*(?:END\s+OF\s+SOURCES|SOURCES?|SOURCE\s+\d+|NOTEBOOK\s+KNOWLEDGE\s+BASE|DOCUMENT\s+EDITOR|SYSTEM|INST|DOCUMENT\s+TOOLS|AVAILABLE\s+SOURCES)[^\]]*\]`,
+    String.raw`\[\s*/?\s*(?:END\s+OF\s+SOURCES|SOURCES?|SOURCE\s+\d+|NOTEBOOK\s+KNOWLEDGE\s+BASE|WEBPAGE\s+KNOWLEDGE\s+BASE|DOCUMENT\s+EDITOR|SYSTEM|INST|DOCUMENT\s+TOOLS|AVAILABLE\s+SOURCES)[^\]]*\]`,
     // xml-ish role/fence tags, including the data fence used below
     String.raw`</?\s*(?:source|system|instructions?|assistant|user|human)\b[^>]*>`,
     // line-leading chat role labels

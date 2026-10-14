@@ -21,7 +21,7 @@ import logging
 
 from .cache import _get_inference_semaphore
 from .custom_labels import _CustomSpec
-from .detection import _ScanUnit, _scan_units, _Timings
+from .detection import _scan_units, _ScanUnit, _Timings
 from .postprocess import _postprocess_entities
 
 logger = logging.getLogger("guard.pii")
@@ -43,10 +43,10 @@ def _raw_spans(
     A failed pass is not a partial answer here: a tuning run on half the
     chunks would fit a floor to the wrong distribution, so it raises."""
     raw: list[dict] = []
-    for unit, (batched, exc) in zip(units, outcomes):
+    for unit, (batched, exc) in zip(units, outcomes, strict=False):
         if exc is not None or batched is None:
             raise ProbeUnavailable("inference_failed")
-        for spans, chunk_offset in zip(batched, unit[4]):
+        for spans, chunk_offset in zip(batched, unit[4], strict=False):
             for ent in spans:
                 label = ent.get("label") or ""
                 if not custom.knows(label):

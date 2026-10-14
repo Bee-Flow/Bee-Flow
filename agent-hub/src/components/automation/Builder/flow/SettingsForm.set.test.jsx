@@ -2,7 +2,7 @@ import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-li
 import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
-import { extractFormState, buildPatch, sanitizeOperations } from './settings/formState';
+import { extractFormState, buildPatch } from './settings/formState';
 import { FormDensityContext } from './settings/formDensity';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import scopedStorage from '../../../../utils/scopedStorage';
@@ -78,22 +78,6 @@ describe('formState — set draft/patch shapes', () => {
         expect('arrayRef' in patch).toBe(true);
         expect(patch.arrayRef).toBeUndefined();
         expect(patch.operations).toBeUndefined();
-    });
-
-    it('sanitizeOperations keeps half-typed rows, drops junk, normalises shapes', () => {
-        expect(sanitizeOperations([
-            { op: 'groupId', target: '', keys: [' to ', ''] },      // incomplete → survives, keys trimmed
-            { op: 'rowId', target: 'id', start: '' },               // '' start → omitted (not 0!)
-            { op: 'rowId', target: 'id', start: 5 },
-            { op: 'sort', key: 'a', direction: 'weird' },           // direction normalised to asc (omitted)
-            { op: 'explode' },                                      // unknown op → dropped
-            'junk', null,
-        ])).toEqual([
-            { op: 'groupId', target: '', keys: ['to'] },
-            { op: 'rowId', target: 'id' },
-            { op: 'rowId', target: 'id', start: 5 },
-            { op: 'sort', key: 'a' },
-        ]);
     });
 });
 

@@ -25,7 +25,7 @@ file's text.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 # 0.05, 0.10, ..., 0.95. Rounded so the keys are stable in JSON.
 THRESHOLDS: tuple[float, ...] = tuple(round(0.05 * i, 2) for i in range(1, 20))

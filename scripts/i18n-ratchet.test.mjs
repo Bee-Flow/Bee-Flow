@@ -321,6 +321,42 @@ test('markup built as a template literal is a string, not JSX', () => {
     }), ['App copy']);
 });
 
+test('an element with type arguments is still an element, and its copy still counts', () => {
+    // React Native list and picker components take their row type as a type
+    // argument: <SectionList<Hit, Section> ...>. The tag name stops at the
+    // second `<`; without stepping over the arguments the file never returned
+    // to code and 37 mobile files were reported as unparsed.
+    assert.deepStrictEqual(counted({
+        'A.tsx': component('<View>\n<Segmented<Mode> title="Pick a mode" onChange={(v: Mode) => set(v)} />\n<List<Row, Map<string, () => void>> renderItem={r} />\n<Text>Shown copy</Text>\n</View>'),
+    }), ['Pick a mode', 'Shown copy']);
+});
+
+test('a generic arrow is a type parameter list, not an element', () => {
+    // TSX spells a generic arrow with `extends` or a trailing comma exactly so
+    // it is not an element; the scanner reads it the same way.
+    assert.deepStrictEqual(counted({
+        'A.tsx': 'const set = <K extends keyof Draft>(key: K, v: Draft[K]) => onChange({ [key]: v });\n'
+            + 'const id = <T,>(x: T) => x;\n'
+            + component('<Text>After the generics</Text>'),
+    }), ['After the generics']);
+});
+
+test('every package with a budget file is wired into a lint:i18n-ratchet* script', () => {
+    // A budget nobody runs is decoration. check:fast picks up every lint:*
+    // script, so the root package.json is the one place the wiring lives.
+    const root = path.join(HERE, '..');
+    const scripts = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).scripts;
+    const wired = Object.entries(scripts)
+        .filter(([name]) => name.startsWith('lint:i18n-ratchet'))
+        .map(([, cmd]) => /i18n-ratchet\.mjs\s+(\S+)/.exec(cmd)?.[1])
+        .filter(Boolean)
+        .sort();
+    assert.deepStrictEqual(wired, ['agent-hub', 'mobile']);
+    for (const pkg of wired) {
+        assert.ok(fs.existsSync(path.join(root, pkg, '.i18n-ratchet.json')), `${pkg}/.i18n-ratchet.json is missing`);
+    }
+});
+
 test('the skipped and unbudgeted trees still exist in agent-hub/src', () => {
     // Every prefix in the script is a claim about the tree, and a claim that
     // has stopped being true silently exempts whatever moved in behind it —

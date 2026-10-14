@@ -184,7 +184,7 @@ test('an effect nobody could classify is held, not run', () => {
 });
 
 test('a known read is still a read when the caller passes no effect', () => {
-    const { effectOf } = require('../../automation/sideEffectMap');
+    const { effectOf } = require('../automationModel/sideEffectMap');
     // Een naam waarvan de kaart zelf zegt dat hij leest, zodat deze test niet
     // op een hardgecodeerde toolnaam leunt die morgen anders heet.
     const reader = ['gmail_list_messages', 'kb_search', 'web_search']

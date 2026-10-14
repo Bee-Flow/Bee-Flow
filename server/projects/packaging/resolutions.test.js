@@ -23,7 +23,7 @@ const assert = require('node:assert');
 const {
     normalizeResolutions, normalizeSeat, applyStepResolutions, SEAT_FIELDS,
 } = require('./resolutions');
-const { AUTOMATION_SEAT_FIELDS } = require('./scrub');
+const { AUTOMATION_SEAT_FIELDS } = require('../../core/packaging/scrub');
 
 // ═══ normalizeResolutions ════════════════════════════════════════════════
 
@@ -354,7 +354,7 @@ test('only the rows that APPLIED are kept when the install says which ones did',
 // ═══ a staged chain, scrubbed and then resolved (BFSF-384) ═══════════════
 
 test('a staged approval scrubbed on export and given one approver at install validates', () => {
-    const { scrubAutomationDefinition } = require('./scrub');
+    const { scrubAutomationDefinition } = require('../../core/packaging/scrub');
     const { validateDefinition } = require('../../automation/validate/definition');
     const definition = {
         schemaVersion: 2,

@@ -10,10 +10,9 @@ from __future__ import annotations
 import unittest
 
 try:
+    from app.api_key_auth import APIKeyMiddleware
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-
-    from app.api_key_auth import APIKeyMiddleware
 
     _IMPORT_ERROR: Exception | None = None
 except Exception as _exc:  # pragma: no cover - environment-dependent

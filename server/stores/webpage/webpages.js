@@ -12,7 +12,7 @@ const { VERSIONED_SLOTS, keyFor, mapWebpageRow } = require('./shared');
 const { thumbnailKey, purgeWebpageObjects } = require('./storage');
 const { extraKey } = require('./extraFiles');
 const { DEFAULT_BRIDGE_GRANTS, assertWebpageWrite } = require('./bridgeGrants');
-const managedParts = require('../lib/managedParts');
+const managedParts = require('../managedPartsDefault');
 const log = require('../../telemetry/log');
 
 // ── Webpage CRUD ─────────────────────────────────────────────────────

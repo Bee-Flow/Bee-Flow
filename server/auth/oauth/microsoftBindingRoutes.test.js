@@ -2,7 +2,7 @@
 process.env.NODE_ENV = 'test';
 const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
-const h = require('../../core/http/routeHarness');
+const h = require('../../testUtils/routeHarness');
 const recording = h.recordDb();
 const router = require('./microsoftBindingRoutes');
 const api = h.serve('/auth', router);

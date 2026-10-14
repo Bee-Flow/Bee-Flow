@@ -56,6 +56,7 @@ const ASSEMBLY_MOCKS = {
     '../../../core/kb/kbSelection': { resolveUsableKbIds: async () => [] },
     '../../../stores/memoryStore': { findRelevantMemories: async () => [], formatMemoriesForPrompt: () => '' },
     '../../../core/memory/scrubMemoryContext': { scrubMemoryContext: async (t) => ({ scrubbed: t, replacedCategories: [] }) },
+    './memoryProtection': { protectMemoryContext: async ({ memoryContext }) => ({ memoryContext, memorySwap: null }) },
     '../../../stores/houseStyleStore': { getDefaultForOrg: async () => null },
     '../../../core/webpages/sidePanelWebpageContext': { buildSidePanelWebpageContext: async () => '' },
     '../../../core/tools/skillInjection': {

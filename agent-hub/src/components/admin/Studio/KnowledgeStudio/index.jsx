@@ -3,6 +3,7 @@ import { knowledgeApi } from './knowledgeApi';
 import KnowledgeDetail, { TABS } from './KnowledgeDetail';
 import KnowledgeOverview from './KnowledgeOverview';
 import SourceDetail from './SourceDetail';
+import { readOrgGroups } from '../../../../api/queries/orgGroups';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import scopedStorage from '../../../../utils/scopedStorage';
@@ -92,12 +93,8 @@ export default function KnowledgeStudio({
     // personal and organisation-wide.
     useEffect(() => {
         let alive = true;
-        import('../../../../utils/helpers')
-            // `/auth/groups`, NOT `/api/auth/groups` — the auth router is
-            // mounted at the root (UserManagement.jsx:105 is the reference).
-            .then(({ API_BASE, authFetch }) => authFetch(`${API_BASE}/auth/groups`))
-            .then(r => (r.ok ? r.json() : []))
-            .then(g => { if (alive) setOrgGroups(Array.isArray(g) ? g : []); })
+        readOrgGroups()
+            .then(g => { if (alive) setOrgGroups(g ?? []); })
             .catch(() => {});
         return () => { alive = false; };
     }, []);

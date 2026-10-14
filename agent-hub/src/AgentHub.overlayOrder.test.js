@@ -21,10 +21,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 
-const SRC = fs.readFileSync(
-    path.join(path.dirname(fileURLToPath(import.meta.url)), 'AgentHub.jsx'),
-    'utf8',
-);
+// The hub is split over three files: AgentHub.jsx (the sidebar wiring),
+// AgentHub/hubOverlays.ts (the list and closeAllOverlays) and
+// AgentHub/HubMainContent.tsx (the ternary). Read as one, in that order, so
+// the branch-order slice below only ever sees the ternary's branches.
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const SRC = ['AgentHub.jsx', 'AgentHub/hubOverlays.ts', 'AgentHub/HubMainContent.tsx']
+    .map((file) => fs.readFileSync(path.join(HERE, file), 'utf8'))
+    .join('\n');
 
 // The first overlay-flag branch in the ternary. Everything before it outranks
 // every overlay.

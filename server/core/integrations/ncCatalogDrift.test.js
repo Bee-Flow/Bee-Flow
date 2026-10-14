@@ -29,11 +29,12 @@ test('the catalog is the 14 documented integrations, ids unique', () => {
 
 test('AUTO_ENABLED_APPS covers every catalog id', () => {
     // Genuinely textual: read off the source, the same way
-    // integrationTools.permittedApps.test.js does — the constant is
-    // module-private and requiring the module drags in the whole tool graph.
+    // integrationTools.permittedApps.test.js does — the constant lives in
+    // integrationAppPolicy.js (split out of integrationTools.js), and requiring
+    // that pulls in the entitlement graph.
     // The list stays a plain literal for exactly that reason, so this test is
     // what keeps it honest.
-    const src = fs.readFileSync(path.join(__dirname, 'integrationTools.js'), 'utf8');
+    const src = fs.readFileSync(path.join(__dirname, 'integrationAppPolicy.js'), 'utf8');
     const m = src.match(/const AUTO_ENABLED_APPS = \[([^\]]*)\]/);
     assert.ok(m, 'AUTO_ENABLED_APPS must remain a parseable array literal');
     const listed = new Set(m[1].split(',').map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean));
@@ -45,11 +46,10 @@ test('AUTO_ENABLED_APPS covers every catalog id', () => {
 
 test('connectorBootstrap provisions every catalog id at bootstrap', () => {
     // Genuinely textual, same reason as AUTO_ENABLED_APPS above:
-    // NC_INTEGRATIONS is module-private, and connectorBootstrap.js pulls in
-    // userStore, configStore, planEntitlements, orgHealth and the email
-    // service just to be required — a unit test has no business paying that
-    // to read one array.
-    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'auth', 'connectorBootstrap.js'), 'utf8');
+    // requiring auth/connector/provisioning.js (where NC_INTEGRATIONS lives)
+    // pulls in userStore, configStore, planEntitlements and orgHealth just to
+    // be required — a unit test has no business paying that to read one array.
+    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'auth', 'connector', 'provisioning.js'), 'utf8');
     assert.match(src, /const NC_INTEGRATIONS = NC_INTEGRATION_IDS\.slice\(\)/,
         'bootstrap must take the catalog wholesale — the hand-maintained copy silently dropped mail/tables/forms/teams');
 });

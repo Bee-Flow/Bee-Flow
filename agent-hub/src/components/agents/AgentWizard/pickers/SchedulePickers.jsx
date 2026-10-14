@@ -2,15 +2,15 @@
 // share the constants and the formatter, so they live in one file together
 // instead of being scattered.
 
+import { computeScheduleNextRun } from '@shared/schedule/nextRun.mjs';
 import { Plus, Play, Pause, Sliders, Trash2, X } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { computeScheduleNextRun } from '../../../../utils/scheduleNextRun';
 import Modal from '../../../shared/Modal';
 
 // Day-picker UI order — Monday-first (European convention). Token strings
-// match the server's tokens exactly. Date math (`getDay()` lookups) lives in
-// utils/scheduleNextRun.js with its own Sunday-first internal array.
+// match the server's tokens exactly. Date math lives in
+// shared/schedule/nextRun.mjs (weekday tokens from Intl, not getDay()).
 export const AUTOMATION_DOW_TOKENS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 export const AUTOMATION_DOW_LABELS = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
 

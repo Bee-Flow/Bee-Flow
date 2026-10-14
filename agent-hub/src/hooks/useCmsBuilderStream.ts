@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BuilderMessage, BuilderToolCall, BuilderValidation, ThinkingPart } from './builderStream';
+import { errorTextOf as safeText, finalizeStreaming, useAbortOnUnmount, usePatchAssistant } from './builderStream';
 import { API_BASE, authFetch } from '../utils/helpers';
 
 // Shown when the build stream drops mid-flight (gateway timeout / network
@@ -148,26 +149,9 @@ export default function useCmsBuilderStream(
         return () => { alive = false; };
     }, [siteId]);
 
-    // Abort an in-flight stream on unmount.
-    useEffect(() => () => {
-        try { abortRef.current?.abort(); } catch { /* already settled */ }
-    }, []);
+    useAbortOnUnmount(abortRef);
 
-    /** Patch the current turn's assistant message (last non-tool assistant item). */
-    const patchAssistant = useCallback((fn: (m: BuilderMessage) => BuilderMessage) => {
-        setMessages((msgs) => {
-            const next = msgs.slice();
-            for (let i = next.length - 1; i >= 0; i--) {
-                const m = next[i];
-                if (m && m.role === 'assistant' && !m.kind) {
-                    next[i] = fn({ ...m });
-                    return next;
-                }
-            }
-            next.push(fn({ role: 'assistant', content: '', thinkingParts: [], isStreaming: true }));
-            return next;
-        });
-    }, []);
+    const patchAssistant = usePatchAssistant(setMessages);
 
     const send = useCallback(async (text: string, options: CmsSendOptions = {}) => {
         const message = typeof text === 'string' ? text.trim() : '';
@@ -342,26 +326,4 @@ export default function useCmsBuilderStream(
     }, []);
 
     return { messages, running, send, stop, sessionId, lastValidation };
-}
-
-/** Settle streaming flags + reasoning end time once a stream stops. */
-function finalizeStreaming(messages: BuilderMessage[]): BuilderMessage[] {
-    if (!messages.some((m) => m && m.isStreaming)) return messages;
-    return messages.map((m) => (m && m.isStreaming
-        ? {
-            ...m,
-            isStreaming: false,
-            thinkingEndedAt: m.thinkingEndedAt || (m.thinkingStartedAt ? Date.now() : undefined),
-            thinkingParts: (m.thinkingParts || []).map((p) => (p.endedAt ? p : { ...p, endedAt: Date.now() })),
-        }
-        : m));
-}
-
-async function safeText(r: Response): Promise<string> {
-    try {
-        const j = await r.json();
-        return j.error || j.message || JSON.stringify(j);
-    } catch {
-        return r.statusText;
-    }
 }

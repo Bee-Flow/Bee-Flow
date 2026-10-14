@@ -1,6 +1,7 @@
 import { projectErrorText } from '../components/projects/workspace/projectErrorText';
 import { toast } from '../components/shared/Toast';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { mutate } from '../api/mutate';
 
 // Conversation bookkeeping shared by the sidebar rows: project filing/sharing,
 // rename, pin and labels. Plain closures (no hooks) moved verbatim from
@@ -99,7 +100,7 @@ const useConversationMeta = ({
     const handleRenameConversation = async (conv, newTitle) => {
         try {
             if (directChatMode) {
-                await authFetch(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
+                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title: newTitle }),
@@ -107,7 +108,7 @@ const useConversationMeta = ({
                 setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, title: newTitle } : c));
             } else {
                 const agentId = conv.agent_id || selectedAgent?.id;
-                await authFetch(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
+                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title: newTitle }),
@@ -116,6 +117,7 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to rename conversation:', e);
+            toast.error(e.message);
         }
     };
 
@@ -123,7 +125,7 @@ const useConversationMeta = ({
         const newPinned = !conv.pinned;
         try {
             if (directChatMode) {
-                await authFetch(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
+                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ pinned: newPinned }),
@@ -131,7 +133,7 @@ const useConversationMeta = ({
                 setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, pinned: newPinned } : c));
             } else {
                 const agentId = conv.agent_id || selectedAgent?.id;
-                await authFetch(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
+                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ pinned: newPinned }),
@@ -140,6 +142,7 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to pin/unpin conversation:', e);
+            toast.error(e.message);
         }
     };
 
@@ -151,7 +154,7 @@ const useConversationMeta = ({
             : [...currentLabels, label];
         try {
             if (directChatMode) {
-                await authFetch(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
+                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ labels: newLabels }),
@@ -159,7 +162,7 @@ const useConversationMeta = ({
                 setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, labels_json: JSON.stringify(newLabels) } : c));
             } else {
                 const agentId = conv.agent_id || selectedAgent?.id;
-                await authFetch(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
+                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ labels: newLabels }),
@@ -168,6 +171,7 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to update conversation labels:', e);
+            toast.error(e.message);
         }
     };
 
@@ -190,10 +194,11 @@ const useConversationMeta = ({
 
     const handleDeleteLabel = async (labelId) => {
         try {
-            await authFetch(`${API_BASE}/ai/labels/${labelId}`, { method: 'DELETE' });
+            await mutate(`${API_BASE}/ai/labels/${labelId}`, { method: 'DELETE' });
             setConversationLabels(prev => prev.filter(l => l.id !== labelId));
         } catch (e) {
             console.error('Failed to delete label:', e);
+            toast.error(e.message);
         }
     };
 

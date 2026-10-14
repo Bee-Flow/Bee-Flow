@@ -30,6 +30,13 @@ const path = require('path');
 
 const SERVER = path.resolve(__dirname, '..');
 const PERMISSIONS = path.join(SERVER, 'auth', 'permissions.js');
+// permissions.js is a barrel over auth/permissions*.js; a fresh load evicts
+// every one of them, or the sibling modules keep the previous load's state.
+const evictPermissions = () => {
+    for (const key of Object.keys(require.cache)) {
+        if (/auth[\\/]permissions\w*\.js$/.test(key)) delete require.cache[key];
+    }
+};
 
 const fx = { user: { id: 'u1', role: 'user', groups: [], organizationId: 'orgA' } };
 const touched = [];          // every touchLastSeen(userId)
@@ -61,7 +68,7 @@ const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     // orgScope.js too: permissions.js delegates the org read to it, and a stub
     // keyed on the parent file alone would silently load the real userStore.
-    if (parent && /auth[\\/](permissions|orgScope)\.js$/.test(parent.filename)
+    if (parent && /auth[\\/](permissions\w*|orgScope)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -83,13 +90,13 @@ function makeFakeRedis({ nxWins = true } = {}) {
 
 function loadPermissions({ windowSeconds = 900, redis = null } = {}) {
     currentRedis = redis;
-    delete require.cache[PERMISSIONS];
+    evictPermissions();
     process.env.LAST_SEEN_WINDOW = String(windowSeconds);
     try {
         return require(PERMISSIONS);
     } finally {
         delete process.env.LAST_SEEN_WINDOW;
-        delete require.cache[PERMISSIONS];
+        evictPermissions();
     }
 }
 

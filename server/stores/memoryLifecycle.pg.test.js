@@ -10,15 +10,11 @@
 const { test, describe, before, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../testUtils/pglitePool');
 const { createLifecycle } = require('./memoryLifecycle');
 
 const pg = new PGlite();
-const db = {
-    async run(sql, params) {
-        const r = await pg.query(sql, params || []);
-        return { rows: r.rows, rowCount: r.affectedRows ?? r.rows.length };
-    },
-};
+const db = { run: pgliteQuery(pg) };
 const lc = createLifecycle(db);
 
 async function seed(id, over = {}) {

@@ -17,9 +17,7 @@ const signupCaptcha = require('../signupCaptcha');
 const { signupIpLimiter } = require('../authRateLimits');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 /**
  * An enum whose every refusal is a sentence. `invalid_type_error` alone is not

@@ -7,9 +7,27 @@
  * server/ARCHITECTURE.md. `notebookChatStubs(fx, over)` returns the map for
  * `installResolveStub`; for a key that has a default, the object in `over` is
  * merged over it (shallow), a key without one is added.
+ *
+ * The route's steps live one directory down (./notebookChat/), where the same
+ * module is required as '../../../x' instead of '../../x'. `withStepAliases`
+ * registers every '../../x' stub under that spelling too, so one map covers
+ * the route and its steps; notebookChatStubs applies it itself.
  */
 
+/** Every '../../x' key of a stub map also under '../../../x' (the steps' spelling). */
+function withStepAliases(map) {
+    const out = { ...map };
+    for (const [key, value] of Object.entries(map)) {
+        if (key.startsWith('../../') && !key.startsWith('../../../')) {
+            const alias = `../${key}`;
+            if (!(alias in out)) out[alias] = value;
+        }
+    }
+    return out;
+}
+
 const { AI_AGENT_STUB, configStoreStub } = require('../../testUtils/toolPiiGateHarness');
+const { quietSse } = require('../../testUtils/quietSse');
 
 const pass = (req, res, next) => next();
 
@@ -42,7 +60,7 @@ function notebookChatStubs(fx, over = {}) {
             resolveEffectiveOrgId: async () => 'org-1',
             TIER_DEFAULTS: { fast: { maxTokens: 1024, temperature: 0.2 } },
         },
-        '../../core/http/sseHelpers': { startSseHeartbeat: () => () => {} },
+        '../../core/http/sseHelpers': quietSse(),
         // The notebook has no sources here, so no title maps to one.
         '../../core/kb/notebookKnowledgeSearch': {
             NOTEBOOK_KB_SEARCH_TOOL: toolDef('notebook_kb_search'),
@@ -64,7 +82,7 @@ function notebookChatStubs(fx, over = {}) {
     for (const [key, value] of Object.entries(over)) {
         map[key] = key in map && value && typeof value === 'object' && !Array.isArray(value) ? { ...map[key], ...value } : value;
     }
-    return map;
+    return withStepAliases(map);
 }
 
-module.exports = { notebookChatStubs, toolDef, pass };
+module.exports = { notebookChatStubs, withStepAliases, toolDef, pass };

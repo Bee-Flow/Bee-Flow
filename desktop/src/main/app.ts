@@ -9,7 +9,7 @@
 
 import { BrowserWindow, Menu, app, dialog, globalShortcut, nativeTheme, net, safeStorage, screen, session, shell } from 'electron';
 import { watch } from 'chokidar';
-import { promises as fs, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
 
 import type { AppCommand, UpdateState } from '../shared/ipc.ts';
@@ -21,13 +21,19 @@ import { confirmationPrompt, parseDeepLink } from './deepLink.ts';
 import { Logger } from './logging.ts';
 import { buildMenu } from './menu.ts';
 import { NextcloudBridge } from './nextcloud/bridge.ts';
-import { isInside } from './nextcloud/paths.ts';
+import type { LoginFlowCredential } from './nextcloud/loginFlow.ts';
+import { pairingTarget, pairNextcloud, sendAppPasswordToServer, type PairingResult } from './nextcloud/pairing.ts';
 import { nextcloudSummary } from './nextcloud/summary.ts';
+import { noNextcloudFolder } from './dialogs.ts';
 import { chromiumFetch } from './server/chromiumFetch.ts';
 import { secureContextOrigin } from './server/secureOrigin.ts';
-import { adoptsRedirect, probeServer, type ProbeOptions } from './server/probe.ts';
-import { hostKind, normaliseServerUrl, originOf, serverUrl as joinServerUrl } from './server/url.ts';
+import { probeServer, type ProbeOptions } from './server/probe.ts';
+import { isServerNavigation, isUnencrypted, titleSuffix } from './server/serverPage.ts';
+import { failedLoadVerdict, redirectVerdict } from './server/unreachable.ts';
+import { createPermissionHandlers, type PermissionPrompt } from './security/permissions.ts';
 import { permissionDecision, senderTrust, type PolicyContext } from './security/policy.ts';
+import { revealDecision } from './security/reveal.ts';
+import { withClientHeader } from './security/sessionHeaders.ts';
 import { settingsForServerPage } from './config/schema.ts';
 import { AppTray } from './tray.ts';
 import { Updater } from './updater.ts';
@@ -36,7 +42,7 @@ import { Notifier } from './notifications.ts';
 import { applyNavigationPolicy, createMainWindow, hardenedWebPreferences, unreachableUrl } from './windows/mainWindow.ts';
 import { QuickAskWindow } from './windows/quickAsk.ts';
 import { shellDirectory, shellPageUrl } from './windows/shellPages.ts';
-import { normaliseWindowState, restoreBounds, type WindowState } from './windows/windowState.ts';
+import { readWindowState, restoreBounds, windowStateOf, writeWindowState } from './windows/windowState.ts';
 
 export class DesktopApp {
     readonly log: Logger;
@@ -218,7 +224,7 @@ export class DesktopApp {
 
     private async openMainWindow(): Promise<void> {
         const settings = this.settings.get();
-        const saved = await this.readWindowState();
+        const saved = await readWindowState(this.windowStateFile);
         const bounds = restoreBounds(saved, screen.getAllDisplays(), screen.getPrimaryDisplay());
 
         const window = createMainWindow({
@@ -326,8 +332,7 @@ export class DesktopApp {
     }
 
     private isServerNavigation(url: string): boolean {
-        const server = originOf(this.settings.get().server.url);
-        return Boolean(server && originOf(url) === server);
+        return isServerNavigation(url, this.settings.get().server.url);
     }
 
     private unreachableInFlight: Promise<void> | null = null;
@@ -356,7 +361,8 @@ export class DesktopApp {
         // the user reloaded, or navigated somewhere that worked — this verdict
         // is about a page nobody is looking at any more.
         if (this.mainNavigations !== before || !this.mainWindow || this.mainWindow.isDestroyed()) return;
-        if (probe.ok && !this.retriedAfterGoodProbe) {
+        const verdict = failedLoadVerdict(probe, this.retriedAfterGoodProbe, reason);
+        if (verdict.kind === 'retry') {
             // The server answers the probe, so this was a blip (a restart, a
             // network change mid-load). One quiet retry beats an error page
             // with a green "the server answered" on it.
@@ -365,7 +371,7 @@ export class DesktopApp {
             return;
         }
         this.retriedAfterGoodProbe = false;
-        this.load(this.mainWindow, unreachableUrl(url, probe.error ?? reason, probe.code ?? 'unknown', probe.redirectTarget));
+        this.load(this.mainWindow, unreachableUrl(url, verdict.error, verdict.code, verdict.redirectTarget));
     }
 
     /**
@@ -383,23 +389,17 @@ export class DesktopApp {
         if (!server || !this.mainWindow || this.mainWindow.isDestroyed()) return false;
         if (!this.isServerNavigation(this.mainNavigationStart)) return false;
         this.log.warn('Server', `${server} now redirects to ${target}`);
-        const moved = normaliseServerUrl(target);
-        if (moved.ok && adoptsRedirect(server, moved.url)) {
-            void this.setServer(moved.url);
+        const verdict = redirectVerdict(server, target);
+        if (verdict.kind === 'adopt') {
+            void this.setServer(verdict.url);
             return true;
         }
-        this.load(this.mainWindow, unreachableUrl(server, `Your server now sends you to ${target}.`, 'redirected', target));
+        this.load(this.mainWindow, unreachableUrl(server, verdict.error, verdict.code, verdict.redirectTarget));
         return true;
     }
 
     private titleSuffix(url: string): string {
-        if (!url || url.startsWith('file:')) return '';
-        if (this.isServerNavigation(url)) return this.isUnencrypted(url) ? 'not encrypted' : '';
-        try {
-            return new URL(url).host;
-        } catch {
-            return '';
-        }
+        return titleSuffix(url, this.settings.get().server.url);
     }
 
     showSettings(): void {
@@ -519,66 +519,28 @@ export class DesktopApp {
     private async openNextcloudFolder(): Promise<void> {
         const folder = this.nextcloudStatus.accounts[0]?.folders[0]?.localPath;
         if (!folder) {
-            dialog.showMessageBox({
-                type: 'info',
-                title: 'No Nextcloud folder',
-                message: 'Bee Flow could not find a Nextcloud sync folder on this computer.',
-                detail: nextcloudSummary(this.nextcloudStatus),
-            });
+            void dialog.showMessageBox(noNextcloudFolder(this.nextcloudStatus)); // informational: nothing waits for it to close
             return;
         }
         await shell.openPath(folder);
     }
 
-    /** Run Login Flow v2 and hand the credential to the Bee Flow server. */
-    async pairNextcloud(serverUrlHint?: string): Promise<{ ok: true; server: string; loginName: string; storedOnServer: boolean } | { ok: false; error: string }> {
-        const target = serverUrlHint || this.nextcloudStatus.accounts[0]?.url || '';
-        if (!target) {
-            return { ok: false, error: 'Bee Flow does not know which Nextcloud to sign in to. Enter its address in Settings first.' };
-        }
-        try {
-            const credential = await this.nextcloud.login(target, (url) => shell.openExternal(url));
-            // The password is held in the OS keyring so the app can re-present
-            // it after a server rebuild without another round trip.
-            const persisted = await this.secrets.set('nextcloud.appPassword', credential.appPassword);
-            if (!persisted) this.log.warn('Nextcloud', 'the app password is held for this session only');
-
-            const storedOnServer = await this.sendAppPasswordToServer(credential);
-            this.log.info('Nextcloud', `linked ${credential.loginName} at ${credential.server}`);
-            return { ok: true, server: credential.server, loginName: credential.loginName, storedOnServer };
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            this.log.warn('Nextcloud', `pairing failed: ${message}`);
-            return { ok: false, error: message };
-        }
+    /** Run Login Flow v2 and hand the credential to the Bee Flow server (see nextcloud/pairing.ts). */
+    async pairNextcloud(serverUrlHint?: string): Promise<PairingResult> {
+        return pairNextcloud(pairingTarget(serverUrlHint, this.nextcloudStatus.accounts), {
+            login: (target) => this.nextcloud.login(target, (url) => shell.openExternal(url)),
+            persistAppPassword: (appPassword) => this.secrets.set('nextcloud.appPassword', appPassword),
+            sendToServer: (credential) => this.sendAppPasswordToServer(credential),
+            log: this.log,
+        });
     }
 
-    /**
-     * Hand the app password to the user's own Bee Flow server.
-     *
-     * This is the point of the pairing: the server already knows how to read
-     * Nextcloud files (server/integrations/nextcloudFiles/), it just needs a
-     * credential. The request rides the main window's session, so it carries
-     * the user's existing sign-in and no separate token is needed.
-     */
-    private async sendAppPasswordToServer(credential: { server: string; loginName: string; appPassword: string }): Promise<boolean> {
+    /** Hand the app password to the user's own Bee Flow server, over the main window's session. */
+    private async sendAppPasswordToServer(credential: LoginFlowCredential): Promise<boolean> {
         const base = this.settings.get().server.url;
         if (!base || !this.mainWindow || this.mainWindow.isDestroyed()) return false;
-        try {
-            const response = await this.mainWindow.webContents.session.fetch(joinServerUrl(base, '/auth/save-app-password'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Beeflow-Client': 'desktop' },
-                body: JSON.stringify({ username: credential.loginName, password: credential.appPassword, url: credential.server }),
-            });
-            if (!response.ok) {
-                this.log.warn('Nextcloud', `the Bee Flow server refused the app password (HTTP ${response.status})`);
-                return false;
-            }
-            return true;
-        } catch (error) {
-            this.log.warn('Nextcloud', `could not reach the Bee Flow server to store the app password: ${String(error)}`);
-            return false;
-        }
+        const { session: windowSession } = this.mainWindow.webContents;
+        return sendAppPasswordToServer(credential, base, (url, init) => windowSession.fetch(url, init), this.log);
     }
 
     // ── Deep links ───────────────────────────────────────────────────────────
@@ -646,10 +608,7 @@ export class DesktopApp {
 
     /** Is this page the configured server, reached over plain http from another machine? */
     private isUnencrypted(url: string): boolean {
-        const server = this.settings.get().server.url;
-        if (!server || originOf(url) !== originOf(server)) return false;
-        const parsed = new URL(server);
-        return parsed.protocol === 'http:' && hostKind(parsed.hostname) !== 'loopback';
+        return isUnencrypted(url, this.settings.get().server.url);
     }
 
     notify(input: { title: string; body: string; silent?: boolean; deepLink?: string }): boolean {
@@ -771,12 +730,7 @@ export class DesktopApp {
         const accounts = this.nextcloud.accounts();
         const defaultPath = accounts[0]?.folders[0]?.localPath;
         if (!defaultPath) {
-            await dialog.showMessageBox({
-                type: 'info',
-                title: 'No Nextcloud folder',
-                message: 'Bee Flow could not find a Nextcloud sync folder on this computer.',
-                detail: nextcloudSummary(this.nextcloudStatus),
-            });
+            await dialog.showMessageBox(noNextcloudFolder(this.nextcloudStatus));
             return;
         }
 
@@ -855,28 +809,10 @@ export class DesktopApp {
         }
     }
 
-    /**
-     * Announce this client on every request to the configured server.
-     *
-     * The server reads `X-Beeflow-Client` (server/core/http/requestClient.js) to
-     * tell a browser from the Android app from this one — it is a closed enum
-     * on a row that already exists, and the only reason it is set here rather
-     * than in the SPA is that the SPA is the same bundle in both cases.
-     *
-     * The header is scoped to the configured server's origin. Sending it to an
-     * identity provider during sign-in would tell a third party something about
-     * the user's setup for no benefit at all.
-     */
+    /** Announce this client on every request to the configured server (see security/sessionHeaders.ts). */
     private installSessionHeaders(): void {
         session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-            const { server } = this.settings.get();
-            const requestOrigin = originOf(details.url);
-            const ours = [originOf(server.url), server.apiOrigin || null].filter(Boolean);
-            if (requestOrigin && ours.includes(requestOrigin)) {
-                callback({ requestHeaders: { ...details.requestHeaders, 'X-Beeflow-Client': 'desktop' } });
-                return;
-            }
-            callback({ requestHeaders: details.requestHeaders });
+            callback({ requestHeaders: withClientHeader(details.requestHeaders, details.url, this.settings.get().server) });
         });
     }
 
@@ -930,81 +866,45 @@ export class DesktopApp {
 
     /**
      * Show a file in the OS file manager — only somewhere the user already
-     * chose to share with this app: a Nextcloud sync folder, or Downloads.
-     *
-     * "Show me this file" is a reasonable thing for the workspace (or a
-     * beeflow:// link) to ask. "Show me /home/tom/.ssh" is not, and neither is
-     * a network share: `\\host\share\x.exe` makes Windows reach out to
-     * that host just to look.
+     * chose to share with this app (see security/reveal.ts).
      */
     revealPath(target: unknown, options: { ownFiles?: boolean } = {}): boolean {
-        const candidate = typeof target === 'string' ? target : '';
-        if (!candidate || !path.isAbsolute(candidate) || /^(\\\\|\/\/)/.test(candidate)) {
-            this.log.warn('IPC', `refused to reveal ${candidate || 'an empty path'}`);
+        const decision = revealDecision(
+            target,
+            {
+                ownFiles: [this.log.file, this.settings.file],
+                isInsideSyncFolder: (resolved) => this.nextcloud.isInsideAnySyncFolder(resolved),
+                downloads: app.getPath('downloads'),
+            },
+            options,
+        );
+        if (!decision.ok) {
+            this.log.warn('IPC', `refused to reveal ${decision.refused}`);
             return false;
         }
-        const resolved = path.resolve(candidate);
-        const ownFile = options.ownFiles === true && [this.log.file, this.settings.file].some((file) => path.resolve(file) === resolved);
-        const allowed = ownFile || this.nextcloud.isInsideAnySyncFolder(resolved) || isInside(app.getPath('downloads'), resolved);
-        if (!allowed) {
-            this.log.warn('IPC', `refused to reveal ${resolved}`);
-            return false;
-        }
-        shell.showItemInFolder(resolved);
+        shell.showItemInFolder(decision.path);
         return true;
     }
 
-    /**
-     * Which OS permissions a page gets.
-     *
-     * Chromium asks this process for every one; without these handlers it
-     * grants most by default. `permissionDecision` is the rule. On top of it,
-     * a server reached over plain http from another machine is asked about per
-     * permission: whoever is on that network path can change the page, and the
-     * microphone should not go to them unasked.
-     */
+    /** Which OS permissions a page gets (see security/permissions.ts). */
     private installPermissionHandlers(): void {
-        const asked = new Map<string, boolean>();
-        const PER_REQUEST = new Set(['media', 'audioCapture', 'videoCapture', 'display-capture']);
+        const handlers = createPermissionHandlers({
+            allowed: (permission, url) => permissionDecision(permission, url, this.policy()),
+            isUnencrypted: (url) => this.isUnencrypted(url),
+            onRefused: (permission, url) => this.log.info('Permissions', `refused ${permission} to ${url || 'an unknown page'}`),
+        });
 
         session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => {
             const url = details.requestingUrl || contents?.getURL() || '';
-            if (!permissionDecision(permission, url, this.policy())) {
-                this.log.info('Permissions', `refused ${permission} to ${url || 'an unknown page'}`);
-                callback(false);
-                return;
-            }
-            if (!this.isUnencrypted(url) || !PER_REQUEST.has(permission)) {
-                callback(true);
-                return;
-            }
-            const key = `${originOf(url)} ${permission}`;
-            const previous = asked.get(key);
-            if (previous !== undefined) {
-                callback(previous);
-                return;
-            }
-            const window = contents ? BrowserWindow.fromWebContents(contents) : null;
-            const options = {
-                type: 'question' as const,
-                buttons: ['Block', 'Allow'],
-                defaultId: 0,
-                cancelId: 0,
-                title: 'Allow access?',
-                message: `${originOf(url)} wants to use your ${permission === 'display-capture' ? 'screen' : 'microphone or camera'}.`,
-                detail: 'This server is reached without encryption, so anyone on the network in between could change the page that is asking. Allow it only on a network you trust.',
+            const ask = async (options: PermissionPrompt): Promise<number> => {
+                const window = contents ? BrowserWindow.fromWebContents(contents) : null;
+                const { response } = await (window ? dialog.showMessageBox(window, options) : dialog.showMessageBox(options));
+                return response;
             };
-            void (window ? dialog.showMessageBox(window, options) : dialog.showMessageBox(options)).then(({ response }) => {
-                asked.set(key, response === 1);
-                callback(response === 1);
-            });
+            handlers.request(permission, url, ask, callback);
         });
 
-        session.defaultSession.setPermissionCheckHandler((_contents, permission, requestingOrigin) => {
-            if (!permissionDecision(permission, requestingOrigin, this.policy())) return false;
-            if (this.isUnencrypted(requestingOrigin) && PER_REQUEST.has(permission)) return asked.get(`${originOf(requestingOrigin)} ${permission}`) === true;
-            return true;
-        });
+        session.defaultSession.setPermissionCheckHandler((_contents, permission, requestingOrigin) => handlers.check(permission, requestingOrigin));
     }
 
     // ── Window state persistence ─────────────────────────────────────────────
@@ -1013,24 +913,12 @@ export class DesktopApp {
         return path.join(app.getPath('userData'), 'window-state.json');
     }
 
-    private async readWindowState(): Promise<Partial<WindowState>> {
-        try {
-            return normaliseWindowState(JSON.parse(await fs.readFile(this.windowStateFile, 'utf8')));
-        } catch {
-            return {};
-        }
-    }
 
     private async saveWindowState(): Promise<void> {
         const window = this.mainWindow;
         if (!window || window.isDestroyed()) return;
-        // A maximised window reports the maximised bounds; storing those would
-        // mean un-maximising restores to full screen and the user can never get
-        // their old size back.
-        const bounds = window.isMaximized() || window.isFullScreen() ? window.getNormalBounds() : window.getBounds();
-        const state: WindowState = { ...bounds, maximised: window.isMaximized(), fullScreen: window.isFullScreen() };
         try {
-            await fs.writeFile(this.windowStateFile, `${JSON.stringify(state, null, 4)}\n`, 'utf8');
+            await writeWindowState(this.windowStateFile, windowStateOf(window));
         } catch (error) {
             this.log.debug('Window', `could not save the window position: ${String(error)}`);
         }

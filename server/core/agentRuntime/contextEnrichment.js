@@ -89,11 +89,23 @@ async function resolveMemoryContext({ agent, agentId, userId, userMessage, valid
                 if (usedOut) usedOut.items = used;
                 emitMemoryUsed(onEvent, used);
                 log.info(`[AgentRuntime] Injected ${relevantMemories.length} memories into prompt`);
+            } else {
+                log.info('[AgentRuntime] No memories found for this user/agent');
+            }
 
+            // Who the user is, from the account. Only behind the memory gate:
+            // that gate keeps embed (public) chats out, where the account is
+            // not the person typing. First in the block, so a later "tom" in a
+            // memory folds onto the token of the full name.
+            const { loadUserIdentity } = require('../memory/userIdentityContext');
+            const identity = await loadUserIdentity(userId, { userStore: require('../../stores/userStore') });
+            if (identity.text) memoryContext = identity.text + (memoryContext ? '\n' + memoryContext : '');
+
+            if (memoryContext) {
                 // Defence in depth against the "memory leak" class of bug: stored
                 // memories can carry real PII from earlier turns that would bypass
-                // this turn's tokeniser. Replace detected values with generic
-                // labels before they reach the LLM. Non-reversible by design.
+                // this turn's tokeniser. Detected values and the account values
+                // (knownEntities) become conversation tokens, or labels without one.
                 try {
                     const configStore = require('../../stores/configStore');
                     const { getAIConfig } = require('../aiAgent');
@@ -106,7 +118,7 @@ async function resolveMemoryContext({ agent, agentId, userId, userMessage, valid
                     const scrubEnabled = !!orgShieldForScrub?.enabled || !!aiCfg?.piiDetectionEnabled;
                     if (scrubEnabled) {
                         const { tokenizeMemoryContext } = require('../memory/scrubMemoryContext');
-                        const { text: safeText, replacedCategories, mode } = await tokenizeMemoryContext(memoryContext, orgShieldForScrub, { conversationId, userId });
+                        const { text: safeText, replacedCategories, mode } = await tokenizeMemoryContext(memoryContext, orgShieldForScrub, { conversationId, userId, knownEntities: identity.knownEntities });
                         if (replacedCategories.length > 0) {
                             log.info(`[AgentRuntime] Memory context ${mode === 'tokens' ? 'tokenised' : 'scrubbed'}: ${replacedCategories.join(', ')}`);
                             memoryContext = safeText;
@@ -116,8 +128,6 @@ async function resolveMemoryContext({ agent, agentId, userId, userMessage, valid
                     log.warn('[AgentRuntime] Memory scrub failed (fail-open):', scrubErr.message);
                 }
                 log.info(`[AgentRuntime] Memory context: ${memoryContext.length} chars`);
-            } else {
-                log.info('[AgentRuntime] No memories found for this user/agent');
             }
         } catch (memErr) {
             log.error('[AgentRuntime] Memory retrieval failed:', memErr.message);

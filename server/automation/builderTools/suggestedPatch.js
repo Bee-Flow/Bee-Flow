@@ -33,6 +33,7 @@
 'use strict';
 
 const { readPath } = require('../expr');
+const { sortedKeysJson } = require('../../utils/stableJson');
 
 function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
@@ -42,12 +43,7 @@ function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array
  * that is sometimes not a string is a comparison that sometimes throws).
  */
 function canonicalJson(value) {
-    const out = JSON.stringify(value, (_k, v) => {
-        if (!isPlainObject(v)) return v;
-        const sorted = {};
-        for (const key of Object.keys(v).sort()) sorted[key] = v[key];
-        return sorted;
-    });
+    const out = sortedKeysJson(value);
     return out === undefined ? 'undefined' : out;
 }
 

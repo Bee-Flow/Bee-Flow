@@ -27,6 +27,7 @@ const { ingestDocument } = require('../../core/kb/kbIngestionHelpers');
 const { getUserId, guardedFetch, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const { parseSitemap } = require('./sitemapParse');
 
 /** Upper bound on pages one sitemap ingest may walk (req.body.maxPages is clamped to it). */
@@ -34,9 +35,6 @@ const MAX_SITEMAP_PAGES = 500;
 const DEFAULT_SITEMAP_PAGES = 50;
 
 // ── What a caller may send ──────────────────────────────────────────
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const URL_TEXT = 'An address is required — the site whose sitemap to read.';
 const MAX_PAGES_TEXT = 'maxPages is a whole number of pages, at least 1.';

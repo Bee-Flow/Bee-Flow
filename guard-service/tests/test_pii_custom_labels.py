@@ -39,18 +39,12 @@ from app.services.pii import (
     get_pii_service,
 )
 from app.services.pii.cache import _cache_key
-
-try:  # `python -m unittest discover -s tests` imports test modules top-level
-    from test_pii import FakeGliner, FakeTokenizer
-except ImportError:  # pragma: no cover - pytest imports them as a package
-    from tests.test_pii import FakeGliner, FakeTokenizer
+from fakes import FakeGliner, FakeRedis, FakeTokenizer, mark_ready
 
 try:
+    from app.routers.pii import _engine_fp, router as _pii_router
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-
-    from app.routers.pii import _engine_fp
-    from app.routers.pii import router as _pii_router
 
     _HTTP_IMPORT_ERROR: Exception | None = None
 except Exception as _exc:  # pragma: no cover - environment-dependent
@@ -133,11 +127,7 @@ class _ServiceCase(unittest.TestCase):
 
     def install(self, names=("Mark", "Sanne"), prompts=None, score=0.9, cls=None):
         model = (cls or FakeGliner)(list(names), score=score, prompts=prompts)
-        self.svc._model = model
-        self.svc._ready = True
-        self.svc._load_error = None
-        self.svc._backend = "fake"
-        return model
+        return mark_ready(self.svc, model)
 
     def scan(self, text, labels=None, threshold=0.7, categories=None, limit=None):
         custom = _CustomSpec.from_request(labels, threshold)
@@ -548,17 +538,6 @@ class FinaliseCustomTests(unittest.TestCase):
         )
 
 
-class _FakeRedis:
-    def __init__(self):
-        self.store = {}
-
-    async def get(self, key):
-        return self.store.get(key)
-
-    async def set(self, key, value, ex=None):
-        self.store[key] = value
-
-
 class CacheAndFingerprintTests(_ServiceCase):
     def _key(self, labels, categories=None, text="Beste Mark, Falcon Ridge"):
         custom = _CustomSpec.from_request(labels, 0.7)
@@ -603,7 +582,7 @@ class CacheAndFingerprintTests(_ServiceCase):
 
     def test_a_cached_custom_answer_is_served_whole(self):
         self.install(prompts=FINDS)
-        fake = _FakeRedis()
+        fake = FakeRedis()
         deps = types.ModuleType("app.dependencies")
         deps.get_redis = lambda: fake
         with patch.dict(sys.modules, {"app.dependencies": deps}):

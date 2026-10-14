@@ -1,0 +1,8358 @@
+{
+ "update: no stepId": {
+  "result": {
+   "error": "stepId is required."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "patch": {}
+  },
+  "argsAfter": {
+   "patch": {}
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: patch not an object": {
+  "result": {
+   "error": "patch must be an object of fields to change."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "patch": []
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "patch": []
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: id in patch": {
+  "result": {
+   "error": "Cannot change a step id."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "patch": {
+    "id": "z"
+   }
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "patch": {
+    "id": "z"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: unknown step": {
+  "result": {
+   "error": "Unknown stepId \"zz\". Existing step ids: a, b, c, cond, d, e."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "zz",
+   "patch": {
+    "label": "x"
+   }
+  },
+  "argsAfter": {
+   "stepId": "zz",
+   "patch": {
+    "label": "x"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: notification title/body/channels/label": {
+  "result": {
+   "updated": {
+    "id": "a",
+    "type": "notification",
+    "title": "Nieuw {{steps.trg.output.x}}",
+    "body": "b2",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Nieuw {{steps.trg.output.x}}",
+    "body": "b2",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "patch": {
+    "title": "Nieuw {{steps.trg.output.x}}",
+    "body": "b2",
+    "channels": null,
+    "label": "  "
+   }
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "patch": {
+    "title": "Nieuw {{steps.trg.output.x}}",
+    "body": "b2",
+    "channels": null,
+    "label": "  "
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: notification forEach + null forEach": {
+  "result": {
+   "updated": {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D2"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D2"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "d",
+   "patch": {
+    "forEach": null,
+    "label": "D2"
+   }
+  },
+  "argsAfter": {
+   "stepId": "d",
+   "patch": {
+    "forEach": null,
+    "label": "D2"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: not patchable field": {
+  "result": {
+   "error": "Field(s) prompt not patchable on a notification step. Allowed: title, body, channels, label, forEach."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "patch": {
+    "prompt": "x"
+   }
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "patch": {
+    "prompt": "x"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: same type restated": {
+  "result": {
+   "updated": {
+    "id": "a",
+    "type": "notification",
+    "title": "T",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "T",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "patch": {
+    "type": "notification",
+    "title": "T"
+   }
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "patch": {
+    "type": "notification",
+    "title": "T"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: invalid type change": {
+  "result": {
+   "error": "Cannot change a step's type to \"bogus_type\". Allowed types: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "patch": {
+    "type": "bogus_type"
+   }
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "patch": {
+    "type": "bogus_type"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: type change notification → ai_step": {
+  "result": {
+   "updated": {
+    "id": "a",
+    "type": "ai_step",
+    "prompt": "Hello",
+    "systemPrompt": null,
+    "inputs": {},
+    "outputSchema": null,
+    "modelTier": "auto",
+    "label": "Now AI",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "agentId": null,
+    "skillIds": []
+   },
+   "replacedType": {
+    "from": "notification",
+    "to": "ai_step"
+   },
+   "_warnings": [
+    "Steps b read this step's output; its shape changed. Check their bindings.",
+    "builder_update_step does not change a step's type, so this patch was applied as builder_replace_step(newType:\"ai_step\"): same id, same wiring."
+   ]
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "ai_step",
+    "prompt": "Hello",
+    "systemPrompt": null,
+    "inputs": {},
+    "outputSchema": null,
+    "modelTier": "auto",
+    "label": "Now AI",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "agentId": null,
+    "skillIds": []
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "patch": {
+    "type": "ai_step",
+    "prompt": "Hello",
+    "label": "Now AI"
+   }
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "patch": {
+    "type": "ai_step",
+    "prompt": "Hello",
+    "label": "Now AI"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: ai_step scalar fields": {
+  "result": {
+   "updated": {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": "be brief",
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": true,
+    "tools": [
+     "x"
+    ],
+    "knowledgeBaseIds": [
+     "k1"
+    ],
+    "useMemory": false,
+    "label": "Think"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": "be brief",
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": true,
+    "tools": [
+     "x"
+    ],
+    "knowledgeBaseIds": [
+     "k1"
+    ],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "b",
+   "patch": {
+    "systemPrompt": "  be brief  ",
+    "modelTier": "",
+    "allowTools": 1,
+    "tools": [
+     "x",
+     3
+    ],
+    "knowledgeBaseIds": [
+     "k1",
+     "",
+     7
+    ],
+    "outputSchema": {
+     "$undefined": true
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "b",
+   "patch": {
+    "systemPrompt": "  be brief  ",
+    "modelTier": "",
+    "allowTools": 1,
+    "tools": [
+     "x",
+     3
+    ],
+    "knowledgeBaseIds": [
+     "k1",
+     "",
+     7
+    ],
+    "outputSchema": {
+     "$undefined": true
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: ai_step modelTier gate": {
+  "result": {
+   "error": "modelTier \"premium\" is not available for this user. Choose one of: auto, fast (or omit it — the default is \"auto\")."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "b",
+   "patch": {
+    "modelTier": "premium"
+   }
+  },
+  "argsAfter": {
+   "stepId": "b",
+   "patch": {
+    "modelTier": "premium"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: ai_step inputs merge with null delete": {
+  "result": {
+   "updated": {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "extra": {
+      "kind": "ref",
+      "path": "steps.a.output.title"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "extra": {
+      "kind": "ref",
+      "path": "steps.a.output.title"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "b",
+   "patch": {
+    "inputs": {
+     "text": null,
+     "extra": {
+      "kind": "ref",
+      "path": "steps.a.output.title"
+     }
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "b",
+   "patch": {
+    "inputs": {
+     "text": null,
+     "extra": {
+      "kind": "ref",
+      "path": "steps.a.output.title"
+     }
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: ai_step inputs replace mode": {
+  "result": {
+   "updated": {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "only": {
+      "kind": "literal",
+      "value": "x"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "only": {
+      "kind": "literal",
+      "value": "x"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "b",
+   "patch": {
+    "inputs": {
+     "only": {
+      "kind": "literal",
+      "value": "x"
+     }
+    }
+   },
+   "inputsMode": "replace"
+  },
+  "argsAfter": {
+   "stepId": "b",
+   "patch": {
+    "inputs": {
+     "only": {
+      "kind": "literal",
+      "value": "x"
+     }
+    }
+   },
+   "inputsMode": "replace"
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: ai_step agent fill and re-point": {
+  "result": {
+   "error": "Step \"ag\" already runs on agent \"agent_1\". Pointing a step at a different agent is not a patch — use builder_replace_step, so the permission check runs on it."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   },
+   {
+    "id": "ag",
+    "type": "ai_step",
+    "prompt": "p",
+    "agentId": "agent_1",
+    "label": "Ag"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   },
+   {
+    "from": "e",
+    "to": "ag"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "ag",
+   "patch": {
+    "agentId": "agent_2"
+   }
+  },
+  "argsAfter": {
+   "stepId": "ag",
+   "patch": {
+    "agentId": "agent_2"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: ai_step agentPermissions without agent": {
+  "result": {
+   "updated": {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think",
+    "skillIds": [
+     "s1"
+    ],
+    "agentPermissions": {
+     "startAutomations": false,
+     "useKnowledge": false,
+     "useTools": true
+    }
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think",
+    "skillIds": [
+     "s1"
+    ],
+    "agentPermissions": {
+     "startAutomations": false,
+     "useKnowledge": false,
+     "useTools": true
+    }
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "b",
+   "patch": {
+    "agentPermissions": {
+     "useTools": true
+    },
+    "skillIds": [
+     "s1"
+    ],
+    "disabledAgentSkillIds": [
+     "s2"
+    ]
+   }
+  },
+  "argsAfter": {
+   "stepId": "b",
+   "patch": {
+    "agentPermissions": {
+     "useTools": true
+    },
+    "skillIds": [
+     "s1"
+    ],
+    "disabledAgentSkillIds": [
+     "s2"
+    ]
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: set fields merge": {
+  "result": {
+   "updated": {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "z": {
+      "kind": "literal",
+      "value": "zz"
+     }
+    },
+    "label": "Set"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "z": {
+      "kind": "literal",
+      "value": "zz"
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "c",
+   "patch": {
+    "fields": {
+     "y": null,
+     "z": {
+      "kind": "literal",
+      "value": "zz"
+     }
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "c",
+   "patch": {
+    "fields": {
+     "y": null,
+     "z": {
+      "kind": "literal",
+      "value": "zz"
+     }
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: set operations need arrayRef": {
+  "result": {
+   "error": "operations[0]: sort needs \"key\" — the column to sort by."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "c",
+   "patch": {
+    "operations": [
+     {
+      "op": "sort",
+      "field": "x"
+     }
+    ]
+   }
+  },
+  "argsAfter": {
+   "stepId": "c",
+   "patch": {
+    "operations": [
+     {
+      "op": "sort",
+      "field": "x"
+     }
+    ]
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: set list mode + forEach refused": {
+  "result": {
+   "error": "arrayRef (list mode) and forEach cannot be combined — list mode already applies the fields to every row. Clear forEach (forEach: null) or the arrayRef."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "c",
+   "patch": {
+    "arrayRef": "",
+    "forEach": {
+     "overRef": "steps.a.output.items",
+     "itemVar": "it"
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "c",
+   "patch": {
+    "arrayRef": "",
+    "forEach": {
+     "overRef": "steps.a.output.items",
+     "itemVar": "it"
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: set maxItems dropped outside list mode": {
+  "result": {
+   "updated": {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "c",
+   "patch": {
+    "maxItems": 5
+   }
+  },
+  "argsAfter": {
+   "stepId": "c",
+   "patch": {
+    "maxItems": 5
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: condition expr": {
+  "result": {
+   "updated": {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 2",
+    "label": "Check"
+   }
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 2",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "cond",
+   "patch": {
+    "expr": "steps.c.output.y == 2"
+   }
+  },
+  "argsAfter": {
+   "stepId": "cond",
+   "patch": {
+    "expr": "steps.c.output.y == 2"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: move afterStepId": {
+  "result": {
+   "updated": {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   "moved": [
+    "a→c — re-joined b→cond where it used to be"
+   ]
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "c",
+    "to": "b"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   },
+   {
+    "from": "b",
+    "to": "cond"
+   },
+   {
+    "from": "a",
+    "to": "c"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "c",
+   "patch": {
+    "afterStepId": "a"
+   }
+  },
+  "argsAfter": {
+   "stepId": "c",
+   "patch": {
+    "afterStepId": "a"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: branch without afterStepId": {
+  "result": {
+   "error": "branch/caseName say WHERE a moved step goes — pass afterStepId with them: patch:{afterStepId:\"<condition or switch id>\", branch:\"else\"}."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "c",
+   "patch": {
+    "branch": "else"
+   }
+  },
+  "argsAfter": {
+   "stepId": "c",
+   "patch": {
+    "branch": "else"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: elseStepId on non-condition": {
+  "result": {
+   "error": "elseStepId is for a condition step; \"c\" is a set. To move a step, patch THAT step: builder_update_step({stepId:\"<step>\", patch:{afterStepId:\"c\"}})."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "c",
+   "patch": {
+    "elseStepId": "d"
+   }
+  },
+  "argsAfter": {
+   "stepId": "c",
+   "patch": {
+    "elseStepId": "d"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: elseStepId on condition": {
+  "result": {
+   "updated": {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   "moved": [
+    "cond→d(else)"
+   ]
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "d",
+    "to": "e"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "cond",
+   "patch": {
+    "elseStepId": "d"
+   }
+  },
+  "argsAfter": {
+   "stepId": "cond",
+   "patch": {
+    "elseStepId": "d"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: thenStepId empty": {
+  "result": {
+   "error": "thenStepId must be the id of an existing step."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "cond",
+   "patch": {
+    "thenStepId": ""
+   }
+  },
+  "argsAfter": {
+   "stepId": "cond",
+   "patch": {
+    "thenStepId": ""
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: move plus label": {
+  "result": {
+   "updated": {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "Moved"
+   },
+   "moved": [
+    "a→e"
+   ]
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "Moved"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "e",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "a",
+    "to": "e"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "e",
+   "patch": {
+    "afterStepId": "a",
+    "label": "Moved"
+   }
+  },
+  "argsAfter": {
+   "stepId": "e",
+   "patch": {
+    "afterStepId": "a",
+    "label": "Moved"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: http_request scalars": {
+  "result": {
+   "updated": {
+    "id": "h",
+    "type": "http_request",
+    "url": "https://api.example.com/x",
+    "method": "POST",
+    "headers": {},
+    "body": "",
+    "timeoutMs": 60000,
+    "blockPrivateTargets": true,
+    "parseResponse": "auto",
+    "label": "Call",
+    "askOnce": true
+   }
+  },
+  "steps": [
+   {
+    "id": "h",
+    "type": "http_request",
+    "url": "https://api.example.com/x",
+    "method": "POST",
+    "headers": {},
+    "body": "",
+    "timeoutMs": 60000,
+    "blockPrivateTargets": true,
+    "parseResponse": "auto",
+    "label": "Call",
+    "askOnce": true
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "h"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "h",
+   "patch": {
+    "method": "post",
+    "headers": [],
+    "body": 5,
+    "timeoutMs": 999999,
+    "blockPrivateTargets": "no",
+    "parseResponse": "sometimes",
+    "askOnce": {
+     "ttl": 3,
+     "scope": "x"
+    },
+    "cacheInto": {
+     "enabled": true
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "h",
+   "patch": {
+    "method": "post",
+    "headers": [],
+    "body": 5,
+    "timeoutMs": 999999,
+    "blockPrivateTargets": "no",
+    "parseResponse": "sometimes",
+    "askOnce": {
+     "ttl": 3,
+     "scope": "x"
+    },
+    "cacheInto": {
+     "enabled": true
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: http_request url with query lifted": {
+  "result": {
+   "updated": {
+    "id": "h",
+    "type": "http_request",
+    "url": "https://api.example.com/y?q=1&r={{trigger.output.x}}",
+    "method": "GET",
+    "label": "Call"
+   }
+  },
+  "steps": [
+   {
+    "id": "h",
+    "type": "http_request",
+    "url": "https://api.example.com/y?q=1&r={{trigger.output.x}}",
+    "method": "GET",
+    "label": "Call"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "h"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "h",
+   "patch": {
+    "url": "https://api.example.com/y?q=1&r={{trigger.output.x}}"
+   }
+  },
+  "argsAfter": {
+   "stepId": "h",
+   "patch": {
+    "url": "https://api.example.com/y?q=1&r={{trigger.output.x}}"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: http_request query only": {
+  "result": {
+   "updated": {
+    "id": "h",
+    "type": "http_request",
+    "url": "https://api.example.com/x",
+    "method": "GET",
+    "label": "Call",
+    "query": {
+     "mode": "json",
+     "json": "{\"a\":\"1\",\"b\":[\"x\",\"y\"]}"
+    }
+   }
+  },
+  "steps": [
+   {
+    "id": "h",
+    "type": "http_request",
+    "url": "https://api.example.com/x",
+    "method": "GET",
+    "label": "Call",
+    "query": {
+     "mode": "json",
+     "json": "{\"a\":\"1\",\"b\":[\"x\",\"y\"]}"
+    }
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "h"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "h",
+   "patch": {
+    "query": {
+     "a": "1",
+     "b": [
+      "x",
+      "y"
+     ]
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "h",
+   "patch": {
+    "query": {
+     "a": "1",
+     "b": [
+      "x",
+      "y"
+     ]
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: http_request bad placeholder": {
+  "result": {
+   "updated": {
+    "id": "h",
+    "type": "http_request",
+    "url": "https://api.example.com/x",
+    "method": "GET",
+    "label": "Call",
+    "body": "{{steps.nope.output.x}}"
+   }
+  },
+  "steps": [
+   {
+    "id": "h",
+    "type": "http_request",
+    "url": "https://api.example.com/x",
+    "method": "GET",
+    "label": "Call",
+    "body": "{{steps.nope.output.x}}"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "h"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "h",
+   "patch": {
+    "body": "{{steps.nope.output.x}}"
+   }
+  },
+  "argsAfter": {
+   "stepId": "h",
+   "patch": {
+    "body": "{{steps.nope.output.x}}"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: code fields": {
+  "result": {
+   "updated": {
+    "id": "k",
+    "type": "code",
+    "code": "return 2",
+    "inputs": {},
+    "outputSchema": {
+     "type": "object"
+    },
+    "allowedTools": [],
+    "label": "Code",
+    "limits": {
+     "memoryMb": 64,
+     "cpuMs": 1000,
+     "wallMs": 5000,
+     "httpBudget": 5
+    },
+    "codeHash": "8373f7e086bb27784827ef8f2f4ae118e05d58b67f513f82c2316dc57b0d896c"
+   }
+  },
+  "steps": [
+   {
+    "id": "k",
+    "type": "code",
+    "code": "return 2",
+    "inputs": {},
+    "outputSchema": {
+     "type": "object"
+    },
+    "allowedTools": [],
+    "label": "Code",
+    "limits": {
+     "memoryMb": 64,
+     "cpuMs": 1000,
+     "wallMs": 5000,
+     "httpBudget": 5
+    },
+    "codeHash": "8373f7e086bb27784827ef8f2f4ae118e05d58b67f513f82c2316dc57b0d896c"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "k"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "k",
+   "patch": {
+    "code": "return 2",
+    "allowedTools": "x",
+    "limits": {
+     "memoryMb": 64
+    },
+    "outputSchema": {
+     "type": "object"
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "k",
+   "patch": {
+    "code": "return 2",
+    "allowedTools": "x",
+    "limits": {
+     "memoryMb": 64
+    },
+    "outputSchema": {
+     "type": "object"
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: code bad limits passed through": {
+  "result": {
+   "updated": {
+    "id": "k",
+    "type": "code",
+    "code": "return 1",
+    "label": "Code",
+    "limits": {
+     "memoryMb": "lots"
+    }
+   }
+  },
+  "steps": [
+   {
+    "id": "k",
+    "type": "code",
+    "code": "return 1",
+    "label": "Code",
+    "limits": {
+     "memoryMb": "lots"
+    }
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "k"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "k",
+   "patch": {
+    "limits": {
+     "memoryMb": "lots"
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "k",
+   "patch": {
+    "limits": {
+     "memoryMb": "lots"
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: integration_action tool change unknown": {
+  "result": {
+   "error": "\"nope tool\" is not a tool name — tool names are identifiers like nextcloud_read_file.",
+   "_fixHint": "Reject reason: the tool name is free text, not a catalog identifier. Write tool:\"<exact catalog name>\" and resend the same step."
+  },
+  "steps": [
+   {
+    "id": "ia",
+    "type": "integration_action",
+    "tool": "nextcloud_read_file",
+    "inputs": {
+     "path": {
+      "kind": "literal",
+      "value": "/a"
+     }
+    },
+    "label": "nextcloud_read_file"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "ia"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "ia",
+   "patch": {
+    "tool": "nope tool"
+   }
+  },
+  "argsAfter": {
+   "stepId": "ia",
+   "patch": {
+    "tool": "nope tool"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: integration_action tool change ok": {
+  "result": {
+   "updated": {
+    "id": "ia",
+    "type": "integration_action",
+    "tool": "nextcloud_delete",
+    "inputs": {
+     "path": {
+      "kind": "literal",
+      "value": "/a"
+     }
+    },
+    "label": "nextcloud_delete",
+    "askOnce": true,
+    "sideEffect": true
+   }
+  },
+  "steps": [
+   {
+    "id": "ia",
+    "type": "integration_action",
+    "tool": "nextcloud_delete",
+    "inputs": {
+     "path": {
+      "kind": "literal",
+      "value": "/a"
+     }
+    },
+    "label": "nextcloud_delete",
+    "askOnce": true,
+    "sideEffect": true
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "ia"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "ia",
+   "patch": {
+    "tool": "nextcloud_delete",
+    "askOnce": true
+   }
+  },
+  "argsAfter": {
+   "stepId": "ia",
+   "patch": {
+    "tool": "nextcloud_delete",
+    "askOnce": true
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: integration_action inspect gate": {
+  "result": {
+   "error": "\"nextcloud_move\" was added without its input schema. The exact schema is inlined below — resend the SAME builder call now with the correct param names/bindings; do NOT call builder_inspect_tool for this tool. Required params: from, to.",
+   "_needsInspect": "nextcloud_move",
+   "toolSchema": {
+    "inputs": {
+     "from": {
+      "type": "string",
+      "required": true
+     },
+     "to": {
+      "type": "string",
+      "required": true
+     }
+    },
+    "requiredInputs": [
+     "from",
+     "to"
+    ],
+    "shape": null
+   }
+  },
+  "steps": [
+   {
+    "id": "ia",
+    "type": "integration_action",
+    "tool": "nextcloud_read_file",
+    "inputs": {},
+    "label": "R"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "ia"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "ia",
+   "patch": {
+    "tool": "nextcloud_move"
+   }
+  },
+  "argsAfter": {
+   "stepId": "ia",
+   "patch": {
+    "tool": "nextcloud_move"
+   }
+  },
+  "inspected": {
+   "$set": [
+    "nextcloud_move"
+   ]
+  }
+ },
+ "update: integration_action tool:\"datatable\" type change": {
+  "result": {
+   "updated": {
+    "id": "nc",
+    "type": "datatable",
+    "label": "Save",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "datatableKey": "facturen",
+    "where": [],
+    "values": {
+     "leverancier": {
+      "kind": "literal",
+      "value": "ACME"
+     }
+    }
+   },
+   "replacedType": {
+    "from": "integration_action",
+    "to": "datatable"
+   },
+   "_warnings": [
+    "values key \"Leverancier\" mapped to column key \"leverancier\"",
+    "The row values of the old step were carried over; their column names are matched against the new table's columns.",
+    "op was not set: nextcloud_tables_create_row read as op \"add_row\".",
+    "The Nextcloud tableId of the old step were not carried over: Nextcloud Tables is a different system, and the Bee Flow table comes from datatableId.",
+    "builder_update_step does not change a step's type, so this patch was applied as builder_replace_step(newType:\"datatable\"): same id, same wiring."
+   ]
+  },
+  "steps": [
+   {
+    "id": "nc",
+    "type": "datatable",
+    "label": "Save",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "datatableKey": "facturen",
+    "where": [],
+    "values": {
+     "leverancier": {
+      "kind": "literal",
+      "value": "ACME"
+     }
+    }
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "nc"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "nc",
+   "patch": {
+    "tool": "datatable",
+    "datatableId": "tbl_1a2b3c"
+   }
+  },
+  "argsAfter": {
+   "stepId": "nc",
+   "patch": {
+    "tool": "datatable",
+    "datatableId": "tbl_1a2b3c"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: datatable values with title keys": {
+  "result": {
+   "updated": {
+    "id": "dt",
+    "type": "datatable",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "datatableKey": "facturen",
+    "values": {
+     "totaal": {
+      "kind": "literal",
+      "value": 5
+     }
+    },
+    "label": "Row"
+   },
+   "_warnings": [
+    "values key \"Totaal\" mapped to column key \"totaal\""
+   ]
+  },
+  "steps": [
+   {
+    "id": "dt",
+    "type": "datatable",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "datatableKey": "facturen",
+    "values": {
+     "totaal": {
+      "kind": "literal",
+      "value": 5
+     }
+    },
+    "label": "Row"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "dt"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "dt",
+   "patch": {
+    "values": {
+     "Totaal": {
+      "kind": "literal",
+      "value": 5
+     },
+     "leverancier": null
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "dt",
+   "patch": {
+    "values": {
+     "Totaal": {
+      "kind": "literal",
+      "value": 5
+     },
+     "leverancier": null
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: datatable re-point refused": {
+  "result": {
+   "error": "Step \"dt\" already uses datatable \"tbl_1a2b3c\". Pointing a step at a different table is not a patch — use builder_replace_step, or leave it to the person who owns the data."
+  },
+  "steps": [
+   {
+    "id": "dt",
+    "type": "datatable",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "values": {},
+    "label": "Row"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "dt"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "dt",
+   "patch": {
+    "datatableId": "tbl_other"
+   }
+  },
+  "argsAfter": {
+   "stepId": "dt",
+   "patch": {
+    "datatableId": "tbl_other"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: datatable same table no-op": {
+  "result": {
+   "updated": {
+    "id": "dt",
+    "type": "datatable",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "values": {},
+    "label": "Row"
+   },
+   "_warnings": [
+    "datatableId \"Facturen\" resolved to tbl_1a2b3c (key facturen, \"Facturen\") by its name — use the id from the Datatables block next time.",
+    "datatableId already is tbl_1a2b3c (facturen, \"Facturen\") — nothing to change there."
+   ]
+  },
+  "steps": [
+   {
+    "id": "dt",
+    "type": "datatable",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "values": {},
+    "label": "Row"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "dt"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "dt",
+   "patch": {
+    "datatableId": "Facturen"
+   }
+  },
+  "argsAfter": {
+   "stepId": "dt",
+   "patch": {
+    "datatableId": "Facturen"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: datatable fill blank id": {
+  "result": {
+   "updated": {
+    "id": "dt",
+    "type": "datatable",
+    "op": "find_rows",
+    "datatableId": "tbl_1a2b3c",
+    "where": [
+     {
+      "field": "leverancier",
+      "op": "eq",
+      "value": {
+       "kind": "literal",
+       "value": "x"
+      }
+     }
+    ],
+    "label": "Find",
+    "sort": {
+     "column": "Totaal",
+     "dir": "desc"
+    },
+    "datatableKey": "facturen"
+   },
+   "_warnings": [
+    "datatableId was not set — datatableKey \"facturen\" resolved it to tbl_1a2b3c. Use the id from the Datatables block next time.",
+    "where: read column→field. where is a LIST of {field, op, value} — send that shape next time.",
+    "where[0].field \"Leverancier\" mapped to column key \"leverancier\""
+   ]
+  },
+  "steps": [
+   {
+    "id": "dt",
+    "type": "datatable",
+    "op": "find_rows",
+    "datatableId": "tbl_1a2b3c",
+    "where": [
+     {
+      "field": "leverancier",
+      "op": "eq",
+      "value": {
+       "kind": "literal",
+       "value": "x"
+      }
+     }
+    ],
+    "label": "Find",
+    "sort": {
+     "column": "Totaal",
+     "dir": "desc"
+    },
+    "datatableKey": "facturen"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "dt"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "dt",
+   "patch": {
+    "datatableKey": "facturen",
+    "where": [
+     {
+      "column": "Leverancier",
+      "op": "eq",
+      "value": {
+       "kind": "literal",
+       "value": "x"
+      }
+     }
+    ],
+    "sort": {
+     "column": "Totaal",
+     "dir": "desc"
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "dt",
+   "patch": {
+    "datatableKey": "facturen",
+    "where": [
+     {
+      "column": "Leverancier",
+      "op": "eq",
+      "value": {
+       "kind": "literal",
+       "value": "x"
+      }
+     }
+    ],
+    "sort": {
+     "column": "Totaal",
+     "dir": "desc"
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: datatable write on read-only": {
+  "result": {
+   "error": "\"Alleen lezen\" is read-only for this user, so add_row would fail at run time. Use find_rows/count_rows, or tell the user they need editor access to the table.",
+   "_fixHint": "Reject reason: no write access to that table. Do not retry the write; use a read op or stop and tell the user."
+  },
+  "steps": [
+   {
+    "id": "dt",
+    "type": "datatable",
+    "op": "find_rows",
+    "datatableId": "tbl_ro",
+    "where": [],
+    "label": "Find"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "dt"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "dt",
+   "patch": {
+    "op": "add_row"
+   }
+  },
+  "argsAfter": {
+   "stepId": "dt",
+   "patch": {
+    "op": "add_row"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: datatable foreign vocabulary": {
+  "result": {
+   "updated": {
+    "id": "dt",
+    "type": "datatable",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "values": {
+     "leverancier": {
+      "kind": "literal",
+      "value": "B"
+     }
+    },
+    "label": "Row"
+   },
+   "_warnings": [
+    "\"row\" read as values — a datatable write puts its column→value map in values.",
+    "op \"append\" read as \"add_row\" — use the exact name next time."
+   ]
+  },
+  "steps": [
+   {
+    "id": "dt",
+    "type": "datatable",
+    "op": "add_row",
+    "datatableId": "tbl_1a2b3c",
+    "values": {
+     "leverancier": {
+      "kind": "literal",
+      "value": "B"
+     }
+    },
+    "label": "Row"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "dt"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "dt",
+   "patch": {
+    "row": {
+     "leverancier": {
+      "kind": "literal",
+      "value": "B"
+     }
+    },
+    "op": "append"
+   }
+  },
+  "argsAfter": {
+   "stepId": "dt",
+   "patch": {
+    "row": {
+     "leverancier": {
+      "kind": "literal",
+      "value": "B"
+     }
+    },
+    "op": "append"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: data_extraction fields/instructions/source": {
+  "result": {
+   "updated": {
+    "id": "de",
+    "type": "data_extraction",
+    "source": {
+     "kind": "ref",
+     "path": "steps.src.output.title"
+    },
+    "fields": [
+     {
+      "name": "total",
+      "type": "number",
+      "description": "sum",
+      "required": true
+     }
+    ],
+    "label": "Ex",
+    "instructions": "read it"
+   }
+  },
+  "steps": [
+   {
+    "id": "src",
+    "type": "notification",
+    "title": "t",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "Src"
+   },
+   {
+    "id": "de",
+    "type": "data_extraction",
+    "source": {
+     "kind": "ref",
+     "path": "steps.src.output.title"
+    },
+    "fields": [
+     {
+      "name": "total",
+      "type": "number",
+      "description": "sum",
+      "required": true
+     }
+    ],
+    "label": "Ex",
+    "instructions": "read it"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "src"
+   },
+   {
+    "from": "src",
+    "to": "de"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "de",
+   "patch": {
+    "fields": [
+     {
+      "name": "total",
+      "type": "number",
+      "description": "sum",
+      "required": true
+     }
+    ],
+    "instructions": "  read it  ",
+    "source": {
+     "kind": "ref",
+     "path": "steps.src.output.title"
+    }
+   }
+  },
+  "argsAfter": {
+   "stepId": "de",
+   "patch": {
+    "fields": [
+     {
+      "name": "total",
+      "type": "number",
+      "description": "sum",
+      "required": true
+     }
+    ],
+    "instructions": "  read it  ",
+    "source": {
+     "kind": "ref",
+     "path": "steps.src.output.title"
+    }
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: data_extraction foreign vocabulary": {
+  "result": {
+   "updated": {
+    "id": "de",
+    "type": "data_extraction",
+    "source": {
+     "kind": "ref",
+     "path": "steps.src.output.title"
+    },
+    "fields": [
+     {
+      "name": "a",
+      "type": "string"
+     }
+    ],
+    "label": "Ex",
+    "instructions": "Find totals"
+   },
+   "_warnings": [
+    "\"source\" was sent under inputs — a data_extraction step has no inputs map: source, fields and instructions sit at the top level of the step. Moved up.",
+    "prompt is ai_step vocabulary — data_extraction reads `source` and takes at most a short `instructions` hint; the prompt text was kept as instructions with its {{…}} placeholders removed."
+   ]
+  },
+  "steps": [
+   {
+    "id": "src",
+    "type": "notification",
+    "title": "t",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "Src"
+   },
+   {
+    "id": "de",
+    "type": "data_extraction",
+    "source": {
+     "kind": "ref",
+     "path": "steps.src.output.title"
+    },
+    "fields": [
+     {
+      "name": "a",
+      "type": "string"
+     }
+    ],
+    "label": "Ex",
+    "instructions": "Find totals"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "src"
+   },
+   {
+    "from": "src",
+    "to": "de"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "de",
+   "patch": {
+    "inputs": {
+     "source": {
+      "kind": "ref",
+      "path": "steps.src.output.title"
+     }
+    },
+    "prompt": "Find totals"
+   }
+  },
+  "argsAfter": {
+   "stepId": "de",
+   "patch": {
+    "inputs": {
+     "source": {
+      "kind": "ref",
+      "path": "steps.src.output.title"
+     }
+    },
+    "prompt": "Find totals"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: loop body refusal": {
+  "result": {
+   "error": "A loop's body is not patched field-by-field. Re-send the whole body with builder_replace_step({stepId:\"lp\", newType:\"loop\", spec:{overRef, itemVar, maxIterations, body:[…]}}) — that KEEPS the loop's id and all its wiring, so downstream refs survive. Body steps are FLAT step objects; to change ONE of them, patch it by its own id. Patchable on the loop itself: overRef, itemVar, maxIterations, label."
+  },
+  "steps": [
+   {
+    "id": "lp",
+    "type": "loop",
+    "overRef": "trigger.output.items",
+    "itemVar": "it",
+    "maxIterations": 10,
+    "body": [
+     {
+      "id": "lb",
+      "type": "notification",
+      "title": "x",
+      "body": "",
+      "channels": [
+       "notification"
+      ]
+     }
+    ],
+    "label": "Loop"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "lp"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "lp",
+   "patch": {
+    "body": []
+   }
+  },
+  "argsAfter": {
+   "stepId": "lp",
+   "patch": {
+    "body": []
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: loop scalars": {
+  "result": {
+   "updated": {
+    "id": "lp",
+    "type": "loop",
+    "overRef": "trigger.output.items",
+    "itemVar": "row",
+    "maxIterations": 100,
+    "body": [
+     {
+      "id": "lb",
+      "type": "notification",
+      "title": "x",
+      "body": "",
+      "channels": [
+       "notification"
+      ]
+     }
+    ],
+    "label": "Loop"
+   }
+  },
+  "steps": [
+   {
+    "id": "lp",
+    "type": "loop",
+    "overRef": "trigger.output.items",
+    "itemVar": "row",
+    "maxIterations": 100,
+    "body": [
+     {
+      "id": "lb",
+      "type": "notification",
+      "title": "x",
+      "body": "",
+      "channels": [
+       "notification"
+      ]
+     }
+    ],
+    "label": "Loop"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "lp"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "lp",
+   "patch": {
+    "maxIterations": 0,
+    "itemVar": "row"
+   }
+  },
+  "argsAfter": {
+   "stepId": "lp",
+   "patch": {
+    "maxIterations": 0,
+    "itemVar": "row"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: loop-body step patch": {
+  "result": {
+   "updated": {
+    "id": "lb",
+    "type": "notification",
+    "title": "item {{loop.it}}",
+    "body": "",
+    "channels": [
+     "notification"
+    ]
+   }
+  },
+  "steps": [
+   {
+    "id": "lp",
+    "type": "loop",
+    "overRef": "trigger.output.items",
+    "itemVar": "it",
+    "maxIterations": 10,
+    "body": [
+     {
+      "id": "lb",
+      "type": "notification",
+      "title": "item {{loop.it}}",
+      "body": "",
+      "channels": [
+       "notification"
+      ]
+     }
+    ],
+    "label": "Loop"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "lp"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "lb",
+   "patch": {
+    "title": "item {{loop.it}}"
+   }
+  },
+  "argsAfter": {
+   "stepId": "lb",
+   "patch": {
+    "title": "item {{loop.it}}"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: loop-body type change refused": {
+  "result": {
+   "error": "\"lb\" sits inside a loop body, and no tool changes the type of a loop-body step in place. Remove it and add the new step inside the loop body, or re-send the whole loop with builder_replace_step({stepId:\"lp\", newType:\"loop\", spec:{overRef, itemVar, maxIterations, body:[…]}}).",
+   "_fixHint": "Reject reason: type change inside a loop body. Rebuild the loop body (builder_replace_step on the loop) instead of changing one body step's type."
+  },
+  "steps": [
+   {
+    "id": "lp",
+    "type": "loop",
+    "overRef": "trigger.output.items",
+    "itemVar": "it",
+    "maxIterations": 10,
+    "body": [
+     {
+      "id": "lb",
+      "type": "notification",
+      "title": "x",
+      "body": "",
+      "channels": [
+       "notification"
+      ]
+     }
+    ],
+    "label": "Loop"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "lp"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "lb",
+   "patch": {
+    "type": "ai_step",
+    "prompt": "p"
+   }
+  },
+  "argsAfter": {
+   "stepId": "lb",
+   "patch": {
+    "type": "ai_step",
+    "prompt": "p"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: misc scalars (wait, limit, dedupe, form_page)": {
+  "result": {
+   "updated": [
+    "w",
+    "l",
+    "dd",
+    "fp"
+   ]
+  },
+  "steps": [
+   {
+    "id": "w",
+    "type": "wait",
+    "seconds": 86400,
+    "label": "W"
+   },
+   {
+    "id": "l",
+    "type": "limit",
+    "arrayRef": "trigger.output.items",
+    "count": 3,
+    "mode": "first",
+    "label": "L"
+   },
+   {
+    "id": "dd",
+    "type": "dedupe",
+    "arrayRef": "trigger.output.items",
+    "label": "DD"
+   },
+   {
+    "id": "fp",
+    "type": "form_page",
+    "mode": "ending",
+    "form": null,
+    "waitSeconds": 60,
+    "label": "FP"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "w"
+   },
+   {
+    "from": "w",
+    "to": "l"
+   },
+   {
+    "from": "l",
+    "to": "dd"
+   },
+   {
+    "from": "dd",
+    "to": "fp"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "updates": [
+    {
+     "stepId": "w",
+     "patch": {
+      "seconds": 999999
+     }
+    },
+    {
+     "stepId": "l",
+     "patch": {
+      "count": "3.7",
+      "mode": "x"
+     }
+    },
+    {
+     "stepId": "dd",
+     "patch": {
+      "keyField": 4
+     }
+    },
+    {
+     "stepId": "fp",
+     "patch": {
+      "mode": "ending",
+      "form": [],
+      "waitSeconds": 1
+     }
+    }
+   ]
+  },
+  "argsAfter": {
+   "updates": [
+    {
+     "stepId": "w",
+     "patch": {
+      "seconds": 999999
+     }
+    },
+    {
+     "stepId": "l",
+     "patch": {
+      "count": "3.7",
+      "mode": "x"
+     }
+    },
+    {
+     "stepId": "dd",
+     "patch": {
+      "keyField": 4
+     }
+    },
+    {
+     "stepId": "fp",
+     "patch": {
+      "mode": "ending",
+      "form": [],
+      "waitSeconds": 1
+     }
+    }
+   ]
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: note, guard, knowledge_write": {
+  "result": {
+   "updated": [
+    "n",
+    "g",
+    "kw"
+   ]
+  },
+  "steps": [
+   {
+    "id": "n",
+    "type": "note",
+    "text": "xxxxx",
+    "label": "N",
+    "position": {
+     "x": 1,
+     "y": 2
+    }
+   },
+   {
+    "id": "g",
+    "type": "guard",
+    "sourceRef": "trigger.output.y",
+    "label": "G",
+    "categories": [
+     "EMAIL"
+    ],
+    "onFound": {
+     "stop": true
+    }
+   },
+   {
+    "id": "kw",
+    "type": "knowledge_write",
+    "knowledgeBaseId": "kb1",
+    "content": "{{trigger.output.x}}",
+    "label": "KW",
+    "title": "T"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "n"
+   },
+   {
+    "from": "n",
+    "to": "g"
+   },
+   {
+    "from": "g",
+    "to": "kw"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "updates": [
+    {
+     "stepId": "n",
+     "patch": {
+      "text": "xxxxx",
+      "position": {
+       "x": "1",
+       "y": 2
+      },
+      "color": "nope",
+      "size": {
+       "w": 1
+      }
+     }
+    },
+    {
+     "stepId": "g",
+     "patch": {
+      "sourceRef": " trigger.output.y ",
+      "categories": [
+       "EMAIL",
+       "",
+       3
+      ],
+      "confidence": 2,
+      "onFound": {
+       "stop": true,
+       "mask": "yes",
+       "bogus": 1
+      }
+     }
+    },
+    {
+     "stepId": "kw",
+     "patch": {
+      "content": {
+       "kind": "ref",
+       "path": "trigger.output.x"
+      },
+      "title": "T",
+      "nearDuplicateStrategy": "skip"
+     }
+    }
+   ]
+  },
+  "argsAfter": {
+   "updates": [
+    {
+     "stepId": "n",
+     "patch": {
+      "text": "xxxxx",
+      "position": {
+       "x": "1",
+       "y": 2
+      },
+      "color": "nope",
+      "size": {
+       "w": 1
+      }
+     }
+    },
+    {
+     "stepId": "g",
+     "patch": {
+      "sourceRef": " trigger.output.y ",
+      "categories": [
+       "EMAIL",
+       "",
+       3
+      ],
+      "confidence": 2,
+      "onFound": {
+       "stop": true,
+       "mask": "yes",
+       "bogus": 1
+      }
+     }
+    },
+    {
+     "stepId": "kw",
+     "patch": {
+      "content": {
+       "kind": "ref",
+       "path": "trigger.output.x"
+      },
+      "title": "T",
+      "nearDuplicateStrategy": "skip"
+     }
+    }
+   ]
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: knowledge_write re-point refused": {
+  "result": {
+   "error": "Step \"kw\" already writes to knowledge base \"kb1\". Pointing a write at a different base is not a patch — use builder_replace_step, so the permission check runs on it."
+  },
+  "steps": [
+   {
+    "id": "kw",
+    "type": "knowledge_write",
+    "knowledgeBaseId": "kb1",
+    "content": "",
+    "label": "KW"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "kw"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "kw",
+   "patch": {
+    "knowledgeBaseId": "kb2"
+   }
+  },
+  "argsAfter": {
+   "stepId": "kw",
+   "patch": {
+    "knowledgeBaseId": "kb2"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: generate_document, slide, presentation": {
+  "result": {
+   "updated": [
+    "gd",
+    "sl",
+    "pr"
+   ]
+  },
+  "steps": [
+   {
+    "id": "gd",
+    "type": "generate_document",
+    "content": "x",
+    "format": "docx",
+    "label": "GD",
+    "contentFormat": "markdown",
+    "title": "",
+    "expiresInDays": 7
+   },
+   {
+    "id": "sl",
+    "type": "slide",
+    "title": "S",
+    "label": "SL",
+    "notes": ""
+   },
+   {
+    "id": "pr",
+    "type": "presentation",
+    "title": "P",
+    "slides": "{{steps.sl.output.slide}}",
+    "label": "PR",
+    "subtitle": "",
+    "format": "pdf",
+    "houseStyle": true,
+    "logo": "none"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "gd"
+   },
+   {
+    "from": "gd",
+    "to": "sl"
+   },
+   {
+    "from": "sl",
+    "to": "pr"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "updates": [
+    {
+     "stepId": "gd",
+     "patch": {
+      "format": "docx",
+      "contentFormat": "x",
+      "expiresInDays": "abc",
+      "title": 5
+     }
+    },
+    {
+     "stepId": "sl",
+     "patch": {
+      "layout": "nope",
+      "notes": 3,
+      "image": "  "
+     }
+    },
+    {
+     "stepId": "pr",
+     "patch": {
+      "format": "pdf",
+      "houseStyle": 0,
+      "logo": "Geen",
+      "slides": {
+       "kind": "ref",
+       "path": "steps.sl.output.slide"
+      },
+      "subtitle": null
+     }
+    }
+   ]
+  },
+  "argsAfter": {
+   "updates": [
+    {
+     "stepId": "gd",
+     "patch": {
+      "format": "docx",
+      "contentFormat": "x",
+      "expiresInDays": "abc",
+      "title": 5
+     }
+    },
+    {
+     "stepId": "sl",
+     "patch": {
+      "layout": "nope",
+      "notes": 3,
+      "image": "  "
+     }
+    },
+    {
+     "stepId": "pr",
+     "patch": {
+      "format": "pdf",
+      "houseStyle": 0,
+      "logo": "Geen",
+      "slides": {
+       "kind": "ref",
+       "path": "steps.sl.output.slide"
+      },
+      "subtitle": null
+     }
+    }
+   ]
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: switch cases": {
+  "result": {
+   "updated": {
+    "id": "sw",
+    "type": "switch",
+    "expr": "trigger.output.k",
+    "cases": [
+     {
+      "name": "a",
+      "value": "a"
+     },
+     {
+      "name": "b",
+      "expr": "trigger.output.k == \"b\""
+     }
+    ],
+    "defaultBranch": null,
+    "label": "SW"
+   }
+  },
+  "steps": [
+   {
+    "id": "sw",
+    "type": "switch",
+    "expr": "trigger.output.k",
+    "cases": [
+     {
+      "name": "a",
+      "value": "a"
+     },
+     {
+      "name": "b",
+      "expr": "trigger.output.k == \"b\""
+     }
+    ],
+    "defaultBranch": null,
+    "label": "SW"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "sw"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "sw",
+   "patch": {
+    "cases": [
+     {
+      "name": "a",
+      "value": "a"
+     },
+     {
+      "name": "b",
+      "expr": "trigger.output.k == \"b\""
+     }
+    ],
+    "defaultBranch": 5,
+    "matchMode": "any",
+    "maxItems": -1
+   }
+  },
+  "argsAfter": {
+   "stepId": "sw",
+   "patch": {
+    "cases": [
+     {
+      "name": "a",
+      "value": "a"
+     },
+     {
+      "name": "b",
+      "expr": "trigger.output.k == \"b\""
+     }
+    ],
+    "defaultBranch": 5,
+    "matchMode": "any",
+    "maxItems": -1
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "update: datetime": {
+  "result": {
+   "updated": {
+    "id": "dtm",
+    "type": "datetime",
+    "op": "now",
+    "label": "DT",
+    "format": "yyyy",
+    "arrayRef": ""
+   }
+  },
+  "steps": [
+   {
+    "id": "dtm",
+    "type": "datetime",
+    "op": "now",
+    "label": "DT",
+    "format": "yyyy",
+    "arrayRef": ""
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "dtm"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "dtm",
+   "patch": {
+    "input": 3,
+    "format": "yyyy",
+    "amount": "2",
+    "arrayRef": ""
+   }
+  },
+  "argsAfter": {
+   "stepId": "dtm",
+   "patch": {
+    "input": 3,
+    "format": "yyyy",
+    "amount": "2",
+    "arrayRef": ""
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "updates: unchanged": {
+  "result": {
+   "updated": [],
+   "unchanged": [
+    "a"
+   ],
+   "_hint": "Nothing changed: a already had exactly these values. Re-sending the same patch will not help — inspect the step, change something else, or move on."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "updates": [
+    {
+     "stepId": "a",
+     "patch": {
+      "title": "Hallo"
+     }
+    }
+   ]
+  },
+  "argsAfter": {
+   "updates": [
+    {
+     "stepId": "a",
+     "patch": {
+      "title": "Hallo"
+     }
+    }
+   ]
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "updates: rollback on error": {
+  "result": {
+   "error": "update for \"b\": Field(s) bogus not patchable on a ai_step step. Allowed: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, label, forEach, agentId, skillIds, agentPermissions, disabledAgentSkillIds.",
+   "_rolledBack": true
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "updates": [
+    {
+     "stepId": "a",
+     "patch": {
+      "title": "changed"
+     }
+    },
+    {
+     "stepId": "b",
+     "patch": {
+      "bogus": 1
+     }
+    }
+   ]
+  },
+  "argsAfter": {
+   "updates": [
+    {
+     "stepId": "a",
+     "patch": {
+      "title": "changed"
+     }
+    },
+    {
+     "stepId": "b",
+     "patch": {
+      "bogus": 1
+     }
+    }
+   ]
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "updates: empty": {
+  "result": {
+   "error": "updates must be a non-empty array of { stepId, patch }."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "updates": []
+  },
+  "argsAfter": {
+   "updates": []
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "updates: mixed changed/unchanged with move": {
+  "result": {
+   "updated": [
+    "e"
+   ],
+   "unchanged": [
+    "a"
+   ]
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "e",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "a",
+    "to": "e"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "updates": [
+    {
+     "stepId": "a",
+     "patch": {
+      "title": "Hallo"
+     }
+    },
+    {
+     "stepId": "e",
+     "patch": {
+      "afterStepId": "a"
+     }
+    }
+   ]
+  },
+  "argsAfter": {
+   "updates": [
+    {
+     "stepId": "a",
+     "patch": {
+      "title": "Hallo"
+     }
+    },
+    {
+     "stepId": "e",
+     "patch": {
+      "afterStepId": "a"
+     }
+    }
+   ]
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: no stepId": {
+  "result": {
+   "error": "stepId is required."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "newType": "notification",
+   "spec": {}
+  },
+  "argsAfter": {
+   "newType": "notification",
+   "spec": {}
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: parse_json retired": {
+  "result": {
+   "error": "parse_json can no longer be added — use a set (Edit data) step instead: read JSON text with an expr binding like {kind:\"expr\",value:\"parseJson(steps.<id>.output.body, \\\"order.total\\\")\"}, or point the set's arrayRef at the parsed list for one row per entry."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "newType": "parse_json",
+   "spec": {}
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "newType": "parse_json",
+   "spec": {}
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: unknown type": {
+  "result": {
+   "error": "Cannot replace into type \"nope\". Allowed: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "newType": "nope",
+   "spec": {}
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "newType": "nope",
+   "spec": {}
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: no spec": {
+  "result": {
+   "error": "spec must be an object with the new step's fields (same shape as builder_add_<newType>)."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "newType": "notification"
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "newType": "notification"
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: unknown step": {
+  "result": {
+   "error": "Unknown stepId \"zz\". Existing step ids: a, b, c, cond, d, e."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "zz",
+   "newType": "notification",
+   "spec": {
+    "title": "x"
+   }
+  },
+  "argsAfter": {
+   "stepId": "zz",
+   "newType": "notification",
+   "spec": {
+    "title": "x"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: notification → ai_step, readers warned": {
+  "result": {
+   "replaced": {
+    "id": "a",
+    "type": "ai_step",
+    "prompt": "p",
+    "systemPrompt": null,
+    "inputs": {},
+    "outputSchema": null,
+    "modelTier": "auto",
+    "label": "AI step",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "agentId": null,
+    "skillIds": []
+   },
+   "_warnings": [
+    "Steps b read this step's output; its shape changed. Check their bindings."
+   ]
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "ai_step",
+    "prompt": "p",
+    "systemPrompt": null,
+    "inputs": {},
+    "outputSchema": null,
+    "modelTier": "auto",
+    "label": "AI step",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "agentId": null,
+    "skillIds": []
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "newType": "ai_step",
+   "spec": {
+    "prompt": "p",
+    "afterStepId": "x"
+   }
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "newType": "ai_step",
+   "spec": {
+    "prompt": "p",
+    "afterStepId": "x"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: condition → notification rewires": {
+  "result": {
+   "replaced": {
+    "id": "cond",
+    "type": "notification",
+    "title": "flat",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notification"
+   },
+   "rewired": "Stripped now-invalid branch labels on outgoing edges: then→d, else→e."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "notification",
+    "title": "flat",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notification"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d"
+   },
+   {
+    "from": "cond",
+    "to": "e"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "cond",
+   "newType": "notification",
+   "spec": {
+    "title": "flat"
+   }
+  },
+  "argsAfter": {
+   "stepId": "cond",
+   "newType": "notification",
+   "spec": {
+    "title": "flat"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: integration_action with step-type tool": {
+  "result": {
+   "error": "\"datatable\" is a step type, not a tool.",
+   "_fixHint": "Use newType:\"datatable\" with the fields of builder_add_<type>."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "a",
+   "newType": "integration_action",
+   "spec": {
+    "tool": "datatable",
+    "inputs": {}
+   }
+  },
+  "argsAfter": {
+   "stepId": "a",
+   "newType": "integration_action",
+   "spec": {
+    "tool": "datatable",
+    "inputs": {}
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "replace: loop-body refused": {
+  "result": {
+   "error": "Cannot replace a loop-body step's type in place — patch it with builder_update_step, or remove + add it inside the loop body."
+  },
+  "steps": [
+   {
+    "id": "lp",
+    "type": "loop",
+    "overRef": "trigger.output.items",
+    "itemVar": "it",
+    "maxIterations": 10,
+    "body": [
+     {
+      "id": "lb",
+      "type": "notification",
+      "title": "x",
+      "body": "",
+      "channels": [
+       "notification"
+      ]
+     }
+    ],
+    "label": "Loop"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "lp"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "lb",
+   "newType": "ai_step",
+   "spec": {
+    "prompt": "p"
+   }
+  },
+  "argsAfter": {
+   "stepId": "lb",
+   "newType": "ai_step",
+   "spec": {
+    "prompt": "p"
+   }
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "remove: primary trigger": {
+  "result": {
+   "error": "The primary trigger cannot be removed — change it with builder_propose_trigger."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "trg"
+  },
+  "argsAfter": {
+   "stepId": "trg"
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "remove: unknown": {
+  "result": {
+   "error": "Unknown stepId \"zz\". Existing step ids: a, b, c, cond, d, e."
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "zz"
+  },
+  "argsAfter": {
+   "stepId": "zz"
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "remove: middle step reconnects, dangling reported": {
+  "result": {
+   "removed": "b",
+   "danglingRefs": [
+    "c"
+   ],
+   "note": "reconnected a→c; steps c still bind steps.b.* — re-point or remove those bindings"
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   },
+   {
+    "from": "a",
+    "to": "c"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "b"
+  },
+  "argsAfter": {
+   "stepId": "b"
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "remove: no reconnect": {
+  "result": {
+   "removed": "b",
+   "danglingRefs": [
+    "c"
+   ],
+   "note": "steps c still bind steps.b.* — re-point or remove those bindings"
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "b",
+   "reconnect": false
+  },
+  "argsAfter": {
+   "stepId": "b",
+   "reconnect": false
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "remove: branching step": {
+  "result": {
+   "removed": "cond",
+   "note": "reconnected c→d; removed a branching step — only its primary branch was reconnected; re-wire the other branch targets if still needed"
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "d"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "cond"
+  },
+  "argsAfter": {
+   "stepId": "cond"
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "remove: loop-body step": {
+  "result": {
+   "removed": "lb",
+   "danglingRefs": [
+    "lp"
+   ],
+   "note": "steps lp still bind steps.lb.* — re-point or remove those bindings"
+  },
+  "steps": [
+   {
+    "id": "lp",
+    "type": "loop",
+    "overRef": "trigger.output.items",
+    "itemVar": "it",
+    "maxIterations": 10,
+    "body": [
+     {
+      "id": "lc",
+      "type": "notification",
+      "title": "{{steps.lb.output.title}}",
+      "body": "",
+      "channels": [
+       "notification"
+      ]
+     }
+    ],
+    "label": "Loop"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "lp"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "lb"
+  },
+  "argsAfter": {
+   "stepId": "lb"
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "remove: additional trigger": {
+  "result": {
+   "removed": "trg2"
+  },
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "$undefined": true
+  },
+  "argsBefore": {
+   "stepId": "trg2"
+  },
+  "argsAfter": {
+   "stepId": "trg2"
+  },
+  "inspected": {
+   "$set": []
+  }
+ },
+ "findDanglingRefs: in a layer and an expression": {
+  "result": [
+   "cond",
+   "lay/q"
+  ],
+  "steps": [
+   {
+    "id": "a",
+    "type": "notification",
+    "title": "Hallo",
+    "body": "Body",
+    "channels": [
+     "notification"
+    ],
+    "label": "Notify"
+   },
+   {
+    "id": "b",
+    "type": "ai_step",
+    "prompt": "Summarise {{steps.a.output.title}}",
+    "systemPrompt": null,
+    "inputs": {
+     "text": {
+      "kind": "ref",
+      "path": "steps.a.output.body"
+     }
+    },
+    "outputSchema": null,
+    "modelTier": "auto",
+    "allowTools": false,
+    "tools": null,
+    "knowledgeBaseIds": [],
+    "useMemory": false,
+    "label": "Think"
+   },
+   {
+    "id": "c",
+    "type": "set",
+    "fields": {
+     "x": {
+      "kind": "ref",
+      "path": "steps.b.output.text"
+     },
+     "y": {
+      "kind": "literal",
+      "value": 1
+     }
+    },
+    "label": "Set"
+   },
+   {
+    "id": "cond",
+    "type": "condition",
+    "expr": "steps.c.output.y == 1",
+    "label": "Check"
+   },
+   {
+    "id": "d",
+    "type": "notification",
+    "title": "Then",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "D"
+   },
+   {
+    "id": "e",
+    "type": "notification",
+    "title": "Else",
+    "body": "",
+    "channels": [
+     "notification"
+    ],
+    "label": "E"
+   }
+  ],
+  "edges": [
+   {
+    "from": "trg",
+    "to": "a"
+   },
+   {
+    "from": "a",
+    "to": "b"
+   },
+   {
+    "from": "b",
+    "to": "c"
+   },
+   {
+    "from": "c",
+    "to": "cond"
+   },
+   {
+    "from": "cond",
+    "to": "d",
+    "label": "then"
+   },
+   {
+    "from": "cond",
+    "to": "e",
+    "label": "else"
+   }
+  ],
+  "layers": {
+   "lay": {
+    "steps": [
+     {
+      "id": "q",
+      "type": "condition",
+      "expr": "steps.c.output.y > 0"
+     }
+    ]
+   }
+  },
+  "argsBefore": "c",
+  "argsAfter": "c",
+  "inspected": {
+   "$set": []
+  }
+ },
+ "PATCHABLE_FIELDS": {
+  "integration_action": [
+   "tool",
+   "inputs",
+   "label",
+   "forEach",
+   "askOnce"
+  ],
+  "ai_step": [
+   "prompt",
+   "systemPrompt",
+   "inputs",
+   "outputSchema",
+   "modelTier",
+   "allowTools",
+   "tools",
+   "knowledgeBaseIds",
+   "useMemory",
+   "label",
+   "forEach",
+   "agentId",
+   "skillIds",
+   "agentPermissions",
+   "disabledAgentSkillIds"
+  ],
+  "condition": [
+   "expr",
+   "label"
+  ],
+  "switch": [
+   "expr",
+   "cases",
+   "defaultBranch",
+   "label",
+   "arrayRef",
+   "matchMode",
+   "maxItems"
+  ],
+  "loop": [
+   "overRef",
+   "itemVar",
+   "maxIterations",
+   "label"
+  ],
+  "code": [
+   "code",
+   "inputs",
+   "outputSchema",
+   "allowedTools",
+   "limits",
+   "label",
+   "forEach"
+  ],
+  "notification": [
+   "title",
+   "body",
+   "channels",
+   "label",
+   "forEach"
+  ],
+  "http_request": [
+   "url",
+   "method",
+   "headers",
+   "body",
+   "query",
+   "timeoutMs",
+   "blockPrivateTargets",
+   "parseResponse",
+   "label",
+   "forEach",
+   "askOnce",
+   "cacheInto"
+  ],
+  "generate_document": [
+   "content",
+   "contentFormat",
+   "format",
+   "title",
+   "fileName",
+   "expiresInDays",
+   "label"
+  ],
+  "fill_document": [
+   "documentVersionId",
+   "sectionOverrides",
+   "documentId",
+   "documentName",
+   "values",
+   "fileName",
+   "format",
+   "saveCopy",
+   "copyName",
+   "expiresInDays",
+   "label"
+  ],
+  "slide": [
+   "title",
+   "content",
+   "notes",
+   "layout",
+   "image",
+   "chart",
+   "stats",
+   "style",
+   "label",
+   "forEach"
+  ],
+  "presentation": [
+   "title",
+   "subtitle",
+   "slides",
+   "fileName",
+   "format",
+   "houseStyle",
+   "preset",
+   "accent",
+   "background",
+   "font",
+   "titleFont",
+   "coverStyle",
+   "tableStyle",
+   "logo",
+   "logoPlacement",
+   "footerText",
+   "slideNumbers",
+   "template",
+   "saveCopy",
+   "copyName",
+   "expiresInDays",
+   "label"
+  ],
+  "data_extraction": [
+   "source",
+   "fields",
+   "instructions",
+   "label",
+   "forEach"
+  ],
+  "set": [
+   "fields",
+   "label",
+   "forEach",
+   "arrayRef",
+   "operations",
+   "maxItems"
+  ],
+  "parse_json": [
+   "sourceRef",
+   "itemsRef",
+   "mode",
+   "fields",
+   "label"
+  ],
+  "datetime": [
+   "op",
+   "input",
+   "input2",
+   "amount",
+   "format",
+   "part",
+   "unit",
+   "arrayRef",
+   "target",
+   "label"
+  ],
+  "wait": [
+   "seconds",
+   "label"
+  ],
+  "approval": [
+   "prompt",
+   "approval",
+   "label"
+  ],
+  "stop_error": [
+   "message",
+   "label"
+  ],
+  "form_page": [
+   "mode",
+   "form",
+   "waitSeconds",
+   "label"
+  ],
+  "filter": [
+   "arrayRef",
+   "expr",
+   "label",
+   "maxItems"
+  ],
+  "limit": [
+   "arrayRef",
+   "count",
+   "mode",
+   "label"
+  ],
+  "dedupe": [
+   "arrayRef",
+   "keyField",
+   "label"
+  ],
+  "aggregate": [
+   "arrayRef",
+   "field",
+   "label"
+  ],
+  "summarize": [
+   "arrayRef",
+   "field",
+   "op",
+   "label"
+  ],
+  "flatten": [
+   "arrayRef",
+   "parents",
+   "keepEmpty",
+   "maxItems",
+   "label",
+   "childField",
+   "keepFields"
+  ],
+  "call_layer": [
+   "inputs",
+   "label"
+  ],
+  "datatable": [
+   "op",
+   "where",
+   "match",
+   "values",
+   "matchColumn",
+   "sort",
+   "limit",
+   "cursor",
+   "label",
+   "forEach",
+   "datatableId",
+   "datatableKey"
+  ],
+  "knowledge_write": [
+   "content",
+   "title",
+   "sourceUri",
+   "nearDuplicateStrategy",
+   "label",
+   "forEach",
+   "knowledgeBaseId"
+  ],
+  "note": [
+   "text",
+   "position",
+   "size",
+   "color",
+   "label"
+  ],
+  "guard": [
+   "sourceRef",
+   "categories",
+   "confidence",
+   "onFound",
+   "label"
+  ],
+  "tokenize": [
+   "sourceRef",
+   "categories",
+   "confidence",
+   "label"
+  ],
+  "untokenize": [
+   "sourceRef",
+   "label"
+  ]
+ }
+}

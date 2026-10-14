@@ -34,6 +34,7 @@ const { extractTextBody, getGmailHeader: getHeader } = require('../../services/e
 const { buildRawMessage } = require('../../integrations/gmailTools');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -61,9 +62,6 @@ const { z, typeError } = require('../../utils/zod');
 // INBOX was quietly answered with every label — Sent, Drafts, Archive and
 // the rest. (Spam and Trash stay out either way: that needs the separate
 // `includeSpamTrash`, which this route never sets.)
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
 const optionalText = (name) => worded(`${name} must be text.`).nullish();

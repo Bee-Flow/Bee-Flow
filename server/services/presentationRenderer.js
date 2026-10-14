@@ -13,7 +13,7 @@
  *                           caller's knowledge, not this module's) plus sharp
  *                           for the formats PowerPoint cannot show
  *   - the AI-Act marking  → flattened into what officegen / the PDF path write
- *   - the two formats     → integrations/officegen.js buildPresentation (.pptx)
+ *   - the two formats     → core/documents/office/officegen.js buildPresentation (.pptx)
  *                           or documentRenderer.renderDeckPdf (PDF)
  *
  * NOTHING HERE FETCHES. A slide image is a data: URL or a Bee Flow storage
@@ -220,7 +220,7 @@ async function prepareTheme(theme, resolveImage = null, warnings = []) {
  */
 function flattenMarking(marking) {
     if (!marking || marking.enabled === false) return null;
-    const { AI_MARK_SUBJECT, markingKeywords, markingText } = require('./documentRenderer');
+    const { AI_MARK_SUBJECT, markingKeywords, markingText } = require('../core/documents/render/documentRenderer');
     const line = markingText(marking);
     if (!line) return null;
     return {
@@ -274,7 +274,7 @@ async function renderPresentation({
     if (fmt === 'html') {
         // The viewer: no bytes, the same slides. Notes are not shown (a viewer
         // is not a presenter view) and the marking rides in the footer line.
-        const { deckToSlidesHtml } = require('./documentRenderer');
+        const { deckToSlidesHtml } = require('../core/documents/render/documentRenderer');
         const html = deckToSlidesHtml(normalized, { theme, marking, date, title: coverTitle, mode: 'screen' });
         return {
             html, contentType: 'text/html; charset=utf-8', format: 'html', extension: 'html',
@@ -283,7 +283,7 @@ async function renderPresentation({
         };
     }
     if (fmt === 'pdf') {
-        const { renderDeckPdf } = require('./documentRenderer');
+        const { renderDeckPdf } = require('../core/documents/render/documentRenderer');
         const out = await renderDeckPdf({ deck: normalized, theme, title: coverTitle, marking, date });
         return {
             ...out, slideCount: normalized.slides.length + 1, warnings,
@@ -291,7 +291,7 @@ async function renderPresentation({
         };
     }
 
-    const officegen = require('../integrations/officegen');
+    const officegen = require('../core/documents/office/officegen');
     const out = await officegen.buildPresentation({ deck: normalized, theme, title: coverTitle, author, date, marking: flat });
     return {
         buffer: out.buffer, contentType: out.contentType, format: 'pptx', extension: 'pptx',

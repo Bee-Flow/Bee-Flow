@@ -1,0 +1,2321 @@
+{
+ "boot": [
+  "CREATE TABLE IF NOT EXISTS studio_app_data_meta ( app_id TEXT PRIMARY KEY REFERENCES studio_apps(id) ON DELETE CASCADE, owner_user_id TEXT NOT NULL, model JSONB NOT NULL DEFAULT '{}'::jsonb, model_version INTEGER NOT NULL DEFAULT 0, data_versions JSONB NOT NULL DEFAULT '{}'::jsonb, row_counts JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); CREATE INDEX IF NOT EXISTS idx_studio_app_data_meta_owner ON studio_app_data_meta(owner_user_id);",
+  "CREATE TABLE IF NOT EXISTS studio_app_datasets ( id TEXT PRIMARY KEY, app_id TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE, owner_user_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT 'Untitled dataset', table_id TEXT, source JSONB NOT NULL DEFAULT '{}'::jsonb, descriptor JSONB NOT NULL DEFAULT '{}'::jsonb, cache_ttl_seconds INTEGER NOT NULL DEFAULT 60, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); CREATE INDEX IF NOT EXISTS idx_studio_app_datasets_app ON studio_app_datasets(app_id); CREATE INDEX IF NOT EXISTS idx_studio_app_datasets_owner ON studio_app_datasets(owner_user_id);",
+  "CREATE TABLE IF NOT EXISTS studio_app_dataset_cache ( id TEXT PRIMARY KEY, dataset_id TEXT NOT NULL REFERENCES studio_app_datasets(id) ON DELETE CASCADE, viewer_scope_key TEXT NOT NULL, params_hash TEXT NOT NULL, data_version INTEGER NOT NULL DEFAULT 0, result JSONB NOT NULL DEFAULT '{}'::jsonb, row_count INTEGER NOT NULL DEFAULT 0, computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ ); CREATE UNIQUE INDEX IF NOT EXISTS uq_studio_app_dataset_cache_key ON studio_app_dataset_cache(dataset_id, viewer_scope_key, params_hash);",
+  "CREATE TABLE IF NOT EXISTS studio_app_members ( app_id TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE, user_id TEXT NOT NULL, role_key TEXT NOT NULL DEFAULT 'member', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (app_id, user_id) );",
+  "CREATE TABLE IF NOT EXISTS studio_app_attachments ( id TEXT PRIMARY KEY, app_id TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE, owner_user_id TEXT NOT NULL, record_id TEXT, field_key TEXT, mime_type TEXT NOT NULL DEFAULT 'application/octet-stream', sha256 TEXT NOT NULL DEFAULT '', size BIGINT NOT NULL DEFAULT 0, scanned BOOLEAN NOT NULL DEFAULT FALSE, quarantined BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); CREATE INDEX IF NOT EXISTS idx_studio_app_attachments_app ON studio_app_attachments(app_id); CREATE INDEX IF NOT EXISTS idx_studio_app_attachments_record ON studio_app_attachments(app_id, record_id);",
+  "CREATE TABLE IF NOT EXISTS studio_app_connector_sync ( app_id TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE, connector_id TEXT NOT NULL, owner_user_id TEXT NOT NULL, table_key TEXT, status TEXT NOT NULL DEFAULT 'idle', last_run_at TIMESTAMPTZ, next_run_at TIMESTAMPTZ, started_at TIMESTAMPTZ, watermark TEXT, rows_written INTEGER NOT NULL DEFAULT 0, last_error TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (app_id, connector_id) ); CREATE INDEX IF NOT EXISTS idx_studio_app_connector_sync_due ON studio_app_connector_sync(next_run_at) WHERE next_run_at IS NOT NULL;",
+  "CREATE TABLE IF NOT EXISTS studio_app_email_log ( id BIGSERIAL PRIMARY KEY, app_id TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE, connector_id TEXT NOT NULL, viewer_user_id TEXT, effective_user_id TEXT, to_masked TEXT, subject TEXT, provider_message_id TEXT, thread_key TEXT, dlp_outcome TEXT, sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); CREATE INDEX IF NOT EXISTS idx_studio_app_email_log_app ON studio_app_email_log(app_id, sent_at DESC);"
+ ],
+ "bootSame": true,
+ "exports": {
+  "ready": "getter",
+  "initDB": "function",
+  "getDataModel": "function",
+  "saveDataModel": "function",
+  "makeDataModelSaver": "function",
+  "additiveModel": "function",
+  "reconcileDataModel": "function",
+  "bumpDataVersion": "function",
+  "getRowCounts": "function",
+  "setRowCount": "function",
+  "bumpRowCount": "function",
+  "recountRows": "function",
+  "createDataset": "function",
+  "listDatasets": "function",
+  "getDataset": "function",
+  "updateDataset": "function",
+  "deleteDataset": "function",
+  "getCache": "function",
+  "putCache": "function",
+  "invalidateCache": "function",
+  "getSyncState": "function",
+  "listSyncStates": "function",
+  "claimSync": "function",
+  "finishSync": "function",
+  "listDueSyncs": "function",
+  "deleteSyncState": "function",
+  "reconcileSyncStates": "function",
+  "SYNC_STALE_MS": "number",
+  "logEmailSend": "function",
+  "listEmailSends": "function",
+  "addMember": "function",
+  "listMembers": "function",
+  "removeMember": "function",
+  "getMemberRole": "function",
+  "addAttachment": "function",
+  "listAttachments": "function",
+  "getAttachment": "function",
+  "setAttachmentScan": "function",
+  "deleteAttachment": "function",
+  "countAttachments": "function",
+  "countAttachmentsBySha": "function"
+ },
+ "constants": {
+  "SYNC_STALE_MS": 900000
+ },
+ "getDataModel": {
+  "value": {
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "model": {
+    "modelVersion": 1,
+    "tables": [
+     {
+      "id": "tbl_aaaaaa",
+      "key": "people",
+      "name": "People",
+      "icon": null,
+      "fields": [
+       {
+        "id": "fld_aaaaaa",
+        "key": "title",
+        "type": "text",
+        "required": false,
+        "unique": false
+       }
+      ],
+      "access": {
+       "default": "app",
+       "roles": {},
+       "rowFilters": {}
+      }
+     }
+    ],
+    "roles": [],
+    "roleMapping": {
+     "default": "app",
+     "byGroup": {}
+    }
+   },
+   "modelVersion": 3,
+   "dataVersions": {
+    "people": 4
+   },
+   "rowCounts": {
+    "people": 7,
+    "gone": 2
+   },
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "getDataModel.foreign": {
+  "value": null,
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-1",
+     "u2"
+    ]
+   }
+  ]
+ },
+ "getDataModel.reconcileDrift": {
+  "value": {
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "model": {
+    "modelVersion": 1,
+    "tables": [
+     {
+      "id": "tbl_aaaaaa",
+      "key": "people",
+      "name": "People",
+      "icon": null,
+      "fields": [
+       {
+        "id": "fld_aaaaaa",
+        "key": "title",
+        "type": "text",
+        "required": false,
+        "unique": false
+       }
+      ],
+      "access": {
+       "default": "app",
+       "roles": {},
+       "rowFilters": {}
+      }
+     }
+    ],
+    "roles": [],
+    "roleMapping": {
+     "default": "app",
+     "byGroup": {}
+    }
+   },
+   "modelVersion": 3,
+   "dataVersions": {
+    "people": 4
+   },
+   "rowCounts": {
+    "people": 7,
+    "gone": 2
+   },
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "getSchemaStamp",
+    "args": [
+     "u1",
+     "app-1"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "query",
+    "args": [
+     "u1",
+     "app-1",
+     "SELECT COUNT(*) AS \"n\" FROM \"people\" WHERE (1=1) LIMIT ?",
+     [
+      50
+     ]
+    ]
+   },
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET row_counts = $1::jsonb, updated_at = NOW() WHERE app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "{\"people\":11}",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "release"
+   },
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "reconcileDataModel.clean": {
+  "value": {
+   "ok": true,
+   "drift": false,
+   "sqliteVersion": 0,
+   "modelVersion": 3
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "getSchemaStamp",
+    "args": [
+     "u1",
+     "app-1"
+    ]
+   }
+  ]
+ },
+ "reconcileDataModel.notFound": {
+  "value": {
+   "ok": false,
+   "notFound": true
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-9",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "saveDataModel": {
+  "value": {
+   "ok": true,
+   "version": 4
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT project_id FROM studio_apps WHERE id = $1",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "assertManagedWrite",
+    "args": [
+     {
+      "kind": "app",
+      "projectId": null,
+      "changedKeys": [
+       "dataModel"
+      ],
+      "managedWrite": null,
+      "client": "<client>"
+     }
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "applyMigration",
+    "args": [
+     "u1",
+     "app-1",
+     [],
+     {
+      "targetVersion": 4
+     }
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET model = $1::jsonb, model_version = $2, updated_at = NOW() WHERE app_id = $3 AND owner_user_id = $4",
+    "params": [
+     "{\"modelVersion\":1,\"tables\":[{\"id\":\"tbl_aaaaaa\",\"key\":\"people\",\"name\":\"People\",\"icon\":null,\"fields\":[{\"id\":\"fld_aaaaaa\",\"key\":\"title\",\"type\":\"text\",\"required\":false,\"unique\":false}],\"access\":{\"default\":\"app\",\"roles\":{},\"rowFilters\":{}}}],\"roles\":[],\"roleMapping\":{\"default\":\"app\",\"byGroup\":{}}}",
+     4,
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_apps SET data_model_version = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3",
+    "params": [
+     4,
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "dep",
+    "name": "query",
+    "args": [
+     "u1",
+     "app-1",
+     "SELECT COUNT(*) AS \"n\" FROM \"people\" WHERE (1=1) LIMIT ?",
+     [
+      50
+     ]
+    ]
+   },
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET row_counts = $1::jsonb, updated_at = NOW() WHERE app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "{\"people\":11}",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "release"
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "saveDataModel.conflict": {
+  "value": {
+   "ok": false,
+   "conflict": true,
+   "currentVersion": 3,
+   "model": {
+    "modelVersion": 1,
+    "tables": [
+     {
+      "id": "tbl_aaaaaa",
+      "key": "people",
+      "name": "People",
+      "icon": null,
+      "fields": [
+       {
+        "id": "fld_aaaaaa",
+        "key": "title",
+        "type": "text",
+        "required": false,
+        "unique": false
+       }
+      ],
+      "access": {
+       "default": "app",
+       "roles": {},
+       "rowFilters": {}
+      }
+     }
+    ],
+    "roles": [],
+    "roleMapping": {
+     "default": "app",
+     "byGroup": {}
+    }
+   }
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT project_id FROM studio_apps WHERE id = $1",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "assertManagedWrite",
+    "args": [
+     {
+      "kind": "app",
+      "projectId": null,
+      "changedKeys": [
+       "dataModel"
+      ],
+      "managedWrite": null,
+      "client": "<client>"
+     }
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "ROLLBACK",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "saveDataModel.invalid": {
+  "value": {
+   "ok": false,
+   "invalid": true,
+   "errors": [
+    "model.tables must be an array"
+   ]
+  },
+  "trace": []
+ },
+ "saveDataModel.foreignMeta": {
+  "value": {
+   "ok": false,
+   "notFound": true
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "ROLLBACK",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "saveDataModel.newMeta": {
+  "value": {
+   "ok": true,
+   "version": 1
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE",
+    "params": [
+     "app-2"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2",
+    "params": [
+     "app-2",
+     "u2"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT project_id FROM studio_apps WHERE id = $1",
+    "params": [
+     "app-2"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "assertManagedWrite",
+    "args": [
+     {
+      "kind": "app",
+      "projectId": "p1",
+      "changedKeys": [
+       "dataModel"
+      ],
+      "managedWrite": null,
+      "client": "<client>"
+     }
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "applyMigration",
+    "args": [
+     "u2",
+     "app-2",
+     [
+      "CREATE TABLE IF NOT EXISTS \"people\" (\n  id TEXT PRIMARY KEY,\n  created_at TEXT,\n  updated_at TEXT,\n  created_by TEXT,\n  org_id TEXT,\n  \"title\" TEXT\n);\nCREATE INDEX IF NOT EXISTS \"ix_tbl_aaaaaa_recent\" ON \"people\" (\"created_at\" DESC, \"id\" DESC);"
+     ],
+     {
+      "targetVersion": 1
+     }
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "INSERT INTO studio_app_data_meta (app_id, owner_user_id, model, model_version) VALUES ($1, $2, $3::jsonb, $4)",
+    "params": [
+     "app-2",
+     "u2",
+     "{\"modelVersion\":1,\"tables\":[{\"id\":\"tbl_aaaaaa\",\"key\":\"people\",\"name\":\"People\",\"icon\":null,\"fields\":[{\"id\":\"fld_aaaaaa\",\"key\":\"title\",\"type\":\"text\",\"required\":false,\"unique\":false}],\"access\":{\"default\":\"app\",\"roles\":{},\"rowFilters\":{}}}],\"roles\":[],\"roleMapping\":{\"default\":\"app\",\"byGroup\":{}}}",
+     1
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_apps SET data_model_version = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3",
+    "params": [
+     1,
+     "app-2",
+     "u2"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "dep",
+    "name": "query",
+    "args": [
+     "u2",
+     "app-2",
+     "SELECT COUNT(*) AS \"n\" FROM \"people\" WHERE (1=1) LIMIT ?",
+     [
+      50
+     ]
+    ]
+   },
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-2",
+     "u2"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "ROLLBACK",
+    "params": []
+   },
+   {
+    "ch": "release"
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "saveDataModel.notAdditive": {
+  "value": {
+   "ok": true,
+   "version": 4
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT project_id FROM studio_apps WHERE id = $1",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "assertManagedWrite",
+    "args": [
+     {
+      "kind": "app",
+      "projectId": null,
+      "changedKeys": [
+       "dataModel"
+      ],
+      "managedWrite": null,
+      "client": "<client>"
+     }
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "applyMigration",
+    "args": [
+     "u1",
+     "app-1",
+     [],
+     {
+      "targetVersion": 4
+     }
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET model = $1::jsonb, model_version = $2, updated_at = NOW() WHERE app_id = $3 AND owner_user_id = $4",
+    "params": [
+     "{\"modelVersion\":1,\"tables\":[{\"id\":\"tbl_aaaaaa\",\"key\":\"people\",\"name\":\"People\",\"icon\":null,\"fields\":[{\"id\":\"fld_aaaaaa\",\"key\":\"title\",\"type\":\"text\",\"required\":false,\"unique\":false}],\"access\":{\"default\":\"app\",\"roles\":{},\"rowFilters\":{}}}],\"roles\":[],\"roleMapping\":{\"default\":\"app\",\"byGroup\":{}}}",
+     4,
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_apps SET data_model_version = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3",
+    "params": [
+     4,
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "dep",
+    "name": "query",
+    "args": [
+     "u1",
+     "app-1",
+     "SELECT COUNT(*) AS \"n\" FROM \"people\" WHERE (1=1) LIMIT ?",
+     [
+      50
+     ]
+    ]
+   },
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET row_counts = $1::jsonb, updated_at = NOW() WHERE app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "{\"people\":11}",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "release"
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "saveDataModel.migrationThrows": {
+  "value": {
+   "threw": "migration boom",
+   "code": null,
+   "status": null
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT project_id FROM studio_apps WHERE id = $1",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "assertManagedWrite",
+    "args": [
+     {
+      "kind": "app",
+      "projectId": null,
+      "changedKeys": [
+       "dataModel"
+      ],
+      "managedWrite": null,
+      "client": "<client>"
+     }
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "applyMigration",
+    "args": [
+     "u1",
+     "app-1",
+     [],
+     {
+      "targetVersion": 4
+     }
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "ROLLBACK",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "additiveModel": {
+  "drop": {
+   "model": {
+    "modelVersion": 1,
+    "tables": [
+     {
+      "id": "tbl_aaaaaa",
+      "key": "people",
+      "name": "People",
+      "icon": null,
+      "fields": [
+       {
+        "id": "fld_aaaaaa",
+        "key": "title",
+        "type": "text",
+        "required": false,
+        "unique": false
+       }
+      ],
+      "access": {
+       "default": "app",
+       "roles": {},
+       "rowFilters": {}
+      }
+     }
+    ],
+    "roles": [],
+    "roleMapping": {
+     "default": "app",
+     "byGroup": {}
+    }
+   },
+   "plan": [],
+   "refused": [],
+   "invalid": null
+  },
+  "addField": {
+   "model": {
+    "modelVersion": 1,
+    "tables": [
+     {
+      "id": "tbl_aaaaaa",
+      "key": "people",
+      "name": "People",
+      "icon": null,
+      "fields": [
+       {
+        "id": "fld_aaaaaa",
+        "key": "title",
+        "type": "text",
+        "required": false,
+        "unique": false
+       },
+       {
+        "id": "fld_bbbbbb",
+        "key": "age",
+        "type": "number",
+        "required": false,
+        "unique": false
+       }
+      ],
+      "access": {
+       "default": "app",
+       "roles": {},
+       "rowFilters": {}
+      }
+     }
+    ],
+    "roles": [],
+    "roleMapping": {
+     "default": "app",
+     "byGroup": {}
+    }
+   },
+   "plan": [
+    "ALTER TABLE \"people\" ADD COLUMN \"age\" REAL"
+   ],
+   "refused": [],
+   "invalid": null
+  }
+ },
+ "makeDataModelSaver": {
+  "value": {
+   "ok": true,
+   "version": 4
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT project_id FROM studio_apps WHERE id = $1",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "io.assertManagedWrite",
+    "args": [
+     {
+      "kind": "app",
+      "projectId": null,
+      "changedKeys": [
+       "dataModel"
+      ],
+      "managedWrite": null,
+      "client": "<client>"
+     }
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "io.applyMigration",
+    "args": [
+     "u1",
+     "app-1",
+     [],
+     {
+      "targetVersion": 4,
+      "client": "<client>"
+     }
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET model = $1::jsonb, model_version = $2, updated_at = NOW() WHERE app_id = $3 AND owner_user_id = $4",
+    "params": [
+     "{\"modelVersion\":1,\"tables\":[{\"id\":\"tbl_aaaaaa\",\"key\":\"people\",\"name\":\"People\",\"icon\":null,\"fields\":[{\"id\":\"fld_aaaaaa\",\"key\":\"title\",\"type\":\"text\",\"required\":false,\"unique\":false}],\"access\":{\"default\":\"app\",\"roles\":{},\"rowFilters\":{}}}],\"roles\":[],\"roleMapping\":{\"default\":\"app\",\"byGroup\":{}}}",
+     4,
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_apps SET data_model_version = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3",
+    "params": [
+     4,
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "dep",
+    "name": "io.recountRows",
+    "args": [
+     "app-1",
+     "u1",
+     [
+      {
+       "id": "tbl_aaaaaa",
+       "key": "people",
+       "name": "People",
+       "icon": null,
+       "fields": [
+        {
+         "id": "fld_aaaaaa",
+         "key": "title",
+         "type": "text",
+         "required": false,
+         "unique": false
+        }
+       ],
+       "access": {
+        "default": "app",
+        "roles": {},
+        "rowFilters": {}
+       }
+      }
+     ]
+    ]
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "bumpDataVersion": {
+  "value": 5,
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT data_versions FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET data_versions = $1::jsonb, updated_at = NOW() WHERE app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "{\"people\":5}",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "bumpDataVersion.foreign": {
+  "value": null,
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT data_versions FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-1",
+     "u2"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "ROLLBACK",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "getRowCounts": {
+  "value": {
+   "people": 7,
+   "gone": 2
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "getRowCounts.none": {
+  "value": {},
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-9",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "setRowCount": {
+  "value": {
+   "people": 0,
+   "gone": 2
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET row_counts = $1::jsonb, updated_at = NOW() WHERE app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "{\"people\":0,\"gone\":2}",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "bumpRowCount": {
+  "value": {
+   "people": 0,
+   "gone": 2
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET row_counts = $1::jsonb, updated_at = NOW() WHERE app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "{\"people\":0,\"gone\":2}",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "recountRows": {
+  "value": {
+   "people": 11,
+   "missing": 0
+  },
+  "trace": [
+   {
+    "ch": "dep",
+    "name": "query",
+    "args": [
+     "u1",
+     "app-1",
+     "SELECT COUNT(*) AS \"n\" FROM \"people\" WHERE (1=1) LIMIT ?",
+     [
+      50
+     ]
+    ]
+   },
+   {
+    "ch": "dep",
+    "name": "query",
+    "args": [
+     "u1",
+     "app-1",
+     "SELECT COUNT(*) AS \"n\" FROM \"missing\" WHERE (1=1) LIMIT ?",
+     [
+      50
+     ]
+    ]
+   },
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "UPDATE studio_app_data_meta SET row_counts = $1::jsonb, updated_at = NOW() WHERE app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "{\"people\":11,\"missing\":0}",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "createDataset": {
+  "value": {
+   "id": "ds-1",
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "name": "DS",
+   "tableId": "tbl_aaaaaa",
+   "source": {
+    "t": 1
+   },
+   "descriptor": {
+    "d": 1
+   },
+   "cacheTtlSeconds": 30,
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "INSERT INTO studio_app_datasets (id, app_id, owner_user_id, name, table_id, source, descriptor, cache_ttl_seconds) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8) RETURNING *",
+    "params": [
+     "uuid-1",
+     "app-1",
+     "u1",
+     "N",
+     "t",
+     "{\"a\":1}",
+     "{}",
+     5
+    ]
+   }
+  ]
+ },
+ "createDataset.missing": {
+  "value": {
+   "threw": "appId and ownerId required",
+   "code": null,
+   "status": null
+  },
+  "trace": []
+ },
+ "listDatasets": {
+  "value": [
+   {
+    "id": "ds-1",
+    "appId": "app-1",
+    "ownerUserId": "u1",
+    "name": "DS",
+    "tableId": "tbl_aaaaaa",
+    "source": {
+     "t": 1
+    },
+    "descriptor": {
+     "d": 1
+    },
+    "cacheTtlSeconds": 30,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+   }
+  ],
+  "trace": [
+   {
+    "ch": "getAll",
+    "sql": "SELECT * FROM studio_app_datasets WHERE app_id = $1 AND owner_user_id = $2 ORDER BY updated_at DESC",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "getDataset": {
+  "value": {
+   "id": "ds-1",
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "name": "DS",
+   "tableId": "tbl_aaaaaa",
+   "source": {
+    "t": 1
+   },
+   "descriptor": {
+    "d": 1
+   },
+   "cacheTtlSeconds": 30,
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_datasets WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "ds-1",
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "updateDataset": {
+  "value": {
+   "id": "ds-1",
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "name": "DS",
+   "tableId": "tbl_aaaaaa",
+   "source": {
+    "t": 1
+   },
+   "descriptor": {
+    "d": 1
+   },
+   "cacheTtlSeconds": 30,
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "UPDATE studio_app_datasets SET name = $1, table_id = $2, cache_ttl_seconds = $3, updated_at = NOW() WHERE id = $4 AND app_id = $5 AND owner_user_id = $6 RETURNING *",
+    "params": [
+     "X",
+     null,
+     60,
+     "ds-1",
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "updateDataset.noop": {
+  "value": {
+   "id": "ds-1",
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "name": "DS",
+   "tableId": "tbl_aaaaaa",
+   "source": {
+    "t": 1
+   },
+   "descriptor": {
+    "d": 1
+   },
+   "cacheTtlSeconds": 30,
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_datasets WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "ds-1",
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "deleteDataset": {
+  "value": true,
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT id FROM studio_app_datasets WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "ds-1",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_dataset_cache WHERE dataset_id = $1",
+    "params": [
+     "ds-1"
+    ]
+   },
+   {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_datasets WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "ds-1",
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "deleteDataset.foreign": {
+  "value": false,
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT id FROM studio_app_datasets WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "ds-1",
+     "app-1",
+     "u2"
+    ]
+   }
+  ]
+ },
+ "getCache": {
+  "value": {
+   "id": "c-1",
+   "datasetId": "ds-1",
+   "viewerScopeKey": "v",
+   "paramsHash": "p",
+   "dataVersion": 2,
+   "result": {
+    "rows": [
+     1
+    ]
+   },
+   "rowCount": 1,
+   "computedAt": "2026-01-01T00:00:00.000Z",
+   "expiresAt": "2026-12-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_dataset_cache WHERE dataset_id = $1 AND viewer_scope_key = $2 AND params_hash = $3 AND data_version = $4",
+    "params": [
+     "ds-1",
+     "v",
+     "p",
+     2
+    ]
+   }
+  ]
+ },
+ "getCache.expired": {
+  "value": null,
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_dataset_cache WHERE dataset_id = $1 AND viewer_scope_key = $2 AND params_hash = $3 AND data_version = $4",
+    "params": [
+     "ds-1",
+     "old",
+     "p",
+     2
+    ]
+   }
+  ]
+ },
+ "putCache": {
+  "value": {
+   "ok": true,
+   "id": "uuid-1",
+   "expiresAt": "2026-03-01T12:00:10.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getClient"
+   },
+   {
+    "ch": "tx",
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "ch": "tx",
+    "sql": "DELETE FROM studio_app_dataset_cache WHERE dataset_id = $1 AND viewer_scope_key = $2 AND params_hash = $3",
+    "params": [
+     "ds-1",
+     "v",
+     "p"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "INSERT INTO studio_app_dataset_cache (id, dataset_id, viewer_scope_key, params_hash, data_version, result, row_count, expires_at) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)",
+    "params": [
+     "uuid-1",
+     "ds-1",
+     "v",
+     "p",
+     3,
+     "{\"r\":1}",
+     1,
+     "2026-03-01T12:00:10.000Z"
+    ]
+   },
+   {
+    "ch": "tx",
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "ch": "release"
+   }
+  ]
+ },
+ "invalidateCache": {
+  "value": "<undefined>",
+  "trace": [
+   {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_dataset_cache WHERE dataset_id = $1",
+    "params": [
+     "ds-1"
+    ]
+   }
+  ]
+ },
+ "getSyncState": {
+  "value": {
+   "appId": "app-1",
+   "connectorId": "con-1",
+   "ownerUserId": "u1",
+   "tableKey": "people",
+   "status": "ok",
+   "lastRunAt": "2026-01-01T00:00:00.000Z",
+   "nextRunAt": "2026-01-01T00:00:00.000Z",
+   "startedAt": null,
+   "watermark": "w1",
+   "rowsWritten": 5,
+   "lastError": null,
+   "consecutiveErrors": 1
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_connector_sync WHERE app_id = $1 AND connector_id = $2",
+    "params": [
+     "app-1",
+     "con-1"
+    ]
+   }
+  ]
+ },
+ "listSyncStates": {
+  "value": [
+   {
+    "appId": "app-1",
+    "connectorId": "con-1",
+    "ownerUserId": "u1",
+    "tableKey": "people",
+    "status": "ok",
+    "lastRunAt": "2026-01-01T00:00:00.000Z",
+    "nextRunAt": "2026-01-01T00:00:00.000Z",
+    "startedAt": null,
+    "watermark": "w1",
+    "rowsWritten": 5,
+    "lastError": null,
+    "consecutiveErrors": 1
+   }
+  ],
+  "trace": [
+   {
+    "ch": "getAll",
+    "sql": "SELECT * FROM studio_app_connector_sync WHERE app_id = $1 ORDER BY connector_id",
+    "params": [
+     "app-1"
+    ]
+   }
+  ]
+ },
+ "claimSync": {
+  "value": {
+   "appId": "app-1",
+   "connectorId": "con-1",
+   "ownerUserId": "u1",
+   "tableKey": "people",
+   "status": "ok",
+   "lastRunAt": "2026-01-01T00:00:00.000Z",
+   "nextRunAt": "2026-01-01T00:00:00.000Z",
+   "startedAt": null,
+   "watermark": "w1",
+   "rowsWritten": 5,
+   "lastError": null,
+   "consecutiveErrors": 1
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "INSERT INTO studio_app_connector_sync (app_id, connector_id, owner_user_id, table_key, status, started_at) VALUES ($1, $2, $3, $4, 'running', NOW()) ON CONFLICT (app_id, connector_id) DO UPDATE SET status = 'running', started_at = NOW(), table_key = $4, updated_at = NOW() WHERE studio_app_connector_sync.status <> 'running' OR studio_app_connector_sync.started_at IS NULL OR studio_app_connector_sync.started_at < $5 RETURNING *",
+    "params": [
+     "app-1",
+     "con-1",
+     "u1",
+     "people",
+     "2026-03-01T11:45:00.000Z"
+    ]
+   }
+  ]
+ },
+ "finishSync": {
+  "value": {
+   "appId": "app-1",
+   "connectorId": "con-1",
+   "ownerUserId": "u1",
+   "tableKey": "people",
+   "status": "ok",
+   "lastRunAt": "2026-01-01T00:00:00.000Z",
+   "nextRunAt": "2026-01-01T00:00:00.000Z",
+   "startedAt": null,
+   "watermark": "w1",
+   "rowsWritten": 5,
+   "lastError": null,
+   "consecutiveErrors": 1
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "UPDATE studio_app_connector_sync SET status = $3, last_run_at = NOW(), started_at = NULL, next_run_at = $4, watermark = COALESCE($5, watermark), rows_written = $6, last_error = $7, consecutive_errors = COALESCE($8, consecutive_errors), updated_at = NOW() WHERE app_id = $1 AND connector_id = $2 RETURNING *",
+    "params": [
+     "app-1",
+     "con-1",
+     "error",
+     null,
+     "w2",
+     3,
+     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     2
+    ]
+   }
+  ]
+ },
+ "finishSync.ok": {
+  "value": {
+   "appId": "app-1",
+   "connectorId": "con-1",
+   "ownerUserId": "u1",
+   "tableKey": "people",
+   "status": "ok",
+   "lastRunAt": "2026-01-01T00:00:00.000Z",
+   "nextRunAt": "2026-01-01T00:00:00.000Z",
+   "startedAt": null,
+   "watermark": "w1",
+   "rowsWritten": 5,
+   "lastError": null,
+   "consecutiveErrors": 1
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "UPDATE studio_app_connector_sync SET status = $3, last_run_at = NOW(), started_at = NULL, next_run_at = $4, watermark = COALESCE($5, watermark), rows_written = $6, last_error = $7, consecutive_errors = COALESCE($8, consecutive_errors), updated_at = NOW() WHERE app_id = $1 AND connector_id = $2 RETURNING *",
+    "params": [
+     "app-1",
+     "con-1",
+     "ok",
+     "2026-03-02T00:00:00.000Z",
+     null,
+     0,
+     null,
+     null
+    ]
+   }
+  ]
+ },
+ "listDueSyncs": {
+  "value": [
+   {
+    "appId": "app-1",
+    "connectorId": "con-1",
+    "ownerUserId": "u1",
+    "tableKey": "people",
+    "status": "ok",
+    "lastRunAt": "2026-01-01T00:00:00.000Z",
+    "nextRunAt": "2026-01-01T00:00:00.000Z",
+    "startedAt": null,
+    "watermark": "w1",
+    "rowsWritten": 5,
+    "lastError": null,
+    "consecutiveErrors": 1
+   }
+  ],
+  "trace": [
+   {
+    "ch": "getAll",
+    "sql": "SELECT * FROM studio_app_connector_sync WHERE next_run_at IS NOT NULL AND next_run_at <= NOW() AND (status <> 'running' OR started_at IS NULL OR started_at < $2) ORDER BY next_run_at ASC LIMIT $1",
+    "params": [
+     200,
+     "2026-03-01T11:45:00.000Z"
+    ]
+   }
+  ]
+ },
+ "deleteSyncState": {
+  "value": "<undefined>",
+  "trace": [
+   {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_connector_sync WHERE app_id = $1 AND connector_id = $2",
+    "params": [
+     "app-1",
+     "con-1"
+    ]
+   }
+  ]
+ },
+ "reconcileSyncStates": {
+  "value": {
+   "seeded": [
+    "con-1",
+    "con-1"
+   ],
+   "removed": 1
+  },
+  "trace": [
+   {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_connector_sync WHERE app_id = $1 AND NOT (connector_id = ANY($2::text[]))",
+    "params": [
+     "app-1",
+     [
+      "con-1",
+      "con-2"
+     ]
+    ]
+   },
+   {
+    "ch": "getOne",
+    "sql": "INSERT INTO studio_app_connector_sync (app_id, connector_id, owner_user_id, status, next_run_at) VALUES ($1, $2, $3, 'idle', NOW()) ON CONFLICT (app_id, connector_id) DO NOTHING RETURNING connector_id",
+    "params": [
+     "app-1",
+     "con-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "getOne",
+    "sql": "INSERT INTO studio_app_connector_sync (app_id, connector_id, owner_user_id, status, next_run_at) VALUES ($1, $2, $3, 'idle', NOW()) ON CONFLICT (app_id, connector_id) DO NOTHING RETURNING connector_id",
+    "params": [
+     "app-1",
+     "con-2",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "reconcileSyncStates.none": {
+  "value": {
+   "seeded": [],
+   "removed": 1
+  },
+  "trace": [
+   {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_connector_sync WHERE app_id = $1",
+    "params": [
+     "app-1"
+    ]
+   }
+  ]
+ },
+ "logEmailSend": {
+  "value": "<undefined>",
+  "trace": [
+   {
+    "ch": "run",
+    "sql": "INSERT INTO studio_app_email_log (app_id, connector_id, viewer_user_id, effective_user_id, to_masked, subject, provider_message_id, thread_key, dlp_outcome) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    "params": [
+     "app-1",
+     "con-1",
+     "u1",
+     null,
+     null,
+     "S",
+     null,
+     null,
+     null
+    ]
+   }
+  ]
+ },
+ "listEmailSends": {
+  "value": [
+   {
+    "id": "9",
+    "connectorId": "con-1",
+    "viewerUserId": "u1",
+    "effectiveUserId": "u2",
+    "toMasked": "a***@x",
+    "subject": "Hi",
+    "providerMessageId": "pm",
+    "threadKey": null,
+    "dlpOutcome": "pass",
+    "sentAt": "2026-01-01T00:00:00.000Z"
+   }
+  ],
+  "trace": [
+   {
+    "ch": "getAll",
+    "sql": "SELECT * FROM studio_app_email_log WHERE app_id = $1 ORDER BY sent_at DESC LIMIT $2",
+    "params": [
+     "app-1",
+     500
+    ]
+   }
+  ]
+ },
+ "addMember.update": {
+  "value": {
+   "appId": "app-1",
+   "userId": "m1",
+   "roleKey": "editor",
+   "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "getOne",
+    "sql": "SELECT app_id FROM studio_app_members WHERE app_id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "m1"
+    ]
+   },
+   {
+    "ch": "getOne",
+    "sql": "UPDATE studio_app_members SET role_key = $1, updated_at = NOW() WHERE app_id = $2 AND user_id = $3 RETURNING *",
+    "params": [
+     "viewer",
+     "app-1",
+     "m1"
+    ]
+   }
+  ]
+ },
+ "addMember.insert": {
+  "value": {
+   "appId": "app-1",
+   "userId": "m1",
+   "roleKey": "editor",
+   "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "getOne",
+    "sql": "SELECT app_id FROM studio_app_members WHERE app_id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "m2"
+    ]
+   },
+   {
+    "ch": "getOne",
+    "sql": "INSERT INTO studio_app_members (app_id, user_id, role_key) VALUES ($1, $2, $3) RETURNING *",
+    "params": [
+     "app-1",
+     "m2",
+     "member"
+    ]
+   }
+  ]
+ },
+ "addMember.foreign": {
+  "value": null,
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "u2"
+    ]
+   }
+  ]
+ },
+ "listMembers": {
+  "value": [
+   {
+    "appId": "app-1",
+    "userId": "m1",
+    "roleKey": "editor",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+   }
+  ],
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "getAll",
+    "sql": "SELECT * FROM studio_app_members WHERE app_id = $1 ORDER BY created_at ASC",
+    "params": [
+     "app-1"
+    ]
+   }
+  ]
+ },
+ "listMembers.foreign": {
+  "value": [],
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "u2"
+    ]
+   }
+  ]
+ },
+ "removeMember": {
+  "value": true,
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_members WHERE app_id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "m1"
+    ]
+   }
+  ]
+ },
+ "getMemberRole": {
+  "value": "editor",
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT role_key FROM studio_app_members WHERE app_id = $1 AND user_id = $2",
+    "params": [
+     "app-1",
+     "m1"
+    ]
+   }
+  ]
+ },
+ "addAttachment": {
+  "value": {
+   "id": "att-1",
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "recordId": "r1",
+   "fieldKey": "f",
+   "mimeType": "image/png",
+   "sha256": "aa",
+   "size": 12,
+   "scanned": true,
+   "quarantined": false,
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "INSERT INTO studio_app_attachments (id, app_id, owner_user_id, record_id, field_key, mime_type, sha256, size) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+    "params": [
+     "uuid-1",
+     "app-1",
+     "u1",
+     "r1",
+     null,
+     "application/octet-stream",
+     "",
+     4
+    ]
+   }
+  ]
+ },
+ "addAttachment.missing": {
+  "value": {
+   "threw": "appId and ownerId required",
+   "code": null,
+   "status": null
+  },
+  "trace": []
+ },
+ "listAttachments": {
+  "value": [
+   {
+    "id": "att-1",
+    "appId": "app-1",
+    "ownerUserId": "u1",
+    "recordId": "r1",
+    "fieldKey": "f",
+    "mimeType": "image/png",
+    "sha256": "aa",
+    "size": 12,
+    "scanned": true,
+    "quarantined": false,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "att-2",
+    "appId": "app-1",
+    "ownerUserId": "u1",
+    "recordId": null,
+    "fieldKey": null,
+    "mimeType": "text/plain",
+    "sha256": "aa",
+    "size": 3,
+    "scanned": false,
+    "quarantined": true,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+   }
+  ],
+  "trace": [
+   {
+    "ch": "getAll",
+    "sql": "SELECT * FROM studio_app_attachments WHERE app_id = $1 AND owner_user_id = $2 ORDER BY created_at DESC",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "listAttachments.record": {
+  "value": [
+   {
+    "id": "att-1",
+    "appId": "app-1",
+    "ownerUserId": "u1",
+    "recordId": "r1",
+    "fieldKey": "f",
+    "mimeType": "image/png",
+    "sha256": "aa",
+    "size": 12,
+    "scanned": true,
+    "quarantined": false,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+   }
+  ],
+  "trace": [
+   {
+    "ch": "getAll",
+    "sql": "SELECT * FROM studio_app_attachments WHERE app_id = $1 AND owner_user_id = $2 AND record_id = $3 ORDER BY created_at DESC",
+    "params": [
+     "app-1",
+     "u1",
+     "r1"
+    ]
+   }
+  ]
+ },
+ "getAttachment": {
+  "value": {
+   "id": "att-1",
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "recordId": "r1",
+   "fieldKey": "f",
+   "mimeType": "image/png",
+   "sha256": "aa",
+   "size": 12,
+   "scanned": true,
+   "quarantined": false,
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_attachments WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "att-1",
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "setAttachmentScan": {
+  "value": {
+   "id": "att-1",
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "recordId": "r1",
+   "fieldKey": "f",
+   "mimeType": "image/png",
+   "sha256": "aa",
+   "size": 12,
+   "scanned": true,
+   "quarantined": false,
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "UPDATE studio_app_attachments SET scanned = $1, quarantined = $2, updated_at = NOW() WHERE id = $3 AND app_id = $4 AND owner_user_id = $5 RETURNING *",
+    "params": [
+     true,
+     false,
+     "att-1",
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "setAttachmentScan.noop": {
+  "value": {
+   "id": "att-1",
+   "appId": "app-1",
+   "ownerUserId": "u1",
+   "recordId": "r1",
+   "fieldKey": "f",
+   "mimeType": "image/png",
+   "sha256": "aa",
+   "size": 12,
+   "scanned": true,
+   "quarantined": false,
+   "createdAt": "2026-01-01T00:00:00.000Z",
+   "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT * FROM studio_app_attachments WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "att-1",
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "deleteAttachment": {
+  "value": true,
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT id FROM studio_app_attachments WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "att-1",
+     "app-1",
+     "u1"
+    ]
+   },
+   {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_attachments WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "att-1",
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "deleteAttachment.foreign": {
+  "value": false,
+  "trace": [
+   {
+    "ch": "getOne",
+    "sql": "SELECT id FROM studio_app_attachments WHERE id = $1 AND app_id = $2 AND owner_user_id = $3",
+    "params": [
+     "att-1",
+     "app-1",
+     "u2"
+    ]
+   }
+  ]
+ },
+ "countAttachments": {
+  "value": 2,
+  "trace": [
+   {
+    "ch": "getAll",
+    "sql": "SELECT id FROM studio_app_attachments WHERE app_id = $1 AND owner_user_id = $2",
+    "params": [
+     "app-1",
+     "u1"
+    ]
+   }
+  ]
+ },
+ "countAttachmentsBySha": {
+  "value": 2,
+  "trace": [
+   {
+    "ch": "getAll",
+    "sql": "SELECT id FROM studio_app_attachments WHERE app_id = $1 AND owner_user_id = $2 AND sha256 = $3",
+    "params": [
+     "app-1",
+     "u1",
+     "aa"
+    ]
+   }
+  ]
+ },
+ "countAttachmentsBySha.empty": {
+  "value": 0,
+  "trace": []
+ }
+}

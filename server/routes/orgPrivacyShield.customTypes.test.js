@@ -13,7 +13,7 @@
  *     never asked);
  *   - `customDataTests` only for org admins of an org with the feature.
  *
- * A real router behind a real app (core/http/routeHarness.js); the database
+ * A real router behind a real app (testUtils/routeHarness.js); the database
  * is an in-memory `config` table behind the recorded pool.
  *
  * Run: cd server && node --test routes/orgPrivacyShield.customTypes.test.js
@@ -26,7 +26,7 @@ process.env.NODE_ENV = 'test';
 process.env.MASTER_ENCRYPTION_KEY ??= 'ci-master-encryption-key-for-tests-only!!';
 process.env.SESSION_SECRET ??= 'ci-session-secret-value-at-least-32-chars-long';
 
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 
 // ── an in-memory `config` table ─────────────────────────────────────────
 const table = new Map();

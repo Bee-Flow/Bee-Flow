@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from app.models import MAX_LABEL_CHARS, MAX_LABELS, MAX_TEXTS, ClassifyRequest
 from app.services.classifier import Scored
 

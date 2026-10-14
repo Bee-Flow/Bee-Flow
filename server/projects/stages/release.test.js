@@ -13,7 +13,7 @@ const assert = require('node:assert');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { makeBlueprintStore, applyBlueprintSchema } = require('../../stores/blueprintStore');
 const { makeSolutionStageStore, applySolutionStageSchema } = require('../../stores/solutionStageStore');
-const { buildManifest } = require('../packaging/manifest');
+const { buildManifest } = require('../../core/packaging/manifest');
 const { cutRelease, releaseVariables, connectionIdsOf } = require('./release');
 
 const { pg, db } = pgliteDb();

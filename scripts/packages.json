@@ -20,6 +20,7 @@
         { "dir": "e2e", "ecosystem": "npm", "role": "tooling", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": "nextcloud-connector", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": "hub-module-sdk", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "components", "ecosystem": "npm", "role": "tooling", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": "components/afas-customer-data", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": "components/email-sender-smtp", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": "components/get-date-time", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },

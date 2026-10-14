@@ -32,41 +32,9 @@
 const { test, before } = require('node:test');
 const assert = require('node:assert');
 
-const { PGlite } = require('@electric-sql/pglite');
-const pg = new PGlite();
-
-function adapt(res) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const rowCount = fields.length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, rowCount };
-}
-
-async function query(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adapt(await pg.query(sql, params));
-    if (/;\s*\S/.test(String(sql).trim())) return adapt(await pg.exec(sql));
-    return adapt(await pg.query(sql));
-}
-
-// De db-facade die de store ziet. Bewust ZONDER withTransaction, zodat
-// stores/lib/_ddl.js zijn sequentiële exec-variant pakt (pglite heeft één
-// verbinding en kan geen overlappende BEGIN/SAVEPOINT-reeksen aan).
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = {
-    id: dbPath,
-    filename: dbPath,
-    loaded: true,
-    exports: {
-        run: query,
-        exec: async (sql) => { await query(sql); },
-        getOne: async (sql, params) => (await query(sql, params)).rows[0] || null,
-        getAll: async (sql, params) => (await query(sql, params)).rows,
-        isSqlStateError: (err) => typeof err?.code === 'string' && /^[0-9A-Z]{5}$/.test(err.code),
-    },
-};
+// De echte db.js, met zijn pool beantwoord door één pglite-verbinding.
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { query } = usePglitePool();
 
 const store = require('./transcriptionStore');
 const { mergeRegeneratedActionItems, mergeRegeneratedNotes } = require('../core/meetingNotes/actionItems');

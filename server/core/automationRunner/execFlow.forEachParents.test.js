@@ -12,7 +12,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 const { execForEachStep } = require('./execFlow');
-const { walkPath } = require('../../automation/bind');
+const { walkPath } = require('../automationModel/bind');
 const { resolveForEachItems, walkWithTrail } = require('./forEachScope');
 const { parsePath } = require('../../automation/expr');
 

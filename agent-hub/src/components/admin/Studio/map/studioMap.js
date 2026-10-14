@@ -1,7 +1,7 @@
 import { countFor } from '../../../../hooks/useStudioCounts';
 import { cardChrome } from '../../../automation/Builder/flow/nodeTypeColors';
 import { cardRadius as kindCardRadius, kindColorVar } from '../../../shared/kindColors';
-import { STUDIO_CATEGORIES } from '../studioApps';
+import { STUDIO_CATEGORIES } from '../studioGates';
 import { studioAppForKind } from '../studioNav';
 
 /**

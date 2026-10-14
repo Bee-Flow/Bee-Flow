@@ -51,24 +51,13 @@ const { test, describe, before, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../testUtils/pglitePool');
 // `let`: the upgrade suite at the end swaps in a database with the OLD schema.
 let pg = new PGlite();
 
-function adapt(res) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const rowCount = fields.length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, rowCount };
-}
-
-async function query(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adapt(await pg.query(sql, params));
-    if (/;\s*\S/.test(String(sql).trim())) return adapt(await pg.exec(sql));
-    return adapt(await pg.query(sql));
-}
+// node-postgres's `query(sql, params)` over the current `pg` (read per call:
+// the upgrade suite swaps it).
+const query = (sql, params) => pgliteQuery(pg)(sql, params);
 
 const runCalls = [];
 

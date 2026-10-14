@@ -24,7 +24,7 @@
  * login stays Community via `nextcloud_oauth`) and the rest of the
  * Studio-class capabilities (voice chat,
  * webpages, automations, scheduled agent runs, meeting notes, ticket assistant,
- * notebooks, component designer, projects) on top, plus the advanced
+ * notebooks, projects) on top, plus the advanced
  * Privacy Shield modes (tokenize PII, web-search guard), the non-overview
  * Usage & Monitoring tabs, and compliance / SSO / audit / themes / swarm
  * / analytics — and beta features in general are an enterprise+ benefit
@@ -143,7 +143,6 @@ const TIER_FEATURES = {
         'voice_chat',
         'webpages',
         'meeting_notes',
-        'component_designer',
         'notebooks',
         'projects',
         'security_scan',

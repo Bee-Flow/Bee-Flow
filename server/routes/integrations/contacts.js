@@ -8,6 +8,7 @@ const { executeContactsAction } = require('../../integrations/contactsTools');
 const { executeMsContactsAction } = require('../../integrations/msContactsTools');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -28,9 +29,6 @@ const { z } = require('../../utils/zod');
 //
 // The session gate stays AHEAD of the schema: an unauthenticated caller must
 // still read 401, not a 400 about its body.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const text = (what) => worded(`${what} must be text.`).nullish();
 

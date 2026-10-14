@@ -43,6 +43,7 @@ const platformModuleStore = require('../../stores/platformModuleStore');
 const { requireSuperAdmin } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -60,9 +61,6 @@ const { z, typeError } = require('../../utils/zod');
 // Two bodies stay OPEN on purpose and say so where they are registered:
 // `/sideload` carries raw package bytes, and `/:id/offline-grant` carries a
 // .bfgrant document that packageLoader verifies by signature.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

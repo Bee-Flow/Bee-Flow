@@ -24,6 +24,7 @@
 process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
+const { quietSse } = require('../testUtils/quietSse');
 const assert = require('node:assert');
 const Module = require('module');
 
@@ -64,7 +65,7 @@ const MOCKS = {
         getUsageSummary: async () => ({ total_estimated_cost: 0 }),
         logUsage: async () => {},
     },
-    '../core/http/sseHelpers': { startSseHeartbeat: () => () => {} },
+    '../core/http/sseHelpers': quietSse(),
     './publicShareBridgeRateLimits': { publicAiLimiter: pass, publicIpLimiter: pass },
 };
 

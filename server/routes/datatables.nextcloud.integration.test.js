@@ -21,23 +21,8 @@ const path = require('node:path');
 const Module = require('node:module');
 
 const SERVER = path.resolve(__dirname, '..');
-const { PGlite } = require('@electric-sql/pglite');
-const pg = new PGlite();
-
-function adaptResult(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
-    const rowCount = fields.length > 0 ? rows.length : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, fields, rowCount, command };
-}
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adaptResult(await pg.exec(sql), sql);
-    return adaptResult(await pg.query(sql), sql);
-}
-const client = { query: (sql, params) => rawQuery(sql, params), release: () => {} };
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { pg, query: rawQuery, close: closePg } = usePglitePool();
 
 function mock(absId, exports) {
     const p = require.resolve(absId);
@@ -46,28 +31,6 @@ function mock(absId, exports) {
     m.loaded = true;
     require.cache[p] = m;
 }
-
-mock(path.join(SERVER, 'db.js'), {
-    pool: { query: rawQuery, connect: async () => client },
-    run: rawQuery,
-    getOne: async (sql, params) => (await rawQuery(sql, params)).rows[0] || null,
-    getAll: async (sql, params) => (await rawQuery(sql, params)).rows,
-    exec: (sql) => rawQuery(sql, []),
-    getClient: async () => client,
-    withTransaction: async (fn) => {
-        await client.query('BEGIN');
-        try { const out = await fn(client); await client.query('COMMIT'); return out; } catch (e) { try { await client.query('ROLLBACK'); } catch { /* */ } throw e; }
-    },
-    makeStoreInit: (tag, schemaFn) => {
-        let promise = null;
-        return function ensureInit() {
-            if (!promise) promise = Promise.resolve().then(schemaFn).catch((err) => { promise = null; throw err; });
-            return promise;
-        };
-    },
-    getRedis: () => null, redisHealthy: () => false,
-    isSqlStateError: (e) => typeof e?.code === 'string' && /^[0-9A-Z]{5}$/.test(e.code),
-});
 
 const ORG = 'org-nc-a';
 const OWNER = 'u-linker';
@@ -194,7 +157,7 @@ before(async () => {
     ncTable(6, 'Leveranciers', [{ id: 20, title: 'Naam', type: 'text', subtype: 'line' }, { id: 21, title: 'Stad', type: 'text', subtype: 'line' }]);
     ncAddRow(6, { 20: 'Acme', 21: 'Delft' });
 });
-after(async () => { await pg.close(); });
+after(closePg);
 
 test('GET /nextcloud/linkable lists the tables the caller can see', async () => {
     const res = await call('get', '/nextcloud/linkable', as(OWNER));

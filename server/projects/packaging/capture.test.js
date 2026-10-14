@@ -133,7 +133,7 @@ require.cache[projectStorePath] = {
 };
 
 const { captureSolution } = require('./capture');
-const { sanitizeManifest } = require('./manifest');
+const { sanitizeManifest } = require('../../core/packaging/manifest');
 
 const PROJECT = { id: 'p1', name: 'Onboarding', description: 'How we onboard', icon: '📁', color: '#fff', customInstructions: 'be brief' };
 

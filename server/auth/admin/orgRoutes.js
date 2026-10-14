@@ -17,6 +17,7 @@ const { requireAuth, requireSuperAdmin, getUserPermissions, resolveUserOrgIds } 
 const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const freeEmailDomains = require('../../utils/freeEmailDomains');
 const { requireOrgAdmin } = require('./orgAdminGuards');
 const { HttpError } = require('../../core/http/errors');
@@ -34,9 +35,6 @@ const ORG_UPDATE_FIELDS = Object.freeze([
     'autoApproveSSO', 'allowedDomains', 'usagePooled',
 ]);
 const ORG_UPDATE_ALLOWED_KEYS = new Set(ORG_UPDATE_FIELDS);
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const ORG_NAME_TEXT = 'Organization name required';
 const text = (max) => worded('That field must be text.').max(max, `That field is at most ${max} characters.`);

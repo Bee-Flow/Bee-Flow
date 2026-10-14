@@ -4,7 +4,7 @@
  * parse_json (deterministic paths mode + opt-in AI extraction).
  */
 
-const { resolveValue, resolveInputs } = require('../../automation/bind');
+const { resolveValue, resolveInputs } = require('../automationModel/bind');
 const { evaluate, parseExpr } = require('../../automation/expr');
 const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
@@ -281,7 +281,7 @@ const MAX_PARSE_JSON_FIELDS = 50;
  * builder pre-fills sourceRef, making this a rare authoring-error path.
  */
 function resolveParseJsonSource(step, ctx, runState) {
-    const bind = require('../../automation/bind');
+    const bind = require('../automationModel/bind');
     if (typeof step.sourceRef === 'string' && step.sourceRef.trim()) {
         return bind.walkPath(step.sourceRef.trim(), { ...runState, secrets: {} });
     }
@@ -363,7 +363,7 @@ function normaliseParseJsonFields(step) {
 
 /** Apply fallback semantics: missing → fallback if declared, else null. */
 function parseJsonFieldValue(field, value) {
-    const { cloneLiteral } = require('../../automation/bind');
+    const { cloneLiteral } = require('../automationModel/bind');
     if (value !== undefined) return value;
     return field.fallback !== undefined ? cloneLiteral(field.fallback) : null;
 }
@@ -374,7 +374,7 @@ function parseJsonFieldValue(field, value) {
  * value belonged to — the whole point of grouped mode.
  */
 function resolveParseJsonItems(itemsRef, parsed) {
-    const { walkRelativePath } = require('../../automation/bind');
+    const { walkRelativePath } = require('../automationModel/bind');
     const arr = walkRelativePath(itemsRef, parsed);
     if (!Array.isArray(arr)) {
         const got = arr === undefined ? 'nothing' : (arr === null ? 'null' : typeof arr);
@@ -385,7 +385,7 @@ function resolveParseJsonItems(itemsRef, parsed) {
 
 /** Extract one row: every field path resolved relative to a single item. */
 function buildParseJsonRow(fields, item) {
-    const { walkRelativePath } = require('../../automation/bind');
+    const { walkRelativePath } = require('../automationModel/bind');
     const row = {};
     for (const f of fields) {
         row[f.name] = parseJsonFieldValue(f, walkRelativePath(f.path, item));
@@ -473,7 +473,7 @@ async function execParseJson(step, ctx, runState, mode) {
     const itemsRef = typeof step.itemsRef === 'string' ? step.itemsRef.trim() : '';
 
     if (!aiMode) {
-        const { walkRelativePath } = require('../../automation/bind');
+        const { walkRelativePath } = require('../automationModel/bind');
         if (itemsRef) {
             const arr = resolveParseJsonItems(itemsRef, parsed);
             const items = arr.slice(0, COLLECTION_OP_MAX_ITEMS).map(item => buildParseJsonRow(fields, item));

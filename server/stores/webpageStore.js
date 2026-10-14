@@ -56,7 +56,7 @@ const {
     getBridgeGrants, updateBridgeGrants, upsertBridgeGrantEntry,
     removeBridgeGrantEntry, checkGrant, normalizeBridgeGrants, assertWebpageWrite,
 } = require('./webpage/bridgeGrants');
-const managedParts = require('./lib/managedParts');
+const managedParts = require('./managedPartsDefault');
 const log = require('../telemetry/log');
 
 /**

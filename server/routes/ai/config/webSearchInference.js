@@ -35,7 +35,7 @@ const {
     readEmbedSummary,
     resolveInferenceTargets,
     DEFAULTS: WEB_SEARCH_INFERENCE_DEFAULTS,
-} = require('../../../core/webSearchInferenceResolver');
+} = require('../../../core/llm/webSearchInferenceResolver');
 
 async function requireAdmin(req, res, next) {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });

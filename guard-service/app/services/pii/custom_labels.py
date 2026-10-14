@@ -61,7 +61,7 @@ class _CustomSpec:
     @classmethod
     def from_request(
         cls, custom_labels: list[dict] | None, confidence_threshold: float
-    ) -> "_CustomSpec | None":
+    ) -> _CustomSpec | None:
         """``None`` for an absent or EMPTY list: an empty list is no request
         for custom labels, and must behave (and key, and fingerprint) exactly
         like a caller that predates them."""
@@ -74,7 +74,7 @@ class _CustomSpec:
         return cls(tuple(labels), float(confidence_threshold))
 
     @classmethod
-    def for_probe(cls, label_set: dict[str, str]) -> "_CustomSpec":
+    def for_probe(cls, label_set: dict[str, str]) -> _CustomSpec:
         """A spec for raw candidates: every floor at the query floor."""
         return cls(tuple(sorted((i, p, _ABSOLUTE_FLOOR) for i, p in label_set.items())))
 

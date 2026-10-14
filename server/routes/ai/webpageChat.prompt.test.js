@@ -39,7 +39,13 @@ const path = require('node:path');
 
 const bf = require('../../core/webpages/bfElements');
 
-const SOURCE = fs.readFileSync(path.join(__dirname, 'webpageChat.js'), 'utf8');
+// The prompt text lives in webpageChat/systemPrompt.js since the route was
+// split; the "no second list" rule covers the route and every step of it.
+const SOURCE = fs.readFileSync(path.join(__dirname, 'webpageChat', 'systemPrompt.js'), 'utf8');
+const ROUTE_FILES = ['webpageChat.js', ...fs.readdirSync(path.join(__dirname, 'webpageChat'))
+    .filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))
+    .map(f => path.join('webpageChat', f))];
+const ROUTE_SOURCE = ROUTE_FILES.map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
 
 /** Het EDITING TOOLS-hoofdstuk van de systeemprompt, als tekst. */
 function editingToolsSection() {
@@ -72,7 +78,7 @@ test('BITE — de lijst is AFGELEID uit de registry, niet met de hand geschreven
         'BF_ELEMENTS_PROMPT hoort uit vocabularyPromptLines() te komen');
     // Bewust brontekst, zoals de bestandskop uitlegt: require() hier tuigt de
     // hele routestack en databankverbindingen op.
-    assert.match(SOURCE, /require\('\.\.\/\.\.\/core\/webpages\/bfElements'\)/);
+    assert.match(SOURCE, /require\('\.\.\/\.\.\/\.\.\/core\/webpages\/bfElements'\)/);
 
     // En de afleiding levert werkelijk elk element op, met de inertie erbij:
     // zonder dat zou het model een knop voorstellen en zou de auteur pas na
@@ -88,13 +94,14 @@ test('BITE — de lijst is AFGELEID uit de registry, niet met de hand geschreven
     assert.ok(bf.tagsNeedingJs().length >= 3, 'sanity: er zijn elementen die JS nodig hebben');
 });
 
-test('geen tweede lijst — webpageChat.js schrijft zelf geen tagnaam op', () => {
+test('geen tweede lijst — webpageChat.js en zijn stappen schrijven zelf geen tagnaam op', () => {
     // Dezelfde regel als in bfElements.drift.test.js, hier expliciet voor de
     // plek waar hij het makkelijkst wordt overtreden: proza nodigt uit om even
     // een voorbeeld uit te schrijven, en dat voorbeeld veroudert.
     const tagWord = new RegExp(`(?<![-\\w])(?:${bf.BF_TAGS.join('|')})(?![-\\w])`, 'g');
     // Bewust brontekst: "geen tweede letterlijke lijst" is een eigenschap van
     // de tekst zelf, niet van gedrag dat je door aanroepen kunt waarnemen.
-    assert.deepStrictEqual(SOURCE.match(tagWord) || [], [],
-        'routes/ai/webpageChat.js noemt een bf-element met de hand; die naam kan achterlopen op de registry');
+    assert.ok(ROUTE_FILES.length >= 2, 'sanity: de stappen in webpageChat/ zijn gevonden');
+    assert.deepStrictEqual(ROUTE_SOURCE.match(tagWord) || [], [],
+        'routes/ai/webpageChat.js (of een stap in webpageChat/) noemt een bf-element met de hand; die naam kan achterlopen op de registry');
 });

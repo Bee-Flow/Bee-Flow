@@ -5,7 +5,7 @@
  */
 
 const { classifyUnknownError } = require('../automationErrors');
-const { resolveInputs } = require('../../automation/bind');
+const { resolveInputs } = require('../automationModel/bind');
 const { MASK_VALUES } = require('./httpAuth');
 const {
     cloneRunValue, MAX_LAYER_DEPTH, LOOP_ROOT_ID, PARALLEL_ROOT_ID,
@@ -85,7 +85,7 @@ async function execParallel(step, ctx, runState, mode, dispatchSubStep) {
 }
 
 async function execLoop(step, ctx, runState, mode, dispatchSubStep) {
-    const resolved = require('../../automation/bind').walkList(step.overRef, runState);
+    const resolved = require('../automationModel/bind').walkList(step.overRef, runState);
     if (!Array.isArray(resolved)) {
         // Top-level skippedReason → runDag records the row as 'skipped', not
         // a green success (A10). An UNRESOLVED source is not the same thing
@@ -223,7 +223,7 @@ const PARALLEL_READ_TOOLS = new Map([['gmail_read', 5], ['gmail_read_attachment'
 
 async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel = null) {
     const fe = step.forEach || {};
-    const list = require('../../automation/bind').walkList(fe.overRef, runState);
+    const list = require('../automationModel/bind').walkList(fe.overRef, runState);
     if (!Array.isArray(list)) {
         // Top-level skippedReason → recorded as 'skipped', not success (A10).
         // The message names the binding and the remedy (BFSF-370) — a bare

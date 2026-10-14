@@ -10,6 +10,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const path = require('path');
 const transcriptionStore = require('../../stores/transcriptionStore');
@@ -417,7 +418,16 @@ router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, 
         res.json(out);
     } catch (err) {
         log.error('[Transcriptions] from-nextcloud failed:', err.message);
-        res.status(err.status || 500).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
+        // The ingest pipeline classifies what the caller should hear as an
+        // IngestError (status, code, sentence), and so does anything that set a
+        // 4xx. Everything else — a database or filesystem failure — used to echo
+        // its own text to the client; it now gets the terminal handler's generic
+        // 500 with a correlationId.
+        const status = Number(err?.status) || 0;
+        if (err?.expose !== true && (err?.name === 'IngestError' || (status >= 400 && status < 500))) {
+            throw new HttpError(status || 500, typeof err.code === 'string' ? err.code : undefined, err.message);
+        }
+        throw err;
     }
 });
 

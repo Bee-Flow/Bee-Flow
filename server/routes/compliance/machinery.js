@@ -27,6 +27,7 @@ const { requireCapability } = require('../../core/entitlements/entitlements');
 const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_machinery')];
 
@@ -36,9 +37,6 @@ const CLASSIFICATIONS = Object.freeze(['safety_component', 'monitoring_only', 'n
 // outcome; the check derives pass/warn/na from the classification marker.
 const SUBJECT_RE = /^[a-z0-9_-]{1,40}:[A-Za-z0-9._:@-]{1,160}$/;
 const VALID_MONTHS = 12;
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** An uploaded evidence file, by its id or its hash — never a bare string. */
 const evidenceRef = z.object({

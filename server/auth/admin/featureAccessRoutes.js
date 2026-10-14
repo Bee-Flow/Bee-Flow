@@ -15,13 +15,11 @@ const userStore = require('../../stores/userStore');
 const { nextBetaEveryone, nextEveryoneRevoked } = require('./orgAccessCarryOver');
 const { requireAuth, requireAdmin, getUserPermissions, resolveUserOrgIds, invalidateAllPermissionCaches, GROUP_GRANT_IMPLIED_PERMISSIONS } = require('../permissions');
 const { requireOrgAdmin } = require('./orgAdminGuards');
-const configStore = require('../../stores/configStore');
+const { resolveOrgAllowList } = require('../../core/integrations/enabledIntegrations');
 const { ALL_INTEGRATIONS } = require('./integrationCatalog');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 /**
  * Each of these routes is a list of ids the caller wants switched on, and every
@@ -170,12 +168,14 @@ const { NC_INTEGRATION_ID_SET: NC_ID_SET } = (() => {
     catch (_) { return { NC_INTEGRATION_ID_SET: new Set() }; }
 })();
 
-function parseAllowedIntegrations(raw) {
-    if (raw === null || raw === undefined) return [];
-    if (Array.isArray(raw)) return raw;
-    try { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; }
-    catch (_) { return []; }
-}
+// The org-admin screens read the super-admin allow-list their own way: the org
+// column overrides whenever it is set (even ''), a bad value reads as [], and
+// nothing configured anywhere means the whole catalogue.
+const ORG_ADMIN_ALLOW_LIST = Object.freeze({
+    overrideWhen: 'present',
+    parse: 'lenient',
+    get whenUnset() { return ALL_INTEGRATIONS.map(i => i.id); },
+});
 
 router.get('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId'), async (req, res) => {
     const { orgId } = req.params;
@@ -184,14 +184,7 @@ router.get('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId')
     // Allow-list is the super-admin's enabledIntegrations minus NC IDs
     // (NC is managed by its dedicated panel). null = all enabled, which
     // we materialise via the global default list at request time.
-    let allowed;
-    const raw = org.enabledIntegrations;
-    if (raw === null || raw === undefined) {
-        const globalDefaults = await configStore.getConfig('default_org_integrations');
-        allowed = globalDefaults ? parseAllowedIntegrations(globalDefaults) : ALL_INTEGRATIONS.map(i => i.id);
-    } else {
-        allowed = parseAllowedIntegrations(raw);
-    }
+    let allowed = await resolveOrgAllowList(org, ORG_ADMIN_ALLOW_LIST);
     allowed = allowed.filter(id => !NC_ID_SET.has(id));
     const enabled = await userStore.getOrgEnabledIntegrations(orgId);
     res.json({ allowed, enabled });
@@ -202,14 +195,7 @@ router.put('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId')
     const { enabled } = req.body;
     const org = await userStore.getOrganization(orgId);
     if (!org) return res.status(404).json({ error: 'Organization not found' });
-    let allowed;
-    const raw = org.enabledIntegrations;
-    if (raw === null || raw === undefined) {
-        const globalDefaults = await configStore.getConfig('default_org_integrations');
-        allowed = globalDefaults ? parseAllowedIntegrations(globalDefaults) : ALL_INTEGRATIONS.map(i => i.id);
-    } else {
-        allowed = parseAllowedIntegrations(raw);
-    }
+    let allowed = await resolveOrgAllowList(org, ORG_ADMIN_ALLOW_LIST);
     const allowedSet = new Set(allowed.filter(id => !NC_ID_SET.has(id)));
     // Intersect — drop anything not in the allow-list (incl. NC IDs).
     const clean = Array.from(new Set(enabled.filter(id => allowedSet.has(id))));
@@ -309,14 +295,7 @@ async function resolveActiveFeaturesContext(req) {
 
     // Integration allow-list = super admin's enabledIntegrations (or global
     // default if null), minus NC IDs (managed separately).
-    let allowedIntegrations;
-    const raw = org?.enabledIntegrations;
-    if (raw === null || raw === undefined) {
-        const globalDefaults = await configStore.getConfig('default_org_integrations');
-        allowedIntegrations = globalDefaults ? parseAllowedIntegrations(globalDefaults) : ALL_INTEGRATIONS.map(i => i.id);
-    } else {
-        allowedIntegrations = parseAllowedIntegrations(raw);
-    }
+    let allowedIntegrations = await resolveOrgAllowList(org, ORG_ADMIN_ALLOW_LIST);
     allowedIntegrations = allowedIntegrations.filter(id => !NC_ID_SET.has(id));
     const enabledIntegrations = await userStore.getOrgEnabledIntegrations(orgId);
 

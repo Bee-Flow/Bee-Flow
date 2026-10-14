@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.config import Settings, effective_api_key
+from fastapi.testclient import TestClient
 
 BODY = {"texts": ["x"], "labels": ["a"]}
 

@@ -60,9 +60,9 @@ const MOCKS = {
         getKB: async (id) => KBS[id] || null,
         canUserAccessKB: realStore.canUserAccessKB,
     },
-    // askerContext resolves group membership through the auth barrel; the real
+    // askerContext resolves group membership through auth/audience; the real
     // one reads the database.
-    '../../auth': {
+    '../../auth/audience': {
         resolveUserGroups: async (id) => (id === USER.id && Array.isArray(USER.groups) ? USER.groups : []),
     },
 };
@@ -79,7 +79,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
     if (parent && /(kbVisibility|askerContext)\.js$/.test(parent.filename)) {
         if (request === '../../stores/knowledgeBases') return IDS['../../stores/knowledgeBases'];
         if (request === '../../stores/userStore') return IDS['../../stores/userStore'];
-        if (request === '../../auth') return IDS['../../auth'];
+        if (request === '../../auth/audience') return IDS['../../auth/audience'];
     }
     return originalResolve.call(this, request, parent, ...rest);
 };
@@ -337,6 +337,12 @@ test('the simulation never reaches a decision about rights, connections or entit
         ['../../auth/datatableAccess.js', 'datatable grades'],
         ['../../automation/agentCallableTools.js', 'who owns an automation'],
         ['../../auth/permissions.js', 'permissions and org membership'],
+        ['../../auth/permissionsCatalog.js', 'permissions and org membership'],
+        ['../../auth/permissionsCache.js', 'permissions and org membership'],
+        ['../../auth/permissionsRequireAuth.js', 'permissions and org membership'],
+        ['../../auth/permissionsResolve.js', 'permissions and org membership'],
+        ['../../auth/permissionsOrgGates.js', 'permissions and org membership'],
+        ['../../auth/permissionsStudioScope.js', 'permissions and org membership'],
     ];
     for (const [rel, why] of FORBIDDEN) {
         assert.doesNotMatch(readAll(rel), /testAs/, `${rel} decides ${why} — a simulated group has no business there`);

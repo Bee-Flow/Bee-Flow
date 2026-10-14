@@ -149,7 +149,11 @@ const hdrs = { 'x-test-user': 'u1', 'x-test-org': 'orgA', 'content-type': 'appli
 const get = () => fetch(`${baseUrl}/api/compliance/frameworks`, { headers: hdrs });
 const post = (p, body) => fetch(`${baseUrl}/api/compliance/frameworks${p}`, { method: 'POST', headers: hdrs, body: body ? JSON.stringify(body) : undefined });
 
-test('GET: all ten built-ins, locked ones returned locked (never hidden), scores only for active frameworks', async () => {
+test('GET: all ten built-ins, locked ones returned locked (never hidden), scores only for active frameworks', async (t) => {
+    // The route reads Date.now() for recently_in_force; pin it to the fixture
+    // clock (NIS2 in force 2026-08-15, 30 days before NOW) so the assertion
+    // below does not expire with the calendar.
+    t.mock.timers.enable({ apis: ['Date'], now: NOW });
     const res = await get();
     assert.equal(res.status, 200);
     assert.equal(res.headers.get('cache-control'), 'private, no-store');

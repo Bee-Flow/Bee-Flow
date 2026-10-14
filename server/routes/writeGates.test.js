@@ -64,7 +64,9 @@ function middlewareFor(source, verb, routePath) {
 }
 
 // ── App Studio: who may BUILD, as opposed to use ─────────────────────
-const APPS = 'routes/studioApps.js';
+// A folder since the router was split per resource group (routes/studioApps.js
+// only mounts the parts); readRouter reads every part.
+const APPS = 'routes/studioApps';
 
 const APP_WRITE_ROUTES = [
     ['post', '/'],
@@ -81,7 +83,7 @@ const APP_WRITE_ROUTES = [
 ];
 
 test('every App Studio write and publish route requires manage_apps', () => {
-    const src = read(APPS);
+    const src = readRouter(APPS);
     for (const [verb, routePath] of APP_WRITE_ROUTES) {
         const mw = middlewareFor(src, verb, routePath);
         assert.ok(mw !== null, `route ${verb.toUpperCase()} ${routePath} not found — did it move?`);
@@ -121,7 +123,7 @@ test('every Playbooks write route requires manage_apps', () => {
 test('manage_apps is enforced somewhere, not only registered', () => {
     // The finding in one line: the permission existed in the catalogue and had
     // no enforcement site at all.
-    const src = read(APPS);
+    const src = readRouter(APPS);
     assert.match(
         src,
         /requirePermission\('manage_apps'\)/,
@@ -159,7 +161,7 @@ test('the org role policy actually grants manage_apps, to the authoring roles an
 test('reading and running an app stay on the capability', () => {
     // Using what somebody else built is the ordinary case. Gating reads on
     // manage_apps would lock every member out of the apps made for them.
-    const src = read(APPS);
+    const src = readRouter(APPS);
     for (const [verb, routePath] of [['get', '/'], ['get', '/mine'], ['get', '/:id'], ['get', '/:id/runtime']]) {
         const mw = middlewareFor(src, verb, routePath);
         assert.ok(mw !== null, `route ${verb.toUpperCase()} ${routePath} not found`);

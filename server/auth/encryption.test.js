@@ -57,6 +57,19 @@ async function runTests() {
 
     console.log('\n🔐 Encryption Module Tests\n');
 
+    // === Export surface (pinned when the module was split behind this barrel) ===
+    console.log('--- Export surface ---');
+
+    await test('exports exactly the same keys in the same order (deriveKEK under NODE_ENV=test)', async () => {
+        assert.deepStrictEqual(Object.keys(encryption), [
+            'createUserDEK', 'unlockUserDEK', 'unlockWithRecoveryKey', 'rewrapUserDEK', 'rotateRecoveryKey',
+            'adminResetUser', 'setupSSOUserDEK', 'unlockSSOUserDEK', 'getOrCreateUserDEKCompat',
+            'getOrCreateSSOUserDEKCompat', 'rewrapUserDEKCompat', 'getFallbackEncryptionKey', 'secureClear',
+            'formatRecoveryKey', 'parseRecoveryKey', 'dekFingerprint', 'validateEncryptionPin',
+            'MIN_ENCRYPTION_PIN_LENGTH', 'wrapDEK', 'unwrapDEK', 'envelopeEncoding', 'deriveKEK',
+        ]);
+    });
+
     // === Core Crypto Tests ===
     console.log('--- Core Crypto ---');
 

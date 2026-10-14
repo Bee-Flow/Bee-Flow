@@ -27,7 +27,7 @@ const { usePglitePool } = require('../testUtils/pglitePool');
 const { makeSwaps } = require('../testUtils/swaps');
 
 const { pg, close } = usePglitePool();
-const h = require('../core/http/routeHarness');
+const h = require('../testUtils/routeHarness');
 const projectRole = require('../stores/lib/projectRole');
 const store = require('../stores/notebookStore');
 const { makeNotebookVersionsRouter } = require('./notebooksVersions');

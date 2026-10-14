@@ -37,7 +37,7 @@ const {
     MAX_APPROVAL_STAGES, MAX_SEATS_PER_STAGE, MAX_TOTAL_SEATS,
     MAX_STAGE_NAME_LEN, MAX_STAGE_DESCRIPTION_LEN, STAGE_RULES,
     desugarApprovalStages, activeStages,
-} = require('../../automation/approvalStages');
+} = require('../../core/automationModel/approvalStages');
 
 const { seed, dataModel, definition } = template;
 

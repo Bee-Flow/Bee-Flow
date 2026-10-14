@@ -21,6 +21,7 @@
 
 const express = require('express');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
@@ -41,7 +42,6 @@ const connectLimit = perUserRateLimit({ windowMs: 60_000, max: 12, name: 'mcp-li
 
 // ── Schemas ─────────────────────────────────────────────────────────
 
-const worded = (message) => z.string({ error: message });
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const CATALOG_ID = worded('catalogId is a library id.').regex(/^[a-z0-9_]{2,40}$/, 'catalogId is a library id.');

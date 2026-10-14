@@ -20,9 +20,10 @@
  * organizer's job `preferred` so it is claimed ahead of attendees').
  */
 
-const { run, getOne, getAll, exec, getClient } = require('../db');
+const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
+const { makeLeasedJobQueue } = require('./lib/leasedJobs');
 const log = require('../telemetry/log');
 
 const initDB = makeStoreInit('GmeetImportStore', _initDB);
@@ -127,42 +128,13 @@ async function seedJob({ userId, orgId = null, calendarEventId = null, icalUid =
  * The claim pushes next_attempt_at 10 minutes ahead as a lease — a crashed
  * worker's jobs become reclaimable instead of being lost.
  */
-async function claimDueJobs(limit = 2) {
-    await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
-        const sel = await client.query(
-            `SELECT id FROM gmeet_import_jobs
-             WHERE status IN ('pending', 'awaiting_artifacts')
-               AND next_attempt_at <= NOW()
-             ORDER BY preferred DESC, next_attempt_at ASC
-             LIMIT $1
-             FOR UPDATE SKIP LOCKED`,
-            [limit],
-        );
-        if (sel.rows.length === 0) {
-            await client.query('COMMIT');
-            return [];
-        }
-        const ids = sel.rows.map(r => r.id);
-        const upd = await client.query(
-            `UPDATE gmeet_import_jobs
-                SET next_attempt_at = NOW() + INTERVAL '10 minutes',
-                    updated_at = NOW()
-              WHERE id = ANY($1::uuid[])
-              RETURNING *`,
-            [ids],
-        );
-        await client.query('COMMIT');
-        return upd.rows.map(mapJob);
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
-}
+const leased = makeLeasedJobQueue({
+    table: 'gmeet_import_jobs',
+    orderBy: 'preferred DESC, next_attempt_at ASC',
+    mapRow: (r) => mapJob(r),
+    initDB,
+});
+const claimDueJobs = leased.claimDueJobs;
 
 /**
  * Extend a running job's lease.
@@ -181,17 +153,7 @@ async function claimDueJobs(limit = 2) {
  *
  * @returns {Promise<boolean>} false when the job no longer exists.
  */
-async function heartbeatJob(id, minutes = 10) {
-    await initDB();
-    const { rowCount } = await run(
-        `UPDATE gmeet_import_jobs
-            SET next_attempt_at = NOW() + ($2::int * INTERVAL '1 minute'),
-                updated_at = NOW()
-          WHERE id = $1`,
-        [id, minutes],
-    );
-    return rowCount > 0;
-}
+const heartbeatJob = leased.heartbeatJob;
 
 /**
  * Record the resolved space/conference for a job. Returns the updated job,
@@ -317,34 +279,7 @@ async function completeJob(id, transcriptionId) {
  * `status` is passed, restores — the claimable status
  * ('pending' | 'awaiting_artifacts').
  */
-async function failJob(id, { errorCode = null, lastError = null, terminal = false, backoffMs = 0, status = null } = {}) {
-    await initDB();
-    if (terminal) {
-        const { rowCount } = await run(
-            `UPDATE gmeet_import_jobs
-                SET attempts = attempts + 1,
-                    status = $2,
-                    error_code = $3,
-                    last_error = $4,
-                    updated_at = NOW()
-              WHERE id = $1`,
-            [id, errorCode || 'failed', errorCode, lastError],
-        );
-        return rowCount > 0;
-    }
-    const { rowCount } = await run(
-        `UPDATE gmeet_import_jobs
-            SET attempts = attempts + 1,
-                status = COALESCE($2, status),
-                error_code = $3,
-                last_error = $4,
-                next_attempt_at = NOW() + ($5 * INTERVAL '1 millisecond'),
-                updated_at = NOW()
-          WHERE id = $1`,
-        [id, status, errorCode, lastError, backoffMs],
-    );
-    return rowCount > 0;
-}
+const failJob = leased.failJob;
 
 /**
  * Park a job until the user re-authorizes Google. Parked jobs are excluded

@@ -40,84 +40,27 @@ const router = express.Router();
 
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
-const { invalidateTenantKeyCache } = require('./connectorJwt');
-const planEntitlements = require('../services/planEntitlements');
-const orgHealth = require('../services/orgHealth');
+const { orgHealth } = require('./connector/serviceDeps');
 const { sendNcVerificationCodeEmail } = require('../utils/emailService');
-const { buildAutoOrgName, ncHostFromUrl } = require('./orgNaming');
 const { isFreeEmailDomain, getEffectiveFreeEmailDomains } = require('../utils/freeEmailDomains');
-const { NC_INTEGRATION_IDS } = require('../utils/ncIntegrationCatalog');
-
-// Auto-apply the operator-flagged "Nextcloud recommended" plan to freshly
-// provisioned or freshly-adopted NC orgs so they get enterprise-equivalent
-// entitlements (Webpages, Meeting Notes, Automations, …) without manual
-// intervention. Without this the org defaults to the community tier and the
-// admin lands on a stripped-down SPA on their first visit. Best-effort — a
-// failure logs and continues; the org is still usable on the community
-// fallback.
-async function applyNcDefaultPlanIfConfigured(orgId, source) {
-    try {
-        const plan = await userStore.getDefaultNcPlan();
-        let planId = plan?.id || null;
-        let fallback = false;
-        if (!planId) {
-            // No NC-recommended plan configured. If the org already has a
-            // subscription row (createOrganization pre-assigns the `is_default`
-            // plan since BFSF-226, or an admin picked one), leave it alone.
-            const existing = await userStore.getOrgSubscription(orgId);
-            if (existing) {
-                log.info(`[ConnectorBootstrap] no NC-recommended plan configured; org ${orgId} keeps existing subscription plan=${existing.plan_id} (source=${source})`);
-                return;
-            }
-            // Fallback: the operator's default org plan — plan defaults only, no
-            // entitlements reset (applyPlanToOrg stays NC-plan-only). This closes
-            // the gap where adopted/pre-BFSF-226 orgs ended up with NO
-            // subscription row and every chat 403'd on cloud.
-            planId = await userStore.getDefaultOrgPlanId();
-            fallback = true;
-            if (!planId) {
-                log.info(`[ConnectorBootstrap] no NC-recommended plan configured; org ${orgId} will use community fallback (source=${source})`);
-                orgHealth.problem('bootstrap.community_fallback', {
-                    orgId, source: 'connectorBootstrap',
-                    meta: { source, reason: 'no_nc_recommended_plan_and_no_default' },
-                });
-                return;
-            }
-        }
-        // Make it the org's ACTIVE subscription — createOrganization pre-assigns
-        // the `is_default` plan, so without this the org would keep that plan and
-        // only inherit this plan's integrations/features. setOrgSubscription
-        // upserts the organization_subscriptions row so billing/limits read the
-        // NC plan. Then applyPlanToOrg syncs the enabled integrations/features
-        // (nc_recommended case only — the fallback path applies plan defaults
-        // without touching hand-configured org integrations).
-        await userStore.setOrgSubscription(orgId, { plan_id: planId, status: 'active' });
-        if (!fallback) {
-            await planEntitlements.applyPlanToOrg(orgId, planId, { mode: 'reset' });
-        }
-        log.info(`[ConnectorBootstrap] Applied ${fallback ? 'default org' : 'NC default'} plan ${planId}${plan?.name ? ` (${plan.name})` : ''} as active subscription for org ${orgId} (source=${source})`);
-        // Audit trail (best-effort; logAccessAudit never throws) — metadata only.
-        await userStore.logAccessAudit('nc_default_plan_applied', 'organization', orgId,
-            'system:connector_bootstrap', null, { plan_id: planId, source, fallback }, orgId);
-        orgHealth.event('bootstrap.plan_applied', { orgId, meta: { planId, fallback } });
-        orgHealth.resolve(orgId, ['bootstrap.community_fallback', 'chat.subscription_blocked']);
-    } catch (err) {
-        log.warn(`[ConnectorBootstrap] failed to apply NC default plan to org ${orgId}: ${err.message}`);
-        orgHealth.problem('bootstrap.plan_apply_failed', {
-            orgId, source: 'connectorBootstrap', meta: { source, error: err },
-        });
-    }
-}
-
-const TENANT_KEY_PREFIX = 'connector_tenant_key_';
-const PENDING_TTL_SECONDS = 1800;
-const MAX_VERIFICATIONS_PER_ORG = 5;
-
-// Free/public email providers are defined once in utils/freeEmailDomains.js.
-// A shared domain there does NOT imply control of a Bee Flow org, so a
-// domain-only match against one never routes into adoption — only an exact
-// email match to an existing user does. Everything else (different free-provider
-// local-part, or no match) creates a fresh org.
+// The pieces this router is built from (split out of this file; `helpers` at
+// the bottom still exports every name it exported before).
+const {
+    TENANT_KEY_PREFIX,
+    PROVISIONING_MODES,
+    NC_INTEGRATIONS,
+    applyNcDefaultPlanIfConfigured,
+    defaultProvisioningMode,
+    resolveProvisioningMode,
+    getOrMintTenantKey,
+    ensureOrgAdminUser,
+    ensureAdditionalOrgAdmins,
+    _selectSecondaryAdmins,
+    bindOrgToNcInstance,
+} = require('./connector/provisioning');
+const { stableInstanceIdFallback, verifyNcInstance } = require('./connector/ncVerify');
+const { PENDING_TTL_SECONDS, generateVerificationCode, maskEmail } = require('./connector/verificationCode');
+const { NC_SUBJECT_PROBLEM_CODES, runBootstrapBranches } = require('./connector/bootstrapBranches');
 
 // Bootstrap is unauthenticated by design (the connector has no SaaS creds
 // at this point). Rate-limit per source IP so an attacker can't flood the
@@ -171,102 +114,6 @@ const verificationResendLimiter = rateLimit({
     validate: { trustProxy: false },
 });
 
-// ── Connector provisioning policy ──────────────────────────────────────────
-// Gate on the fresh-org branch: may an *unknown* Nextcloud (no existing bind,
-// no valid pairing code, no email-domain match) auto-create a brand-new org?
-// This is the control that stops "anyone who knows the server address can mint
-// an organisation on it". Resolution order: super-admin config key → env →
-// deployment default. Returning binds, pairing codes and email-domain adoption
-// are NOT affected by this — they have their own authorisation proof.
-//   - open:         fresh-org allowed (zero-touch one-click). Cloud default.
-//   - pairing_only: fresh-org refused (403 pairing_required). Self-host default.
-// Unknown/invalid values fail closed to pairing_only.
-const PROVISIONING_MODES = ['open', 'pairing_only'];
-
-// Hosts that are the official Bee Flow Cloud control plane. These default to
-// `open` so the App Store install stays zero-touch; every other deployment
-// (i.e. self-hosted) defaults to `pairing_only`.
-const CLOUD_PROVISIONING_HOSTS = new Set([
-    'server.beeflow.nl', 'server.dev.beeflow.nl',
-]);
-
-function defaultProvisioningMode() {
-    const host = String(process.env.SERVER_PUBLIC_HOST || '').trim().toLowerCase();
-    return CLOUD_PROVISIONING_HOSTS.has(host) ? 'open' : 'pairing_only';
-}
-
-// Resolve the effective provisioning mode. The DB-backed super-admin key wins
-// (an operator can flip it at runtime without a redeploy — same mechanism as
-// default_org_integrations), then the env override, then the deployment
-// default. Anything unrecognised fails closed.
-async function resolveProvisioningMode() {
-    let mode = await configStore.getConfig('connector_provisioning_mode').catch(() => null);
-    if (!mode) mode = (process.env.BEEFLOW_CONNECTOR_PROVISIONING || '').trim() || null;
-    if (!mode) mode = defaultProvisioningMode();
-    mode = String(mode).trim().toLowerCase();
-    if (!PROVISIONING_MODES.includes(mode)) {
-        log.warn(`[ConnectorBootstrap] unknown provisioning mode '${mode}' — failing closed to pairing_only`);
-        return 'pairing_only';
-    }
-    return mode;
-}
-
-// Stable fallback id for Nextclouds that expose neither theming.instanceid nor
-// core.instanceid. MUST stay byte-identical to the connector's copy in
-// nextcloud-connector/src/bootstrap.js so the id the connector sends in
-// X-Beeflow-NC-Instance-Id matches the value we re-derive here. Keyed on the NC
-// host (not the NC version) so it doesn't drift across upgrades and silently
-// re-provision a duplicate org.
-function stableInstanceIdFallback(ncBaseUrl, themingName) {
-    const host = ncHostFromUrl(ncBaseUrl);
-    if (host) return `nc-host:${host}`;
-    return `nc:${themingName || 'nextcloud'}`;
-}
-
-// All NC integrations Bee Flow ships with — auto-enabled on connector
-// bootstrap so the agent can immediately reach Files, Calendar, Mail, etc.
-// out-of-the-box without an org-admin having to flip toggles. The connector
-// proxy handles auth via AppAPI shared-secret + impersonation, so no
-// per-user app passwords are needed.
-// From the catalog, not a hand-maintained copy: the local list had drifted to
-// 10 of the 14 ids (mail, tables, forms and teams were missing), so a freshly
-// bootstrapped org silently started without them.
-const NC_INTEGRATIONS = NC_INTEGRATION_IDS.slice();
-
-function slugify(s) {
-    return String(s || 'nc')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 40) || 'nc';
-}
-
-// 6-digit numeric one-time code, zero-padded. crypto.randomInt is uniform.
-function generateVerificationCode() {
-    return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
-}
-
-// Mask an email for display in the connector / SPA without leaking the full
-// local-part: tomsmit@beeflow.nl → t•••t@beeflow.nl.
-function maskEmail(email) {
-    const [local = '', domain = ''] = String(email || '').split('@');
-    if (!domain) return '***';
-    const first = local.slice(0, 1) || '*';
-    const last = local.length > 1 ? local.slice(-1) : '';
-    return `${first}${'•'.repeat(3)}${last}@${domain}`;
-}
-
-// Problems recorded against the pre-org `nc:<instanceId>` subject. A
-// successful bind (fresh org, returning bind, pairing redeem, verified
-// adoption) resolves them so the fleet view self-heals.
-const NC_SUBJECT_PROBLEM_CODES = [
-    'bootstrap.verify_failed',
-    'bootstrap.pairing_required',
-    'bootstrap.pairing_code_invalid',
-    'bootstrap.org_create_failed',
-    'bootstrap.admin_email_conflict',
-];
-
 function readBootstrapHeaders(req) {
     return {
         ncInstanceId: String(req.headers['x-beeflow-nc-instance-id'] || '').trim(),
@@ -277,185 +124,6 @@ function readBootstrapHeaders(req) {
         connectorCallbackUrl: String(req.headers['x-beeflow-connector-callback-url'] || '').trim().replace(/\/+$/, ''),
         pairingCode: String(req.headers['x-beeflow-pairing-code'] || '').trim().toUpperCase(),
     };
-}
-
-// Spoofing defence: GET <ncBaseUrl>/ocs/v2.php/cloud/capabilities and verify
-// the instance id round-trips. Necessary but not sufficient — an attacker
-// can host a fake NC that returns whatever instance id they put in the
-// header. The adoption gate (pending_nc_bindings + admin approval) closes
-// that gap.
-async function verifyNcInstance(ncBaseUrl, expectedInstanceId) {
-    const url = `${ncBaseUrl}/ocs/v2.php/cloud/capabilities?format=json`;
-    let res;
-    try {
-        res = await fetch(url, {
-            headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(8000),
-        });
-    } catch (e) {
-        throw new Error(`NC capabilities unreachable: ${e.message}`);
-    }
-    if (!res.ok) throw new Error(`NC capabilities HTTP ${res.status}`);
-    const body = /** @type {{ ocs?: { data?: Record<string, any> } }} */ (await res.json());
-    const data = body?.ocs?.data;
-    if (!data?.version) throw new Error('NC capabilities returned no version data');
-    const reportedId = data?.capabilities?.theming?.instanceid
-        || data?.capabilities?.core?.instanceid
-        || stableInstanceIdFallback(ncBaseUrl, data?.capabilities?.theming?.name);
-    if (reportedId !== expectedInstanceId) {
-        throw new Error(`NC instance id mismatch: header=${expectedInstanceId} server=${reportedId}`);
-    }
-    return {
-        themingName: data?.capabilities?.theming?.name || 'Nextcloud',
-        ncVersion: data?.version?.string || 'unknown',
-    };
-}
-
-// Mint or fetch the tenantKey for an org. Idempotent — re-runs return the
-// same key. Used by both the fresh-org branch here and the approval handler
-// in ncBindingRoutes.js.
-async function getOrMintTenantKey(orgId) {
-    const cfgKey = `${TENANT_KEY_PREFIX}${orgId}`;
-    const existing = await configStore.getSecret(cfgKey);
-    if (existing) return existing;
-    // Atomic mint: concurrent bootstraps (across replicas) each generate a
-    // candidate, but setSecretIfAbsent only stores the first and returns the
-    // authoritative winner to ALL callers — so the connector receives one
-    // consistent key no matter how many POSTs it sent. Without this, parallel
-    // mints + last-write-wins left the connector cache and the DB on different
-    // keys → every per-user JWT 403'd.
-    const candidate = crypto.randomBytes(32).toString('base64url');
-    const stored = await configStore.setSecretIfAbsent(cfgKey, candidate);
-    invalidateTenantKeyCache(orgId);
-    if (stored === candidate) {
-        log.info(`[ConnectorBootstrap] Minted new tenant key for org ${orgId}`);
-    } else {
-        log.info(`[ConnectorBootstrap] Adopted concurrently-minted tenant key for org ${orgId}`);
-    }
-    return stored || candidate;
-}
-
-// Promote / create the NC admin user inside an org. Used by the fresh-org
-// branch and the approval handler.
-async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
-    let user = await userStore.getUserByEmail(ncAdminEmail);
-    if (!user) {
-        const userId = `nc_${org.id}_${slugify(ncAdminUid)}`;
-        const r = await userStore.createUserWithSeatCheck({
-            id: userId,
-            username: ncAdminEmail,
-            email: ncAdminEmail,
-            displayName: ncAdminDisplayName || ncAdminUid,
-            role: 'user',
-            orgRole: 'org_admin',
-            organizationId: org.id,
-            ncUid: ncAdminUid,
-            provider: 'nextcloud_connector',
-            autoProvisioned: true,
-            status: 'active',
-        }, { strict: false });
-        if (!r.created) {
-            log.warn(`[connectorBootstrap] could not create NC admin for org=${org.id} reason=${r.reason}`);
-            orgHealth.problem('bootstrap.admin_provision_failed', {
-                orgId: org.id, source: 'connectorBootstrap',
-                meta: { reason: r.reason },
-            });
-            return null;
-        }
-        return await userStore.getUser(userId);
-    }
-    if (user.organizationId && user.organizationId !== org.id) {
-        const userOrg = await userStore.getOrganization(user.organizationId);
-        if (!userOrg) {
-            // Orphaned — rebind.
-            await userStore.updateUser(user.id, {
-                organizationId: org.id,
-                orgRole: 'org_admin',
-                ncUid: user.nc_uid || ncAdminUid,
-                provider: user.provider || 'nextcloud_connector',
-            });
-            log.info(`[ConnectorBootstrap] Rebound orphaned user ${user.id} to org ${org.id}`);
-            return await userStore.getUser(user.id);
-        }
-        const err = new Error('NC admin email is linked to another Bee Flow organization');
-        err.statusCode = 409;
-        throw err;
-    }
-    const updates = {};
-    if (!user.organizationId) updates.organizationId = org.id;
-    if (user.orgRole !== 'org_admin') updates.orgRole = 'org_admin';
-    // Raw row spelling is nc_uid — checking only the camelCase alias made this
-    // guard always-true, so every bootstrap stamped admins[0]'s uid over the
-    // existing binding (and connectorJwt prefers the stored uid → the user
-    // then impersonated the wrong NC account on WebDAV). Set only when absent.
-    if (!(user.nc_uid || user.ncUid)) updates.ncUid = ncAdminUid;
-    if (!user.provider) updates.provider = 'nextcloud_connector';
-    if (Object.keys(updates).length > 0) await userStore.updateUser(user.id, updates);
-    return await userStore.getUser(user.id);
-}
-
-// Best-effort provision EVERY other NC admin (besides the primary, already
-// ensured by the caller) as an org_admin, so any admin — not just the one who
-// installed — can onboard/use Bee Flow. `ncAdmins` is the list the connector
-// (v≥0.1.35) sends in the bootstrap body; older connectors omit it and we no-op.
-// Per-admin failures are logged and SKIPPED — a seat-cap or a cross-org email
-// conflict on a secondary admin must never fail the whole install. Admins count
-// as normal seats: ensureOrgAdminUser → createUserWithSeatCheck enforces the cap,
-// so over-cap admins are simply not created (and surface the same way standalone).
-// Pure: the secondary admins worth provisioning — trimmed, lower-cased email,
-// deduped by uid, with the primary and any email-less entry dropped. Exported
-// for unit tests.
-function _selectSecondaryAdmins(ncAdmins, primaryUid) {
-    if (!Array.isArray(ncAdmins)) return [];
-    const seen = new Set();
-    const out = [];
-    for (const a of ncAdmins) {
-        const uid = String(a?.uid || '').trim();
-        const email = String(a?.email || '').trim().toLowerCase();
-        if (!uid || !email || uid === primaryUid || seen.has(uid)) continue;
-        seen.add(uid);
-        out.push({ uid, email, displayName: String(a?.displayName || '').trim() || uid });
-    }
-    return out;
-}
-
-async function ensureAdditionalOrgAdmins(org, ncAdmins, primaryUid) {
-    for (const a of _selectSecondaryAdmins(ncAdmins, primaryUid)) {
-        try {
-            await ensureOrgAdminUser(org, {
-                ncAdminEmail: a.email,
-                ncAdminUid: a.uid,
-                ncAdminDisplayName: a.displayName,
-            });
-        } catch (e) {
-            log.warn(`[ConnectorBootstrap] skipped extra NC admin ${a.uid} for org ${org.id}: ${e.message}`);
-        }
-    }
-}
-
-// Bind an existing un-bound org to this NC instance. Used by the approval
-// handler in ncBindingRoutes.js. Replaces what used to be the inline
-// "adopt existing org" branch.
-async function bindOrgToNcInstance(org, params) {
-    const { ncInstanceId, ncBaseUrl, ncAdminUid, connectorCallbackUrl } = params;
-    let existingIntegrations = [];
-    if (Array.isArray(org.enabledIntegrations)) {
-        existingIntegrations = org.enabledIntegrations;
-    } else if (typeof org.enabledIntegrations === 'string' && org.enabledIntegrations) {
-        try { existingIntegrations = JSON.parse(org.enabledIntegrations) || []; } catch (_) { existingIntegrations = []; }
-    }
-    const merged = Array.from(new Set([...existingIntegrations, ...NC_INTEGRATIONS]));
-    await userStore.updateOrganization(org.id, {
-        authMethod: 'nextcloud_connector',
-        autoApproveSSO: true,
-        connectorCallbackUrl: connectorCallbackUrl || null,
-        ncInstanceId,
-        ncBaseUrl,
-        ncAdminUid,
-        ncProvisionedAt: new Date().toISOString(),
-        enabledIntegrations: merged,
-    });
-    return await userStore.getOrganizationByNcInstanceId(ncInstanceId);
 }
 
 router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
@@ -504,336 +172,9 @@ router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
         }
     }
 
-    // 0. Pairing-code branch — wins over auto-detect when present. The org
-    //    admin has handed out a one-shot code; whoever holds it gets to bind
-    //    this NC instance to that specific org. No fresh-org creation, no
-    //    pending approval queue — the code already IS the approval. Code is
-    //    consumed atomically on success so it can't be reused.
-    if (pairingCode) {
-        const pending = await userStore.getPendingBindingByPairingCode(pairingCode);
-        if (!pending) {
-            log.warn(`[ConnectorBootstrap] pairing_code_invalid code=${pairingCode.slice(0, 4)}*** ncInstance=${ncInstanceId}`);
-            orgHealth.problem('bootstrap.pairing_code_invalid', {
-                ncInstanceId, source: 'connectorBootstrap', req,
-                meta: { reason: 'invalid_expired_or_used_code' },
-            });
-            return res.status(401).json({
-                error: 'Pairing code is invalid, expired, or already used',
-                code: 'pairing_code_invalid',
-                remediation: 'Ask the Bee Flow organisation admin to generate a fresh pairing code from Settings → Organisation → Pair a new Nextcloud, then set it as the BEEFLOW_PAIRING_CODE env var on this connector and reinstall.',
-            });
-        }
-        const targetOrg = await userStore.getOrganization(pending.orgId);
-        if (!targetOrg) {
-            return res.status(410).json({
-                error: 'Organisation for this pairing code no longer exists',
-                code: 'pairing_code_org_gone',
-            });
-        }
-        // Refuse to redeem a code against an org that's already bound to a
-        // different NC — a misissued code shouldn't be able to steal an
-        // existing binding.
-        if (targetOrg.nc_instance_id && targetOrg.nc_instance_id !== ncInstanceId) {
-            return res.status(409).json({
-                error: 'Target organisation is already bound to a different Nextcloud instance',
-                code: 'pairing_code_org_already_bound',
-            });
-        }
-        const consumed = await userStore.consumePairingCode(pending.id, {
-            ncInstanceId,
-            ncBaseUrl,
-            ncAdminUid,
-            ncAdminEmail,
-            ncAdminDisplayName,
-            connectorCallbackUrl,
-            themingName: nc.themingName,
-            ncVersion: nc.ncVersion,
-        });
-        if (!consumed) {
-            // Lost the race against another connector consuming the same code
-            // — rare but possible.
-            return res.status(409).json({
-                error: 'Pairing code was just consumed by another request',
-                code: 'pairing_code_race',
-            });
-        }
-        let boundOrg = targetOrg;
-        const wasFreshlyBound = !targetOrg.nc_instance_id;
-        if (wasFreshlyBound) {
-            boundOrg = await bindOrgToNcInstance(targetOrg, {
-                ncInstanceId, ncBaseUrl, ncAdminUid, connectorCallbackUrl,
-            });
-            // Apply default plan only on the first NC binding so we don't
-            // overwrite an existing direct-SaaS org's plan when it's adopting
-            // an NC tenant for the first time.
-            await applyNcDefaultPlanIfConfigured(boundOrg.id, 'pairing_code');
-        }
-        try {
-            await ensureOrgAdminUser(boundOrg, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
-        } catch (e) {
-            if (e.statusCode === 409) {
-                orgHealth.problem('bootstrap.admin_email_conflict', {
-                    orgId: boundOrg.id, source: 'connectorBootstrap', req,
-                    meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'pairing_code_branch' },
-                });
-                return res.status(409).json({
-                    error: e.message,
-                    code: 'admin_email_conflict',
-                });
-            }
-            throw e;
-        }
-        await ensureAdditionalOrgAdmins(boundOrg, req.body?.ncAdmins, ncAdminUid);
-        const tenantKey = await getOrMintTenantKey(boundOrg.id);
-        log.info(`[ConnectorBootstrap] pairing_code_redeemed org=${boundOrg.id} ncInstance=${ncInstanceId}`);
-        orgHealth.event('bootstrap.pairing_redeemed', {
-            orgId: boundOrg.id, actorKind: 'connector', req, meta: { ncInstanceId },
-        });
-        orgHealth.resolve(`nc:${ncInstanceId}`, NC_SUBJECT_PROBLEM_CODES);
-        return res.json({
-            tenantKey,
-            organizationId: boundOrg.id,
-            organizationName: boundOrg.name,
-            isNew: false,
-            isAdopted: true,
-            ncVersion: nc.ncVersion,
-            code: 'pairing_code_redeemed',
-        });
-    }
-
-    // 1. Returning bind — instance id already mapped → idempotent return.
-    let org = await userStore.getOrganizationByNcInstanceId(ncInstanceId);
-    if (org) {
-        try {
-            await ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
-        } catch (e) {
-            if (e.statusCode === 409) {
-                orgHealth.problem('bootstrap.admin_email_conflict', {
-                    orgId: org.id, source: 'connectorBootstrap', req,
-                    meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'returning_bind_branch' },
-                });
-                return res.status(409).json({
-                    error: e.message,
-                    code: 'admin_email_conflict',
-                    remediation: 'The Nextcloud admin email is already used by a user in a different Bee Flow organization. Either use a different admin user on Nextcloud, or contact support to merge the accounts.',
-                });
-            }
-            throw e;
-        }
-        await ensureAdditionalOrgAdmins(org, req.body?.ncAdmins, ncAdminUid);
-        const tenantKey = await getOrMintTenantKey(org.id);
-        if (connectorCallbackUrl && org.connector_callback_url !== connectorCallbackUrl) {
-            await userStore.updateOrganization(org.id, { connectorCallbackUrl });
-        }
-        log.info(`[ConnectorBootstrap] returning_bind org=${org.id} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl}`);
-        orgHealth.event('bootstrap.returning_bind', {
-            orgId: org.id, actorKind: 'connector', req, meta: { ncInstanceId },
-        });
-        orgHealth.touchLiveness(org.id, 'bootstrap');
-        orgHealth.resolve(`nc:${ncInstanceId}`, NC_SUBJECT_PROBLEM_CODES);
-        return res.json({
-            tenantKey,
-            organizationId: org.id,
-            organizationName: org.name,
-            isNew: false,
-            ncVersion: nc.ncVersion,
-            code: 'returning_bind',
-        });
-    }
-
-    // 2. Same-domain match → confirm via an emailed one-time code, entered in
-    //    the embedded Bee Flow view (no external SaaS login). The code proves
-    //    control of a mailbox at the matching domain, which is what stops a
-    //    rogue Nextcloud from silently adopting someone else's org.
-    //      - Exact email match to an existing user (any domain): always eligible.
-    //      - Domain-only match: corporate domains only — a shared free-provider
-    //        domain (gmail.com, …) does not imply org control.
-    //    No match → fall through to a fresh org (branch 3).
-    const emailDomain = ncAdminEmail.split('@')[1] || '';
-    let verifyOrg = null;
-    const candidate = await userStore.getUserByEmail(ncAdminEmail);
-    if (candidate?.organizationId) {
-        const candidateOrg = await userStore.getOrganization(candidate.organizationId);
-        if (candidateOrg && !candidateOrg.nc_instance_id) verifyOrg = candidateOrg;
-    }
-    if (!verifyOrg && emailDomain && !isFreeEmailDomain(emailDomain, await getEffectiveFreeEmailDomains())) {
-        verifyOrg = await userStore.findUnboundOrgByEmailDomain(emailDomain);
-    }
-    if (verifyOrg) {
-        const activeCount = await userStore.countActivePendingNcVerificationsForOrg(verifyOrg.id);
-        if (activeCount >= MAX_VERIFICATIONS_PER_ORG) {
-            log.warn(`[ConnectorBootstrap] too_many_verifications org=${verifyOrg.id} ncInstance=${ncInstanceId}`);
-            orgHealth.problem('bootstrap.too_many_pending_bindings', {
-                orgId: verifyOrg.id, source: 'connectorBootstrap', req,
-                meta: { ncInstanceId, reason: 'too_many_pending_verifications' },
-            });
-            return res.status(429).json({
-                error: 'Too many pending Nextcloud connection attempts for this organisation. Try again later.',
-                code: 'too_many_pending_bindings',
-                remediation: 'Wait for the existing verification codes to expire (15 minutes) and retry from the connector.',
-            });
-        }
-        // Create the pending verification but DON'T email a code here. Bootstrap
-        // runs at connector startup with no user context, so `ncAdminEmail` is
-        // just the arbitrary first admin. The code is sent to whichever admin
-        // actually opens the embedded view (see /retarget), so it reaches the
-        // person doing the setup — who also becomes the org admin on success.
-        const code = generateVerificationCode();
-        const pending = await userStore.createPendingNcVerification({
-            orgId: verifyOrg.id,
-            ncInstanceId,
-            ncBaseUrl,
-            ncAdminUid,
-            ncAdminEmail,
-            ncAdminDisplayName,
-            connectorCallbackUrl,
-            themingName: nc.themingName,
-            ncVersion: nc.ncVersion,
-            verificationEmail: ncAdminEmail,
-        }, { code });
-        log.info(`[ConnectorBootstrap] email_verification_required org=${verifyOrg.id} pendingId=${pending.id} ncInstance=${ncInstanceId} expiresAt=${pending.expiresAt}`);
-        orgHealth.problem('bootstrap.verification_pending', {
-            orgId: verifyOrg.id, source: 'connectorBootstrap', req,
-            meta: { pendingId: pending.id, expiresAt: pending.expiresAt, ncInstanceId },
-        });
-        return res.status(202).json({
-            status: 'pending_verification',
-            code: 'email_verification_required',
-            pendingId: pending.id,
-            verifyUrl: `/auth/connector/bootstrap/pending/${pending.id}/verify`,
-            resendUrl: `/auth/connector/bootstrap/pending/${pending.id}/resend`,
-            retargetUrl: `/auth/connector/bootstrap/pending/${pending.id}/retarget`,
-            expiresAt: pending.expiresAt,
-            organizationName: verifyOrg.name,
-            message: 'Awaiting in-app verification by a Nextcloud admin.',
-        });
-    }
-
-    // Provisioning gate — anything reaching here has no existing bind, no valid
-    // pairing code, and no email-domain match. Auto-creating an org for such a
-    // caller is exactly the "anyone who knows the server address can mint an
-    // org" path. Unless this deployment is explicitly `open` (the Bee Flow Cloud
-    // default), refuse and steer the admin to the pairing-code flow instead.
-    if (provisioningMode !== 'open') {
-        log.warn(`[ConnectorBootstrap] fresh_org_refused mode=${provisioningMode} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl}`);
-        orgHealth.problem('bootstrap.pairing_required', {
-            ncInstanceId, source: 'connectorBootstrap', req,
-            meta: { provisioningMode, ncBaseUrl, reason: `provisioning_mode_${provisioningMode}` },
-        });
-        return res.status(403).json({
-            error: 'This Bee Flow server does not auto-create organisations for new Nextcloud instances.',
-            code: 'pairing_required',
-            remediation: 'Ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud), set it as the BEEFLOW_PAIRING_CODE env var on this connector, and redeploy.',
-        });
-    }
-
-    // 3. Fresh-org branch — no victim, no risk. One-click.
-    const idSuffix = slugify(ncInstanceId.slice(0, 12)) || crypto.randomBytes(3).toString('hex');
-    // Capped through the shared slugifier: a theming name is arbitrary text, and
-    // createOrganization refuses an id over 48 characters.
-    const orgId = require('./accountProvisioning').slugifyOrgId(`nc-${slugify(nc.themingName)}-${idSuffix}`);
-    // Build a self-describing org name. Many Nextclouds keep the default
-    // theming name "Nextcloud", which produces indistinguishable orgs in the
-    // admin list — qualify it with the instance host, e.g. "Nextcloud (nc.e380.net)".
-    const orgName = buildAutoOrgName(nc.themingName, ncBaseUrl);
-    const created = await userStore.createOrganization({
-        id: orgId,
-        name: orgName,
-        description: `Auto-provisioned from Nextcloud (${ncBaseUrl})`,
-        authMethod: 'nextcloud_connector',
-        registrationSource: 'nextcloud_connector',
-        autoApproveSSO: true,
-        ncInstanceId,
-        ncBaseUrl,
-        ncAdminUid,
-        ncProvisionedAt: new Date().toISOString(),
-        connectorCallbackUrl: connectorCallbackUrl || null,
-        enabledIntegrations: NC_INTEGRATIONS,
-    });
-    if (!created) {
-        // A concurrent bootstrap for the same NC instance may have just won the
-        // race: the org id is deterministic, so the loser's INSERT collides on
-        // the primary key and createOrganization returns false. Re-fetch — if
-        // the org now exists, fall through to returning-bind semantics instead
-        // of a misleading HTTP 500 (which would also leave the connector retrying).
-        const raced = await userStore.getOrganizationByNcInstanceId(ncInstanceId);
-        if (raced) {
-            try {
-                await ensureOrgAdminUser(raced, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
-            } catch (e) {
-                if (e.statusCode === 409) {
-                    orgHealth.problem('bootstrap.admin_email_conflict', {
-                        orgId: raced.id, source: 'connectorBootstrap', req,
-                        meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_race_branch' },
-                    });
-                    return res.status(409).json({
-                        error: e.message,
-                        code: 'admin_email_conflict',
-                    });
-                }
-                throw e;
-            }
-            await ensureAdditionalOrgAdmins(raced, req.body?.ncAdmins, ncAdminUid);
-            const tenantKey = await getOrMintTenantKey(raced.id);
-            log.info(`[ConnectorBootstrap] fresh_org_race_resolved org=${raced.id} ncInstance=${ncInstanceId}`);
-            orgHealth.event('bootstrap.returning_bind', {
-                orgId: raced.id, actorKind: 'connector', req, meta: { ncInstanceId, reason: 'fresh_org_race_resolved' },
-            });
-            orgHealth.touchLiveness(raced.id, 'bootstrap');
-            orgHealth.resolve(`nc:${ncInstanceId}`, NC_SUBJECT_PROBLEM_CODES);
-            return res.json({
-                tenantKey,
-                organizationId: raced.id,
-                organizationName: raced.name,
-                isNew: false,
-                ncVersion: nc.ncVersion,
-                code: 'returning_bind',
-            });
-        }
-        orgHealth.problem('bootstrap.org_create_failed', {
-            ncInstanceId, source: 'connectorBootstrap', req,
-            meta: { ncBaseUrl, reason: 'create_organization_returned_false' },
-        });
-        return res.status(500).json({
-            error: 'Failed to create organization',
-            code: 'org_create_failed',
-            remediation: 'Bee Flow could not provision a new organization. This is usually a transient database issue — wait a minute and the connector will retry automatically. If it persists, contact support with the connector logs.',
-        });
-    }
-    org = await userStore.getOrganizationByNcInstanceId(ncInstanceId);
-    log.info(`[ConnectorBootstrap] fresh_org org=${orgId} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl} adminEmail=${ncAdminEmail}`);
-    orgHealth.event('bootstrap.org_created', {
-        orgId: org.id, actorKind: 'connector', req, meta: { ncInstanceId, ncBaseUrl },
-    });
-    orgHealth.resolve(`nc:${ncInstanceId}`, NC_SUBJECT_PROBLEM_CODES);
-
-    await applyNcDefaultPlanIfConfigured(org.id, 'fresh_org');
-
-    try {
-        await ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
-    } catch (e) {
-        if (e.statusCode === 409) {
-            orgHealth.problem('bootstrap.admin_email_conflict', {
-                orgId: org.id, source: 'connectorBootstrap', req,
-                meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_branch' },
-            });
-            return res.status(409).json({
-                error: e.message,
-                code: 'admin_email_conflict',
-                remediation: 'The Nextcloud admin email is already used by a user in another Bee Flow organization. Use a different admin user on Nextcloud, or contact support.',
-            });
-        }
-        throw e;
-    }
-    await ensureAdditionalOrgAdmins(org, req.body?.ncAdmins, ncAdminUid);
-    const tenantKey = await getOrMintTenantKey(org.id);
-    return res.json({
-        tenantKey,
-        organizationId: org.id,
-        organizationName: org.name,
-        isNew: true,
-        ncVersion: nc.ncVersion,
-        code: 'fresh_org',
+    return runBootstrapBranches({
+        req, res, nc, provisioningMode,
+        ncInstanceId, ncBaseUrl, ncAdminUid, ncAdminEmail, ncAdminDisplayName, connectorCallbackUrl, pairingCode,
     });
 });
 
@@ -963,15 +304,25 @@ router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async
     });
 });
 
-// Re-send the verification code (new code, attempts reset, TTL extended). Goes
-// to the same mailbox the original was sent to, so a held pendingId can't
-// redirect the code elsewhere.
+// A pending row's code-send/attempt budget is spent (ncBindings.js caps it per
+// pendingId, independent of the per-IP limiter): no new code until it expires.
+const tooManyCodeRequests = (res) => res.status(429).json({
+    error: 'Too many code requests for this connection; try again later.',
+    code: 'too_many_code_requests',
+    remediation: 'Wait for the current verification to expire (15 minutes) and retry from the connector.',
+});
+
+// Re-send the verification code (new code, per-code attempts reset, TTL
+// extended), capped per pendingId. Goes to the same mailbox the original was
+// sent to, so a held pendingId can't redirect the code elsewhere.
 router.post('/connector/bootstrap/pending/:id/resend', verificationResendLimiter, async (req, res) => {
     const id = String(req.params.id || '').trim();
     if (!id) return res.status(400).json({ error: 'Missing id' });
     const code = generateVerificationCode();
-    const row = await userStore.resetNcVerificationCode(id, code);
-    if (!row) return res.status(410).json({ status: 'expired', code: 'expired' });
+    const sent = await userStore.resetNcVerificationCode(id, code);
+    if (sent.status === 'too_many') return tooManyCodeRequests(res);
+    if (sent.status !== 'ok') return res.status(410).json({ status: 'expired', code: 'expired' });
+    const row = sent.row;
     const to = row.verificationEmail || row.ncAdminEmail;
     let emailSent = false;
     try {
@@ -1024,8 +375,10 @@ router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimit
     }
 
     const code = generateVerificationCode();
-    const updated = await userStore.retargetNcVerification(id, { email, uid, displayName, code });
-    if (!updated) return res.status(410).json({ status: 'expired', code: 'expired' });
+    const sent = await userStore.retargetNcVerification(id, { email, uid, displayName, code });
+    if (sent.status === 'too_many') return tooManyCodeRequests(res);
+    if (sent.status !== 'ok') return res.status(410).json({ status: 'expired', code: 'expired' });
+    const updated = sent.row;
 
     let emailSent = false;
     try {
@@ -1213,5 +566,6 @@ module.exports.helpers = {
     defaultProvisioningMode,
     resolveProvisioningMode,
     stableInstanceIdFallback,
+    verifyNcInstance,
     PROVISIONING_MODES,
 };

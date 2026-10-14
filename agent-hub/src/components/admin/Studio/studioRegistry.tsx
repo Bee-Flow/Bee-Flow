@@ -1,0 +1,760 @@
+import type { ComponentType } from 'react';
+import { lazy } from '../../../utils/lazyWithReload';
+import { Bot, Sparkles, ListChecks, ShieldCheck, BookOpen, Globe, Mic, LayoutGrid, Boxes, Table2, ClipboardList, History, Clapperboard, FileText } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { StudioCreateCtx, StudioGateCtx, StudioNavDescriptor } from './studioGates';
+
+/**
+ * The sidebar icons other surfaces borrow (the automation builder's step
+ * ribbon, menu and nodes, via utils/integrationLogos), so they cannot drift.
+ */
+export const STUDIO_ICONS: Record<'knowledge' | 'aiTasks' | 'webpages', LucideIcon> = { knowledge: BookOpen, aiTasks: ListChecks, webpages: Globe };
+
+// Studio app registry — the single source of truth for which apps live inside
+// the unified Studio shell, in what order, behind which gates, and with which
+// props. Studio/index.jsx renders tabs + the active app from this list, and
+// studioRoutes.js derives the URL segment ↔ section maps from it.
+//
+// IMPORT DISCIPLINE: this module is imported (via studioApps.jsx and
+// studioRoutes.js) from App.jsx, so it lands in the MAIN chunk. Top-level
+// imports must stay limited to react, utils/lazyWithReload and lucide-react
+// (plus `import type`, which is erased) — the app components themselves may
+// only be referenced inside the lazy() callbacks so each app stays a separate
+// on-demand chunk. Enforced by studioApps.test.jsx.
+//
+// AND THE OTHER DIRECTION: nothing under a section's folder (Studio/*/)
+// imports this file. The gates, lock hints and categories a section needs
+// live in studioGates.ts, the automation POST in
+// api/queries/automation/createDraft.ts; a section that imported the registry
+// back would close a cycle through every lazy() below. Enforced by
+// studioRegistry.boundary.test.ts.
+
+/** What getProps(ctx) receives: Studio/index.jsx's props plus setEditing. */
+export interface StudioPropsCtx {
+    onNavigate?: ((target: string) => void) | null;
+    setEditing?: (editing: boolean) => void;
+    [key: string]: unknown;
+}
+
+export interface StudioCreateEntry {
+    labelKey: string;
+    labelFallback: string;
+    kind?: string;
+    onCreate: (ctx: StudioCreateCtx) => unknown;
+}
+
+export interface StudioAppDescriptor extends StudioNavDescriptor {
+    id: string;
+    urlSegment: string;
+    legacySegments?: readonly string[];
+    labelKey: string;
+    labelFallback?: string;
+    descKey?: string;
+    descFallback?: string;
+    Icon: LucideIcon;
+    kind?: string;
+    countKey?: string;
+    category: string;
+    hiddenFromNav?: boolean;
+    moduleId?: string;
+    gate: (ctx: StudioGateCtx) => boolean;
+    topLevelEntrance?: boolean;
+    create?: StudioCreateEntry;
+    Component: ComponentType<any>;
+    getProps: (ctx: StudioPropsCtx) => Record<string, unknown>;
+}
+
+// ── Create actions shared by the "New" menu ───────────────────────────────
+// Every onCreate below is a LAZY callback: the module it needs is imported
+// inside the call, never at the top of this file (import discipline above).
+// createFormAutomation (studioGates.ts) and createAutomationDraft
+// (api/queries/automation/createDraft.ts) are the shared ones.
+// Navigation-only creates take the section's own "new" route so the section
+// keeps owning its dialog; creates that today happen without a dialog
+// (Skills' createEmpty) post first and open the result, exactly as the
+// section does.
+const navigateTo = (target: string) => ({ onNavigate }: StudioCreateCtx) => { if (onNavigate) onNavigate(target); };
+
+// Descriptor shape:
+//   id             — Studio section key (state / <Studio section=...> value)
+//   urlSegment     — canonical /app/studio/<segment> slug
+//   legacySegments — extra accepted URL/navigation aliases (id itself is
+//                    always accepted too — see studioRoutes.js)
+//   labelKey       — i18n key for the tab label
+//   labelFallback  — literal fallback when the key resolves empty (only the
+//                    tabs that historically had one — keeps t() output exact)
+//   descKey        — i18n key for the one-line description shown in the
+//   descFallback     sidebar's Studio flyout panel (see Sidebar.jsx)
+//   Icon           — lucide icon for the tab
+//   kind           — shared/kindColors.js key ('automation' | 'datatable' |
+//                    'app' | 'webpage' | 'agent' | 'skill' | 'kb' |
+//                    'meeting' | 'playbook' | 'solution'); tints the row glyph and the
+//                    "New" item. Absent on a section that is not a kind
+//                    (Approvals) and on runtime modules, which render neutral.
+//   countKey       — key in GET /api/studio/counts this section's row count
+//                    reads (defaults to `id`; aiTasks reads `automations`).
+//                    No key → no count, which is what a runtime module gets.
+//   category       — STUDIO_CATEGORIES id; the heading the sidebar files this
+//                    section under (defaults to DEFAULT_STUDIO_CATEGORY)
+//   hiddenFromNav  — true keeps the section routable and renderable but out of
+//                    the sidebar's Studio panel (it has its own entry there)
+//   moduleId       — informational link to the admin modules registry
+//   gate(ctx)      — tab visibility; ctx = { user, hasLicenseFeature,
+//                    hasPermission, canUse, can, lockReason }:
+//                      hasLicenseFeature(f) — LicenseContext.hasFeature
+//                      hasPermission(p)     — org-role permission resolver
+//                      canUse(id)           — makeCanUse(user): the server's
+//                                             canUseFeature map (licence × beta)
+//                      can(id)              — EntitlementsContext.can: the
+//                                             unified effective set — the SAME
+//                                             set the server's
+//                                             requireCapability(id) enforces
+//                      lockReason(id)       — EntitlementsContext.lockReason
+//                                             (see resolveStudioNav, studioGates.ts)
+//                    A direct URL to a section whose PERMISSION leg fails does
+//                    not render it (Studio/index.jsx); a licence/capability
+//                    miss still renders and the section (or the server's
+//                    403) says why, as before.
+//   permission     — the role permission(s) the gate's hasPermission leg asks
+//                    for (string | string[]; studioApps.test.jsx keeps the two
+//                    in lockstep). It is what makes a permission miss HIDE
+//                    instead of lock, and what the shell's direct-URL guard
+//                    checks (studioNav.studioSectionAccess). Absent → the
+//                    section has no permission leg.
+//   topLevelEntrance — the section has its own sidebar row for everyone
+//                    (Documents), so it never earns a Studio row on its own
+//   gateCapability — the entitlement id lockReason() is asked about when the
+//                    gate fails (mirrors the runtime descriptor's field)
+//   lockOn         — 'hide' (default: a failed gate removes the row, today's
+//                    behaviour) | 'disable' (a failed LICENCE/CAPABILITY gate
+//                    shows the row disabled with an upgrade hint; a failed
+//                    permission gate still hides — see resolveStudioNav)
+//   create         — the section's entry in the universal "New" menu:
+//                    { labelKey, labelFallback, kind?, onCreate(ctx) } where
+//                    onCreate is a LAZY callback (any module it needs is
+//                    import()ed inside the call — see the import discipline
+//                    above) and ctx = { onNavigate, t, user }. Absent → the
+//                    section has no "New" item (runtime modules, Approvals).
+//   Component      — lazy-loaded app component
+//   getProps(ctx)  — props passed to the app; ctx additionally carries
+//                    setEditing (per-app fullscreen-editing reporter)
+export const STUDIO_APPS: StudioAppDescriptor[] = [
+    {
+        id: 'agents',
+        trainingArea: 'agents',
+        urlSegment: 'agents',
+        labelKey: 'studio.tab.agents',
+        descKey: 'studio.tab.agents_desc',
+        descFallback: 'Create and manage your agents',
+        Icon: Bot,
+        kind: 'agent',
+        category: 'ai',
+        // No licence — agents are Community — but an organisation still decides
+        // WHO builds them, from Settings → Users & Groups → Roles.
+        gate: ({ hasPermission }) => hasPermission('manage_agents'),
+        permission: 'manage_agents',
+        // AgentStudio's own "new" entry (createDraft) has no route of its own
+        // yet; the section root is where its wizard landing lives.
+        create: { labelKey: 'studio.new.agent', labelFallback: 'Agent', onCreate: navigateTo('studio/agents') },
+        Component: lazy(() => import('../../agents/AgentStudio/index')),
+        getProps: ({ user, initialAgentId, onClose, onNavigate, hasPermission, setEditing }) => ({
+            user,
+            initialAgentId,
+            onClose,
+            onNavigate,
+            hasPermission,
+            onEditingChange: setEditing,
+        }),
+    },
+    {
+        id: 'skills',
+        trainingArea: 'skills',
+        urlSegment: 'skills',
+        labelKey: 'studio.tab.skills',
+        descKey: 'studio.tab.skills_desc',
+        descFallback: 'Reusable abilities for your agents',
+        Icon: Sparkles,
+        kind: 'skill',
+        category: 'ai',
+        // Mirrors the mount: /api/skills sits behind requireCapability('skills')
+        // (server/index.js), and `skills` is a COMPOUND capability — Community
+        // licence AND the beta opt-in (core/entitlements/betaFeatures.js). The
+        // row used to be `() => true`, so an org that never enabled the beta
+        // saw a Skills section whose list silently 403'd into "no skills yet".
+        // ctx.can resolves the same effective set the server enforces.
+        // hasPermission adds the org-role layer on top: the organisation
+        // decides WHO builds skills (Settings → Users & Groups → Roles).
+        gate: ({ can, hasPermission }) => can('skills') && hasPermission('manage_skills'),
+        permission: 'manage_skills',
+        gateCapability: 'skills',
+        lockOn: 'disable',
+        // SkillsStudio.createEmpty, verbatim: post an untitled skill, open it.
+        create: {
+            labelKey: 'studio.new.skill',
+            labelFallback: 'Skill',
+            onCreate: async ({ onNavigate, t }) => {
+                const { API_BASE, authFetch } = await import('../../../utils/helpers');
+                const res = await authFetch(`${API_BASE}/api/skills`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: t('skills_studio.untitled', 'Untitled skill'),
+                        description: '', instructions: '', workflow: '', rules: '', examples: '',
+                        icon: '⚡', isShared: false, dynamicActivation: false,
+                        sharedGroups: [], enabledIntegrations: [],
+                    }),
+                });
+                if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+                const created = await res.json();
+                if (created?.id && onNavigate) onNavigate(`studio/skills/${created.id}`);
+            },
+        },
+        Component: lazy(() => import('./SkillsStudio')),
+        getProps: ({ user, initialSkillId, onNavigate, hasPermission }) => ({
+            user,
+            initialSkillId,
+            onNavigate,
+            hasPermission,
+        }),
+    },
+    {
+        id: 'knowledge',
+        trainingArea: 'knowledge',
+        urlSegment: 'knowledge',
+        labelKey: 'studio.tab.knowledge',
+        descKey: 'studio.tab.knowledge_desc',
+        descFallback: 'Knowledge bases your AI can search',
+        Icon: BookOpen,
+        kind: 'kb',
+        category: 'ai',
+        // No licence gate (Knowledge is Community), but the organisation
+        // decides WHO manages bases, per role.
+        gate: ({ hasPermission }) => hasPermission('manage_knowledge'),
+        permission: 'manage_knowledge',
+        // KnowledgeStudio treats the 'new' id as "create one and open it",
+        // so this stays a plain navigation.
+        create: { labelKey: 'studio.new.knowledge', labelFallback: 'Knowledge base', onCreate: navigateTo('studio/knowledge/new') },
+        Component: lazy(() => import('./KnowledgeStudio')),
+        getProps: ({ user, initialKbId, initialKbTab, initialSourceId, onNavigate, hasPermission }) => ({
+            user,
+            initialKbId,
+            // The open tab and the open source travel in the URL, so both
+            // are deep-linkable: "look at what still uses this" and "these
+            // two files were skipped" are links people send each other.
+            initialKbTab,
+            initialSourceId,
+            onNavigate,
+            hasPermission,
+        }),
+    },
+    {
+        // The section id stays 'aiTasks': it is the key the whole navigation
+        // layer (studioRoute.section, AgentHub's initialTaskId wiring, the
+        // builder's query state) is written against. Only the name and the URL
+        // change — the tab is the Automations builder and nothing else now that
+        // prompt tasks live in Cowork and scheduled agent runs are managed from the
+        // agent that owns them.
+        id: 'aiTasks',
+        trainingArea: 'automations',
+        urlSegment: 'automations',
+        legacySegments: ['routines', 'ai-tasks'],
+        labelKey: 'studio.tab.automations',
+        labelFallback: 'Automations',
+        descKey: 'studio.tab.automations_desc',
+        descFallback: 'Multi-step automations that run for you',
+        Icon: ListChecks,
+        kind: 'automation',
+        countKey: 'automations',
+        category: 'build',
+        // There is no URL that opens an EMPTY builder (a fresh builder is
+        // builderAutomationId '' with no route), so this creates the row the
+        // builder would have created on first save and opens it.
+        create: { labelKey: 'studio.new.automation', labelFallback: 'Automation', onCreate: async (ctx) => {
+            const { createAutomationDraft } = await import('../../../api/queries/automation/createDraft');
+            return createAutomationDraft(ctx);
+        } },
+        // BFSF-226: this tab was previously shown unconditionally, so
+        // restricted/Free-tier orgs saw a feature the backend 403s and the
+        // admin panel flags as "Blocked". Now that the tab is only the
+        // Automations builder, `automations` is the whole gate: an org with
+        // agent_routines but no automations used to land on the second segment,
+        // and that segment is gone. Their scheduled agent runs are managed from the
+        // agent that owns them, and a deep link still renders (the registry
+        // only gates the tab, not the section).
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('automations') && canUse('automations') && hasPermission('use_automations'),
+        permission: 'use_automations',
+        // Locks like the other licensed rows (a Community org learns the
+        // section exists) rather than hiding. A failed PERMISSION leg still
+        // hides: lockReason() answers null when the entitlement is effective,
+        // so resolveStudioNav drops the row instead of disabling it.
+        gateCapability: 'automations',
+        lockOn: 'disable',
+        Component: lazy(() => import('../../automation/index')),
+        getProps: ({ user, initialTaskId, initialStepId, initialFlowletKey, initialBuilderView, initialRunId, initialRunStepId, initialFrom, onClose, onNavigate, modelTiers, setEditing }) => ({
+            initialTaskId,
+            initialStepId,
+            initialFlowletKey,
+            initialBuilderView,
+            initialRunId,
+            initialRunStepId,
+            initialFrom,
+            onClose,
+            onNavigate,
+            modelTiers,
+            embedded: true,
+            user,
+            onEditingChange: setEditing,
+        }),
+    },
+    {
+        // The decision surface for approval steps. Deliberately its own tab
+        // rather than a corner of the builder: the person deciding is often
+        // not the person who built the automation, and must never need the
+        // canvas to say yes.
+        id: 'approvals',
+        urlSegment: 'approvals',
+        labelKey: 'studio.tab.approvals',
+        labelFallback: 'Approvals',
+        descKey: 'studio.tab.approvals_desc',
+        descFallback: 'Requests waiting on a person, and every past decision',
+        Icon: ShieldCheck,
+        category: 'build',
+        // NOT in the Studio panel. Deciding is a member act, not a builder
+        // one, so Approvals has its own top-level sidebar row (Sidebar.jsx,
+        // coreNav) — listing it here as well put the same destination in two
+        // places one hover apart. The section stays fully routable: the
+        // sidebar row, the notification bell and every e-mail deep link land
+        // on /app/studio/approvals, and the shell renders it from this
+        // descriptor exactly as before.
+        hiddenFromNav: true,
+        // Its OWN licence key, not the Automations one: building an automation is
+        // free (n8n-style), routing its decision past a colleague is the paid
+        // collaboration layer — the same line `automation_sharing` draws.
+        //
+        // `hasLicenseFeature` ALONE, unlike the beta-backed tabs above and
+        // below: `approvals` is a pure CORE capability, and canUse reads
+        // user.canUseFeature, which loginRoutes builds only from the COMPOUND
+        // (beta + licenceFeature) registry — so canUse('approvals') is
+        // undefined for every ordinary member and ANDing it would hide the tab
+        // from the whole org. hasLicenseFeature resolves through
+        // EntitlementsContext against effective.core, the same set the server's
+        // requireCapability('approvals') enforces, so the two cannot drift.
+        // Notebooks/Projects in Sidebar.jsx are gated the same way.
+        //
+        // Hiding the tab is only cosmetic: a deep link still renders, and
+        // ApprovalsStudio itself shows the upgrade panel — except for a link to
+        // ONE approval, which stays open so a lapsed org can still finish
+        // decisions already pending (the server's drain exemption).
+        gate: ({ hasLicenseFeature, hasPermission }) =>
+            hasLicenseFeature('approvals') && hasPermission('use_approvals'),
+        permission: 'use_approvals',
+        Component: lazy(() => import('./Approvals/ApprovalsStudio')),
+        getProps: ({ user, initialApprovalId }) => ({
+            user,
+            initialApprovalId,
+        }),
+    },
+    {
+        // Datatables — the rows automations keep BETWEEN runs, and share with each
+        // other. Its own section rather than a panel inside the builder because
+        // a table outlives the automation that made it and is usually read by a
+        // different one: you cannot manage the shape of shared org data from
+        // inside a single document, and the "Used by" list is precisely the
+        // thing no canvas can show you.
+        id: 'datatables',
+        trainingArea: 'datatables',
+        urlSegment: 'datatables',
+        labelKey: 'studio.tab.datatables',
+        labelFallback: 'Datatables',
+        descKey: 'studio.tab.datatables_desc',
+        descFallback: 'Rows your automations keep between runs',
+        Icon: Table2,
+        kind: 'datatable',
+        category: 'build',
+        // DatatablesStudio owns its NewDatatableDialog (name + scope); the
+        // "new" id is the section's cue to open it.
+        create: { labelKey: 'studio.new.datatable', labelFallback: 'Table', onCreate: navigateTo('studio/datatables/new') },
+        // Mirrors the Automations tab exactly, because it mirrors the server:
+        // /api/datatables is mounted behind requireModule('automation') +
+        // requireLicenseFeature('automations'). SHARING a table is the separate
+        // paid line (automation_sharing) and is refused per-request, not here —
+        // gating the whole tab on it would hide a lapsed org's own tables from
+        // them, and reading your own rows must never stop working.
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('automations') && canUse('automations') && hasPermission('use_datatables'),
+        permission: 'use_datatables',
+        // Same lock as Automations: one entitlement, one hint. A failed
+        // permission leg still hides (lockReason is null when entitled).
+        gateCapability: 'automations',
+        lockOn: 'disable',
+        Component: lazy(() => import('./Datatables/DatatablesStudio')),
+        getProps: ({ user, initialDatatableId, initialDatatableTab, onNavigate, hasPermission }) => ({
+            user,
+            initialDatatableId,
+            initialDatatableTab,
+            onNavigate,
+            hasPermission,
+        }),
+    },
+    // Cowork used to be a tab here, duplicating the sidebar's Work page: one
+    // could edit and show run history, the other could create. It is now a
+    // single top-level page at /app/cowork, and /app/studio/cowork/:id
+    // resolves there (see pageFromPath in AuthedApp).
+    {
+        id: 'webpages',
+        trainingArea: 'webpages',
+        urlSegment: 'webpages',
+        labelKey: 'studio.tab.webpages',
+        labelFallback: 'Webpages',
+        descKey: 'studio.tab.webpages_desc',
+        descFallback: 'Design and publish public webpages',
+        Icon: Globe,
+        kind: 'webpage',
+        category: 'build',
+        // Licence feature is authoritative. canUseFeature is the server-derived
+        // intersection of licence × beta and includes webpages automatically
+        // when the tier matches, but we re-check the licence explicitly so a
+        // stale session can't keep the tab visible after a downgrade.
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('webpages') && canUse('webpages') && hasPermission('use_webpages'),
+        permission: 'use_webpages',
+        gateCapability: 'webpages',
+        lockOn: 'disable',
+        // Webpages asks for a name first: "new" is the cue to open the list
+        // with the create form (WebpagesPage.NEW_WEBPAGE_ID), not a webpage id.
+        create: { labelKey: 'studio.new.webpage', labelFallback: 'Webpage', onCreate: navigateTo('studio/webpages/new') },
+        Component: lazy(() => import('../../../pages/WebpagesPage')),
+        getProps: ({ user, initialWebpageId, onNavigate, hasPermission }) => ({
+            user,
+            initialWebpageId,
+            onWebpageChange: (id: string | null) => onNavigate && onNavigate(id ? `studio/webpages/${id}` : 'studio/webpages'),
+            embedded: true,
+            hasPermission,
+        }),
+    },
+    {
+        // Documents — printable artefacts: invoices, quotes, letters. The
+        // sibling of Webpages and deliberately next to it, because "is this
+        // thing visited or printed?" is the one question that decides which of
+        // the two you want, and the model is told to choose between them too.
+        //
+        // NO GATE. Every other build section is behind a licence feature; this
+        // one replaces the ```quote``` block that every chat could already
+        // render, so gating it would withdraw a capability rather than add
+        // one. The server agrees — /api/studio-documents carries requireAuth
+        // and nothing else.
+        id: 'documents',
+        urlSegment: 'documents',
+        labelKey: 'studio.tab.documents',
+        labelFallback: 'Documents',
+        descKey: 'studio.tab.documents_desc',
+        descFallback: 'Pages, notebooks, invoices, quotes and letters — editable by hand, downloadable as PDF',
+        Icon: FileText,
+        kind: 'document',
+        category: 'build',
+        // Unconditional, and the registry contract requires it to be stated
+        // rather than omitted: this section replaces a capability every chat
+        // already had, so there is nothing to withhold. The server draws the
+        // same line — /api/studio-documents carries requireAuth and no
+        // licence or beta gate.
+        gate: () => true,
+        // Everyone has Documents, and everyone reaches it from its own sidebar
+        // row (Sidebar.jsx coreNav) — so it never earns someone a Studio row
+        // on its own, or every member would get a Studio holding only the
+        // page they already have one click away (studioNav.studioEntrySections).
+        topLevelEntrance: true,
+        create: { labelKey: 'studio.new.document', labelFallback: 'Document', onCreate: navigateTo('studio/documents') },
+        Component: lazy(() => import('../../../pages/documents/DocumentsPage')),
+        // A notebook is a document type: `initialDocumentId` is `notebook/<id>`
+        // for one (pages/documents/notebookRef), its URL studio/documents/notebook/<id>.
+        getProps: ({ user, initialDocumentId, onNavigate }) => ({
+            mode: 'studio',
+            user,
+            initialDocumentId,
+            onDocumentChange: (id: string | null) => onNavigate && onNavigate(id ? `studio/documents/${id}` : 'studio/documents'),
+        }),
+    },
+    // Security Scan is no longer a built-in Studio app: it ships as a
+    // downloadable module (Modules → Marketplace) and its Studio tab is supplied
+    // at runtime by the module registry (moduleRuntime/registry.js) after install.
+    // Support Studio is no longer a Studio section. Its components still ship
+    // (the guided demo mounts them) but the tab is gone: the shared support
+    // inbox people actually use is the one in the ADMIN dashboard
+    // (components/support/SupportInboxPanel, `admin_support`), and carrying a
+    // second, near-identical inbox in the builder's menu only split the
+    // audience. Nothing about the admin surface changed.
+    {
+        id: 'apps',
+        trainingArea: 'apps',
+        urlSegment: 'apps',
+        labelKey: 'studio.tab.apps',
+        labelFallback: 'Apps',
+        descKey: 'studio.tab.apps_desc',
+        descFallback: 'Build and publish internal apps',
+        Icon: LayoutGrid,
+        kind: 'app',
+        category: 'build',
+        // App Studio — Enterprise, GA (auto-on; org admin may disable), gated
+        // like Webpages: licence × capability via canUseFeature. GA removed
+        // the per-org beta opt-in, so canUse now resolves true for every
+        // Enterprise org by default. NOTE the capability id is app_studio
+        // (plain `apps` is the marketplace); only the tab label says "Apps".
+        // manage_apps is the org-role layer on top: who in the org may BUILD
+        // apps (consuming a published one is the sidebar's Apps row instead).
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('app_studio') && canUse('app_studio') && hasPermission('manage_apps'),
+        permission: 'manage_apps',
+        gateCapability: 'app_studio',
+        lockOn: 'disable',
+        // AppList's NewAppModal (blank or from a template); "new" is its cue.
+        create: { labelKey: 'studio.new.app', labelFallback: 'App', onCreate: navigateTo('studio/apps/new') },
+        Component: lazy(() => import('./AppStudio')),
+        getProps: ({ initialStudioAppId, onNavigate, setEditing }) => ({
+            initialAppId: initialStudioAppId,
+            onNavigate,
+            onEditingChange: setEditing,
+        }),
+    },
+    {
+        // Forms — the directory of every form PUBLISHED in the organisation
+        // (GET /api/automation/forms), and the only place the public address
+        // of one can still be found now that the builder stopped showing it.
+        //
+        // A DIRECTORY, NOT AN EDITOR — see createFormAutomation (studioGates.ts) for why
+        // (a form has no document of its own). Two consequences are visible
+        // from here:
+        //
+        //   THE `/:id` SEGMENT IS THE AUTOMATION'S ID, NEVER THE PAGE TOKEN. The
+        //   only id a form ROW has of its own is its public URL token — its
+        //   whole credential — so `/app/studio/forms/<automationId>[/<tab>]`
+        //   (the Form page: Questions · Share · Answers · Settings) is keyed
+        //   by the automation behind the form, an ordinary id. The token still
+        //   never travels: not in a route, not in the history, and not in
+        //   utils/studioRecentSources.js (whose sub-panel navigates to
+        //   `studio/<segment>/<item.id>` — Forms stays out of it).
+        //
+        //   NO STUDIO SEARCH ENTRY either (routes/studio/search.js has no
+        //   `forms` kind). Should one ever be added, the id it returns is the
+        //   AUTOMATION's, never the page token.
+        //
+        // NOT `hiddenFromNav`, even though the sidebar already has a Forms
+        // row. That row is the CONSUMER directory (/app/forms,
+        // pages/forms/FormsHomePage.jsx) — where a colleague goes to fill a
+        // form in — and this is the builder's. Approvals is hidden because its
+        // two entrances led to the SAME place; this is the Apps arrangement
+        // instead (Sidebar.jsx's `apps` row → /app/apps, beside Studio → Apps),
+        // where the two rows are two audiences and two destinations. On
+        // /app/studio* the rail replaces the sidebar entirely, so only one of
+        // the two is ever on screen there anyway.
+        id: 'forms',
+        trainingArea: 'automations',
+        urlSegment: 'forms',
+        // `sidebar.forms`, not a new `studio.tab.forms` beside it: the key
+        // already exists, already says "Forms", and already labels this exact
+        // destination on the sidebar's own Forms row. I18N-CONVENTIES §1.3
+        // puts reuse first and forbids a second key with the same text — and
+        // this one is additionally FROZEN (it feeds mobile's More tab through
+        // features/settings/sitemap.ts), so it cannot be renamed out from
+        // under this row.
+        labelKey: 'sidebar.forms',
+        labelFallback: 'Forms',
+        descKey: 'studio.tab.forms_desc',
+        descFallback: 'Published forms, and what they start',
+        Icon: ClipboardList,
+        kind: 'form',
+        countKey: 'forms',
+        category: 'build',
+        // The SAME gate as Automations and Datatables, because it mirrors the
+        // same mount: /api/automation is behind requireModule('automation') +
+        // requireLicenseFeature('automations'), and GET /forms carries no gate
+        // of its own. One entitlement, one lock, one hint.
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('automations') && canUse('automations') && hasPermission('use_automations'),
+        permission: 'use_automations',
+        gateCapability: 'automations',
+        lockOn: 'disable',
+        // "New form" opens the section's own dialog (name + what happens
+        // with the answers) instead of posting straight away: the choice to
+        // collect answers in a table is made BEFORE the automation exists.
+        create: { labelKey: 'studio.new.form', labelFallback: 'Form', onCreate: navigateTo('studio/forms/new') },
+        Component: lazy(() => import('./Forms/FormsStudio')),
+        getProps: ({ user, initialFormId, initialFormTab, onNavigate, hasPermission }) => ({
+            user, initialFormId, initialFormTab, onNavigate, hasPermission,
+        }),
+    },
+    {
+        // Playbooks — a phased AI build the user watches and consents to phase
+        // by phase: a table, an automation that fills it, an app on top, an
+        // approval flow. It COMPOSES a table + automation + app, so it sits in
+        // Bundle next to Solutions (which packages them afterwards), first in
+        // that group as the door in. A playbook owns an automation AND an app, so
+        // the gate needs both feature/capability pairs; the lock hint asks
+        // about the higher ceiling (app_studio).
+        id: 'playbooks',
+        trainingArea: 'playbooks',
+        urlSegment: 'playbooks',
+        labelKey: 'studio.tab.playbooks',
+        labelFallback: 'Playbooks',
+        descKey: 'studio.tab.playbooks_desc',
+        descFallback: 'Watch the AI build a table, an automation and an app — one phase at a time',
+        Icon: Clapperboard,
+        kind: 'playbook',
+        category: 'bundle',
+        // The permission legs are the two things a playbook builds: an
+        // automation (use_automations) and an app (manage_apps). Without them
+        // a member saw a section that builds what their role may not.
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('automations') && canUse('automations') && hasLicenseFeature('app_studio') && canUse('app_studio')
+            && hasPermission('use_automations') && hasPermission('manage_apps'),
+        permission: ['use_automations', 'manage_apps'],
+        gateCapability: 'app_studio',
+        lockOn: 'disable',
+        create: { labelKey: 'studio.new.playbook', labelFallback: 'Playbook', onCreate: navigateTo('studio/playbooks/new') },
+        Component: lazy(() => import('./Playbooks/PlaybooksStudio')),
+        getProps: ({ user, initialPlaybookId, onNavigate, hasPermission, setEditing }) => ({ user, initialPlaybookId, onNavigate, hasPermission, onEditingChange: setEditing }),
+    },
+    {
+        // Solutions — the builder's bundle: the automations, apps and webpages
+        // that work together, the wiring between them, and the Blueprint you
+        // package it into. A Solution is its own concept, separate from the
+        // collaborative project workspaces on /app/projects: neither list shows
+        // the other's rows. It lives next to the tabs it bundles because it is
+        // built out of exactly those. Gate mirrors Approvals: the licence key alone is
+        // authoritative ('projects' is Enterprise and not beta-gated, so a
+        // canUse check would hide the tab from ordinary members).
+        id: 'solutions',
+        trainingArea: 'playbooks',
+        urlSegment: 'solutions',
+        labelKey: 'studio.tab.solutions',
+        labelFallback: 'Solutions',
+        descKey: 'studio.tab.solutions_desc',
+        descFallback: 'Bundle automations, apps and webpages into one installable Solution',
+        Icon: Boxes,
+        kind: 'solution',
+        category: 'bundle',
+        gate: ({ hasLicenseFeature, hasPermission }) =>
+            hasLicenseFeature('projects') && hasPermission('use_solutions'),
+        permission: 'use_solutions',
+        // Locked, not hidden, on Community: the row is how an org learns
+        // Solutions exist. Packaging/exporting inside stays behind the
+        // separate Enterprise key (blueprint_packaging) the section enforces.
+        // A failed use_solutions PERMISSION still hides the row (lockReason is
+        // null when the licence is in place).
+        gateCapability: 'projects',
+        lockOn: 'disable',
+        // SolutionsStudio's NewSolutionForm asks for a name; "new" is its cue.
+        create: { labelKey: 'studio.new.solution', labelFallback: 'Solution', onCreate: navigateTo('studio/solutions/new') },
+        Component: lazy(() => import('./Solutions/SolutionsStudio')),
+        getProps: ({ user, initialSolutionId, onNavigate }) => ({
+            user,
+            initialSolutionId,
+            onNavigate,
+        }),
+    },
+    {
+        // Runs & log — every time an automation fired, and the "Now running · last
+        // 24 hours" strip above it (Studio.dc.html 1a).
+        //
+        // FILED UNDER "BUNDLE", not "build", and last: the Studio Nav artboard
+        // draws it there, under Solutions, and the reason holds — every other
+        // row in the rail is a thing you make, this one is what those things
+        // DID. It is the only row that is about the past.
+        //
+        // ── Three ways it is not like its neighbours ──────────────────────
+        //
+        // NO `kind`. A run is not one of the ten things you build
+        // (shared/kindColors.js), so the rail draws its glyph in the neutral
+        // ink — exactly as the artboard does, and as Solutions' own container
+        // glyph does. Inventing a kind to satisfy a lint would put a colour on
+        // the rail that means nothing anywhere else in the product.
+        //
+        // NO `create`. You cannot make a run; you make an automation and it runs.
+        // The "New" menu skips a section without a create entry, which is the
+        // behaviour Approvals already relies on.
+        //
+        // NO `/:id` SEGMENT. A single run is deep-linked with `?run=<id>` on
+        // this section's own URL — the query-string state the builder already
+        // uses (studioRoutes.js's parseStudioQuery), not a path segment — so
+        // one address shape covers "the log" and "this run inside it".
+        //
+        // A COUNT, which the artboard does not draw (a deviation, and a small
+        // one): `counts.runs` is the caller's own runs in the last 24 hours —
+        // the same window and the same scope the section opens on. Every other
+        // number on the rail counts things that exist; this one counts what
+        // happened, and routes/studio/counts.js says so where it is computed.
+        id: 'runs',
+        urlSegment: 'runs',
+        // `runs.*` is the greenfield namespace this subject owns
+        // (.claude/handoff/I18N-CONVENTIES.md §1.2); the old
+        // `automations.runs.*` keys are folded into it by the RUN retrofit.
+        // Until the dictionaries' turn comes round (§3) the label renders
+        // through its fallback — studioApps.test.jsx carries that as written
+        // debt rather than as silence.
+        labelKey: 'runs.title',
+        labelFallback: 'Runs & log',
+        descKey: 'runs.tab_desc',
+        descFallback: 'Every time an automation fired, and what happened',
+        Icon: History,
+        countKey: 'runs',
+        category: 'bundle',
+        // The same gate as Automations, Datatables and Forms, because it is the
+        // same mount: /api/automation behind requireModule('automation') +
+        // requireLicenseFeature('automations'). Seeing the organisation's runs
+        // instead of your own is a further permission (manage_automations) and
+        // is checked by the SERVER, per request — never here. A client-side
+        // guess would either hide the switch from someone who has the
+        // permission (a stale permission list) or predict a refusal the person
+        // can do nothing about.
+        //
+        // use_automations, like Automations itself: the log is what YOUR
+        // automations did, and someone whose role may not build or run one has
+        // nothing in it — a row for them was a door to an empty room.
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('automations') && canUse('automations') && hasPermission('use_automations'),
+        permission: 'use_automations',
+        gateCapability: 'automations',
+        lockOn: 'disable',
+        Component: lazy(() => import('./Runs/RunsStudio')),
+        getProps: ({ onNavigate, initialRunId, initialRunStepId, setEditing }) => ({
+            onNavigate,
+            initialRunId,
+            initialRunStepId,
+            onEditingChange: setEditing,
+        }),
+    },
+    {
+        id: 'meetingNotes',
+        trainingArea: 'meeting_notes',
+        urlSegment: 'meeting-notes',
+        labelKey: 'studio.tab.meeting_notes',
+        labelFallback: 'Meeting Notes',
+        descKey: 'studio.tab.meeting_notes_desc',
+        descFallback: 'Transcripts, speakers and actions',
+        Icon: Mic,
+        kind: 'meeting',
+        category: 'ai',
+        // Meeting Notes is enterprise + beta opt-in (mirrors webpages/tests).
+        // We intentionally rely on canUseFeature (server-resolved licence ×
+        // beta) rather than spot-checking betaFeatures so super-admin grants
+        // flow correctly down to ordinary org members.
+        gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
+            hasLicenseFeature('meeting_notes') && canUse('meeting_notes') && hasPermission('use_meeting_notes'),
+        permission: 'use_meeting_notes',
+        gateCapability: 'meeting_notes',
+        lockOn: 'disable',
+        // ONE item for record-or-upload: creation here is the capture flow
+        // (MeetingNotesPage → openCapture), not a new empty thing. "new" is the
+        // page's cue to open it.
+        create: { labelKey: 'studio.new.meeting', labelFallback: 'Record or upload a meeting', onCreate: navigateTo('studio/meeting-notes/new') },
+        Component: lazy(() => import('../../../pages/meeting-notes/MeetingNotesPage')),
+        getProps: ({ user, initialMeetingId }) => ({
+            user,
+            embedded: true,
+            onBack: null,
+            initialMeetingId,
+        }),
+    },
+];
+
+export default STUDIO_APPS;

@@ -12,64 +12,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
+const { installCmsStoreMocks } = require('../stores/cmsStore.testkit');
 
-function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
-
-// ── In-memory config table + db LIKE queries ────────────────────────
-
-const configState = { map: new Map() };
-
-const mockConfigStore = {
-    async getConfig(key) { return clone(configState.map.get(key)); },
-    async getConfigFresh(key) { return clone(configState.map.get(key)); },
-    async setConfig(key, value) { configState.map.set(key, clone(value)); },
-    async deleteConfig(key) { configState.map.delete(key); },
-    async mutateConfig(key, fn) {
-        const cur = configState.map.has(key) ? clone(configState.map.get(key)) : undefined;
-        const next = fn(cur);
-        configState.map.set(key, clone(next));
-        return next;
-    },
-};
-
-function likeToRegex(pattern) {
-    const esc = String(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`^${esc.replace(/%/g, '.*').replace(/_/g, '.')}$`);
-}
-
-const mockDb = {
-    async getAll(sql, params) {
-        const keys = [...configState.map.keys()];
-        if (/key = \$1 OR key LIKE \$2/.test(sql)) {
-            const re = likeToRegex(params[1]);
-            return keys.filter((k) => k === params[0] || re.test(k)).map((k) => ({ key: k }));
-        }
-        const re = likeToRegex(params[0]);
-        return keys.filter((k) => re.test(k)).map((k) => ({ key: k }));
-    },
-};
-
-// Keys are the require strings AS WRITTEN in the module doing the require:
-// the store's aggregates live in stores/cms/, one level deeper than the
-// cmsStore.js facade, so both spellings of each edge have to be stubbed.
-const MOCKS = {
-    './configStore': mockConfigStore,
-    '../db': mockDb,
-    '../configStore': mockConfigStore,
-    '../../db': mockDb,
-};
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) return MOCK_IDS[request];
-    return originalResolve.call(this, request, parent, ...rest);
-};
+const { clone, configState } = installCmsStoreMocks();
 
 const cmsStore = require('../stores/cmsStore');
 const { BLOCK_DEFAULTS, BLOCK_TYPE_IDS } = require('../i18n/defaults/cmsDefaults');

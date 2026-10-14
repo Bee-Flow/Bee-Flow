@@ -55,7 +55,7 @@ function cleanApprovalQuestions(v, path, push) {
 // or bindings (App Studio's own idiom for a dynamic value); both survive here
 // and the executor resolves a binding just before the request goes out.
 const { MAX_APPROVAL_STAGES, MAX_SEATS_PER_STAGE, MAX_TOTAL_SEATS,
-    MAX_STAGE_NAME_LEN, MAX_STAGE_DESCRIPTION_LEN, STAGE_RULES } = require('../../automation/approvalStages');
+    MAX_STAGE_NAME_LEN, MAX_STAGE_DESCRIPTION_LEN, STAGE_RULES } = require('../../core/automationModel/approvalStages');
 function cleanApprovalStages(v, path, push) {
     if (!Array.isArray(v)) return [];
     const out = [];

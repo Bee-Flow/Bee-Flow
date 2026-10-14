@@ -19,7 +19,7 @@
 
 const { test, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const { serve, assertRefused } = require('../core/http/routeHarness');
+const { serve, assertRefused } = require('../testUtils/routeHarness');
 const { makeOrgCollabRouter } = require('./orgCollab');
 const collabSettings = require('../core/collab/settings');
 

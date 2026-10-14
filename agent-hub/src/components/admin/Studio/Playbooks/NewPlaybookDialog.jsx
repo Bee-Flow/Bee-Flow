@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useStat
 import { playbooksApi } from './playbooksApi';
 import { initialInputValues, inputsOf, needsApprover } from './recipeForm';
 import { RECIPES } from './recipes';
+import { readOrgGroups } from '../../../../api/queries/orgGroups';
 import useTranslation, { readingLocale } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { DEPTH_TIER_KEYS, configuredTierKeys, tierI18nKey, tierLabel } from '../../../licensing/tierMeta';
@@ -160,10 +161,8 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
     useEffect(() => {
         if (!approvalsAllowed || !wantsApprover || groups) return;
         let alive = true;
-        authFetch(`${API_BASE}/auth/groups`).then((r) => (r.ok ? r.json() : [])).then((b) => {
-            if (!alive) return;
-            const list = Array.isArray(b) ? b : (Array.isArray(b?.groups) ? b.groups : []);
-            setGroups(list);
+        readOrgGroups().then((list) => {
+            if (alive) setGroups(list ?? []);
         }).catch(() => { if (alive) setGroups([]); });
         return () => { alive = false; };
     }, [approvalsAllowed, wantsApprover, groups]);

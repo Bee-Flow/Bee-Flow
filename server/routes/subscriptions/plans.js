@@ -9,6 +9,7 @@ const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 const router = express.Router();
 
@@ -26,9 +27,6 @@ const router = express.Router();
 // list `=== 'consumer'`) and can never be offered as a trial. It is an enum
 // with an errorMap now, because `invalid_type_error` would not have caught a
 // wrong VALUE.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const text = (what) => worded(`${what} must be text.`);
 const cap = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })

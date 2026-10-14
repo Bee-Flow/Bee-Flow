@@ -30,6 +30,8 @@ function parsePendingBinding(row) {
         pairingCodeConsumedAt: row.pairing_code_consumed_at || null,
         verificationEmail: row.verification_email || null,
         verificationAttempts: row.verification_attempts || 0,
+        verificationAttemptsTotal: row.verification_attempts_total || 0,
+        verificationCodeSends: row.verification_code_sends || 0,
         hasVerification: !!row.verification_code_hash,
     };
 }
@@ -37,6 +39,18 @@ function parsePendingBinding(row) {
 // ── Email-code verification helpers ──
 const NC_VERIFICATION_TTL_SECONDS = 15 * 60;
 const NC_VERIFICATION_MAX_ATTEMPTS = 5;
+// Hard caps per pending row that never reset while the row is live: a new code
+// (resend, retarget, re-bootstrap) resets the per-code counter above, so without
+// these a held pendingId buys 5 fresh guesses per resend, without end.
+const NC_VERIFICATION_MAX_CODE_SENDS = 5;
+const NC_VERIFICATION_MAX_TOTAL_ATTEMPTS = NC_VERIFICATION_MAX_ATTEMPTS * (NC_VERIFICATION_MAX_CODE_SENDS + 1);
+
+// SQL predicate (over the existing row, `t`) for a live row that has used up a
+// lifetime budget. Such a row gets no new code and no TTL extension, so it runs
+// out and a later bootstrap starts over on a fresh row.
+const _ncRowSpentSql = (t) => `(${t}.expires_at > NOW()
+    AND (COALESCE(${t}.verification_attempts_total, 0) >= ${NC_VERIFICATION_MAX_TOTAL_ATTEMPTS}
+      OR COALESCE(${t}.verification_code_sends, 0) >= ${NC_VERIFICATION_MAX_CODE_SENDS}))`;
 
 // Salt the code hash with org_id:nc_instance_id (both stable across the
 // createPendingNcVerification upsert) rather than the row id — ON CONFLICT keeps
@@ -223,7 +237,9 @@ async function createPendingNcBinding(data, ttlSeconds = 1800) {
 // the supplied one-time `code`. Returns the row (incl. expiresAt) so the caller
 // can email the code and report the expiry to the connector. ON CONFLICT on the
 // (org_id, nc_instance_id) partial unique index means a re-bootstrap from the
-// same instance refreshes the existing row's code + resets attempts.
+// same instance refreshes the existing row's code + resets the per-code attempts.
+// The lifetime counters survive that refresh (they restart only once the row
+// has run out), and a row whose budget is spent keeps its code and expiry.
 /**
  * @param data
  * @param {{ ttlSeconds?: number, code?: string }} [opts]
@@ -234,12 +250,14 @@ async function createPendingNcVerification(data, { ttlSeconds = NC_VERIFICATION_
     const id = crypto.randomBytes(16).toString('hex');
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
     const hash = _hashNcVerificationCode(data.orgId, data.ncInstanceId, code);
+    const SPENT = _ncRowSpentSql('pending_nc_bindings');
     const sql = `
         INSERT INTO pending_nc_bindings
             (id, org_id, nc_instance_id, nc_base_url, nc_admin_uid, nc_admin_email,
              nc_admin_display_name, connector_callback_url, theming_name, nc_version,
-             expires_at, verification_code_hash, verification_email, verification_attempts)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,0)
+             expires_at, verification_code_hash, verification_email, verification_attempts,
+             verification_attempts_total, verification_code_sends)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,0,0,0)
         ON CONFLICT (org_id, nc_instance_id) WHERE status = 'pending'
         DO UPDATE SET
             nc_base_url = EXCLUDED.nc_base_url,
@@ -249,10 +267,14 @@ async function createPendingNcVerification(data, { ttlSeconds = NC_VERIFICATION_
             connector_callback_url = EXCLUDED.connector_callback_url,
             theming_name = EXCLUDED.theming_name,
             nc_version = EXCLUDED.nc_version,
-            expires_at = EXCLUDED.expires_at,
-            verification_code_hash = EXCLUDED.verification_code_hash,
-            verification_email = EXCLUDED.verification_email,
-            verification_attempts = 0
+            expires_at = CASE WHEN ${SPENT} THEN pending_nc_bindings.expires_at ELSE EXCLUDED.expires_at END,
+            verification_code_hash = CASE WHEN ${SPENT} THEN pending_nc_bindings.verification_code_hash ELSE EXCLUDED.verification_code_hash END,
+            verification_email = CASE WHEN ${SPENT} THEN pending_nc_bindings.verification_email ELSE EXCLUDED.verification_email END,
+            verification_attempts = CASE WHEN ${SPENT} THEN pending_nc_bindings.verification_attempts ELSE 0 END,
+            verification_attempts_total = CASE WHEN pending_nc_bindings.expires_at <= NOW() THEN 0
+                ELSE COALESCE(pending_nc_bindings.verification_attempts_total, 0) END,
+            verification_code_sends = CASE WHEN pending_nc_bindings.expires_at <= NOW() THEN 0
+                ELSE COALESCE(pending_nc_bindings.verification_code_sends, 0) END
         RETURNING *
     `;
     const row = await getOne(sql, [
@@ -274,7 +296,8 @@ async function createPendingNcVerification(data, { ttlSeconds = NC_VERIFICATION_
 }
 
 // Verify a submitted code against a pending verification row. Atomically counts
-// the attempt. Returns a discriminated result; on 'ok' the row is left 'pending'
+// the attempt, against both the current code and the row's lifetime budget
+// (NC_VERIFICATION_MAX_TOTAL_ATTEMPTS, never reset by a new code). Returns a discriminated result; on 'ok' the row is left 'pending'
 // — the caller binds the org and marks it approved (mirrors the approve handler)
 // so a mid-flight failure doesn't burn the binding.
 async function verifyPendingNcCode(id, code) {
@@ -299,52 +322,92 @@ async function verifyPendingNcCode(id, code) {
 
     // Count this attempt atomically against a still-valid pending row.
     const row = await getOne(
-        `UPDATE pending_nc_bindings SET verification_attempts = verification_attempts + 1
+        `UPDATE pending_nc_bindings
+            SET verification_attempts = COALESCE(verification_attempts, 0) + 1,
+                verification_attempts_total = COALESCE(verification_attempts_total, 0) + 1
          WHERE id = $1 AND status = 'pending' AND expires_at > NOW()
            AND verification_code_hash IS NOT NULL
          RETURNING *`,
         [id]
     );
     if (!row) return { status: 'expired' };
-    if ((row.verification_attempts || 0) > NC_VERIFICATION_MAX_ATTEMPTS) {
+    const attempts = row.verification_attempts || 0;
+    const attemptsTotal = row.verification_attempts_total || 0;
+    if (attempts > NC_VERIFICATION_MAX_ATTEMPTS || attemptsTotal > NC_VERIFICATION_MAX_TOTAL_ATTEMPTS) {
         return { status: 'too_many' };
     }
     if (!_ncCodeMatches(row, code)) {
-        return { status: 'invalid', attemptsLeft: Math.max(0, NC_VERIFICATION_MAX_ATTEMPTS - (row.verification_attempts || 0)) };
+        const attemptsLeft = Math.min(
+            NC_VERIFICATION_MAX_ATTEMPTS - attempts,
+            NC_VERIFICATION_MAX_TOTAL_ATTEMPTS - attemptsTotal,
+        );
+        return { status: 'invalid', attemptsLeft: Math.max(0, attemptsLeft) };
     }
     return { status: 'ok', row: parsePendingBinding(row) };
 }
 
+// Both code-sending paths below (resend, retarget) are capped per row: at most
+// NC_VERIFICATION_MAX_CODE_SENDS codes, and none once the lifetime attempt
+// budget is spent. The cap is checked and counted in the UPDATE itself, so
+// concurrent requests cannot overshoot it.
+const _NC_SEND_BUDGET_SQL = `COALESCE(verification_code_sends, 0) < ${NC_VERIFICATION_MAX_CODE_SENDS}
+           AND COALESCE(verification_attempts_total, 0) < ${NC_VERIFICATION_MAX_TOTAL_ATTEMPTS}`;
+
+/**
+ * @typedef {{ status: 'ok', row: ReturnType<typeof parsePendingBinding> }
+ *   | { status: 'not_eligible' } | { status: 'too_many' }} NcCodeSendResult
+ */
+
 // Resend: mint a new code for an existing pending verification row, reset the
-// attempt counter and extend the TTL. Returns the refreshed row (with
-// verificationEmail) or null if the row isn't an eligible pending verification.
+// per-code attempt counter and extend the TTL. Returns { status: 'ok', row }
+// (row with verificationEmail), 'not_eligible' if the row isn't a pending
+// verification, or 'too_many' once the row's send/attempt budget is spent.
+/** @returns {Promise<NcCodeSendResult>} */
 async function resetNcVerificationCode(id, code, ttlSeconds = NC_VERIFICATION_TTL_SECONDS) {
-    if (!id || !code) return null;
+    if (!id || !code) return { status: 'not_eligible' };
     await initDB();
     const existing = await getOne(`SELECT * FROM pending_nc_bindings WHERE id = $1`, [id]);
-    if (!existing || !existing.verification_code_hash || existing.status !== 'pending') return null;
+    if (!existing || !existing.verification_code_hash || existing.status !== 'pending') return { status: 'not_eligible' };
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
     const hash = _hashNcVerificationCode(existing.org_id, existing.nc_instance_id, code);
     const row = await getOne(
         `UPDATE pending_nc_bindings
-            SET verification_code_hash = $2, verification_attempts = 0, expires_at = $3
+            SET verification_code_hash = $2, verification_attempts = 0, expires_at = $3,
+                verification_code_sends = COALESCE(verification_code_sends, 0) + 1
           WHERE id = $1 AND status = 'pending' AND verification_code_hash IS NOT NULL
+            AND ${_NC_SEND_BUDGET_SQL}
           RETURNING *`,
         [id, hash, expiresAt]
     );
-    return parsePendingBinding(row);
+    return _ncSendResult(id, row);
+}
+
+// Tell an exhausted budget apart from a row that stopped being pending between
+// the SELECT and the UPDATE.
+/** @returns {Promise<NcCodeSendResult>} */
+async function _ncSendResult(id, row) {
+    if (row) return { status: 'ok', row: parsePendingBinding(row) };
+    const still = await getOne(
+        `SELECT 1 AS live FROM pending_nc_bindings
+          WHERE id = $1 AND status = 'pending' AND verification_code_hash IS NOT NULL`,
+        [id]
+    );
+    return still ? { status: 'too_many' } : { status: 'not_eligible' };
 }
 
 // Re-point a pending verification at a different admin (the NC user actually
 // performing the setup, rather than the arbitrary first admin chosen at
 // bootstrap): swap the target email + admin identity, mint a fresh code, reset
-// attempts and extend the TTL. The caller MUST first validate that `email`
-// qualifies for the row's org (exact user match or matching corporate domain).
+// the per-code attempts and extend the TTL. Counts as a code send (same budget
+// and result shape as resetNcVerificationCode). The caller MUST first validate
+// that `email` qualifies for the row's org (exact user match or matching
+// corporate domain).
+/** @returns {Promise<NcCodeSendResult>} */
 async function retargetNcVerification(id, { email, uid, displayName, code, ttlSeconds = NC_VERIFICATION_TTL_SECONDS }) {
-    if (!id || !email || !code) return null;
+    if (!id || !email || !code) return { status: 'not_eligible' };
     await initDB();
     const existing = await getOne(`SELECT * FROM pending_nc_bindings WHERE id = $1`, [id]);
-    if (!existing || !existing.verification_code_hash || existing.status !== 'pending') return null;
+    if (!existing || !existing.verification_code_hash || existing.status !== 'pending') return { status: 'not_eligible' };
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
     const hash = _hashNcVerificationCode(existing.org_id, existing.nc_instance_id, code);
     const row = await getOne(
@@ -355,12 +418,14 @@ async function retargetNcVerification(id, { email, uid, displayName, code, ttlSe
                 nc_admin_display_name = COALESCE($4, nc_admin_display_name),
                 verification_code_hash = $5,
                 verification_attempts = 0,
+                verification_code_sends = COALESCE(verification_code_sends, 0) + 1,
                 expires_at = $6
           WHERE id = $1 AND status = 'pending' AND verification_code_hash IS NOT NULL
+            AND ${_NC_SEND_BUDGET_SQL}
           RETURNING *`,
         [id, String(email).toLowerCase(), uid || null, displayName || null, hash, expiresAt]
     );
-    return parsePendingBinding(row);
+    return _ncSendResult(id, row);
 }
 
 async function countActivePendingNcVerificationsForOrg(orgId) {
@@ -457,4 +522,5 @@ module.exports = {
     getActivePairingCodesForOrg, deletePairingCode,
     countActivePendingNcBindingsForOrg, markPendingNcBindingApproved,
     markPendingNcBindingDenied, expirePendingNcBindings,
+    NC_VERIFICATION_MAX_ATTEMPTS, NC_VERIFICATION_MAX_CODE_SENDS, NC_VERIFICATION_MAX_TOTAL_ATTEMPTS,
 };

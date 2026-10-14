@@ -36,7 +36,7 @@
 
 const log = require('../../telemetry/log');
 const { stageLockSql } = require('../../stores/solutionStage/stages');
-const { storesOf, makeJournal } = require('./prepare');
+const { storesOf, makeJournal } = require('./journal');
 const { toConverging } = require('./commit');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
@@ -61,7 +61,7 @@ async function liveStamps(s, stage) {
  * Switch the stage off: every automation deactivated, every app, page and agent unpublished.
  *
  * @param {{ deployment: object, stage: object }} input
- * @param {object} [deps]  stores (prepare.storesOf), `goLive`, `goLiveDeps`
+ * @param {object} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`
  */
 async function prepareRemove({ deployment, stage }, deps = {}) {
     const s = storesOf(deps);

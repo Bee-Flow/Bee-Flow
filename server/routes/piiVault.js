@@ -40,9 +40,7 @@ const vault = require('../stores/piiVaultStore');
 const userStore = require('../stores/userStore');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../core/http/schemaParts');
 
 /** A whole number on the query string, refused in words when it is not one. */
 const whole = (name, min, what) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })

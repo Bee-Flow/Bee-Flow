@@ -69,11 +69,11 @@
 
 'use strict';
 
-const { resolveValue, resolveInputs } = require('../../automation/bind');
+const { resolveValue, resolveInputs } = require('../automationModel/bind');
 const { hasPlaceholder } = require('../../automation/validate/refPaths');
 const {
     DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT, PENDING_DATATABLE_RE,
-} = require('../../automation/validate/constants');
+} = require('../automationModel/constants');
 // Literals only — no store, no pool — so this one may be required eagerly.
 const { SYSTEM_COLUMNS } = require('../dataEngine/dataModel/vocabulary');
 // The storage envelope, shared with routes/datatables.js so the HTTP surface

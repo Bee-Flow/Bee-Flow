@@ -43,15 +43,16 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const { pool } = require('../db');
 const userStore = require('../stores/userStore');
 
-const argv = process.argv.slice(2);
-const APPLY = argv.includes('--apply');
-const YES = argv.includes('--yes');
-const FORCE_REMOTE = argv.includes('--force-remote');
+const { parseOpsArgsOrExit } = require('./lib/opsArgs');
 
-function argValue(flag) {
-    const i = argv.indexOf(flag);
-    return i >= 0 && argv[i + 1] ? argv[i + 1] : null;
-}
+const ARGS = parseOpsArgsOrExit({
+    orgs: { type: 'string' },
+    yes: { type: 'boolean', default: false },
+    'force-remote': { type: 'boolean', default: false },
+}, { usage: 'Usage: node server/scripts/deleteOrgs.js --orgs a,b,c [--apply [--yes]] [--force-remote]' });
+const APPLY = ARGS.apply;
+const YES = ARGS.yes;
+const FORCE_REMOTE = ARGS['force-remote'];
 
 // Never deletable, regardless of what is passed in.
 //   bee-flow  — the operator's own tenant on every install
@@ -84,7 +85,7 @@ function isLocalDatabase() {
 }
 
 async function main() {
-    const raw = argValue('--orgs');
+    const raw = ARGS.orgs || null;
     if (!raw) {
         console.error('Nothing to do: pass --orgs <id[,id...]>.');
         console.error('Run with --orgs a,b to see a dry-run of what would be deleted.');

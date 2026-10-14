@@ -12,16 +12,12 @@
 const { test, before, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 const { createMemoryQueries } = require('./memoryQueries');
 const { hydrateRows, keyHashForWrite, PLAINTEXT_WRITE } = require('./memoryCrypto');
 
 const pg = new PGlite();
-const rows = async (sql, params) => (params && params.length ? await pg.query(sql, params) : await pg.query(sql)).rows;
-const db = {
-    run: async (sql, params) => { await rows(sql, params); },
-    getAll: rows,
-    getOne: async (sql, params) => (await rows(sql, params))[0] || null,
-};
+const db = dbFacade(pgliteDb(pg).db);
 
 const lifecycleCalls = [];
 const q = createMemoryQueries({

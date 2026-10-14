@@ -30,7 +30,10 @@ const adapter = {
         probed.push({ apiKey, url });
         return { ok: true, version: '1', modelCount: 1, models: [{ id: 'm1', name: 'M1', cat: 'chat' }] };
     },
-    pullModel: async (_key, _url, model) => { pulled.push(model); },
+    pullModel: async (_key, _url, model, onProgress) => {
+        pulled.push(model);
+        if (onProgress) onProgress({ status: 'pulling', completed: 1, total: 2 });
+    },
 };
 
 const MOCKS = {
@@ -75,8 +78,9 @@ function dispatch({ method, url, body = {}, session = { user: { id: 'alice' }, i
         const res = {
             statusCode: 200, headers: {},
             setHeader(k, v) { this.headers[k] = v; },
-            flushHeaders() {},
-            write() { return true; },
+            writeHead(c, h) { this.statusCode = c; Object.assign(this.headers, h); return this; },
+            flushHeaders() { this.flushed = true; },
+            write(chunk) { this.stream = (this.stream || '') + chunk; return true; },
             status(c) { this.statusCode = c; return this; },
             json(b) { this.body = b; resolve(this); return this; },
             send(b) { this.body = b; resolve(this); return this; },
@@ -167,4 +171,14 @@ test('a pull with no model name is refused in words, and downloads nothing', asy
         assert.ok(res.body.details.some((d) => d.path === 'body.model'));
     }
     assert.deepStrictEqual(pulled, [], 'a refused request must not start a multi-gigabyte download');
+});
+
+test('a pull streams its progress as SSE on the head it always had', async () => {
+    const res = await dispatch({ method: 'POST', url: '/local-runtimes/p1/pull', body: { model: 'llama3' } });
+    assert.deepStrictEqual(pulled, ['llama3']);
+    assert.deepStrictEqual(res.headers, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+    assert.strictEqual(res.flushed, true);
+    assert.strictEqual(res.stream,
+        'event: progress\ndata: {"status":"pulling","completed":1,"total":2}\n\n'
+        + 'event: done\ndata: {"model":"llama3"}\n\n');
 });

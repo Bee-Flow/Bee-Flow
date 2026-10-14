@@ -35,6 +35,7 @@
 
 const express = require('express');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
 const router = express.Router();
 router.use(require('../stores/lib/documentCrypto').withDocumentEncryptionSession);
@@ -79,9 +80,6 @@ async function requireNotebookOwner(req, res, next) {
 }
 
 // ── Request schemas (see the header) ────────────────────────────────
-
-/** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const CONTENT_TEXT = 'An export needs the notebook content as HTML.';
 const TITLE_TEXT = 'A title must be text.';

@@ -28,12 +28,12 @@
  * module exists to prevent.
  */
 import { formatPath, parsePath } from '@shared/expr/path.mjs';
+import { humanizeFieldTail } from './core';
 import { suggestItemVar } from './upstream';
 import { lastPathKey } from './upstream/fieldTree';
 import { describeDataPath, escapeExprString } from './valueParts';
 import { walkPath, walkRelativePath } from '../../../../utils/bindingHelpers';
 import { summariseData } from '../flow/dataSummary';
-import { humanizeFieldTail } from '../flow/displayHelpers';
 
 const WILDCARD = '[*]';
 

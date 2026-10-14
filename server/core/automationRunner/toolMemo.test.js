@@ -13,7 +13,7 @@ const assert = require('node:assert');
 const {
     createToolMemo, memoKey, memoKeyParts, MAX_ENTRIES, MAX_TOTAL_BYTES,
 } = require('./toolMemo');
-const { isMemoisable, NEVER_MEMO, READ_ONLY } = require('../../automation/sideEffectMap');
+const { isMemoisable, NEVER_MEMO, READ_ONLY } = require('../automationModel/sideEffectMap');
 
 const BASE = {
     toolName: 'gmail_search',

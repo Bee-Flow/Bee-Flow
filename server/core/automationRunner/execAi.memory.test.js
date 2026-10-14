@@ -36,7 +36,7 @@ const restore = installResolveStub({
     '../providers': {
         getAdapter: () => ({ async chat() { return { content: '{"ok":true}', usage: {} }; } }),
     },
-    '../../automation/bind': {
+    '../automationModel/bind': {
         resolveInputs: (inputs) => JSON.parse(JSON.stringify(inputs || {})),
         interpolateTemplate: (s) => s,
     },

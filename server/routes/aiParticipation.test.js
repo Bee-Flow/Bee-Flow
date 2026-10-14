@@ -20,7 +20,7 @@
 
 const { test, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const { serve, assertRefused } = require('../core/http/routeHarness');
+const { serve, assertRefused } = require('../testUtils/routeHarness');
 const { makeAiParticipationRouter } = require('./aiParticipation');
 const { makePolicy, CONFIG_KEY_PREFIX, USER_KEY_PREFIX } = require('../projects/participation/policy');
 

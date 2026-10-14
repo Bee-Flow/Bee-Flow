@@ -17,9 +17,10 @@
  *   parked:   needs_reauth (excluded from claims until unparked)
  */
 
-const { run, getOne, getAll, exec, getClient } = require('../db');
+const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
+const { makeLeasedJobQueue } = require('./lib/leasedJobs');
 const log = require('../telemetry/log');
 
 const initDB = makeStoreInit('TeamsImportStore', _initDB);
@@ -99,52 +100,16 @@ async function seedJob({ userId, orgId = null, calendarEventId, seriesMasterId =
 }
 
 /** Claim due jobs; the claim leases each row for 10 minutes. */
-async function claimDueJobs(limit = 2) {
-    await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
-        const sel = await client.query(
-            `SELECT id FROM teams_import_jobs
-             WHERE status IN ('pending', 'awaiting_artifacts')
-               AND next_attempt_at <= NOW()
-             ORDER BY next_attempt_at ASC
-             LIMIT $1
-             FOR UPDATE SKIP LOCKED`,
-            [limit],
-        );
-        if (sel.rows.length === 0) {
-            await client.query('COMMIT');
-            return [];
-        }
-        const upd = await client.query(
-            `UPDATE teams_import_jobs
-                SET next_attempt_at = NOW() + INTERVAL '10 minutes', updated_at = NOW()
-              WHERE id = ANY($1::uuid[])
-              RETURNING *`,
-            [sel.rows.map(r => r.id)],
-        );
-        await client.query('COMMIT');
-        return upd.rows.map(mapJob);
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
-}
+const leased = makeLeasedJobQueue({
+    table: 'teams_import_jobs',
+    orderBy: 'next_attempt_at ASC',
+    mapRow: (r) => mapJob(r),
+    initDB,
+});
+const claimDueJobs = leased.claimDueJobs;
 
 /** Extend a running job's lease (see gmeetImportStore.heartbeatJob for why). */
-async function heartbeatJob(id, minutes = 10) {
-    await initDB();
-    const { rowCount } = await run(
-        `UPDATE teams_import_jobs
-            SET next_attempt_at = NOW() + ($2::int * INTERVAL '1 minute'), updated_at = NOW()
-          WHERE id = $1`,
-        [id, minutes],
-    );
-    return rowCount > 0;
-}
+const heartbeatJob = leased.heartbeatJob;
 
 const UPDATABLE_FIELDS = {
     status: 'status',
@@ -185,30 +150,7 @@ async function completeJob(id, transcriptionId) {
  * Record a failed attempt. `terminal` freezes the job with the error code as
  * its status; otherwise it is retried after `backoffMs` in `status`.
  */
-async function failJob(id, { errorCode = null, lastError = null, terminal = false, backoffMs = 0, status = null } = {}) {
-    await initDB();
-    if (terminal) {
-        const { rowCount } = await run(
-            `UPDATE teams_import_jobs
-                SET attempts = attempts + 1, status = $2, error_code = $3, last_error = $4, updated_at = NOW()
-              WHERE id = $1`,
-            [id, errorCode || 'failed', errorCode, lastError],
-        );
-        return rowCount > 0;
-    }
-    const { rowCount } = await run(
-        `UPDATE teams_import_jobs
-            SET attempts = attempts + 1,
-                status = COALESCE($2, status),
-                error_code = $3,
-                last_error = $4,
-                next_attempt_at = NOW() + ($5 * INTERVAL '1 millisecond'),
-                updated_at = NOW()
-          WHERE id = $1`,
-        [id, status, errorCode, lastError, backoffMs],
-    );
-    return rowCount > 0;
-}
+const failJob = leased.failJob;
 
 async function parkNeedsReauth(id) {
     await initDB();

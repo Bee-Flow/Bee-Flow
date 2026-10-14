@@ -59,20 +59,13 @@ const {
 } = require('../../core/skills/skillTest');
 const { buildSandboxTools, executeSandboxTool } = require('../../core/skills/skillSandbox');
 const log = require('../../telemetry/log');
+const { openSse } = require('../../core/http/sseHelpers');
 
 /** One test run is two model calls. Six a minute is a person pressing Run, not a script. */
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 6 });
 
 const MAX_ANSWER_TOKENS = 1200;
 const MAX_GRADE_TOKENS = 1200;
-
-const SSE_HEADERS = Object.freeze({
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    // nginx buffers a streamed response into uselessness without this.
-    'X-Accel-Buffering': 'no',
-});
 
 async function orgIdOf(req) {
     const userStore = require('../../stores/userStore');
@@ -222,10 +215,11 @@ async function logTestUsage({ userId, userOrgId, modelId, usage, startMs, source
 
 // ── POST /api/skills/:id/test ────────────────────────────────────────
 async function run(req, res) {
-    let headersSent = false;
+    // Null until the stream is open: before that, an error is still a status.
+    let sse = null;
     const send = (event, data) => {
-        if (!headersSent || res.writableEnded) return;
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        if (!sse) return;
+        sse.send(event, data);
     };
 
     try {
@@ -315,8 +309,7 @@ async function run(req, res) {
         }
 
         // ── Stream ──────────────────────────────────────────────────
-        res.writeHead(200, SSE_HEADERS);
-        headersSent = true;
+        sse = openSse(res);
 
         // Partial refusal is not silence either: the answer and the verdict
         // would both be built on fewer sources than the skill declares, and
@@ -420,7 +413,7 @@ async function run(req, res) {
         return res.end();
     } catch (err) {
         log.error('[Skills] POST /:id/test error:', err.message);
-        if (headersSent) {
+        if (sse) {
             // The headers are out; a 500 is no longer available, so the error
             // travels as an event or the client waits for ever.
             send('error', { error: err.message, code: 'test_failed' });

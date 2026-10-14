@@ -30,6 +30,7 @@
 'use strict';
 
 const { replaceTemplate } = require('./expr');
+const { sortedKeysJson } = require('../utils/stableJson');
 const { refHead, splitPathHead } = require('./validate/refPaths');
 
 // ── Layout ───────────────────────────────────────────────────────────────
@@ -48,16 +49,7 @@ function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v);
 function asArray(v) { return Array.isArray(v) ? v : []; }
 
 function stable(v) {
-    const sort = (x) => {
-        if (Array.isArray(x)) return x.map(sort);
-        if (isObject(x)) {
-            const out = {};
-            for (const k of Object.keys(x).sort()) if (x[k] !== undefined) out[k] = sort(x[k]);
-            return out;
-        }
-        return x;
-    };
-    return JSON.stringify(sort(v ?? null));
+    return sortedKeysJson(v ?? null, { toJSON: false });
 }
 
 function clone(v) {

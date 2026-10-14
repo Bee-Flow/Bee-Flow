@@ -23,7 +23,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const { makeUsageRouter } = require('./usage');
 const { makeOrgStepUsage } = require('../../automation/orgStepUsage');
-const { serve } = require('../../core/http/routeHarness');
+const { serve } = require('../../testUtils/routeHarness');
 
 const list = (path) => ({ id: 'x', type: 'integration_action', tool: 'nextcloud_list_files', inputs: { path } });
 

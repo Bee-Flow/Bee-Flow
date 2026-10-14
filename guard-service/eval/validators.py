@@ -34,7 +34,7 @@ def is_valid_bsn(digits: str) -> bool:
     if not (len(digits) == 9 and digits.isdigit()):
         return False
     weights = (9, 8, 7, 6, 5, 4, 3, 2, -1)
-    total = sum(w * int(d) for w, d in zip(weights, digits))
+    total = sum(w * int(d) for w, d in zip(weights, digits, strict=False))
     return total != 0 and total % 11 == 0
 
 
@@ -195,7 +195,7 @@ def is_valid_pl_pesel(candidate: str) -> bool:
     if len(digits) != 11:
         return False
     weights = (1, 3, 7, 9, 1, 3, 7, 9, 1, 3)
-    total = sum(w * int(d) for w, d in zip(weights, digits))
+    total = sum(w * int(d) for w, d in zip(weights, digits, strict=False))
     return (10 - total % 10) % 10 == int(digits[10])
 
 
@@ -205,7 +205,7 @@ def is_valid_pl_nip(candidate: str) -> bool:
     if len(digits) != 10:
         return False
     weights = (6, 5, 7, 2, 3, 4, 5, 6, 7)
-    total = sum(w * int(d) for w, d in zip(weights, digits)) % 11
+    total = sum(w * int(d) for w, d in zip(weights, digits, strict=False)) % 11
     if total == 10:
         return False
     return total == int(digits[9])
@@ -243,7 +243,7 @@ def is_valid_at_svnr(candidate: str) -> bool:
     if len(digits) != 10:
         return False
     weights = (3, 7, 9, 0, 5, 8, 4, 2, 1, 6)
-    total = sum(w * int(d) for w, d in zip(weights, digits)) % 11
+    total = sum(w * int(d) for w, d in zip(weights, digits, strict=False)) % 11
     if total == 10:
         return False
     return total == int(digits[3])
@@ -277,7 +277,7 @@ def is_valid_de_rvnr(candidate: str) -> bool:
     effective = s[:8] + str(ord(s[8]) - ord("A") + 1).zfill(2) + s[9:11]
     weights = (2, 1, 2, 5, 7, 1, 2, 1, 2, 1, 2, 1)
     total = 0
-    for ch, w in zip(effective, weights):
+    for ch, w in zip(effective, weights, strict=False):
         product = int(ch) * w
         total += product // 10 + product % 10
     return total % 10 == int(s[11])
@@ -303,7 +303,7 @@ def is_valid_de_kvnr(candidate: str) -> bool:
         return False
     effective = str(ord(s[0]) - ord("A") + 1).zfill(2) + s[1:9]
     total = 0
-    for ch, w in zip(effective, (1, 2) * 5):
+    for ch, w in zip(effective, (1, 2) * 5, strict=False):
         product = int(ch) * w
         total += product - 9 if product >= 10 else product
     return total % 10 == int(s[9])
@@ -323,7 +323,7 @@ def is_valid_uk_nhs(candidate: str) -> bool:
     digits = "".join(c for c in candidate if c.isdigit())
     if len(digits) != 10:
         return False
-    total = sum(int(d) * w for d, w in zip(digits, range(10, 0, -1)))
+    total = sum(int(d) * w for d, w in zip(digits, range(10, 0, -1), strict=False))
     return total % 11 == 0
 
 
@@ -333,7 +333,7 @@ def is_valid_aba_routing(candidate: str) -> bool:
     if len(digits) != 9:
         return False
     weights = (3, 7, 1, 3, 7, 1, 3, 7, 1)
-    return sum(w * int(d) for w, d in zip(weights, digits)) % 10 == 0
+    return sum(w * int(d) for w, d in zip(weights, digits, strict=False)) % 10 == 0
 
 
 # Legacy aliases — the underscore-prefixed names value_banks.py used while

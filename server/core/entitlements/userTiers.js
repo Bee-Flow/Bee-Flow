@@ -25,11 +25,15 @@ async function loadMergedCustomTiersForOrg(orgId) {
     return Array.from(byId.values());
 }
 
-async function getPermittedTierKeys({ userId, session, taskType = 'direct_chat' }) {
-    if (!userId) return new Set();
-
+/**
+ * The administrator's per-group narrowing on its own (the group's
+ * Allowed-tiers editor), without the beta features or the task type: a tier
+ * is permitted when the person is in no group, or one of their groups lists
+ * no tiers at all, or lists this one. Ids are the names the editor stores.
+ * @returns {Promise<{ user: any, tierPermittedByGroups: (tierId: string) => boolean }>}
+ */
+async function loadGroupTierRule(userId) {
     const user = await userStore.getUser(userId).catch(() => null);
-    const userOrgId = user?.organizationId || session?.user?.organizationId || null;
     const userGroupIds = Array.isArray(user?.groups) ? user.groups : [];
     const allGroups = await userStore.getAllGroups().catch(() => []);
     const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
@@ -41,6 +45,14 @@ async function getPermittedTierKeys({ userId, session, taskType = 'direct_chat' 
             return list.length === 0 || list.includes(tierId);
         });
     };
+    return { user, tierPermittedByGroups };
+}
+
+async function getPermittedTierKeys({ userId, session, taskType = 'direct_chat' }) {
+    if (!userId) return new Set();
+
+    const { user, tierPermittedByGroups } = await loadGroupTierRule(userId);
+    const userOrgId = user?.organizationId || session?.user?.organizationId || null;
 
     const hasSkillsFeature = await userHasBetaFeature(userId, 'skills', session).catch(() => false);
     const hasFlowFeature = await userHasBetaFeature(userId, 'flow', session).catch(() => false);
@@ -78,4 +90,4 @@ async function getPermittedTierKeys({ userId, session, taskType = 'direct_chat' 
     return allowed;
 }
 
-module.exports = { getPermittedTierKeys };
+module.exports = { getPermittedTierKeys, loadGroupTierRule };

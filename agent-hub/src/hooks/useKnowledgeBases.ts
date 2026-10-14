@@ -38,7 +38,7 @@ import { useCallback, useEffect, useEffectEvent, useState, type ChangeEvent } fr
 import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { toast } from '../components/shared/Toast';
 import useConfirm from '../components/shared/useConfirm';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { API_BASE, authFetch, mutate } from '../api/mutate';
 
 /** A knowledge base row. Consumers render more of it than this hook reads. */
 export interface KnowledgeBase {
@@ -303,11 +303,11 @@ export default function useKnowledgeBases({
     async function deleteKB(kbId: string) {
         if (!(await confirm({ title: deleteKBConfirm, confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            await authFetch(`${API_BASE}/api/kb/${kbId}`, { method: 'DELETE' });
+            await mutate(`${API_BASE}/api/kb/${kbId}`, { method: 'DELETE' });
             if (selectedKB?.id === kbId) { setSelectedKB(null); setKbDocs([]); }
             fetchKBs();
             onKBDeleted?.(kbId);
-        } catch (e) { console.error('Failed to delete KB:', e); }
+        } catch (e) { console.error('Failed to delete KB:', e); toast.error((e as Error).message); }
     }
 
     async function fetchKBDocs(
@@ -353,10 +353,10 @@ export default function useKnowledgeBases({
         if (!selectedKB) return;
         if (!(await confirm({ title: deleteDocConfirm, confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/documents/${docId}`, { method: 'DELETE' });
+            await mutate(`${API_BASE}/api/kb/${selectedKB.id}/documents/${docId}`, { method: 'DELETE' });
             fetchKBDocs(selectedKB.id, { offset: 0 });
             fetchKBs();
-        } catch (e) { console.error('Failed to delete doc:', e); }
+        } catch (e) { console.error('Failed to delete doc:', e); toast.error((e as Error).message); }
     }
 
     // ── Bulk doc selection (paginated consumers) ─────────────────────

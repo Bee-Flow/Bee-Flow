@@ -13,7 +13,7 @@ import useConfirm from '../components/shared/useConfirm';
 import useChatEngine from '../hooks/useChatEngine';
 import { useTranslation } from '../hooks/useTranslation';
 import { formatRelativeTime } from '../utils/dateFormatters';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { API_BASE, authFetch, mutate } from '../api/mutate';
 import { logger } from '../utils/logger';
 
 // Normalize parameter — supports both string "Name" and { name, description } formats
@@ -256,13 +256,13 @@ export default function TemplatesPage({ user, onBack }) {
         if (!fillTemplate) return;
         setSavingInstructions(true);
         try {
-            await authFetch(`${API_BASE}/api/templates/${fillTemplate.id}`, {
+            await mutate(`${API_BASE}/api/templates/${fillTemplate.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ instructions: editInstructions }),
             });
             setFillTemplate(prev => ({ ...prev, instructions: editInstructions }));
-        } catch (err) { console.error('Save instructions failed:', err); }
+        } catch (err) { console.error('Save instructions failed:', err); toast.error(err.message); }
         finally { setSavingInstructions(false); }
     };
 
@@ -271,12 +271,12 @@ export default function TemplatesPage({ user, onBack }) {
         if (!fillTemplate) return;
         setFillTemplate(prev => ({ ...prev, knowledgeBaseIds: newIds }));
         try {
-            await authFetch(`${API_BASE}/api/templates/${fillTemplate.id}`, {
+            await mutate(`${API_BASE}/api/templates/${fillTemplate.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ knowledgeBaseIds: newIds }),
             });
-        } catch (err) { console.error('Save KB IDs failed:', err); }
+        } catch (err) { console.error('Save KB IDs failed:', err); toast.error(err.message); }
     };
 
     // Auto-scroll chat
