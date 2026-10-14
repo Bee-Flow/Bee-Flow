@@ -3,15 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DetailDrawer } from './DetailDrawer';
 
-vi.mock('../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({
-        t: (key: string, fallback?: unknown, params?: Record<string, unknown>) => {
-            let s = typeof fallback === 'string' ? fallback : key;
-            for (const [k, v] of Object.entries(params || {})) s = s.replace(`{${k}}`, String(v));
-            return s;
-        },
-    }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const recent = [
     { model: 'gpt-x', agent_name: 'Helper', prompt_tokens: 1000, completion_tokens: 500, duration_ms: 1500 },

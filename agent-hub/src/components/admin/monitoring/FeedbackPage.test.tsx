@@ -4,15 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FeedbackItem } from './feedback/feedbackModel';
 import { FeedbackPage } from './FeedbackPage';
 
-vi.mock('../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({
-        t: (key: string, fallback?: unknown, params?: Record<string, unknown>) => {
-            let s = typeof fallback === 'string' ? fallback : key;
-            for (const [k, v] of Object.entries(params || {})) s = s.replace(`{${k}}`, String(v));
-            return s;
-        },
-    }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 vi.mock('../../renderers/MarkdownRenderer', () => ({ default: ({ content }: { content: string }) => <div data-testid="md">{content}</div> }));
 
 const feedback: FeedbackItem[] = [

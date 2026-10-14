@@ -5,15 +5,7 @@ import LanguagesPanel from './LanguagesPanel';
 import { authFetch } from '../../../utils/helpers';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({
-        t: (key: string, fallback?: unknown, params?: Record<string, unknown>) => {
-            let s = typeof fallback === 'string' ? fallback : key;
-            for (const [k, v] of Object.entries(params || {})) s = s.replace(`{${k}}`, String(v));
-            return s;
-        },
-    }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchMock = vi.mocked(authFetch);
 const json = (body: unknown) => ({ ok: true, json: async () => body }) as unknown as Response;

@@ -17,7 +17,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
+const { stubCrudRequires } = require('./crud.testkit');
 
 // ── Mutable per-test fixtures the mocks close over ──────────────────
 const fx = {
@@ -74,24 +74,12 @@ const MOCKS = {
     '../../stores/skillStore': { getSkillScope: async () => null },
     '../../stores/knowledgeBases': { getKB: async () => null, isSystemKB: () => false },
 };
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:crud-authz:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /agents[\\/](crud|crudSchemas|agentPersonaWrite|agentUpdate)\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+const restoreResolve = stubCrudRequires(MOCKS, 'crud-authz');
 
 const router = require('./crud');
 const { canModifyAgent } = router;
 
-test.after(() => { Module._resolveFilename = originalResolve; });
+test.after(restoreResolve);
 
 function resetFx() {
     fx.userId = 'user1';

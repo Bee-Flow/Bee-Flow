@@ -22,3 +22,14 @@ export const translationValue = {
     isLoading: false,
     strings: {} as Record<string, string>,
 };
+
+/**
+ * Like `tStub`, plus `{name}` interpolation from a params 3rd arg (the first
+ * occurrence of each placeholder, as the inline copies this replaces did).
+ * Used by ./useTranslationParamsMock.
+ */
+export function tParams(key: string, fallback?: unknown, params?: Record<string, unknown>): string {
+    let s = typeof fallback === 'string' ? fallback : key;
+    for (const [k, v] of Object.entries(params || {})) s = s.replace(`{${k}}`, String(v));
+    return s;
+}
