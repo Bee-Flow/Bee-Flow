@@ -143,4 +143,3 @@ export async function* readEventStream<T = unknown>(
     }
 }
 
-export default readEventStream;
