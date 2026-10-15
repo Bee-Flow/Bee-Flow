@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import type { RuntimeNode } from '../RuntimeContext';
+import type { AppNode } from '../../inspector/appDefinition';
 import { ROLE_COLORS } from '../styleResolver';
 
 /** App Studio runtime — 'callout'. Spec: server/appStudio/componentSpecs.js. */
@@ -28,7 +28,7 @@ interface CalloutProps {
     collapsible?: boolean;
 }
 
-export default function AppCallout({ node }: { node: RuntimeNode<CalloutProps> }) {
+export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
     const { actionState, dataState, scope } = useRuntime();
     const { title = null, text = '', tone = 'info', meta = null } = node.props || {};
     const bag = { actionState, dataState, scope };

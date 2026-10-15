@@ -9,17 +9,48 @@
  * not become a field this file claims does not exist.
  */
 
-/** One component on a screen. Events live on it as `onClick`, `onSubmit`, … */
-export interface AppNode {
+/** The style knobs a node carries (span, gap, size, …); only the ones that were set. */
+export interface NodeStyle {
+    span?: number;
+    gap?: number;
+    padding?: number;
+    size?: string;
+    align?: string;
+    height?: number | string;
+    [key: string]: unknown;
+}
+
+/** The props the inspector reads off any node; `AppNode<P>` swaps in a component's own shape. */
+export interface CommonNodeProps {
+    name?: string;
+    multiple?: boolean;
+    title?: string;
+    label?: string;
+    [key: string]: unknown;
+}
+
+/**
+ * One component on a screen. Events live on it as `onClick`, `onSubmit`, …
+ * `P` is the shape of that component's own props (the inspector reads the common ones).
+ */
+export interface AppNode<P = CommonNodeProps> {
     id: string;
     type: string;
-    props?: { name?: string; multiple?: boolean; title?: string; label?: string;[key: string]: unknown };
+    props?: P;
+    style?: NodeStyle;
     children?: AppNode[];
     visible?: boolean;
     visibleWhen?: BoolOrFormula;
     enabledWhen?: BoolOrFormula;
     validations?: ValidationRule[];
     computed?: Record<string, FormulaValue>;
+    onClick?: string;
+    onSubmit?: string;
+    onRowClick?: string;
+    onRowSelect?: string;
+    onCardMove?: string;
+    onChange?: string;
+    onDecided?: string;
     [key: string]: unknown;
 }
 

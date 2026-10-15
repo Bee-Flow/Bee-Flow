@@ -39,36 +39,6 @@ import { dataCacheKey } from './resolveBinding';
  * Storybook-style previews) get an inert run-mode default.
  */
 
-/** The style knobs a node carries (span, gap, size, …); only the ones that were set. */
-export interface NodeStyle {
-    span?: number;
-    gap?: number;
-    size?: string;
-    height?: string;
-    align?: string;
-    [key: string]: unknown;
-}
-
-/**
- * A node as the runtime components receive it. `P` is the shape of that
- * component's own props; events hang off the node itself (`onClick`, …).
- */
-export interface RuntimeNode<P = Record<string, unknown>> {
-    id: string;
-    type: string;
-    props?: P;
-    style?: NodeStyle;
-    children?: RuntimeNode[];
-    onClick?: string;
-    onSubmit?: string;
-    onRowClick?: string;
-    onRowSelect?: string;
-    onCardMove?: string;
-    onChange?: string;
-    onDecided?: string;
-    [key: string]: unknown;
-}
-
 /**
  * The shared expression-scope root: the object every formula evaluates
  * against, identical in shape on the client, in the inspector and on the server.

@@ -5,7 +5,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
-import type { RuntimeNode } from '../RuntimeContext';
+import type { AppNode } from '../../inspector/appDefinition';
 import { parseSseStream } from '../sseStream';
 
 /**
@@ -45,7 +45,7 @@ interface ChatStreamEvent {
     error?: string;
 }
 
-export default function AppAiChat({ node }: { node: RuntimeNode<AiChatProps> }) {
+export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
     const { t } = useTranslation();
     const { mode } = useRuntime();
     // `draft` picks which definition the server resolves this node against —

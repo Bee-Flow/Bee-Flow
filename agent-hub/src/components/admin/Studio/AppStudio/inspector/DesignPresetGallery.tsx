@@ -87,7 +87,7 @@ export default function DesignPresetGallery({ activePreset, onApply, disabled = 
                             />
                             <span
                                 className="text-xs shrink-0"
-                                style={{ fontFamily: (FONT_STACKS as Record<string, string | null>)[preset.design.font] || undefined, color: 'var(--text-secondary)' }}
+                                style={{ fontFamily: FONT_STACKS[preset.design.font] || undefined, color: 'var(--text-secondary)' }}
                                 aria-hidden="true"
                             >
                                 Aa
