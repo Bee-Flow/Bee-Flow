@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { autoMapInputs as autoMapInputsJs, autoMapStep, nearestArrayRef } from './autoMapInputs';
 import { computeUpstreamGroups } from './upstream';
+import type { UpstreamNode } from './upstream/upstream.types';
 
 const { walkPath, resolveInputs } = require('../../../../../../server/automation/bind');
 const { execForEachStep } = require('../../../../../../server/core/automationRunner/execFlow');
@@ -169,7 +170,7 @@ describe('which list: Loops, a step already per item, item names', () => {
         }],
         triggerOutputs: { __manual: { fields: [], sample: {} } },
     });
-    const def = (last: object) => ({
+    const def = (last: UpstreamNode) => ({
         trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
         steps: [
             { id: 's1', type: 'integration_action', tool: 'gmail_search', inputs: {} },

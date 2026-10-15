@@ -18,7 +18,7 @@ const BUILDER = '../../../../../agent-hub/src/components/automation/Builder';
 const webRoute = require(`${BUILDER}/flow/routeModel.js`);
 const webRouteEdges = require(`${BUILDER}/flow/routeEdges.js`);
 const webSwitch = require(`${BUILDER}/flow/switchCaseOps.ts`);
-const webCond = require(`${BUILDER}/utils/conditionModel.js`);
+const webCond = require(`${BUILDER}/utils/conditionModel.ts`);
 const webBinding = require('../../../../../agent-hub/src/utils/bindingHelpers.ts');
 /* eslint-enable @typescript-eslint/no-require-imports */
 

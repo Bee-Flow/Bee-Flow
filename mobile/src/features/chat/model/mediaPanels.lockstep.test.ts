@@ -11,7 +11,7 @@ import { controlValue, MEDIA_PANELS, panelsFor } from './mediaPanels';
 
 const read = (name: string) => fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/${name}`, 'utf8');
 const WEB = {
-    image: read('NanoBananaSettings.jsx') + read('ImageGenSettings.jsx'),
+    image: read('NanoBananaSettings.jsx') + read('ImageGenSettings.tsx'),
     video: read('VideoGenSettings.jsx'),
     lyria: read('MusicGenSettings.jsx'),
     elevenlabs: read('NanoBananaSettings.jsx') + read('ElevenLabsSettings.jsx'),

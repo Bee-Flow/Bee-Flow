@@ -76,7 +76,7 @@ export default function ActiveSubscriptionView({ sub, billing, isCloud, deployme
                         const data = await res.json();
                         return data.invoices || [];
                     }}
-                    pdfFetcher={(invoiceId: string) => cloudFetch(deploymentMode, `${API_BASE}/api/stripe/invoices/${invoiceId}/pdf`)}
+                    pdfFetcher={(invoiceId: string) => cloudFetch(deploymentMode, `${API_BASE}/api/stripe/invoices/${invoiceId}/pdf`) as Promise<Response>}
                 />
             )}
 

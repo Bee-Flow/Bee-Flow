@@ -1,6 +1,6 @@
 /**
  * TEXTUAL lockstep: why a knowledge-base change did not save, against the
- * web's conversationKbApi.js and KnowledgeBasePanel.jsx.
+ * web's conversationKbApi.js and KnowledgeBasePanel.tsx.
  */
 
 import fs from 'node:fs';
@@ -11,7 +11,7 @@ import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
 import { KB_REFUSAL_WORDS, kbRefusalOf, MAX_ATTACHED_KBS, sameSelection } from './kbSelection';
 
 const API = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/conversationKbApi.js`, 'utf8');
-const PANEL = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/InputArea/KnowledgeBasePanel.jsx`, 'utf8');
+const PANEL = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/InputArea/KnowledgeBasePanel.tsx`, 'utf8');
 const CLAIM = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/knowledgeBaseClaim.js`, 'utf8');
 
 const refused = (status: number, body?: unknown) => Object.assign(new ApiError('x'), { status, body });

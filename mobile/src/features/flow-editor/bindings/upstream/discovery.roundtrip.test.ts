@@ -14,7 +14,7 @@ import { eachField, FIELD_LIMITS, jsonTextValue } from './fieldTree';
 import * as up from './index';
 
 const fixtures = requireWeb(`${BUILDER}/mapping/upstream/fixtures/discovery.ts`);
-const web = requireWeb(`${BUILDER}/mapping/upstream/index.js`);
+const web = requireWeb(`${BUILDER}/mapping/upstream/index.ts`);
 const webOutputs = requireWeb(`${BUILDER}/mapping/realOutputs.js`);
 const FX = webValue<Record<string, unknown>>(fixtures, 'DISCOVERY_FIXTURE');
 const NESTED = webValue<Record<string, unknown>>(fixtures, 'NESTED_TEXT_OUTPUT');

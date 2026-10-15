@@ -1,7 +1,7 @@
 /**
  * The trigger editor held to the web editor it ports (agent-hub
  * `Builder/flow/settings/triggerEditors.jsx`, `triggerFilters.jsx`,
- * `Builder/webhooks/useWebhooks.js`):
+ * `Builder/webhooks/useWebhooks.ts`):
  *
  *   - TEXTUAL: the kinds the select offers (and which only a primary trigger
  *     may be), each kind's band title, the legacy provider names, and — per
@@ -14,6 +14,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 import { CLIENT_DICT, readDict } from '@/core/i18n/dictionaryText';
 
@@ -123,12 +124,12 @@ describe('the app-event filters', () => {
 });
 
 describe('the webhook panel, evaluated from the web’s source', () => {
-    const src = read('webhooks/useWebhooks.js');
+    const src = read('webhooks/useWebhooks.ts');
     const cut = (name: string) => {
         const at = src.indexOf(`export function ${name}(`);
         return src.slice(at, src.indexOf('\n}\n', at) + 2).replace('export function', 'function');
     };
-    const web = <T>(name: string): T => new Function(`${cut(name)}\nreturn ${name};`)() as T;
+    const web = <T>(name: string): T => new Function(`${ts.transpileModule(cut(name), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText}\nreturn ${name};`)() as T;
 
     it('builds the same signed cURL command', () => {
         const webCurl = web<(url: string, secret: string) => string>('buildCurlSnippet');

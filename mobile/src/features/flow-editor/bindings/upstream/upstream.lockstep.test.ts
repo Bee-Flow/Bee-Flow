@@ -12,7 +12,7 @@ import { BUILDER, requireWeb, webPath } from '../testing/web';
 import type { FlowDefinition, FlowNode, VariableGroup } from '../types';
 import * as up from './index';
 
-const web = requireWeb(`${BUILDER}/mapping/upstream/index.js`);
+const web = requireWeb(`${BUILDER}/mapping/upstream/index.ts`);
 
 beforeAll(() => {
     // triggerMetaSample stamps `firedAt` with the clock.
@@ -173,7 +173,7 @@ describe('the smaller exports', () => {
 
 describe('the describer table', () => {
     it('describes every type the web chain describes', () => {
-        const src = fs.readFileSync(webPath(`${BUILDER}/mapping/upstream/describeNode.js`), 'utf8');
+        const src = fs.readFileSync(webPath(`${BUILDER}/mapping/upstream/describeNode.ts`), 'utf8');
         const webTypes = new Set([...src.matchAll(/node\.type === '([a-z_]+)'/g)].map((m) => m[1]));
         expect([...up.DESCRIBED_TYPES].sort()).toStrictEqual([...webTypes].sort());
     });
