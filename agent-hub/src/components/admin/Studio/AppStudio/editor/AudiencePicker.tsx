@@ -1,7 +1,10 @@
 import { Check, Globe, Loader2, Lock, ShieldAlert, ShieldCheck, Users } from 'lucide-react';
 import { useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { GROUPS, joinNames, ORG, ownerRunFeeds, PRIVATE, summarizeAudience } from './publishAccessSummary';
+import type { AudienceGroup, AudienceSummary } from './publishAccessSummary';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import useAppRoles, { useOrgDirectory } from '../rbac/useAppRoles';
 
 /**
@@ -17,7 +20,24 @@ import useAppRoles, { useOrgDirectory } from '../rbac/useAppRoles';
  * the panel says so — it never falls back to a reassuring sentence.
  */
 
-export default function AudiencePicker({ open, appId, audience, onChoose, selectedGroups, onToggleGroup, incomplete }) {
+interface AudiencePickerProps {
+    open: boolean;
+    appId: string;
+    audience: string;
+    onChoose: (audience: string) => void;
+    selectedGroups: Set<string>;
+    onToggleGroup: (id: string) => void;
+    incomplete: boolean;
+}
+
+/** The organisation's groups, as useOrgDirectory reports them. */
+interface GroupDirectory {
+    isLoading: boolean;
+    available?: boolean;
+    groups: Array<AudienceGroup & { id: string | number }>;
+}
+
+export default function AudiencePicker({ open, appId, audience, onChoose, selectedGroups, onToggleGroup, incomplete }: AudiencePickerProps) {
     const { t } = useTranslation();
     const directory = useOrgDirectory(open);
     return (
@@ -66,7 +86,7 @@ export default function AudiencePicker({ open, appId, audience, onChoose, select
     );
 }
 
-function DataImpact({ appId, audience, selectedGroups, groups }) {
+function DataImpact({ appId, audience, selectedGroups, groups }: { appId: string; audience: string; selectedGroups: Set<string>; groups: AudienceGroup[] }) {
     const { t } = useTranslation();
     const { model, tables, isLoading, isError, hasModel } = useAppRoles(appId);
     const summary = useMemo(
@@ -126,13 +146,13 @@ function DataImpact({ appId, audience, selectedGroups, groups }) {
     );
 }
 
-function PanelIcon({ loud }) {
+function PanelIcon({ loud }: { loud: boolean }) {
     return loud
         ? <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
         : <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />;
 }
 
-function FeedLine({ names, t }) {
+function FeedLine({ names, t }: { names: string[]; t: TranslateFn }) {
     if (names.length === 0) return null;
     return (
         <p>
@@ -141,7 +161,7 @@ function FeedLine({ names, t }) {
     );
 }
 
-function CohortLines({ cohort, t }) {
+function CohortLines({ cohort, t }: { cohort: AudienceSummary['cohorts'][number]; t: TranslateFn }) {
     if (cohort.grants.length === 0) {
         return <p><strong>{cohort.who}</strong> {t('studio_apps_edit.audience.cohort_none', 'will not be able to reach any information in this app.')}</p>;
     }
@@ -149,7 +169,7 @@ function CohortLines({ cohort, t }) {
         <>
             {cohort.grants.map((grant, i) => {
                 const params = { phrase: grant.phrase, names: joinNames(grant.names, t) };
-                let sentence;
+                let sentence: string;
                 if (i === 0) {
                     sentence = cohort.maybe
                         ? t('studio_apps_edit.audience.cohort_may', 'may be able to {phrase} in {names}.', params)
@@ -173,12 +193,12 @@ function CohortLines({ cohort, t }) {
     );
 }
 
-const TONES = {
+const TONES: Record<string, { borderColor: string; background: string; icon: string }> = {
     warn: { borderColor: '#b45309', background: 'color-mix(in srgb, #b45309 8%, transparent)', icon: '#b45309' },
     calm: { borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)', icon: 'var(--text-tertiary)' },
 };
 
-function ImpactPanel({ tone = 'calm', icon, children }) {
+function ImpactPanel({ tone = 'calm', icon, children }: { tone?: string; icon: ReactNode; children: ReactNode }) {
     const style = TONES[tone] || TONES.calm;
     return (
         <div
@@ -192,7 +212,7 @@ function ImpactPanel({ tone = 'calm', icon, children }) {
     );
 }
 
-function GroupPicker({ directory, selectedGroups, onToggle, incomplete }) {
+function GroupPicker({ directory, selectedGroups, onToggle, incomplete }: { directory: GroupDirectory; selectedGroups: Set<string>; onToggle: (id: string) => void; incomplete: boolean }) {
     const { t } = useTranslation();
     return (
         <div className="rounded-lg border p-3 border-[var(--border-subtle)]">
@@ -250,7 +270,7 @@ function GroupPicker({ directory, selectedGroups, onToggle, incomplete }) {
     );
 }
 
-function AudienceOption({ icon, title, description, checked, onSelect }) {
+function AudienceOption({ icon, title, description, checked, onSelect }: { icon: ReactNode; title: string; description: string; checked: boolean; onSelect: () => void }) {
     return (
         <label
             className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"

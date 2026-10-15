@@ -2,6 +2,13 @@ import { Command, Search, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import Modal from '../../../../shared/Modal';
+import type { CommandAction } from './header/useCommandActions';
+
+interface CommandPaletteProps {
+    open: boolean;
+    onClose?: () => void;
+    actions?: CommandAction[];
+}
 
 /**
  * App Studio editor — the Cmd+K command palette.
@@ -12,17 +19,17 @@ import Modal from '../../../../shared/Modal';
  * result list and fires `run` on Enter/click. Grouped headers are cosmetic —
  * navigation stays over the flat filtered list.
  */
-export default function CommandPalette({ open, onClose, actions = [] }) {
+export default function CommandPalette({ open, onClose, actions = [] }: CommandPaletteProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [focusIdx, setFocusIdx] = useState(0);
-    const listRef = useRef(null);
+    const listRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!open) return undefined;
         setQuery('');
         setFocusIdx(0);
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose?.(); }
         };
         document.addEventListener('keydown', onKey, true);
@@ -47,13 +54,13 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
 
     if (!open) return null;
 
-    const choose = (a) => {
+    const choose = (a: CommandAction | undefined) => {
         try { a?.run?.(); } finally { onClose?.(); }
     };
 
     // Group boundaries for cosmetic headers, computed over the FLAT list so the
     // per-row index still addresses `filtered` for keyboard nav.
-    let lastGroup = null;
+    let lastGroup: string | null = null;
 
     return (
         <Modal

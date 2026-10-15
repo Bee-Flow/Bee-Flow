@@ -20,8 +20,40 @@
  * who has to fix it.
  */
 
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { AppDefinition, AppNode } from '../inspector/appDefinition';
+
+export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document';
+
+/** A { key, en } entry: the translation key and its English default. */
+export interface ReferenceText {
+    key: string;
+    en: string;
+}
+
+/** One pick in a reference picker. */
+export interface RefOption {
+    id: string;
+    label: string;
+}
+
+/** A designed document, as the owner's template list returns it. */
+export interface DocumentSource {
+    id: string;
+    name: string;
+    placeholders?: unknown[];
+}
+
+/** One column of a table, for the record-values picker. */
+export interface ColumnOption {
+    key: string;
+    label: string;
+    type: string | null;
+    required: boolean;
+}
+
 /** Which reference a field key names. Keys are the STEP_SPECS field names. */
-export const REFERENCE_FIELDS = {
+export const REFERENCE_FIELDS: Record<string, ReferenceKind> = {
     screenId: 'screen',
     modalId: 'modal',
     tableId: 'table',
@@ -32,7 +64,7 @@ export const REFERENCE_FIELDS = {
 };
 
 /** The label a picker shows when the field is not set yet: { key, en } per reference kind. */
-export const REFERENCE_PLACEHOLDERS = {
+export const REFERENCE_PLACEHOLDERS: Record<ReferenceKind, ReferenceText> = {
     screen: { key: 'studio_apps_edit.step_refs.pick_screen', en: 'Pick a screen…' },
     modal: { key: 'studio_apps_edit.step_refs.pick_dialog', en: 'Pick a dialog…' },
     table: { key: 'studio_apps_edit.step_refs.pick_table', en: 'Pick a table…' },
@@ -46,7 +78,7 @@ export const REFERENCE_PLACEHOLDERS = {
  * What to say when the list is empty — the reason, and what to do about it,
  * because "no options" on its own reads as a broken screen.
  */
-export const REFERENCE_EMPTY_HINTS = {
+export const REFERENCE_EMPTY_HINTS: Record<ReferenceKind, ReferenceText> = {
     screen: { key: 'studio_apps_edit.step_refs.empty_screen', en: 'This app has no other screens yet.' },
     modal: { key: 'studio_apps_edit.step_refs.empty_dialog', en: 'This app has no dialogs yet — add a Dialog component to a screen first.' },
     table: { key: 'studio_apps_edit.step_refs.empty_table', en: 'This app has no tables yet — make one under Data first.' },
@@ -57,7 +89,7 @@ export const REFERENCE_EMPTY_HINTS = {
 };
 
 /** A { key, en } entry from the tables above, translated (English without `t`). */
-export function referenceText(entry, t = null) {
+export function referenceText(entry: ReferenceText | null | undefined, t: TranslateFn | null = null): string {
     if (!entry) return '';
     return t ? t(entry.key, entry.en) : entry.en;
 }
@@ -67,7 +99,7 @@ export function referenceText(entry, t = null) {
  * author picking between "Factuur" and "Factuur (oud)" needs to see which one
  * still has holes to fill, and the alternative is opening both in another tab.
  */
-export function documentOptions(documents, t = null) {
+export function documentOptions(documents: DocumentSource[] | null | undefined, t: TranslateFn | null = null): RefOption[] {
     return (Array.isArray(documents) ? documents : [])
         .filter((d) => d && typeof d.id === 'string')
         .map((d) => ({
@@ -81,9 +113,9 @@ export function documentOptions(documents, t = null) {
 }
 
 /** Every `modal` node in the app, in the order the screens list them. */
-export function collectModals(definition) {
-    const out = [];
-    const walk = (nodes) => {
+export function collectModals(definition: AppDefinition | null | undefined): RefOption[] {
+    const out: RefOption[] = [];
+    const walk = (nodes: AppNode[] | null | undefined) => {
         for (const n of nodes || []) {
             if (n?.type === 'modal' && typeof n.id === 'string') {
                 out.push({ id: n.id, label: modalLabel(n) });
@@ -98,41 +130,41 @@ export function collectModals(definition) {
 }
 
 /** A dialog's own title, falling back to its id so it stays identifiable. */
-function modalLabel(node) {
+function modalLabel(node: AppNode): string {
     const title = node?.props?.title || node?.props?.heading || node?.props?.label;
     return (typeof title === 'string' && title.trim()) ? title.trim() : node.id;
 }
 
 /** Screens as { id, label } — `name` is what the author typed on the tab. */
-export function screenOptions(screens) {
+export function screenOptions(screens: Array<{ id: string; name?: string }> | null | undefined): RefOption[] {
     return (Array.isArray(screens) ? screens : [])
         .filter((s) => s && typeof s.id === 'string')
         .map((s) => ({ id: s.id, label: s.name || s.id }));
 }
 
 /** Tables as { id, label }. The data model calls the human name `name`. */
-export function tableOptions(tables) {
+export function tableOptions(tables: Array<{ id: string; key?: string; name?: string; label?: string }> | null | undefined): RefOption[] {
     return (Array.isArray(tables) ? tables : [])
         .filter((t) => t && (typeof t.id === 'string' || typeof t.key === 'string'))
         .map((t) => ({ id: t.id ?? t.key, label: t.name || t.label || t.key || t.id }));
 }
 
 /** Saved datasets as { id, label }. */
-export function datasetOptions(datasets) {
+export function datasetOptions(datasets: Array<{ id: string; name?: string; title?: string }> | null | undefined): RefOption[] {
     return (Array.isArray(datasets) ? datasets : [])
         .filter((d) => d && typeof d.id === 'string')
         .map((d) => ({ id: d.id, label: d.name || d.title || d.id }));
 }
 
 /** Automations as { id, label }. */
-export function automationOptions(automations) {
+export function automationOptions(automations: Array<{ id: string; title?: string; name?: string }> | null | undefined): RefOption[] {
     return (Array.isArray(automations) ? automations : [])
         .filter((a) => a && typeof a.id === 'string')
         .map((a) => ({ id: a.id, label: a.title || a.name || a.id }));
 }
 
 /** Connectors as { id, label }. */
-export function connectorOptions(connectors) {
+export function connectorOptions(connectors: Array<{ id: string; name?: string; kind?: string }> | null | undefined): RefOption[] {
     return (Array.isArray(connectors) ? connectors : [])
         .filter((c) => c && typeof c.id === 'string')
         .map((c) => ({ id: c.id, label: c.name || c.kind || c.id }));
@@ -143,7 +175,7 @@ export function connectorOptions(connectors) {
  * thing it pointed at is gone — in which case showing the raw id is the only
  * honest answer, and the one that lets somebody repair the step).
  */
-export function labelForRef(options, id) {
+export function labelForRef(options: RefOption[] | null | undefined, id: unknown): string {
     if (id == null || id === '') return '';
     const hit = (Array.isArray(options) ? options : []).find((o) => o.id === id);
     return hit ? hit.label : String(id);
@@ -155,7 +187,7 @@ export function labelForRef(options, id) {
  * not a toast at run time. `false` only when the list has actually loaded —
  * an empty list is "not known yet", never "broken".
  */
-export function isDanglingRef(options, id) {
+export function isDanglingRef(options: RefOption[] | null | undefined, id: unknown): boolean {
     if (id == null || id === '') return false;
     if (!Array.isArray(options) || options.length === 0) return false;
     return !options.some((o) => o.id === id);
@@ -170,7 +202,7 @@ export function isDanglingRef(options, id) {
  * called it. The recordValues map is keyed by `key`, so that is what a picker
  * must emit while showing `name`.
  */
-export function columnOptions(fields) {
+export function columnOptions(fields: Array<{ key: string; name?: string; type?: string | null; required?: boolean }> | null | undefined): ColumnOption[] {
     return (Array.isArray(fields) ? fields : [])
         .filter((f) => f && typeof f.key === 'string')
         .map((f) => ({

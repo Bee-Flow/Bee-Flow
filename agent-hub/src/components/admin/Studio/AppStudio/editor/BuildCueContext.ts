@@ -1,4 +1,34 @@
 import { createContext, useContext } from 'react';
+import type { RevealCue } from '../chat/useBuilderTurn';
+import type { BuilderEngine, BuilderTodo, BuilderTurn } from '../../../../../hooks/builderStream';
+
+/** The words of the last activity row. */
+export interface BuildCueCall {
+    name?: string;
+    title?: string;
+    detail?: string;
+    added?: unknown;
+    ok?: boolean;
+}
+
+/** The live build, as the chat pane publishes it. */
+export interface BuildCueValue {
+    running: boolean;
+    startedAt: number | null;
+    phase: 'building' | 'checking' | 'finishing';
+    lastCall: BuildCueCall | null;
+    skipped: string | null;
+    todos: BuilderTodo[];
+    phaseInfo: unknown;
+    engine: BuilderEngine | null;
+    turn: BuilderTurn | null;
+    toolDraft: Record<string, unknown> | null;
+    reveal: RevealCue | null;
+    finalized: boolean;
+    stopped: boolean;
+    componentCount: number;
+    screenCount: number;
+}
 
 /**
  * App Studio editor — the live build, seen from the canvas.
@@ -27,8 +57,8 @@ import { createContext, useContext } from 'react';
  * the very draft that creates it. The camera and the banner read the same
  * resolution, so they agree by construction.
  */
-export const BuildCueContext = createContext(null);
+export const BuildCueContext = createContext<BuildCueValue | null>(null);
 
-export function useBuildCue() {
+export function useBuildCue(): BuildCueValue | null {
     return useContext(BuildCueContext);
 }

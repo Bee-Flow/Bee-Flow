@@ -4,6 +4,16 @@ import ScreenTabs from './ScreenTabs';
 import IconButton from '../../../../shared/IconButton';
 import { useAppEditor } from '../state/AppEditorContext';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { AppDefinition } from '../inspector/appDefinition';
+import type { AppEditorValue } from '../state/appEditorState';
+
+interface EditorToolRowProps {
+    onCommit?: (def: AppDefinition) => void;
+    canUndo?: boolean;
+    canRedo?: boolean;
+    onUndo?: () => void;
+    onRedo?: () => void;
+}
 
 /**
  * App Studio editor — the SECOND ROW under the header (Studio artboard 1b):
@@ -19,9 +29,9 @@ import useTranslation from '../../../../../hooks/useTranslation';
  * the chat pane and the inspector, and the full ribbon that "All components"
  * unfolds is a `basis-full` child that takes the next line.
  */
-export default function EditorToolRow({ onCommit, canUndo, canRedo, onUndo, onRedo }) {
+export default function EditorToolRow({ onCommit, canUndo, canRedo, onUndo, onRedo }: EditorToolRowProps) {
     const { t } = useTranslation();
-    const { streamLock } = useAppEditor();
+    const { streamLock } = useAppEditor() as AppEditorValue;
     return (
         <div
             className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-1.5 text-xs border-[var(--border-default)] bg-[var(--bg-primary)]"

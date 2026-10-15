@@ -29,24 +29,95 @@
  * about the tables that stayed silent about those would be a false comfort.
  */
 
+import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+
+/** How much of a table a role reaches. `create` is a plain boolean instead. */
+export type RowScope = 'none' | 'own' | 'all';
+export type ScopeValue = RowScope | boolean;
+
+/** The access block a table is saved with. */
+export interface TableAccess {
+    default?: unknown;
+    roles?: Record<string, Record<string, unknown> | null>;
+    rowFilters?: Record<string, unknown>;
+}
+
+/** One table of the app's data model, as far as the audience sentence reads it. */
+export interface AccessTable {
+    id?: string;
+    key?: string;
+    name?: string;
+    access?: TableAccess | null;
+}
+
+/** An outside source (model.connectors[]). */
+export interface AccessConnector {
+    id: string;
+    kind: string;
+    name?: string;
+    runAs?: string;
+}
+
+/** The data model, as far as the audience sentence reads it. */
+export interface AudienceModel {
+    connectors?: AccessConnector[];
+    roleMapping?: { default?: unknown; byGroup?: Record<string, string> };
+}
+
+/** A group of people the audience can be narrowed to. */
+export interface AudienceGroup {
+    id?: string | number;
+    name?: string;
+}
+
+/** What one role may do in one table. */
+export interface TableGrant {
+    read: ScopeValue;
+    update: ScopeValue;
+    remove: ScopeValue;
+    create: ScopeValue;
+    rule: boolean;
+}
+
+/** A group of people the audience lets in, and the role they land on. */
+export interface Cohort {
+    key: string;
+    who: string;
+    role: string | null;
+    maybe?: boolean;
+}
+
+export interface AudienceInputs {
+    audience: string;
+    model: AudienceModel | null | undefined;
+    groups?: AudienceGroup[];
+    selectedGroupIds?: Array<string | number>;
+    t?: TranslateFn | null;
+}
+
+export interface AudienceSummary {
+    cohorts: Array<Cohort & { grants: Array<{ phrase: string; names: string[] }>; denied: string[]; broad: boolean }>;
+    broad: boolean;
+}
+
 /** The three audiences, shared with the picker so the two can never drift. */
 export const PRIVATE = 'private';
 export const ORG = 'org';
 export const GROUPS = 'groups';
 
-const ROW_SCOPES = ['none', 'own', 'all'];
+const ROW_SCOPES: unknown[] = ['none', 'own', 'all'];
 const CONNECTOR_KINDS = ['integration_tool', 'automation', 'rest'];
 
 /**
  * Translate with `t` when the caller has one; otherwise the English default
  * (tests and non-React callers), interpolated the same way.
  */
-const tr = (t, key, en, params) => (t
+const tr = (t: TranslateFn | null, key: string, en: string, params?: TranslateParams): string => (t
     ? t(key, en, params)
     : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
 
 /** ["a","b","c"] → "a, b and c" */
-export function joinNames(names, t = null) {
+export function joinNames(names: Array<string | null | undefined>, t: TranslateFn | null = null): string {
     const list = names.filter(Boolean);
     if (list.length <= 1) return list[0] || '';
     return tr(t, 'studio_apps_edit.access_summary.join_and', '{head} and {last}', {
@@ -55,7 +126,7 @@ export function joinNames(names, t = null) {
     });
 }
 
-export function tableName(table, t = null) {
+export function tableName(table: AccessTable | null | undefined, t: TranslateFn | null = null): string {
     return table?.name || table?.key || table?.id || tr(t, 'studio_apps_edit.access_summary.a_table', 'a table');
 }
 
@@ -64,7 +135,7 @@ export function tableName(table, t = null) {
  * accepts the same shapes it can run (id + a kind it knows) and only a
  * runAs 'viewer' connector uses the viewer's own credentials instead.
  */
-export function ownerRunFeeds(model) {
+export function ownerRunFeeds(model: AudienceModel | null | undefined): string[] {
     const list = Array.isArray(model?.connectors) ? model.connectors : [];
     return list
         .filter((c) => c && typeof c === 'object' && typeof c.id === 'string' && c.id
@@ -72,19 +143,19 @@ export function ownerRunFeeds(model) {
         .map((c) => ((typeof c.name === 'string' && c.name) ? c.name : c.id));
 }
 
-function accessOf(table) {
+function accessOf(table: AccessTable | null | undefined): TableAccess {
     return (table && typeof table.access === 'object' && table.access) ? table.access : {};
 }
 
-function normalizePerm(value, action) {
+function normalizePerm(value: unknown, action: string): ScopeValue {
     if (action === 'create') return value === true || value === 'all' || value === 'own';
-    if (ROW_SCOPES.includes(value)) return value;
+    if (ROW_SCOPES.includes(value)) return value as RowScope;
     if (value === true) return 'all';
     if (value === false) return 'none';
     return 'none';
 }
 
-function modeScope(mode, action) {
+function modeScope(mode: unknown, action: string): ScopeValue {
     switch (mode) {
         case 'app': return action === 'create' ? true : 'all';
         case 'owner': return action === 'create' ? true : 'own';
@@ -94,7 +165,7 @@ function modeScope(mode, action) {
 }
 
 /** The scope (none/own/all, or a boolean for 'create') this role has on a table. */
-export function resolveScope(table, role, action) {
+export function resolveScope(table: AccessTable | null | undefined, role: string | null | undefined, action: string): ScopeValue {
     if (role === 'owner') return action === 'create' ? true : 'all';
     if (!role) return action === 'create' ? false : 'none';
     const access = accessOf(table);
@@ -106,7 +177,7 @@ export function resolveScope(table, role, action) {
     return modeScope(access.default, action);
 }
 
-export function tableGrant(table, role) {
+export function tableGrant(table: AccessTable | null | undefined, role: string | null | undefined): TableGrant {
     const rules = accessOf(table).rowFilters;
     return {
         read: resolveScope(table, role, 'read'),
@@ -118,9 +189,9 @@ export function tableGrant(table, role) {
 }
 
 const VERB_ORDER = ['see', 'add', 'edit', 'delete'];
-const everyRow = (t) => tr(t, 'studio_apps_edit.access_summary.every_row', 'every row');
+const everyRow = (t: TranslateFn | null): string => tr(t, 'studio_apps_edit.access_summary.every_row', 'every row');
 
-function rowQualifier(scope, rule, t) {
+function rowQualifier(scope: ScopeValue, rule: boolean, t: TranslateFn | null): string {
     if (scope === 'all') {
         return rule
             ? tr(t, 'studio_apps_edit.access_summary.rows_rule', 'only the rows your row rule allows')
@@ -131,7 +202,7 @@ function rowQualifier(scope, rule, t) {
         : tr(t, 'studio_apps_edit.access_summary.rows_own', 'only the rows they added themselves');
 }
 
-const VERB_LABELS = {
+const VERB_LABELS: Record<string, [string, string]> = {
     see: ['studio_apps_edit.access_summary.verb_see', 'see'],
     add: ['studio_apps_edit.access_summary.verb_add', 'add'],
     edit: ['studio_apps_edit.access_summary.verb_edit', 'edit'],
@@ -143,9 +214,9 @@ const VERB_LABELS = {
  * when the role cannot touch the table at all. Verbs that share a qualifier are
  * listed together; adding joins them only when nothing narrows the rows.
  */
-export function grantPhrase(grant, t = null) {
-    const clauses = [];
-    const put = (qualifier, verb) => {
+export function grantPhrase(grant: TableGrant, t: TranslateFn | null = null): string | null {
+    const clauses: Array<{ qualifier: string | null; verbs: string[] }> = [];
+    const put = (qualifier: string, verb: string) => {
         const found = clauses.find((c) => c.qualifier === qualifier);
         if (found) found.verbs.push(verb); else clauses.push({ qualifier, verbs: [verb] });
     };
@@ -172,7 +243,7 @@ export function grantPhrase(grant, t = null) {
     }).reduce((acc, clause) => tr(t, 'studio_apps_edit.access_summary.clauses_join', '{a}, and {b}', { a: acc, b: clause }));
 }
 
-function roleMappingOf(model) {
+function roleMappingOf(model: AudienceModel | null | undefined): { fallback: string | null; byGroup: Record<string, string> } {
     const mapping = (model && typeof model.roleMapping === 'object' && model.roleMapping) ? model.roleMapping : {};
     return {
         // A blank default is how the server spells "no role at all" → no data.
@@ -181,9 +252,9 @@ function roleMappingOf(model) {
     };
 }
 
-function groupNamer(groups, t) {
-    const byId = new Map((Array.isArray(groups) ? groups : []).map((g) => [String(g?.id), g?.name]));
-    return (ids) => {
+function groupNamer(groups: AudienceGroup[] | null | undefined, t: TranslateFn | null): (ids: string[]) => string {
+    const byId = new Map((Array.isArray(groups) ? groups : []).map((g): [string, string | undefined] => [String(g?.id), g?.name]));
+    return (ids: string[]) => {
         const named = ids.map((id) => byId.get(String(id))).filter(Boolean);
         // The group directory needs org-admin rights the owner may not hold.
         return named.length > 0 ? joinNames(named, t) : tr(t, 'studio_apps_edit.access_summary.a_group', 'a group you gave a role');
@@ -191,8 +262,8 @@ function groupNamer(groups, t) {
 }
 
 // role → the group ids mapped to it, in model order.
-function groupsByRole(byGroup, ids, fallback) {
-    const out = new Map();
+function groupsByRole(byGroup: Record<string, string>, ids: string[], fallback: string | null): Map<string | null, string[]> {
+    const out = new Map<string | null, string[]>();
     for (const id of ids) {
         const role = (Object.hasOwn(byGroup, id) && byGroup[id]) ? byGroup[id] : fallback;
         out.set(role, [...(out.get(role) || []), id]);
@@ -207,7 +278,7 @@ function groupsByRole(byGroup, ids, fallback) {
  * marks that as a possibility rather than a promise — when their picked group
  * is mapped too, the server takes whichever it matches first.
  */
-function spilloverCohorts(byGroup, pickedIds, picked, nameGroups, t) {
+function spilloverCohorts(byGroup: Record<string, string>, pickedIds: string[], picked: Cohort[], nameGroups: (ids: string[]) => string, t: TranslateFn | null): Cohort[] {
     const covered = new Set(picked.map((c) => c.role));
     const chosen = new Set(pickedIds);
     const rest = Object.keys(byGroup)
@@ -228,7 +299,7 @@ function spilloverCohorts(byGroup, pickedIds, picked, nameGroups, t) {
  * the exception — the server gives them whichever group it matches first, so
  * both lines name them.
  */
-export function audienceCohorts({ audience, model, groups = [], selectedGroupIds = [], t = null }) {
+export function audienceCohorts({ audience, model, groups = [], selectedGroupIds = [], t = null }: AudienceInputs): Cohort[] {
     const { fallback, byGroup } = roleMappingOf(model);
     const nameGroups = groupNamer(groups, t);
 
@@ -267,10 +338,10 @@ export function audienceCohorts({ audience, model, groups = [], selectedGroupIds
  * it cannot open is left out (another line covers that), and one that reaches
  * nothing is dropped rather than contradicting them.
  */
-export function summarizeAudience({ audience, model, tables = [], groups = [], selectedGroupIds = [], t = null }) {
+export function summarizeAudience({ audience, model, tables = [], groups = [], selectedGroupIds = [], t = null }: AudienceInputs & { tables?: AccessTable[] }): AudienceSummary {
     const cohorts = audienceCohorts({ audience, model, groups, selectedGroupIds, t }).map((cohort) => {
-        const buckets = new Map();
-        const denied = [];
+        const buckets = new Map<string, string[]>();
+        const denied: string[] = [];
         let broad = false;
         for (const table of tables) {
             const grant = tableGrant(table, cohort.role);

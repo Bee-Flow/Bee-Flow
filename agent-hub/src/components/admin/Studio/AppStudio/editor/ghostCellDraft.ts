@@ -15,20 +15,56 @@
  * avoid. The kicker counts ("Component 2 of 5") so the pace is visible.
  */
 
+import type { ComponentEntry } from './dnd';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { AppDefinition } from '../inspector/appDefinition';
 import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
 import { findNode, findScreen, findSection } from '../state/definitionOps';
 
 const KINDS_ON_CANVAS = new Set(['component']);
 
-function sectionIdsOf(screen) {
+/** One entry of the batch being typed. */
+export interface ToolDraftItem {
+    kind: string;
+    type?: unknown;
+    label?: unknown;
+    partial?: boolean;
+}
+
+/** The server's `tool_draft` event: what the model is typing right now. */
+export interface ToolDraft {
+    name?: string;
+    count: number;
+    items: ToolDraftItem[];
+    parentId?: string | null;
+}
+
+/** The dashed cell for the component being typed. */
+export interface GhostCellDraft {
+    kind: 'component';
+    type: string | null;
+    typeLabel: string | null;
+    label: string | null;
+    partial: boolean;
+    index: number;
+    count: number;
+    sectionId: string;
+    span: number | undefined;
+    caption: string;
+}
+
+/** A screen that has sections to put the ghost in. */
+interface GhostScreen {
+    id?: string;
+    sections: Array<{ id: string }>;
+}
+
+function sectionIdsOf(screen: GhostScreen): Set<string | undefined> {
     return new Set((screen && Array.isArray(screen.sections) ? screen.sections : []).map((s) => s && s.id).filter(Boolean));
 }
 
-/**
- * @returns {null | { kind:'component', type, typeLabel, label, partial, index, count, sectionId, span, caption }}
- */
 /** The section the ghost belongs in on `screen`, or null when the parent is on another screen. */
-function ghostSectionFor(parent, definition, screen, sections) {
+function ghostSectionFor(parent: string | null | undefined, definition: AppDefinition | null | undefined, screen: GhostScreen, sections: Set<string | undefined>): string | null {
     if (parent && sections.has(parent)) return parent;
     if (parent) {
         const found = findNode(definition, parent);
@@ -38,7 +74,7 @@ function ghostSectionFor(parent, definition, screen, sections) {
     return screen.sections[screen.sections.length - 1].id;
 }
 
-export function projectGhostCell(toolDraft, definition, activeScreenId, t = null) {
+export function projectGhostCell(toolDraft: ToolDraft | null | undefined, definition: AppDefinition | null | undefined, activeScreenId: string | null | undefined, t: TranslateFn | null = null): GhostCellDraft | null {
     if (!toolDraft || toolDraft.name !== 'app_add_components') return null;
     const items = Array.isArray(toolDraft.items) ? toolDraft.items.filter((i) => i && KINDS_ON_CANVAS.has(i.kind)) : [];
     if (!items.length) return null;
@@ -58,8 +94,8 @@ export function projectGhostCell(toolDraft, definition, activeScreenId, t = null
     if (!sectionId) return null;
 
     const last = items[items.length - 1];
-    const type = typeof last.type === 'string' && APP_COMPONENT_TYPES[last.type] ? last.type : null;
-    const entry = type ? APP_COMPONENT_TYPES[type] : null;
+    const type = typeof last.type === 'string' && (APP_COMPONENT_TYPES as Record<string, ComponentEntry | undefined>)[last.type] ? last.type : null;
+    const entry = type ? (APP_COMPONENT_TYPES as Record<string, ComponentEntry | undefined>)[type] : null;
     const typeLabel = entry ? (entry.label || type) : (t ? t('app_studio.builder.draft.component', 'Component') : 'Component');
     const span = entry && entry.defaultStyle && Number.isFinite(entry.defaultStyle.span) ? entry.defaultStyle.span : 12;
     const index = items.length;

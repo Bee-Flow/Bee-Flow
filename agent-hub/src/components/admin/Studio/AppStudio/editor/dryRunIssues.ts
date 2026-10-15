@@ -17,7 +17,49 @@
  * "Show me" can jump to a component the validator never named a path for.
  */
 
+import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import type { AppDefinition } from '../inspector/appDefinition';
 import { resolveTarget } from '../../../../shared/resolveTarget';
+
+/** resolveTarget handles a missing definition (it answers null), whatever its JSDoc says. */
+type ResolveTargetFn = (
+    definition: AppDefinition | null | undefined,
+    ref?: { path?: string; nodeId?: string; kind?: 'app' | 'automation' },
+) => { label?: string; labelIsText?: boolean } | null;
+
+/** An issue the panel can draw, or a static-validator entry on its way to one. */
+export interface DryRunIssue {
+    code?: string;
+    message?: string;
+    hint?: string | null;
+    nodeId?: string | null;
+    path?: string | null;
+    severity?: 'error' | 'warning';
+    [key: string]: unknown;
+}
+
+/** One finding of appDryRun's four arrays (bindings, roleFindings, actions, static). */
+interface DryRunEntry {
+    nodeId?: string;
+    ok?: boolean;
+    error?: string;
+    rowCount?: number;
+    skipped?: boolean;
+    kind?: string;
+    role?: string;
+    note?: string;
+    step?: string;
+    errors?: unknown;
+    [key: string]: unknown;
+}
+
+/** appDryRun's answer, as far as this module reads it. */
+interface DryRunResult {
+    static?: { errors?: unknown; warnings?: unknown };
+    bindings?: unknown;
+    roleFindings?: unknown;
+    actions?: unknown;
+}
 
 /**
  * The stand-in for t() when a caller has none: `nodeLabel` is exported and the
@@ -27,7 +69,7 @@ import { resolveTarget } from '../../../../shared/resolveTarget';
  * learned to translate. The sibling editor/nodeLogicSummary.js carries the same
  * stand-in, for the same reason.
  */
-const EN_ONLY = (key, en, params) => (params && typeof params === 'object'
+const EN_ONLY = (key: string | undefined, en: string, params?: TranslateParams): string => (params && typeof params === 'object'
     ? Object.entries(params).reduce(
         (out, [k, v]) => out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v)),
         String(en),
@@ -35,7 +77,7 @@ const EN_ONLY = (key, en, params) => (params && typeof params === 'object'
     : en);
 
 /** An issue the panel can draw. `code` is only used as a React key hint. */
-function issue({ code, message, hint = null, nodeId = null, path = null, severity }) {
+function issue({ code, message, hint = null, nodeId = null, path = null, severity }: DryRunIssue): DryRunIssue {
     return { code, message, hint, nodeId, path, severity };
 }
 
@@ -46,16 +88,16 @@ function issue({ code, message, hint = null, nodeId = null, path = null, severit
  * sentence — a node's own words in quotes, its type bare, the id as a last
  * resort.
  */
-export function nodeLabel(definition, nodeId, t = EN_ONLY) {
+export function nodeLabel(definition: AppDefinition | null | undefined, nodeId: string | null | undefined, t: TranslateFn = EN_ONLY): string {
     if (!nodeId) return t('app_studio.publish.issue_component', 'A component');
-    const hit = resolveTarget(definition, { nodeId, kind: 'app' });
+    const hit = (resolveTarget as ResolveTargetFn)(definition, { nodeId, kind: 'app' });
     if (!hit?.label) return nodeId;
     return hit.labelIsText ? `“${hit.label}”` : hit.label;
 }
 
-export default function dryRunIssues(result, definition = null, t = EN_ONLY) {
-    const errors = [];
-    const warnings = [];
+export default function dryRunIssues(result: DryRunResult | null | undefined, definition: AppDefinition | null = null, t: TranslateFn = EN_ONLY): { errors: DryRunIssue[]; warnings: DryRunIssue[] } {
+    const errors: DryRunIssue[] = [];
+    const warnings: DryRunIssue[] = [];
     if (!result || typeof result !== 'object') return { errors, warnings };
 
     // 1. The static pass is already in the right shape — pass it straight
@@ -137,10 +179,10 @@ export default function dryRunIssues(result, definition = null, t = EN_ONLY) {
     return { errors, warnings };
 }
 
-function asList(v) {
+function asList(v: unknown): DryRunEntry[] {
     return Array.isArray(v) ? v.filter((x) => x && typeof x === 'object') : [];
 }
 
-function reasons(v) {
+function reasons(v: unknown): string {
     return (Array.isArray(v) ? v : []).filter((s) => typeof s === 'string' && s.trim()).join('; ');
 }
