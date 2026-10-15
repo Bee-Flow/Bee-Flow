@@ -4,12 +4,10 @@
  * simply lacks the keys a newer editor writes.
  */
 
+import type { TextStyleInput } from './textStyle';
+
 /** `{ fontFamily?, fontSize?, color? }` from the editor's StyleTriplet. */
-export interface TextStyleBlob {
-    fontFamily?: string;
-    fontSize?: number;
-    color?: string;
-}
+export type TextStyleBlob = TextStyleInput;
 
 /** The header fields (eyebrow, title, lead and their styling) most sections carry. */
 export interface SectionHeaderFields {
