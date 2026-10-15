@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import type { RunOpts, Vars } from './actionRunner/core';
+import type { ActionState, RunOpts, Vars } from './actionRunner/core';
+import type { AppDesign } from './appDesign';
 import type { DataEntry, DataState } from './DataContext';
 import { dataCacheKey } from './resolveBinding';
 
@@ -56,7 +57,7 @@ export interface RuntimeNode<P = Record<string, unknown>> {
     id: string;
     type: string;
     props?: P;
-    style: NodeStyle;
+    style?: NodeStyle;
     children?: RuntimeNode[];
     onClick?: string;
     onSubmit?: string;
@@ -91,8 +92,8 @@ export interface ExpressionScope {
 
 /** What buildScope reads; every part is optional. */
 export interface BuildScopeInput {
-    actionState?: Record<string, unknown> | null;
-    dataState?: Record<string, unknown> | null;
+    actionState?: ActionState | null;
+    dataState?: DataState | null;
     form?: Record<string, unknown> | null;
     forms?: Record<string, unknown> | null;
     screen?: Record<string, unknown> | null;
@@ -107,17 +108,17 @@ export interface BuildScopeInput {
 
 /** What every rendered component reads through useRuntime(). */
 export interface RuntimeValue {
-    mode: string;
+    mode: 'edit' | 'run';
     selectedNodeId: string | null;
     onSelectNode: (id: string | null) => void;
     recentlyAddedIds: Set<string>;
-    actionState: Record<string, unknown>;
+    actionState: ActionState;
     dataState: DataState;
     runAction: (actionId: string, opts?: RunOpts) => void | Promise<void>;
     setVar: (name: string, value: unknown) => void;
     registerFormValue: ((formName: string, values: Record<string, unknown>) => void) | null;
     currentUser: unknown;
-    appDesign: Record<string, string | null> | null;
+    appDesign: AppDesign | null;
     scope: Partial<ExpressionScope>;
     /** Editor-only members (selection, preview role, …) that the canvas adds. */
     [key: string]: unknown;
@@ -190,7 +191,7 @@ export function buildScope(input: BuildScopeInput = {}): ExpressionScope {
     const datasets: Record<string, unknown> = {};
     const connectors: Record<string, unknown> = {};
     const claimed: Record<string, number> = {};
-    for (const [cacheKey, entry] of Object.entries((dataState || {}) as DataState)) {
+    for (const [cacheKey, entry] of Object.entries(dataState || {})) {
         if (!entry || typeof entry !== 'object') continue;
         if (entry.connectorId != null) {
             connectors[cacheKey] = entry.result;

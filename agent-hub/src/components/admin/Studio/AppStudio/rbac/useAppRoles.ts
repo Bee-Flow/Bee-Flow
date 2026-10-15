@@ -108,7 +108,7 @@ interface ApiError extends Error {
     conflict?: boolean;
 }
 
-const enc = encodeURIComponent;
+const enc = encodeURIComponent as (value: string | number | boolean | null | undefined) => string;
 const base = `${API_BASE}/api/studio-apps`;
 
 async function request(url: string, options: RequestInit = {}): Promise<ApiBody | null> {
@@ -136,15 +136,15 @@ function emptyModel() {
     return { modelVersion: 1, tables: [], roles: [], roleMapping: { default: 'app', byGroup: {} } };
 }
 
-export const APP_SCHEMA_KEY = (appId: string) => ['studio-app-schema', appId];
-export const APP_MEMBERS_KEY = (appId: string) => ['studio-app-members', appId];
+export const APP_SCHEMA_KEY = (appId: string | null | undefined) => ['studio-app-schema', appId];
+export const APP_MEMBERS_KEY = (appId: string | null | undefined) => ['studio-app-members', appId];
 
 /**
  * The primary RBAC hook. Exposes the model's roles/roleMapping/tables, the
  * membership list, and the merge-aware writers. `appId` may be null (the hook
  * simply stays idle).
  */
-export default function useAppRoles(appId: string) {
+export default function useAppRoles(appId: string | null | undefined) {
     const { t } = useTranslation();
     const qc = useQueryClient();
     // The model version the SERVER last reported, kept out of the cached data so

@@ -4,6 +4,7 @@
  * the hook-owned writers.
  */
 import type { EffectContext } from './applyEffects';
+import type { DataState } from '../DataContext';
 import type { ActionEntry, ActionState, EffectObject, RunnableAction, RunStep, Translate, Vars } from './core';
 
 export type NavigateFn = (screenId: string, params?: unknown) => void;
@@ -29,7 +30,7 @@ export interface LiveInputs {
     confirm?: ConfirmFn | null;
     onRefresh?: RefreshFn | null;
     currentUser?: unknown;
-    dataState?: Record<string, unknown> | null;
+    dataState?: DataState | null;
     forms?: Record<string, unknown> | null;
     screen?: Record<string, unknown> | null;
     beforeServerStep?: BeforeServerStep | null;

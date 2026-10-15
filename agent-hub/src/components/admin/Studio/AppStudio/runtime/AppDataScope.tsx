@@ -217,7 +217,7 @@ function BindingFetcher({ binding, sample, scope, refreshMs, live }: {
 const MIN_SPACING_MS = 2_500;
 
 function BindingLoaders({ appId, definition, screenId, sample, scope, refreshMs }: {
-    appId: string;
+    appId: string | null | undefined;
     definition: ScopeDefinition | null | undefined;
     screenId: string | null | undefined;
     sample: boolean;
@@ -259,7 +259,7 @@ function useOptionalQueryClient() {
 }
 
 function DataConsumer({ appId, children }: {
-    appId: string;
+    appId: string | null | undefined;
     children?: ReactNode | ((dataState: DataState, controls: DataScopeControls) => ReactNode);
 }) {
     const dataState = useDataState();
@@ -302,7 +302,7 @@ function DataConsumer({ appId, children }: {
 }
 
 export default function AppDataScope({ appId, definition, screenId, sample = false, draft = false, scope, refreshMs = 0, children }: {
-    appId: string;
+    appId: string | null | undefined;
     definition: ScopeDefinition | null | undefined;
     screenId: string | null | undefined;
     sample?: boolean;

@@ -61,10 +61,13 @@ export const GOOGLE_FONT_FAMILIES: Record<string, string> = {
     poppins: 'Poppins',
 };
 
+/** An app's authored design: each knob (font, surface, motion, …) is a string choice. */
+export type AppDesign = Record<string, string>;
+
 /**
  * design → { className, style } for the app roots. Identity in, nothing out.
  */
-export function appDesignProps(definition?: { design?: Record<string, string>; [key: string]: unknown } | null) {
+export function appDesignProps(definition?: { design?: AppDesign; [key: string]: unknown } | null) {
     const d = definition?.design;
     const classes: string[] = [];
     const style: CSSProperties = {};

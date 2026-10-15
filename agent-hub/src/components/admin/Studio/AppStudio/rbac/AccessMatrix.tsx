@@ -57,7 +57,7 @@ function buildItems(def: AppDefinition | null, t: TranslateFn) {
 }
 
 export default function AccessMatrix({ appId, definition = null, onCommit = null }: {
-    appId: string;
+    appId: string | null | undefined;
     definition?: AppDefinition | null;
     onCommit?: ((definition: AppDefinition) => void) | null;
 }) {

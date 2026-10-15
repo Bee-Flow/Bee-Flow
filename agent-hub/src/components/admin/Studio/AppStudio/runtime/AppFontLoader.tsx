@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { GOOGLE_FONT_FAMILIES } from './appDesign';
+import type { AppDesign } from './appDesign';
 import { buildFontsHrefs } from '../../../product-website/googleFonts';
 // Self-hosted @font-face declarations (Satoshi, General Sans, Cabinet Grotesk)
 // — a plain import so the bytes are served from Bee Flow itself. Idempotent:
@@ -17,7 +18,7 @@ import '../../../../../marketing/self-hosted-fonts.css';
  * Renders nothing. The <link> is left in place on unmount: fonts are global,
  * cheap, and removing one mid-session would restyle whatever else is using it.
  */
-export default function AppFontLoader({ definition }: { definition?: { design?: Record<string, string>; [key: string]: unknown } | null }) {
+export default function AppFontLoader({ definition }: { definition?: { design?: AppDesign; [key: string]: unknown } | null }) {
     const font = definition?.design?.font || 'system';
 
     useEffect(() => {
