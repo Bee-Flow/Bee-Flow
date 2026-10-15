@@ -39,6 +39,7 @@
  */
 
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 
 const QUEUE_DEPTH = 25;
 // Cross-pod collision backoff. Three tries covers a normal run's length
@@ -276,8 +277,7 @@ function createFormQueue(overrides = {}) {
      * visitor never waits on the automation — only on the one write that makes
      * the 202 true.
      *
-     * Throws when the work cannot be persisted; the route turns that into the 500
-     * it already answers for any other failure to accept.
+     * Throws when the work cannot be persisted (500) or the queue is full (503 form_busy).
      *
      * @param {{ automation: { id: string }, session: { id: string }, work: object }} unit
      * @param {*} res
@@ -286,7 +286,7 @@ function createFormQueue(overrides = {}) {
     async function accept({ automation, session, work }, res, extra = {}) {
         const q = queueFor(automation.id);
         if (q.items.length + q.reserved >= QUEUE_DEPTH) {
-            return res.status(503).json({ error: 'This form is busy right now — please try again in a moment.' });
+            throw new HttpError(503, 'form_busy', 'This form is busy right now — please try again in a moment.');
         }
         // Hold the slot across the write, so a burst cannot all pass the depth
         // check before any of them is queued.

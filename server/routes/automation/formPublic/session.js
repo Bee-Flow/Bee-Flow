@@ -191,7 +191,7 @@ async function pollSession(req, res) {
  * Every miss is a 404, never a 403: a wrong id, someone else's file, an expired
  * one and a deleted blob are deliberately indistinguishable.
  */
-async function downloadFile(req, res) {
+async function downloadFile(req, res, next) {
     privateHeaders(res);
     const found = await loadForm(req, res);
     if (!found) return undefined;
@@ -221,8 +221,7 @@ async function downloadFile(req, res) {
     if (streamed.contentLength != null) res.setHeader('Content-Length', streamed.contentLength);
     streamed.stream.on('error', (e) => {
         log.error(`[automation/form] download stream failed: ${e.message}`);
-        if (!res.headersSent) res.status(500).end();
-        else res.destroy();
+        next(e);
     });
     return streamed.stream.pipe(res);
 }

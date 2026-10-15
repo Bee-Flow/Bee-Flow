@@ -168,8 +168,12 @@ test('a full queue answers 503 rather than dropping the submission silently', as
         await postSubmit(makeReq({ body: submissionBody({ nonce: `q${i}` }) }), makeRes());
     }
     const overflow = makeRes();
-    await postSubmit(makeReq({ body: submissionBody({ nonce: 'overflow' }) }), overflow);
-    assert.strictEqual(overflow.statusCode, 503);
+    // The handler throws; the terminal handler turns it into the 503 body.
+    await assert.rejects(
+        postSubmit(makeReq({ body: submissionBody({ nonce: 'overflow' }) }), overflow),
+        (e) => e.status === 503 && e.code === 'form_busy' && /busy right now/.test(e.message),
+    );
+    assert.strictEqual(overflow.statusCode, 200, 'nothing was answered directly');
     state.resolveRun = null;
     release();
     await flushAsync();
