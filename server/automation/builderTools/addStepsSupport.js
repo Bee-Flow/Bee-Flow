@@ -8,7 +8,7 @@
 
 const { liftEntryPatch } = require('./suggestedPatch');
 const { TEMP_ID_RX, resolveHandlesForResend, resolveAnchor } = require('./tempRefs');
-const { findStepAnywhere } = require('./draftGraph');
+const { findStepAnywhere, isKnownNodeId } = require('./draftGraph');
 const { looksGarbled } = require('../../core/llm/partialJsonScan');
 
 /** An entry that is not an object at all means the batch JSON was mangled in transit. */
@@ -37,7 +37,7 @@ for (let i = 0; i < entries.length; i++) {
             return { error: `steps[${i}]: tempId "${e.tempId}" must match [A-Za-z][A-Za-z0-9_]* (max 25 chars).` };
         }
         if (seen.has(e.tempId)) return { error: `steps[${i}]: duplicate tempId "${e.tempId}" in this call.` };
-        if (require('./draftGraph').isKnownNodeId(graph, e.tempId)) {
+        if (isKnownNodeId(graph, e.tempId)) {
             return { error: `steps[${i}]: tempId "${e.tempId}" collides with an existing step id — pick another handle.` };
         }
         seen.add(e.tempId);
@@ -60,7 +60,7 @@ for (let i = 0; i < entries.length; i++) {
             ...(garbled ? { _fixHint: 'Reject reason: corrupted batch JSON. Nothing was applied. Resend the same steps with complete, well-formed JSON — smaller batches are safer.' } : {}),
         };
     }
-    if (!ADD_FOR_TYPE[e.type] && e.type !== 'array_op') {
+    if (!Object.hasOwn(ADD_FOR_TYPE, e.type) && e.type !== 'array_op') {
         return { error: `steps[${i}]: unknown type "${e.type}". Allowed: ${allowed}.` };
     }
     if (!e.spec || typeof e.spec !== 'object' || Array.isArray(e.spec)) {

@@ -108,7 +108,7 @@ function normaliseEntry(raw, i, notes) {
         if (shadowed.length) parts.push(`${shadowed.map(k => `"${k}"`).join(', ')} appeared both next to and inside spec — spec's value kept`);
         notes.push(`steps[${i}]: ${parts.join('; ')}. Every step field belongs INSIDE spec; only tempId and type sit beside it.`);
     }
-    if (typeof e.type === 'string' && !ADD_FOR_TYPE[e.type] && e.type !== 'array_op' && TYPE_ALIASES[e.type]) {
+    if (typeof e.type === 'string' && !Object.hasOwn(ADD_FOR_TYPE, e.type) && e.type !== 'array_op' && Object.hasOwn(TYPE_ALIASES, e.type)) {
         notes.push(`steps[${i}]: type "${e.type}" read as "${TYPE_ALIASES[e.type]}".`);
         e.type = TYPE_ALIASES[e.type];
     }

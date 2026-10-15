@@ -91,6 +91,7 @@ test('identification, permissions and the tool list agree', () => {
     }
     assert.equal(isN8nWorkflowTool('other'), false);
     assert.equal(getN8nToolPermission('unknown'), 'modify_n8n_workflows');
+    for (const k of ['constructor', '__proto__', 'toString']) assert.equal(getN8nToolPermission(k), 'modify_n8n_workflows');
 });
 
 test('no organisation, unknown tool, unconfigured n8n', async () => {

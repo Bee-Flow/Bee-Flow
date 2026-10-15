@@ -439,3 +439,13 @@ test('a duplicate action stays an error on the single-step tool; inside a batch,
     assert.ok(stale.error && stale.failedIndex === 0 && /identical inputs/.test(stale.error), `next turn: refused: ${stale.error}`);
     assert.strictEqual(dw.def.steps.length, 2);
 });
+
+test('a prototype key as a step type is refused like any unknown type', async () => {
+    for (const type of ['constructor', '__proto__', 'toString']) {
+        const dw = wrap();
+        await applyToolCall('builder_propose_trigger', { kind: 'manual' }, dw);
+        const r = await applyToolCall('builder_add_steps', { steps: [{ tempId: 'x', type, spec: {} }] }, dw);
+        assert.ok(r.error, `${type} is refused`);
+        assert.match(r.error, /type/i);
+    }
+});

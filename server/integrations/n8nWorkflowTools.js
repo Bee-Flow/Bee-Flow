@@ -715,7 +715,7 @@ const N8N_TOOL_PERMISSIONS = {
 };
 
 function getN8nToolPermission(toolName) {
-    return N8N_TOOL_PERMISSIONS[toolName] || 'modify_n8n_workflows';
+    return (Object.hasOwn(N8N_TOOL_PERMISSIONS, toolName) && N8N_TOOL_PERMISSIONS[toolName]) || 'modify_n8n_workflows';
 }
 
 // ─── Exports ───────────────────────────────────────────────────
