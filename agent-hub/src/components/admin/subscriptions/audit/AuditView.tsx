@@ -1,16 +1,35 @@
 import { ScrollText, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
 import EmptyState from '../../../shared/EmptyState';
 import { useResource, apiJson } from '../hooks/useApi';
 import { Dot } from '../ui/Badge';
+import type { BadgeTone } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { SearchInput } from '../ui/SearchInput';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Spinner } from '../ui/Spinner';
 import { FilterPills } from '../ui/Tabs';
 
-const ACTION_TONE = {
+/** One row of `GET /api/subscriptions/audit`. */
+interface AuditLog {
+    id: string;
+    action: string;
+    target_type?: string;
+    target_id?: string;
+    changed_by?: string | null;
+    created_at: string;
+    readonly new_values?: Record<string, unknown> | null;
+}
+
+/** One row of `GET /api/subscriptions/license-issuance-failures`. */
+interface IssuanceFailure {
+    id: string;
+}
+
+const ACTION_TONE: Record<string, BadgeTone> = {
     create_plan: 'success',
     update_plan: 'info',
     delete_plan: 'danger',
@@ -21,18 +40,24 @@ const ACTION_TONE = {
     license_issuance_succeeded: 'success',
 };
 
-function LogRow({ log, unresolvedFailureIds, onRetryDone }) {
+interface LogRowProps {
+    log: AuditLog;
+    unresolvedFailureIds: Set<string>;
+    onRetryDone?: () => Promise<void>;
+}
+
+function LogRow({ log, unresolvedFailureIds, onRetryDone }: LogRowProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [retrying, setRetrying] = useState(false);
-    const [retryError, setRetryError] = useState(null);
+    const [retryError, setRetryError] = useState<string | null>(null);
     const hasDetails = log.new_values && typeof log.new_values === 'object';
     const summary = hasDetails
         ? Object.entries(log.new_values).slice(0, 3).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ')
         : '';
     const showRetry = log.action === 'license_issuance_failed' && unresolvedFailureIds?.has(log.id);
 
-    const handleRetry = async (e) => {
+    const handleRetry = async (e: MouseEvent) => {
         e.stopPropagation();
         if (retrying) return;
         setRetrying(true);
@@ -42,7 +67,7 @@ function LogRow({ log, unresolvedFailureIds, onRetryDone }) {
             await apiJson(`/api/subscriptions/${scope}/${log.target_id}/reissue-license`, { method: 'POST' });
             if (onRetryDone) await onRetryDone();
         } catch (err) {
-            setRetryError(err.message || t('admin_subscriptions.audit_retry_failed_default', 'Retry failed'));
+            setRetryError(messageOf(err, t('admin_subscriptions.audit_retry_failed_default', 'Retry failed')));
         } finally {
             setRetrying(false);
         }
@@ -108,10 +133,10 @@ export function AuditView() {
         { value: 'plan',         label: t('admin_subscriptions.audit_plans', 'Plans') },
         { value: 'subscription', label: t('admin_subscriptions.audit_subscriptions', 'Subscriptions') },
     ];
-    const { data: logs = [], loading, reload: reloadLogs } = useResource('/api/subscriptions/audit?limit=100', { initial: [] });
-    const { data: failures = [], reload: reloadFailures } = useResource('/api/subscriptions/license-issuance-failures?limit=200', { initial: [] });
+    const { data: logs = [], loading, reload: reloadLogs } = useResource<AuditLog[]>('/api/subscriptions/audit?limit=100', { initial: [] });
+    const { data: failures = [], reload: reloadFailures } = useResource<IssuanceFailure[]>('/api/subscriptions/license-issuance-failures?limit=200', { initial: [] });
     const [query, setQuery]       = useState('');
-    const [entity, setEntity]     = useState(null);
+    const [entity, setEntity]     = useState<string | string[] | null>(null);
 
     const unresolvedFailureIds = useMemo(
         () => new Set((Array.isArray(failures) ? failures : []).map(f => f.id)),

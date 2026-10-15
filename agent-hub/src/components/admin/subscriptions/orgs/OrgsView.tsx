@@ -3,41 +3,64 @@ import React, { useMemo, useState } from 'react';
 import { OrgEditor } from './OrgEditor';
 import { QuickAssignDialog } from './QuickAssignDialog';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { errorBodyRecord, messageOf } from '../../../../utils/caughtError';
 import { Button } from '../../../shared/Button';
 import EmptyState from '../../../shared/EmptyState';
 import { toast } from '../../../shared/Toast';
 import { useResource, apiJson } from '../hooks/useApi';
+import type { OrgListPayload } from '../hooks/useApi';
+import type { PlanRecord } from '../plans/usePlanForm';
 import { Badge } from '../ui/Badge';
+import type { BadgeTone } from '../ui/Badge';
 import { ConfirmModal } from '../ui/Modal';
 import { SearchInput } from '../ui/SearchInput';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Spinner } from '../ui/Spinner';
 import { FilterPills } from '../ui/Tabs';
 
-const STATUS_TONE = { active: 'success', trialing: 'info', suspended: 'warning', cancelled: 'danger' };
+/** One organization subscription in `GET /api/subscriptions/orgs`. */
+interface OrgSubscription {
+    organization_id: string;
+    org_name?: string;
+    plan_name?: string | null;
+    status: string;
+    current_usage?: { messages?: number; cost?: number } | null;
+    effective_limits?: { max_messages_per_month?: number | null; max_cost_per_month?: number | null } | null;
+}
 
-function StatusBadge({ status }) {
+/** An organization from `GET /auth/organizations`, as the unsubscribed list shows it. */
+interface OrgRow {
+    id: string;
+    name: string;
+    trial_used_at: string | null;
+    total_calls?: number;
+    estimated_cost?: number;
+}
+
+const STATUS_TONE: Record<string, BadgeTone> = { active: 'success', trialing: 'info', suspended: 'warning', cancelled: 'danger' };
+
+function StatusBadge({ status }: { status: string }) {
     return <Badge tone={STATUS_TONE[status] || 'neutral'} size="sm">{status}</Badge>;
 }
 
 export function OrgsView() {
     const { t } = useTranslation();
 
-    const orgsRes  = useResource('/auth/organizations', { initial: [], transform: data => {
+    const orgsRes  = useResource<OrgRow[], OrgListPayload>('/auth/organizations', { initial: [], transform: data => {
         const list = Array.isArray(data) ? data : (data.organizations || data.orgs || []);
         return list
             .map(o => ({ id: o.id, name: o.name || o.id, trial_used_at: o.trial_used_at || null, total_calls: o.total_calls, estimated_cost: o.estimated_cost }))
             .filter(o => o.id && o.id !== '__unassigned');
     }});
-    const subsRes  = useResource('/api/subscriptions/orgs',  { initial: [] });
-    const plansRes = useResource('/api/subscriptions/plans', { initial: [] });
+    const subsRes  = useResource<OrgSubscription[]>('/api/subscriptions/orgs',  { initial: [] });
+    const plansRes = useResource<PlanRecord[]>('/api/subscriptions/plans', { initial: [] });
 
-    const [editing, setEditing]   = useState(null); // sub object
-    const [assigning, setAssigning] = useState(null); // org object
-    const [removing, setRemoving] = useState(null); // sub object
+    const [editing, setEditing]   = useState<OrgSubscription | null>(null); // sub object
+    const [assigning, setAssigning] = useState<OrgRow | null>(null); // org object
+    const [removing, setRemoving] = useState<OrgSubscription | null>(null); // sub object
     const [busy, setBusy]         = useState(false);
     const [query, setQuery]       = useState('');
-    const [statusFilter, setStatusFilter] = useState(null);
+    const [statusFilter, setStatusFilter] = useState<string | string[] | null>(null);
 
     const reloadAll = () => { orgsRes.reload(); subsRes.reload(); };
 
@@ -60,7 +83,7 @@ export function OrgsView() {
         [orgs, subs]
     );
 
-    const handleSave = async (orgId, form) => {
+    const handleSave = async (orgId: string, form: unknown) => {
         try {
             await apiJson(`/api/subscriptions/orgs/${orgId}`, {
                 method: 'PUT',
@@ -72,11 +95,11 @@ export function OrgsView() {
             setAssigning(null);
             reloadAll();
         } catch (e) {
-            toast.error(e.message || t('admin_subscriptions.orgs_save_failed', 'Save failed'));
+            toast.error(messageOf(e, t('admin_subscriptions.orgs_save_failed', 'Save failed')));
         }
     };
 
-    const handleStartTrial = async (orgId, planId) => {
+    const handleStartTrial = async (orgId: string, planId: string) => {
         try {
             const res = await apiJson(`/api/subscriptions/orgs/${orgId}/start-trial`, {
                 method: 'POST',
@@ -88,7 +111,7 @@ export function OrgsView() {
             reloadAll();
             return res;
         } catch (e) {
-            if (e.body?.error === 'trial_already_used') {
+            if (errorBodyRecord(e)?.error === 'trial_already_used') {
                 throw new Error(t('admin_subscriptions.orgs_trial_used', 'This organization has already used its trial.'));
             }
             throw e;
@@ -105,7 +128,7 @@ export function OrgsView() {
             setEditing(null);
             reloadAll();
         } catch (e) {
-            toast.error(e.message || t('admin_subscriptions.orgs_remove_failed', 'Remove failed'));
+            toast.error(messageOf(e, t('admin_subscriptions.orgs_remove_failed', 'Remove failed')));
         } finally {
             setBusy(false);
         }
@@ -117,9 +140,9 @@ export function OrgsView() {
                 orgSub={editing}
                 plans={plans}
                 onBack={() => setEditing(null)}
-                onSave={(form) => handleSave(editing.organization_id, form)}
+                onSave={(form: unknown) => handleSave(editing.organization_id, form)}
                 onRemove={() => setRemoving(editing)}
-                onStartTrial={(planId) => handleStartTrial(editing.organization_id, planId)}
+                onStartTrial={(planId: string) => handleStartTrial(editing.organization_id, planId)}
             />
         );
     }
@@ -258,8 +281,8 @@ export function OrgsView() {
                     org={assigning}
                     plans={plans}
                     onClose={() => setAssigning(null)}
-                    onSave={(form) => handleSave(assigning.id, form)}
-                    onStartTrial={(planId) => handleStartTrial(assigning.id, planId)}
+                    onSave={(form: unknown) => handleSave(assigning.id, form)}
+                    onStartTrial={(planId: string) => handleStartTrial(assigning.id, planId)}
                 />
             )}
 

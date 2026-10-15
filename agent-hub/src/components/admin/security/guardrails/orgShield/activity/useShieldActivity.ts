@@ -50,6 +50,7 @@
 // rather than replacing the pane with an error.
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { messageOf } from '../../../../../../utils/caughtError';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 
 const DETAIL_LIMIT = 200;
@@ -63,9 +64,19 @@ const EMPTY_INTEG = {
     map: { origin: null, destinations: [], attribution: null, geo_db: null },
 };
 
+/** The window the tab asks about: explicit dates, or a number of days. */
+export interface RangeParams {
+    startDate?: string | null;
+    endDate?: string | null;
+    days?: number | null;
+    interval?: string | null;
+}
+
+type Raw = Record<string, unknown>;
+
 const isVisible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden';
 
-function buildQS(rangeParams, extra = {}) {
+function buildQS(rangeParams: RangeParams | null | undefined, extra: Raw = {}): string {
     const qs = new URLSearchParams();
     if (rangeParams?.startDate && rangeParams?.endDate) {
         qs.set('startDate', rangeParams.startDate);
@@ -81,8 +92,10 @@ function buildQS(rangeParams, extra = {}) {
     return s ? `?${s}` : '';
 }
 
+type Fetched = Awaited<ReturnType<typeof fetchJson>>;
+
 /** An overview response over the empty shape, so a key an older server omits reads as empty. */
-function mergeInteg(i) {
+function mergeInteg(i: Fetched) {
     if (i.notFound) return EMPTY_INTEG;
     return {
         ...EMPTY_INTEG,
@@ -92,34 +105,43 @@ function mergeInteg(i) {
     };
 }
 
-const rowsOf = (r) => (r.notFound || !Array.isArray(r.data) ? [] : r.data);
+const rowsOf = (r: Fetched) => (r.notFound || !Array.isArray(r.data) ? [] : r.data);
 
-async function fetchJson(url) {
+async function fetchJson(url: string) {
     const res = await authFetch(url);
     if (res.status === 404) return { notFound: true };
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return { data: await res.json() };
 }
 
-/**
- * @param {object}  opts
- * @param {boolean} opts.enabled      Fetch at all (licence + mount decide).
- * @param {object}  opts.rangeParams  From deriveRangeParams, or `{ days }`.
- * @param {number}  [opts.limit]      Detail-row cap per ledger.
- * @param {boolean} [opts.detail]     Also fetch the two detail ledgers. The
- *   editor's 30-day figures (Overview, strip, checks, matrix) only need the
- *   two aggregates, so they pass `false` and skip the row fetches.
- * @param {boolean} [opts.poll]       Refresh every 30 seconds while visible.
- *   Off for the editor's figures: a posture summary does not need to move
- *   while you read it, and the "What happened" pane has its own live copy.
- */
-export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL_LIMIT, detail = true, poll = true }) {
+interface UseShieldActivityOptions {
+    /** Fetch at all (licence + mount decide). */
+    enabled: boolean;
+    /** From deriveRangeParams, or `{ days }`. */
+    rangeParams?: RangeParams | null;
+    /** Detail-row cap per ledger. */
+    limit?: number;
+    /**
+     * Also fetch the two detail ledgers. The editor's 30-day figures
+     * (Overview, strip, checks, matrix) only need the two aggregates, so they
+     * pass `false` and skip the row fetches.
+     */
+    detail?: boolean;
+    /**
+     * Refresh every 30 seconds while visible. Off for the editor's figures: a
+     * posture summary does not need to move while you read it, and the "What
+     * happened" pane has its own live copy.
+     */
+    poll?: boolean;
+}
+
+export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL_LIMIT, detail = true, poll = true }: UseShieldActivityOptions) {
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [guard, setGuard] = useState(EMPTY_GUARD);
     const [integ, setInteg] = useState(EMPTY_INTEG);
-    const [guardRows, setGuardRows] = useState([]);
-    const [egressRows, setEgressRows] = useState([]);
+    const [guardRows, setGuardRows] = useState<Raw[]>([]);
+    const [egressRows, setEgressRows] = useState<Raw[]>([]);
     const loadedOnce = useRef(false);
     // State twin of `loadedOnce`, for callers that must tell "no data yet"
     // from "the data is zero" during render (a ref read there is stale).
@@ -130,7 +152,7 @@ export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL
     // The refresh clock: runs only while the tab is visible and the pane is on.
     useEffect(() => {
         if (!enabled || !poll || typeof document === 'undefined') return undefined;
-        let timer = null;
+        let timer: ReturnType<typeof setInterval> | null = null;
         const start = () => { if (!timer) timer = setInterval(() => setTick(n => n + 1), REFRESH_MS); };
         const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
         const onVisibility = () => {
@@ -173,7 +195,7 @@ export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL
                 setLoaded(true);
                 setError(null);
             } catch (e) {
-                if (!cancelled && !refresh) setError(e.message || 'failed');
+                if (!cancelled && !refresh) setError(messageOf(e, 'failed'));
             } finally {
                 if (!cancelled) setLoading(false);
             }

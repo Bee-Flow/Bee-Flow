@@ -3,8 +3,11 @@ import React, { useMemo, useState } from 'react';
 import { PlanCard } from './PlanCard';
 import { PlanEditor } from './PlanEditor';
 import { PlanTemplateGallery } from './PlanTemplateGallery';
+import type { PlanTemplate } from './planTemplates.types';
 import { TrialOffersPanel } from './TrialOffersPanel';
+import type { PlanForm, PlanRecord } from './usePlanForm';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
 import { Button } from '../../../shared/Button';
 import EmptyState from '../../../shared/EmptyState';
 import { toast } from '../../../shared/Toast';
@@ -17,14 +20,14 @@ import { Tabs } from '../ui/Tabs';
 
 export function PlansView() {
     const { t } = useTranslation();
-    const { data: plans = [], loading, reload } = useResource('/api/subscriptions/plans', { initial: [] });
+    const { data: plans = [], loading, reload } = useResource<PlanRecord[]>('/api/subscriptions/plans', { initial: [] });
 
-    const [editing, setEditing]       = useState(null); // null | 'new' | <plan>
-    const [seedPlan, setSeedPlan]     = useState(null); // template payload when launched from gallery
+    const [editing, setEditing]       = useState<'new' | PlanRecord | null>(null); // null | 'new' | <plan>
+    const [seedPlan, setSeedPlan]     = useState<PlanRecord | null>(null); // template payload when launched from gallery
     const [galleryOpen, setGalleryOpen] = useState(false);
-    const [confirmDel, setConfirmDel] = useState(null);
+    const [confirmDel, setConfirmDel] = useState<PlanRecord | null>(null);
     const [saving, setSaving]         = useState(false);
-    const [syncingId, setSyncingId]   = useState(null);
+    const [syncingId, setSyncingId]   = useState<string | null | undefined>(null);
     const [filter, setFilter]         = useState('all');     // all | organization | consumer
     const [query, setQuery]           = useState('');
     const [sort, setSort]             = useState('sort_order');
@@ -50,7 +53,7 @@ export function PlansView() {
         consumer:      plans.filter(p => p.plan_type === 'consumer').length,
     }), [plans]);
 
-    const handleSave = async (form) => {
+    const handleSave = async (form: PlanForm) => {
         setSaving(true);
         try {
             if (editing && editing !== 'new') {
@@ -72,13 +75,13 @@ export function PlansView() {
             setSeedPlan(null);
             reload();
         } catch (e) {
-            toast.error(e.message || t('admin_subscriptions.plans_save_failed', 'Save failed'));
+            toast.error(messageOf(e, t('admin_subscriptions.plans_save_failed', 'Save failed')));
         } finally {
             setSaving(false);
         }
     };
 
-    const handlePickTemplate = (template) => {
+    const handlePickTemplate = (template: PlanTemplate) => {
         setGalleryOpen(false);
         setSeedPlan(template.plan);
         setEditing('new');
@@ -96,20 +99,20 @@ export function PlansView() {
             setSeedPlan(null);
             reload();
         } catch (e) {
-            toast.error(e.message || t('admin_subscriptions.plans_delete_failed', 'Delete failed'));
+            toast.error(messageOf(e, t('admin_subscriptions.plans_delete_failed', 'Delete failed')));
         } finally {
             setSaving(false);
         }
     };
 
-    const handleSync = async (plan) => {
+    const handleSync = async (plan: PlanRecord) => {
         setSyncingId(plan.id);
         try {
             await apiJson(`/api/subscriptions/plans/${plan.id}/sync-stripe`, { method: 'POST' });
             toast.success(t('admin_subscriptions.plans_synced', 'Synced to Stripe.'));
             reload();
         } catch (e) {
-            toast.error(e.message || t('admin_subscriptions.plans_sync_failed', 'Stripe sync failed'));
+            toast.error(messageOf(e, t('admin_subscriptions.plans_sync_failed', 'Stripe sync failed')));
         } finally {
             setSyncingId(null);
         }

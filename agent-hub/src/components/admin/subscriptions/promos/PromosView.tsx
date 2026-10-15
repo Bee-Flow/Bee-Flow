@@ -2,6 +2,7 @@ import { Tag, Plus, Percent, Euro, Hash, Clock, ToggleLeft, ToggleRight } from '
 import React, { useState } from 'react';
 import { PromoEditor } from './PromoEditor';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
 import { Button } from '../../../shared/Button';
 import EmptyState from '../../../shared/EmptyState';
 import { toast } from '../../../shared/Toast';
@@ -11,12 +12,29 @@ import { Card } from '../ui/Card';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Spinner } from '../ui/Spinner';
 
+/** One promotion code in `GET /api/stripe/promo-codes`. */
+interface PromoCode {
+    id: string;
+    code: string;
+    name?: string | null;
+    active: boolean;
+    discountType: string;
+    discountValue: number;
+    currency?: string | null;
+    duration?: string;
+    durationMonths?: number | null;
+    maxRedemptions?: number | null;
+    timesRedeemed?: number | null;
+    expiresAt?: string | null;
+    firstTimeOnly?: boolean;
+}
+
 export function PromosView() {
     const { t } = useTranslation();
-    const { data: codes = [], loading, reload } = useResource('/api/stripe/promo-codes', { initial: [] });
+    const { data: codes = [], loading, reload } = useResource<PromoCode[]>('/api/stripe/promo-codes', { initial: [] });
     const [creating, setCreating] = useState(false);
 
-    const toggle = async (code) => {
+    const toggle = async (code: PromoCode) => {
         const action = code.active ? 'deactivate' : 'activate';
         try {
             await apiJson(`/api/stripe/promo-codes/${code.id}/${action}`, { method: 'PUT' });
@@ -25,7 +43,7 @@ export function PromosView() {
                 : t('admin_subscriptions.promos_activated', '{code} activated.', { code: code.code }));
             reload();
         } catch (e) {
-            toast.error(e.message || (code.active ? t('admin_subscriptions.promos_deactivate_failed', 'deactivate failed') : t('admin_subscriptions.promos_activate_failed', 'activate failed')));
+            toast.error(messageOf(e, code.active ? t('admin_subscriptions.promos_deactivate_failed', 'deactivate failed') : t('admin_subscriptions.promos_activate_failed', 'activate failed')));
         }
     };
 

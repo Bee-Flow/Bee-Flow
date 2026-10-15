@@ -2,6 +2,7 @@ import { CreditCard, Settings, Shield, Euro, ExternalLink, CheckCircle, Loader2 
 import React, { useEffect, useState } from 'react';
 import { StripeKeyField } from './StripeKeyField';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';
 import { apiJson } from '../hooks/useApi';
@@ -12,6 +13,17 @@ import { Field, Select, Input } from '../ui/Input';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Spinner } from '../ui/Spinner';
 import { Toggle } from '../ui/Toggle';
+
+/** What the Stripe card shows of `GET /ai/config`: the secrets only as present or not. */
+interface StripeConfig {
+    hasStripeSecretKey: boolean;
+    hasStripeWebhookSecret: boolean;
+    stripePublishableKey: string;
+    stripeEnabled: boolean;
+    stripeTaxEnabled: boolean;
+    stripeTaxCountry: string;
+    subscriptionNotifyEmail: string;
+}
 
 export function StripeView() {
     const { t } = useTranslation();
@@ -29,7 +41,7 @@ export function StripeView() {
     ];
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [config, setConfig] = useState({
+    const [config, setConfig] = useState<StripeConfig>({
         hasStripeSecretKey: false,
         hasStripeWebhookSecret: false,
         stripePublishableKey: '',
@@ -63,7 +75,7 @@ export function StripeView() {
 
     useEffect(() => { load(); }, []);
 
-    const saveField = async (payload) => {
+    const saveField = async (payload: Record<string, unknown>) => {
         setSaving(true);
         try {
             await apiJson('/ai/config', {
@@ -73,11 +85,11 @@ export function StripeView() {
             });
             toast.success(t('admin_subscriptions.stripe_saved', 'Saved.'));
             await load();
-        } catch (e) { toast.error(e.message || t('admin_subscriptions.stripe_save_failed', 'Failed to save')); }
+        } catch (e) { toast.error(messageOf(e, t('admin_subscriptions.stripe_save_failed', 'Failed to save'))); }
         finally { setSaving(false); }
     };
 
-    const deleteKey = async (keyName) => {
+    const deleteKey = async (keyName: string) => {
         setSaving(true);
         try {
             await apiJson(`/ai/config/key/${keyName}`, { method: 'DELETE' });

@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Plus, CheckCircle, Copy, Mail, Save } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { errorMessage } from '../../../../utils/caughtError';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';
 import { TIER_PRESETS, EXPIRY_PRESETS } from '../constants';
@@ -10,7 +11,56 @@ import { Card } from '../ui/Card';
 import { IconButton } from '../ui/IconButton';
 import { Field, Input, Select, Textarea } from '../ui/Input';
 
-export function GrantWizard({ orgs, tiers, onBack, onCreated }) {
+/** One organization in `GET /auth/organizations`, as the wizard lists it. */
+interface GrantOrg {
+    id: string;
+    name: string;
+}
+
+interface GrantWizardProps {
+    orgs: GrantOrg[];
+    tiers?: string[];
+    onBack: () => void;
+    onCreated: () => void;
+}
+
+/** The wizard's working copy; the e-mail, JSON and seat count stay text until submit. */
+interface GrantForm {
+    scope: string;
+    organizationId: string;
+    tier: string;
+    expiresAt: string;
+    billingInterval: string;
+    notes: string;
+    showAdvanced: boolean;
+    featuresOverride: string;
+    limitsOverrideJson: string;
+    maxSeats: string;
+    deliverEmail: string;
+}
+
+/** The body `POST /api/admin/licenses/grant` takes. */
+interface GrantBody {
+    scope: string;
+    organizationId: string | null;
+    tier: string;
+    expiresAt: string;
+    billingInterval: string;
+    notes: string | null;
+    deliverEmail?: string;
+    featuresOverride?: string[];
+    limitsOverride?: unknown;
+    maxSeats?: number;
+}
+
+/** What the server says about the optional e-mail delivery of the blob. */
+interface EmailDelivery {
+    success?: boolean;
+    messageId?: string;
+    error?: string;
+}
+
+export function GrantWizard({ orgs, tiers, onBack, onCreated }: GrantWizardProps) {
     const { t } = useTranslation();
     const STEPS = [
         { id: 'org',     label: t('admin_subscriptions.grants_step_org', 'Organization') },
@@ -19,9 +69,9 @@ export function GrantWizard({ orgs, tiers, onBack, onCreated }) {
     ];
     const [step, setStep] = useState(0);
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
-    const [result, setResult] = useState(null);
-    const [form, setForm] = useState({
+    const [error, setError] = useState<string | null | undefined>(null);
+    const [result, setResult] = useState<{ blob: string; delivery: EmailDelivery | null } | null>(null);
+    const [form, setForm] = useState<GrantForm>({
         scope: 'organization',
         organizationId: '',
         tier: 'enterprise',
@@ -34,17 +84,17 @@ export function GrantWizard({ orgs, tiers, onBack, onCreated }) {
         maxSeats: '',
         deliverEmail: '',
     });
-    const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
+    const update = <K extends keyof GrantForm>(k: K, v: GrantForm[K]) => setForm(f => ({ ...f, [k]: v }));
     const selectedOrg = orgs.find(o => o.id === form.organizationId);
     const isServerScope = form.scope === 'server';
 
-    const EXPIRY_LABELS = {
+    const EXPIRY_LABELS: Record<number, string> = {
         30: t('admin_subscriptions.grants_expiry_30', '30 days'),
         90: t('admin_subscriptions.grants_expiry_90', '90 days'),
         365: t('admin_subscriptions.grants_expiry_365', '1 year'),
         730: t('admin_subscriptions.grants_expiry_730', '2 years'),
     };
-    const applyExpiry = (days) => update('expiresAt', new Date(Date.now() + days * 86400000).toISOString().slice(0, 10));
+    const applyExpiry = (days: number) => update('expiresAt', new Date(Date.now() + days * 86400000).toISOString().slice(0, 10));
 
     const canNext =
         (step === 0 && (isServerScope || form.organizationId)) ||
@@ -55,7 +105,7 @@ export function GrantWizard({ orgs, tiers, onBack, onCreated }) {
         setError(null);
         setBusy(true);
         try {
-            const body = {
+            const body: GrantBody = {
                 scope: form.scope,
                 organizationId: isServerScope ? null : form.organizationId,
                 tier: form.tier,
@@ -82,7 +132,7 @@ export function GrantWizard({ orgs, tiers, onBack, onCreated }) {
             setResult({ blob: res.blob, delivery: res.emailDelivery || null });
             toast.success(t('admin_subscriptions.grants_granted', 'License granted.'));
         } catch (e) {
-            setError(e.message);
+            setError(errorMessage(e));
         } finally {
             setBusy(false);
         }
