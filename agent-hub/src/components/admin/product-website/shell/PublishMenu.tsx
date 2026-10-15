@@ -2,9 +2,10 @@ import React from 'react';
 import Dropdown from './Dropdown';
 import SaveBadge from './SaveBadge';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 
-function formatRelative(iso, t) {
+function formatRelative(iso: string | null | undefined, t: TranslateFn): string | null {
     if (!iso) return null;
     const ts = Date.parse(iso);
     if (Number.isNaN(ts)) return null;
@@ -17,7 +18,7 @@ function formatRelative(iso, t) {
 
 // Derived, read-only status of the draft → published → live pipeline.
 // `dirtySincePublish` is a soft client heuristic — copy stays soft.
-function statusFor({ publishedAt, dirtySincePublish, isLive }, t) {
+function statusFor({ publishedAt, dirtySincePublish, isLive }: { publishedAt: string | null | undefined; dirtySincePublish: boolean; isLive: boolean }, t: TranslateFn) {
     if (!publishedAt) {
         return { label: t('cms_site.site.shell.st_draft', 'Draft — never published'), dot: 'var(--text-muted)' };
     }
@@ -31,7 +32,7 @@ function statusFor({ publishedAt, dirtySincePublish, isLive }, t) {
         : { label: t('cms_site.site.shell.st_published', 'Published {when}', { when: formatRelative(publishedAt, t) }), dot: 'var(--text-secondary)' };
 }
 
-function Stage({ label, active, done }) {
+function Stage({ label, active, done }: { label: string; active: boolean; done: boolean }) {
     return (
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border
             ${active
@@ -54,6 +55,18 @@ function Stage({ label, active, done }) {
  * itself is the container's `handlePublish`, behavior-identical (drain →
  * abort-on-failed-save → POST); the disabled rules are unchanged.
  */
+interface PublishMenuProps {
+    saveStatus: string;
+    onRetrySave?: () => void;
+    publishing: boolean;
+    publishedAt: string | null | undefined;
+    dirtySincePublish: boolean;
+    isLive: boolean;
+    liveSiteName?: string | null;
+    onPublish: () => void;
+    onSetLive: (next: boolean) => void;
+}
+
 export default function PublishMenu({
     saveStatus,
     onRetrySave,
@@ -64,7 +77,7 @@ export default function PublishMenu({
     liveSiteName,        // name of the OTHER live site (null when none / this one)
     onPublish,
     onSetLive,           // (next:boolean) — container confirms + persists
-}) {
+}: PublishMenuProps) {
     const { t } = useTranslation();
     const status = statusFor({ publishedAt, dirtySincePublish, isLive }, t);
     const publishDisabled = publishing || saveStatus === 'saving' || saveStatus === 'error';

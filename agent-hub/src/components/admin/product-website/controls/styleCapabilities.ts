@@ -13,7 +13,12 @@
  *   motion  — style.reveal ('on'|'off') + style.glow (boolean)
  */
 
-export const STYLE_CAPABILITIES = {
+export interface StyleCapability {
+    columns: boolean;
+    motion: boolean;
+}
+
+export const STYLE_CAPABILITIES: Record<string, StyleCapability> = {
     hero:               { columns: false, motion: true },
     socialProof:        { columns: false, motion: true },
     content:            { columns: false, motion: true },
@@ -34,6 +39,6 @@ export const STYLE_CAPABILITIES = {
 
 // Unknown/absent types support nothing — the Style tab then shows only the
 // universal controls (colors, spacing, background, layout).
-export function getCapabilities(type) {
+export function getCapabilities(type: string): Partial<StyleCapability> {
     return STYLE_CAPABILITIES[type] || {};
 }

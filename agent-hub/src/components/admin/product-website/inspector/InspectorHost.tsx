@@ -1,15 +1,17 @@
 import React from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import TranslationPanel from '../TranslationPanel';
 import AnalyticsInspector from './AnalyticsInspector';
 import ChromeInspector from './ChromeInspector';
 import DesignInspector from './DesignInspector';
 import PageInspector from './PageInspector';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { CmsActivePage } from '../panel/cmsPanelTypes';
 import {
     ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID, DESIGN_VIRTUAL_ID, isChromeEntryId, normalizeVirtualId,
 } from '../sentinels';
 
-function CenteredNote({ children }) {
+function CenteredNote({ children }: { children?: ReactNode }) {
     return (
         <div className="flex-1 h-full flex items-center justify-center text-[var(--text-muted)] text-xs p-4 text-center">
             {children}
@@ -28,6 +30,18 @@ function CenteredNote({ children }) {
  *   real page         →  PageInspector (page settings + block editor)
  *   nothing           →  placeholder
  */
+interface InspectorHostProps {
+    activePageId: string;
+    activePage: CmsActivePage | null;
+    translationMode: boolean;
+    translateProps: Omit<ComponentProps<typeof TranslationPanel>, 'scope'>;
+    chromeProps: Omit<ComponentProps<typeof ChromeInspector>, 'entryId'>;
+    designProps: ComponentProps<typeof DesignInspector>;
+    analyticsProps: ComponentProps<typeof AnalyticsInspector>;
+    pageProps: Omit<ComponentProps<typeof PageInspector>, 'page'>;
+    blogInspector?: ReactNode;
+}
+
 export default function InspectorHost({
     activePageId,
     activePage,
@@ -38,7 +52,7 @@ export default function InspectorHost({
     analyticsProps,     // { site, onChange, onOpenCookieSettings, onOpenAnalytics }
     pageProps,          // PageInspector props minus `page` (added here)
     blogInspector = null, // the Blog entry's inspector (handles translation mode itself)
-}) {
+}: InspectorHostProps) {
     const { t } = useTranslation();
     const entryId = normalizeVirtualId(activePageId);
     if (entryId === BLOG_VIRTUAL_ID && blogInspector) return blogInspector;

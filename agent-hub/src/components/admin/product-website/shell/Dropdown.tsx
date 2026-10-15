@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
 
 /**
@@ -9,9 +10,18 @@ import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
  * `trigger` is a render-prop receiving `{ open }` so triggers can flip their
  * chevron; `align` anchors the panel to the trigger's left or right edge.
  */
-export default function Dropdown({ trigger, children, align = 'left', width = 288, panelClassName = '', onOpenChange }) {
+interface DropdownProps {
+    trigger: (state: { open: boolean }) => ReactNode;
+    children: (api: { close: () => void }) => ReactNode;
+    align?: 'left' | 'right';
+    width?: number | string;
+    panelClassName?: string;
+    onOpenChange?: (open: boolean) => void;
+}
+
+export default function Dropdown({ trigger, children, align = 'left', width = 288, panelClassName = '', onOpenChange }: DropdownProps) {
     const [open, setOpen] = useState(false);
-    const rootRef = useRef(null);
+    const rootRef = useRef<HTMLDivElement>(null);
 
     useOutsideDismiss(rootRef, () => setOpen(false), { enabled: open, defer: false });
 

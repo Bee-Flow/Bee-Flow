@@ -16,7 +16,7 @@ import { BLOCK_DEFAULTS } from '../blockEditors/catalogue';
  * actually adds still gets plain BLOCK_DEFAULTS from the panel.
  */
 
-const DEMO_CONTENT = {
+const DEMO_CONTENT: Record<string, Record<string, unknown>> = {
     hero: {
         badge: { enabled: true, text: 'EU AI Act ready', icon: 'Sparkles' },
         titleParts: [
@@ -174,7 +174,7 @@ const DEMO_CONTENT = {
 };
 
 /** Types that must never live-render in a thumbnail. */
-export const WIREFRAME_ONLY = new Set(['live-component', 'pricing']);
+export const WIREFRAME_ONLY = new Set<string>(['live-component', 'pricing']);
 
 /**
  * Demo content for one block type: curated copy layered over the stock
@@ -183,10 +183,10 @@ export const WIREFRAME_ONLY = new Set(['live-component', 'pricing']);
  * `variant` (optional) rides on top so a variant strip can preview each
  * layout with the same copy.
  */
-export function demoContentFor(type, variant = null) {
-    const base = BLOCK_DEFAULTS[type] || {};
+export function demoContentFor(type: string, variant: string | null = null) {
+    const base = (BLOCK_DEFAULTS as Record<string, Record<string, unknown> | undefined>)[type] || {};
     const demo = DEMO_CONTENT[type] || {};
-    const merged = { ...base, ...demo };
+    const merged: Record<string, unknown> = { ...base, ...demo };
     if (variant) merged.variant = variant;
     return merged;
 }

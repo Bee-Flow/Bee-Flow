@@ -6,9 +6,14 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  * The 5-state machine (idle → dirty → saving → saved / error) is driven by
  * the container's autosave machinery; `onRetry` re-flushes the failed batch.
  */
-export default function SaveBadge({ status, onRetry }) {
+interface SaveBadgeProps {
+    status: string;
+    onRetry?: () => void;
+}
+
+export default function SaveBadge({ status, onRetry }: SaveBadgeProps) {
     const { t } = useTranslation();
-    const map = {
+    const map: Record<string, { label: string; color: string }> = {
         idle:   { label: '',                  color: 'var(--text-muted)' },
         dirty:  { label: t('cms_site.site.shell.save_unsaved', '● Unsaved'),         color: '#fbbf24' },
         saving: { label: t('cms_site.site.shell.save_saving', 'Saving…'),           color: 'var(--text-secondary)' },

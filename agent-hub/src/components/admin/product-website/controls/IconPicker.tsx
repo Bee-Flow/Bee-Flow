@@ -22,7 +22,7 @@ import ModalShell from '../dialogs/ModalShell';
  *   onClose  — close without selecting
  */
 
-function IconTile({ name, selected, onSelect }) {
+function IconTile({ name, selected, onSelect }: { name: string; selected: boolean; onSelect: (name: string) => void }) {
     return (
         <button
             type="button"
@@ -39,7 +39,7 @@ function IconTile({ name, selected, onSelect }) {
     );
 }
 
-function FreeTextRow({ value, onSelect }) {
+function FreeTextRow({ value, onSelect }: { value: string | undefined; onSelect: (name: string) => void }) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState('');
     const commit = () => { if (draft.trim()) onSelect(draft.trim()); };
@@ -71,7 +71,13 @@ function FreeTextRow({ value, onSelect }) {
     );
 }
 
-export default function IconPicker({ value, onSelect, onClose }) {
+interface IconPickerProps {
+    value?: string;
+    onSelect: (name: string) => void;
+    onClose: () => void;
+}
+
+export default function IconPicker({ value, onSelect, onClose }: IconPickerProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
 

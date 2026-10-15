@@ -20,23 +20,23 @@ export const ANALYTICS_VIRTUAL_ID = '__analytics__';
 // list and previews the blog index / the selected post on the canvas.
 export const BLOG_VIRTUAL_ID      = '__blog__';
 
-const CHROME_IDS = new Set([
+const CHROME_IDS = new Set<string | null | undefined>([
     SITE_VIRTUAL_ID, HEADER_VIRTUAL_ID, FOOTER_VIRTUAL_ID,
     COOKIE_VIRTUAL_ID, ANNOUNCE_VIRTUAL_ID,
 ]);
-const VIRTUAL_IDS = new Set([...CHROME_IDS, DESIGN_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID]);
+const VIRTUAL_IDS = new Set<string | null | undefined>([...CHROME_IDS, DESIGN_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID]);
 
 /** True for any virtual entry (chrome or design) — i.e. NOT a real page id. */
-export function isVirtualPageId(id) {
+export function isVirtualPageId(id: string | null | undefined): boolean {
     return VIRTUAL_IDS.has(id);
 }
 
 /** True for the chrome entries (header / footer / cookie banner / announcement bar, incl. the legacy alias). */
-export function isChromeEntryId(id) {
+export function isChromeEntryId(id: string | null | undefined): boolean {
     return CHROME_IDS.has(id);
 }
 
 /** Resolve the legacy '__site__' alias to the header entry; pass everything else through. */
-export function normalizeVirtualId(id) {
+export function normalizeVirtualId<T extends string | null | undefined>(id: T): T | string {
     return id === SITE_VIRTUAL_ID ? HEADER_VIRTUAL_ID : id;
 }

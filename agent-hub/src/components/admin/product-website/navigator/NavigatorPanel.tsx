@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import BlockList from '../BlockList';
@@ -18,7 +19,7 @@ const SITE_ENTRIES = [
     { id: BLOG_VIRTUAL_ID,      label: 'Blog', labelKey: 'cms_blog.navigator.blog',                       icon: 'Newspaper' },
 ];
 
-function Caption({ children }) {
+function Caption({ children }: { children?: ReactNode }) {
     return (
         <div className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] shrink-0">
             {children}
@@ -35,13 +36,21 @@ function Caption({ children }) {
  *   BLOCKS  the existing BlockList for the active page — full remaining
  *           height (the old 35%-cap double-scroll-well is gone)
  */
+interface NavigatorPanelProps {
+    activeEntryId: string | null;
+    onSelectEntry: (id: string) => void;
+    pageListProps: ComponentProps<typeof PageList>;
+    blockListProps: ComponentProps<typeof BlockList> | null;
+    blogSlot?: ReactNode;
+}
+
 export default function NavigatorPanel({
     activeEntryId,          // normalized activePageId (virtual ids resolved)
     onSelectEntry,          // (id) — virtual id or page id
     pageListProps,          // spread into <PageList/> (activePageId/onSelect included)
     blockListProps,         // spread into <BlockList/>; null hides the BLOCKS zone
     blogSlot = null,        // the Blog entry's post list; replaces PAGES + BLOCKS while set
-}) {
+}: NavigatorPanelProps) {
     const { t } = useTranslation();
     return (
         <div className="h-full flex flex-col min-h-0 bg-[var(--bg-secondary)]">

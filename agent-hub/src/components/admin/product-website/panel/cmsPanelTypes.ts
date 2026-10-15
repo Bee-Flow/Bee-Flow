@@ -18,12 +18,21 @@ export interface CmsBlock {
     [key: string]: unknown;
 }
 
+/** The SEO fields a PageDoc carries. */
+export interface CmsPageSeo {
+    metaTitle?: string;
+    metaDescription?: string;
+    ogImage?: string;
+    noIndex?: boolean;
+}
+
 /** A PageDoc: one page's blocks and SEO. */
 export interface CmsPageDoc {
     id: string;
     slug?: string;
     title?: string;
     blocks?: CmsBlock[];
+    seo?: CmsPageSeo;
     [key: string]: unknown;
 }
 

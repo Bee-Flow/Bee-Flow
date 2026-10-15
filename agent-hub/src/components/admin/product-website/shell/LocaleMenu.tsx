@@ -2,6 +2,7 @@ import React from 'react';
 import Dropdown from './Dropdown';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
+import type { CmsLocale } from '../panel/cmsPanelTypes';
 
 /**
  * TopBar locale switcher — THE one locale control for the builder.
@@ -13,6 +14,21 @@ import AppIcon from '../../../icons/AppIcon';
  * `coverageByLocale` is optional ({ [code]: { done, total } }) — rendered
  * as "n/m translated" + a mini bar when provided (translation workstream).
  */
+export interface LocaleCoverage {
+    done: number;
+    total: number;
+}
+
+interface LocaleMenuProps {
+    locales: CmsLocale[];
+    activeLocale: string;
+    defaultLocale: string;
+    coverageByLocale?: Record<string, LocaleCoverage> | null;
+    onSelect: (code: string) => void;
+    onSetDefault: (code: string) => void;
+    onManageLanguages?: () => void;
+}
+
 export default function LocaleMenu({
     locales,
     activeLocale,
@@ -21,7 +37,7 @@ export default function LocaleMenu({
     onSelect,
     onSetDefault,        // (code) — parent confirms + persists
     onManageLanguages,   // optional — cross-link to admin/languages
-}) {
+}: LocaleMenuProps) {
     const { t } = useTranslation();
     const active = locales.find(l => l.code === activeLocale);
 

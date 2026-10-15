@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
+import type { CmsSiteDoc } from '../panel/cmsPanelTypes';
 
 // Also enforced server-side (cmsStore sanitizeAnalytics) and again in the
 // public GoogleAnalyticsTracker — keep the three in sync.
@@ -9,7 +10,7 @@ const MEASUREMENT_ID_RE = /^G-[A-Z0-9]{4,20}$/;
 // GA4 measurement-ID field — buffered like PageInspector's SlugField: commit
 // on blur / Enter, Escape reverts, invalid non-empty input blocks the commit
 // with a red border + message. Empty commits are allowed (clears GA).
-function GaIdField({ value, onCommit }) {
+function GaIdField({ value, onCommit }: { value: string; onCommit: (value: string) => void }) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(value || '');
     useEffect(() => { setDraft(value || ''); }, [value]);
@@ -61,12 +62,24 @@ function GaIdField({ value, onCommit }) {
  * the public tracker only loads after a cookie-banner accept, so a disabled
  * banner means GA stays off (warned about below, never silently shipped).
  */
+interface AnalyticsSite extends CmsSiteDoc {
+    analytics?: { gaMeasurementId?: string; [key: string]: unknown };
+    cookieBanner?: { enabled?: boolean };
+}
+
+interface AnalyticsInspectorProps {
+    site: AnalyticsSite | null | undefined;
+    onChange: (nextAnalytics: Record<string, unknown>) => void;
+    onOpenCookieSettings?: () => void;
+    onOpenAnalytics?: () => void;
+}
+
 export default function AnalyticsInspector({
     site,
     onChange,               // (nextAnalytics) → updateSiteAnalytics
     onOpenCookieSettings,   // () → select the cookie-banner entry
     onOpenAnalytics,        // () → the built-in visitor-stats admin tab (optional)
-}) {
+}: AnalyticsInspectorProps) {
     const { t } = useTranslation();
     const analytics = site?.analytics || {};
     const gaId = analytics.gaMeasurementId || '';

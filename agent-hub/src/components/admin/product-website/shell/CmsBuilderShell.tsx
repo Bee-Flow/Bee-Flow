@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
 import PanelResizer from '../../../shared/PanelResizer';
@@ -51,11 +52,11 @@ const MIN_STAGE_WIDTH = 480;
 const NAV_WIDTH_KEY = 'cmsNavWidth';
 const INSPECTOR_WIDTH_KEY = 'cmsInspectorWidth';
 
-function clampWidth(w, min, max) {
+function clampWidth(w: number, min: number, max: number) {
     return Math.max(min, Math.min(max, Math.round(w)));
 }
 
-function initWidth(key, fallback, min, max) {
+function initWidth(key: string, fallback: number, min: number, max: number) {
     const raw = parseInt(scopedStorage.getItem(key) || '', 10);
     return Number.isFinite(raw) ? clampWidth(raw, min, max) : fallback;
 }
@@ -91,6 +92,21 @@ function LockScrim() {
  * container also blocks every write path — the scrim is the visible half
  * of the stream lock).
  */
+interface CmsBuilderShellProps {
+    topBar: ReactNode;
+    navigator: ReactNode;
+    stage: ReactNode;
+    inspector: ReactNode;
+    aiDock?: ReactNode;
+    navOpen: boolean;
+    inspectorOpen: boolean;
+    onCloseNav?: () => void;
+    onCloseInspector?: () => void;
+    onCloseAiDock?: () => void;
+    locked?: boolean;
+    dialogs?: ReactNode;
+}
+
 export default function CmsBuilderShell({
     topBar,
     navigator: navigatorPanel,
@@ -104,7 +120,7 @@ export default function CmsBuilderShell({
     onCloseAiDock,
     locked = false,
     dialogs = null,     // shared ConfirmDialog host etc.
-}) {
+}: CmsBuilderShellProps) {
     const rawWide = useIsWide();
     const viewportWidth = useViewportWidth();
 
@@ -156,7 +172,7 @@ export default function CmsBuilderShell({
                             edge="start"
                             label="Resize pages & blocks panel"
                             onResize={setNavWidth}
-                            onResizeEnd={(w) => scopedStorage.setItem(NAV_WIDTH_KEY, String(w))}
+                            onResizeEnd={(w: number) => scopedStorage.setItem(NAV_WIDTH_KEY, String(w))}
                         />
                     </>
                 )}
@@ -175,7 +191,7 @@ export default function CmsBuilderShell({
                             edge="end"
                             label="Resize inspector panel"
                             onResize={setInspectorWidth}
-                            onResizeEnd={(w) => scopedStorage.setItem(INSPECTOR_WIDTH_KEY, String(w))}
+                            onResizeEnd={(w: number) => scopedStorage.setItem(INSPECTOR_WIDTH_KEY, String(w))}
                         />
                         <div
                             className="relative shrink-0 h-full border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)] min-h-0"

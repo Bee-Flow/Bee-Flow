@@ -8,7 +8,15 @@ import Tooltip from '../../../shared/Tooltip';
 // Preview device presets — a pure max-width on the stage's iframe wrapper.
 // No postMessage / renderer change: the marketing site is responsive, so
 // narrowing the frame IS the mobile preview.
-export const DEVICES = [
+export interface DevicePreset {
+    key: string;
+    width: number | null;
+    icon: string;
+    title: string;
+    titleKey: string;
+}
+
+export const DEVICES: DevicePreset[] = [
     { key: 'desktop', width: null, icon: 'Monitor',    title: 'Desktop preview', titleKey: 'cms_site.site.shell.device_desktop' },
     { key: 'tablet',  width: 768,  icon: 'Tablet',     title: 'Tablet preview (768px)', titleKey: 'cms_site.site.shell.device_tablet' },
     { key: 'mobile',  width: 390,  icon: 'Smartphone', title: 'Mobile preview (390px)', titleKey: 'cms_site.site.shell.device_mobile' },
@@ -23,19 +31,30 @@ export const DEVICES = [
 // ProductWebsitePanel. Zoom persists per user via scopedStorage;
 // rotation is session-only (a glance, not a setting).
 
-export const ZOOM_LEVELS = [
+export interface ZoomLevel {
+    value: string;
+    label: string;
+    labelKey?: string;
+}
+
+export const ZOOM_LEVELS: ZoomLevel[] = [
     { value: 'fit',  label: 'Fit', labelKey: 'cms_site.site.shell.zoom_fit' },
     { value: '0.5',  label: '50%' },
     { value: '0.75', label: '75%' },
     { value: '1',    label: '100%' },
 ];
 const ZOOM_KEY = 'cmsPreviewZoom';
-const isZoom = (v) => ZOOM_LEVELS.some(z => z.value === v);
+const isZoom = (v: string | null): v is string => ZOOM_LEVELS.some(z => z.value === v);
 
-let viewportState = null;   // lazy — scopedStorage needs the user registered
-const viewportListeners = new Set();
+interface StageViewport {
+    zoom: string;
+    rotated: boolean;
+}
 
-function getViewportState() {
+let viewportState: StageViewport | null = null;   // lazy — scopedStorage needs the user registered
+const viewportListeners = new Set<() => void>();
+
+function getViewportState(): StageViewport {
     if (viewportState === null) {
         const stored = scopedStorage.getItem(ZOOM_KEY);
         viewportState = { zoom: isZoom(stored) ? stored : '1', rotated: false };
@@ -43,13 +62,13 @@ function getViewportState() {
     return viewportState;
 }
 
-function patchViewport(patch) {
+function patchViewport(patch: Partial<StageViewport>) {
     viewportState = { ...getViewportState(), ...patch };
     if (patch.zoom) scopedStorage.setItem(ZOOM_KEY, patch.zoom);
     viewportListeners.forEach(l => l());
 }
 
-function subscribeViewport(listener) {
+function subscribeViewport(listener: () => void) {
     viewportListeners.add(listener);
     return () => viewportListeners.delete(listener);
 }
@@ -58,7 +77,7 @@ export function useStageViewport() {
     return useSyncExternalStore(subscribeViewport, getViewportState);
 }
 
-export function setStageZoom(zoom) {
+export function setStageZoom(zoom: string) {
     if (isZoom(zoom)) patchViewport({ zoom });
 }
 
@@ -66,7 +85,12 @@ export function toggleStageRotate() {
     patchViewport({ rotated: !getViewportState().rotated });
 }
 
-export default function DeviceToggle({ value, onChange }) {
+interface DeviceToggleProps {
+    value?: string;
+    onChange: (device: string) => void;
+}
+
+export default function DeviceToggle({ value, onChange }: DeviceToggleProps) {
     const { t } = useTranslation();
     const { zoom } = useStageViewport();
     const zoomEntry = ZOOM_LEVELS.find(z => z.value === zoom) || ZOOM_LEVELS[3];

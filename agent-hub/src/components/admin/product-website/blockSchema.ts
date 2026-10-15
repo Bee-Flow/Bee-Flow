@@ -11,6 +11,42 @@
 
 import { BLOCK_CATALOGUE } from './editors';
 
+/** A block dropped during normalization, with the reason. */
+export interface DroppedBlock {
+    index: number;
+    type: string | null;
+    reason: string;
+}
+
+/** A non-fatal fix applied while normalizing. */
+export interface BlockWarning {
+    index: number;
+    type: string;
+    code: string;
+    message: string;
+}
+
+export interface NormalizedBlock {
+    id: unknown;
+    type: string;
+    enabled: boolean;
+    content: Record<string, unknown>;
+    style: Record<string, unknown>;
+}
+
+export interface NormalizeResult {
+    block: NormalizedBlock | null;
+    dropped: DroppedBlock | null;
+    warnings: BlockWarning[];
+}
+
+export interface ValidateResult {
+    ok: boolean;
+    normalizedBlocks: NormalizedBlock[];
+    dropped: DroppedBlock[];
+    warnings: BlockWarning[];
+}
+
 // The 15 canonical block types — sourced from the client catalogue so this
 // stays in lockstep with the "Add block" picker and the editors.
 export const KNOWN_BLOCK_TYPES = Object.keys(BLOCK_CATALOGUE);
@@ -22,7 +58,7 @@ export const STRUCTURAL_KEYS = new Set(['id', 'type', 'enabled', 'content', 'sty
 
 // Forgiving aliases for the common casing/spelling variants a hand-author or
 // an LLM produces for our type strings. Only safe, unambiguous mappings.
-export const TYPE_ALIASES = {
+export const TYPE_ALIASES: Record<string, string> = {
     'social-proof': 'socialProof',
     socialproof: 'socialProof',
     'tech-stats': 'techStats',
@@ -44,7 +80,7 @@ export const TYPE_ALIASES = {
     'trust_band': 'trust-band',
 };
 
-function isPlainObject(v) {
+function isPlainObject(v: unknown): v is Record<string, unknown> {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
@@ -55,11 +91,9 @@ function newBlockId() {
 /**
  * Normalize a single raw block toward the canonical shape
  * `{ id, type, enabled, content, style }`.
- *
- * @returns {{ block: object|null, dropped: {index,type,reason}|null, warnings: object[] }}
  */
-export function normalizeBlock(raw, index) {
-    const warnings = [];
+export function normalizeBlock(raw: unknown, index: number): NormalizeResult {
+    const warnings: BlockWarning[] = [];
     if (!isPlainObject(raw)) {
         return { block: null, dropped: { index, type: null, reason: 'not-an-object' }, warnings };
     }
@@ -89,13 +123,13 @@ export function normalizeBlock(raw, index) {
 
     const enabled = raw.enabled !== false;
 
-    let content;
+    let content: Record<string, unknown>;
     if (isPlainObject(raw.content)) {
         content = raw.content;
     } else {
         // "Fields at top level" near-miss: wrap non-structural top-level keys
         // into content so the block renders instead of coming up blank.
-        const topLevel = {};
+        const topLevel: Record<string, unknown> = {};
         for (const k of Object.keys(raw)) {
             if (!STRUCTURAL_KEYS.has(k)) topLevel[k] = raw[k];
         }
@@ -118,16 +152,15 @@ export function normalizeBlock(raw, index) {
 /**
  * Validate + normalize an array of blocks.
  *
- * @returns {{ ok: boolean, normalizedBlocks: object[], dropped: object[], warnings: object[] }}
- *   ok === (dropped.length === 0)
+ * `ok === (dropped.length === 0)`
  */
-export function validateBlocks(blocks) {
+export function validateBlocks(blocks: unknown): ValidateResult {
     if (!Array.isArray(blocks)) {
         return { ok: false, normalizedBlocks: [], dropped: [{ index: -1, type: null, reason: 'blocks-not-array' }], warnings: [] };
     }
-    const normalizedBlocks = [];
-    const dropped = [];
-    const warnings = [];
+    const normalizedBlocks: NormalizedBlock[] = [];
+    const dropped: DroppedBlock[] = [];
+    const warnings: BlockWarning[] = [];
     blocks.forEach((raw, index) => {
         const res = normalizeBlock(raw, index);
         if (res.block) normalizedBlocks.push(res.block);
@@ -141,7 +174,7 @@ export function validateBlocks(blocks) {
  * Human-readable summary of dropped blocks, for a toast / inline error.
  * Lists the offending type strings and the set of valid types.
  */
-export function describeDropped(dropped) {
+export function describeDropped(dropped: DroppedBlock[] | null | undefined): string {
     if (!dropped || !dropped.length) return '';
     if (dropped.length === 1 && dropped[0].reason === 'blocks-not-array') {
         return 'The file has no "blocks" array.';

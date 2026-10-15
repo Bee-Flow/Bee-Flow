@@ -7,13 +7,18 @@
 // renderer never looks a preset up and editing one never changes an existing
 // site — only what a fresh apply produces.
 
+import type { THEME_PRESETS } from './themePresets.generated.mjs';
+
+type ThemePreset = (typeof THEME_PRESETS)[number];
+type DesignRecord = Record<string, unknown> & { logo?: string; favicon?: string };
+
 export { THEME_PRESETS, THEME_PRESET_IDS, BASE_COMPONENTS, BASE_LAYOUT } from './themePresets.generated.mjs';
 
 // Merge a preset over the current design. Nested objects are re-cloned so a
 // key the preset omits cannot leak through from the previous design.
 // Logo/favicon (site identity) are deliberately preserved. Returns ONE
 // object so the panel commits a single history entry and a single save.
-export function applyPreset(currentDesign, preset) {
+export function applyPreset(currentDesign: DesignRecord | null | undefined, preset: ThemePreset) {
     const d = currentDesign || {};
     return {
         ...d,

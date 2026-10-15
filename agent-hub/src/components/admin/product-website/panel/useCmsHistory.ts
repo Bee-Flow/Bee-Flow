@@ -3,9 +3,24 @@
 // groups the history composite, its synchronous mirrors and the hotkeys.
  
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import type { CmsPageDoc, CmsSiteDoc } from './cmsPanelTypes';
+import type useCmsPanelState from './useCmsPanelState';
 import useDraftHistory from '../../../../hooks/useDraftHistory';
 
-const docChanged = (a, b) => {
+type PanelState = ReturnType<typeof useCmsPanelState>;
+
+/** The undo/redo composite: the SiteDoc plus every PageDoc. */
+export interface CmsDraft {
+    site: CmsSiteDoc | null;
+    pages: CmsPageDoc[];
+}
+
+interface HistoryInput extends Pick<PanelState, 'site' | 'pages' | 'activeLocale' | 'aiRunningRef' | 'builderRunningRef' | 'disarmBuilderUndo' | 'setSiteDoc' | 'setPages'> {
+    translationMode: boolean;
+    scheduleSave: (key: string, payload: unknown) => void;
+}
+
+const docChanged = (a: unknown, b: unknown) => {
     if (a === b) return false;
     try { return JSON.stringify(a) !== JSON.stringify(b); } catch { return true; }
 };
@@ -14,7 +29,7 @@ export default function useCmsHistory({
     site, pages, activeLocale, translationMode,
     aiRunningRef, builderRunningRef, disarmBuilderUndo, scheduleSave,
     setSiteDoc, setPages,
-}) {
+}: HistoryInput) {
     // ── undo / redo ──────────────────────────────────────────────────
     //
     // History composite = { site, pages } ONLY. Locale overrides are
@@ -32,12 +47,12 @@ export default function useCmsHistory({
 
     // Synchronous mirrors so consecutive commits in one tick never read a
     // stale snapshot (state refs update in effects, AFTER render).
-    const siteStateRef  = useRef(null);
-    const pagesStateRef = useRef([]);
+    const siteStateRef  = useRef<CmsSiteDoc | null>(null);
+    const pagesStateRef = useRef<CmsPageDoc[]>([]);
     useEffect(() => { siteStateRef.current = site; }, [site]);
     useEffect(() => { pagesStateRef.current = pages; }, [pages]);
 
-    const applyHistoryDraft = useCallback((next) => {
+    const applyHistoryDraft = useCallback((next: CmsDraft) => {
         if (!next) return;
         // Never write while an AI translate folds results in — same rule as
         // the manual override mutators. Same for AI builder turns (the UI is
@@ -53,7 +68,7 @@ export default function useCmsHistory({
             scheduleSave('site', next.site);
         }
         if (Array.isArray(next.pages)) {
-            const prevById = new Map(prevPages.map(p => [p.id, p]));
+            const prevById = new Map(prevPages.map((p): [string, CmsPageDoc] => [p.id, p]));
             for (const p of next.pages) {
                 const old = prevById.get(p.id);
                 if (docChanged(old, p)) scheduleSave(p.id, p);
@@ -63,8 +78,8 @@ export default function useCmsHistory({
         }
     }, [scheduleSave, disarmBuilderUndo, aiRunningRef, builderRunningRef, setPages, setSiteDoc]);
 
-    const historyDraft = useMemo(() => ({ site, pages }), [site, pages]);
-    const history = useDraftHistory({ currentDraft: historyDraft, apply: applyHistoryDraft });
+    const historyDraft = useMemo<CmsDraft>(() => ({ site, pages }), [site, pages]);
+    const history = useDraftHistory<CmsDraft>({ currentDraft: historyDraft, apply: applyHistoryDraft });
     // Stable ref for reset-barrier callsites with empty dep arrays.
     const historyResetRef = useRef(history.reset);
     useEffect(() => { historyResetRef.current = history.reset; }, [history.reset]);
@@ -80,7 +95,7 @@ export default function useCmsHistory({
     // window listener only preventDefaults when the hotkey was consumed.
     const undoHistory = history.undo;
     const redoHistory = history.redo;
-    const runHistoryHotkey = useCallback((action) => {
+    const runHistoryHotkey = useCallback((action: string) => {
         if (translationMode || aiRunningRef.current) return false;
         if (action === 'redo') redoHistory();
         else undoHistory();
@@ -91,11 +106,11 @@ export default function useCmsHistory({
     // wins; the iframe side does its own equivalent target check before
     // forwarding).
     useEffect(() => {
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (!(e.ctrlKey || e.metaKey)) return;
             const k = (e.key || '').toLowerCase();
             if (k !== 'z' && k !== 'y') return;
-            const t = e.target;
+            const t = e.target as HTMLElement | null;
             if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
             if (runHistoryHotkey((k === 'y' || (k === 'z' && e.shiftKey)) ? 'redo' : 'undo')) {
                 e.preventDefault();

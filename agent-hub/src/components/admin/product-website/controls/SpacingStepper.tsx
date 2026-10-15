@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import { FieldRow } from '../fields';
@@ -28,7 +29,15 @@ import { FieldRow } from '../fields';
  *   onChange — (nextSpacing) receives the whole next spacing object
  */
 
-const SPACING_STEPS = [
+interface SpacingStep {
+    value: string;
+    label: string;
+    hint: string;
+    tKey?: string;
+    hintKey?: string;
+}
+
+const SPACING_STEPS: SpacingStep[] = [
     { value: '',       label: 'Default', hint: 'Site rhythm (no override)', tKey: 'cms_site.site.controls.sp_default', hintKey: 'cms_site.site.controls.sp_default_hint' },
     { value: '0',      label: 'None',    hint: '0px', tKey: 'cms_site.site.controls.sp_none' },
     { value: '3rem',   label: 'S',       hint: '3rem ≈ 48px' },
@@ -39,7 +48,7 @@ const SPACING_STEPS = [
 
 const CHIP_BASE = 'px-2 py-1 text-[10px] font-medium transition-colors';
 
-function StepButton({ step, active, onClick }) {
+function StepButton({ step, active, onClick }: { step: SpacingStep; active: boolean; onClick: () => void }) {
     const { t } = useTranslation();
     return (
         <button
@@ -58,7 +67,7 @@ function StepButton({ step, active, onClick }) {
 
 // Inline escape hatch — buffered: commits on Enter/blur, Escape cancels.
 // Empty commit = reset to Default (remove the key).
-function CustomInput({ initial, onCommit, onCancel }) {
+function CustomInput({ initial, onCommit, onCancel }: { initial: string; onCommit: (value: string) => void; onCancel: () => void }) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(initial);
     return (
@@ -82,13 +91,20 @@ function CustomInput({ initial, onCommit, onCancel }) {
 
 // One edge (or the linked pair): segmented rhythm scale + optional custom
 // chip for non-step stored values.
-function StepperRow({ label, value, onChange, linkSlot }) {
+interface StepperRowProps {
+    label: string;
+    value: unknown;
+    onChange: (value: string | null) => void;
+    linkSlot?: ReactNode;
+}
+
+function StepperRow({ label, value, onChange, linkSlot }: StepperRowProps) {
     const { t } = useTranslation();
     const v = typeof value === 'string' ? value : '';
     const isCustom = v !== '' && !SPACING_STEPS.some(s => s.value === v);
     const [editingCustom, setEditingCustom] = useState(false);
 
-    const pick = (stepValue) => {
+    const pick = (stepValue: string) => {
         setEditingCustom(false);
         onChange(stepValue || null); // '' → null → caller removes the key
     };
@@ -119,7 +135,7 @@ function StepperRow({ label, value, onChange, linkSlot }) {
                 {editingCustom ? (
                     <CustomInput
                         initial={v}
-                        onCommit={(next) => { setEditingCustom(false); onChange(next || null); }}
+                        onCommit={(next: string) => { setEditingCustom(false); onChange(next || null); }}
                         onCancel={() => setEditingCustom(false)}
                     />
                 ) : null}
@@ -129,7 +145,7 @@ function StepperRow({ label, value, onChange, linkSlot }) {
     );
 }
 
-function LinkToggle({ linked, mixed, onToggle }) {
+function LinkToggle({ linked, mixed, onToggle }: { linked: boolean; mixed: boolean; onToggle: () => void }) {
     const { t } = useTranslation();
     const title = linked
         ? t('cms_site.site.controls.sp_unlink', 'Unlink — edit top and bottom separately')
@@ -152,7 +168,19 @@ function LinkToggle({ linked, mixed, onToggle }) {
     );
 }
 
-export default function SpacingStepper({ spacing, onChange }) {
+/** The block's padding style: CSS strings per edge. */
+export interface Spacing {
+    paddingTop?: string;
+    paddingBottom?: string;
+    [key: string]: unknown;
+}
+
+interface SpacingStepperProps {
+    spacing?: Spacing | null;
+    onChange: (spacing: Spacing) => void;
+}
+
+export default function SpacingStepper({ spacing, onChange }: SpacingStepperProps) {
     const { t } = useTranslation();
     const sp = spacing || {};
     const top    = typeof sp.paddingTop === 'string' ? sp.paddingTop : '';
@@ -166,7 +194,7 @@ export default function SpacingStepper({ spacing, onChange }) {
     const [forceUnlinked, setForceUnlinked] = useState(false);
     const linked = bothEqual && !forceUnlinked;
 
-    const setEdges = (patch) => {
+    const setEdges = (patch: Record<string, string | null | undefined>) => {
         const next = { ...sp };
         for (const [key, val] of Object.entries(patch)) {
             if (val === null || val === undefined || val === '') delete next[key];
@@ -188,7 +216,7 @@ export default function SpacingStepper({ spacing, onChange }) {
             <StepperRow
                 label={t('cms_site.site.controls.sp_both', 'Padding (both edges)')}
                 value={top}
-                onChange={(val) => setEdges({ paddingTop: val, paddingBottom: val })}
+                onChange={(val: string | null) => setEdges({ paddingTop: val, paddingBottom: val })}
                 linkSlot={linkSlot}
             />
         );
@@ -198,13 +226,13 @@ export default function SpacingStepper({ spacing, onChange }) {
             <StepperRow
                 label={t('cms_site.site.controls.sp_top', 'Padding top')}
                 value={top}
-                onChange={(val) => setEdges({ paddingTop: val })}
+                onChange={(val: string | null) => setEdges({ paddingTop: val })}
                 linkSlot={linkSlot}
             />
             <StepperRow
                 label={t('cms_site.site.controls.sp_bottom', 'Padding bottom')}
                 value={bottom}
-                onChange={(val) => setEdges({ paddingBottom: val })}
+                onChange={(val: string | null) => setEdges({ paddingBottom: val })}
             />
         </>
     );

@@ -8,7 +8,12 @@
  * installed lucide-react build.
  */
 
-export const ICON_CATALOGUE = [
+export interface IconCategory {
+    category: string;
+    icons: string[];
+}
+
+export const ICON_CATALOGUE: IconCategory[] = [
     {
         category: 'Arrows',
         icons: [

@@ -5,11 +5,11 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import EmptyState from '../../../shared/EmptyState';
 
-export default function CreateFirstSite({ onCreate }) {
+export default function CreateFirstSite({ onCreate }: { onCreate: (name: string) => Promise<unknown> | unknown }) {
     const { t } = useTranslation();
     const [creating, setCreating] = useState(false);
     const [name, setName] = useState('');
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (creating) inputRef.current?.focus();

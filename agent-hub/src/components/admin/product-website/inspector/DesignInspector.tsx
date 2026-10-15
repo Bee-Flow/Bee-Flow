@@ -7,7 +7,12 @@ import DesignEditor from '../DesignEditor';
  * container. Edits flow through `onChange` → updateDesign → the shared
  * 'site' save slot (coalesces with chrome edits — do not split).
  */
-export default function DesignInspector({ design, onChange }) {
+interface DesignInspectorProps {
+    design: Record<string, unknown>;
+    onChange: (design: Record<string, unknown>) => void;
+}
+
+export default function DesignInspector({ design, onChange }: DesignInspectorProps) {
     return (
         <div className="h-full flex flex-col min-h-0">
             <DesignEditor design={design} onChange={onChange} />

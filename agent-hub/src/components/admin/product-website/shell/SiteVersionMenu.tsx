@@ -4,6 +4,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import SiteSwitcher from '../SiteSwitcher';
 import VersionSwitcher from '../VersionSwitcher';
+import type { CmsSiteListEntry } from '../panel/cmsPanelTypes';
 
 /**
  * TopBar site + version menu — one trigger for everything site-level:
@@ -12,6 +13,27 @@ import VersionSwitcher from '../VersionSwitcher';
  * and VersionSwitcher so all handler contracts stay identical to the old
  * Pane A wiring.
  */
+interface SiteIoStatus {
+    kind: 'success' | 'error' | 'busy';
+    text: string;
+}
+
+interface SiteVersionMenuProps {
+    sites: CmsSiteListEntry[];
+    versions: CmsSiteListEntry[];
+    activeSiteId: string | null;
+    liveSiteId: string | null;
+    onSelectSite: (id: string) => void;
+    onCreateSite: (name: string) => void;
+    onRenameSite: (id: string, name: string) => void;
+    onDeleteSite: (site: CmsSiteListEntry) => void;
+    onSetLiveVersion: (id: string) => void;
+    onDuplicateVersion: (id: string, name?: string) => void;
+    onExportSite: (format: string) => void;
+    onImportFile: (file: File) => void;
+    ioStatus: SiteIoStatus | null;
+}
+
 export default function SiteVersionMenu({
     sites,
     versions,
@@ -26,9 +48,9 @@ export default function SiteVersionMenu({
     onExportSite,
     onImportFile,      // (File)
     ioStatus,          // { kind: 'success'|'error'|'busy', text } | null
-}) {
+}: SiteVersionMenuProps) {
     const { t } = useTranslation();
-    const importInputRef = useRef(null);
+    const importInputRef = useRef<HTMLInputElement>(null);
     const activeSite = sites.find(s => s.id === activeSiteId);
     const versionName = activeSite?.versionName || 'v1';
     const isLive = activeSiteId && activeSiteId === liveSiteId;

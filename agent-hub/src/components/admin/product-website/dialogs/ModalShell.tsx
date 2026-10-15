@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import Modal from '../../../shared/Modal';
 
 /**
@@ -28,7 +29,14 @@ import Modal from '../../../shared/Modal';
 
 const WIDTHS = new Set(['sm', 'md', 'lg']);
 
-export default function ModalShell({ children, onClose, labelledBy, width = 'md' }) {
+interface ModalShellProps {
+    children?: ReactNode;
+    onClose?: () => void;
+    labelledBy?: string;
+    width?: 'sm' | 'md' | 'lg';
+}
+
+export default function ModalShell({ children, onClose, labelledBy, width = 'md' }: ModalShellProps) {
     return (
         <Modal
             open
@@ -43,7 +51,7 @@ export default function ModalShell({ children, onClose, labelledBy, width = 'md'
                 panel would be a band beside the card that no longer closes. */}
             <div
                 className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto"
-                onMouseDown={(e) => e.stopPropagation()}
+                onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}
             >
                 {children}
             </div>

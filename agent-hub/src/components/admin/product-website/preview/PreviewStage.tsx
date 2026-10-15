@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import { useStageViewport, toggleStageRotate } from '../shell/DeviceToggle';
@@ -28,6 +29,17 @@ const DESKTOP_FRAME_WIDTH = 1280;
 const MOBILE_PORTRAIT = 390;
 const MOBILE_LANDSCAPE = 844;
 
+interface PreviewStageProps {
+    view: string;
+    statusText: string | null;
+    iframe: ReactNode;
+    sitemap: ReactNode;
+    deviceWidth?: number | null;
+    overlay?: ReactNode;
+    errorText?: string | null;
+    onDismissError: () => void;
+}
+
 export default function PreviewStage({
     view,               // 'preview' | 'sitemap'
     statusText,         // context string, preview only
@@ -37,13 +49,13 @@ export default function PreviewStage({
     overlay = null,     // empty-state overlay node (no pages / no blocks)
     errorText = null,   // panel-level error surfaced as a dismissible strip
     onDismissError,
-}) {
+}: PreviewStageProps) {
     const { t } = useTranslation();
     const { zoom, rotated } = useStageViewport();
 
     // Measure the scroll area so 'fit' can compute its scale and the
     // scaled wrapper can fill the visible height.
-    const areaRef = useRef(null);
+    const areaRef = useRef<HTMLDivElement>(null);
     const [area, setArea] = useState({ w: 0, h: 0 });
     useEffect(() => {
         const el = areaRef.current;

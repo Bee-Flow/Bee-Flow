@@ -7,7 +7,7 @@
  */
 
 // Convert "rgba(r,g,b,a)" → { hex, opacity }; defaults to black/0.5.
-export function parseRgbaOverlay(rgba) {
+export function parseRgbaOverlay(rgba: unknown): { hex: string; opacity: number } {
     if (!rgba || typeof rgba !== 'string') return { hex: '', opacity: 0.5 };
     const m = rgba.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/i);
     if (!m) return { hex: '', opacity: 0.5 };
@@ -19,7 +19,7 @@ export function parseRgbaOverlay(rgba) {
     return { hex, opacity: Math.max(0, Math.min(1, a)) };
 }
 
-export function composeRgba(hex, opacity) {
+export function composeRgba(hex: string | null | undefined, opacity: unknown): string | null {
     const m = (hex || '').match(/^#([0-9a-fA-F]{6})$/);
     if (!m) return null;
     const h = m[1];
@@ -31,7 +31,7 @@ export function composeRgba(hex, opacity) {
 }
 
 // "#rgb" / "#rrggbb" (leading # optional) → [r, g, b] 0-255, or null.
-function parseHexColor(hex) {
+function parseHexColor(hex: unknown): number[] | null {
     if (typeof hex !== 'string') return null;
     const h = hex.trim().replace(/^#/, '');
     if (/^[0-9a-fA-F]{3}$/.test(h)) {
@@ -44,7 +44,7 @@ function parseHexColor(hex) {
 }
 
 // WCAG 2.x relative luminance of an sRGB hex color, or null.
-function relativeLuminance(hex) {
+function relativeLuminance(hex: unknown): number | null {
     const rgb = parseHexColor(hex);
     if (!rgb) return null;
     const [r, g, b] = rgb.map(n => {
@@ -59,7 +59,7 @@ function relativeLuminance(hex) {
  * #rrggbb (with or without the leading #); returns null when either side
  * is unparseable so callers can skip the badge instead of lying.
  */
-export function contrastRatio(hexA, hexB) {
+export function contrastRatio(hexA: unknown, hexB: unknown): number | null {
     const la = relativeLuminance(hexA);
     const lb = relativeLuminance(hexB);
     if (la === null || lb === null) return null;

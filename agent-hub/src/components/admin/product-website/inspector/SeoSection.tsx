@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { ImageField, resolveCmsAssetUrl } from '../fields';
+import type { CmsActivePage } from '../panel/cmsPanelTypes';
 
 /**
  * SeoSection — the SEO half of the page-settings strip (PageMetaSection).
@@ -24,7 +25,7 @@ const inputCls =
 
 // Subtle right-aligned character counter — green inside the limit, amber
 // above it. Purely advisory (search engines truncate, they don't reject).
-function CharCounter({ value, limit }) {
+function CharCounter({ value, limit }: { value: string | undefined; limit: number }) {
     const { t } = useTranslation();
     const len = (value || '').length;
     return (
@@ -42,7 +43,7 @@ function previewDomain() {
 }
 
 // Static Google-result mock — breadcrumb, blue-ish title, gray snippet.
-function SerpPreview({ page }) {
+function SerpPreview({ page }: { page: CmsActivePage }) {
     const { t } = useTranslation();
     const domain = previewDomain();
     const title  = page.seo?.metaTitle || page.title || t('cms_site.site.inspector.untitled', '(untitled)');
@@ -64,7 +65,7 @@ function SerpPreview({ page }) {
 
 // Static social-card (Open Graph) mock — 1.91:1 image, domain caption,
 // bold title. cms/… asset keys resolve the same way ImageField previews do.
-function SocialCardPreview({ page }) {
+function SocialCardPreview({ page }: { page: CmsActivePage }) {
     const { t } = useTranslation();
     const domain = previewDomain();
     const img    = page.seo?.ogImage || '';
@@ -91,7 +92,12 @@ function SocialCardPreview({ page }) {
     );
 }
 
-export default function SeoSection({ page, onSeoChange }) {
+interface SeoSectionProps {
+    page: CmsActivePage;
+    onSeoChange: (field: string, value: unknown) => void;
+}
+
+export default function SeoSection({ page, onSeoChange }: SeoSectionProps) {
     const { t } = useTranslation();
     const seo = page.seo || {};
     return (

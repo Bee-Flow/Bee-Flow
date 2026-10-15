@@ -19,31 +19,31 @@ export const cmsApi = {
     importSite:          ()                            => `${root}/sites/import`,
     // /sites/:siteId → also serves as the SiteDoc / admin payload endpoint
     // for that site (replaces /admin/site).
-    site:                (siteId)                      => `${root}/sites/${siteId}`,
+    site:                (siteId: string)                      => `${root}/sites/${siteId}`,
     // Site export (Content-Disposition: attachment). 'zip' is the complete
     // backup — the bundle plus every referenced image/video; 'json' is the
     // bundle alone, which references assets by key and therefore only
     // reconstitutes fully on an install that shares the storage bucket.
     // Both carry every page, every block and every language.
-    siteExport:          (siteId, format = 'zip')      => `${root}/sites/${siteId}/export?format=${encodeURIComponent(format)}`,
+    siteExport:          (siteId: string, format = 'zip')      => `${root}/sites/${siteId}/export?format=${encodeURIComponent(format)}`,
     // Duplicate a site into a new version of the same version group
     // (POST, no body). Returns { id, name, versionGroupId, versionName }.
-    siteDuplicate:       (siteId)                      => `${root}/sites/${siteId}/duplicate`,
+    siteDuplicate:       (siteId: string)                      => `${root}/sites/${siteId}/duplicate`,
 
     // ── Per-site editor operations ──
-    siteLive:            (siteId)                      => `${root}/sites/${siteId}/live`,
-    sitePublish:         (siteId)                      => `${root}/sites/${siteId}/publish`,
-    siteGraph:           (siteId)                      => `${root}/sites/${siteId}/graph`,
-    siteLocaleOverride:  (siteId, locale)              => `${root}/sites/${siteId}/site/locale/${encodeURIComponent(locale)}`,
-    pages:               (siteId)                      => `${root}/sites/${siteId}/pages`,
-    pagesOrder:          (siteId)                      => `${root}/sites/${siteId}/pages/order`,
-    page:                (siteId, pageId)              => `${root}/sites/${siteId}/pages/${pageId}`,
-    pageMeta:            (siteId, pageId)              => `${root}/sites/${siteId}/pages/${pageId}/meta`,
-    pageHomepage:        (siteId, pageId)              => `${root}/sites/${siteId}/pages/${pageId}/homepage`,
-    pageLocaleOverride:  (siteId, pageId, locale)      => `${root}/sites/${siteId}/pages/${pageId}/locale/${encodeURIComponent(locale)}`,
+    siteLive:            (siteId: string)                      => `${root}/sites/${siteId}/live`,
+    sitePublish:         (siteId: string)                      => `${root}/sites/${siteId}/publish`,
+    siteGraph:           (siteId: string)                      => `${root}/sites/${siteId}/graph`,
+    siteLocaleOverride:  (siteId: string, locale: string)              => `${root}/sites/${siteId}/site/locale/${encodeURIComponent(locale)}`,
+    pages:               (siteId: string)                      => `${root}/sites/${siteId}/pages`,
+    pagesOrder:          (siteId: string)                      => `${root}/sites/${siteId}/pages/order`,
+    page:                (siteId: string, pageId: string)              => `${root}/sites/${siteId}/pages/${pageId}`,
+    pageMeta:            (siteId: string, pageId: string)              => `${root}/sites/${siteId}/pages/${pageId}/meta`,
+    pageHomepage:        (siteId: string, pageId: string)              => `${root}/sites/${siteId}/pages/${pageId}/homepage`,
+    pageLocaleOverride:  (siteId: string, pageId: string, locale: string)      => `${root}/sites/${siteId}/pages/${pageId}/locale/${encodeURIComponent(locale)}`,
     // AI auto-translate — pre-fills a locale override from the default-locale text.
-    pageAiTranslate:     (siteId, pageId, locale)      => `${root}/sites/${siteId}/pages/${pageId}/ai-translate/${encodeURIComponent(locale)}`,
-    siteAiTranslate:     (siteId, locale)              => `${root}/sites/${siteId}/site/ai-translate/${encodeURIComponent(locale)}`,
+    pageAiTranslate:     (siteId: string, pageId: string, locale: string)      => `${root}/sites/${siteId}/pages/${pageId}/ai-translate/${encodeURIComponent(locale)}`,
+    siteAiTranslate:     (siteId: string, locale: string)              => `${root}/sites/${siteId}/site/ai-translate/${encodeURIComponent(locale)}`,
 
     // ── Org-wide (independent of activeSiteId) ──
     enabled:             ()                            => `${root}/admin/enabled`,
@@ -52,5 +52,5 @@ export const cmsApi = {
     // Page templates — global, shared across all sites. List/save/delete
     // only; "apply" happens by passing `templateId` to POST pages.
     templates:           ()                            => `${root}/admin/templates`,
-    template:            (templateId)                  => `${root}/admin/templates/${templateId}`,
+    template:            (templateId: string)                  => `${root}/admin/templates/${templateId}`,
 };

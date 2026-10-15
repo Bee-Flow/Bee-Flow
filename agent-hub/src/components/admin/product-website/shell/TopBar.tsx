@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ComponentProps } from 'react';
 import DeviceToggle from './DeviceToggle';
 import Dropdown from './Dropdown';
 import LocaleMenu from './LocaleMenu';
@@ -10,7 +11,7 @@ import AppIcon from '../../../icons/AppIcon';
 import SegmentedControl from '../../../shared/SegmentedControl';
 import Tooltip from '../../../shared/Tooltip';
 
-function IconBtn({ name, title, onClick, active = false }) {
+function IconBtn({ name, title, onClick, active = false }: { name: string; title: string; onClick?: () => void; active?: boolean }) {
     return (
         <Tooltip content={title}>
             <button
@@ -34,6 +35,42 @@ function IconBtn({ name, title, onClick, active = false }) {
  * Center: Preview | Sitemap | AI view switch
  * Right:  panel toggles · save badge · locale menu · publish · overflow
  */
+interface TopBarHistory {
+    canUndo: boolean;
+    canRedo: boolean;
+    onUndo: () => void;
+    onRedo: () => void;
+}
+
+interface TopBarProps {
+    onExit?: () => void;
+    siteMenuProps: ComponentProps<typeof SiteVersionMenu>;
+    localeMenuProps: ComponentProps<typeof LocaleMenu>;
+    publishProps: Omit<ComponentProps<typeof PublishMenu>, 'saveStatus' | 'onRetrySave'>;
+    saveStatus: string;
+    onRetrySave?: () => void;
+    view: string;
+    onViewChange: (view: string) => void;
+    device?: string;
+    onDeviceChange?: (device: string) => void;
+    assistantOpen: boolean;
+    onToggleAssistant?: () => void;
+    assistantRunning?: boolean;
+    history?: TopBarHistory | null;
+    translationMode: boolean;
+    translatingLocaleName?: string;
+    onExitTranslationMode: () => void;
+    navOpen: boolean;
+    onToggleNav: () => void;
+    inspectorOpen: boolean;
+    onToggleInspector: () => void;
+    focusMode: boolean;
+    onToggleFocusMode?: () => void;
+    onOpenAnalytics?: () => void;
+    onManageLanguages?: () => void;
+    isLive: boolean;
+}
+
 export default function TopBar({
     onExit,
     siteMenuProps,
@@ -61,7 +98,7 @@ export default function TopBar({
     onOpenAnalytics,
     onManageLanguages,
     isLive,
-}) {
+}: TopBarProps) {
     const { t } = useTranslation();
     return (
         <div className="h-12 shrink-0 flex items-center gap-2 px-2 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
