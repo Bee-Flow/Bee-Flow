@@ -173,27 +173,15 @@ test('een pagina die omvalt kost de andere pagina niet', async () => {
 // ── de bedrading ─────────────────────────────────────────────────────
 
 test('de datatable-tap roept deze reconciler écht aan', () => {
-    // Een bewering OVER de aanroeper: notifyDatatableChanged is de enige plek
-    // waar dit pad ontstaat, en het moet los staan van de kennisbron-arm —
-    // valt de een om, dan moet de ander toch draaien.
-    // De store is een FACADE met zijn onderdelen in stores/datatableStore/;
-    // de tap zelf woont in liveChanges.js. Lees de hele module als één tekst,
-    // anders is de slice hieronder leeg en zegt deze test niets meer.
-    const nodeFs = require('node:fs');
-    const nodePath = require('node:path');
-    const facade = require.resolve('../../stores/datatableStore');
-    const partDir = facade.replace(/\.js$/, '');
-    const src = [
-        ...nodeFs.readdirSync(partDir)
-            .filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))
-            .map(f => nodeFs.readFileSync(nodePath.join(partDir, f), 'utf8')),
-        nodeFs.readFileSync(facade, 'utf8'),
-    ].join('\n');
-    const start = src.indexOf('function notifyDatatableChanged');
-    const fn = src.slice(start, src.indexOf('\n}', start));
-    assert.match(fn, /webpageShareReconciler/, 'de tap moet de publieke snapshots vernieuwen');
-    assert.strictEqual((fn.match(/\.catch\(/g) || []).length, 2,
-        'twee luisteraars, twee eigen catches — anders neemt de een de ander mee');
+    // The tap lives in stores/datatableStore/liveChanges.js and knows no
+    // consumer; boot/featureRegistrations.js registers both. Loading it must
+    // leave the snapshot reconciler and the knowledge-source arm registered as
+    // separate listeners (each caught on its own).
+    require('../../boot/featureRegistrations');
+    const { liveListenerLabels } = require('../../stores/datatableStore/liveChanges');
+    const labels = liveListenerLabels();
+    assert.ok(labels.includes('public webpage snapshots'), 'de tap moet de publieke snapshots vernieuwen');
+    assert.ok(labels.includes('knowledge-source arm'), 'en de kennisbron-arm');
 });
 
 test('routes/webpages gebruikt DEZELFDE implementatie, geen tweede kopie', () => {

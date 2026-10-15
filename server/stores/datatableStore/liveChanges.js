@@ -57,23 +57,40 @@ async function getDataVersion(datatableId) {
 const LIVE_DEBOUNCE_MS = 5000;
 const _liveTimers = new Map();
 
+// Consumers register themselves at boot (jobs/datatableChangePorts.js, loaded by
+// boot/featureRegistrations.js), so the storage layer never requires a feature.
+const _listeners = [];
+
+/**
+ * Register a consumer of "this table's rows moved". `listener(datatableId)` may
+ * be async; each one is caught separately, so a failing consumer never stops
+ * the others.
+ */
+function onDatatableChanged(listener, label = 'listener') {
+    _listeners.push({ listener, label });
+}
+
+/** The labels of the registered consumers (for the boot wiring test). */
+function liveListenerLabels() {
+    return _listeners.map(l => l.label);
+}
+
 function notifyDatatableChanged(datatableId, { delayMs = LIVE_DEBOUNCE_MS, arm = null, reSnapshot = null } = {}) {
     if (!datatableId) return;
-    if (_liveTimers.has(datatableId)) return;   // already pending — one pass covers the burst
+    if (_liveTimers.has(datatableId)) return;   // already pending: one pass covers the burst
     const timer = setTimeout(() => {
         _liveTimers.delete(datatableId);
-        Promise.resolve()
-            .then(() => (arm || require('../../jobs/kbSourceRefresh').onDatatableChanged)(datatableId))
-            .catch(e => log.warn('[Datatables] could not arm live knowledge sources:', e.message));
-        // Dezelfde melding, tweede luisteraar (W3 stap 4): een OPENBARE
-        // webpagina bakt de rijen van deze tabel in haar snapshot, dus een
-        // verwijderde rij staat daar nog tot die snapshot herschreven wordt.
-        // Apart afgevangen van de kennisbron-arm hierboven: als de een valt,
-        // moet de ander toch draaien — dit is het pad waarlangs een gewiste
-        // rij ook publiek verdwijnt.
-        Promise.resolve()
-            .then(() => (reSnapshot || require('../../core/webpages/webpageShareReconciler').onDatatableChanged)(datatableId))
-            .catch(e => log.warn('[Datatables] could not refresh public webpage snapshots:', e.message));
+        // Tests inject arm / reSnapshot; they replace the registered consumers.
+        const injected = [arm, reSnapshot].filter(Boolean).map(listener => ({ listener, label: 'injected' }));
+        const targets = injected.length ? injected : _listeners;
+        // Caught separately on purpose: if one falls over the other must still
+        // run (a deleted row has to leave the public page even when the
+        // knowledge-source arm fails).
+        for (const { listener, label } of targets) {
+            Promise.resolve()
+                .then(() => listener(datatableId))
+                .catch(e => log.warn(`[Datatables] live change listener "${label}" failed:`, e.message));
+        }
     }, delayMs);
     // A pending refresh must never hold the process open at shutdown.
     timer.unref?.();
@@ -83,4 +100,6 @@ function notifyDatatableChanged(datatableId, { delayMs = LIVE_DEBOUNCE_MS, arm =
 module.exports = {
     getDataVersion,
     notifyDatatableChanged,
+    onDatatableChanged,
+    liveListenerLabels,
 };
