@@ -448,3 +448,11 @@ test('source inspection exposes only stored shielded text and stays within the p
     row.storedText = '';
     assert.equal((await w.files.fileContent(await w.project(), added.file.id)).available, false);
 });
+
+test('makeProjectFiles keeps its public key set', () => {
+    const { makeProjectFiles } = require('./projectFiles');
+    assert.deepStrictEqual(Object.keys(makeProjectFiles({})).sort(), [
+        'addFile', 'ensureFilesKb', 'fileContent', 'fileNames', 'getFilesKb',
+        'listFiles', 'nameFileActivity', 'removeFile', 'removeFilesKb', 'settle',
+    ]);
+});
