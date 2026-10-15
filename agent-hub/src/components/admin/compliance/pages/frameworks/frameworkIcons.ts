@@ -1,6 +1,7 @@
 import {
     Accessibility, Bot, Bug, Database, Factory, Gavel, Landmark, Network, Scale, ShieldCheck, FileBadge, PenLine,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 /**
  * frameworkIcons — one lucide glyph per compliance framework (frame 1e of the
@@ -9,7 +10,7 @@ import {
  * "own framework" card have entries too so a rail or card never renders an
  * empty icon slot.
  */
-export const FRAMEWORK_ICONS = Object.freeze({
+export const FRAMEWORK_ICONS: Readonly<Record<string, LucideIcon>> = Object.freeze({
     gdpr: ShieldCheck,
     aia: Bot,
     iso27001: FileBadge,
@@ -24,7 +25,7 @@ export const FRAMEWORK_ICONS = Object.freeze({
 });
 
 /** Aliases the API or the sections table may use for the same framework. */
-const ALIASES = Object.freeze({
+const ALIASES: Readonly<Record<string, string>> = Object.freeze({
     iso: 'iso27001',
     ai_act: 'aia',
     'data-act': 'data_act',
@@ -32,7 +33,7 @@ const ALIASES = Object.freeze({
 });
 
 /** Glyph for a framework id (case-insensitive, alias-tolerant); `Scale` when unknown. */
-export function frameworkIcon(id) {
+export function frameworkIcon(id: unknown): LucideIcon {
     if (typeof id !== 'string' || !id) return Scale;
     const key = id.toLowerCase();
     return FRAMEWORK_ICONS[ALIASES[key] || key] || Scale;

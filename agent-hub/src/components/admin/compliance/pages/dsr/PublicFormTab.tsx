@@ -12,7 +12,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 export const PUBLIC_DSR_PATH = '/privacy/requests';
 
 /** `settings.public_dsr_url` when the org has one, else this origin + the public path. */
-export function publicDsrUrl(settings, origin) {
+export function publicDsrUrl(settings: { public_dsr_url?: unknown; dsr_public_url?: unknown } | null | undefined, origin?: string | null): string {
     const own = settings?.public_dsr_url || settings?.dsr_public_url;
     if (own && typeof own === 'string') return own;
     const base = origin ?? (typeof window !== 'undefined' ? window.location.origin : '');
@@ -22,7 +22,7 @@ export function publicDsrUrl(settings, origin) {
 const CARD = 'rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-4 flex flex-col gap-3';
 const SECONDARY = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)]';
 
-async function copyText(text) {
+async function copyText(text: string): Promise<boolean> {
     try {
         if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(text);
@@ -32,7 +32,14 @@ async function copyText(text) {
     return false;
 }
 
-export default function PublicFormTab({ publicUrl, onOpenSettings, onCopied, testId = 'dsr-public-form' }) {
+interface PublicFormTabProps {
+    publicUrl?: string | null;
+    onOpenSettings?: () => void;
+    onCopied?: (ok: boolean) => void;
+    testId?: string;
+}
+
+export default function PublicFormTab({ publicUrl, onOpenSettings, onCopied, testId = 'dsr-public-form' }: PublicFormTabProps) {
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
     const url = publicUrl || publicDsrUrl(null);
