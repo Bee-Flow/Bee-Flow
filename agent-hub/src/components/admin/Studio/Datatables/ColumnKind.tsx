@@ -3,6 +3,7 @@ import React from 'react';
 import { columnTypeKind } from './datatableDisplay';
 import FieldKindIcon from '../../../automation/Builder/mapping/FieldKindIcon';
 import { KIND_WORD } from '../../../automation/Builder/mapping/fieldKinds';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
  * A column's SOORT as the artboard draws it (Datatables 1d): the mapping
@@ -24,7 +25,12 @@ import { KIND_WORD } from '../../../automation/Builder/mapping/fieldKinds';
  */
 const RELATION_WORD = { key: 'datatables.kind_relation', en: 'link to a row' };
 
-export function ColumnKindIcon({ kind, size = 14, style, title }) {
+export function ColumnKindIcon({ kind, size = 14, style, title }: {
+    kind: string;
+    size?: number;
+    style?: React.CSSProperties;
+    title?: string;
+}) {
     if (kind === 'relation') {
         return (
             <Link2
@@ -49,7 +55,7 @@ export function ColumnKindIcon({ kind, size = 14, style, title }) {
 }
 
 /** The kind word in the reader's language — the builder's own key, never a second copy. */
-export function kindWord(t, kind) {
+export function kindWord(t: TranslateFn, kind: string): string {
     const word = kind === 'relation' ? RELATION_WORD : (KIND_WORD[kind] || KIND_WORD.unknown);
     return t(word.key, word.en);
 }
@@ -58,7 +64,13 @@ export function kindWord(t, kind) {
  * Icon + word for one datatable column type, the pair the designer's "Soort"
  * cell and the row grid's column headers both show.
  */
-export default function ColumnKind({ t, type, size = 14, iconOnly = false, className = '' }) {
+export default function ColumnKind({ t, type, size = 14, iconOnly = false, className = '' }: {
+    t: TranslateFn;
+    type: string;
+    size?: number;
+    iconOnly?: boolean;
+    className?: string;
+}) {
     const kind = columnTypeKind(type);
     const word = kindWord(t, kind);
     if (iconOnly) {

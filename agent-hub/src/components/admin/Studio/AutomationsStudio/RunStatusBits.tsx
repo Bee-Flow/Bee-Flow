@@ -1,6 +1,12 @@
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { statusLabel, tokenFor, tokenForStep } from '../../../shared/statusTokens';
+import type { RunStepLike } from '../../../shared/statusTokens';
+
+interface RunStatusProps {
+    status?: string | null;
+    step?: RunStepLike | null;
+}
 
 /**
  * Status icon + badge for a run, driven entirely by the shared status-token
@@ -15,7 +21,7 @@ import { statusLabel, tokenFor, tokenForStep } from '../../../shared/statusToken
  * nothing to do (amber). Pass it wherever the row is at hand; without it a
  * `skipped` status stays grey, because a bare status word carries no reason.
  */
-export function RunStatusIcon({ status, step = null, size = 14, className = '' }) {
+export function RunStatusIcon({ status, step = null, size = 14, className = '' }: RunStatusProps & { size?: number; className?: string }) {
     const token = step ? tokenForStep(step) : tokenFor(status);
     const Icon = token.icon;
     return (
@@ -34,7 +40,7 @@ export function RunStatusIcon({ status, step = null, size = 14, className = '' }
  * <DryRunBadge> so users see BOTH facts instead of "dry-run" masking the
  * outcome (the old behaviour).
  */
-export function RunStatusBadge({ status, step = null }) {
+export function RunStatusBadge({ status, step = null }: RunStatusProps) {
     const { t } = useTranslation();
     const token = step ? tokenForStep(step) : tokenFor(status);
     return (

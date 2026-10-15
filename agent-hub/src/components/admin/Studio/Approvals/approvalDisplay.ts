@@ -5,6 +5,25 @@
  */
 
 import { hrefOf, pipelineTarget } from '../../../shared/managedPart';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+export interface ApprovalStageInfo {
+    key?: string;
+    name?: string;
+    description?: string;
+    skipped?: boolean;
+}
+
+/** The fields of an approval row (rowToApproval) these helpers read. */
+export interface ApprovalRowLike {
+    status?: string;
+    source?: string;
+    stage?: string | null;
+    stages?: ApprovalStageInfo[] | null;
+    context?: { solutionId?: unknown; [key: string]: unknown } | null;
+    automationTitle?: string | null;
+    prompt?: string | null;
+}
 
 export const STATUS_TABS = [
     { key: 'pending', label: 'Waiting' },
@@ -25,7 +44,7 @@ export const STATUS_TABS = [
  * the colour still has to be there for the mixed tabs and for the detail
  * header. Same three sources of truth, one switch.
  */
-export function approvalStatusChip(status) {
+export function approvalStatusChip(status?: string | null) {
     switch (status) {
         case 'pending':
             return {
@@ -86,7 +105,7 @@ export function approvalStatusChip(status) {
  * Returns null for every non-staged row, which is what keeps the panel and
  * single-assignee rendering untouched.
  */
-export function stageChainInfo(row) {
+export function stageChainInfo(row?: ApprovalRowLike | null) {
     const stages = Array.isArray(row?.stages) ? row.stages.filter(Boolean) : [];
     if (!stages.length) return null;
     const active = stages.filter(s => !s.skipped);
@@ -106,7 +125,7 @@ export function stageChainInfo(row) {
  * The year appears once it differs from today's: an audit trail is read
  * quarters later, and "12 Aug" from two years ago is a lie of omission.
  */
-export function formatWhen(ts) {
+export function formatWhen(ts?: string | number | Date | null): string {
     if (!ts) return '—';
     try {
         const d = new Date(ts);
@@ -132,12 +151,8 @@ export function formatWhen(ts) {
  * the Solutions overview rather than to a pipeline it cannot name.
  *
  * Returns null for every other source, which keeps the list's old rendering.
- *
- * @param {object | null | undefined} row  an approval row (rowToApproval)
- * @param {(key: string, fallback: string) => string} t
- * @returns {null | { source: 'deployment', label: string, text: string, target: string, href: string }}
  */
-export function approvalSourceInfo(row, t) {
+export function approvalSourceInfo(row: ApprovalRowLike | null | undefined, t: TranslateFn): null | { source: 'deployment'; label: string; text: string; target: string; href: string } {
     if (row?.source !== 'deployment') return null;
     const solutionId = typeof row.context?.solutionId === 'string' ? row.context.solutionId : null;
     const target = solutionId ? pipelineTarget(solutionId) : 'studio/solutions';
@@ -154,7 +169,7 @@ export function approvalSourceInfo(row, t) {
  * The first fact of a row's meta line: which automation asked, or, for a
  * deployment, "Deployment · <what is deployed>".
  */
-export function approvalOriginText(row, t) {
+export function approvalOriginText(row: ApprovalRowLike | null | undefined, t: TranslateFn): string {
     const deployment = approvalSourceInfo(row, t);
     if (deployment) return [deployment.label, deployment.text].filter(Boolean).join(' · ');
     return row?.automationTitle || t('approvals.automation', 'Automation');

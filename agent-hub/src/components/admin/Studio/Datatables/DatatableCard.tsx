@@ -3,6 +3,26 @@ import React from 'react';
 import { audienceOf, GRADE_LABEL, GROUPS, ORG, isSourceMirror, sourceNameOf, tableKindOf } from './datatableDisplay';
 import { sourceGlyphOf } from './sourceGlyphs';
 import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+interface DatatableSync {
+    status?: string;
+    lastError?: string | null;
+    truncated?: boolean;
+}
+
+/** The fields of a datatable list row (the list payload) this card reads. */
+interface DatatableCardTable {
+    name?: string;
+    description?: string | null;
+    scopeKind?: string;
+    managedKind?: string | null;
+    sync?: DatatableSync | null;
+    retentionDays?: number | null;
+    grade?: string;
+    rowCount?: number | string | null;
+    usageCount?: number | string | null;
+}
 
 /**
  * One table in the list (Datatables artboard 1b).
@@ -27,7 +47,11 @@ import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
  * has this" over a table the whole company could read. A personal table
  * therefore says "Personal", never "Private": there is no sharing to have.
  */
-export default function DatatableCard({ t, table, onOpen }) {
+export default function DatatableCard({ t, table, onOpen }: {
+    t: TranslateFn;
+    table: DatatableCardTable;
+    onOpen: () => void;
+}) {
     const personal = table.scopeKind === 'user';
     const kind = tableKindOf(table);
     const { tile, glyph } = kindTileStyle(kind, { size: 36, pct: 16 });
@@ -118,7 +142,7 @@ export default function DatatableCard({ t, table, onOpen }) {
  * that is running, and a copy the cap cut short are the three things a
  * person scanning the list should not have to open the table to learn.
  */
-function SyncChip({ t, sync }) {
+function SyncChip({ t, sync }: { t: TranslateFn; sync?: DatatableSync | null }) {
     if (!sync) return null;
     if (sync.status === 'running') {
         return (
@@ -148,13 +172,13 @@ function SyncChip({ t, sync }) {
 }
 
 /** "1,284 rows" — grouped, because four digits without a separator read as a year. */
-function rowsText(t, n) {
+function rowsText(t: TranslateFn, n: number | string | null | undefined): string {
     const count = Number(n) || 0;
     if (count === 1) return t('datatables.one_row', '1 row');
     return t('datatables.n_rows', '{n} rows', { n: new Intl.NumberFormat().format(count) });
 }
 
-function gradeText(t, grade) {
+function gradeText(t: TranslateFn, grade?: string): string {
     switch (grade) {
         case 'owner': return t('datatables.grade_owner', GRADE_LABEL.owner);
         case 'editor': return t('datatables.grade_editor', GRADE_LABEL.editor);
@@ -174,7 +198,7 @@ function gradeText(t, grade) {
  * names none. The Used-by tab has the rows, so that is where the kinds are
  * said out loud.
  */
-function UsagePill({ t, count }) {
+function UsagePill({ t, count }: { t: TranslateFn; count?: number | string | null }) {
     const n = Number(count) || 0;
     if (!n) {
         return (
@@ -195,7 +219,7 @@ function UsagePill({ t, count }) {
 }
 
 /** The 11px capsule the artboard puts beside a table's name. */
-function Chip({ children, tone = 'neutral', title }) {
+function Chip({ children, tone = 'neutral', title }: { children?: React.ReactNode; tone?: string; title?: string }) {
     const warning = tone === 'warning';
     return (
         <span

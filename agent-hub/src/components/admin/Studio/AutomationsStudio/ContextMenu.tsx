@@ -1,6 +1,21 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
 
+export interface ContextMenuItem {
+    label?: string;
+    icon?: React.ReactNode;
+    onClick?: () => unknown;
+    danger?: boolean;
+    separator?: boolean;
+    shortcut?: string;
+}
+
+interface ContextMenuProps {
+    position: { x: number; y: number } | null;
+    items: ContextMenuItem[];
+    onClose?: () => void;
+}
+
 /**
  * Lightweight click-outside-to-close popover anchored at an absolute
  * (clientX, clientY) — the natural shape for a right-click row menu.
@@ -12,8 +27,8 @@ import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
  * Items: `{ label, icon?, onClick, danger?, separator? }`. A separator
  * item just renders a hairline divider — no click handler.
  */
-export default function ContextMenu({ position, items, onClose }) {
-    const ref = useRef(null);
+export default function ContextMenu({ position, items, onClose }: ContextMenuProps) {
+    const ref = useRef<HTMLDivElement>(null);
     // Stable handle for the onClose callback. Caller doesn't have to
     // useCallback — we read through the ref so changing identity doesn't
     // re-install the document listeners on every parent render.
