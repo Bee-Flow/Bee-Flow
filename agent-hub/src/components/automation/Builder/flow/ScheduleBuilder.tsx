@@ -11,6 +11,7 @@ import {
     type SchedulePreset,
 } from './scheduleBuilderUtils';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
 
 /**
  * Visual schedule builder. Replaces the two raw cron/timezone text
@@ -95,7 +96,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }: ScheduleBuilderP
                     next: Array.isArray(r?.next) ? r.next : [],
                 });
             } catch (e) {
-                setPreview({ valid: false, error: e.message || 'Preview failed', next: [] });
+                setPreview({ valid: false, error: messageOf(e, 'Preview failed'), next: [] });
             } finally {
                 setLoading(false);
             }
