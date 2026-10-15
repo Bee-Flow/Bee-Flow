@@ -34,58 +34,62 @@ converted. A file that cannot be typed without changing code (Date arithmetic,
 
 ## The loop, per batch (Claude Code runs this)
 
-1. `node scripts/ts-convert-local.mjs --batch .claude/handoff/ts-conversion/batches/NN.txt`
-   (local model drafts; `--endpoint`/`--model` or `LOCAL_LLM_ENDPOINT`/`LOCAL_LLM_MODEL`).
-   Without a local model, draft the files yourself with the same rules.
+Two passes for the draft, one gate, one review. Measured on the laptop (Strix Halo,
+Qwen3.6-35B-A3B Q5_K_XL with MTP, 12 files): pass 1 greedy with thinking off runs at
+~80 tok/s and leaves 3 of 4 files clean against strict; pass 2 with thinking on, only
+for the rejects, is 3–5× slower and fixed every one. Logic stayed byte-for-byte.
+
+1. Pass 1: `node scripts/ts-convert-local.mjs --batch .claude/handoff/ts-conversion/batches/NN.txt`
+   (greedy, thinking off, 3 files in flight; `--endpoint`/`--model` or
+   `LOCAL_LLM_ENDPOINT`/`LOCAL_LLM_MODEL`). Without a local model, draft the files
+   yourself with the same rules.
 2. Update importers that name a converted file WITH an extension
    (`git grep -n "<basename>.jsx'"`), and `readFileSync`/`vi.mock` paths in tests.
-3. `cd agent-hub && npm run typecheck` → fix with types only.
-4. Commit the batch, then `node scripts/ts-equivalence.mjs HEAD~1 HEAD --diff`. For
+3. `cd agent-hub && npm run typecheck`: the PROJECT tsconfig, never an isolated `tsc`
+   (an isolated run reports missing `@types/node` as if the model failed). Note the
+   files with errors; the usual ones are TS7006/TS7031 on React callback parameters
+   and destructured props.
+4. Pass 2: put the rejected files back (`git mv` to the old name, `git checkout -- <old path>`)
+   and rerun them with `--thinking --only a.jsx,b.jsx`. Typecheck again. What still
+   fails you type by hand (types only) or revert to JavaScript.
+5. Commit the batch, then `node scripts/ts-equivalence.mjs HEAD~1 HEAD --diff`. For
    each DIFFERENT file: restore the original code and type it, or revert it
-   (`git mv` back, `git checkout HEAD~1 -- <old path>`). Repeat 3–4 until `0 different`.
-5. `npx eslint <changed files>`; `npx vitest run <tests importing the changed files>`
+   (`git mv` back, `git checkout HEAD~1 -- <old path>`). Repeat 3–5 until `0 different`.
+6. `npx eslint <changed files>`; `npx vitest run <tests importing the changed files>`
    (not `vitest related`: too slow); `node scripts/file-budget.mjs agent-hub` (types
    that push a file past its ceiling move to `<Name>.types.ts`);
    `node scripts/ts-ratchet.mjs agent-hub --update`.
-6. Review by a separate Opus subagent: gate, forbidden constructs, lazy types where a
+7. Review by a separate Opus subagent: gate, forbidden constructs, lazy types where a
    real type exists nearby, dropped lines/props, importers, skipped files identical to
    base, checks. Merge only an approved batch.
-7. After every few batches: `npm run check:fast`, the full `cd agent-hub && npm run
+8. After every few batches: `npm run check:fast`, the full `cd agent-hub && npm run
    test:run`, the mobile tests that read agent-hub source
    (`cd mobile && ./node_modules/.bin/jest $(grep -rlE "'(server|agent-hub)/" src
    --include=*.test.ts --include=*.test.tsx | xargs grep -lE "readFileSync|read\(")`),
    push, and let CI (`build-push-ghcr.yml`, channel dev) build before a dev deploy via
    `Bee-Flow-AI-internal/.github/workflows/deploy-dev.yml` (dry run first).
 
-## Local model: what the research says (October 2026)
+Scope: the batches hold only `agent-hub/src` paths, which are ES modules. The server is
+CommonJS and stays JavaScript (`// @typecheck` + JSDoc); never run the converter there,
+it would turn `module.exports` into `export` across hundreds of files.
 
-Decode on Strix Halo (Ryzen AI Max+ 395) is bound by memory bandwidth (~256 GB/s),
-so bytes read per token decide the speed, not parameter count. Measured by the
-community with llama.cpp on Vulkan (RADV):
+## Local model: the laptop setup (measured 2026-10-15)
 
-| Model | Weights (4-bit) | Decode | Note |
-|---|---|---|---|
-| Qwen3-Coder-30B-A3B (MoE, 3B active) | 16–24 GB | ~95 tok/s | fast, leaves ~40 GB free; older (mid-2025) |
-| Qwen3.6-35B-A3B (MoE) | ~22 GB | ~63 tok/s (124 with MTP in colibri) | newer general model, strong on code |
-| Qwen3-Coder-Next 80B-A3B (MoE) | 48–52 GB | 51 (ollama) – 63 tok/s | best quality that fits 64 GB; tight with typecheck running |
-| Qwen3.8-27B / Devstral Small 2 (dense) | 16–17 GB | 12–16 tok/s (30–36 with MTP) | too slow for whole-file drafts |
+Decode on Strix Halo is bound by memory bandwidth, so a mixture-of-experts model with
+~3B active parameters is the only class that is fast enough; dense 27B runs at 12–16 tok/s.
 
-A 300-line file is ~3.5k output tokens: ~40 s at 95 tok/s, ~65 s at 55, ~4 min at 14.
-Dense models are therefore out. Runtime: llama.cpp `llama-server`, Vulkan backend,
-`-fa 1 -c 32768 -ctk q8_0 -ctv q8_0 -b 2048 -ub 2048 --parallel 2`; the tuned
-gfx1151 build at github.com/Nathanw1014/strix-halo-llamacpp bundles a current Mesa
-RADV and fixes MoE prefill. Ollama works too but is slower on this chip and has had
-unified-memory detection regressions (0.30+); if used, `OLLAMA_VULKAN=1` and check
-`ollama ps` shows the model on GPU.
+- Model: Qwen3.6-35B-A3B-MTP, Q5_K_XL (unsloth UD), 26 GB. Fits the default GTT;
+  leaves ~35 GB for the OS, the KV cache and the typecheck.
+- Runtime: llama.cpp strix-halo build, Vulkan/RADV, as a separate bulk profile:
+  `--ctx-size 98304 --parallel 3` (~32k per slot), `-fa on`, `-b 2048 -ub 1024`,
+  KV `q8_0`, `--spec-type draft-mtp --spec-draft-n-max 3`, `--reasoning-budget 0`
+  (the script switches thinking on per request for pass 2).
+- Speed: ~80 tok/s single stream, prompt ~600 tok/s, ~8 s for a 40–60 line file.
+  Parallelism does not scale on the iGPU (6 slots: 1.38× aggregate, 83→19 tok/s per
+  stream): keep 3 slots and count on the single-stream speed.
+- Open question: 12 files is a small sample. Batch 42 is the first real measurement;
+  expect ~75% clean after pass 1 and ~95% after pass 2. Below ~60% after pass 2 the
+  model is too weak for that folder; let Claude draft it.
 
-Memory: BIOS UMA frame buffer small (512 MB–2 GB); Linux maps the rest through GTT.
-The 30B/35B MoE models fit the default GTT (half of RAM). Coder-Next needs
-`amdgpu.gttsize=57344 ttm.pages_limit=14680064` (56 GiB) on the kernel command line,
-leaving ~8 GB for the OS and the typecheck, which is tight; do not run two typechecks
-at once with it loaded.
-
-Decision rule: the gate makes a bake-off cheap. Run batch 42 with Qwen3-Coder-30B-A3B,
-then with Qwen3-Coder-Next; compare gate pass rate (identical files / drafted files),
-skipped files and wall time. Keep the one with the higher pass rate unless it is more
-than twice as slow. A pass rate under ~60% for both means the local model is too weak
-for this; let Claude draft and keep the local model for `utils/` and `components/shared/`.
+Alternatives considered: Qwen3-Coder-30B-A3B (~95 tok/s, older), Qwen3-Coder-Next
+80B-A3B (stronger, but 48–52 GB: too tight next to a typecheck on 64 GB).
