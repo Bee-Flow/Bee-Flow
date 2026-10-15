@@ -28,9 +28,9 @@ interface ClampSentence extends ClampLabel {
 
 /** The parts of a save response this module reads. */
 interface SaveResponse {
-    clamped_fields?: unknown;
-    termErrors?: unknown;
-    typeErrors?: unknown;
+    clamped_fields?: string[] | null;
+    termErrors?: unknown[] | null;
+    typeErrors?: unknown[] | null;
     config?: { piiDetectionAction?: string | null };
 }
 
@@ -132,7 +132,7 @@ export function describeClampsOnLoad(fields: string[] | null | undefined, t: Tra
         { what: known.map(e => t(e.key, e.en)).join('; ') }), ...extra].join(' ');
 }
 
-const listOf = <T = unknown>(v: unknown): T[] => (Array.isArray(v) ? v : []);
+const listOf = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
 
 /**
  * A successful PUT's response → the message the page shows, and the result
@@ -147,7 +147,7 @@ const listOf = <T = unknown>(v: unknown): T[] => (Array.isArray(v) ? v : []);
  * @returns {{ message: object, result: object, clampedAction: string|null }}
  */
 export function describeSaveResult(data: SaveResponse | null | undefined, t: TranslateFn) {
-    const clamped = listOf<string>(data?.clamped_fields);
+    const clamped = listOf(data?.clamped_fields);
     const termErrors = listOf(data?.termErrors);
     const typeErrors = listOf(data?.typeErrors);
     const result = { ok: true, clamped, termErrors, typeErrors };
