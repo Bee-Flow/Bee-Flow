@@ -16,7 +16,7 @@ import { OverviewTab, type OverviewTabProps } from './OverviewTab';
  */
 
 // Fills in `{params}` like the real t(); a mock that drops them tests the mock.
-const t: TranslateFn = (key, fallbackOrParams, paramsArg) => {
+const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const hasFallback = typeof fallbackOrParams === 'string';
     const params = hasFallback ? paramsArg : fallbackOrParams;
     let out = hasFallback ? (fallbackOrParams as string) : key;

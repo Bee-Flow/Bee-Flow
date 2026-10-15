@@ -4,7 +4,7 @@ import { configFields } from './runIo';
 import { buildRunStepLabelMap, buildRunStepMap } from '../flow/displayHelpers';
 
 // English fallback with {param} interpolation, like the app's t().
-const t: TranslateFn = (_key, fallback, params) => {
+const t: TranslateFn = (_key: string, fallback, params) => {
     const text = typeof fallback === 'string' ? fallback : _key;
     const p = (typeof fallback === 'object' ? fallback : params) || {};
     return text.replace(/\{(\w+)\}/g, (_, k) => String((p as Record<string, unknown>)[k] ?? ''));

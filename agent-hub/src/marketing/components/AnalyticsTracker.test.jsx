@@ -1,6 +1,6 @@
 import { render, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import AnalyticsTracker from './AnalyticsTracker.jsx';
+import AnalyticsTracker from './AnalyticsTracker.tsx';
 
 const SCRIPT_ID = 'bf-umami-tracker';
 const tracker = () => document.getElementById(SCRIPT_ID);

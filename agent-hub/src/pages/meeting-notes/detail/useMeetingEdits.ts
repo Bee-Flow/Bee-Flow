@@ -156,7 +156,7 @@ export default function useMeetingEdits({ data, setLocal, refresh, onChanged, of
     // Re-run AI naming on the stored transcript (no re-transcription). Lets a
     // note stuck on "Guest-1/2/3" be mapped to real names; an attendee list
     // makes it reliable.
-    const handleReidentifySpeakers = async (attendees: unknown) => {
+    const handleReidentifySpeakers = async (attendees?: string | string[]) => {
         if (!data) return null;
         return applySpeakerUpdate(await api.reidentifySpeakers(data.id, attendees));
     };

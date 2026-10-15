@@ -164,7 +164,7 @@ export default function FormatBubble({ view, editor, t, askAiEnabled, onAction, 
       {askAiEnabled && (
         <>
           <BubbleDivider />
-          {[['rewrite', RefreshCw, tt('notebooks.ai_action_rewrite', 'Rewrite')], ['shorten', Scissors, tt('notebooks.ai_action_shorten', 'Shorten')], ['expand', Expand, tt('notebooks.ai_action_expand', 'Expand')]].map(([k, Icon, label]) => (
+          {([['rewrite', RefreshCw, tt('notebooks.ai_action_rewrite', 'Rewrite')], ['shorten', Scissors, tt('notebooks.ai_action_shorten', 'Shorten')], ['expand', Expand, tt('notebooks.ai_action_expand', 'Expand')]] as const).map(([k, Icon, label]) => (
             <button key={k} onClick={() => onAction(k)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>
               <Icon className="w-3 h-3" /> {label}
             </button>

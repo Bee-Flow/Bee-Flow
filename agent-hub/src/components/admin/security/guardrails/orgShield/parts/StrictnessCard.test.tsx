@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import StrictnessCard from './StrictnessCard';
 
-const t: TranslateFn = (key, fallbackOrParams, paramsArg) => {
+const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const hasStringFallback = typeof fallbackOrParams === 'string';
     const params = hasStringFallback ? paramsArg : fallbackOrParams;
     let out = hasStringFallback ? fallbackOrParams : key;

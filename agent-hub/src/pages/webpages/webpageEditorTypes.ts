@@ -3,6 +3,10 @@
  * `webpagesApi.fetchWebpageBundle` returns and what the SSE events carry.
  */
 
+import type { WebpageRow } from '../../components/webpages/webpageRow.types';
+
+export type { WebpageRow, WebpageSettings } from '../../components/webpages/webpageRow.types';
+
 /** The three primary slots every page has. */
 export type PrimaryFile = 'html' | 'css' | 'js';
 
@@ -35,24 +39,6 @@ export interface ExtraContent {
 }
 
 export type ExtraContents = Record<string, ExtraContent>;
-
-export interface WebpageSettings {
-    framework?: string;
-    runtime?: string;
-    [key: string]: unknown;
-}
-
-export interface WebpageRow {
-    id: string;
-    userId?: string;
-    name?: string;
-    isPublished?: boolean;
-    sharedGroups?: string[];
-    publishedVersionId?: string | null;
-    settings?: WebpageSettings;
-    bridgeGrants?: { automations?: unknown[]; integrations?: unknown[] } | null;
-    [key: string]: unknown;
-}
 
 /** The fields of the row the editor may patch and report to the shell. */
 export type WebpagePatch = Partial<WebpageRow>;

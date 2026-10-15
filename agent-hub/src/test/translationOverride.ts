@@ -36,7 +36,7 @@ export function overrideTranslation<M extends { useTranslation: () => Translatio
         const real = actual.useTranslation();
         const over = override.current;
         if (!over) return real;
-        const t: TranslateFn = (key, fallback, params) => (key in over ? fill(over[key], params) : real.t(key, fallback, params));
+        const t: TranslateFn = (key: string, fallback, params) => (key in over ? fill(over[key], params) : real.t(key, fallback, params));
         return { ...real, t };
     };
     return { ...actual, useTranslation, default: useTranslation };

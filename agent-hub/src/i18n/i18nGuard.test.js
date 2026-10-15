@@ -435,9 +435,9 @@ const KEY_TABLE_FILES = [
     // De vier grafiektypen van de notitieblok-editor. Hier heette `key` eerst
     // het CHARTTYPE ('bar'|'line'|…) en stond het label er kaal naast; de tabel
     // is naar `{ id, key, en }` gebracht zodat `key` weer een sleutel is.
-    'editor/react/ChartConfigModal.jsx',
+    'editor/react/ChartConfigModal.tsx',
     'pages/settings/usage/OverviewTab.jsx',
-    'pages/settings/usage/RangeControl.jsx',
+    'pages/settings/usage/RangeControl.tsx',
 ];
 
 /**
@@ -470,13 +470,13 @@ const TEXT_HELPERS = [
     // keys are in BOTH dictionaries, so this cluster can be cleaned without a
     // dictionary turn. Only the pure modules need a t-taking variant.
     { rel: 'components/cowork/coworkFormat.js', pending: 'CW — relativeTime/formatDuration/fullTimestamp, plus the browser locale' },
-    { rel: 'components/projects/relativeTime.js', pending: 'PRJ — the same five sentences, copied' },
+    { rel: 'components/projects/relativeTime.ts', pending: 'PRJ — the same five sentences, copied' },
     { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.js', pending: 'RUN — times, durations, expiry and the day buckets' },
     { rel: 'components/automation/taskFormatters.ts', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
     { rel: 'pages/meeting-notes/lib/format.js', pending: 'MTG — the same ladder again' },
     { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
     { rel: 'utils/dateFormatters.ts', pending: 'shared — durations and byte sizes; the unit suffix is copy too' },
-    { rel: 'pages/settings/usage/format.js', pending: 'USE — billing-period ranges, browser locale' },
+    { rel: 'pages/settings/usage/format.ts', pending: 'USE — billing-period ranges, browser locale' },
     { rel: 'components/cowork/coworkSchedule.ts', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
     // Registered CLEAN, with no pending: every English string in its two
     // tables is a fallback beside a key (`admin.shield_activity_action_*`,

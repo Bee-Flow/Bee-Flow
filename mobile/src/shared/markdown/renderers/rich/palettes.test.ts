@@ -16,7 +16,7 @@ const web = (file: string) => fs.readFileSync(`${AGENT_HUB_SRC}/components/rende
 const RESEARCH = web('ResearchRenderer.jsx');
 const TEST_REPORT = web('TestReportRenderer.jsx');
 const PAGE = web('PageRenderer.jsx');
-const MERMAID = web('MermaidRenderer.jsx');
+const MERMAID = web('MermaidRenderer.tsx');
 
 describe('research and test reports', () => {
     it('use the web’s gradients', () => {

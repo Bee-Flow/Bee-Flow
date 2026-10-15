@@ -10,7 +10,7 @@ import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
 
 import { anchorKey, findAnchor, headingSlug } from './slug';
 
-const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.jsx`, 'utf8');
+const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
 
 describe('lockstep with the web', () => {
     it('slugs a heading with the web’s replace chain', () => {
