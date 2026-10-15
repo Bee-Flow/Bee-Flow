@@ -1,7 +1,9 @@
 import { Check, LayoutGrid } from 'lucide-react';
 import React, { useMemo } from 'react';
 import useAppRoles from './useAppRoles';
+import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import EmptyState from '../../../../shared/EmptyState';
 import { getComponentEntry } from '../runtime/componentRegistry';
 import { getVisibleToRoles, setVisibleToRoles } from '../state/definitionOps';
@@ -24,7 +26,15 @@ import { getVisibleToRoles, setVisibleToRoles } from '../state/definitionOps';
 
 const NOBODY = '__nobody__';
 
-function nodeLabel(node) {
+/** One row of the grid: a screen, or a top-level component on it. */
+interface MatrixItem {
+    id: string | undefined;
+    kind: 'screen' | 'node';
+    label: string | undefined;
+    depth: number;
+}
+
+function nodeLabel(node: AppNode) {
     const entry = getComponentEntry(node.type);
     const props = node.props || {};
     const text = props.label || props.title || props.text || props.heading;
@@ -33,8 +43,8 @@ function nodeLabel(node) {
     return base;
 }
 
-function buildItems(def, t) {
-    const items = [];
+function buildItems(def: AppDefinition | null, t: TranslateFn) {
+    const items: MatrixItem[] = [];
     for (const screen of def?.screens || []) {
         items.push({ id: screen.id, kind: 'screen', label: screen.name || t('studio_apps_edit.access_matrix.screen', 'Screen'), depth: 0 });
         for (const section of screen.sections || []) {
@@ -46,26 +56,30 @@ function buildItems(def, t) {
     return items;
 }
 
-export default function AccessMatrix({ appId, definition = null, onCommit = null }) {
+export default function AccessMatrix({ appId, definition = null, onCommit = null }: {
+    appId: string;
+    definition?: AppDefinition | null;
+    onCommit?: ((definition: AppDefinition) => void) | null;
+}) {
     const { t } = useTranslation();
     const { roles } = useAppRoles(appId);
     const roleKeys = useMemo(() => roles.map((r) => r.key), [roles]);
     const items = useMemo(() => buildItems(definition, t), [definition, t]);
 
-    const isChecked = (itemId, roleKey) => {
+    const isChecked = (itemId: string | undefined, roleKey: string) => {
         const gate = getVisibleToRoles(definition, itemId);
         return gate.length === 0 || gate.includes(roleKey);
     };
 
-    const hiddenFromAll = (itemId) => {
+    const hiddenFromAll = (itemId: string | undefined) => {
         const gate = getVisibleToRoles(definition, itemId);
-        return gate.length > 0 && gate.every((k) => k === NOBODY);
+        return gate.length > 0 && gate.every((k: string) => k === NOBODY);
     };
 
-    const toggle = (itemId, roleKey) => {
+    const toggle = (itemId: string | undefined, roleKey: string) => {
         if (!onCommit || !definition) return;
         const gate = getVisibleToRoles(definition, itemId);
-        const allowed = gate.filter((k) => k !== NOBODY);
+        const allowed = gate.filter((k: string) => k !== NOBODY);
         const next = new Set(gate.length === 0 ? roleKeys : allowed);
         if (gate.length === 0) next.delete(roleKey); // was "everyone" → drop this role
         else if (next.has(roleKey)) next.delete(roleKey);

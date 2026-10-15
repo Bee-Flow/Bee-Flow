@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * App Studio runtime — the data-source state provider.
@@ -16,6 +17,31 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
  * Reading is via useDataState(); resolveBinding is given this map in its bag.
  */
 
+/** One binding's fetch state, mirroring actionState's status vocabulary. */
+export interface DataEntry {
+    status?: string;
+    result?: unknown;
+    error?: unknown;
+    errorCode?: unknown;
+    errorProvider?: unknown;
+    tableId?: string;
+    datasetId?: string;
+    connectorId?: string | null;
+}
+
+/** The entries by cache key. */
+export type DataState = Record<string, DataEntry>;
+
+export interface DataContextValue {
+    dataState: DataState;
+    appId: string | null;
+    draft: boolean;
+    setEntry: (key: string | null | undefined, entry: DataEntry) => void;
+    removeEntry: (key: string) => void;
+    retainEntry: (key: string | null | undefined) => void;
+    releaseEntry: (key: string | null | undefined) => void;
+}
+
 const EMPTY = Object.freeze({});
 
 // Safety net only: entries are evicted when their fetcher unmounts
@@ -24,7 +50,7 @@ const EMPTY = Object.freeze({});
 // drop below can't evict an entry something on screen is still reading.
 const MAX_DATA_ENTRIES = 200;
 
-const DataContext = createContext({
+const DataContext = createContext<DataContextValue>({
     dataState: EMPTY,
     appId: null,
     draft: false,
@@ -40,10 +66,15 @@ const DataContext = createContext({
  * the unsaved draft, a published run page the frozen published definition. It
  * mirrors the `draft` option Canvas already passes to useActionRunner.
  */
-export function DataProvider({ appId = null, draft = false, initialState = null, children }) {
-    const [dataState, setDataState] = useState(initialState || EMPTY);
+export function DataProvider({ appId = null, draft = false, initialState = null, children }: {
+    appId?: string | null;
+    draft?: boolean;
+    initialState?: DataState | null;
+    children?: ReactNode;
+}) {
+    const [dataState, setDataState] = useState<DataState>(initialState || EMPTY);
 
-    const setEntry = useCallback((key, entry) => {
+    const setEntry = useCallback((key: string | null | undefined, entry: DataEntry) => {
         if (!key) return;
         setDataState((prev) => {
             const cur = prev[key];
@@ -84,14 +115,14 @@ export function DataProvider({ appId = null, draft = false, initialState = null,
      * A ref rather than state — a holder count is bookkeeping, and rendering on
      * every mount/unmount of a fetcher would be pure churn.
      */
-    const holdersRef = useRef(new Map());
+    const holdersRef = useRef(new Map<string, number>());
 
-    const retainEntry = useCallback((key) => {
+    const retainEntry = useCallback((key: string | null | undefined) => {
         if (!key) return;
         holdersRef.current.set(key, (holdersRef.current.get(key) || 0) + 1);
     }, []);
 
-    const dropEntry = useCallback((key) => {
+    const dropEntry = useCallback((key: string | null | undefined) => {
         setDataState((prev) => {
             if (!key || !Object.prototype.hasOwnProperty.call(prev, key)) return prev;
             const next = { ...prev };
@@ -101,7 +132,7 @@ export function DataProvider({ appId = null, draft = false, initialState = null,
     }, []);
 
     /** Release one hold; the entry goes only when the last holder does. */
-    const releaseEntry = useCallback((key) => {
+    const releaseEntry = useCallback((key: string | null | undefined) => {
         if (!key) return;
         const left = (holdersRef.current.get(key) || 0) - 1;
         if (left > 0) { holdersRef.current.set(key, left); return; }
@@ -110,7 +141,7 @@ export function DataProvider({ appId = null, draft = false, initialState = null,
     }, [dropEntry]);
 
     // Kept for callers that own a key outright. The fetchers use retain/release.
-    const removeEntry = useCallback((key) => {
+    const removeEntry = useCallback((key: string) => {
         holdersRef.current.delete(key);
         dropEntry(key);
     }, [dropEntry]);

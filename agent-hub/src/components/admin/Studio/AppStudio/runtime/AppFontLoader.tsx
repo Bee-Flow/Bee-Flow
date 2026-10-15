@@ -17,7 +17,7 @@ import '../../../../../marketing/self-hosted-fonts.css';
  * Renders nothing. The <link> is left in place on unmount: fonts are global,
  * cheap, and removing one mid-session would restyle whatever else is using it.
  */
-export default function AppFontLoader({ definition }) {
+export default function AppFontLoader({ definition }: { definition?: { design?: Record<string, string>; [key: string]: unknown } | null }) {
     const font = definition?.design?.font || 'system';
 
     useEffect(() => {

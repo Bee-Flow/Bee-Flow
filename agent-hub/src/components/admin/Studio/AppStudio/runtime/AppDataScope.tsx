@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useMemo, useSyncExternalStore } from 'react';
+import type { ReactNode } from 'react';
 import { requestsForBindings, subscribeBatchAvailability } from './dataBatchClient';
 import { DataProvider, useDataState } from './DataContext';
+import type { DataState } from './DataContext';
 import { dataCacheKey, resolveBinding, resolveBindingFilters, resolveBindingParams, resolveBindingShape } from './resolveBinding';
 import useAppDataSource from './useAppDataSource';
 
@@ -40,8 +42,62 @@ import useAppDataSource from './useAppDataSource';
 
 const DATA_BINDING_KINDS = new Set(['record', 'records', 'aggregate', 'dataset', 'connector']);
 
+/** Anything the deep scan walks: a node, a binding, a list of either, or a leaf value. */
+type Visitable = ScreenNodeLike | Visitable[] | string | number | boolean | null | undefined;
+
+/** A node or binding as the scan reads it. */
+interface ScreenNodeLike {
+    kind?: string;
+    props: { liveSeconds?: unknown; liveWhile?: unknown };
+    [key: string]: unknown;
+}
+
+/** One screen of the definition, as far as the data scope reads it. */
+interface ScopeScreen {
+    id?: string;
+    name?: string;
+    sections?: Visitable[];
+}
+
+/** The slice of the app definition the data scope reads. */
+interface ScopeDefinition {
+    screens?: ScopeScreen[];
+    homeScreenId?: string;
+    [key: string]: unknown;
+}
+
+/** The live expression scope the fetch layer resolves dynamic filters against. */
+interface FetchScope {
+    screen?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+/** A data binding: `{ kind: 'record' | 'records' | 'aggregate' | 'dataset' | 'connector', … }`. */
+interface DataBinding {
+    kind?: string;
+    [key: string]: unknown;
+}
+
+/** How often, and while what, one binding is re-fetched. */
+interface LiveSetting {
+    seconds: number;
+    when: unknown;
+}
+
+/** One data binding found on a screen, deduped by cache key. */
+export interface BindingEntry {
+    cacheKey: string;
+    binding: DataBinding;
+    live: LiveSetting | null;
+}
+
+/** What the render prop gets beside the data. */
+export interface DataScopeControls {
+    refresh: (scopeArg?: { tableId?: string; datasetId?: string } | null) => Promise<void>;
+}
+
 /** The screen the renderer would show — same fallback chain as AppRenderer. */
-function resolveScreen(definition, screenId) {
+function resolveScreen(definition: ScopeDefinition | null | undefined, screenId: string | null | undefined) {
     const screens = definition?.screens || [];
     return screens.find((s) => s.id === screenId)
         || screens.find((s) => s.id === definition?.homeScreenId)
@@ -56,7 +112,7 @@ function resolveScreen(definition, screenId) {
  * forever on an entry nobody fetched. The caller owns screen.params (its
  * navigation state); id/name come from the definition on both sides.
  */
-function useFetchScope(scope, definition, screenId) {
+function useFetchScope(scope: FetchScope | null | undefined, definition: ScopeDefinition | null | undefined, screenId: string | null | undefined) {
     return useMemo(() => {
         const screen = resolveScreen(definition, screenId);
         if (!screen) return scope;
@@ -78,13 +134,13 @@ function useFetchScope(scope, definition, screenId) {
  * two components are not competing, they are sharing, and the faster one is the
  * only one that would notice being served late.
  */
-export function collectDataBindings(definition, screenId) {
+export function collectDataBindings(definition: ScopeDefinition | null | undefined, screenId: string | null | undefined) {
     const screen = resolveScreen(definition, screenId);
     if (!screen) return [];
 
-    const out = [];
-    const byKey = new Map();
-    const visit = (value, liveSeconds) => {
+    const out: BindingEntry[] = [];
+    const byKey = new Map<string, BindingEntry>();
+    const visit = (value: Visitable, liveSeconds: LiveSetting | null) => {
         if (!value || typeof value !== 'object') return;
         if (Array.isArray(value)) {
             for (const v of value) visit(v, liveSeconds);
@@ -107,7 +163,7 @@ export function collectDataBindings(definition, screenId) {
         // a child that asks for its own keeps it.
         const own = Number(value?.props?.liveSeconds) || 0;
         const inherited = own ? { seconds: own, when: value.props.liveWhile ?? null } : liveSeconds;
-        for (const v of Object.values(value)) visit(v, inherited);
+        for (const v of Object.values(value) as Visitable[]) visit(v, inherited);
     };
     for (const section of screen.sections || []) visit(section, null);
     return out;
@@ -120,7 +176,13 @@ export function collectDataBindings(definition, screenId) {
  * stays scope-free: it only ever sees a literal-valued binding. A resolved
  * value change produces a new cache key → a fresh query (refetch).
  */
-function BindingFetcher({ binding, sample, scope, refreshMs, live }) {
+function BindingFetcher({ binding, sample, scope, refreshMs, live }: {
+    binding: DataBinding;
+    sample: boolean;
+    scope: FetchScope | null | undefined;
+    refreshMs: number;
+    live: LiveSetting | null;
+}) {
     const resolved = useMemo(
         () => (binding.kind === 'connector'
             ? resolveBindingParams(binding, scope)
@@ -154,7 +216,14 @@ function BindingFetcher({ binding, sample, scope, refreshMs, live }) {
  */
 const MIN_SPACING_MS = 2_500;
 
-function BindingLoaders({ appId, definition, screenId, sample, scope, refreshMs }) {
+function BindingLoaders({ appId, definition, screenId, sample, scope, refreshMs }: {
+    appId: string;
+    definition: ScopeDefinition | null | undefined;
+    screenId: string | null | undefined;
+    sample: boolean;
+    scope: FetchScope | null | undefined;
+    refreshMs: number;
+}) {
     const bindings = useMemo(
         () => collectDataBindings(definition, screenId),
         [definition, screenId],
@@ -189,7 +258,10 @@ function useOptionalQueryClient() {
     }
 }
 
-function DataConsumer({ appId, children }) {
+function DataConsumer({ appId, children }: {
+    appId: string;
+    children?: ReactNode | ((dataState: DataState, controls: DataScopeControls) => ReactNode);
+}) {
     const dataState = useDataState();
     const queryClient = useOptionalQueryClient();
     /**
@@ -201,7 +273,7 @@ function DataConsumer({ appId, children }) {
      * narrowing matters on a polling screen: reloading eight bindings because
      * one record changed is what makes an app feel like it flickers.
      */
-    const refresh = useCallback((scopeArg) => {
+    const refresh = useCallback((scopeArg?: { tableId?: string; datasetId?: string } | null) => {
         if (!queryClient) return Promise.resolve();
         const s = (scopeArg && typeof scopeArg === 'object') ? scopeArg : null;
         const tableId = s?.tableId || null;
@@ -229,7 +301,16 @@ function DataConsumer({ appId, children }) {
     return typeof children === 'function' ? children(dataState, controls) : children;
 }
 
-export default function AppDataScope({ appId, definition, screenId, sample = false, draft = false, scope, refreshMs = 0, children }) {
+export default function AppDataScope({ appId, definition, screenId, sample = false, draft = false, scope, refreshMs = 0, children }: {
+    appId: string;
+    definition: ScopeDefinition | null | undefined;
+    screenId: string | null | undefined;
+    sample?: boolean;
+    draft?: boolean;
+    scope?: FetchScope | null;
+    refreshMs?: number;
+    children?: ReactNode | ((dataState: DataState, controls: DataScopeControls) => ReactNode);
+}) {
     return (
         <DataProvider appId={appId} draft={draft}>
             <BindingLoaders appId={appId} definition={definition} screenId={screenId} sample={sample} scope={scope} refreshMs={refreshMs} />

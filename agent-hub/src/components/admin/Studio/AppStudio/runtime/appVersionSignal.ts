@@ -12,10 +12,13 @@
  * number the server said, plus a way to hear the next one.
  */
 
-const listeners = new Map(); // appId → Set<fn>
-const latest = new Map();    // appId → last reported version
+/** What the run page hears: the version the server just reported. */
+type VersionListener = (version: number | string) => void;
 
-export function reportAppVersion(appId, version) {
+const listeners = new Map<string, Set<VersionListener>>(); // appId → Set<fn>
+const latest = new Map<string, number | string>();    // appId → last reported version
+
+export function reportAppVersion(appId: string | null | undefined, version: number | string | null | undefined) {
     if (!appId || version === undefined || version === null) return;
     if (latest.get(appId) === version) return;
     latest.set(appId, version);
@@ -24,7 +27,7 @@ export function reportAppVersion(appId, version) {
     }
 }
 
-export function subscribeAppVersion(appId, fn) {
+export function subscribeAppVersion(appId: string | null | undefined, fn: VersionListener) {
     if (!appId || typeof fn !== 'function') return () => {};
     let set = listeners.get(appId);
     if (!set) { set = new Set(); listeners.set(appId, set); }

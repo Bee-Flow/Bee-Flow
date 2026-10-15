@@ -17,16 +17,28 @@
  * `look` in the look pass — it has a bespoke panel regardless).
  */
 
+import type { ComponentType } from 'react';
+import type { AppDefinition, AppNode } from './appDefinition';
 import SpecPanel from './panels/SpecPanel';
 import { getComponentEntry } from '../runtime/componentRegistry';
 
-const REGISTRY = {};
+/** What the inspector hands every per-type Content panel. */
+export interface InspectorPanelProps {
+    node: AppNode;
+    definition: AppDefinition;
+    onCommit: (definition: AppDefinition) => void;
+    disabled?: boolean;
+}
 
-export function registerInspector(type, component) {
+export type InspectorPanel = ComponentType<InspectorPanelProps>;
+
+const REGISTRY: Record<string, InspectorPanel> = {};
+
+export function registerInspector(type: string, component: InspectorPanel) {
     REGISTRY[type] = component;
 }
 
-export function getInspectorForType(type) {
+export function getInspectorForType(type: string): InspectorPanel | null {
     if (REGISTRY[type]) return REGISTRY[type];
     // Fallback: catalog-driven generic panel — but only for types that have
     // props to edit (and that the registry knows at all).

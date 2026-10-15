@@ -13,7 +13,7 @@ import { loadWeb } from '../testing/loadWeb';
 type AnyFn = (...args: unknown[]) => unknown;
 const webForms = loadWeb<{ mergeFormValues: AnyFn }>('runtime/formValues.js');
 const webNav = loadWeb<{ navModel: AnyFn }>('runtime/shell/navModel.js');
-const webScope = loadWeb<{ buildScope: AnyFn }>('runtime/RuntimeContext.jsx');
+const webScope = loadWeb<{ buildScope: AnyFn }>('runtime/RuntimeContext.tsx');
 
 describe('mergeFormValues', () => {
     it('agrees, identity included', () => {

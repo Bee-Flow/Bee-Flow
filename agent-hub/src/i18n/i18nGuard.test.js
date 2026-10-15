@@ -488,7 +488,7 @@ const TEXT_HELPERS = [
     // Label tables: value → English, no key anywhere. Same shape as the two in
     // runLanguage.js that this register was built around.
     { rel: 'components/automation/Builder/flow/triggerLabels.ts', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
-    { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js' },
+    { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.ts' },
     { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
     { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },

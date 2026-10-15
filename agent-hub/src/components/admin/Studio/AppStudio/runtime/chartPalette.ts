@@ -23,7 +23,7 @@ export const CHART_COLORS = [
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 /** Nth palette colour, wrapping (and tolerant of negative indexes). */
-export function chartColorAt(index) {
+export function chartColorAt(index: number) {
     const n = CHART_COLORS.length;
     const i = Number.isFinite(index) ? ((Math.trunc(index) % n) + n) % n : 0;
     return CHART_COLORS[i];
@@ -35,7 +35,7 @@ export function chartColorAt(index) {
  * index. We only honour a literal hex — role names could resolve to a banned
  * hue and there is no purple in the palette, so this can never emit one.
  */
-export function resolveSeriesColor(color, index, palette = null) {
+export function resolveSeriesColor(color: unknown, index: number, palette: string[] | null = null) {
     if (typeof color === 'string' && HEX_RE.test(color.trim())) return color.trim();
     // A brand palette (App Design v2, design.chartPalette:'brand') is derived
     // from the app's primary colour — charts then belong to the app instead of
@@ -58,8 +58,8 @@ export { CHART_AXIS, CHART_GRID_STROKE, CHART_TOOLTIP_STYLE } from '../../../../
  * enum: 'number' | 'percent' | 'currency'. Non-finite input passes through
  * untouched so labels/strings still render.
  */
-export function makeValueFormatter(valueFormat) {
-    return (raw) => {
+export function makeValueFormatter(valueFormat?: string) {
+    return (raw: unknown) => {
         const n = Number(raw);
         if (!Number.isFinite(n)) return raw == null ? '' : String(raw);
         if (valueFormat === 'percent') {

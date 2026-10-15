@@ -14,6 +14,8 @@
  * lockstep; runtime/catalogLockstep.test.js pins them.
  */
 
+import type { CSSProperties } from 'react';
+
 // ── Mirrors (server/appStudio/appDesignSpec.js is authoritative) ────────────
 export const DESIGN_ENUMS = {
     preset: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono'],
@@ -34,13 +36,13 @@ export const DESIGN_DEFAULTS = {
     logoUrl: null,
 };
 
-export const NAV_STYLES = ['tabs', 'sidebar', 'mega', 'rail'];
+export const NAV_STYLES: Array<string | undefined> = ['tabs', 'sidebar', 'mega', 'rail'];
 export const NAV_DEFAULT_STYLE = 'tabs';
 
 // Pairing id → CSS stack. `system` is identity (no fontFamily emitted). The
 // self-hosted families load via marketing/self-hosted-fonts.css; Google
 // families via buildFontsHrefs at the run/preview roots.
-export const FONT_STACKS = {
+export const FONT_STACKS: Record<string, string | null> = {
     system: null,
     inter: "'Inter', system-ui, -apple-system, sans-serif",
     satoshi: "'Satoshi', system-ui, -apple-system, sans-serif",
@@ -52,7 +54,7 @@ export const FONT_STACKS = {
 };
 
 // Families that need a Google Fonts <link> (the rest are self-hosted or system).
-export const GOOGLE_FONT_FAMILIES = {
+export const GOOGLE_FONT_FAMILIES: Record<string, string> = {
     inter: 'Inter',
     geist: 'Geist',
     plex: 'IBM Plex Sans',
@@ -62,10 +64,10 @@ export const GOOGLE_FONT_FAMILIES = {
 /**
  * design → { className, style } for the app roots. Identity in, nothing out.
  */
-export function appDesignProps(definition) {
+export function appDesignProps(definition?: { design?: Record<string, string>; [key: string]: unknown } | null) {
     const d = definition?.design;
-    const classes = [];
-    const style = {};
+    const classes: string[] = [];
+    const style: CSSProperties = {};
     if (d && typeof d === 'object') {
         if (d.surface && d.surface !== DESIGN_DEFAULTS.surface && DESIGN_ENUMS.surface.includes(d.surface)) {
             classes.push(`app-design--surface-${d.surface}`);
@@ -89,7 +91,13 @@ export function appDesignProps(definition) {
 const BANNED_HUE_LO = 255;
 const BANNED_HUE_HI = 305;
 
-function hexToHsl(hex) {
+interface Hsl {
+    h: number;
+    s: number;
+    l: number;
+}
+
+function hexToHsl(hex: unknown): Hsl {
     const m = /^#([0-9a-fA-F]{6})$/.exec(String(hex || '').trim());
     if (!m) return { h: 175, s: 0.77, l: 0.26 }; // teal default
     const n = parseInt(m[1], 16);
@@ -109,7 +117,7 @@ function hexToHsl(hex) {
     return { h: h * 60, s, l };
 }
 
-function hslToHex({ h, s, l }) {
+function hslToHex({ h, s, l }: Hsl) {
     const hue = ((h % 360) + 360) % 360;
     const c = (1 - Math.abs(2 * l - 1)) * s;
     const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
@@ -121,11 +129,11 @@ function hslToHex({ h, s, l }) {
     else if (hue < 240) rgb = [0, x, c];
     else if (hue < 300) rgb = [x, 0, c];
     else rgb = [c, 0, x];
-    const to255 = (v) => Math.round((v + m) * 255);
+    const to255 = (v: number) => Math.round((v + m) * 255);
     return '#' + rgb.map((v) => to255(v).toString(16).padStart(2, '0')).join('');
 }
 
-function skipBannedHue(hue) {
+function skipBannedHue(hue: number) {
     const h = ((hue % 360) + 360) % 360;
     if (h < BANNED_HUE_LO || h > BANNED_HUE_HI) return h;
     // Land past the window, preserving how far in we were so rotations stay
@@ -138,10 +146,10 @@ function skipBannedHue(hue) {
  * IS the primary, later series rotate the hue wheel around the banned window
  * with mild lightness alternation for adjacent-series contrast.
  */
-export function brandPalette(primaryHex) {
+export function brandPalette(primaryHex: unknown) {
     const base = hexToHsl(primaryHex);
     const s = Math.min(Math.max(base.s, 0.35), 0.85);
-    const out = [];
+    const out: string[] = [];
     for (let i = 0; i < 8; i++) {
         if (i === 0) { out.push(hslToHex(base)); continue; }
         const h = skipBannedHue(base.h + i * 41);
@@ -151,7 +159,7 @@ export function brandPalette(primaryHex) {
     return out;
 }
 
-export function isBannedHue(hex) {
+export function isBannedHue(hex: unknown) {
     const { h, s } = hexToHsl(hex);
     if (s < 0.12) return false; // greys have no meaningful hue
     const hue = ((h % 360) + 360) % 360;

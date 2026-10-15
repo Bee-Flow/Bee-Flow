@@ -25,13 +25,13 @@ export {
 } from '@shared/appDefinition/variables.mjs';
 
 /** Declared names, in declaration order. */
-export function listVariableNames(variables) {
+export function listVariableNames(variables?: Array<{ name?: unknown } | null> | null) {
     return (Array.isArray(variables) ? variables : [])
         .map((v) => (v && typeof v.name === 'string' ? v.name : null))
         .filter(Boolean);
 }
 
-function sameValue(a, b) {
+function sameValue(a: unknown, b: unknown) {
     if (a === b) return true;
     if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
     try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
@@ -57,10 +57,10 @@ function sameValue(a, b) {
  * Returns `prev` BY REFERENCE when nothing changed, so setVars bails out of the
  * re-render instead of scheduling one per keystroke.
  */
-export function reconcileVariableDefaults(prev, prevDecls, nextDecls) {
-    const before = seedVariableDefaults(prevDecls);
-    const after = seedVariableDefaults(nextDecls);
-    const current = prev && typeof prev === 'object' ? prev : {};
+export function reconcileVariableDefaults<T extends Record<string, unknown> | null | undefined>(prev: T, prevDecls: unknown, nextDecls: unknown) {
+    const before = seedVariableDefaults(prevDecls) as Record<string, unknown>;
+    const after = seedVariableDefaults(nextDecls) as Record<string, unknown>;
+    const current: Record<string, unknown> = prev && typeof prev === 'object' ? prev : {};
 
     let changed = false;
     const out = { ...current };

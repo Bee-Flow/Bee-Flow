@@ -1,4 +1,7 @@
 import { createContext, useContext, useMemo } from 'react';
+import type { ReactNode } from 'react';
+import type { RunOpts, Vars } from './actionRunner/core';
+import type { DataEntry, DataState } from './DataContext';
 import { dataCacheKey } from './resolveBinding';
 
 /**
@@ -35,18 +38,103 @@ import { dataCacheKey } from './resolveBinding';
  * Storybook-style previews) get an inert run-mode default.
  */
 
+/** The style knobs a node carries (span, gap, size, …); only the ones that were set. */
+export interface NodeStyle {
+    span?: number;
+    gap?: number;
+    size?: string;
+    height?: string;
+    align?: string;
+    [key: string]: unknown;
+}
+
+/**
+ * A node as the runtime components receive it. `P` is the shape of that
+ * component's own props; events hang off the node itself (`onClick`, …).
+ */
+export interface RuntimeNode<P = Record<string, unknown>> {
+    id: string;
+    type: string;
+    props?: P;
+    style: NodeStyle;
+    children?: RuntimeNode[];
+    onClick?: string;
+    onSubmit?: string;
+    onRowClick?: string;
+    onRowSelect?: string;
+    onCardMove?: string;
+    onChange?: string;
+    onDecided?: string;
+    [key: string]: unknown;
+}
+
+/**
+ * The shared expression-scope root: the object every formula evaluates
+ * against, identical in shape on the client, in the inspector and on the server.
+ */
+export interface ExpressionScope {
+    actions: Record<string, unknown>;
+    form: Record<string, unknown>;
+    forms: Record<string, unknown>;
+    screen: Record<string, unknown>;
+    vars: Vars;
+    item: unknown;
+    index: unknown;
+    value: unknown;
+    currentUser: unknown;
+    records: Record<string, unknown>;
+    datasets: Record<string, unknown>;
+    connectors: Record<string, unknown>;
+    now: string;
+    today: string;
+}
+
+/** What buildScope reads; every part is optional. */
+export interface BuildScopeInput {
+    actionState?: Record<string, unknown> | null;
+    dataState?: Record<string, unknown> | null;
+    form?: Record<string, unknown> | null;
+    forms?: Record<string, unknown> | null;
+    screen?: Record<string, unknown> | null;
+    vars?: Vars | null;
+    currentUser?: unknown;
+    item?: unknown;
+    index?: unknown;
+    value?: unknown;
+    now?: unknown;
+    today?: unknown;
+}
+
+/** What every rendered component reads through useRuntime(). */
+export interface RuntimeValue {
+    mode: string;
+    selectedNodeId: string | null;
+    onSelectNode: (id: string | null) => void;
+    recentlyAddedIds: Set<string>;
+    actionState: Record<string, unknown>;
+    dataState: DataState;
+    runAction: (actionId: string, opts?: RunOpts) => void | Promise<void>;
+    setVar: (name: string, value: unknown) => void;
+    registerFormValue: ((formName: string, values: Record<string, unknown>) => void) | null;
+    currentUser: unknown;
+    appDesign: Record<string, string | null> | null;
+    scope: Partial<ExpressionScope>;
+    /** Editor-only members (selection, preview role, …) that the canvas adds. */
+    [key: string]: unknown;
+}
+
 const noop = () => {};
-const EMPTY_SET = new Set();
+const EMPTY_SET = new Set<string>();
 
 /** First claim wins the short scope name; a strictly better rank takes it over. */
-function claimShortName(claimed, name, rank) {
+function claimShortName(claimed: Record<string, number>, name: string, rank: number) {
     if (Object.prototype.hasOwnProperty.call(claimed, name) && claimed[name] >= rank) return false;
     claimed[name] = rank;
     return true;
 }
 
 /** How strong a dataState entry's claim on its short scope name is (see buildScope). */
-function shortNameRank(cacheKey, entry) {
+function shortNameRank(cacheKey: string, entry: DataEntry) {
     if (entry.connectorId != null) {
         return cacheKey === dataCacheKey({ kind: 'connector', connectorId: entry.connectorId }) ? 1 : 0;
     }
@@ -82,7 +170,7 @@ function shortNameRank(cacheKey, entry) {
  * list beats a `record` lookup, an unfiltered query beats a filtered one, and
  * ties go to the first entry seen.
  */
-export function buildScope(input = {}) {
+export function buildScope(input: BuildScopeInput = {}): ExpressionScope {
     const {
         actionState = {},
         dataState = {},
@@ -98,11 +186,11 @@ export function buildScope(input = {}) {
         today,
     } = input;
 
-    const records = {};
-    const datasets = {};
-    const connectors = {};
-    const claimed = {};
-    for (const [cacheKey, entry] of Object.entries(dataState || {})) {
+    const records: Record<string, unknown> = {};
+    const datasets: Record<string, unknown> = {};
+    const connectors: Record<string, unknown> = {};
+    const claimed: Record<string, number> = {};
+    for (const [cacheKey, entry] of Object.entries((dataState || {}) as DataState)) {
         if (!entry || typeof entry !== 'object') continue;
         if (entry.connectorId != null) {
             connectors[cacheKey] = entry.result;
@@ -140,7 +228,7 @@ export function buildScope(input = {}) {
     };
 }
 
-export const DEFAULT_RUNTIME = Object.freeze({
+export const DEFAULT_RUNTIME: RuntimeValue = Object.freeze({
     mode: 'run',
     selectedNodeId: null,
     onSelectNode: noop,
@@ -158,7 +246,7 @@ export const DEFAULT_RUNTIME = Object.freeze({
     scope: Object.freeze(buildScope({ now: '1970-01-01T00:00:00.000Z' })),
 });
 
-const RuntimeContext = createContext(DEFAULT_RUNTIME);
+const RuntimeContext = createContext<RuntimeValue>(DEFAULT_RUNTIME);
 
 /**
  * A scope OVERRIDE for one subtree — the repeater's per-row scope and a form
@@ -167,13 +255,13 @@ const RuntimeContext = createContext(DEFAULT_RUNTIME);
  * whatever depth it sits, so a scope handed down as a prop would never reach
  * them and `item.*` would read undefined inside a repeated row.
  */
-const ScopeContext = createContext(null);
+const ScopeContext = createContext<ExpressionScope | null>(null);
 
-export function RuntimeProvider({ value, children }) {
+export function RuntimeProvider({ value, children }: { value: RuntimeValue; children?: ReactNode }) {
     return <RuntimeContext.Provider value={value}>{children}</RuntimeContext.Provider>;
 }
 
-export function ScopeProvider({ scope, children }) {
+export function ScopeProvider({ scope, children }: { scope?: ExpressionScope | null; children?: ReactNode }) {
     return <ScopeContext.Provider value={scope || null}>{children}</ScopeContext.Provider>;
 }
 
@@ -186,13 +274,20 @@ export function useRuntime() {
     );
 }
 
+/** A repeated row, as far as its identity goes. */
+interface RowItem {
+    id?: unknown;
+    _id?: unknown;
+    recordId?: unknown;
+}
+
 /**
  * The identity of one repeated row — its record id when it has one, else its
  * position. React keys must follow the RECORD, not the index: keying by index
  * makes a reordered list reuse the previous row's component state (a half-typed
  * input jumps rows). AppRenderer and AppRepeater key their rows identically.
  */
-export function rowKey(item, index) {
+export function rowKey(item: RowItem | string | number | boolean | null | undefined, index: number) {
     if (item && typeof item === 'object') {
         const id = item.id ?? item._id ?? item.recordId;
         if (typeof id === 'string' || typeof id === 'number') return `id:${id}`;
