@@ -1,9 +1,25 @@
 import { ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
+import type { ReactNode } from 'react';
 import scopedStorage from '../../../../utils/scopedStorage';
 import {
     bandClass, disclosureClass, railClass, sectionHeaderClass, FOCUS_RING,
 } from './settings/formStyles';
+
+interface CollapsibleSectionProps {
+    title?: ReactNode;
+    count?: number | null;
+    badge?: ReactNode;
+    variant?: 'section' | 'disclosure' | 'quiet' | 'static' | null;
+    meta?: ReactNode;
+    countNoun?: string;
+    defaultOpen?: boolean;
+    open?: boolean | null;
+    onToggle?: ((next: boolean) => void) | null;
+    persistKey?: string | null;
+    forceOpen?: boolean;
+    children?: ReactNode;
+}
 
 /**
  * Dense, inspector-scoped disclosure used to hide advanced/optional fields
@@ -57,7 +73,7 @@ export default function CollapsibleSection({
     // an error inside must never hide behind a collapsed section (C11).
     forceOpen = false,
     children,
-}) {
+}: CollapsibleSectionProps) {
     const isControlled = controlledOpen != null && typeof onToggle === 'function';
     const [internalOpen, setInternalOpen] = useState(() => {
         if (persistKey) return scopedStorage.getItem(`collapse.${persistKey}`) === '1';

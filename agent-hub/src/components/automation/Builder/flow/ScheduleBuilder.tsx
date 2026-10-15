@@ -1,4 +1,4 @@
-import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Calendar, Clock, AlertCircle } from 'lucide-react';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
 import { fieldLabelClass, inputClass } from './settings/formStyles';
@@ -8,8 +8,10 @@ import {
     presetFromCron,
     cronFromPreset,
     describeCron,
+    type SchedulePreset,
 } from './scheduleBuilderUtils';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
 
 /**
  * Visual schedule builder. Replaces the two raw cron/timezone text
@@ -26,7 +28,19 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *   onChange({ cron, tz }) fires on every meaningful edit so the
  *   existing autosave plumbing in StepInspector picks it up unchanged.
  */
-export default function ScheduleBuilder({ cron, tz, onChange }) {
+interface ScheduleBuilderProps {
+    cron?: string | null;
+    tz?: string | null;
+    onChange?: ((v: { cron: string; tz: string }) => void) | null;
+}
+
+interface PreviewState {
+    valid: boolean;
+    error: string | null;
+    next: string[];
+}
+
+export default function ScheduleBuilder({ cron, tz, onChange }: ScheduleBuilderProps) {
     const { t } = useTranslation();
     const [preset, setPreset] = useState(() => presetFromCron(cron));
     const [customDraft, setCustomDraft] = useState(() => cron || '0 9 * * *');
@@ -68,21 +82,21 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
     // Backend next-runs preview. Debounced because the user can rattle
     // through several edits per second (typing in the minute field).
     const api = useAutomationApi();
-    const [preview, setPreview] = useState({ valid: true, error: null, next: [] });
+    const [preview, setPreview] = useState<PreviewState>({ valid: true, error: null, next: [] });
     const [loading, setLoading] = useState(false);
     useEffect(() => {
         if (!generatedCron) return;
         const handle = setTimeout(async () => {
             setLoading(true);
             try {
-                const r = await api.previewSchedule(generatedCron, tzValue, 3);
+                const r = await api.previewSchedule<{ valid?: boolean; error?: string | null; next?: string[] } | null>(generatedCron, tzValue, 3);
                 setPreview({
                     valid: !!r?.valid,
                     error: r?.error || null,
                     next: Array.isArray(r?.next) ? r.next : [],
                 });
             } catch (e) {
-                setPreview({ valid: false, error: e.message || 'Preview failed', next: [] });
+                setPreview({ valid: false, error: messageOf(e, 'Preview failed'), next: [] });
             } finally {
                 setLoading(false);
             }
@@ -274,7 +288,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
  * for the others. Keeps the form from feeling like it forgot the
  * user's choices the moment they tab between modes.
  */
-function presetForMode(nextMode, prev) {
+function presetForMode(nextMode: string, prev: SchedulePreset): SchedulePreset {
     const carry = {
         hour:   typeof prev.hour   === 'number' ? prev.hour   : 9,
         minute: typeof prev.minute === 'number' ? prev.minute : 0,
@@ -290,7 +304,7 @@ function presetForMode(nextMode, prev) {
     }
 }
 
-function TimePicker({ hour, minute, onChange }) {
+function TimePicker({ hour, minute, onChange }: { hour: number; minute: number; onChange: (hour: number, minute: number) => void }) {
     return (
         <div className="flex items-center gap-1">
             <select
@@ -316,7 +330,7 @@ function TimePicker({ hour, minute, onChange }) {
     );
 }
 
-function Field({ label, hint, children }) {
+function Field({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children?: ReactNode }) {
     return (
         <div>
             <div className={`${fieldLabelClass()} mb-1`}>{label}</div>
@@ -326,12 +340,12 @@ function Field({ label, hint, children }) {
     );
 }
 
-function pad2(n) {
+function pad2(n: number) {
     const s = String(n);
     return s.length < 2 ? `0${s}` : s;
 }
 
-function formatInTz(iso, tz) {
+function formatInTz(iso: string, tz: string) {
     try {
         const d = new Date(iso);
         return new Intl.DateTimeFormat('en-GB', {

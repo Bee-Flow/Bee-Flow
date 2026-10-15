@@ -1,4 +1,5 @@
 import { EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColors';
+import type { FlowDefinition, FlowEdge } from './types';
 
 /**
  * Colour RULES — the definition-level operations behind the Lines panel.
@@ -20,7 +21,7 @@ import { EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColor
 
 /** Does this edge belong to `caseName` out of `stepId`? Tolerates the two
  * legacy case-edge shapes (label-only / caseName-only). */
-function isCaseEdge(e, stepId, caseName) {
+function isCaseEdge(e: FlowEdge, stepId: string, caseName: string): boolean {
     if (e.from !== stepId) return false;
     const c = e.caseName ?? (typeof e.label === 'string' && e.label.startsWith('case:') ? e.label.slice(5) : null);
     return c === caseName;
@@ -30,7 +31,12 @@ function isCaseEdge(e, stepId, caseName) {
  * Set (or clear, color = null) the colour of EVERY edge of one case.
  * Returns the same definition object when nothing matched.
  */
-export function applyCaseColor(definition, stepId, caseName, color) {
+export function applyCaseColor(
+    definition: FlowDefinition | null | undefined,
+    stepId: string,
+    caseName: string,
+    color?: string | null,
+): FlowDefinition | null | undefined {
     let touched = false;
     const edges = (definition?.edges || []).map((e) => {
         if (!isCaseEdge(e, stepId, caseName)) return e;
@@ -52,7 +58,7 @@ export function applyCaseColor(definition, stepId, caseName, color) {
  * case has no edges yet, carries no colour, or its edges disagree (each keeps
  * its own — the hover picker can still address them individually).
  */
-export function caseColorOf(definition, stepId, caseName) {
+export function caseColorOf(definition: FlowDefinition | null | undefined, stepId: string, caseName: string): string | null {
     const matching = (definition?.edges || []).filter(e => isCaseEdge(e, stepId, caseName));
     if (!matching.length) return null;
     const first = matching[0].color ?? null;
@@ -64,7 +70,11 @@ export function caseColorOf(definition, stepId, caseName) {
  * Set (or clear, color = null) one PII group's line colour. Clearing the last
  * override removes the map entirely so untouched definitions stay untouched.
  */
-export function applyPiiGroupColor(definition, group, color) {
+export function applyPiiGroupColor(
+    definition: FlowDefinition | null | undefined,
+    group: string,
+    color?: string | null,
+): FlowDefinition | null | undefined {
     const current = { ...(definition?.piiLineColors || {}) };
     if (!color) delete current[group];
     else current[group] = color;
@@ -82,7 +92,7 @@ export function applyPiiGroupColor(definition, group, color) {
  * non-palette values are ignored (the validator warns, the canvas never
  * paints an unapproved colour).
  */
-export function resolvePiiGroupColors(definition) {
+export function resolvePiiGroupColors(definition?: FlowDefinition | null): Record<string, string> {
     const out = { ...PII_GROUP_COLORS };
     const overrides = definition?.piiLineColors;
     if (overrides && typeof overrides === 'object') {

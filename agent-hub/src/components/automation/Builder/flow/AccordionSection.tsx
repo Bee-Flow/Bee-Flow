@@ -1,7 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import CollapsibleSection from './CollapsibleSection';
 import { hiddenInSimple, resolveMode, useFormDensity } from './settings/formDensity';
 import scopedStorage from '../../../../utils/scopedStorage';
+
+interface AccordionSectionProps {
+    stepType: string;
+    sectionKey: string;
+    title?: ReactNode;
+    defaultOpen?: boolean;
+    forceOpen?: boolean;
+    badge?: ReactNode;
+    meta?: ReactNode;
+    hasContent?: boolean;
+    errorCount?: number;
+    children?: ReactNode;
+}
 
 /**
  * Inspector accordion section. Thin wrapper over CollapsibleSection that
@@ -47,7 +61,7 @@ export default function AccordionSection({
     // Validation errors inside this section — a red count chip on the band.
     errorCount = 0,
     children,
-}) {
+}: AccordionSectionProps) {
     const storageKey = `collapse.inspector.${stepType}.${sectionKey}`;
     const isAdvanced = sectionKey === 'advanced';
     const [open, setOpen] = useState(() => {
@@ -114,7 +128,7 @@ export default function AccordionSection({
         );
     }
 
-    const onToggle = (next) => {
+    const onToggle = (next: boolean) => {
         setOpen(next);
         scopedStorage.setItem(storageKey, next ? '1' : '0');
     };

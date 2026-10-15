@@ -1,6 +1,6 @@
 /**
  * One labelled row of a step's settings — the web's FormRow (agent-hub
- * `Builder/flow/settings/formPrimitives.jsx`): the label, a "Required" chip
+ * `Builder/flow/settings/formPrimitives.tsx`): the label, a "Required" chip
  * where the validator blocks on the field (an asterisk is a developer
  * convention, not universal knowledge), the control, then the hint and any
  * error under it. The error is announced; it never floats away as a toast.

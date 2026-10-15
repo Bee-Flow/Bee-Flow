@@ -5,7 +5,7 @@ import { Plus, X } from 'lucide-react';
 import { useState, type ComponentType, type ReactNode } from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import TemplateFieldJs from '../../../mapping/TemplateField';
-import AccordionSectionJs from '../../AccordionSection';
+import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
 import {
     ARRAY_FORMATS, mergeMovedQuery, previewUrl, queryPairs, splitQueryFromUrl,
@@ -14,7 +14,6 @@ import {
 
 type AnyProps = Record<string, unknown> & { children?: ReactNode };
 const TemplateField = TemplateFieldJs as unknown as ComponentType<AnyProps>;
-const AccordionSection = AccordionSectionJs as unknown as ComponentType<AnyProps>;
 
 type Props = {
     draft: { url?: string; query?: HttpQuery | null };

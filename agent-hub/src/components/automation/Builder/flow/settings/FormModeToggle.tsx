@@ -2,8 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import SegmentedControl from '../../../../shared/SegmentedControl';
-
-export type FormMode = 'simple' | 'advanced';
+import type { FormMode } from './formDensity';
 
 interface Props {
     mode: FormMode;

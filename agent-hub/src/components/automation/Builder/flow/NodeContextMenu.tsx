@@ -3,6 +3,24 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useTranslation from '../../../../hooks/useTranslation';
 
+interface NodeContextMenuProps {
+    x: number;
+    y: number;
+    canDelete?: boolean;
+    canDuplicate?: boolean;
+    canDetach?: boolean;
+    onDuplicate: () => void;
+    onDetach?: (() => void) | null;
+    onDelete: () => void;
+    onExecute?: (() => void) | null;
+    onToggleDisabled?: (() => void) | null;
+    disabled?: boolean;
+    onToggleInline?: (() => void) | null;
+    inlineExpanded?: boolean;
+    onAskAssistant?: (() => void) | null;
+    onClose: () => void;
+}
+
 /**
  * Right-click menu for a node on the flow canvas (BFSF-319).
  *
@@ -14,14 +32,14 @@ import useTranslation from '../../../../hooks/useTranslation';
  * Rendered in a portal at viewport coordinates so it escapes the React Flow
  * transform (a menu inside the pane would scale and translate with the canvas).
  */
-export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDetach, onDuplicate, onDetach, onDelete, onExecute, onToggleDisabled, disabled, onToggleInline, inlineExpanded = false, onAskAssistant = null, onClose }) {
-    const ref = useRef(null);
+export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDetach, onDuplicate, onDetach, onDelete, onExecute, onToggleDisabled, disabled, onToggleInline, inlineExpanded = false, onAskAssistant = null, onClose }: NodeContextMenuProps) {
+    const ref = useRef<HTMLDivElement>(null);
     const { t } = useTranslation();
 
     // Dismiss on outside click, Escape, scroll, or canvas pan.
     useEffect(() => {
-        const onDown = (e) => { if (!ref.current?.contains(e.target)) onClose(); };
-        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node | null)) onClose(); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
         document.addEventListener('mousedown', onDown);
         document.addEventListener('keydown', onKey);
         window.addEventListener('resize', onClose);
