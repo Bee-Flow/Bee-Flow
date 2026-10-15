@@ -1,3 +1,15 @@
+import type { CSSProperties } from 'react';
+
+/** The type scale a stage speaks, in px. */
+export interface StageType {
+    title: number;
+    hero: number;
+    card: number;
+    body: number;
+    meta: number;
+    micro: number;
+}
+
 /**
  * The vocabulary every playbook stage speaks — one place, so a phase cannot
  * drift from its neighbours.
@@ -13,10 +25,10 @@
  */
 
 /** The content column. Two real ones; `wide` is the design grid, `full` the builders. */
-export const WIDTH = Object.freeze({ narrow: 560, default: 780, wide: 980, full: null });
+export const WIDTH: Readonly<Record<'narrow' | 'default' | 'wide' | 'full', number | null>> = Object.freeze({ narrow: 560, default: 780, wide: 980, full: null });
 
 /** Outer padding of a stage, normal and presenter. */
-export function stagePadding(presenter) {
+export function stagePadding(presenter: boolean): string {
     return presenter ? '32px 32px' : '24px';
 }
 
@@ -26,14 +38,14 @@ export function stagePadding(presenter) {
  * inside its wireframes at 11px — unreadable from a conference floor, on the
  * one phase whose entire content is what is being read.
  */
-export function stageType(presenter) {
+export function stageType(presenter: boolean): StageType {
     return presenter
         ? { title: 22, hero: 20, card: 17, body: 14, meta: 13, micro: 12 }
         : { title: 18, hero: 16, card: 14, body: 12, meta: 11, micro: 11 };
 }
 
 /** A stage's own card: one radius, one border, one elevation, one padding pair. */
-export function heroCard(presenter) {
+export function heroCard(presenter: boolean): CSSProperties {
     return {
         background: 'var(--bg-card)',
         border: '1px solid var(--border-default)',
@@ -44,7 +56,7 @@ export function heroCard(presenter) {
 }
 
 /** Anything nested inside a stage card, or a repeated row. */
-export function panelCard(presenter) {
+export function panelCard(presenter: boolean): CSSProperties {
     return {
         background: 'var(--bg-card)',
         border: '1px solid var(--border-default)',
@@ -60,7 +72,7 @@ export function panelCard(presenter) {
  * this app, so every button has to opt in.
  */
 export const STAGE_BUTTON = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-semibold disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
-export const STAGE_BUTTON_GHOST = Object.freeze({
+export const STAGE_BUTTON_GHOST: Readonly<CSSProperties> = Object.freeze({
     color: 'var(--text-secondary)',
     border: '1px solid var(--border-default)',
     background: 'var(--bg-card)',
@@ -71,6 +83,6 @@ export const STAGE_BUTTON_GHOST = Object.freeze({
  * `ready` and `running` are the same half-second to a person, and were painted
  * three different ways: static text, a spinning line, a centred spinner.
  */
-export function isBusy(status) {
+export function isBusy(status: string | null | undefined): boolean {
     return status === 'running' || status === 'ready';
 }

@@ -35,7 +35,7 @@ type Fn = (...args: unknown[]) => unknown;
 const t = (_k: string, en: string, p: Record<string, unknown> = {}) => en.replace(/\{(\w+)\}/g, (m, n: string) => (n in p ? String(p[n]) : m));
 
 function loadWeb() {
-    const machine = loadWebModule<Record<string, Fn>>(path.join(DIR, 'phaseMachine.js'));
+    const machine = loadWebModule<Record<string, Fn>>(path.join(DIR, 'phaseMachine.ts'));
     const view = loadWebModule<Record<string, Fn>>(path.join(DIR, 'playbookView.js'), {
         kindOf: machine.kindOf,
         getItem: () => null,

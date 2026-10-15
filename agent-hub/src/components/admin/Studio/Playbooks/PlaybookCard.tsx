@@ -1,15 +1,35 @@
 import { ChevronRight, Clapperboard } from 'lucide-react';
 import React from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { Phase } from './phaseMachine';
 import { playbookStatusLabel } from './playbookView';
 import { phaseLabel } from './recipes';
 import { kindTileStyle } from '../../../shared/kindColors';
+
+/** A playbook as the list returns it. */
+export interface PlaybookListItem {
+    id: string;
+    title?: string;
+    recipeLabel?: string;
+    status?: string;
+    updatedAt?: string;
+    currentPhase?: string;
+    phases?: Phase[];
+    progress?: { done: number; total: number };
+}
+
+interface PlaybookCardProps {
+    t: TranslateFn;
+    playbook: PlaybookListItem;
+    onOpen: () => void;
+}
 
 /**
  * One playbook in the list. Answers the three things a person asks of a
  * build in progress without opening it: how far is it, is it waiting for me,
  * and what is it. ONE <button>, the chevron is decoration.
  */
-function relative(ts, t) {
+function relative(ts: string | null | undefined, t: TranslateFn): string {
     const at = ts ? Date.parse(ts) : NaN;
     if (!Number.isFinite(at)) return '';
     const min = Math.max(0, Math.round((Date.now() - at) / 60000));
@@ -20,11 +40,11 @@ function relative(ts, t) {
     return t('playbooks.days_ago', '{n} d ago', { n: Math.round(h / 24) });
 }
 
-export default function PlaybookCard({ t, playbook, onOpen }) {
+export default function PlaybookCard({ t, playbook, onOpen }: PlaybookCardProps) {
     const { tile, glyph } = kindTileStyle('playbook', { size: 36, pct: 16 });
     const progress = playbook.progress || { done: 0, total: (playbook.phases || []).length };
     const status = playbookStatusLabel(playbook, t);
-    const currentPhase = (playbook.phases || []).find((p) => p && p.key === playbook.currentPhase) || (playbook.currentPhase ? { key: playbook.currentPhase } : null);
+    const currentPhase = (playbook.phases || []).find((p: Phase) => p && p.key === playbook.currentPhase) || (playbook.currentPhase ? { key: playbook.currentPhase } : null);
     const current = currentPhase ? phaseLabel(currentPhase, t) : null;
     return (
         <li>

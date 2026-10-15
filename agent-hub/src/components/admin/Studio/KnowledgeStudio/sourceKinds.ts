@@ -31,7 +31,35 @@
  * claim a relationship it does not have.
  */
 import { FileText, Folder, Globe, Mic, Table, Upload, Workflow } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { pluralKey } from './plural';
+
+/** How the UI draws and names one kind of source. */
+export interface SourceKindDescriptor {
+    icon: LucideIcon;
+    tint: string | null;
+    labelKey: string;
+    labelFallback: string;
+    track?: string;
+}
+
+/** The server's per-kind allow-list of a source's config. */
+export interface SourceConfig {
+    columns?: string[];
+    tableName?: string;
+    tag?: string;
+    fields?: string[];
+    crawl?: boolean;
+    sourceType?: string;
+}
+
+/** The fields of a source row the subline reads. */
+export interface SublineSource {
+    kind?: string;
+    config?: SourceConfig | null;
+    documentCount?: number | string;
+    createdBy?: { name?: string } | null;
+}
 
 /** Kinds `POST /api/kb/:id/sources` accepts today (server: sources#CREATABLE_KINDS). */
 export const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable']);
@@ -45,7 +73,7 @@ export const ADD_SOURCE_KINDS = Object.freeze([
     'nextcloud_folder', 'upload', 'datatable', 'meeting_tag', 'webpage', 'text', 'automation',
 ]);
 
-const KINDS = Object.freeze({
+const KINDS: Readonly<Record<string, SourceKindDescriptor>> = Object.freeze({
     nextcloud_folder: {
         icon: Folder, tint: null,
         labelKey: 'knowledge.kind.nextcloud_folder', labelFallback: 'Folder in Nextcloud',
@@ -81,15 +109,15 @@ const KINDS = Object.freeze({
     },
 });
 
-const FALLBACK = Object.freeze({ icon: FileText, tint: null, labelKey: 'knowledge.kind.legacy', labelFallback: 'Imported' });
+const FALLBACK: Readonly<SourceKindDescriptor> = Object.freeze({ icon: FileText, tint: null, labelKey: 'knowledge.kind.legacy', labelFallback: 'Imported' });
 
 /** The descriptor for a kind; an unknown kind reads as `legacy` rather than crashing. */
-export function sourceKind(kind) {
+export function sourceKind(kind: string): Readonly<SourceKindDescriptor> {
     return KINDS[kind] || FALLBACK;
 }
 
 /** Can this kind be created right now? */
-export function isCreatable(kind) {
+export function isCreatable(kind: string): boolean {
     return CREATABLE_KINDS.includes(kind);
 }
 
@@ -105,7 +133,7 @@ export function isCreatable(kind) {
 export const SIGNPOST_KINDS = Object.freeze(['automation']);
 
 /** Is this kind's button live at all — either a form, or a signpost? */
-export function isOfferable(kind) {
+export function isOfferable(kind: string): boolean {
     return isCreatable(kind) || SIGNPOST_KINDS.includes(kind);
 }
 
@@ -121,7 +149,7 @@ export function isOfferable(kind) {
  * mean to publish — a text source's own text, in particular, never leaves
  * the server, which is why the text subline counts characters instead.
  */
-export function sublineFor(source = {}) {
+export function sublineFor(source: SublineSource = {}): { key: string; params: Record<string, unknown> } {
     const kind = source.kind;
     const config = source.config || {};
     const docs = Number(source.documentCount) || 0;

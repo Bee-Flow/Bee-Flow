@@ -1,3 +1,5 @@
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
+
 /**
  * Singular and plural for the counted phrases in this section.
  *
@@ -16,12 +18,12 @@
  */
 
 /** The key for `count`: the base for one, `<key>_plural` for anything else. */
-export function pluralKey(key, count) {
+export function pluralKey(key: string, count: unknown): string {
     return Number(count) === 1 ? key : `${key}_plural`;
 }
 
 /** `t()` for a counted phrase — pass BOTH English forms, as t() wants a fallback. */
-export function nOf(t, key, count, one, many, extra = {}) {
+export function nOf(t: TranslateFn, key: string, count: unknown, one: string, many: string, extra: TranslateParams = {}): string {
     const n = Number(count) || 0;
     return n === 1
         ? t(key, one, { count: n, ...extra })

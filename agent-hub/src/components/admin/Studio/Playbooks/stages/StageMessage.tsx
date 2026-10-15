@@ -1,5 +1,7 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import React from 'react';
+import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { TONES } from '../../../../shared/statusTone';
 
 /**
@@ -16,13 +18,23 @@ import { TONES } from '../../../../shared/statusTone';
  *   warn    something is missing and the person has to act
  *   error   it went wrong
  */
-const TONE = {
+type StageMessageTone = 'busy' | 'warn' | 'error';
+
+interface StageMessageProps {
+    tone?: StageMessageTone;
+    presenter?: boolean;
+    testId?: string | null;
+    action?: ReactNode;
+    children?: ReactNode;
+}
+
+const TONE: Record<StageMessageTone, { ink: string; Icon: LucideIcon; role: 'status' | 'alert'; spin: boolean }> = {
     busy: { ink: 'var(--text-secondary)', Icon: Loader2, role: 'status', spin: true },
     warn: { ink: TONES.warning.ink, Icon: AlertTriangle, role: 'status', spin: false },
     error: { ink: TONES.error.ink, Icon: AlertTriangle, role: 'alert', spin: false },
 };
 
-export default function StageMessage({ tone = 'busy', presenter = false, testId = null, action = null, children }) {
+export default function StageMessage({ tone = 'busy', presenter = false, testId = null, action = null, children }: StageMessageProps) {
     const { ink, Icon, role, spin } = TONE[tone] || TONE.busy;
     return (
         <div

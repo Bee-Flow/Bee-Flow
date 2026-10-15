@@ -29,6 +29,41 @@
  * owns it.
  */
 
+/** The states an automation's window can be in. */
+export type NowRunningTone = 'error' | 'waiting' | 'running' | 'done';
+
+/** One automation's rollup from the run facets. */
+export interface NowRunningRollup {
+    automationId?: string | number;
+    title?: string | null;
+    kind?: string;
+    total?: number | string;
+    status?: Record<string, unknown> | null;
+    lastRunAt?: string | null;
+    lastErrorAt?: string | null;
+    lastErrorClass?: string | null;
+}
+
+/** The run facets body the strip reads. */
+export interface NowRunningFacets {
+    automations?: NowRunningRollup[];
+    automationsTotal?: number;
+}
+
+/** One line of the strip. */
+export interface NowRunningLine {
+    automationId: string;
+    title: string | null;
+    kind: 'block' | 'automation';
+    tone: NowRunningTone;
+    total: number;
+    errors: number;
+    waiting: number;
+    running: number;
+    errorClass: string | null;
+    at: string | null;
+}
+
 /** How many lines the strip draws before it says "and n more". */
 export const NOW_RUNNING_LIMIT = 6;
 
@@ -43,10 +78,10 @@ const WAITING = new Set(['awaiting_approval', 'awaiting_confirm', 'awaiting_form
  * The four states an automation's window can be in, most urgent first. The index
  * IS the sort rank, so "what needs attention" rises to the top of the strip.
  */
-export const NOW_RUNNING_TONES = Object.freeze(['error', 'waiting', 'running', 'done']);
+export const NOW_RUNNING_TONES: readonly NowRunningTone[] = Object.freeze(['error', 'waiting', 'running', 'done']);
 
 /** Sum the counts of a status map for the statuses in `set`. */
-function countIn(statusMap, set) {
+function countIn(statusMap: Record<string, unknown> | null | undefined, set: Set<string>): number {
     if (!statusMap || typeof statusMap !== 'object') return 0;
     let n = 0;
     for (const [key, value] of Object.entries(statusMap)) {
@@ -63,10 +98,10 @@ function countIn(statusMap, set) {
  * predates the rollup, and a response that arrived truncated — three
  * different things, none of them quiet.
  */
-export function readRollups(facets) {
+export function readRollups(facets: NowRunningFacets | null | undefined): NowRunningRollup[] | null {
     if (!facets || typeof facets !== 'object' || Array.isArray(facets)) return null;
     if (!Array.isArray(facets.automations)) return null;
-    return facets.automations.filter(r => r && typeof r === 'object' && r.automationId);
+    return facets.automations.filter((r: NowRunningRollup) => r && typeof r === 'object' && r.automationId);
 }
 
 /**
@@ -78,20 +113,20 @@ export function readRollups(facets) {
  * runs" is how a strip like this stops being read.
  */
 /** An automation with no usable title reads as nameless, never as "Untitled". */
-function titleOf(rollup) {
+function titleOf(rollup: NowRunningRollup | null | undefined): string | null {
     return typeof rollup?.title === 'string' && rollup.title.trim() ? rollup.title : null;
 }
 
 /** The counts a line is built from, and the tone they add up to. */
-function tallyOf(rollup) {
+function tallyOf(rollup: NowRunningRollup | null | undefined): { errors: number; waiting: number; running: number; tone: NowRunningTone } {
     const errors = countIn(rollup?.status, ERROR_ONLY);
     const waiting = countIn(rollup?.status, WAITING);
     const running = countIn(rollup?.status, RUNNING);
-    const tone = errors > 0 ? 'error' : waiting > 0 ? 'waiting' : running > 0 ? 'running' : 'done';
+    const tone: NowRunningTone = errors > 0 ? 'error' : waiting > 0 ? 'waiting' : running > 0 ? 'running' : 'done';
     return { errors, waiting, running, tone };
 }
 
-export function toLine(rollup) {
+export function toLine(rollup: NowRunningRollup): NowRunningLine {
     const total = Number.isFinite(Number(rollup?.total)) ? Number(rollup.total) : 0;
     const { errors, waiting, running, tone } = tallyOf(rollup);
     return {
@@ -117,7 +152,7 @@ export function toLine(rollup) {
  * dropped silently, because "3 automations" and "3 of 40 automations" are different
  * statements about the same organisation.
  */
-export function nowRunningLines(facets, { limit = NOW_RUNNING_LIMIT } = {}) {
+export function nowRunningLines(facets: NowRunningFacets | null | undefined, { limit = NOW_RUNNING_LIMIT }: { limit?: number } = {}): { lines: NowRunningLine[]; total: number; hidden: number } | null {
     const rollups = readRollups(facets);
     if (!rollups) return null;
     const lines = rollups.map(toLine).sort((a, b) => {

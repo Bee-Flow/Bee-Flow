@@ -7,44 +7,173 @@
  * page's tests can assert them without a network.
  */
 
+/** A column of the playbook's table, as the table phase stores it. */
+export interface ArtifactField {
+    key: string;
+    name?: string;
+    type?: string;
+}
+
+/** What the design phase stored: the designer's answer. */
+export interface DesignElement {
+    kind?: string;
+    label?: string;
+    note?: string;
+}
+
+export interface DesignSection {
+    title?: string;
+    layout: string;
+    elements: DesignElement[];
+}
+
+export interface DesignScreen {
+    name?: string;
+    purpose?: string;
+    sections: DesignSection[];
+}
+
+export interface DesignSpec {
+    name?: string;
+    tagline?: string;
+    look: { preset?: string; mood?: string; accent?: string };
+    screens?: DesignScreen[];
+    principles?: string[];
+}
+
+/** Everything the phases store on `phase.artifacts` (each phase fills its own part). */
+export interface PhaseArtifacts {
+    datatableId?: string | number;
+    datatableName?: string;
+    datatableKey?: string;
+    rowCount?: number;
+    rowsBefore?: number;
+    fields?: ArtifactField[];
+    mapping?: Record<string, string>;
+    hasStatus?: boolean;
+    isMirror?: boolean;
+    automationId?: string;
+    automationTitle?: string;
+    runId?: string;
+    runStatus?: string;
+    design?: DesignSpec;
+    designName?: string;
+    revisions?: string[];
+    screenCount?: number;
+    elementCount?: number;
+    appId?: string;
+    appName?: string;
+    briefSentAttempt?: number;
+    briefSentAt?: string;
+    accessApplied?: boolean;
+    frameworks?: string[];
+    findings?: unknown[];
+    [extra: string]: unknown;
+}
+
+/** One phase of a playbook, as the API returns it. */
+export interface Phase {
+    key: string;
+    kind?: string;
+    status: string;
+    attempt?: number;
+    requires?: string;
+    label?: string;
+    brief?: string;
+    startedAt?: string;
+    finishedAt?: string;
+    needsInput?: boolean;
+    summary?: string;
+    error?: string;
+    artifacts?: PhaseArtifacts;
+    _optimistic?: boolean;
+    [extra: string]: unknown;
+}
+
+/** A playbook, as far as the state machine reads it. */
+export interface PlaybookLike {
+    id?: string;
+    version?: number;
+    status?: string;
+    phases?: Phase[];
+    [extra: string]: unknown;
+}
+
+/** What a stage tells the page: the optimistic result of a phase. */
+export interface PhaseResult {
+    kind?: string;
+    artifacts?: PhaseArtifacts;
+    summary?: string;
+    error?: string;
+}
+
+/** An event that names a phase. */
+export interface KeyedPlaybookEvent {
+    type: 'start' | 'artifact' | 'finished' | 'markDone' | 'failed' | 'continue' | 'revise' | 'skip' | 'retry' | 'needs_input' | 'dismiss_input';
+    key: string;
+    brief?: string;
+    artifacts?: PhaseArtifacts;
+    summary?: string;
+    error?: string;
+    nextKey?: string;
+    feedback?: unknown;
+    extra?: Record<string, unknown>;
+}
+
+/** An event for the playbook as a whole (stop/resume) or one that hands over the server's answer. */
+export interface WholePlaybookEvent {
+    type: 'stop' | 'resume' | 'replace';
+    key?: undefined;
+    playbook?: PlaybookLike;
+}
+
+export type PlaybookEvent = KeyedPlaybookEvent | WholePlaybookEvent;
+
+/** What an event sends: the CAS write or a server-run route. */
+export interface WireRequest {
+    method: 'PATCH' | 'POST';
+    route?: string;
+    body?: Record<string, unknown>;
+}
+
 export const PHASE_ORDER = Object.freeze(['table', 'automation', 'fill', 'app', 'approvals']); // the built-in recipe's keys
 export const KINDS = Object.freeze(['table', 'automation', 'fill', 'design', 'app', 'app_turn', 'access', 'compliance']); // what a stage can be
-export const SERVER_RUN = new Set(['table', 'fill', 'design', 'compliance']);    // POST …/phases/<key>/run, then poll
-export const CLIENT_RUN = new Set(['automation', 'app', 'app_turn', 'access']); // a builder (or the person) works here; the page PATCHes
+export const SERVER_RUN = new Set<string | null>(['table', 'fill', 'design', 'compliance']);    // POST …/phases/<key>/run, then poll
+export const CLIENT_RUN = new Set<string | null>(['automation', 'app', 'app_turn', 'access']); // a builder (or the person) works here; the page PATCHes
 
 /** A phase's KIND decides its stage; rows from before recipe documents carry the key only. */
-export function kindOf(phase) {
+export function kindOf(phase: Phase | null | undefined): string | null {
     if (!phase) return null;
     if (phase.kind) return phase.kind;
     return phase.key === 'approvals' ? 'app_turn' : phase.key;
 }
-export const TERMINAL = new Set(['done', 'skipped', 'locked']);
-export const ACTIONABLE = new Set(['ready', 'running', 'awaiting', 'failed']);
+export const TERMINAL = new Set<string>(['done', 'skipped', 'locked']);
+export const ACTIONABLE = new Set<string>(['ready', 'running', 'awaiting', 'failed']);
 
-export function phaseByKey(phases, key) {
+export function phaseByKey(phases: Phase[] | null | undefined, key: string | undefined): Phase | null {
     return (Array.isArray(phases) ? phases : []).find((p) => p && p.key === key) || null;
 }
 
 /** The phase the page acts on now: the first one not yet done, in order. */
-export function nextActionable(phases) {
+export function nextActionable(phases: Phase[] | null | undefined): Phase | null {
     const list = Array.isArray(phases) ? phases : [];
     return list.find((p) => p && ACTIONABLE.has(p.status)) || null;
 }
 
 /** The phase after `afterKey` that is not terminal — the one whose brief the handoff card edits. */
-export function nextPending(phases, afterKey) {
+export function nextPending(phases: Phase[] | null | undefined, afterKey: string): Phase | null {
     const list = Array.isArray(phases) ? phases : [];
     const i = list.findIndex((p) => p && p.key === afterKey);
     for (let j = i + 1; j < list.length; j++) if (list[j] && !TERMINAL.has(list[j].status)) return list[j];
     return null;
 }
 
-export function isComplete(phases) {
+export function isComplete(phases: Phase[] | null | undefined): boolean {
     const list = Array.isArray(phases) ? phases : [];
     return list.length > 0 && list.every((p) => TERMINAL.has(p.status));
 }
 
-export function progress(phases) {
+export function progress(phases: Phase[] | null | undefined): { done: number; total: number; locked: number } {
     const list = Array.isArray(phases) ? phases : [];
     return {
         done: list.filter((p) => p.status === 'done' || p.status === 'skipped').length,
@@ -53,14 +182,14 @@ export function progress(phases) {
     };
 }
 
-export function canContinue(phases) {
+export function canContinue(phases: Phase[] | null | undefined): boolean {
     const waiting = (Array.isArray(phases) ? phases : []).find((p) => p && p.status === 'awaiting');
     if (!waiting) return false;
     const next = nextPending(phases, waiting.key);
     return !next || next.status === 'ready' || next.status === 'pending';
 }
 
-export function canRetry(phase) { return !!phase && phase.status === 'failed'; }
+export function canRetry(phase: Phase | null | undefined): boolean { return !!phase && phase.status === 'failed'; }
 
 /**
  * Never the table — every later brief is built on it.
@@ -70,7 +199,7 @@ export function canRetry(phase) { return !!phase && phase.status === 'failed'; }
  * client-run kinds, so a server phase wedged on a model that never answered had
  * no way out at all: Retry needs `failed`, and `running → ready` is illegal.
  */
-export function canSkip(phase) {
+export function canSkip(phase: Phase | null | undefined): boolean {
     if (!phase || kindOf(phase) === 'table') return false;
     return ['ready', 'running', 'awaiting', 'failed', 'locked'].includes(phase.status);
 }
@@ -80,7 +209,7 @@ export function canSkip(phase) {
  * server answers. The server's response then replaces the whole entity.
  * result.kind: started | artifacts | finished | failed | needs_input | skipped | done
  */
-export function applyPhaseResult(phases, key, result) {
+export function applyPhaseResult(phases: Phase[] | null | undefined, key: string | undefined, result: PhaseResult): Phase[] {
     const now = new Date().toISOString();
     return (Array.isArray(phases) ? phases : []).map((p) => {
         if (!p || p.key !== key) return p;
@@ -107,7 +236,7 @@ export function applyPhaseResult(phases, key, result) {
  * the event has no wire form (e.g. needs_input — a page-local flag).
  * event: { type, key?, brief?, artifacts?, summary?, error?, nextKey? }; stop/resume carry no key
  */
-export function patchFor(event, playbook) {
+export function patchFor(event: PlaybookEvent | null | undefined, playbook: PlaybookLike | null | undefined): WireRequest | null {
     if (!event || !playbook) return null;
     const v = playbook.version;
     switch (event.type) {
@@ -124,7 +253,7 @@ export function patchFor(event, playbook) {
         case 'failed':
             return { method: 'PATCH', body: { expectedVersion: v, phases: [{ key: event.key, status: 'failed', error: event.error || 'failed' }] } };
         case 'continue': {
-            const entries = [{ key: event.key, status: 'done' }];
+            const entries: Array<{ key: string; status?: string; brief?: string }> = [{ key: event.key, status: 'done' }];
             if (event.nextKey && typeof event.brief === 'string') entries.push({ key: event.nextKey, brief: event.brief });
             return { method: 'PATCH', body: { expectedVersion: v, phases: entries } };
         }

@@ -1,6 +1,9 @@
 import { AlertTriangle, ExternalLink, RotateCcw, SkipForward, X } from 'lucide-react';
 import React from 'react';
+import type { ReactNode } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { canRetry, canSkip, kindOf } from './phaseMachine';
+import type { Phase } from './phaseMachine';
 import { errorText, phaseDuration, phaseFacts, phaseLinks } from './playbookView';
 import { phaseLabel } from './recipes';
 import { STAGE_BUTTON, STAGE_BUTTON_GHOST } from './stages/stageChrome';
@@ -14,13 +17,24 @@ import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
  * brief the AI works from. It slides over the stage and NEVER unmounts it —
  * the builders of the running phase keep their stream and their canvas.
  */
-const LINK_TEXT = {
+interface PhaseInspectorProps {
+    phase: Phase | null;
+    t: TranslateFn;
+    onClose: () => void;
+    onNavigate?: ((to: string) => void) | null;
+    presenter?: boolean;
+    onRetry?: (() => void) | null;
+    onSkip?: (() => void) | null;
+    busy?: boolean;
+}
+
+const LINK_TEXT: Record<string, readonly [string, string]> = {
     datatable: ['playbooks.rows.open', 'Open the table'],
     automation: ['playbooks.inspect.open_automation', 'Open the automation'],
     app: ['playbooks.inspect.open_app', 'Open the app'],
 };
 
-const STATE_TEXT = {
+const STATE_TEXT: Record<string, readonly [string, string]> = {
     pending: ['playbooks.state.pending', 'Later'],
     ready: ['playbooks.state.ready', 'Ready to start'],
     running: ['playbooks.state.running', 'Building…'],
@@ -34,7 +48,7 @@ const STATE_TEXT = {
 // The brief is markdown (see HandoffCard): small type, tight lists.
 const BRIEF_MD = 'text-[11px] leading-relaxed [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_ul]:pl-4 [&_ol]:pl-5 [&_li]:my-0.5 [&_h1]:text-[11px] [&_h2]:text-[11px] [&_h3]:text-[11px] [&_h2]:mt-0 [&_h2]:mb-1 [&_h3]:mb-0.5 [&_pre]:my-1';
 
-export default function PhaseInspector({ phase, t, onClose, onNavigate = null, presenter = false, onRetry = null, onSkip = null, busy = false }) {
+export default function PhaseInspector({ phase, t, onClose, onNavigate = null, presenter = false, onRetry = null, onSkip = null, busy = false }: PhaseInspectorProps) {
     if (!phase) return null;
     const facts = phaseFacts(phase, t);
     const links = phaseLinks(phase);
@@ -153,7 +167,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
     );
 }
 
-function Block({ title, children }) {
+function Block({ title, children }: { title: string; children: ReactNode }) {
     return (
         <section>
             <h3 className="text-[11px] font-semibold uppercase tracking-wide mb-1 text-[var(--text-tertiary)]">{title}</h3>
