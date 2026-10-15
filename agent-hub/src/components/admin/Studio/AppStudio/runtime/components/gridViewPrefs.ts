@@ -19,8 +19,18 @@
 
 const PREFIX = 'bf.gridview.';
 
+/** A viewer's overrides for one grid: knob name → legal value. */
+export type ViewPrefs = Record<string, string>;
+
+/** The author's values as they sit in node.props. */
+interface AuthoredView {
+    density?: string;
+    look?: string;
+    clamp?: string;
+}
+
 /** The knobs a viewer may turn, and what counts as a legal value. */
-export const VIEW_OPTIONS = {
+export const VIEW_OPTIONS: Record<string, string[]> = {
     density: ['compact', 'comfortable', 'spacious'],
     look: ['default', 'striped', 'minimal', 'cards'],
     // How much vertical room one cell may take. 'off' is the old behaviour
@@ -31,7 +41,7 @@ export const VIEW_OPTIONS = {
 
 export const VIEW_KEYS = Object.keys(VIEW_OPTIONS);
 
-function isLegal(key, value) {
+function isLegal(key: string, value: unknown): boolean {
     return typeof value === 'string' && VIEW_OPTIONS[key] && VIEW_OPTIONS[key].includes(value);
 }
 
@@ -40,7 +50,7 @@ function isLegal(key, value) {
  * a disabled storage quota or a hand-edited entry all degrade to "no override",
  * because a display preference must never be able to break the table itself.
  */
-export function readViewPrefs(nodeId) {
+export function readViewPrefs(nodeId: string | null | undefined): ViewPrefs {
     if (!nodeId || typeof localStorage === 'undefined') return {};
     let raw;
     try {
@@ -56,7 +66,7 @@ export function readViewPrefs(nodeId) {
         return {};
     }
     if (!parsed || typeof parsed !== 'object') return {};
-    const out = {};
+    const out: ViewPrefs = {};
     for (const key of VIEW_KEYS) {
         if (isLegal(key, parsed[key])) out[key] = parsed[key];
     }
@@ -68,9 +78,9 @@ export function readViewPrefs(nodeId) {
  * still stores it — an explicit "I want comfortable" should survive the author
  * later changing the default, which is the whole point of pinning it.
  */
-export function writeViewPrefs(nodeId, prefs) {
+export function writeViewPrefs(nodeId: string | null | undefined, prefs: ViewPrefs): void {
     if (!nodeId || typeof localStorage === 'undefined') return;
-    const clean = {};
+    const clean: ViewPrefs = {};
     for (const key of VIEW_KEYS) {
         if (isLegal(key, prefs && prefs[key])) clean[key] = prefs[key];
     }
@@ -84,7 +94,7 @@ export function writeViewPrefs(nodeId, prefs) {
 }
 
 /** Forget this grid's overrides and fall back to whatever the author chose. */
-export function clearViewPrefs(nodeId) {
+export function clearViewPrefs(nodeId: string | null | undefined): void {
     writeViewPrefs(nodeId, {});
 }
 
@@ -93,7 +103,7 @@ export function clearViewPrefs(nodeId) {
  * `authored` comes straight from node.props, so an author value this build does
  * not recognise falls back rather than rendering an unknown class.
  */
-export function resolveView(authored, overrides) {
+export function resolveView(authored: AuthoredView, overrides: ViewPrefs | null | undefined) {
     const base = {
         density: isLegal('density', authored?.density) ? authored.density : 'comfortable',
         look: isLegal('look', authored?.look) ? authored.look : 'default',

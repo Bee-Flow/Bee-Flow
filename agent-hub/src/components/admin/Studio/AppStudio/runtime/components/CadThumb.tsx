@@ -1,5 +1,6 @@
 import { Box, FileText, Loader2, Maximize2, Minimize2, X } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
@@ -26,6 +27,12 @@ import Modal from '../../../../../shared/Modal';
  * per row, ~19 kB each, and the server caches the render after the first ask.
  */
 
+/** The parts of a stored file descriptor this thumbnail reads. */
+interface FileEntry {
+    fileId?: string;
+    mime?: string;
+}
+
 // Only what this can actually show; anything else keeps the plain cell rather
 // than promising a preview it cannot deliver.
 // .dxf belongs here for the same reason .step does: the server draws it. It
@@ -44,7 +51,7 @@ const IMG_EXT = /\.(png|jpe?g|gif|webp)$/i;
  * arrives as application/octet-stream — and that is exactly the file someone is
  * looking at when they wonder why there is no preview.
  */
-function previewKindOf(entry, name) {
+function previewKindOf(entry: FileEntry | null, name: string): 'cad' | 'pdf' | 'image' | null {
     const mime = (entry && entry.mime) || '';
     if (CAD_EXT.test(name) || /^model\/(step|iges)$/i.test(mime) || /^image\/vnd\.dxf$/i.test(mime)) return 'cad';
     if (PDF_EXT.test(name) || mime === 'application/pdf') return 'pdf';
@@ -52,11 +59,11 @@ function previewKindOf(entry, name) {
     return null;
 }
 
-function descriptorOf(value) {
+function descriptorOf(value: unknown): FileEntry | null {
     if (!value) return null;
     if (typeof value === 'object') return value;
     if (typeof value !== 'string') return null;
-    let v = value.trim();
+    let v: string | object = value.trim();
     // A `file` column is JSON TEXT on the read path — the same unwrap the AI
     // step's normalizeFileDescriptors does, for the same reason. It also
     // unwraps REPEATEDLY, and so must this: rows written while a connector
@@ -71,7 +78,7 @@ function descriptorOf(value) {
     return v && typeof v === 'object' ? v : null;
 }
 
-export default function CadThumb({ value, size = 44 }) {
+export default function CadThumb({ value, size = 44 }: { value: unknown; size?: number }) {
     const { t } = useTranslation();
     const { appId } = useDataContext();
     const entry = descriptorOf(value);
@@ -79,19 +86,19 @@ export default function CadThumb({ value, size = 44 }) {
     const kind = entry ? previewKindOf(entry, name || '') : null;
     const drawable = !!kind;
 
-    const [url, setUrl] = useState(null);
-    const [state, setState] = useState('idle');
+    const [url, setUrl] = useState<string | null>(null);
+    const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle');
     const [open, setOpen] = useState(false);
     // 'fit' shows the whole sheet, 'full' shows it at its own pixels and lets
     // you scroll. Fitting is the right first sight — you came to see WHICH
     // part it is — but counting holes on a 5 mm strip needs the real pixels.
-    const [zoom, setZoom] = useState('fit');
-    const urlRef = useRef(null);
+    const [zoom, setZoom] = useState<'fit' | 'full'>('fit');
+    const urlRef = useRef<string | null>(null);
 
     // `entry` is parsed afresh every render, so the fetch is keyed on the file
     // id and reads the current descriptor through an Effect Event.
     const fileId = entry ? entry.fileId : null;
-    const fetchPicture = useEffectEvent(async (isAlive) => {
+    const fetchPicture = useEffectEvent(async (isAlive: () => boolean) => {
         setState('loading');
         try {
             const href = entryHref(entry, appId);
@@ -124,7 +131,7 @@ export default function CadThumb({ value, size = 44 }) {
     // mouse is a trap on a keyboard.
     useEffect(() => {
         if (!open) return undefined;
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false);
             // Space toggles zoom: the hand is already on the keyboard after
             // Escape taught you it responds to one.
@@ -146,7 +153,7 @@ export default function CadThumb({ value, size = 44 }) {
         <>
             <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setZoom('fit'); setOpen(true); }}
+                onClick={(e: MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); setZoom('fit'); setOpen(true); }}
                 title={t('studio_apps_runtime.cad.click_to_enlarge', '{name} — click to enlarge', { name })}
                 aria-label={t('studio_apps_runtime.cad.view_model', 'View 3D model of {name}', { name })}
                 className="block overflow-hidden border p-0"

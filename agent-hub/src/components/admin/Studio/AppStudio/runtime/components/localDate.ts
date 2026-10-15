@@ -8,14 +8,14 @@
  * wrong day. Any other date-only default in the runtime should use these.
  */
 
-const pad = (n) => String(n).padStart(2, '0');
+const pad = (n: number): string => String(n).padStart(2, '0');
 
 /** Local calendar day as 'YYYY-MM-DD'. */
-export function todayIso(d = new Date()) {
+export function todayIso(d: Date = new Date()): string {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 /** Local 'YYYY-MM-DDTHH:mm' (what a datetime-local control expects/emits). */
-export function nowLocalIso(d = new Date()) {
+export function nowLocalIso(d: Date = new Date()): string {
     return `${todayIso(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

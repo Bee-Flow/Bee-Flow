@@ -1,9 +1,10 @@
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'heading'. Spec: server/appStudio/componentSpecs.js. */
 
-const LEVEL_TAGS = { 1: 'h1', 2: 'h2', 3: 'h3' };
-const LEVEL_CLASSES = {
+const LEVEL_TAGS: Record<number, 'h1' | 'h2' | 'h3'> = { 1: 'h1', 2: 'h2', 3: 'h3' };
+const LEVEL_CLASSES: Record<number, string> = {
     1: 'text-2xl font-semibold',
     2: 'text-xl font-semibold',
     3: 'text-lg font-medium',
@@ -15,7 +16,7 @@ const LEVEL_CLASSES = {
  * Everything is derived from the theme tokens — no literal colors here, so the
  * accents follow the app's primary in every host theme.
  */
-export default function AppHeading({ node }) {
+export default function AppHeading({ node }: NodeProps<{ text?: string; level?: number; accent?: string }>) {
     const { t } = useTranslation();
     const { text = t('studio_apps_runtime.heading.default', 'Heading'), level = 2, accent = 'none' } = node.props || {};
     const lvl = LEVEL_TAGS[level] ? level : 2;

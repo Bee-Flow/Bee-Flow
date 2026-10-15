@@ -5,6 +5,7 @@ import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver';
 import { EM_DASH, EmptyText, ErrorText, SkeletonLines, displayValue , useStickyBinding } from '../uiBits';
+import type { NodeProps } from './appNode.types';
 
 /**
  * App Studio runtime — 'record_detail'. Spec: server/appStudio/componentSpecs.js.
@@ -13,15 +14,38 @@ import { EM_DASH, EmptyText, ErrorText, SkeletonLines, displayValue , useStickyB
  * `fields` list derives label/value rows from the record's own keys.
  */
 
+interface RecordDetailField {
+    key: string;
+    label?: string;
+    format?: string;
+    group?: string;
+}
+
+interface RecordDetailGroup {
+    name: string;
+    fields: RecordDetailField[];
+}
+
+interface RecordDetailProps {
+    fields?: RecordDetailField[];
+    columns?: number;
+    emptyText?: string;
+    layout?: string;
+    source?: unknown;
+}
+
 const SYSTEM_KEYS = new Set(['id', 'created_at', 'updated_at', 'created_by']);
 
-function isHttpUrl(value) {
+function isHttpUrl(value: unknown): boolean {
     const v = String(value || '').trim().toLowerCase();
     return v.startsWith('https://') || v.startsWith('http://');
 }
 
 /** Format one field value — mirrors the data_grid cell formats + datetime/markdown. */
-export function FieldValue({ value, format }) {
+export function FieldValue({ value, format }: {
+    value: string | number | Date | null | undefined;
+    format?: string;
+}) {
     if (value == null || value === '') return <span style={{ color: 'var(--text-muted)' }}>{EM_DASH}</span>;
     switch (format) {
         // The file itself, not its descriptor. Shared with the data_grid's
@@ -67,7 +91,7 @@ export function FieldValue({ value, format }) {
     }
 }
 
-export default function AppRecordDetail({ node }) {
+export default function AppRecordDetail({ node }: NodeProps<RecordDetailProps>) {
     const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
     const { fields = [], columns = 2, emptyText = t('studio_apps_runtime.record_detail.empty', 'No record selected.'), layout = 'stacked' } = node.props || {};
@@ -83,7 +107,7 @@ export default function AppRecordDetail({ node }) {
     const record = Array.isArray(source) ? source[0] : source;
     if (!record || typeof record !== 'object') return <EmptyText text={emptyText} />;
 
-    const effFields = (Array.isArray(fields) && fields.length)
+    const effFields: RecordDetailField[] = (Array.isArray(fields) && fields.length)
         ? fields.filter((f) => f && typeof f.key === 'string' && f.key)
         : Object.keys(record)
             .filter((k) => !SYSTEM_KEYS.has(k))
@@ -105,7 +129,7 @@ export default function AppRecordDetail({ node }) {
     // Groups (spec: fields[].group), in order of first appearance. Fields
     // without a group come first, under no heading — so a list that never
     // set one renders exactly as it did.
-    const groups = [];
+    const groups: RecordDetailGroup[] = [];
     for (const field of effFields) {
         const name = typeof field.group === 'string' ? field.group.trim() : '';
         let g = groups.find((x) => x.name === name);
@@ -114,7 +138,7 @@ export default function AppRecordDetail({ node }) {
     }
     groups.sort((a, b) => (a.name === '' ? -1 : b.name === '' ? 1 : 0));
 
-    const heading = (name) => (
+    const heading = (name: string) => (
         <div
             key={`grp-${name}`}
             className="text-[11px] font-semibold uppercase tracking-wide pt-2 first:pt-0"
