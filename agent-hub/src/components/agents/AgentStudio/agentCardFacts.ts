@@ -6,7 +6,7 @@
  * Alles hier is puur: in gaan de rijen van `GET /agents/all` (of
  * `/agents/system`) plus de categorielijst, eruit komen getallen en
  * toestanden — geen zinnen, geen kleuren. De zinnen staan in `AgentCard.jsx`
- * en `AgentOverview.jsx`, want daar staan ook de letterlijke `t()`-sleutels
+ * en `AgentOverview.tsx`, want daar staan ook de letterlijke `t()`-sleutels
  * die de i18n-guard leest.
  *
  * ── DE DRIE PILLEN KOMEN UIT `config`, EN DAT MAG ───────────────────
@@ -274,7 +274,7 @@ export function categoryChipsOf(agents: readonly AgentListRow[] | null | undefin
  * GAT — "kon de bedrading niet lezen", bewust géén beschuldiging — terwijl de
  * kaart er een rode "No knowledge base" bij zette.
  *
- * De waarschuwing staat nu op één plek in dit scherm: `./cardFooter.js`, dat
+ * De waarschuwing staat nu op één plek in dit scherm: `./cardFooter.ts`, dat
  * uitsluitend het woord leest dat de server stuurde (`grounding.verdict`). Een
  * rij zonder dat woord (/agents/system, een oudere payload) levert stilte op,
  * niet een eigen oordeel — onbekend versmalt. De kennis-PIL blijft gewoon zijn

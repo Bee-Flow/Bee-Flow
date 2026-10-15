@@ -58,7 +58,7 @@ export default function CategoryField({ t, value, categories, onChange, onCreate
         if (!manageOpen) return undefined;
         const onDoc = (e: MouseEvent) => {
             if ((e.target as Element).closest?.('[role="dialog"], [role="presentation"]')) return;
-            if (manageRef.current && !manageRef.current.contains(e.target as Node)) setManageOpen(false);
+            if (manageRef.current && !manageRef.current.contains(e.target as Node | null)) setManageOpen(false);
         };
         document.addEventListener('mousedown', onDoc);
         return () => document.removeEventListener('mousedown', onDoc);

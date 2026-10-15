@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { READ, datatableGrantsOf } from './canUseFacts';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import type { ReadState } from '../agentEditor.types';
 
 /** `GET /api/skills/usage-summary`: per skill id how many agents link it. */
 type SkillUsageSummary = Record<string, { agents?: number | null }>;
@@ -36,9 +37,9 @@ export default function useCanUseSources({ enabled = true, toolsConfig = null, a
     savedSkillIds?: string[];
 }) {
     const [tables, setTables] = useState<Array<{ id?: string; name?: string }> | null>(null);
-    const [tablesState, setTablesState] = useState<string>(READ.LOADING);
+    const [tablesState, setTablesState] = useState<ReadState>(READ.LOADING);
     const [usage, setUsage] = useState<SkillUsageSummary | null>(null);
-    const [usageState, setUsageState] = useState<string>(READ.LOADING);
+    const [usageState, setUsageState] = useState<ReadState>(READ.LOADING);
     // Een teller die elke refetch ophoogt: het effect hangt eraan, dus opnieuw
     // proberen is één setState en geen tweede kopie van de fetch.
     const [tablesNonce, setTablesNonce] = useState(0);

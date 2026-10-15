@@ -51,7 +51,7 @@ export interface AgentCardProps<T extends AgentListRow> {
  *
  * Nu: de kennis-PIL toont de gemeten nul (een telling, geen bewering), en de
  * voetregel (`AgentCardFooter`) doet de bewering — uitsluitend op het woord dat
- * de server stuurde, en alleen binnen de afbakening die `cardFooter.js`
+ * de server stuurde, en alleen binnen de afbakening die `cardFooter.ts`
  * opschrijft.
  *
  * ── DE TOOLS-PIL IS EEN ONDERGRENS, EN ZEGT DAT ─────────────────────

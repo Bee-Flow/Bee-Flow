@@ -1,9 +1,10 @@
 import { FlaskConical, Undo2 } from 'lucide-react';
 import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { RefineChange as MergedRefineChange } from '../state/refineMerge.types';
 
-/** One field the refine touched, from `state/refineMerge.diffRefinedPlan`. */
-export interface RefineChange { field?: string; direction?: string; count?: number }
+/** One field the refine touched, from `state/refineMerge.diffRefinedPlan`; read defensively. */
+export type RefineChange = Partial<MergedRefineChange>;
 
 export interface RefineDoneCardProps {
     t: TranslateFn;

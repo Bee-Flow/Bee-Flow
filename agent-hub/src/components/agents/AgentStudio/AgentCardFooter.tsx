@@ -25,7 +25,7 @@ import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
  * Welke van de drie het wordt, beslist `summariseCardFooter` hiernaast; dit
  * bestand kiest alleen de woorden. De waarschuwing komt van de server
  * (`grounding.verdict`, uit core/agentRuntime/agentGrounding.js) en wordt hier
- * niet nagerekend — zie de kop van cardFooter.js voor waarom dat de hele
+ * niet nagerekend — zie de kop van cardFooter.ts voor waarom dat de hele
  * opzet is.
  *
  * ── ÉÉN REGEL, DUS DE WAARSCHUWING VERDRINGT DE TELLINGEN ──────────────────

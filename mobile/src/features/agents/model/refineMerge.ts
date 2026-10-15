@@ -1,6 +1,6 @@
 /**
  * The "preserve & patch" merge of an AI refine — a port of the web's
- * agent-hub/src/components/agents/AgentWizard/state/refineMerge.js, pinned by
+ * agent-hub/src/components/agents/AgentWizard/state/refineMerge.ts, pinned by
  * refineMerge.lockstep.test.ts (the web module and this port run on the same
  * fixtures).
  *

@@ -27,7 +27,8 @@
  * them but never silently empties them; removals are done manually in the editor.
  */
 import type {
-    MergeOpts, PersonaFields, PersonaLike, RefineChange, RefineConfig, RefinePlan, RefinePreserved, RefineSnapshot, RefineState,
+    FullRefineSnapshot, MergedRefinePlan, MergeOpts, PersonaFields, PersonaLike, RefineChange, RefineConfig, RefinePlan,
+    RefinePreserved, RefineSnapshot, RefineState,
 } from './refineMerge.types';
 import type { Persona } from '../role/personaFacts';
 
@@ -230,7 +231,9 @@ function personaAfterRefine(current: RefineSnapshot, { systemPrompt, description
  * `updated` is the normalized AI plan, `preserved` the server's echo of the
  * current curated config.
  */
-export function mergeRefinedPlan(current: RefineSnapshot = {}, updated: RefinePlan = {}, preserved: RefinePreserved = {}, opts: MergeOpts = {}) {
+export function mergeRefinedPlan(current: FullRefineSnapshot, updated?: RefinePlan, preserved?: RefinePreserved, opts?: MergeOpts): MergedRefinePlan<string>;
+export function mergeRefinedPlan(current?: RefineSnapshot, updated?: RefinePlan, preserved?: RefinePreserved, opts?: MergeOpts): MergedRefinePlan;
+export function mergeRefinedPlan(current: RefineSnapshot = {}, updated: RefinePlan = {}, preserved: RefinePreserved = {}, opts: MergeOpts = {}): MergedRefinePlan {
     const {
         availableIntegrationIds = [],
         selectableTierKeys = [],

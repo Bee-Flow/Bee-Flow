@@ -32,6 +32,25 @@ export interface RefineSnapshot {
     noStoredPersona?: boolean;
 }
 
+/** A snapshot with all five text fields present, as the editor's live state has them. */
+export type FullRefineSnapshot = RefineSnapshot & Required<Pick<RefineSnapshot, 'name' | 'description' | 'systemPrompt' | 'avatar' | 'model'>>;
+
+/** What `mergeRefinedPlan` returns; the text fields are `string` when the snapshot passed in had them all. */
+export interface MergedRefinePlan<Text extends string | undefined = string | undefined> {
+    name: Text;
+    description: Text;
+    systemPrompt: Text;
+    avatar: Text;
+    model: Text;
+    config: RefineConfig & {
+        enabledIntegrations: string[];
+        attachedSkillIds: string[];
+        knowledge_base_ids: string[];
+        wizard: { capabilities: string[] };
+    };
+    persona: PersonaLike | null | undefined;
+}
+
 /** The live editor state `buildRefineContext` reads. */
 export interface RefineState {
     name?: string;
@@ -52,7 +71,8 @@ export interface RefinePlan {
     description?: string;
     systemPrompt?: string;
     avatar?: string;
-    model?: string;
+    /** `null` when the server found no selectable tier (routes/agents/wizard.js normalizePlan). */
+    model?: string | null;
     capabilities?: string[];
     enabledIntegrations?: string[];
     knowledge_base_ids?: string[];

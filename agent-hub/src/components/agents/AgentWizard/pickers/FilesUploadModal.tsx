@@ -6,14 +6,7 @@ import Modal from '../../../shared/Modal';
 import { kbDocumentCount, uploadKbIdOf } from '../builderSplit/uploadKb';
 import { errorMessage } from '../../../../utils/caughtError';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
-
-/** A knowledge base as the dialog lists it (`GET /api/kb`). */
-interface KnowledgeBaseRow {
-    id: string;
-    name?: string;
-    documentCount?: number | null;
-    documentCountAll?: number | null;
-}
+import type { KnowledgeBaseRow } from '../builderSplit/useKnowledgeBases';
 
 /** One document of the base (`GET /api/kb/:id/documents`). */
 interface KbDocument {

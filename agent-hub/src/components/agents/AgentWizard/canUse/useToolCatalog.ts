@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { READ } from './canUseFacts';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import type { ReadState } from '../agentEditor.types';
 import type { ToolApp } from './toolCatalogTypes';
 
 /** What `GET /agents/tool-catalog` answers, narrowed to what the card reads. */
@@ -62,9 +63,9 @@ interface CatalogAnswer {
  */
 export default function useToolCatalog({ enabled = true, agentId = null }: { enabled?: boolean; agentId?: string | number | null } = {}) {
     const [catalog, setCatalog] = useState<CatalogAnswer | null>(null);
-    const [catalogState, setCatalogState] = useState<string>(READ.LOADING);
+    const [catalogState, setCatalogState] = useState<ReadState>(READ.LOADING);
     const [lentApps, setLentApps] = useState<Set<string> | null>(null);
-    const [lentState, setLentState] = useState<string>(READ.LOADING);
+    const [lentState, setLentState] = useState<ReadState>(READ.LOADING);
     // Of de agent ZOALS DE RUNTIME HEM LEEST gecureerd is (`null` = onbekend).
     // Komt van dezelfde route, want het is dezelfde vraag: wat gebeurt er nú
     // als iemand deze agent draait. De editor heeft alleen de draft.

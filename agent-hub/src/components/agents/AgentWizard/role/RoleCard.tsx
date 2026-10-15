@@ -55,7 +55,7 @@ export default function RoleCard({ icon, iconColor = 'var(--type-ai)', title, hi
 /**
  * `announce={false}` voor een notitie die AL in een `aria-live`-blok hangt.
  * Twee live regions genest laat een schermlezer dezelfde zin twee keer
- * voorlezen; dezelfde regel als in AgentStudio/AgentOverview.jsx en het
+ * voorlezen; dezelfde regel als in AgentStudio/AgentOverview.tsx en het
  * precedent Studio/Datatables/DatatablesStudio.jsx, waar de wisselende inhoud
  * in één kale wrapper staat met rolloze kinderen.
  */
