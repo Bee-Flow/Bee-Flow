@@ -169,7 +169,7 @@ async function stream(req, res) {
         req.on('close', cleanup); req.on('error', cleanup); res.on('error', cleanup);
     } catch (err) {
         cleanup();
-        if (!res.headersSent) res.status(500).json({ error: 'Internal error' });
+        throw err;
     }
 }
 

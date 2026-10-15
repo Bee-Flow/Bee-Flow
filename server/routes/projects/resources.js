@@ -261,8 +261,7 @@ function makeResourcesRouter(deps) {
             res.json({ ...result, role: req.projectRole });
         } catch (err) {
             log.error('[Projects] Completeness error:', err.message);
-            res.status(500).json({
-                error: 'Request failed',
+            throw new HttpError(500, 'completeness_failed', 'Request failed', {
                 blocked: true, complete: false, findings: [], unavailable: ['all'],
             });
         }

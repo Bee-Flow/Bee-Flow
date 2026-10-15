@@ -34,6 +34,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 
 const complianceStore = require('../../stores/complianceStore');
@@ -440,10 +441,7 @@ router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('
             // ("550 5.1.1 <name@example.com>: recipient unknown"), which is
             // exactly the string that must not reach a response body or a log.
             log.error(`[Compliance] breach notification failed for incident ${id} (${mailErr?.code || mailErr?.name || 'Error'})`);
-            return res.status(502).json({
-                error: 'notification_failed',
-                message: 'The breach notification could not be sent. Check the mail settings and try again.',
-            });
+            throw new HttpError(502, 'notification_failed', 'The breach notification could not be sent. Check the mail settings and try again.');
         }
         const updated = await incidentStore.updateIncident(orgId, id, {
             recipients_notified_at: new Date().toISOString(),
@@ -458,11 +456,12 @@ router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('
         });
         res.json({ ok: true, notified: recipients.length, incident: updated });
     } catch (e) {
+        if (e instanceof HttpError) throw e;
         // `e.message` can be a Postgres error quoting the row value that broke
         // it, or a settings read carrying the recipient list — it stays out of
         // the response and out of the log (finding 5's reasoning, same table).
         log.error(`[Compliance] notify-recipients failed for incident ${id} (${e?.code || e?.name || 'Error'})`);
-        res.status(500).json({ error: 'notify_failed', message: 'Could not send the breach notification.' });
+        throw new HttpError(500, 'notify_failed', 'Could not send the breach notification.');
     }
 });
 

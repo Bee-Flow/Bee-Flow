@@ -32,6 +32,7 @@ const {
 } = require('../../auth/datatableAccess');
 const { PG, keyOf } = require('./engine');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 /**
  * Load the table, resolve the caller's grade, refuse below `minGrade`.
@@ -73,7 +74,7 @@ function requireDatatableGrade(minGrade) {
             next();
         } catch (e) {
             log.error('[datatables] grade check failed:', e.message);
-            res.status(500).json({ error: 'Could not check access to this datatable' });
+            next(new HttpError(500, 'grade_check_failed', 'Could not check access to this datatable'));
         }
     }, { axis: 'scoped', minGrade });
 }
