@@ -12,11 +12,42 @@
  * schedule.
  */
 import { Bot, Calendar, Clock, LayoutGrid, Repeat, Save, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React, { useState } from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import AppsPicker from '../apps/AppsPicker';
 import { COWORK_REPEAT_OPTIONS, toDateInput, toTimeInput } from './coworkSchedule';
 import useCoworkApps from './useCoworkApps';
+import type { CoworkAgent, CoworkItem, CoworkUpdate } from './cowork.types';
+
+/** The form's local draft; `enabledApps` is null until the item has a list of its own. */
+interface Draft {
+    title: string;
+    prompt: string;
+    repeatInterval: string;
+    daysOfWeek: string[];
+    date: string;
+    time: string;
+    agentId: string;
+    enabledApps: string[] | null;
+}
+
+interface FieldProps {
+    label: string;
+    icon?: LucideIcon;
+    children: React.ReactNode;
+    hint?: string;
+    as?: 'label' | 'div';
+}
+
+interface CoworkEditFormProps {
+    item: CoworkItem;
+    agents?: CoworkAgent[];
+    onSave: (update: CoworkUpdate) => void;
+    onCancel: () => void;
+    saving?: boolean;
+    error?: string | null;
+}
 
 /**
  * The two-letter day buttons. The abbreviation is copy, not a token: Dutch
@@ -38,7 +69,7 @@ const DAYS = [
  * the Apps picker in a <label> would make a click anywhere in the row toggle
  * the first checkbox inside its overlay.
  */
-function Field({ label, icon: Icon, children, hint, as: Tag = 'label' }) {
+function Field({ label, icon: Icon, children, hint, as: Tag = 'label' }: FieldProps) {
     return (
         <Tag className="block">
             <span
@@ -57,10 +88,10 @@ function Field({ label, icon: Icon, children, hint, as: Tag = 'label' }) {
 const inputClass = 'w-full px-3 py-2 rounded-lg border bg-[var(--bg-card)] text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
 const inputStyle = { borderColor: 'var(--border-subtle)' };
 
-export default function CoworkEditForm({ item, agents = [], onSave, onCancel, saving = false, error = null }) {
+export default function CoworkEditForm({ item, agents = [], onSave, onCancel, saving = false, error = null }: CoworkEditFormProps) {
     const { t } = useTranslation();
     const initialRun = item.nextRunAt ? new Date(item.nextRunAt) : new Date();
-    const [draft, setDraft] = useState({
+    const [draft, setDraft] = useState<Draft>({
         title: item.title || '',
         prompt: item.prompt || '',
         repeatInterval: item.repeatInterval || '',
@@ -73,7 +104,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
         enabledApps: Array.isArray(item.enabledApps) ? item.enabledApps : null,
     });
 
-    const set = (patch) => setDraft(d => ({ ...d, ...patch }));
+    const set = (patch: Partial<Draft>) => setDraft(d => ({ ...d, ...patch }));
 
     // Scoped to THIS item: what it may touch when it runs unattended, which is
     // a narrower question than what you have switched on for chat.
@@ -83,13 +114,13 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
     });
     const enabledCount = availableApps.filter(a => a.isStep || isAppEnabled(a.id)).length;
 
-    const toggleDay = (token) => set({
+    const toggleDay = (token: string) => set({
         daysOfWeek: draft.daysOfWeek.includes(token)
             ? draft.daysOfWeek.filter(d => d !== token)
             : [...draft.daysOfWeek, token],
     });
 
-    const submit = (e) => {
+    const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const [y, m, d] = draft.date.split('-').map(Number);
         const [hh, mm] = draft.time.split(':').map(Number);

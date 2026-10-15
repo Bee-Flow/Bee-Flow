@@ -23,6 +23,8 @@
  */
 import { ArrowUp } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
+import type { ModelTierMap } from '../../api/queries/modelTiers';
+import type { UseCoworkComposerReturn } from './useCoworkComposer';
 import useTranslation from '../../hooks/useTranslation';
 import TierSlider from '../licensing/TierSlider';
 import AppsPicker from '../apps/AppsPicker';
@@ -34,6 +36,24 @@ import useCoworkApps from './useCoworkApps';
 // Still exported: it is the English fallback both surfaces pass to t(), so
 // the two cannot drift apart even in a locale that has no translation yet.
 export const COWORK_PLACEHOLDER = 'Describe the work — Bee Flow runs it and reports back';
+
+interface CoworkComposerProps {
+    value: string;
+    onChange: (value: string) => void;
+    onSubmit?: () => void;
+    cowork: UseCoworkComposerReturn;
+    modelTiers?: ModelTierMap | null;
+    selectedTier?: string;
+    onTierChange?: (tier: string) => void;
+    simpleMode?: boolean;
+    disableExternalTools?: boolean;
+    agentIntegrations?: string[] | null;
+    isMobile?: boolean;
+    minRows?: number;
+    error?: string | null;
+    chatTools?: React.ReactNode;
+    textareaRef?: React.RefObject<HTMLTextAreaElement | null> | null;
+}
 
 export default function CoworkComposer({
     value,
@@ -55,9 +75,9 @@ export default function CoworkComposer({
     error = null,
     chatTools = null,
     textareaRef: externalRef = null,
-}) {
+}: CoworkComposerProps) {
     const { t } = useTranslation();
-    const innerRef = useRef(null);
+    const innerRef = useRef<HTMLTextAreaElement>(null);
     const textareaRef = externalRef || innerRef;
     // Set by the Apps picker so the next render can drop the caret behind the
     // seed it just appended. React restores the selection it had before on a
@@ -107,7 +127,7 @@ export default function CoworkComposer({
     // Enter sends, Shift+Enter breaks the line, Cmd/Ctrl+Enter also sends.
     // The page used to be Cmd+Enter-only while the chat sent on Enter — the
     // same box behaving differently depending on where you opened it.
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key !== 'Enter') return;
         if (e.shiftKey) return;
         e.preventDefault();

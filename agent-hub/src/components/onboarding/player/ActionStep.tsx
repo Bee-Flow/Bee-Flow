@@ -42,7 +42,7 @@ interface ActionStepDoc {
     titleFallback?: string;
     instructionKey?: string;
     instructionFallback?: string;
-    readonly launch?: { readonly navigateTo?: string; readonly labelKey?: string; readonly labelFallback?: string };
+    launch?: { navigateTo?: string; labelKey?: string; labelFallback?: string };
 }
 
 interface ActionStepProps {
@@ -139,7 +139,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
                 {t(step.instructionKey, step.instructionFallback)}
             </div>
             {!finished && step.launch?.navigateTo && (
-                <button type="button" onClick={() => onLaunch?.(step.launch.navigateTo)}
+                <button type="button" onClick={() => onLaunch?.((step.launch as { navigateTo: string }).navigateTo)}
                     className="self-start inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-tertiary)]"
                     style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
                     <ExternalLink style={{ width: 13, height: 13 }} aria-hidden="true" />
