@@ -15,7 +15,7 @@ const webSpans = require(`${AGENT_HUB_SRC}/components/chat/dlpReview/dlpFindings
     spansInRange: (s: unknown, a: number, b: number) => unknown;
     buildRuns: (t: string, s: unknown) => unknown;
 };
-const webConfirm = require(`${AGENT_HUB_SRC}/components/chat/MessageItem/toolConfirmStatus.js`) as {
+const webConfirm = require(`${AGENT_HUB_SRC}/components/chat/MessageItem/toolConfirmStatus.ts`) as {
     confirmDecisionOf: (c: unknown, d?: unknown) => unknown;
 };
 /* eslint-enable @typescript-eslint/no-require-imports */

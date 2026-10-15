@@ -34,7 +34,7 @@ const web = loadWebModule<{
     describeChatTool: (e: unknown, ctx: unknown) => { title: string; detail: string; status: string; error: string | null; durationMs: number | null };
     detailPayload: (e: unknown, r: unknown) => { args: unknown; result: unknown };
     visibleToolHistory: (m: unknown) => unknown[];
-}>('components/chat/MessageItem/chatToolCallDisplay.js', { getToolLabel: helpers.getToolLabel });
+}>('components/chat/MessageItem/chatToolCallDisplay.ts', { getToolLabel: helpers.getToolLabel });
 const timeline = loadWebFunctions<{ formatDurationMs: (ms: unknown) => string | null }>(
     'components/chat/MessageItem/timelineParts.jsx',
     ['formatDurationMs'],

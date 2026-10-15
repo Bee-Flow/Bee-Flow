@@ -3,6 +3,7 @@ import ImageLightbox from './ImageLightbox';
 import { AnswerFooter, AssistantAttachments, AssistantPreamble, GeneratedMediaBlock } from './MessageBody';
 import type { PreambleProps } from './MessageBody';
 import MessageActionsRow from './MessageActionsRow';
+import type { RetryModelTiers } from './MessageActionsRow';
 import MessageAttachments from './MessageAttachments';
 import {
     AssistantAvatar, copyWithoutBackground, FeedbackForm, GuardrailWarning, UserMessageMeta, UserPrivacyRow,
@@ -10,6 +11,7 @@ import {
 import MessageContentBody from './MessageContentBody';
 import { CompactionDivider, RemovedUserMessage } from './MessageNotices';
 import type { ChatMessage } from './messageTypes';
+import type { SkillSummary } from '../../../hooks/useChatEngine/types';
 import ToolOutput from './ToolOutput';
 import { useMessageActions, useMessageFeedback } from './useMessageActions';
 import type { FeedbackAgent, FeedbackContext } from './useMessageActions';
@@ -40,11 +42,11 @@ export interface MessageItemProps {
     conversationId?: string | null;
     agentId?: string | null;
     chatSource?: string;
-    onRetry?: unknown;
+    onRetry?: (idx: number, tierKey?: string) => void;
     onEditMessage?: ((idx: number, text: string) => void) | null;
-    modelTiers?: unknown;
+    modelTiers?: RetryModelTiers;
     isLastAssistant?: boolean;
-    sessionSkills?: unknown[];
+    sessionSkills?: SkillSummary[];
     liveActivatedSkillIds?: unknown[];
     liveCompletedSkillIds?: unknown;
     liveCompletions?: unknown;

@@ -27,7 +27,7 @@ interface WebChips {
 // Babel like any other differential require.
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const { groupByDocument } = require(`${AGENT_HUB_SRC}/components/chat/MessageItem/citationGroups.ts`) as { groupByDocument: unknown };
-const web = loadWebModule<WebChips>('components/chat/MessageItem/answerChips.js', { groupByDocument });
+const web = loadWebModule<WebChips>('components/chat/MessageItem/answerChips.ts', { groupByDocument });
 
 const source = (i: number, extra: Record<string, unknown> = {}) => ({ title: `Doc ${i}`, content: `passage ${i}`, ...extra });
 
