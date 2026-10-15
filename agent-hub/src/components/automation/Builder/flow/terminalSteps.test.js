@@ -66,9 +66,9 @@ const END_NOT_TERMINAL = {
  */
 const CLIENT_SITES = [
     { file: '../mapping/upstream/describeNode.js', call: /isTerminalStepType\(node\.type\)/, what: 'geeft geen variabelengroep — niets kan aan de uitvoer binden' },
-    { file: 'useStepDrop.js', call: /isTerminalStep\(s\)/, what: 'weigert een stap erachter te droppen' },
+    { file: 'useStepDrop.ts', call: /isTerminalStep\(s\)/, what: 'weigert een stap erachter te droppen' },
     { file: 'nodeDropTarget.js', call: /isTerminalStep\(stepById\.get\(from\)\)/, what: 'ketent er niet aan bij het slepen' },
-    { file: 'useEdgeEditCallbacks.js', call: /isTerminalStep\(sourceStep\)/, what: 'weigert een handmatig getekende rand' },
+    { file: 'useEdgeEditCallbacks.ts', call: /isTerminalStep\(sourceStep\)/, what: 'weigert een handmatig getekende rand' },
 ];
 
 /** type → the node component file the canvas registers for it. */

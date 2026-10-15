@@ -20,7 +20,8 @@ import { computeUpstreamGroups } from '../bindings/upstream';
 // which is not installed here); only its pure half is ported and compared.
 jest.mock('../../../../../agent-hub/src/utils/helpers', () => ({ API_BASE: '', authFetch: jest.fn() }));
 
-const settings = (name: string) => requireWeb(`${BUILDER}/flow/settings/${name}.js`);
+const TS_MODULES = ['tablesRowValues', 'routeIntents'];
+const settings = (name: string) => requireWeb(`${BUILDER}/flow/settings/${name}.${TS_MODULES.includes(name) ? 'ts' : 'js'}`);
 
 describe('columnMatch', () => {
     const web = settings('columnMatch');

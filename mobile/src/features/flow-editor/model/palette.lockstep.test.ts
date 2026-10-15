@@ -30,7 +30,7 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/stepI
 const REPO = path.resolve(__dirname, '../../../../..');
 const FLOW = path.join(REPO, 'agent-hub/src/components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
-const web = require(path.join(FLOW, 'stepPalette.js'));
+const web = require(path.join(FLOW, 'stepPalette.ts'));
 const webAppLabels = require(path.join(FLOW, 'appLabels.js'));
 const webRibbon = require(path.join(FLOW, 'appsRibbonLayout.js'));
 const webIcons = require(path.join(REPO, 'agent-hub/src/utils/integrationIcons.js'));

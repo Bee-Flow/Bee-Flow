@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent, MutableRefObject, RefObject } from 'react';
+import type { Edge, Node, XYPosition } from '@xyflow/react';
 
 import { spliceStepIntoEdge } from './branchEdges';
 import { fromDisplayPosition, sameInlineScope } from './inlineFlowlets';
@@ -6,6 +8,44 @@ import { seedPositions } from './layout';
 import { findNodeDropTarget, sameNodeDropTarget } from './nodeDropTarget';
 import { isRouteStep, routePorts } from './routeModel';
 import { applyAutoMapToStep } from '../mapping/autoMapInputs';
+import type { DiagramDefinition, DiagramStep, Rf, Sidecar } from './diagramPaneTypes';
+
+/** What a dragged loose node would attach to (flow/nodeDropTarget.js). */
+export type NodeDropHit =
+    | { kind: 'edge'; edgeId: string; sourceId: string; targetId: string; label?: string | null; caseName?: string | null }
+    | { kind: 'node'; nodeId: string; from: string; to: string };
+
+/** The latest values the delayed commit reads (kept in a ref by the pane). */
+export interface NodeOps {
+    catalog?: unknown;
+    realOutputById?: unknown;
+    autoMapEnabled?: boolean;
+    onAutoMapped?: (stepId: string, mappedCount: number, forEachEnabled: boolean) => void;
+    definition: DiagramDefinition;
+    onDefinitionChange?: ((next: DiagramDefinition) => void) | null;
+}
+
+/** The position changes React Flow reports for a drag; other change kinds carry no position. */
+export interface NodePositionChange {
+    id: string;
+    type: string;
+    dragging?: boolean;
+    position?: XYPosition;
+}
+
+interface NodeDragWiringArgs {
+    editable?: boolean;
+    structuralEditsBlocked?: boolean;
+    rf: Rf;
+    edges: Edge[];
+    definition: DiagramDefinition;
+    hasInline?: boolean;
+    sidecar: Sidecar | null;
+    shiftById: Map<string, { dx: number; dy: number }> | null;
+    wrapperRef: RefObject<HTMLElement | null>;
+    nodeOpsRef: MutableRefObject<NodeOps>;
+    onDefinitionChange?: ((next: DiagramDefinition) => void) | null;
+}
 
 // ── Drag a node next to something to wire it up ──────────────────────
 //
@@ -16,25 +56,27 @@ import { applyAutoMapToStep } from '../mapping/autoMapInputs';
 //
 // Extracted from DiagramPaneInner verbatim: called from the same position,
 // so hook order and state ownership (the parent's fiber) are unchanged.
+type FromDisplayFn = (id: string, pos: XYPosition | undefined, sidecar: Sidecar | null, shiftById?: Map<string, { dx: number; dy: number }> | null) => XYPosition;
+
 export function useNodeDragWiring({
     editable, structuralEditsBlocked, rf, edges, definition,
     hasInline, sidecar, shiftById, wrapperRef, nodeOpsRef, onDefinitionChange,
-}) {
-    const [nodeDropTarget, setNodeDropTarget] = useState(null);
-    const [dropHintPos, setDropHintPos] = useState(null);
-    const pendingConnectRef = useRef(null);
+}: NodeDragWiringArgs) {
+    const [nodeDropTarget, setNodeDropTarget] = useState<NodeDropHit | null>(null);
+    const [dropHintPos, setDropHintPos] = useState<XYPosition | null>(null);
+    const pendingConnectRef = useRef<NodeDropHit | null>(null);
 
     /** Apply a pending drop-target wiring to a definition. */
-    const applyPendingConnect = useCallback((def, draggedId) => {
+    const applyPendingConnect = useCallback((def: DiagramDefinition, draggedId: string | undefined): DiagramDefinition => {
         const hit = pendingConnectRef.current;
         pendingConnectRef.current = null;
         if (!hit) return def;
-        const dragged = (def.steps || []).find(s => s.id === draggedId)
-            || (def.triggers || []).find(t => t.id === draggedId)
+        const dragged = (def.steps || []).find((s: DiagramStep) => s.id === draggedId)
+            || (def.triggers || []).find((t: DiagramStep) => t.id === draggedId)
             || (def.trigger?.id === draggedId ? def.trigger : null);
         const firstPort = isRouteStep(dragged) ? routePorts(dragged)[0] : null;
-        let wired;
-        let downstreamId;
+        let wired: DiagramDefinition;
+        let downstreamId: string | undefined;
         if (hit.kind === 'edge') {
             const identity = { label: hit.label, caseName: hit.caseName };
             wired = { ...def, edges: spliceStepIntoEdge(def.edges || [], draggedId, hit.sourceId, hit.targetId, identity, firstPort) };
@@ -42,9 +84,9 @@ export function useNodeDragWiring({
         } else {
             // Chaining onto a node: a brancher's continuation must leave by a
             // real port, or the runtime never follows it (B5).
-            const source = hit.from === draggedId ? dragged : ((def.steps || []).find(s => s.id === hit.from) || null);
+            const source = hit.from === draggedId ? dragged : ((def.steps || []).find((s: DiagramStep) => s.id === hit.from) || null);
             const port = isRouteStep(source) ? routePorts(source)[0] : null;
-            const branch = {};
+            const branch: { label?: string; caseName?: string | null } = {};
             if (port?.label) branch.label = port.label;
             if (port?.caseName != null) branch.caseName = port.caseName;
             wired = { ...def, edges: [...(def.edges || []), { from: hit.from, to: hit.to, ...branch }] };
@@ -64,19 +106,19 @@ export function useNodeDragWiring({
         return wired;
     }, []);
 
-    const onNodeDrag = useCallback((event, node) => {
+    const onNodeDrag = useCallback((event: ReactMouseEvent, node: Node) => {
         if (!editable || structuralEditsBlocked) return;
         // Only offer to wire the dragged node to things in ITS graph — a node
         // inside an expanded flowlet can't connect to the flow around it.
         const candidates = (rf.getNodes ? rf.getNodes() : [])
-            .filter(n => sameInlineScope(n.id, node.id));
+            .filter((n: Node) => sameInlineScope(n.id, node.id));
         const hit = findNodeDropTarget({
             draggedId: node.id,
             nodes: candidates,
-            renderedEdges: hasInline ? edges.filter(e => sameInlineScope(e.source, node.id)) : edges,
+            renderedEdges: hasInline ? edges.filter((e: Edge) => sameInlineScope(e.source, node.id)) : edges,
             definition,
         });
-        setNodeDropTarget(prev => (sameNodeDropTarget(prev, hit) ? prev : hit));
+        setNodeDropTarget((prev: NodeDropHit | null) => (sameNodeDropTarget(prev, hit) ? prev : hit));
         if (!hit) { setDropHintPos(null); return; }
         const bounds = wrapperRef.current?.getBoundingClientRect();
         if (bounds) setDropHintPos({ x: event.clientX - bounds.left, y: event.clientY - bounds.top });
@@ -92,7 +134,7 @@ export function useNodeDragWiring({
      * (leaving the ref unconsumed) we write the connection ourselves on the
      * next tick. Either order ends with both applied, exactly once.
      */
-    const onNodeDragStop = useCallback((_event, node) => {
+    const onNodeDragStop = useCallback((_event: ReactMouseEvent, node?: Node | null) => {
         const hit = nodeDropTarget;
         setNodeDropTarget(null);
         setDropHintPos(null);
@@ -105,31 +147,31 @@ export function useNodeDragWiring({
         }, 0);
     }, [nodeDropTarget, editable, structuralEditsBlocked, applyPendingConnect]);
 
-    const commitNodePositions = useCallback((changes) => {
+    const commitNodePositions = useCallback((changes: NodePositionChange[]) => {
         // Pick out position changes that finished (drag-stop emits one with
         // `dragging: false`). Live-drag changes don't need to round-trip
         // through the definition — ReactFlow handles the in-flight ghost
         // itself, and writing back on every pixel move would thrash the
         // SSE/debounced save.
-        const finished = changes.filter(c => c.type === 'position' && c.dragging === false && c.position);
+        const finished = changes.filter((c: NodePositionChange) => c.type === 'position' && c.dragging === false && c.position);
         if (finished.length === 0) return;
         // React Flow hands back DISPLAY coordinates: a node inside an expanded
         // flowlet is positioned relative to its container, and a node the
         // container pushed aside carries that shift. Storing either verbatim
         // would walk the graph across the canvas every time a flowlet is
         // expanded and collapsed.
-        const byId = new Map(finished.map(c => [
+        const byId = new Map<string, XYPosition | undefined>(finished.map((c: NodePositionChange) => [
             c.id,
-            hasInline ? fromDisplayPosition(c.id, c.position, sidecar, shiftById) : c.position,
-        ]));
-        const apply = (s) => byId.has(s.id) ? { ...s, position: byId.get(s.id) } : s;
+            hasInline ? (fromDisplayPosition as FromDisplayFn)(c.id, c.position, sidecar, shiftById) : c.position,
+        ] as [string, XYPosition | undefined]));
+        const apply = (s: DiagramStep) => byId.has(s.id) ? { ...s, position: byId.get(s.id) } : s;
         // Mirror seedPositions' own shape: triggers[] (secondary triggers)
         // must be rebuilt too — dragging one used to write a definition that
         // simply omitted the move, so the node snapped back on the next
         // layout pass (B6).
         const moved = {
             ...definition,
-            trigger: apply(definition.trigger),
+            trigger: apply(definition.trigger as DiagramStep),
             ...(Array.isArray(definition.triggers) ? { triggers: definition.triggers.map(apply) } : {}),
             steps: (definition.steps || []).map(apply),
         };

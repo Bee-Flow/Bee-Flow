@@ -13,13 +13,30 @@
 import { paramsFromContract } from '../mapping/aiAutoMap';
 import { autoMapInputs } from '../mapping/autoMapInputs';
 import useAiAutoMap from '../mapping/useAiAutoMap';
+import type { Binding, GroupLike, Inputs, SuggestMappingsApi } from '../mapping/aiAutoMap';
 
-export default function useInputMapping({ inputs, contract, groups, onChange, api = null }) {
+/** One declared parameter of the called flowlet / step. */
+export interface ContractParam {
+    name: string;
+    type?: string;
+    required?: boolean;
+    description?: string;
+}
+
+interface UseInputMappingArgs {
+    inputs: Inputs;
+    contract: ContractParam[];
+    groups?: GroupLike[] | null;
+    onChange: (next: Inputs) => void;
+    api?: SuggestMappingsApi | null;
+}
+
+export default function useInputMapping({ inputs, contract, groups, onChange, api = null }: UseInputMappingArgs) {
     // Auto-map's AI fallback (mapping/useAiAutoMap.ts); `api` is for tests.
     const askAi = useAiAutoMap({ inputs, api });
     // Set or clear the binding for a single param. A missing binding or a
     // blank literal counts as "unset" so the key doesn't linger in the map.
-    const setInput = (name, binding) => {
+    const setInput = (name: string, binding?: Binding | null) => {
         const next = { ...inputs };
         if (!binding || (binding.kind === 'literal' && (binding.value === '' || binding.value == null))) delete next[name];
         else next[name] = binding;
@@ -30,8 +47,8 @@ export default function useInputMapping({ inputs, contract, groups, onChange, ap
     // result over the current bindings (existing bindings win).
     const onAutoMap = () => {
         const schema = {
-            properties: Object.fromEntries(contract.map(p => [p.name, { type: p.type }])),
-            required: contract.filter(p => p.required).map(p => p.name),
+            properties: Object.fromEntries(contract.map((p: ContractParam) => [p.name, { type: p.type }])),
+            required: contract.filter((p: ContractParam) => p.required).map((p: ContractParam) => p.name),
         };
         const patch = autoMapInputs(schema, inputs, groups || []);
         const next = { ...inputs, ...patch };

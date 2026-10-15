@@ -1,3 +1,6 @@
+import type { DragEvent as ReactDragEvent } from 'react';
+import type { StepPayload } from './ribbon/ribbonCategories';
+
 /**
  * Drag-and-drop glue for adding steps to the canvas.
  *
@@ -15,6 +18,13 @@
 
 export const STEP_DND_MIME = 'application/x-automation-step';
 
+export type StepDragPayload = StepPayload;
+
+export interface DropTarget {
+    kind: 'toolPort' | 'edge' | 'node' | 'pane';
+    id?: string;
+}
+
 /**
  * Spread onto any element that should start a step drag:
  *   <button {...stepDragProps(item.payload)} />
@@ -22,10 +32,10 @@ export const STEP_DND_MIME = 'application/x-automation-step';
  * `effectAllowed: 'copyMove'` pairs with DiagramPane's `dropEffect = 'copy'`
  * — the two MUST agree or the browser silently refuses the drop.
  */
-export function stepDragProps(payload) {
+export function stepDragProps(payload?: StepDragPayload | null) {
     return {
         draggable: true,
-        onDragStart: (event) => {
+        onDragStart: (event: ReactDragEvent) => {
             if (!payload) return;
             try {
                 event.dataTransfer.setData(STEP_DND_MIME, JSON.stringify(payload));
@@ -36,7 +46,7 @@ export function stepDragProps(payload) {
 }
 
 /** Parse the dragged payload back out of a drop event, or null. */
-export function readStepPayload(dataTransfer) {
+export function readStepPayload(dataTransfer?: Pick<DataTransfer, 'getData'> | null): StepDragPayload | null {
     let raw = '';
     try { raw = dataTransfer?.getData?.(STEP_DND_MIME) || ''; } catch (_) { return null; }
     if (!raw) return null;
@@ -63,7 +73,7 @@ export function readStepPayload(dataTransfer) {
  * because HTML5 drag events don't fire on SVG edge paths reliably across
  * browsers, and because it gives ONE consistent answer for both kinds.
  */
-export function dropTargetFromPoint(x, y, doc = typeof document === 'undefined' ? null : document) {
+export function dropTargetFromPoint(x: number, y: number, doc: Pick<Document, 'elementFromPoint'> | null = typeof document === 'undefined' ? null : document): DropTarget {
     const el = doc?.elementFromPoint?.(x, y);
     if (!el || !el.closest) return { kind: 'pane' };
     const port = el.closest('[data-tool-port]');
@@ -85,7 +95,7 @@ export function dropTargetFromPoint(x, y, doc = typeof document === 'undefined' 
 }
 
 /** Do two hit-test results point at the same thing? (re-render guard) */
-export function sameDropTarget(a, b) {
+export function sameDropTarget(a?: DropTarget | null, b?: DropTarget | null) {
     if (!a || !b) return a === b;
     return a.kind === b.kind && (a.id || null) === (b.id || null);
 }

@@ -35,8 +35,7 @@
  * die loopt door.
  */
 
-/** @type {ReadonlySet<string>} */
-export const TERMINAL_STEP_TYPES = new Set([
+export const TERMINAL_STEP_TYPES: ReadonlySet<string> = new Set([
     // Halts the run with an error message.
     'stop_error',
     // Ends the run and hands the Studio App that started it what to do next.
@@ -51,11 +50,11 @@ export const TERMINAL_STEP_TYPES = new Set([
  * lookup that missed narrows to "not terminal, keep the normal rules" rather
  * than throwing inside a drag handler.
  */
-export function isTerminalStepType(type) {
+export function isTerminalStepType(type?: unknown): boolean {
     return typeof type === 'string' && TERMINAL_STEP_TYPES.has(type);
 }
 
 /** Convenience for the call sites that hold the step object itself. */
-export function isTerminalStep(step) {
+export function isTerminalStep(step?: { type?: unknown } | null): boolean {
     return isTerminalStepType(step && step.type);
 }

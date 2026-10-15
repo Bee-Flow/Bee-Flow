@@ -18,8 +18,14 @@
  * would drag it into formState and the diagram builder.
  */
 
+/** A trigger step as far as its labels read it. */
+export interface TriggerLike {
+    kind?: string;
+    appEvent?: { provider?: string; event?: string } | null;
+}
+
 /** kind → the muted type kicker. */
-export const TRIGGER_TYPE_LABEL = {
+export const TRIGGER_TYPE_LABEL: Record<string, string> = {
     schedule:    'Schedule trigger',
     manual:      'Manual trigger',
     webhook:     'Webhook trigger',
@@ -41,7 +47,7 @@ export const TRIGGER_TYPE_LABEL = {
  * reads as a label and its type, while "Schedule trigger / Schedule trigger"
  * reads as a rendering bug.
  */
-export const TRIGGER_NAME = {
+export const TRIGGER_NAME: Record<string, string> = {
     schedule:    'Schedule',
     manual:      'Manual',
     webhook:     'Webhook',
@@ -56,7 +62,7 @@ export const TRIGGER_NAME = {
  * Sub-label per (provider, event) so a Gmail-new-email trigger reads
  * "New email (Gmail)" instead of the generic "App-event trigger".
  */
-export const APP_EVENT_TYPE_LABEL = {
+export const APP_EVENT_TYPE_LABEL: Record<string, string> = {
     'gmail.mail.new':                  'New email (Gmail)',
     'gmail.label.added':               'Email labelled (Gmail)',
     'google-calendar.event.changed':   'Calendar event changed',
@@ -69,24 +75,24 @@ export const APP_EVENT_TYPE_LABEL = {
     'nextcloud.notification.new':      'Nextcloud notification',
 };
 
-const appEventKey = (step) => (
+const appEventKey = (step?: TriggerLike | null) => (
     step?.appEvent?.provider && step?.appEvent?.event
         ? `${step.appEvent.provider}.${step.appEvent.event}`
         : null
 );
 
 /** The muted type kicker for a trigger step, app-event specialisation included. */
-export function triggerTypeLabel(step) {
+export function triggerTypeLabel(step?: TriggerLike | null) {
     const kind = step?.kind || 'manual';
     if (kind === 'app_event') {
-        const specific = APP_EVENT_TYPE_LABEL[appEventKey(step)];
+        const specific = APP_EVENT_TYPE_LABEL[appEventKey(step) as string];
         if (specific) return specific;
     }
     return TRIGGER_TYPE_LABEL[kind] || TRIGGER_TYPE_LABEL.manual;
 }
 
 /** The name Bee Flow gives a trigger node of this kind. */
-export function defaultTriggerLabel(kind) {
+export function defaultTriggerLabel(kind: string) {
     return TRIGGER_NAME[kind] || TRIGGER_NAME.manual;
 }
 
@@ -104,7 +110,7 @@ const GENERATED_LABELS = new Set([
  * trigger that has already been switched once carries the previous kind's
  * name, and that is exactly the case this has to catch.
  */
-export function isGeneratedTriggerLabel(label) {
+export function isGeneratedTriggerLabel(label?: unknown) {
     const s = String(label ?? '').trim();
     return s === '' || GENERATED_LABELS.has(s);
 }

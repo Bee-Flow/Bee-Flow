@@ -1,4 +1,25 @@
 import { useEffect, useState } from 'react';
+import type { DiagramDefinition } from './diagramPaneTypes';
+
+/** A dry-run row as the replay reads it. */
+export interface ReplayRow {
+    stepId?: string;
+    status?: string;
+    startedAt?: string | number | null;
+    started_at?: string | number | null;
+    [key: string]: unknown;
+}
+
+export interface ReplayFrame {
+    visibleSteps: ReplayRow[];
+    currentStepId: string | undefined;
+}
+
+interface ReplayState {
+    seenSeq: number | undefined;
+    frames: ReplayFrame[] | null;
+    i: number;
+}
 
 /**
  * The test run, replayed step by step.
@@ -35,7 +56,7 @@ import { useEffect, useState } from 'react';
  */
 export const REPLAY_STEP_MS = 650;
 
-function startOf(row) {
+function startOf(row?: ReplayRow | null) {
     const raw = row?.startedAt ?? row?.started_at;
     if (!raw) return null;
     const t = typeof raw === 'number' ? raw : Date.parse(raw);
@@ -43,10 +64,10 @@ function startOf(row) {
 }
 
 /** `{ nodeIds, triggerIds }` for a definition — nodeIds null when there is none to check against. */
-function idsOf(definition) {
-    const triggerIds = new Set();
+function idsOf(definition?: DiagramDefinition | null) {
+    const triggerIds = new Set<string>();
     if (!definition) return { nodeIds: null, triggerIds };
-    const nodeIds = new Set();
+    const nodeIds = new Set<string>();
     if (definition.trigger?.id) { nodeIds.add(definition.trigger.id); triggerIds.add(definition.trigger.id); }
     for (const tr of (definition.triggers || [])) if (tr?.id) { nodeIds.add(tr.id); triggerIds.add(tr.id); }
     for (const s of (definition.steps || [])) if (s?.id) nodeIds.add(s.id);
@@ -54,15 +75,15 @@ function idsOf(definition) {
 }
 
 /** The rows in the order they ran: triggers first, then by start time when every row has one, else as given. */
-export function replayOrder(steps, definition = null) {
+export function replayOrder(steps?: ReplayRow[] | null, definition: DiagramDefinition | null = null) {
     const { triggerIds } = idsOf(definition);
     const indexed = (steps || [])
-        .filter((row) => row && row.stepId)
-        .map((row, i) => ({ row, i, t: startOf(row), trigger: triggerIds.has(row.stepId) }));
+        .filter((row: ReplayRow) => row && row.stepId)
+        .map((row: ReplayRow, i: number) => ({ row, i, t: startOf(row), trigger: triggerIds.has(row.stepId as string) }));
     const timed = indexed.length > 0 && indexed.every((e) => e.t != null);
     indexed.sort((a, b) => {
         if (a.trigger !== b.trigger) return a.trigger ? -1 : 1;
-        if (timed && a.t !== b.t) return a.t - b.t;
+        if (timed && a.t !== b.t) return (a.t as number) - (b.t as number);
         return a.i - b.i;
     });
     return indexed.map((e) => e.row);
@@ -74,20 +95,29 @@ export function replayOrder(steps, definition = null) {
  * settled before it. Rows with no node on the canvas ride along instantly.
  * The final state — every row real — is not a frame: it is `steps` itself.
  */
-export function replayFrames(steps, definition = null) {
+export function replayFrames(steps?: ReplayRow[] | null, definition: DiagramDefinition | null = null) {
     const order = replayOrder(steps, definition);
     const { nodeIds } = idsOf(definition);
-    const frames = [];
-    const shown = [];
+    const frames: ReplayFrame[] = [];
+    const shown: ReplayRow[] = [];
     let i = 0;
     while (i < order.length) {
-        while (i < order.length && nodeIds && !nodeIds.has(order[i].stepId)) shown.push(order[i++]);
+        while (i < order.length && nodeIds && !nodeIds.has(order[i].stepId as string)) shown.push(order[i++]);
         if (i >= order.length) break;
         const row = order[i++];
         frames.push({ visibleSteps: [...shown, { ...row, status: 'running' }], currentStepId: row.stepId });
         shown.push(row);
     }
     return frames;
+}
+
+interface DryRunReplayArgs {
+    steps?: ReplayRow[] | null;
+    seq?: number;
+    enabled?: boolean;
+    stepMs?: number;
+    reducedMotion?: boolean;
+    definition?: DiagramDefinition | null;
 }
 
 export function useDryRunReplay({
@@ -99,8 +129,8 @@ export function useDryRunReplay({
     // The graph on the canvas, for "can this row be shown" and "is this a
     // trigger row". Optional: without it every row is shown in array order.
     definition = null,
-}) {
-    const [replay, setReplay] = useState(() => ({ seenSeq: seq, frames: null, i: 0 }));
+}: DryRunReplayArgs) {
+    const [replay, setReplay] = useState<ReplayState>(() => ({ seenSeq: seq, frames: null, i: 0 }));
     const canPlay = enabled && !reducedMotion;
 
     if (replay.seenSeq !== seq) {
@@ -117,7 +147,7 @@ export function useDryRunReplay({
     useEffect(() => {
         if (!frames) return undefined;
         const id = setInterval(() => {
-            setReplay((r) => {
+            setReplay((r: ReplayState) => {
                 if (!r.frames) return r;
                 const next = r.i + 1;
                 return next >= r.frames.length ? { ...r, frames: null, i: 0 } : { ...r, i: next };

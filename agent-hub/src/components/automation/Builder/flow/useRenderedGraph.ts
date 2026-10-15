@@ -1,4 +1,6 @@
 import { useCallback, useMemo } from 'react';
+import type { MutableRefObject, RefObject } from 'react';
+import type { Edge, Node } from '@xyflow/react';
 
 import { buildAiToolGraph, detachTool, toolLabelIndex } from './aiToolNodes';
 import { arrangeDefinition } from './arrange';
@@ -7,6 +9,47 @@ import { decorateRunEdges, identityColorForEdge } from './edgeColoring';
 import { seedPositions } from './layout';
 import { rowBands, ROW_LABEL_OFFSET } from './rowBands';
 import { SYNTHETIC_TYPES } from './nodeDefs';
+import type { DiagramDefinition, RunRow, Rf } from './diagramPaneTypes';
+import type { EdgeClick } from './useEdgeEditCallbacks';
+import type { NodeDropHit } from './useNodeDragWiring';
+import type { DropTarget } from './stepDrag';
+
+/** A run row with the PII summary the edge tooltip reads. */
+interface PiiRunRow extends RunRow {
+    piiSummary?: { categories?: Record<string, number>; degraded?: boolean };
+}
+
+interface RenderedGraphArgs {
+    editable?: boolean;
+    structuralEditsBlocked?: boolean;
+    onDefinitionChange?: ((next: DiagramDefinition) => void) | null;
+    isDraggingRef: MutableRefObject<boolean>;
+    onExpandAllFlowlets?: (() => void) | null;
+    onCollapseAllFlowlets?: (() => void) | null;
+    wrapperRef: RefObject<HTMLElement | null>;
+    definition: DiagramDefinition;
+    rf: Rf;
+    edges: Edge[];
+    onEdgeInsertClick: (click: EdgeClick) => void;
+    onEdgeDeleteClick: (click: EdgeClick) => void;
+    onEdgeSetColor: (click: EdgeClick & { color?: string | null }) => void;
+    onNodeExpand?: ((id: string) => void) | null;
+    onNodeClick?: ((id: string) => void) | null;
+    inLoopBody: (id: string) => boolean;
+    dropTarget: DropTarget | null;
+    nodeDropTarget: NodeDropHit | null;
+    catalog?: unknown;
+    nodes: Node[];
+    runByStep: Map<string, PiiRunRow>;
+    runInFlight?: boolean;
+    edgeColorMode?: string;
+    stepNumberById?: Map<string, number> | null;
+    fitCanvas?: ((options: { duration: number }) => void) | null;
+    buildFxById?: Map<string, { delayMs: number }> | null;
+    freshEdgeKeys?: Set<string> | null;
+    ghostNodes?: Node[] | null;
+    ghostEdges?: Edge[] | null;
+}
 
 // The z React Flow gives a selected node when it is allowed to elevate them —
 // reproduced manually for non-note nodes only (BFSF-479, see below).
@@ -19,8 +62,8 @@ const SELECTED_NODE_Z = 1000;
  * overlaps. This re-applies the pop to every selected node that is NOT a
  * note — the same lift React Flow would have given it.
  */
-export function applySelectionLayering(nodes) {
-    return (nodes || []).map((n) => (n.selected && n.type !== 'note' && !n.zIndex ? { ...n, zIndex: SELECTED_NODE_Z } : n));
+export function applySelectionLayering(nodes?: Node[] | null) {
+    return (nodes || []).map((n: Node) => (n.selected && n.type !== 'note' && !n.zIndex ? { ...n, zIndex: SELECTED_NODE_Z } : n));
 }
 
 // The decoration pipeline that turns the laid-out nodes/edges into what
@@ -35,6 +78,12 @@ export function applySelectionLayering(nodes) {
 // optional and empty outside a build: `buildFxById` marks cards mid-reveal,
 // `freshEdgeKeys` the connections that draw in, and the ghost node/edge are
 // the "next step" slot ahead of the frontier.
+type BuildToolGraphFn = (nodes: Node[], opts: {
+    labelFor?: ((tool: string) => { label: string; description: string | null; integrationId: string | null } | null) | null;
+    onDetach?: ((stepId: string, tool: string) => void) | null;
+    editable?: boolean;
+}) => ReturnType<typeof buildAiToolGraph>;
+
 export function useRenderedGraph({
     editable, structuralEditsBlocked, onDefinitionChange, isDraggingRef,
     onExpandAllFlowlets, onCollapseAllFlowlets, wrapperRef, definition, rf,
@@ -45,7 +94,7 @@ export function useRenderedGraph({
     // (options) => void — the canvas's furniture-aware fit (flow/useFurnitureFit.ts).
     fitCanvas = null,
     buildFxById = null, freshEdgeKeys = null, ghostNodes = null, ghostEdges = null,
-}) {
+}: RenderedGraphArgs) {
     const allowEdgeEdits = editable && !structuralEditsBlocked;
 
     /**
@@ -55,7 +104,7 @@ export function useRenderedGraph({
      * is one draft commit and therefore one Ctrl+Z. That undo is what lets this
      * be a plain button press rather than a preview-and-confirm dance.
      */
-    const handleArrange = useCallback((mode) => {
+    const handleArrange = useCallback((mode: string) => {
         if (!onDefinitionChange || !allowEdgeEdits) return;
         // A definition→nodes sync is deferred while a drag is in flight
         // (see the effect above), and an arrange fired mid-drag would be
@@ -87,9 +136,9 @@ export function useRenderedGraph({
     const edgesWithControls = useMemo(() => {
         const inspect = onNodeExpand || onNodeClick || null;
         if (!allowEdgeEdits) {
-            return inspect ? edges.map(e => ({ ...e, data: { ...(e.data || {}), onInspect: inspect } })) : edges;
+            return inspect ? edges.map((e: Edge) => ({ ...e, data: { ...(e.data || {}), onInspect: inspect } })) : edges;
         }
-        return edges.map((e) => {
+        return edges.map((e: Edge) => {
             // A line inside an expanded loop is derived from the body's order,
             // not stored: "+" means "put a step here", which IS an order edit,
             // but there is nothing to delete or recolour — the next render
@@ -125,14 +174,14 @@ export function useRenderedGraph({
     // AI step while that step is being dragged. Never written to the
     // definition — see flow/aiToolNodes.js for why that is the whole design.
     const toolLabels = useMemo(() => toolLabelIndex(catalog), [catalog]);
-    const onDetachTool = useCallback((stepId, tool) => {
+    const onDetachTool = useCallback((stepId: string, tool: string) => {
         if (!editable || structuralEditsBlocked) return;
         const next = detachTool(definition, stepId, tool);
         if (next === definition) return;
         onDefinitionChange?.(seedPositions(next));
     }, [definition, editable, structuralEditsBlocked, onDefinitionChange]);
-    const toolGraph = useMemo(() => buildAiToolGraph(nodes, {
-        labelFor: (t) => toolLabels.get(t) || null,
+    const toolGraph = useMemo(() => (buildAiToolGraph as BuildToolGraphFn)(nodes, {
+        labelFor: (t: string) => toolLabels.get(t) || null,
         onDetach: onDetachTool,
         editable: editable && !structuralEditsBlocked,
     }), [nodes, toolLabels, onDetachTool, editable, structuralEditsBlocked]);
@@ -144,9 +193,9 @@ export function useRenderedGraph({
     // user drags apart re-labels itself; never written to the definition.
     // rowBands returns [] for a single row, so an unwrapped flow draws none.
     const rowLabelNodes = useMemo(() => {
-        const items = [];
+        const items: { id: string; x: number; y: number; width: number; height: number; number: number | undefined }[] = [];
         for (const n of nodes || []) {
-            if (!n || n.parentId || SYNTHETIC_TYPES[n.type] || n.type === 'note') continue;
+            if (!n || n.parentId || (SYNTHETIC_TYPES as Record<string, string>)[n.type as string] || n.type === 'note') continue;
             const p = n.position || {};
             const num = stepNumberById?.get?.(n.id);
             items.push({
@@ -156,7 +205,7 @@ export function useRenderedGraph({
                 number: typeof num === 'number' ? num : undefined,
             });
         }
-        return rowBands(items).map(b => ({
+        return rowBands(items).map((b) => ({
             id: `__row__${b.index}`,
             type: 'row_label',
             position: { x: b.left, y: b.top - ROW_LABEL_OFFSET },
@@ -180,7 +229,7 @@ export function useRenderedGraph({
         const layered = applySelectionLayering(base);
         const hasFx = !!buildFxById && buildFxById.size > 0;
         if (!dropHighlightNodeId && !activeToolPortId && !hasFx) return layered;
-        return layered.map((n) => {
+        return layered.map((n: Node) => {
             let out = n;
             // A card still waiting for its turn in a burst is laid out and
             // measured but invisible; Tab must not land on it.
@@ -205,14 +254,14 @@ export function useRenderedGraph({
     const piiGroupColors = useMemo(() => resolvePiiGroupColors(definition), [definition]);
 
     const identityColoredEdges = useMemo(() => {
-        return edgesWithControls.map((e) => {
+        return edgesWithControls.map((e: Edge) => {
             const srcRun = runByStep.get(e.source) || null;
-            const color = identityColorForEdge(e.data, edgeColorMode, srcRun, piiGroupColors);
+            const color = identityColorForEdge(e.data as Record<string, unknown>, edgeColorMode as string, srcRun as object | undefined, piiGroupColors);
             if (!color) return e;
             // In PII mode, spell out WHAT was detected on the chip tooltip —
             // counts only ("Email ×3"), never values; "approximate" when the
             // scan was partial or regex-grade.
-            let piiTooltip = null;
+            let piiTooltip: string | null = null;
             if (edgeColorMode === 'pii' && srcRun?.piiSummary?.categories) {
                 const parts = Object.entries(srcRun.piiSummary.categories).map(([k, n]) => `${k} ×${n}`);
                 piiTooltip = `Detected: ${parts.join(', ')}${srcRun.piiSummary.degraded ? ' — approximate' : ''}`;
@@ -235,7 +284,7 @@ export function useRenderedGraph({
     // in its own tone, and a run in flight keeps the last word.
     const freshEdges = useMemo(() => {
         if (!freshEdgeKeys || freshEdgeKeys.size === 0) return identityColoredEdges;
-        return identityColoredEdges.map((e) => {
+        return identityColoredEdges.map((e: Edge) => {
             const key = String(e.id).split('#dup')[0];
             if (!freshEdgeKeys.has(key)) return e;
             const delayMs = buildFxById?.get?.(e.target)?.delayMs || 0;
@@ -258,7 +307,7 @@ export function useRenderedGraph({
     );
 
     const renderedEdges = useMemo(() => {
-        const withHighlight = !dropHighlightEdgeId ? decoratedEdges : decoratedEdges.map(e => (e.id === dropHighlightEdgeId
+        const withHighlight = !dropHighlightEdgeId ? decoratedEdges : decoratedEdges.map((e: Edge) => (e.id === dropHighlightEdgeId
             ? { ...e, style: { ...(e.style || null), stroke: 'var(--text-primary)', strokeWidth: 3 } }
             : e));
         // Tool tethers — and the ghost slot's tether — are appended AFTER every

@@ -8,10 +8,28 @@
  * functions are inverses so the inspector round-trips cleanly.
  */
 
+export interface TriggerParam {
+    name?: string;
+    type?: string;
+    required?: boolean;
+    description?: string;
+}
+
+export interface ParamSchemaProp {
+    type: string;
+    description?: string;
+}
+
+export interface TriggerParamsSchema {
+    type?: string;
+    properties?: Record<string, { type?: string; description?: string } | null>;
+    required?: string[];
+}
+
 /** params-list rows → JSON Schema. */
-export function paramsToSchema(params) {
-    const properties = {};
-    const required = [];
+export function paramsToSchema(params?: TriggerParam[] | null) {
+    const properties: Record<string, ParamSchemaProp> = {};
+    const required: string[] = [];
     for (const p of (Array.isArray(params) ? params : [])) {
         if (!p || !p.name) continue;
         properties[p.name] = { type: p.type || 'string', ...(p.description ? { description: p.description } : {}) };
@@ -21,7 +39,7 @@ export function paramsToSchema(params) {
 }
 
 /** JSON Schema → params-list rows (inverse of paramsToSchema). */
-export function schemaToParams(schema) {
+export function schemaToParams(schema?: TriggerParamsSchema | null) {
     const props = schema && typeof schema === 'object' ? (schema.properties || {}) : {};
     const required = Array.isArray(schema?.required) ? schema.required : [];
     return Object.entries(props).map(([name, p]) => ({

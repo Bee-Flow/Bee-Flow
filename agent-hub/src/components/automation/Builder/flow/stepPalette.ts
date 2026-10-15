@@ -2,7 +2,7 @@ import {
     Sparkles, Repeat, Code, Bell, Webhook, Clock, MousePointer2, Zap, Bot, AppWindow,
     Pencil, Hourglass, OctagonX, Split, ChevronsDown, Copy, Layers, Sigma, LogOut, Box, Globe,
     ClipboardList, CheckCircle2, ShieldAlert, ShieldCheck, FileText, FileSignature, Table2, StickyNote, BookOpen, ScanText,
-    RectangleHorizontal, Presentation, ListFilter, Rows3 } from 'lucide-react';
+    RectangleHorizontal, Presentation, ListFilter, Rows3, type LucideIcon } from 'lucide-react';
 import { STEP_ICON_MAP } from './stepIcons';
 import { nodeLabel, nodeDesc, nodeDefaultLabel } from './nodeDefs';
 import {
@@ -14,7 +14,7 @@ import { resolveIntegrationFromTool } from '../../../../utils/integrationIcons';
 import { INTEGRATION_CATALOG, CATEGORY_ORDER as INTEGRATION_CATEGORY_ORDER } from '../../../../config/integrationCatalog';
 import { shortAppLabel, actionLabelMap, uiDescription } from './appLabels';
 import { OTHER_CATEGORY } from './appsRibbonLayout';
-
+import type { AppEntry, CatalogStep, GateItem, NodeTextFn, Localisable, PaletteCatalog, PaletteItem, PaletteLayer, PaletteScope, SearchCandidate, StepGroup, TranslateFn } from './stepPalette.types';
 /**
  * Shared step-catalog data + search/grouping for the automations builder's
  * "Add step" surfaces. Presentation-free (icons are lucide COMPONENT refs,
@@ -29,7 +29,7 @@ import { OTHER_CATEGORY } from './appsRibbonLayout';
 // dropped trigger and a switched one can never disagree (BFSF-339). The
 // `label` on the ITEM is the palette wording, which is a different thing
 // ("On a schedule" invites you to pick; "Schedule" names the node).
-const trigger = (triggerKind, extra = null) => ({ kind: 'trigger', triggerKind, label: defaultTriggerLabel(triggerKind), ...extra });
+const trigger = (triggerKind: string, extra: Record<string, unknown> | null = null) => ({ kind: 'trigger', triggerKind, label: defaultTriggerLabel(triggerKind), ...extra });
 
 export const TRIGGERS = [
     { id: 'manual', icon: MousePointer2, label: 'Trigger manually', desc: 'Run from a button click',
@@ -97,7 +97,7 @@ export function additionalTriggerItems() {
 // request" elsewhere — or here, last month — must still find the node under its
 // plainer name. A rename that dropped them would make a node unfindable by the
 // only word half its users know.
-const stepItem = (kind, id, icon, keywords, payloadExtra = null) => ({
+const stepItem = (kind: string, id: string, icon: LucideIcon, keywords: string, payloadExtra: Record<string, unknown> | null = null) => ({
     id, icon, keywords,
     label: nodeLabel(kind), desc: nodeDesc(kind),
     payload: { kind, label: nodeDefaultLabel(kind), ...payloadExtra },
@@ -117,14 +117,14 @@ const stepItem = (kind, id, icon, keywords, payloadExtra = null) => ({
  * their type's name. Their strings are outside this round's scope and stay
  * English rather than becoming wrong.
  */
-function localised(it, t) {
+function localised<T extends Localisable>(it: T, t?: TranslateFn | null): T {
     if (!t) return it;
     // An entry with words of its own (not its type's) names its keys itself.
     if (it.i18n) return { ...it, label: t(it.i18n.label, it.label), desc: t(it.i18n.desc, it.desc) };
     const kind = it.payload?.kind;
     const canonicalLabel = kind ? nodeLabel(kind) : '';
     if (!canonicalLabel || it.label !== canonicalLabel) return it;
-    return { ...it, label: nodeLabel(kind, t), desc: nodeDesc(kind, t) || it.desc };
+    return { ...it, label: (nodeLabel as NodeTextFn)(kind, t), desc: (nodeDesc as NodeTextFn)(kind, t) || it.desc };
 }
 
 export const AI_STEP = {
@@ -267,7 +267,7 @@ export const NOT_INSIDE_A_LAYER = new Set(['approval', 'form_page', 'return_to_a
 // have this" with silence, so the step was simply undiscoverable and the rule
 // behind it unknowable (BFSF-348). The reason travels with the item, so every
 // surface that renders one can say it.
-const NEEDS_FORM_TRIGGER = new Set(['form_page']);
+const NEEDS_FORM_TRIGGER = new Set<string | undefined>(['form_page']);
 export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the automation\'s own form link — switch the trigger to "Form" to use this.';
 
 /**
@@ -287,7 +287,7 @@ export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the automation\'s ow
  * assembled outside buildStepGroups/buildSearchResults, go through the same
  * gate instead of around it.
  */
-export function gated(item, hasFormTrigger) {
+export function gated<T extends GateItem>(item: T, hasFormTrigger?: boolean | null) {
     if (!NEEDS_FORM_TRIGGER.has(item?.payload?.kind) || hasFormTrigger !== false) return item;
     return { ...item, disabled: true, disabledReason: NEEDS_FORM_TRIGGER_REASON };
 }
@@ -406,7 +406,7 @@ export const CODE_ITEM = {
  * English too, and adding keys here means adding them to both dictionaries,
  * which is outside this change. Same debt, same place, one round to pay it.
  */
-export const CODE_OFF_REASONS = {
+export const CODE_OFF_REASONS: Record<string, string> = {
     runtime: 'This server was installed without the code sandbox, so a code step could not run here.',
     unknown: 'This server did not say whether it can run code steps, so a code step could still be refused when it runs.',
 };
@@ -434,7 +434,7 @@ export const CODE_OFF_REASONS = {
  * make it always truthy and open the gate it exists to close. The reason rides
  * in its own field for that reason.
  */
-export function codeItemFor(catalog) {
+export function codeItemFor(catalog?: PaletteCatalog | null): (typeof CODE_ITEM & { disabled?: boolean; disabledReason?: string }) | null {
     // `=== true`, not truthiness. The flag is a boolean by contract, and the
     // one way this gate gets silently re-opened is somebody widening it into
     // an object ({platform:true, org:false}) on the server: every `if
@@ -459,7 +459,7 @@ export const LAYER_OUTPUT_ITEM = {
 export const CATEGORY_ORDER = [...INTEGRATION_CATEGORY_ORDER, OTHER_CATEGORY];
 
 // ─── Dynamic item builders ──────────────────────────────────────────────
-export function inlineLayerItem(l) {
+export function inlineLayerItem(l: PaletteLayer) {
     const nParams = (l.params || []).length;
     return {
         id: l.key, icon: Layers, label: l.title || l.key,
@@ -469,7 +469,7 @@ export function inlineLayerItem(l) {
     };
 }
 
-export function blockItem(b) {
+export function blockItem(b: CatalogStep) {
     const nIn = (b.params || []).length;
     const nOut = (b.outputFields || []).length;
     // "2 in · 3 out" was the WHOLE palette line for a reusable Step. An arity
@@ -492,7 +492,7 @@ export function blockItem(b) {
     // Show the Step's own symbol in the palette (resolve its Lucide name to a
     // component), falling back to the generic Box.
     return {
-        id: `block_${b.id}`, icon: STEP_ICON_MAP[b.icon] || Box, label: b.title || 'Step',
+        id: `block_${b.id}`, icon: STEP_ICON_MAP[b.icon as string] || Box, label: b.title || 'Step',
         desc: blurb ? `${blurb} · ${arity}` : arity,
         // The description is searchable too (bucket 3, via `keywords`): someone
         // who remembers what a Step DOES but not what a colleague named it had
@@ -502,7 +502,7 @@ export function blockItem(b) {
     };
 }
 
-export function prettifyToolName(name) {
+export function prettifyToolName(name?: string | null) {
     return name ? String(name).replace(/_/g, ' ') : '';
 }
 
@@ -513,14 +513,14 @@ const UNCATEGORISED = 'Uncategorised';
  * menu's "Steps" dropdown. Returns section descriptors ({key,title,items}) —
  * named categories alphabetical, the catch-all ('Uncategorised') last.
  */
-export function groupBlocksByCategory(blocks) {
-    const map = new Map();
+export function groupBlocksByCategory(blocks: CatalogStep[]) {
+    const map = new Map<string, CatalogStep[]>();
     for (const b of blocks) {
         const cat = (b.category && b.category.trim()) || UNCATEGORISED;
         if (!map.has(cat)) map.set(cat, []);
-        map.get(cat).push(b);
+        (map.get(cat) as CatalogStep[]).push(b);
     }
-    const cats = [...map.keys()].sort((a, c) => {
+    const cats = [...map.keys()].sort((a: string, c: string) => {
         if (a === UNCATEGORISED) return 1;
         if (c === UNCATEGORISED) return -1;
         return a.localeCompare(c);
@@ -528,14 +528,14 @@ export function groupBlocksByCategory(blocks) {
     return cats.map(cat => ({
         key: `step_cat_${cat}`,
         title: cat,
-        items: map.get(cat)
+        items: (map.get(cat) as CatalogStep[])
             .slice()
-            .sort((x, y) => (x.title || '').localeCompare(y.title || ''))
+            .sort((x: CatalogStep, y: CatalogStep) => (x.title || '').localeCompare(y.title || ''))
             .map(blockItem),
     }));
 }
 
-function normalizeId(id) {
+function normalizeId(id?: unknown) {
     return String(id || '').toLowerCase().replace(/-/g, '_');
 }
 
@@ -559,10 +559,10 @@ const UNRANKED = 1000;
  * by the SHORT label, so the visible order is the alphabetical order of the
  * text actually on screen.
  */
-export function groupAppsByCategory(catalog) {
+export function groupAppsByCategory(catalog?: PaletteCatalog | null) {
     if (!catalog?.apps) return {};
     const catMap = buildCategoryMap();
-    const out = {};
+    const out: Record<string, AppEntry[]> = {};
     for (const a of catalog.apps) {
         if (!a.available) continue;
         const allActions = (a.actions || []).map(act => ({
@@ -580,7 +580,7 @@ export function groupAppsByCategory(catalog) {
         const entry = {
             id: a.id,
             label: a.label,
-            shortLabel: shortAppLabel(a.label, category, normalizeId(a.id)),
+            shortLabel: (shortAppLabel as (label: string, category: string, id?: string | null) => string)(a.label, category, normalizeId(a.id)),
             rank: Number.isFinite(known?.rank) ? known.rank : UNRANKED,
             integrationId,
             actions: allActions,
@@ -595,8 +595,8 @@ export function groupAppsByCategory(catalog) {
 }
 
 /** Ordered apps list flattened across categories (for the Action dropdown). */
-export function orderedAppCategories(catalog) {
-    const grouped = groupAppsByCategory(catalog);
+export function orderedAppCategories(catalog?: unknown) {
+    const grouped = groupAppsByCategory(catalog as PaletteCatalog | null | undefined);
     return CATEGORY_ORDER
         .map(cat => ({ category: cat, apps: grouped[cat] || [] }))
         .filter(g => g.apps.length > 0);
@@ -619,7 +619,7 @@ export function orderedAppCategories(catalog) {
  * that could be used. Bare TRIGGERS, not additionalTriggerItems(): with no
  * trigger to replace, "Replaces the current trigger" describes nothing.
  */
-export function buildStepGroups({ catalog = null, mode = 'step', layers = [], inLayer = false, canAddLayerOutput = false, isBlockRoot = false, canCreateLayer = true, hasFormTrigger = null, t = null } = {}) {
+export function buildStepGroups({ catalog = null, mode = 'step', layers = [], inLayer = false, canAddLayerOutput = false, isBlockRoot = false, canCreateLayer = true, hasFormTrigger = null, t = null }: PaletteScope = {}): StepGroup[] {
     if (mode === 'trigger') return [{ key: 'triggers', title: 'Trigger', items: TRIGGERS }];
     const blocks = isBlockRoot ? [] : (catalog?.steps || []).filter(s => s && s.available !== false);
     // canCreateLayer:false (loop-body editor, B8): "Create flowlet" is a
@@ -653,7 +653,7 @@ export function buildStepGroups({ catalog = null, mode = 'step', layers = [], in
         { key: 'data', title: t ? t('automations.node.group.data_lists', 'Data & lists') : 'Data & lists',
           items: [...DATA_ITEMS, ...COLLECTION_ITEMS].map(it => localised(it, t)) },
     ];
-    const groups = [
+    const groups: StepGroup[] = [
         // Browsing has to find triggers too — search alone would still leave a
         // user who doesn't know the word "trigger" stuck (BFSF-325).
         ...(!inLayer && !isBlockRoot ? [{ key: 'triggers', title: 'Trigger', items: additionalTriggerItems() }] : []),
@@ -677,14 +677,14 @@ export function buildStepGroups({ catalog = null, mode = 'step', layers = [], in
 }
 
 /** Flow control's items with Code (when the catalog offers it) and Call a web service right after the loop. */
-function withOwnLogicAfterLoop(items, codeItem) {
+function withOwnLogicAfterLoop(items: PaletteItem[], codeItem: PaletteItem | null) {
     const own = [...(codeItem ? [codeItem] : []), ...INTEGRATION_ITEMS];
     const at = items.findIndex(it => it.payload.kind === 'loop');
     return at < 0 ? [...items, ...own] : [...items.slice(0, at + 1), ...own, ...items.slice(at + 1)];
 }
 
 /** Look up a catalog item by id from a flat item list (for ribbon inline buttons). */
-export function pickItem(items, id) {
+export function pickItem(items: PaletteItem[] | null | undefined, id: string) {
     return (items || []).find(it => it.id === id) || null;
 }
 
@@ -697,13 +697,13 @@ const ALL_STATIC_ITEMS = [...AI_ITEMS, ...DATA_ITEMS, ...COLLECTION_ITEMS, ...LO
  * for the smart "Suggested" / "Frequently used" sections — or null if it can't
  * be resolved in the current scope (app unavailable, deleted flowlet, etc.).
  */
-export function itemForKey(key, { catalog = null, layers = [] } = {}) {
+export function itemForKey(key?: unknown, { catalog = null, layers = [] }: { catalog?: PaletteCatalog | null; layers?: PaletteLayer[] | null } = {}) {
     if (!key || typeof key !== 'string') return null;
     const i = key.indexOf(':');
     if (i < 0) return null;
     const type = key.slice(0, i);
     const rest = key.slice(i + 1);
-    const asResult = (it) => (it
+    const asResult = (it?: Pick<PaletteItem, 'id' | 'icon' | 'label' | 'desc' | 'payload'> | null) => (it
         ? { key: it.id, Icon: it.icon, label: it.label, secondary: it.desc, payload: it.payload }
         : null);
 
@@ -786,13 +786,13 @@ export function itemForKey(key, { catalog = null, layers = [] } = {}) {
  * the renderer builds the actual icon element. Buckets:
  *   0 exact label · 1 label startsWith · 2 label includes · 3 desc/keywords/tool includes
  */
-export function buildSearchResults(query, { catalog = null, mode = 'step', layers = [], inLayer = false, canAddLayerOutput = false, isBlockRoot = false, hasFormTrigger = null, t = null } = {}) {
+export function buildSearchResults(query: unknown, { catalog = null, mode = 'step', layers = [], inLayer = false, canAddLayerOutput = false, isBlockRoot = false, hasFormTrigger = null, t = null }: PaletteScope = {}) {
     const q = String(query || '').trim().toLowerCase();
     if (!q) return [];
     const blocks = isBlockRoot ? [] : (catalog?.steps || []).filter(s => s && s.available !== false);
-    const candidates = [];
+    const candidates: SearchCandidate[] = [];
 
-    const pushItem = (it, context) => candidates.push({
+    const pushItem = (it: PaletteItem, context: string) => candidates.push({
         key: it.id, Icon: it.icon, label: it.label, secondary: it.desc,
         keywords: it.keywords, context, payload: it.payload,
         // Carried through so a result the current graph can't accept renders
@@ -884,22 +884,22 @@ const SEARCH_STOP_WORDS = new Set('a an the to of in on at for and or with from 
  * than required: nothing anywhere contains "an", so requiring it put the
  * query straight back to "No matches".
  */
-function wordMatcher(q) {
+function wordMatcher(q: string): (hay: string) => boolean {
     const all = q.split(/\s+/).filter(Boolean);
-    const words = all.filter(tok => !SEARCH_STOP_WORDS.has(tok));
+    const words = all.filter((tok: string) => !SEARCH_STOP_WORDS.has(tok));
     if (all.length < 2 || !words.length) return () => false;
     // EVERY word must land, or "send email" would surface everything that
     // merely mentions "send".
-    return (hay) => words.every(tok => hay.includes(tok));
+    return (hay: string) => words.every((tok: string) => hay.includes(tok));
 }
 
-function rank(candidates, q) {
+function rank(candidates: SearchCandidate[], q: string) {
     // Bucket 4 (see wordMatcher) is additive and LAST: every whole-query
     // bucket keeps its meaning and its order, so nothing that matched
     // before matches differently now. It only adds results that used to
     // be silence.
     const byWord = wordMatcher(q);
-    const ranked = [];
+    const ranked: Array<SearchCandidate & { _bucket: number }> = [];
     for (const c of candidates) {
         const label = (c.label || '').toLowerCase();
         const desc = (c.secondary || c.description || '').toLowerCase();

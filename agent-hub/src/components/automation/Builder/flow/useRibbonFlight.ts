@@ -1,6 +1,40 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 
 import { flightGlyphFor, originKeysFor, resolveOrigin } from './ribbonOrigin';
+import type { DiagramDefinition, DiagramStep, Rf } from './diagramPaneTypes';
+
+/** A ghost of a card in flight from its ribbon command to its slot. */
+export interface FlightGhost {
+    id: string;
+    from: NonNullable<ReturnType<typeof resolveOrigin>>['rect'];
+    glyph: ReturnType<typeof flightGlyphFor>;
+    startedAt: number;
+}
+
+/** A queued departure: the card id and the instant (ms epoch) it leaves. */
+export interface FlightDeparture {
+    id?: string | null;
+    at?: number;
+}
+
+interface LatestFlight {
+    definition?: DiagramDefinition | null;
+    catalog?: unknown;
+    rf?: Rf | null;
+    ribbonRootRef?: RefObject<HTMLElement | null> | null;
+}
+
+interface RibbonFlightArgs {
+    queue?: FlightDeparture[] | null;
+    head?: FlightDeparture | null;
+    definition?: DiagramDefinition | null;
+    catalog?: unknown;
+    rf?: Rf | null;
+    ribbonRootRef?: RefObject<HTMLElement | null> | null;
+    reducedMotion?: boolean;
+    enabled?: boolean;
+}
 
 /**
  * The ribbon flight — the stateful half (the pure half is ribbonOrigin.js,
@@ -42,11 +76,11 @@ export const LAND_FADE_MS = 120;
 /** The class the ringed command wears (index.css). */
 export const PICK_CLASS = 'bf-ribbon-pick';
 
-const EMPTY_MAP = new Map();
-const NO_GHOSTS = Object.freeze([]);
+const EMPTY_MAP = new Map<string, FlightGhost>();
+const NO_GHOSTS: readonly FlightGhost[] = Object.freeze([]);
 
 /** The trigger(s) and steps of a definition, by id. */
-function stepOf(definition, id) {
+function stepOf(definition: DiagramDefinition | null | undefined, id: string | null | undefined): DiagramStep | null {
     if (id == null || !definition) return null;
     const roots = [definition.trigger, ...(Array.isArray(definition.triggers) ? definition.triggers : [])];
     for (const n of roots) if (n && n.id === id) return n;
@@ -63,25 +97,25 @@ export function useRibbonFlight({
     ribbonRootRef,
     reducedMotion = false,
     enabled = true,
-}) {
+}: RibbonFlightArgs) {
     const on = !!enabled && !reducedMotion;
-    const [ghosts, setGhosts] = useState(EMPTY_MAP);
+    const [ghosts, setGhosts] = useState<Map<string, FlightGhost>>(EMPTY_MAP);
     // Off → no ghosts, in the SAME render (React's "adjust state when a prop
     // changes"): an abort mid-flight must not leave a ghost hanging over the
     // canvas for a frame, and the effect below only touches timers and rings.
     if (!on && ghosts.size) setGhosts(EMPTY_MAP);
 
     // What a departure reads at fire time, one commit behind at most.
-    const latestRef = useRef({});
+    const latestRef = useRef<LatestFlight>({});
     useEffect(() => {
         latestRef.current = { definition, catalog, rf, ribbonRootRef };
     });
 
-    const timersRef = useRef(new Set());
-    const seenRef = useRef(new Set());
-    const pickedRef = useRef(new Set());
+    const timersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+    const seenRef = useRef(new Set<string>());
+    const pickedRef = useRef(new Set<HTMLElement>());
 
-    const later = useCallback((fn, ms) => {
+    const later = useCallback((fn: () => void, ms: number) => {
         const id = setTimeout(() => {
             timersRef.current.delete(id);
             fn();
@@ -99,13 +133,13 @@ export function useRibbonFlight({
         seenRef.current.clear();
     }, []);
 
-    const depart = useCallback((id) => {
+    const depart = useCallback((id: string) => {
         const { definition: def, catalog: cat, rf: flow, ribbonRootRef: rootRef } = latestRef.current;
         const root = rootRef?.current;
         if (!root) return;
         const step = stepOf(def, id);
         if (!step) return;
-        const origin = resolveOrigin(root, originKeysFor(step, cat));
+        const origin = resolveOrigin(root, (originKeysFor as (step: DiagramStep, catalog?: unknown) => ReturnType<typeof originKeysFor>)(step, cat));
         if (!origin) return;
 
         origin.el.classList.add(PICK_CLASS);
@@ -121,14 +155,14 @@ export function useRibbonFlight({
         later(() => {
             const startedAt = Date.now();
             const glyph = flightGlyphFor(step);
-            setGhosts((cur) => {
+            setGhosts((cur: Map<string, FlightGhost>) => {
                 if (cur.has(id)) return cur;
                 const next = new Map(cur);
                 next.set(id, { id, from: origin.rect, glyph, startedAt });
                 return next;
             });
             later(() => {
-                setGhosts((cur) => {
+                setGhosts((cur: Map<string, FlightGhost>) => {
                     if (!cur.has(id)) return cur;
                     const next = new Map(cur);
                     next.delete(id);
@@ -144,7 +178,7 @@ export function useRibbonFlight({
             reset();
             return undefined;
         }
-        const arm = (id, at) => {
+        const arm = (id: string | null | undefined, at?: number) => {
             if (id == null || seenRef.current.has(id)) return;
             seenRef.current.add(id);
             later(() => depart(id), (Number(at) || 0) - Date.now());
