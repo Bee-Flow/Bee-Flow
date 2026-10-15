@@ -22,41 +22,27 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import type { ConnectOptions, UseVoiceSessionArgs, VoiceEventData, VoiceHistoryMessage, VoiceLatency, VoiceSessionInfo, VoiceState, VoiceStates, VoiceTool } from './useVoiceSession.types';
+import { VAD_POLL_MS, VOICE_STATES, openVadPipeline, pickMimeType, playTtsAudio, releaseVoiceResources } from './voiceSessionAudio';
+import { runVadTick } from './voiceSessionVad';
+import { fetchVoiceSession, streamVoiceTurn } from './voiceSessionTurn';
+import type { ConnectOptions, UseVoiceSessionArgs, VoiceLatency, VoiceSessionInfo, VoiceState, VoiceTool } from './useVoiceSession.types';
 
-const STATES: VoiceStates = {
-    IDLE: 'idle',           // mic hot, waiting for speech
-    LISTENING: 'listening', // actively capturing speech
-    THINKING: 'thinking',   // STT + LLM in flight
-    SPEAKING: 'speaking',   // TTS playing (barge-in enabled)
-    ERROR: 'error',
-};
+const STATES = VOICE_STATES;
 
-// ─── VAD tuning ────────────────────────────────────────────────
-const VAD_FFT_SIZE = 1024;              // analyser block size
-const VAD_POLL_MS = 50;                 // evaluate energy 20×/s
-const VAD_SPEECH_RMS = 0.018;           // start-of-speech threshold
-const VAD_SILENCE_RMS = 0.012;          // end-of-speech threshold (hysteresis)
-const VAD_SILENCE_MS = 900;             // trailing silence to end a turn
-const VAD_MIN_UTTERANCE_MS = 400;       // discard anything shorter
-const VAD_MAX_UTTERANCE_MS = 30_000;    // hard cap — always flush at 30s
-
-function pickMimeType() {
-    const candidates = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4',
-        'audio/ogg;codecs=opus',
-    ];
-    for (const m of candidates) {
-        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.(m)) {
-            return m;
-        }
-    }
-    return '';
-}
-
+// The connected session, mirrored into a ref.
+//
+// Every function on the turn path is memoized on stable deps and is
+// therefore created ONCE, on the first render: finishRecording deps
+// [setStateSync], vadTick deps [finishRecording, startRecording,
+// setStateSync], connect deps [cleanup, setStateSync, vadTick]. connect
+// then installs setInterval(vadTick, …), so every VAD-driven turn runs the
+// first render's closures. Reading the `session` STATE inside submitTurn
+// therefore always saw render 1's value (`null`) no matter what
+// setSession() stored, and the agent's systemPrompt/model/agentId were
+// silently dropped from POST /ai/voice/turn — the server fell back to
+// DEFAULT_SYSTEM_PROMPT / DEFAULT_LLM_MODEL and, with no agentId, to the
+// user's full integration tool set instead of the agent's allow-list.
+// A ref is the same fix the file already uses for getHistory/onTurnComplete.
 export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoiceSessionArgs = {}) {
     const [state, setState] = useState<VoiceState>(STATES.IDLE);
     const [session, setSession] = useState<VoiceSessionInfo | null>(null);
@@ -82,20 +68,7 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
     const speakingRef = useRef(false);
     const getHistoryRef = useRef(getHistory);
     const onTurnCompleteRef = useRef(onTurnComplete);
-    // The connected session, mirrored into a ref.
-    //
-    // Every function on the turn path is memoized on stable deps and is
-    // therefore created ONCE, on the first render: finishRecording deps
-    // [setStateSync], vadTick deps [finishRecording, startRecording,
-    // setStateSync], connect deps [cleanup, setStateSync, vadTick]. connect
-    // then installs setInterval(vadTick, …), so every VAD-driven turn runs the
-    // first render's closures. Reading the `session` STATE inside submitTurn
-    // therefore always saw render 1's value (`null`) no matter what
-    // setSession() stored, and the agent's systemPrompt/model/agentId were
-    // silently dropped from POST /ai/voice/turn — the server fell back to
-    // DEFAULT_SYSTEM_PROMPT / DEFAULT_LLM_MODEL and, with no agentId, to the
-    // user's full integration tool set instead of the agent's allow-list.
-    // A ref is the same fix the file already uses for getHistory/onTurnComplete.
+    // The connected session, mirrored into a ref (see the note above the hook).
     const sessionRef = useRef<VoiceSessionInfo | null>(null);
     const voiceActiveRef = useRef(false);           // true from connect() until hangup()
     // Sticky language — Voxtral is unreliable at language detection on short
@@ -129,19 +102,9 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
     const cleanup = useCallback(() => {
         voiceActiveRef.current = false;
         stopVad();
-        try { recorderRef.current?.stop(); } catch (_) { /* noop */ }
-        try { mediaStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop()); } catch (_) { /* noop */ }
-        try { audioCtxRef.current?.close(); } catch (_) { /* noop */ }
-        try { abortRef.current?.abort(); } catch (_) { /* noop */ }
-        try { audioElRef.current?.pause(); } catch (_) { /* noop */ }
-        recorderRef.current = null;
-        mediaStreamRef.current = null;
-        audioCtxRef.current = null;
-        analyserRef.current = null;
-        abortRef.current = null;
-        audioElRef.current = null;
-        chunksRef.current = [];
-        speakingRef.current = false;
+        releaseVoiceResources({
+            recorderRef, mediaStreamRef, audioCtxRef, analyserRef, abortRef, audioElRef, chunksRef, speakingRef,
+        });
     }, [stopVad]);
 
     useEffect(() => () => cleanup(), [cleanup]);
@@ -201,62 +164,10 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
 
     /* ── VAD loop ──────────────────────────────────────────── */
 
-    const vadTick = useCallback(() => {
-        const analyser = analyserRef.current;
-        if (!analyser) return;
-
-        const buf = new Float32Array(analyser.fftSize);
-        analyser.getFloatTimeDomainData(buf);
-        let sum = 0;
-        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-        const rms = Math.sqrt(sum / buf.length);
-        setLevel(Math.min(1, rms * 8));
-
-        const now = performance.now();
-        const cur = stateRef.current;
-
-        // Barge-in: user starts speaking while TTS plays → interrupt.
-        if (cur === STATES.SPEAKING && rms > VAD_SPEECH_RMS) {
-            try { audioElRef.current?.pause(); } catch (_) { /* noop */ }
-            audioElRef.current = null;
-            speakingRef.current = true;
-            lastVoiceAtRef.current = now;
-            startRecording();
-            return;
-        }
-
-        // THINKING: server is working, don't capture more audio.
-        if (cur === STATES.THINKING) return;
-
-        // IDLE: waiting for speech. Start recording on first voiced frame.
-        if (!speakingRef.current) {
-            if (rms > VAD_SPEECH_RMS) {
-                speakingRef.current = true;
-                lastVoiceAtRef.current = now;
-                startRecording();
-            }
-            return;
-        }
-
-        // LISTENING: already capturing. Track trailing silence.
-        if (rms > VAD_SILENCE_RMS) {
-            lastVoiceAtRef.current = now;
-        }
-        const trailingSilenceMs = now - lastVoiceAtRef.current;
-        const utteranceMs = now - speechStartRef.current;
-
-        if (trailingSilenceMs >= VAD_SILENCE_MS || utteranceMs >= VAD_MAX_UTTERANCE_MS) {
-            const wasLongEnough = utteranceMs >= VAD_MIN_UTTERANCE_MS;
-            speakingRef.current = false;
-            if (wasLongEnough) {
-                setStateSync(STATES.THINKING);
-                finishRecording(true);
-            } else {
-                // Too short — drop it, resume listening without a turn.
-                finishRecording(false);
-            }
-        }
-    }, [finishRecording, startRecording, setStateSync]);
+    const vadTick = useCallback(() => runVadTick({
+        analyserRef, stateRef, audioElRef, speakingRef, lastVoiceAtRef, speechStartRef,
+        setLevel, startRecording, finishRecording, setStateSync,
+    }), [finishRecording, startRecording, setStateSync]);
 
     /* ── Connect / hangup ──────────────────────────────────── */
 
@@ -264,43 +175,10 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
         setError(null);
         setNotice(null);
         try {
-            const resp = await authFetch(`${API_BASE}/ai/voice/session`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    agentId: opts.agentId || null,
-                    voice: opts.voice || null,
-                    language: opts.language || null,
-                }),
-            });
-            if (!resp.ok) {
-                const j = await resp.json().catch(() => ({}));
-                throw new Error(j.message || j.error || `Failed to start voice session (${resp.status})`);
-            }
-            const data = await resp.json();
+            const data = await fetchVoiceSession(opts);
             setSessionSync(data);
 
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                },
-            });
-            mediaStreamRef.current = stream;
-
-            // Set up the VAD pipeline.
-            // NB: AudioContext sample rate may differ from mic capture rate,
-            // but for energy-based VAD the absolute rate doesn't matter — we
-            // only care about relative amplitude.
-            const AudioCtxCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-            const ctx = new AudioCtxCtor();
-            audioCtxRef.current = ctx;
-            const source = ctx.createMediaStreamSource(stream);
-            const analyser = ctx.createAnalyser();
-            analyser.fftSize = VAD_FFT_SIZE;
-            source.connect(analyser);
-            analyserRef.current = analyser;
+            await openVadPipeline({ mediaStreamRef, audioCtxRef, analyserRef });
 
             voiceActiveRef.current = true;
             speakingRef.current = false;
@@ -319,199 +197,14 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
 
     /* ── Turn submission (SSE stream parser) ───────────────── */
 
-    const submitTurn = useCallback(async (blob: Blob, mimeType: string) => {
-        setPartialReply('');
-
-        // Ref, not state: finishRecording (and the VAD interval behind it) hold
-        // this render-1 closure forever, so the state variable would be pinned
-        // to its initial null. See sessionRef above.
-        const activeSession = sessionRef.current;
-
-        const hostHistory = (getHistoryRef.current?.() || [])
-            .filter((m: VoiceHistoryMessage) => m && m.role && typeof m.content === 'string')
-            .filter((m: VoiceHistoryMessage) => !m.isHidden && !m.isStreaming)
-            .map(({ role, content }: VoiceHistoryMessage) => ({ role, content }));
-
-        const form = new FormData();
-        const ext = (mimeType.split('/')[1] || 'webm').split(';')[0];
-        form.append('audio', blob, `turn.${ext}`);
-        form.append('history', JSON.stringify(hostHistory));
-        if (activeSession?.model) form.append('model', activeSession.model);
-        if (activeSession?.voice) form.append('voice', activeSession.voice);
-        // Language precedence: sticky (first confirmed) > session override > auto-detect.
-        const langHint = stickyLanguageRef.current || activeSession?.language || null;
-        if (langHint) form.append('language', langHint);
-        if (activeSession?.systemPrompt) form.append('systemPrompt', activeSession.systemPrompt);
-        if (activeSession?.agentId) form.append('agentId', activeSession.agentId);
-
-        const controller = new AbortController();
-        abortRef.current = controller;
-        const startedAt = Date.now();
-
-        let resp;
-        try {
-            resp = await authFetch(`${API_BASE}/ai/voice/turn`, {
-                method: 'POST',
-                body: form,
-                signal: controller.signal,
-            });
-        } catch (err) {
-            if ((err as Error).name === 'AbortError') {
-                if (voiceActiveRef.current) setStateSync(STATES.IDLE);
-                return;
-            }
-            setError((err as Error).message || 'Network error');
-            setStateSync(STATES.ERROR);
-            return;
-        }
-
-        if (!resp.ok || !resp.body) {
-            const j = await resp.json().catch(() => ({}));
-            setError(j.message || j.error || `Voice turn failed (${resp.status})`);
-            setStateSync(STATES.ERROR);
-            return;
-        }
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let userText = '';
-        let assistantText = '';
-        let ttsPlayed = false;
-        const turnToolsLocal: VoiceTool[] = [];
-        const metrics: { sttMs: number | null; ttftMs: number | null; ttsMs: number | null } = { sttMs: null, ttftMs: null, ttsMs: null };
-
-        const upsertTool = (id: string, patch: Partial<VoiceTool>) => {
-            const idx = turnToolsLocal.findIndex((t: VoiceTool) => t.id === id);
-            if (idx === -1) turnToolsLocal.push({ id, ...patch });
-            else turnToolsLocal[idx] = { ...turnToolsLocal[idx], ...patch };
-            setTurnTools([...turnToolsLocal]);
-        };
-
-        const dispatch = (event: string, dataRaw: string) => {
-            let data: VoiceEventData = {};
-            try { data = JSON.parse(dataRaw); } catch (_) { /* ignore */ }
-            switch (event) {
-                case 'transcript':
-                    userText = data.text || '';
-                    metrics.sttMs = data.latencyMs ?? null;
-                    setPartialTranscript(userText);
-                    // Lock language on first non-empty transcription so future
-                    // turns don't flip between Dutch / Italian / etc. on short
-                    // utterances. Only promote to sticky on substantial text.
-                    if (!stickyLanguageRef.current && data.language && userText.length >= 8) {
-                        stickyLanguageRef.current = String(data.language).toLowerCase().slice(0, 2);
-                    }
-                    break;
-                case 'no_speech':
-                    break;
-                case 'text':
-                    if (data.delta) {
-                        assistantText += data.delta;
-                        setPartialReply(assistantText);
-                    }
-                    break;
-                case 'tool_use':
-                    upsertTool(data.id as string, { name: data.name, input: data.input, status: 'running', round: data.round ?? 0 });
-                    break;
-                case 'tool_result':
-                    upsertTool(data.id as string, { name: data.name, status: data.ok ? 'done' : 'error', summary: data.summary || (data.ok ? 'ok' : 'failed') });
-                    break;
-                case 'llm_done':
-                    if (Array.isArray(data.rounds) && data.rounds.length > 0) {
-                        metrics.ttftMs = data.rounds[0]?.ttftMs ?? null;
-                    }
-                    break;
-                case 'tts':
-                    metrics.ttsMs = data.latencyMs ?? null;
-                    if (data.audioBase64) {
-                        playTts(data.audioBase64, data.mimeType || 'audio/mpeg');
-                        ttsPlayed = true;
-                    }
-                    break;
-                case 'tts_unavailable':
-                    if (data.reason === 'no_voice_configured') {
-                        setNotice('Voxtral TTS needs a voice to speak with. Create one via POST /v1/audio/voices on api.mistral.ai, or add an ElevenLabs API key as a fallback. Showing transcript only for now.');
-                    } else if (data.reason === 'tts_failed') {
-                        setNotice('Voice synthesis failed — showing transcript only. Check server logs for details.');
-                    } else {
-                        setNotice('No text-to-speech provider is configured. Add a Voxtral voice on api.mistral.ai or an ElevenLabs API key in Admin → AI Config.');
-                    }
-                    break;
-                case 'error':
-                    setError(data.message || 'Voice turn failed');
-                    setStateSync(STATES.ERROR);
-                    break;
-                case 'done':
-                    if (userText && onTurnCompleteRef.current) {
-                        const frozenTools = turnToolsLocal.map((t: VoiceTool) => ({ ...t }));
-                        // Prefer the server-cleaned text (JSON/code fragments
-                        // stripped) over the raw streaming buffer so the chat
-                        // bubble matches what TTS actually said.
-                        const finalAssistant = (typeof data.assistantText === 'string' && data.assistantText.trim())
-                            ? data.assistantText
-                            : assistantText;
-                        onTurnCompleteRef.current({
-                            user: { role: 'user', content: userText, source: 'voice' },
-                            assistant: finalAssistant || frozenTools.length
-                                ? { role: 'assistant', content: finalAssistant, source: 'voice', tools: frozenTools }
-                                : null,
-                        });
-                    }
-                    setPartialTranscript('');
-                    setPartialReply('');
-                    setTurnTools([]);
-                    setLatency({ ...metrics, totalMs: Date.now() - startedAt });
-                    if (!ttsPlayed && voiceActiveRef.current) setStateSync(STATES.IDLE);
-                    break;
-                default:
-                    break;
-            }
-        };
-
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            let idx;
-            while ((idx = buffer.indexOf('\n\n')) !== -1) {
-                const frame = buffer.slice(0, idx);
-                buffer = buffer.slice(idx + 2);
-                const lines = frame.split('\n');
-                let event = 'message';
-                const dataLines = [];
-                for (const line of lines) {
-                    if (line.startsWith('event:')) event = line.slice(6).trim();
-                    else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
-                }
-                if (dataLines.length) dispatch(event, dataLines.join('\n'));
-            }
-        }
-    }, [setStateSync]);
+    const submitTurn = useCallback((blob: Blob, mimeType: string) => streamVoiceTurn({
+        sessionRef, getHistoryRef, onTurnCompleteRef, stickyLanguageRef, abortRef, voiceActiveRef,
+        setPartialReply, setPartialTranscript, setTurnTools, setNotice, setError, setLatency, setStateSync,
+        playTts: (b64, mime) => playTts(b64, mime),
+    }, blob, mimeType), [setStateSync]);
 
     const playTts = useCallback((b64: string, mime: string) => {
-        try {
-            const bin = atob(b64);
-            const bytes = new Uint8Array(bin.length);
-            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-            const blob = new Blob([bytes], { type: mime });
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            audioElRef.current = audio;
-            audio.onplay = () => setStateSync(STATES.SPEAKING);
-            const finish = () => {
-                URL.revokeObjectURL(url);
-                audioElRef.current = null;
-                if (voiceActiveRef.current) setStateSync(STATES.IDLE);
-            };
-            audio.onended = finish;
-            audio.onerror = finish;
-            audio.play().catch(finish);
-        } catch (err) {
-            console.error('[useVoiceSession] playback error:', err);
-            if (voiceActiveRef.current) setStateSync(STATES.IDLE);
-        }
+        playTtsAudio(b64, mime, { audioElRef, voiceActiveRef, setStateSync });
     }, [setStateSync]);
 
     const hangup = useCallback(() => {
