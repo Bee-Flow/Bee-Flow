@@ -1,12 +1,59 @@
 import { PenLine, Trash2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { DataTableContext, TableColumn } from '../../../../shared/DataTable';
 import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
 import EmptyState from '../../../../shared/EmptyState';
+import type { Tone } from '../../../../shared/statusTone';
 import { REGULATION_LABEL, formatRef, regulationLabel } from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
 import StatusPill from '../../shared/StatusPill';
 import VerificationChip from '../../shared/VerificationChip';
+
+/** One item of an org-defined framework: a row of GET /custom/frameworks/:id `checks[]` (stores/customFrameworkStore.js). */
+export interface CustomCheck {
+    id: string;
+    ref: string;
+    title: string;
+    description?: string | null;
+    severity: string;
+    evidence_required?: boolean;
+    mapped_check_id?: string | null;
+}
+
+/** The custom runner's result row in the hub's `core.checks` (`regulation: 'CUSTOM'`, the item's ref as `article`). */
+export interface CustomResultRow {
+    regulation?: string;
+    framework_code?: string | null;
+    article?: string | number | null;
+    status?: string;
+    details?: string | null;
+}
+
+export type JoinedCheck = CustomCheck & { result: CustomResultRow | null };
+
+/** A built-in check of the registry catalogue (`GET /registry` checks), for the "Satisfied by" picker. */
+export interface BuiltinCheck {
+    id: string;
+    regulation?: string | null;
+    article?: string | number | null;
+    titleKey?: string;
+}
+
+interface BuiltinGroup {
+    regulation: string;
+    label: string;
+    checks: Array<{ id: string; label: string }>;
+}
+
+interface StatusPillEntry {
+    tone: Tone;
+    key: string;
+    fallback: string;
+}
+
+type MapCheck = (row: JoinedCheck, mappedCheckId: string | null) => unknown;
 
 /**
  * CustomChecksTable — the items of one org-defined framework
@@ -21,7 +68,7 @@ import VerificationChip from '../../shared/VerificationChip';
  * silently show every item as pending.
  */
 
-const STATUS_PILL = Object.freeze({
+const STATUS_PILL: Readonly<Record<string, StatusPillEntry>> & { pending: StatusPillEntry } = Object.freeze({
     pass: { tone: 'success', key: 'compliance.custom_status_pass', fallback: 'Satisfied' },
     warn: { tone: 'warning', key: 'compliance.custom_status_warn', fallback: 'Attention' },
     fail: { tone: 'error', key: 'compliance.custom_status_fail', fallback: 'Not satisfied' },
@@ -29,12 +76,12 @@ const STATUS_PILL = Object.freeze({
     pending: { tone: 'neutral', key: 'compliance.custom_status_pending', fallback: 'Not attested' },
 });
 
-export function statusPill(status) {
+export function statusPill(status: string) {
     return STATUS_PILL[status] || STATUS_PILL.pending;
 }
 
 /** Pure: index the hub's check rows by `<framework_code>#<ref>` for a cheap join. */
-export function indexResults(checks) {
+export function indexResults(checks: Array<CustomResultRow | null> | null | undefined) {
     const map = new Map();
     for (const row of Array.isArray(checks) ? checks : []) {
         if (!row || row.regulation !== 'CUSTOM' || !row.framework_code) continue;
@@ -44,7 +91,7 @@ export function indexResults(checks) {
 }
 
 const REGULATION_ORDER = Object.keys(REGULATION_LABEL);
-const byArticle = (a, b) => String(a.article ?? '').localeCompare(String(b.article ?? ''), 'en', { numeric: true })
+const byArticle = (a: BuiltinCheck, b: BuiltinCheck) => String(a.article ?? '').localeCompare(String(b.article ?? ''), 'en', { numeric: true })
     || String(a.id).localeCompare(String(b.id));
 
 /**
@@ -52,7 +99,7 @@ const byArticle = (a, b) => String(a.article ?? '').localeCompare(String(b.artic
  * picker, one group per law in the rail's order, each sorted by article. The
  * option reads as the check's title, never its raw id.
  */
-export function groupBuiltinChecks(checks, t) {
+export function groupBuiltinChecks(checks: BuiltinCheck[] | null | undefined, t: TranslateFn): BuiltinGroup[] {
     if (!Array.isArray(checks)) return [];
     const groups = new Map();
     for (const c of checks) {
@@ -61,7 +108,7 @@ export function groupBuiltinChecks(checks, t) {
         if (!groups.has(code)) groups.set(code, []);
         groups.get(code).push(c);
     }
-    const rank = (code) => { const i = REGULATION_ORDER.indexOf(code); return i === -1 ? REGULATION_ORDER.length : i; };
+    const rank = (code: string) => { const i = REGULATION_ORDER.indexOf(code); return i === -1 ? REGULATION_ORDER.length : i; };
     return [...groups.entries()]
         .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
         .map(([code, list]) => ({
@@ -75,7 +122,16 @@ export function groupBuiltinChecks(checks, t) {
 }
 
 /** The "Satisfied by" control: a person, or one built-in check, by title and grouped by law. */
-function MappedSelect({ row, groups, builtinChecks, busy, onMap, className, testId, t }) {
+function MappedSelect({ row, groups, builtinChecks, busy, onMap, className, testId, t }: {
+    row: JoinedCheck;
+    groups: BuiltinGroup[];
+    builtinChecks: BuiltinCheck[] | null;
+    busy: boolean;
+    onMap?: MapCheck;
+    className: string;
+    testId: string;
+    t: TranslateFn;
+}) {
     const mapped = row.mapped_check_id || '';
     const known = groups.some(g => g.checks.some(c => c.id === mapped));
     return (
@@ -103,10 +159,17 @@ function MappedSelect({ row, groups, builtinChecks, busy, onMap, className, test
  * item?" Delete / Cancel. Nothing is deleted until the second press; Cancel
  * (or Escape) puts the button back and focus on it.
  */
-function DeleteControl({ row, busy, onDelete, compact, testId, t }) {
+function DeleteControl({ row, busy, onDelete, compact, testId, t }: {
+    row: JoinedCheck;
+    busy: boolean;
+    onDelete: (row: JoinedCheck) => unknown;
+    compact?: boolean;
+    testId: string;
+    t: TranslateFn;
+}) {
     const [asking, setAsking] = useState(false);
-    const confirmRef = useRef(null);
-    const triggerRef = useRef(null);
+    const confirmRef = useRef<HTMLButtonElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
     const wasAsking = useRef(false);
     useEffect(() => {
         if (asking) confirmRef.current?.focus();
@@ -166,10 +229,23 @@ function DeleteControl({ row, busy, onDelete, compact, testId, t }) {
 }
 
 /** Pure: the definition rows joined with their latest result. */
-export function joinChecks(checks, results, frameworkCode) {
+export function joinChecks(checks: CustomCheck[] | null | undefined, results: Map<string, CustomResultRow> | Array<CustomResultRow | null> | null | undefined, frameworkCode: string): JoinedCheck[] | null {
     if (!Array.isArray(checks)) return null;
     const index = results instanceof Map ? results : indexResults(results);
     return checks.map(c => ({ ...c, result: index.get(`${frameworkCode}#${c.ref}`) || null }));
+}
+
+interface CustomChecksTableProps {
+    checks?: CustomCheck[] | null;
+    results?: Map<string, CustomResultRow> | Array<CustomResultRow | null> | null;
+    frameworkCode: string;
+    builtinChecks?: BuiltinCheck[] | null;
+    busyId?: string | null;
+    isMobile?: boolean;
+    onAttest?: (row: JoinedCheck) => unknown;
+    onMap?: MapCheck;
+    onDelete?: (row: JoinedCheck) => unknown;
+    testId?: string;
 }
 
 export default function CustomChecksTable({
@@ -183,12 +259,12 @@ export default function CustomChecksTable({
     onMap,
     onDelete,
     testId = 'custom-checks',
-}) {
+}: CustomChecksTableProps) {
     const { t } = useTranslation();
     const rows = useMemo(() => joinChecks(checks, results, frameworkCode), [checks, results, frameworkCode]);
     const groups = useMemo(() => groupBuiltinChecks(builtinChecks, t), [builtinChecks, t]);
 
-    const columns = [
+    const columns: TableColumn[] = [
         { id: 'ref', width: '110px', label: t('compliance.custom_col_ref', 'Ref') },
         { id: 'title', width: '1fr', label: t('compliance.custom_col_title', 'Item') },
         { id: 'severity', width: '90px', label: t('compliance.custom_col_severity', 'Severity') },
@@ -213,7 +289,7 @@ export default function CustomChecksTable({
                     description={t('compliance.custom_checks_empty_desc', 'Paste the questionnaire, or add items one by one. Each item is attested by a person — with evidence where the item asks for it.')}
                 />
             )}
-            renderCard={(row) => {
+            renderCard={(row: JoinedCheck) => {
                 const pill = statusPill(row.result?.status || 'pending');
                 return (
                     <div className="w-full min-w-0 flex flex-col gap-1.5" data-testid={`${testId}-card`}>
@@ -258,7 +334,8 @@ export default function CustomChecksTable({
                     </div>
                 );
             }}
-            renderRow={(row, ctx) => {
+            renderRow={(row: JoinedCheck, ctx: DataTableContext) => {
+
                 const pill = statusPill(row.result?.status || 'pending');
                 return (
                     <TableRow key={row.id} columns={ctx.columns} accent={pill.tone === 'neutral' ? null : pill.tone} testId={`${testId}-row`}>

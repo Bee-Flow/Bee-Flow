@@ -1,14 +1,20 @@
 import { RefreshCw, CheckCircle2, ExternalLink, FileDown } from 'lucide-react';
 import React, { useEffect, useMemo, useRef } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { DataTableContext, TableColumn } from '../../../shared/DataTable';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
 import EmptyState from '../../../shared/EmptyState';
+import type { DateLike } from '../shared/formatDates';
 import { useDateFormat } from '../shared/formatDates';
 import StatusPill from '../shared/StatusPill';
 import { Fact, ActionButton, ReadFailed, RegisterLayout } from './audits/auditForms';
+import type { SetHeaderActions } from './audits/useHeaderPrimary';
 import RopaProjects from './ropa/RopaProjects';
 import SccCell from './ropa/RopaScc';
 import { LEGAL_BASES, RESIDENCY } from './settings/settingsFields';
+import type { SettingsOption } from './settings/settingsFields.types';
+import type { RopaActivity, RopaBody, RopaPageProps, RopaProcessor, RopaState } from './ropa/ropa.types';
 
 /**
  * RopaPage — the Record of Processing Activities (GDPR Art. 30), rendered
@@ -35,7 +41,7 @@ import { LEGAL_BASES, RESIDENCY } from './settings/settingsFields';
  * columns.
  */
 
-export function sccConfirmedSet(ropa) {
+export function sccConfirmedSet(ropa: RopaBody | null | undefined) {
     return new Set(
         (ropa?.scc_confirmed_operators || [])
             .map(o => String(o?.operator || o || '').toLowerCase())
@@ -44,14 +50,14 @@ export function sccConfirmedSet(ropa) {
 }
 
 /** True when any processor row carries a DORA register fact. */
-export function hasDoraColumns(processors) {
+export function hasDoraColumns(processors: RopaProcessor[] | null | undefined) {
     return (Array.isArray(processors) ? processors : []).some(
         p => p.contract_ref || p.country || typeof p.critical === 'boolean',
     );
 }
 
 /** A stored option value in words ('legal_obligation' → 'Legal obligation'); an unknown one as it is. */
-function optionLabel(options, value, t) {
+function optionLabel(options: readonly SettingsOption[], value: string, t: TranslateFn) {
     const o = options.find(x => x.value === value);
     return o ? t(o.key, o.en) : value;
 }
@@ -60,19 +66,19 @@ function optionLabel(options, value, t) {
  * The register's row texts. `formatDay` and `number` are the language on
  * screen; a processor's location says EU once, as text.
  */
-function ropaTexts(t, formatDay, number) {
-    const dataText = (a) => (a.data_categories || []).join(', ') || '—';
-    const country = (p) => p.country_name || p.country_code || '';
+function ropaTexts(t: TranslateFn, formatDay: (value: DateLike) => string, number: Intl.NumberFormat) {
+    const dataText = (a: RopaActivity) => (a.data_categories || []).join(', ') || '—';
+    const country = (p: RopaProcessor) => p.country_name || p.country_code || '';
     return {
         dataText,
         // Operator names carry commas ("OpenAI, L.L.C."), so the list does not.
-        transfersText: (a) => ((a.transfers || []).length ? a.transfers.join(' · ') : t('compliance.ropa_no_transfers', 'None outside the EU')),
-        dataLine: (a) => t('compliance.ropa_data_line', 'Data: {data} · Kept: {retention}', { data: dataText(a), retention: a.retention || '—' }),
-        location: (p) => {
+        transfersText: (a: RopaActivity) => ((a.transfers || []).length ? a.transfers.join(' · ') : t('compliance.ropa_no_transfers', 'None outside the EU')),
+        dataLine: (a: RopaActivity) => t('compliance.ropa_data_line', 'Data: {data} · Kept: {retention}', { data: dataText(a), retention: a.retention || '—' }),
+        location: (p: RopaProcessor) => {
             if (!p.is_eu) return country(p) || '—';
             return country(p) ? t('compliance.ropa_location_eu', '{country} · EU', { country: country(p) }) : 'EU';
         },
-        callsLine: (p) => {
+        callsLine: (p: RopaProcessor) => {
             if (typeof p.calls !== 'number') return null;
             const n = number.format(p.calls);
             return p.last_seen
@@ -82,16 +88,16 @@ function ropaTexts(t, formatDay, number) {
     };
 }
 
-const ACTIVITY_COLUMNS = Object.freeze([
+const ACTIVITY_COLUMNS: readonly Readonly<TableColumn & { label: string }>[] = Object.freeze([
     Object.freeze({ id: 'name', label: 'compliance.ropa_col_activity', width: '190px' }),
     Object.freeze({ id: 'purpose', label: 'compliance.ropa_col_purpose', width: '1fr' }),
     Object.freeze({ id: 'data', label: 'compliance.ropa_col_data', width: '180px', foldBelow: 900 }),
     Object.freeze({ id: 'retention', label: 'compliance.ropa_col_retention', width: '170px', foldBelow: 900 }),
     Object.freeze({ id: 'transfers', label: 'compliance.ropa_col_transfers', width: '150px' }),
 ]);
-const ACTIVITY_FALLBACKS = Object.freeze({ name: 'Activity', purpose: 'Purpose', data: 'Data', retention: 'Retention', transfers: 'Transfers' });
+const ACTIVITY_FALLBACKS: Readonly<Record<string, string>> = Object.freeze({ name: 'Activity', purpose: 'Purpose', data: 'Data', retention: 'Retention', transfers: 'Transfers' });
 
-const PROCESSOR_FALLBACKS = Object.freeze({
+const PROCESSOR_FALLBACKS: Readonly<Record<string, string>> = Object.freeze({
     operator: 'Processor', location: 'Location', calls: 'Calls', last_seen: 'Last seen', scc: 'Transfer basis',
     contract_ref: 'Contract', critical: 'Critical', country: 'Country (contract)',
 });
@@ -105,7 +111,7 @@ const PROCESSOR_FALLBACKS = Object.freeze({
  * joined the register; nothing rendered it. An activity with no source — a
  * static row, a processor — stays plain text.
  */
-function sourceLink(activity) {
+function sourceLink(activity: RopaActivity | null | undefined) {
     const src = activity && activity.source;
     if (!src || !src.id) return null;
     if (src.kind === 'datatable') return `studio/datatables/${src.id}`;
@@ -116,7 +122,7 @@ function sourceLink(activity) {
 }
 
 /** The activity's name: a link when we know where it lives, words when we do not. */
-function ActivityName({ activity, onNavigate, className }) {
+function ActivityName({ activity, onNavigate, className }: { activity: RopaActivity; onNavigate?: ((path: string) => void) | null; className?: string }) {
     const to = sourceLink(activity);
     if (!to || !onNavigate) return <span className={className}>{activity.name}</span>;
     return (
@@ -138,7 +144,7 @@ function ActivityName({ activity, onNavigate, className }) {
  * hook builds new ones on every render, and registering on every render would
  * re-render the hub, which re-renders the page, which registers again.
  */
-function useRopaHeaderActions(setHeaderActions, state) {
+function useRopaHeaderActions(setHeaderActions: SetHeaderActions, state: RopaState) {
     const stateRef = useRef(state);
     useEffect(() => { stateRef.current = state; });
     const busy = !!state.busy;
@@ -154,10 +160,10 @@ function useRopaHeaderActions(setHeaderActions, state) {
     return typeof setHeaderActions === 'function';
 }
 
-export default function RopaPage({ data = {}, isMobile = false, exportsEnabled = true, dl, api = '/api/compliance', onNavigate = null, setHeaderActions = undefined }) {
+export default function RopaPage({ data = {}, isMobile = false, exportsEnabled = true, dl, api = '/api/compliance', onNavigate = null, setHeaderActions = undefined }: RopaPageProps) {
     const { t, resolvedLocale } = useTranslation();
     const { formatDay } = useDateFormat();
-    const state = data.ropa || {};
+    const state: RopaState = data.ropa || {};
     const ropa = state.ropa;
     const headerOwnsActions = useRopaHeaderActions(setHeaderActions, state);
 
@@ -165,7 +171,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
     const failed = !loading && (typeof ropa !== 'object' || !!ropa.error);
 
     const confirmed = useMemo(() => sccConfirmedSet(ropa), [ropa]);
-    const isConfirmed = (op) => confirmed.has(String(op || '').toLowerCase());
+    const isConfirmed = (op: string | null | undefined) => confirmed.has(String(op || '').toLowerCase());
 
     const activities = !loading && !failed && Array.isArray(ropa.activities) ? ropa.activities : [];
     const processors = !loading && !failed && Array.isArray(ropa.processors) ? ropa.processors : [];
@@ -178,7 +184,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
     const { dataText, transfersText, dataLine, location, callsLine } = ropaTexts(t, formatDay, number);
 
     const activityColumns = ACTIVITY_COLUMNS.map(c => ({ ...c, label: t(c.label, ACTIVITY_FALLBACKS[c.id]) }));
-    const processorColumns = [
+    const processorColumns: TableColumn[] = [
         { id: 'operator', label: t('compliance.ropa_col_operator', PROCESSOR_FALLBACKS.operator), width: '1fr' },
         { id: 'location', label: t('compliance.ropa_col_location', PROCESSOR_FALLBACKS.location), width: '170px' },
         ...(dora ? [
@@ -246,7 +252,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                     ariaLabel={t('compliance.ropa_activities', 'Processing activities')}
                     testId="ropa-activities-table"
                     empty={<EmptyState title={t('compliance.ropa_no_activities', 'No processing activities detected yet')} />}
-                    renderCard={(a) => (
+                    renderCard={(a: RopaActivity) => (
                         <div className="w-full min-w-0 flex flex-col gap-1" data-testid={`ropa-activity-card-${a.activity_id}`}>
                             <ActivityName activity={a} onNavigate={onNavigate} className="text-xs font-semibold text-[var(--text-primary)] [overflow-wrap:anywhere]" />
                             <span className="text-[11px] text-[var(--text-secondary)]">{a.purpose}</span>
@@ -254,7 +260,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                             <span className="text-[11px] text-[var(--text-tertiary)] [overflow-wrap:anywhere]">{transfersText(a)}</span>
                         </div>
                     )}
-                    renderRow={(a, ctx) => (
+                    renderRow={(a: RopaActivity, ctx: DataTableContext) => (
                         <TableRow columns={ctx.columns} testId={`ropa-activity-${a.activity_id}`}>
                             <TableCell column={ctx.columns[0]}>
                                 <ActivityName activity={a} onNavigate={onNavigate} className="font-semibold text-[var(--text-primary)] [overflow-wrap:anywhere]" />
@@ -306,7 +312,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                     ariaLabel={t('compliance.ropa_processors', 'Processors')}
                     testId="ropa-processors-table"
                     empty={<EmptyState title={t('compliance.ropa_no_processors', 'Nothing left this installation yet')} />}
-                    renderCard={(p) => {
+                    renderCard={(p: RopaProcessor) => {
                         const key = p.operator || 'unknown';
                         return (
                             <div className="w-full min-w-0 flex items-center gap-2" data-testid={`ropa-processor-card-${key}`}>
@@ -329,8 +335,9 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                             </div>
                         );
                     }}
-                    renderRow={(p, ctx) => {
-                        const ok = isConfirmed(p.operator) || !!p.scc_confirmed;
+                    renderRow={(p: RopaProcessor, ctx: DataTableContext) => {
+                        const ok
+ = isConfirmed(p.operator) || !!p.scc_confirmed;
                         const key = p.operator || 'unknown';
                         let i = 0;
                         return (

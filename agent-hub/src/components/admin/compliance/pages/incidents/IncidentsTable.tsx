@@ -1,13 +1,47 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import { filedCount, isClosedUnfiled, isVulnerability, lastDone, nextClock, startedAtOf, STATUS_LABEL } from './incidentClocks';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { DataTableContext } from '../../../../shared/DataTable';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
 import DeadlineClock, { useNow } from '../../../../shared/DeadlineClock';
 import { clockState } from '../../../../shared/deadlineMath';
 import { DrawerId } from '../../../../shared/SideDrawer';
+import type { Tone } from '../../../../shared/statusTone';
 import { useDateFormat } from '../../shared/formatDates';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import SeverityTag from '../../shared/SeverityTag';
+
+/** The lifecycle words of stores/incidentStore.js (VALID_STATUSES), as incidentClocks.STATUS_LABEL names them. */
+export type IncidentStatus = keyof typeof STATUS_LABEL;
+
+/** A register row as GET /incidents lists it (stores/incidentStore.js `compliance_incidents`). */
+export type IncidentRecord = {
+    id: number;
+    kind?: string | null;
+    title: string;
+    description?: string | null;
+    severity: string;
+    status: IncidentStatus;
+    high_risk?: boolean | null;
+    occurred_at?: string | null;
+    detected_at?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    recipients_notified_at?: string | null;
+    cve_ids?: string[] | null;
+    exploited_in_wild?: boolean | null;
+    affected_products?: Array<{ name?: string; version_range?: string }> | null;
+    notes?: Array<{ at?: string | null; text?: string | null }> | null;
+};
+
+interface IncidentColumn {
+    id: string;
+    width: string;
+    labelKey: string;
+    fallback: string;
+    foldBelow?: number;
+}
 
 /**
  * IncidentsTable — Clock · Incident · Occurred · Next step · Status (the 1c
@@ -21,7 +55,7 @@ import SeverityTag from '../../shared/SeverityTag';
  * severity. Occurred folds under the title when the table is narrow (an open
  * drawer beside it), so the title keeps its room.
  */
-export const INCIDENT_COLUMNS = Object.freeze([
+export const INCIDENT_COLUMNS: readonly Readonly<IncidentColumn>[] = Object.freeze([
     Object.freeze({ id: 'clock', width: '118px', labelKey: 'compliance.inc_col_clock', fallback: 'Deadline' }),
     Object.freeze({ id: 'incident', width: '1fr', labelKey: 'compliance.inc_col_incident', fallback: 'Incident' }),
     Object.freeze({ id: 'occurred', width: '104px', labelKey: 'compliance.inc_col_occurred', fallback: 'Occurred', foldBelow: 900 }),
@@ -29,12 +63,12 @@ export const INCIDENT_COLUMNS = Object.freeze([
     Object.freeze({ id: 'status', width: '128px', labelKey: 'compliance.inc_col_status', fallback: 'Status' }),
 ]);
 
-export const incidentRef = (inc) => (isVulnerability(inc) ? `VULN-${inc.id}` : `INC-${inc.id}`);
+export const incidentRef = (inc: IncidentRecord) => (isVulnerability(inc) ? `VULN-${inc.id}` : `INC-${inc.id}`);
 
-const sameId = (a, b) => a !== null && a !== undefined && String(a) === String(b);
+const sameId = (a: unknown, b: unknown) => a !== null && a !== undefined && String(a) === String(b);
 
 /** The row's stripe: red when the running clock is overdue, amber when urgent, none otherwise. */
-export function accentOf(incident, now = Date.now()) {
+export function accentOf(incident: IncidentRecord, now = Date.now()): Tone | null {
     const next = nextClock(incident);
     if (!next) return null;
     const { state } = clockState({ dueAt: next.dueAt, startedAt: startedAtOf(incident), urgentBelowMs: next.urgentBelowMs, now });
@@ -46,7 +80,7 @@ export function accentOf(incident, now = Date.now()) {
  * completion; a closed incident none of whose stages was filed reads
  * "closed · not notified" in quiet ink, never a red "overdue".
  */
-export function IncidentClock({ incident, variant = 'row', testId }) {
+export function IncidentClock({ incident, variant = 'row', testId }: { incident: IncidentRecord; variant?: 'row' | 'block'; testId?: string }) {
     const { t } = useTranslation();
     const next = nextClock(incident);
     if (next) {
@@ -70,7 +104,7 @@ export function IncidentClock({ incident, variant = 'row', testId }) {
 }
 
 /** "Next step": the stage the row waits for, or All filed / Closed, with the filed count for a screen reader. */
-export function NextStep({ incident, testId }) {
+export function NextStep({ incident, testId }: { incident: IncidentRecord; testId?: string }) {
     const { t } = useTranslation();
     const next = nextClock(incident);
     const { filed, total } = filedCount(incident);
@@ -86,21 +120,32 @@ export function NextStep({ incident, testId }) {
     );
 }
 
-export function IncidentStatusPill({ status, testId }) {
+export function IncidentStatusPill({ status, testId }: { status: IncidentStatus; testId?: string }) {
     const { t } = useTranslation();
     const meta = STATUS_LABEL[status] || STATUS_LABEL.open;
     return <RegisterStatePill state={status || 'open'} testId={testId}>{t(meta.key, meta.en)}</RegisterStatePill>;
 }
 
-export default function IncidentsTable({ rows, selectedId, onSelect, loading = false, isMobile = false, footer, empty, testId = 'inc-table' }) {
+interface IncidentsTableProps {
+    rows?: IncidentRecord[];
+    selectedId?: number | null;
+    onSelect?: (incident: IncidentRecord) => void;
+    loading?: boolean;
+    isMobile?: boolean;
+    footer?: ReactNode;
+    empty?: ReactNode;
+    testId?: string;
+}
+
+export default function IncidentsTable({ rows, selectedId, onSelect, loading = false, isMobile = false, footer, empty, testId = 'inc-table' }: IncidentsTableProps) {
     const { t } = useTranslation();
     const { formatDayTime } = useDateFormat();
     const now = useNow();
     const columns = INCIDENT_COLUMNS.map(c => ({ id: c.id, width: c.width, foldBelow: c.foldBelow, label: t(c.labelKey, c.fallback) }));
-    const openSeverity = (inc) => inc.status !== 'closed' && inc.severity;
-    const occurredOf = (inc) => formatDayTime(inc.occurred_at ?? inc.detected_at) || '—';
+    const openSeverity = (inc: IncidentRecord) => inc.status !== 'closed' && inc.severity;
+    const occurredOf = (inc: IncidentRecord) => formatDayTime(inc.occurred_at ?? inc.detected_at) || '—';
 
-    const renderRow = (inc, ctx) => (
+    const renderRow = (inc: IncidentRecord, ctx: DataTableContext): ReactNode => (
         <TableRow
             key={inc.id}
             columns={ctx.columns}
@@ -130,7 +175,8 @@ export default function IncidentsTable({ rows, selectedId, onSelect, loading = f
         </TableRow>
     );
 
-    const renderCard = (inc) => (
+    const renderCard = (inc: IncidentRecord): ReactNode => (
+
         <button type="button" onClick={() => onSelect?.(inc)} className="w-full text-left px-3.5 py-2.5 grid grid-cols-[1fr_104px] gap-2 border-b border-[var(--border-default)]" data-testid={`${testId}-card-${inc.id}`}>
             <div className="min-w-0 flex flex-col gap-1">
                 <div className="flex items-center gap-2 min-w-0"><DrawerId>{incidentRef(inc)}</DrawerId><span className="truncate text-xs font-medium text-[var(--text-primary)]">{inc.title}</span></div>

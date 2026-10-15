@@ -1,10 +1,34 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import { TriangleAlert } from 'lucide-react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { DataTableContext } from '../../../../shared/DataTable';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
 import { DrawerId } from '../../../../shared/SideDrawer';
+import type { Tone } from '../../../../shared/statusTone';
 import { TONES, toneOfSeverity } from '../../../../shared/statusTone';
 import RegisterStatePill from '../../shared/RegisterStatePill';
+import type { Member, RiskRow } from './riskDraft';
+
+/** A register row as GET /iso/risks lists it (stores/riskStore.js `iso_risks`; ids are SERIAL). */
+export interface RiskRecord extends RiskRow {
+    id: number;
+    title: string;
+    status: string;
+    score?: number | null;
+    accepted_by?: string | null;
+    accepted_at?: string | null;
+    updated_at?: string | null;
+}
+
+interface RiskColumn {
+    id: string;
+    width: string;
+    labelKey: string;
+    fallback: string;
+    foldBelow?: number;
+}
 
 /**
  * RisksTable — R-{id} · Risk · Score · Status · Owner (the 1c/1d table
@@ -19,7 +43,7 @@ import RegisterStatePill from '../../shared/RegisterStatePill';
  * scenario. Below 900px of card width the Owner column folds and the owner
  * joins that second line.
  */
-export const RISK_COLUMNS = Object.freeze([
+export const RISK_COLUMNS: readonly Readonly<RiskColumn>[] = Object.freeze([
     Object.freeze({ id: 'ref', width: '64px', labelKey: 'compliance.risk_col_ref', fallback: 'Risk' }),
     Object.freeze({ id: 'risk', width: '1fr', labelKey: 'compliance.risk_col_title', fallback: 'Title · scenario' }),
     Object.freeze({ id: 'score', width: '110px', labelKey: 'compliance.risk_col_score', fallback: 'Score' }),
@@ -27,15 +51,15 @@ export const RISK_COLUMNS = Object.freeze([
     Object.freeze({ id: 'owner', width: '120px', labelKey: 'compliance.risk_col_owner', fallback: 'Owner', foldBelow: 900 }),
 ]);
 
-export const CATEGORIES = Object.freeze(['confidentiality', 'integrity', 'availability', 'compliance']);
-export const OPTIONS = Object.freeze(['mitigate', 'transfer', 'avoid', 'accept']);
-export const SCALE = Object.freeze([1, 2, 3, 4, 5]);
-export const RISK_STATUSES = Object.freeze(['open', 'treating', 'accepted', 'closed']);
+export const CATEGORIES: readonly string[] = Object.freeze(['confidentiality', 'integrity', 'availability', 'compliance']);
+export const OPTIONS: readonly string[] = Object.freeze(['mitigate', 'transfer', 'avoid', 'accept']);
+export const SCALE: readonly number[] = Object.freeze([1, 2, 3, 4, 5]);
+export const RISK_STATUSES: readonly string[] = Object.freeze(['open', 'treating', 'accepted', 'closed']);
 
-export const riskRef = (r) => `R-${r.id}`;
+export const riskRef = (r: Pick<RiskRecord, 'id'>) => `R-${r.id}`;
 
 /** Score band → severity word (the register's bands since it shipped). */
-export function severityOfScore(score) {
+export function severityOfScore(score: unknown) {
     const n = Number(score);
     if (Number.isNaN(n)) return null;
     if (n >= 16) return 'critical';
@@ -44,9 +68,9 @@ export function severityOfScore(score) {
     return 'low';
 }
 
-export const scoreOf = (r) => (r?.score ?? (Number(r?.likelihood) || 0) * (Number(r?.impact) || 0));
+export const scoreOf = (r: RiskRecord | null | undefined) => (r?.score ?? (Number(r?.likelihood) || 0) * (Number(r?.impact) || 0));
 
-export function toneOfRiskStatus(status) {
+export function toneOfRiskStatus(status: string | null | undefined): Tone {
     switch (status) {
         case 'open': return 'error';
         case 'treating': return 'warning';
@@ -55,15 +79,15 @@ export function toneOfRiskStatus(status) {
     }
 }
 
-export const isReviewOverdue = (r, now = Date.now()) => !!(r?.review_due_at && r.status !== 'closed' && new Date(r.review_due_at).getTime() < now);
+export const isReviewOverdue = (r: RiskRecord | null | undefined, now = Date.now()) => !!(r?.review_due_at && r.status !== 'closed' && new Date(r.review_due_at).getTime() < now);
 
-export function ownerName(orgUsers, id) {
+export function ownerName(orgUsers: Member[] | null | undefined, id: string | null | undefined) {
     if (!id) return null;
     const u = (Array.isArray(orgUsers) ? orgUsers : []).find(x => x.id === id);
     return u ? (u.displayName || null) : null;
 }
 
-export function ScorePill({ risk, testId }) {
+export function ScorePill({ risk, testId }: { risk: RiskRecord; testId?: string }) {
     const { t } = useTranslation();
     const score = scoreOf(risk);
     const severity = severityOfScore(score);
@@ -84,7 +108,7 @@ export function ScorePill({ risk, testId }) {
 }
 
 /** The risk's lifecycle state in the register vocabulary (statusVocabulary). */
-export function RiskStatusPill({ status, className = '', testId = undefined }) {
+export function RiskStatusPill({ status, className = '', testId = undefined }: { status: string; className?: string; testId?: string }) {
     const { t } = useTranslation();
     const key = RISK_STATUSES.includes(status) ? status : 'open';
     return (
@@ -94,10 +118,10 @@ export function RiskStatusPill({ status, className = '', testId = undefined }) {
     );
 }
 
-const STATUS_EN = Object.freeze({ open: 'Open', treating: 'Treating', accepted: 'Accepted', closed: 'Closed' });
+const STATUS_EN: Readonly<Record<string, string>> = Object.freeze({ open: 'Open', treating: 'Treating', accepted: 'Accepted', closed: 'Closed' });
 
 /** "· 2 actions": the treatment plan's size, beside the status. Nothing for none. */
-function ActionCount({ count, testId = undefined }) {
+function ActionCount({ count, testId = undefined }: { count: number; testId?: string }) {
     const { t } = useTranslation();
     if (!(count > 0)) return null;
     return (
@@ -108,7 +132,7 @@ function ActionCount({ count, testId = undefined }) {
 }
 
 /** The "review overdue" flag, in the warning ink with a glyph (so it is not colour alone). */
-function OverdueFlag({ testId }) {
+function OverdueFlag({ testId }: { testId?: string }) {
     const { t } = useTranslation();
     return (
         <span className="inline-flex items-center gap-1 font-semibold whitespace-nowrap text-[var(--warning-ink)]" data-testid={testId}>
@@ -117,16 +141,30 @@ function OverdueFlag({ testId }) {
     );
 }
 
-function categoryLabel(t, category) {
+function categoryLabel(t: TranslateFn, category: string | null | undefined) {
     if (!category) return null;
     return CATEGORIES.includes(category) ? t(`compliance.risk_cat_${category}`, category) : category;
 }
 
-export default function RisksTable({ rows, treatmentsByRisk, orgUsers, selectedId, onSelect, loading = false, isMobile = false, footer, empty, testId = 'risk-table' }) {
+interface RisksTableProps {
+    rows?: RiskRecord[];
+    /** Treatments grouped by risk id; only their count is read here. */
+    treatmentsByRisk?: ReadonlyMap<number, readonly unknown[]> | null;
+    orgUsers?: Member[] | null;
+    selectedId?: number | null;
+    onSelect?: (risk: RiskRecord) => void;
+    loading?: boolean;
+    isMobile?: boolean;
+    footer?: ReactNode;
+    empty?: ReactNode;
+    testId?: string;
+}
+
+export default function RisksTable({ rows, treatmentsByRisk, orgUsers, selectedId, onSelect, loading = false, isMobile = false, footer, empty, testId = 'risk-table' }: RisksTableProps) {
     const { t } = useTranslation();
     const columns = RISK_COLUMNS.map(c => ({ id: c.id, width: c.width, foldBelow: c.foldBelow, label: t(c.labelKey, c.fallback) }));
 
-    const renderRow = (r, ctx) => {
+    const renderRow = (r: RiskRecord, ctx: DataTableContext): ReactNode => {
         const count = treatmentsByRisk?.get?.(r.id)?.length ?? 0;
         const overdue = isReviewOverdue(r);
         const owner = ownerName(orgUsers, r.owner_user_id);
@@ -162,7 +200,8 @@ export default function RisksTable({ rows, treatmentsByRisk, orgUsers, selectedI
         );
     };
 
-    const renderCard = (r) => {
+    const renderCard = (r: RiskRecord): ReactNode => {
+
         const overdue = isReviewOverdue(r);
         const owner = ownerName(orgUsers, r.owner_user_id);
         const count = treatmentsByRisk?.get?.(r.id)?.length ?? 0;

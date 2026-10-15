@@ -1,12 +1,34 @@
+import type { LucideIcon } from 'lucide-react';
 import { Bot, Workflow } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { DataTableContext, RowLike, TableColumn } from '../../../../shared/DataTable';
 import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
 import DeadlineClock from '../../../../shared/DeadlineClock';
 import EmptyState from '../../../../shared/EmptyState';
 import { useAiActAssessments } from '../../data/aggregates';
+import type { DateLike } from '../../shared/formatDates';
 import { useDateFormat } from '../../shared/formatDates';
 import StatusPill from '../../shared/StatusPill';
+import type { Tone } from '../../../../shared/statusTone';
+
+/** One row of GET /ai-act/assessments (routes/compliance/aiAct.js): the newest attestation per target. */
+export interface AiActAssessment extends RowLike {
+    target_kind: string;
+    target_id: string;
+    title?: string | null;
+    outcome: string;
+    attested_by?: string | null;
+    attested_at?: string | null;
+    expires_at?: string | null;
+    current?: boolean;
+}
+
+interface OutcomePill {
+    tone: Tone;
+    key: string | null;
+    fallback: string;
+}
 
 /**
  * PerAutomationTab — the AI Act ladder outcome per automation / agent
@@ -22,7 +44,7 @@ import StatusPill from '../../shared/StatusPill';
  * (`prohibited | high_risk | transparency | minimal | not_applicable`); the chip keys are
  * fe-8's (`keys/fe-8-ai-act-ladder.json`). Unknown outcomes fall back to neutral + the raw word.
  */
-export const OUTCOME_PILL = Object.freeze({
+export const OUTCOME_PILL: Readonly<Record<string, OutcomePill>> = Object.freeze({
     prohibited: { tone: 'error', key: 'compliance.ladder_outcome_chip_prohibited', fallback: 'Prohibited (Art. 5)' },
     high_risk: { tone: 'error', key: 'compliance.ladder_outcome_chip_high_risk', fallback: 'High-risk (Annex III)' },
     transparency: { tone: 'warning', key: 'compliance.ladder_outcome_chip_transparency', fallback: 'Art. 4 + Art. 50' },
@@ -30,22 +52,28 @@ export const OUTCOME_PILL = Object.freeze({
     not_applicable: { tone: 'neutral', key: 'compliance.ladder_outcome_chip_not_applicable', fallback: 'AI Act not applicable' },
 });
 
-export function outcomePill(outcome) {
+export function outcomePill(outcome: string): OutcomePill {
     return OUTCOME_PILL[outcome] || { tone: 'neutral', key: null, fallback: String(outcome ?? '—') };
 }
 
-const KIND_ICON = Object.freeze({ agent: Bot, automation: Workflow });
+const KIND_ICON: Readonly<Record<string, LucideIcon>> = Object.freeze({ agent: Bot, automation: Workflow });
 
-export default function PerAutomationTab({ onOpenLadder, isMobile = false, testId = 'fw-per-automation' }) {
+interface PerAutomationTabProps {
+    onOpenLadder?: (kind: string, id: string, title?: string | null) => void;
+    isMobile?: boolean;
+    testId?: string;
+}
+
+export default function PerAutomationTab({ onOpenLadder, isMobile = false, testId = 'fw-per-automation' }: PerAutomationTabProps) {
     const { t } = useTranslation();
     const { formatDay: formatDayIn } = useDateFormat();
     // A row without a readable date shows a dash, never "Invalid Date".
-    const formatDay = (value) => formatDayIn(value) || '—';
+    const formatDay = (value: DateLike) => formatDayIn(value) || '—';
     const { assessments, failed } = useAiActAssessments({ enabled: true });
-    const rows = Array.isArray(assessments) ? assessments : [];
+    const rows: AiActAssessment[] = Array.isArray(assessments) ? assessments : [];
     const loading = !failed && assessments === null;
 
-    const columns = [
+    const columns: TableColumn[] = [
         { id: 'target', width: '1fr', label: t('compliance.fw_pa_col_target', 'Automation / agent') },
         { id: 'outcome', width: '150px', label: t('compliance.fw_pa_col_outcome', 'Outcome') },
         { id: 'attested', width: '120px', label: t('compliance.fw_pa_col_attested', 'Attested'), foldBelow: 900 },
@@ -80,7 +108,7 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
                         description={t('compliance.fw_pa_empty_desc', 'Run the AI Act ladder on an agent or automation — the outcome lands here with its expiry.')}
                     />
                 )}
-                renderCard={(r) => {
+                renderCard={(r: AiActAssessment) => {
                     const pill = outcomePill(r.outcome);
                     const Icon = KIND_ICON[r.target_kind] || Workflow;
                     const expired = r.current === false;
@@ -111,7 +139,8 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
                         </div>
                     );
                 }}
-                renderRow={(r, ctx) => {
+                renderRow={(r: AiActAssessment, ctx: DataTableContext) => {
+
                     const pill = outcomePill(r.outcome);
                     const Icon = KIND_ICON[r.target_kind] || Workflow;
                     const expired = r.current === false;

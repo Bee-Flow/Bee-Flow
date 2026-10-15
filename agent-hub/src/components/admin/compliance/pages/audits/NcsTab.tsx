@@ -1,12 +1,18 @@
+import type { LucideIcon } from 'lucide-react';
 import { Plus, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import React, { useId, useMemo, useState } from 'react';
 import {
     NC_STATUS, NC_SEVERITY, NC_SOURCE, labelOf, toneOf, userName, fmtDate, dateInputValue, isOverdue,
     Field, TextInput, TextArea, DateInput, Select, UserSelect, ActionButton, Intro, RegisterLayout,
 } from './auditForms';
+import type { NcEdit, NcPatch } from './isoProcessHelpers';
 import { editPatch } from './isoProcessHelpers';
+import type { OrgUser } from '../accessAuditLabels';
+import type { SetHeaderActions } from './useHeaderPrimary';
 import useHeaderPrimary from './useHeaderPrimary';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { DataTableContext } from '../../../../shared/DataTable';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
 import DeadlineClock from '../../../../shared/DeadlineClock';
 import EmptyState from '../../../../shared/EmptyState';
@@ -14,6 +20,52 @@ import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/Side
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import StatusPill from '../../shared/StatusPill';
 import useDrawerMode from '../../shared/useDrawerMode';
+
+/** One nonconformity as GET /iso/audit lists it (`ncs`). */
+export interface Nonconformity {
+    id: string | number;
+    title: string;
+    description?: string | null;
+    severity?: string | null;
+    status?: string | null;
+    source?: string | null;
+    due_at?: string | null;
+    closed_at?: string | null;
+    owner_user_id?: string | null;
+    corrective_action?: string | null;
+    effectiveness_review_due_at?: string | null;
+    effectiveness_confirmed_at?: string | null;
+    effectiveness_confirmed_by?: string | null;
+}
+
+interface NcDraft {
+    title: string;
+    description: string;
+    severity: string;
+    due_at: string;
+    owner_user_id: string;
+}
+
+interface NcStep {
+    label: string;
+    icon: LucideIcon;
+    testId: string;
+    patch: { status: string; confirm_effectiveness?: boolean };
+    needsCa: boolean;
+}
+
+interface NcsTabProps {
+    audit: {
+        ncs?: Nonconformity[] | null;
+        busy?: boolean;
+        createNc: (body: Pick<NcDraft, 'severity'> & { title: string; description: string | undefined; due_at: string | undefined; owner_user_id: string | undefined; source: 'manual' }) => unknown;
+        updateNc: (id: Nonconformity['id'], patch: NcPatch & { status?: string; confirm_effectiveness?: boolean }) => unknown;
+    };
+    orgUsers?: OrgUser[] | null;
+    isMobile?: boolean;
+    focusId?: string | number | null;
+    setHeaderActions?: SetHeaderActions;
+}
 
 /**
  * NcsTab — the nonconformity register (clause 10): open → corrective action
@@ -26,9 +78,9 @@ import useDrawerMode from '../../shared/useDrawerMode';
  * drawer is never lost when the step is taken instead of Save. Moving on to
  * the effectiveness review, and closing, wait for a written corrective action.
  */
-const EMPTY_DRAFT = Object.freeze({ title: '', description: '', severity: 'minor', due_at: '', owner_user_id: '' });
+const EMPTY_DRAFT: Readonly<NcDraft> = Object.freeze({ title: '', description: '', severity: 'minor', due_at: '', owner_user_id: '' });
 
-const editFrom = (nc) => ({
+const editFrom = (nc: Nonconformity) => ({
     corrective_action: nc.corrective_action || '',
     due_at: dateInputValue(nc.due_at),
     effectiveness_review_due_at: dateInputValue(nc.effectiveness_review_due_at),
@@ -36,7 +88,7 @@ const editFrom = (nc) => ({
 });
 
 /** The next step of an NC: its button and the status it writes (null when there is none). */
-function stepOf(nc, t) {
+function stepOf(nc: Nonconformity, t: TranslateFn): NcStep | null {
     if (nc.status === 'open') {
         return { label: t('compliance.nc_start_ca', 'Start corrective action'), icon: ArrowRight, testId: 'nc-start-ca', patch: { status: 'corrective_action' }, needsCa: false };
     }
@@ -49,18 +101,18 @@ function stepOf(nc, t) {
     return null;
 }
 
-export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }) {
+export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }: NcsTabProps) {
     const { t, resolvedLocale } = useTranslation();
     const { ncs, busy, createNc, updateNc } = audit;
     const loading = ncs === null || ncs === undefined;
-    const list = useMemo(() => (Array.isArray(ncs) ? ncs : []), [ncs]);
+    const list = useMemo((): Nonconformity[] => (Array.isArray(ncs) ? ncs : []), [ncs]);
     const hintId = useId();
     const [frameRef, drawerMode] = useDrawerMode({ isMobile });
 
-    const [selectedId, setSelectedId] = useState(focusId || null);
+    const [selectedId, setSelectedId] = useState<string | number | null>(focusId || null);
     const [creating, setCreating] = useState(false);
-    const [draft, setDraft] = useState(EMPTY_DRAFT);
-    const [edit, setEdit] = useState(null);
+    const [draft, setDraft] = useState<NcDraft>(EMPTY_DRAFT);
+    const [edit, setEdit] = useState<NcEdit | null>(null);
     const [seenFocusId, setSeenFocusId] = useState(focusId);
     if (seenFocusId !== focusId) {
         setSeenFocusId(focusId);
@@ -93,7 +145,7 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
         setDraft(EMPTY_DRAFT);
         setCreating(false);
     };
-    const saveEdit = (id) => {
+    const saveEdit = (id: Nonconformity['id']) => {
         if (!edit) return;
         updateNc(id, editPatch(edit));
     };
@@ -206,7 +258,7 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
         );
     }
 
-    const toggle = (nc) => { setCreating(false); setSelectedId(prev => (String(prev) === String(nc.id) ? null : nc.id)); };
+    const toggle = (nc: Nonconformity) => { setCreating(false); setSelectedId(prev => (String(prev) === String(nc.id) ? null : nc.id)); };
 
     return (
         <RegisterLayout isMobile={isMobile} drawerMode={drawerMode} frameRef={frameRef} testId="ncs-tab" drawer={drawer}
@@ -225,7 +277,7 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                 ariaLabel={t('compliance.nc_tab', 'Nonconformities')}
                 testId="ncs-table"
                 empty={<EmptyState title={t('compliance.nc_empty_title', 'No nonconformities recorded')} description={t('compliance.nc_empty', 'No nonconformities recorded. That is only good news if you are genuinely finding none — audits and incidents should feed this register.')} />}
-                renderCard={(nc) => {
+                renderCard={(nc: Nonconformity) => {
                     const closed = nc.status === 'closed';
                     return (
                         <button
@@ -250,7 +302,8 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                         </button>
                     );
                 }}
-                renderRow={(nc, ctx) => {
+                renderRow={(nc: Nonconformity, ctx: DataTableContext) => {
+
                     const closed = nc.status === 'closed';
                     const overdue = isOverdue(nc.due_at, { closed });
                     return (

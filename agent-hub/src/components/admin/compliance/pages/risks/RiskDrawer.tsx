@@ -1,11 +1,36 @@
 import React, { useState } from 'react';
+import type { SideDrawerMode } from '../../../../shared/SideDrawer';
 import { CheckCircle2, Plus, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import SideDrawer, { DrawerSection, DrawerId, DrawerFooter } from '../../../../shared/SideDrawer';
 import { TONES } from '../../../../shared/statusTone';
 import { useDateFormat } from '../../shared/formatDates';
 import { CATEGORIES, OPTIONS, SCALE, RISK_STATUSES, ScorePill, RiskStatusPill, riskRef, ownerName } from './RisksTable';
+import type { Member, RiskDraft, RiskPatch, TreatmentDraft } from './riskDraft';
 import { acceptPatchOf, draftOf, memberOptions, patchOf, treatmentOf } from './riskDraft';
+import type { RiskRecord } from './RisksTable';
+
+/** A treatment as GET /iso/risks lists it (stores/riskStore.js `iso_risk_treatments`). */
+export interface RiskTreatment {
+    id: number;
+    risk_id: number;
+    option: string;
+    description?: string | null;
+    due_at?: string | null;
+    done_at?: string | null;
+}
+
+interface RiskDrawerProps {
+    risk?: RiskRecord | null;
+    treatments?: RiskTreatment[];
+    orgUsers?: Member[] | null;
+    busy?: boolean;
+    onUpdate?: (id: number, patch: RiskPatch) => unknown;
+    onAddTreatment?: (riskId: number, fields: ReturnType<typeof treatmentOf>) => unknown;
+    onClose?: () => void;
+    mode?: SideDrawerMode;
+    testId?: string;
+}
 
 /**
  * RiskDrawer — one register row: the edit form (title, scenario, category,
@@ -19,13 +44,13 @@ import { acceptPatchOf, draftOf, memberOptions, patchOf, treatmentOf } from './r
  * new status in one write (riskDraft.acceptPatchOf). The form state and the
  * bodies it sends live in riskDraft.ts.
  */
-const EMPTY_TREATMENT = Object.freeze({ option: 'mitigate', description: '', due_at: '' });
+const EMPTY_TREATMENT: Readonly<TreatmentDraft> = Object.freeze({ option: 'mitigate', description: '', due_at: '' });
 
-export default function RiskDrawer({ risk, treatments = [], orgUsers, busy = false, onUpdate, onAddTreatment, onClose, mode = 'inline', testId = 'risk-drawer' }) {
+export default function RiskDrawer({ risk, treatments = [], orgUsers, busy = false, onUpdate, onAddTreatment, onClose, mode = 'inline', testId = 'risk-drawer' }: RiskDrawerProps) {
     const { t } = useTranslation();
     const { formatDay } = useDateFormat();
     const [draft, setDraft] = useState(() => draftOf(risk));
-    const [treat, setTreat] = useState(EMPTY_TREATMENT);
+    const [treat, setTreat] = useState<TreatmentDraft>(EMPTY_TREATMENT);
     // A fresh draft when another risk opens or this one changed on the
     // server — during render, so typing is never reset by a parent re-render.
     const riskKey = `${risk?.id}:${risk?.updated_at}`;
@@ -36,7 +61,7 @@ export default function RiskDrawer({ risk, treatments = [], orgUsers, busy = fal
     }
 
     if (!risk) return null;
-    const patch = (p) => setDraft(d => ({ ...d, ...p }));
+    const patch = (p: Partial<RiskDraft>) => setDraft(d => ({ ...d, ...p }));
     const preview = { ...risk, likelihood: Number(draft.likelihood), impact: Number(draft.impact), score: Number(draft.likelihood) * Number(draft.impact) };
 
     const header = (
