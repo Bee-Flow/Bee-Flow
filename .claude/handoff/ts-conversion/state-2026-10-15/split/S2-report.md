@@ -17,18 +17,18 @@
 ## Summary (final)
 | Batch | Converted | Still JS | Review |
 |---|---|---|---|
-| 13 compliance pages | 7 / 36 | 29 (23 blocked by b2 DataTable/SideDrawer) | reviews/S2-compliance.md |
-| 14 compliance shared, modules, monitoring | 28 / 54 | 26 | reviews/S2-compliance.md |
+| 13 compliance pages | 15 / 36 | 21 | reviews/S2-compliance.md, S2-compliance-retry.md |
+| 14 compliance shared, modules, monitoring | 29 / 54 | 25 | reviews/S2-compliance.md, S2-compliance-retry.md |
 | 17 product-website builder, admin/security | 44 / 60 | 16 | reviews/S2-product-website.md |
 | 16 analytics, block editors | 30 / 46 | 16 | reviews/S2-product-website.md (+ S2-org-website.md for retried sections) |
 | 15 org, product-website panels, analytics charts | 27 / 43 | 16 | reviews/S2-org-website.md |
-| **Total** | **136 / 239 (57%)** | 103 | three Opus reviews, all fixes applied |
+| **Total** | **145 / 239 (61%)** | 94 | four Opus reviews, all required fixes applied |
 
 Ratchets measured on the final tree (no --update run): ts-ratchet agent-hub 2095 (budget 2230); file-budget ok (1 ceiling can
 come down); duplication and the count ratchets: see the push-3 gate line below; every `check:fast --list --slack` ratchet at
 slack 0 except where noted by the integrator's budgets.
 
-Retry list once b2-A lands (DataTable, SideDrawer, DeadlineClock, auditForms → TS): b13 DsrTable, CustomChecksTable,
+Retried after b2 landed (see the b2 retry section below); original retry list (DataTable, SideDrawer, DeadlineClock, auditForms → TS): b13 DsrTable, CustomChecksTable,
 CheckRow, CheckExpansion, ChecksTable, EvidenceTab, PerAutomationTab, IncidentsTable, MachineryPage, PoliciesPage,
 PortabilityPage, RopaPage, SoaPage, TrainingPage, AuditsTab, NcsTab, ObjectivesTab, ReviewsTab, DsrDrawer, ConnectorDrawer,
 AttestDrawer, FrameworkEditorDrawer, IncidentDrawer, RisksPage; b14 DeadlinesCard, RiskDrawer, SoaDrawer, RisksTable, SoaTable,
@@ -143,3 +143,21 @@ never returns; RoadmapEditor passes `checked=` to the fields Toggle whose prop i
 - New JS file blockEditors/GroupedItemsField.jsx (pure move out of shared.jsx, Opus-approved; net ts-ratchet 0).
 - Commit signatures: every S2 commit on the branch is signed; the batch branches `s2/*` are local scratch, not pushed.
 - No mirror candidates found in S2 scope.
+
+### b2 retry (after merging the convert branch c0c47225 with b2), branch `s2/b2-retry`, merged
+- Converted 9 more: DsrTable, RisksTable, RiskDrawer, IncidentsTable, PerAutomationTab, NcsTab, ObjectivesTab, PortabilityPage,
+  RopaPage (new dsr.types.ts, ropa.types.ts). CustomChecksTable converted then reverted (`Map.get(k).push`).
+- Gate vs 355ae30d: `9 identical, 0 different of 9`.
+- Still JS (spot-checked by Opus): CheckRow, SoaTable, SoaDrawer, DeadlinesCard (blocked by shared/ArticleRef.jsx `refs`
+  inferred required — converting ArticleRef with an optional `refs` would unblock four files); PoliciesPage (PolicyDrawer.jsx);
+  IncidentDrawer (incidentClocks.js `stepsOf` returns string); AttestDrawer, FrameworkEditorDrawer (caught error passed to a
+  reader of `.error`, outside the recipe); ChecksTable (checkSort.ts PILL_TONE string index + CheckRow); CheckExpansion,
+  EvidenceTab, MachineryPage (asObject/ofSubject return `object`/`Record<string, unknown>` — a generic `ofSubject<T>` would
+  help); AuditsTab (FindingRow.jsx, Map.get().push), RisksPage (FilterPills.jsx, Map.get().push); runtime: SoaPage, TrainingPage,
+  ReviewsTab, DsrDrawer, ConnectorDrawer, PolicyDrawer, SettingsPage, SettingsGroup (Opus asks the next drafter to name the
+  construct for some of these).
+- Merge break b2 × batch 17 fixed (types only, same lines as the integrator's fix): AuthFetchOptions in useCmsSiteOps,
+  MicrosoftIdentityPanel, guardrailsApi; `Tone` in StatusPill and FrameworkCandidateCard.
+- Review: reviews/S2-compliance-retry.md (CHANGES REQUIRED small; required applied, recommended 4 applied, 5 left).
+- Full gate (push 4): check:fast 39/39; server tc 0; duplication 15315 ≤ 15383, test 26228 at budget; gitleaks clean;
+  agent-hub tc 0, vitest 1848 files / 21690 pass (rc 0); mobile 13428 pass, tsc 0; server 28933 pass, 0 fail, no HUNG.
