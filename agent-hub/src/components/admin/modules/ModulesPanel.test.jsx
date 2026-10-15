@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ModulesPanel from './index.jsx';
+import ModulesPanel from './index.tsx';
 import { authFetch } from '../../../utils/helpers';
 
 const reloadSpy = vi.hoisted(() => vi.fn());

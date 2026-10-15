@@ -409,7 +409,7 @@ const KEY_TABLE_FILES = [
     // The Overview's deadline kinds and empty-register lines (KIND_LABEL in
     // DeadlinesCard, EMPTY_LINE in deadlineRows) and the phone's home tabs
     // (HOME_TABS in ComplianceMobile).
-    'components/admin/compliance/pages/overview/DeadlinesCard.jsx',
+    'components/admin/compliance/pages/overview/DeadlinesCard.tsx',
     'components/admin/compliance/pages/overview/deadlineRows.ts',
     'components/admin/compliance/ComplianceMobile.jsx',
     // OBLIGATION_KINDS — de soorten opleidingsverplichting.
@@ -417,7 +417,7 @@ const KEY_TABLE_FILES = [
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
-    'components/admin/compliance/pages/settings/settingsFields.js',
+    'components/admin/compliance/pages/settings/settingsOptions.ts',
     'components/automation/Builder/flow/nodeTypeColors.js',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
