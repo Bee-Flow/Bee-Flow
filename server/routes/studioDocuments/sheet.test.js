@@ -271,8 +271,9 @@ test('adding, renaming and removing tabs keeps the charts; a removed tab takes i
     const ids = () => DOCS.s1.settings.sheet.charts.map((c) => c.id);
     assert.strictEqual((await as('editor', 'POST', '/s1/sheet/tabs', { name: 'Q4' })).status, 201);
     assert.deepStrictEqual(ids(), ['c1', 'c2', 'c0'], 'a new tab');
+    DOCS.s1.settings.sheet.charts.push({ id: 'orphan', type: 'bar', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392, tab: 'deleted-long-ago' });
     assert.strictEqual((await as('editor', 'PATCH', '/s1/sheet/tabs/t2', { name: 'Kosten' })).status, 200);
-    assert.deepStrictEqual(ids(), ['c1', 'c2', 'c0'], 'a renamed tab');
+    assert.deepStrictEqual(ids(), ['c1', 'c2', 'c0'], 'a renamed tab; an orphan from before is cleaned up');
     assert.strictEqual((await as('editor', 'DELETE', '/s1/sheet/tabs/t1')).status, 200);
     assert.deepStrictEqual(ids(), ['c2', 'c0'], 'the removed tab\'s chart is gone, the others and the tab-less one stay');
     assert.deepStrictEqual(DOCS.s1.settings.sheet.tabs.map((t) => t.name), ['Kosten', 'Q4']);

@@ -273,7 +273,7 @@ function makeSheetRouter(deps = {}) {
         if (idx === -1) throw new HttpError(404, 'sheet_tab_not_found', 'This tab does not exist.');
         const [removed] = tabs.splice(idx, 1);
         const updated = await documents().updateDocument(doc.id, actorContext(req), {
-            settings: settingsWithTabs(doc.settings, [...tabs], removed.id),
+            settings: settingsWithTabs(doc.settings, [...tabs]),
             expectedVersionId: doc.versionId,
         });
         if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
