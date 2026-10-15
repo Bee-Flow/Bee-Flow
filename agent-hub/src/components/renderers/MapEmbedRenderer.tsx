@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 
+interface MapEmbedRendererProps {
+    embedUrl?: string;
+    title?: string;
+    mapsLink?: string;
+    height?: number;
+}
+
 /**
  * MapEmbedRenderer — Renders a Google Maps Embed iframe in chat messages.
  * Used when AI tools return an embedUrl (directions or places search).
  */
-const MapEmbedRenderer = ({ embedUrl, title, mapsLink, height = 300 }) => {
+const MapEmbedRenderer = ({ embedUrl, title, mapsLink, height = 300 }: MapEmbedRendererProps) => {
     const { t } = useTranslation();
-    const [loaded, setLoaded] = useState(false);
+    const [loaded, setLoaded] = useState<boolean>(false);
     const isMobile = window.innerWidth < 768;
     const mapHeight = isMobile ? 220 : height;
 

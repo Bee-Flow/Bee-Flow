@@ -1,5 +1,7 @@
-import { Gauge, SignalHigh, SignalLow, SignalMedium } from 'lucide-react';
+import { Gauge, SignalHigh, SignalLow, SignalMedium, type LucideIcon } from 'lucide-react';
 import React, { useState } from 'react';
+
+import type { TranslateFn, TranslateParams } from '../../hooks/useTranslation';
 
 import ChoiceCards from '../shared/ChoiceCards';
 
@@ -31,7 +33,16 @@ import ChoiceCards from '../shared/ChoiceCards';
 // scale. (Note the underlying threshold runs the OPPOSITE way: low
 // sensitivity = high threshold. That inversion is exactly why the raw slider
 // confused people, and why these cards exist.)
-export const PII_SENSITIVITY_PRESETS = [
+export interface PiiSensitivityPreset {
+    id: string;
+    value: number;
+    Icon: LucideIcon;
+    label: string;
+    badge?: string;
+    desc: string;
+}
+
+export const PII_SENSITIVITY_PRESETS: PiiSensitivityPreset[] = [
     // Icons form a rising scale left to right, so the picture agrees with the
     // reading order and with the labels. Three unrelated pictograms (a target,
     // a scale, a magnifier) implied three different KINDS of thing rather than
@@ -64,9 +75,17 @@ export const PII_SENSITIVITY_PRESETS = [
 // preset; narrow enough that a deliberate custom value shows as custom.
 const SNAP = 0.024;
 
-export function presetFor(value) {
+export function presetFor(value?: number | null): PiiSensitivityPreset | null {
     const v = typeof value === 'number' ? value : 0.7;
     return PII_SENSITIVITY_PRESETS.find(p => Math.abs(p.value - v) < SNAP) || null;
+}
+
+interface PiiSensitivityPickerProps {
+    value?: number | null;
+    onChange: (value: number) => void;
+    disabled?: boolean;
+    t?: TranslateFn;
+    variant?: 'inset' | 'card';
 }
 
 /**
@@ -77,8 +96,8 @@ export function presetFor(value) {
  *   onto the heading row. Same control, same semantics, same copy — a second
  *   sensitivity picker would have been one design language too many.
  */
-export function PiiSensitivityPicker({ value, onChange, disabled = false, t, variant = 'inset' }) {
-    const tr = t || ((_key, fallback) => fallback);
+export function PiiSensitivityPicker({ value, onChange, disabled = false, t, variant = 'inset' }: PiiSensitivityPickerProps) {
+    const tr: (key: string, fallback: string, params?: TranslateParams) => string = t || ((_key: string, fallback: string) => fallback);
     const v = typeof value === 'number' ? value : 0.7;
     const active = presetFor(v);
     // The advanced fold starts open when the stored value is custom —
@@ -178,6 +197,14 @@ export function PiiSensitivityPicker({ value, onChange, disabled = false, t, var
     );
 }
 
+interface AdvancedThresholdSliderProps {
+    value: number;
+    onChange: (value: number) => void;
+    disabled?: boolean;
+    tr: (key: string, fallback: string, params?: TranslateParams) => string;
+    inline?: boolean;
+}
+
 /**
  * The raw threshold, with its DIRECTION in words.
  *
@@ -194,14 +221,14 @@ export function PiiSensitivityPicker({ value, onChange, disabled = false, t, var
  * Exported for the Privacy Shield's "How strict" card, which puts the same
  * slider under its own segmented control instead of these cards.
  */
-export function AdvancedThresholdSlider({ value, onChange, disabled, tr, inline = false }) {
+export function AdvancedThresholdSlider({ value, onChange, disabled, tr, inline = false }: AdvancedThresholdSliderProps) {
     const pct = Math.round(value * 100);
     const slider = (
         <input
             type="range" min="0.1" max="1.0" step="0.05"
             disabled={disabled}
             value={value}
-            onChange={e => onChange(parseFloat(e.target.value))}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(parseFloat(e.target.value))}
             aria-label={tr('privacy.sensitivity_slider_label', 'Detection sensitivity')}
             // Without this a screen reader reads "70" — the number whose
             // direction is the entire problem.

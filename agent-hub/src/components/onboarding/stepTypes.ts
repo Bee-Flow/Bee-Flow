@@ -22,6 +22,8 @@
 // `stepType()` MUST default to 'tour'. Never read `step.type` directly anywhere
 // else — always go through stepType() so the default stays in one place.
 
+import type { StepLike } from './lessons.types';
+
 export const STEP_TYPES = {
     TOUR: 'tour',
     SLIDE: 'slide',
@@ -32,15 +34,15 @@ export const STEP_TYPES = {
     VIDEO: 'video',
 };
 
-export function stepType(step) {
+export function stepType(step: StepLike | null | undefined): string {
     return step?.type || STEP_TYPES.TOUR;
 }
 
-export function isTourStep(step) {
+export function isTourStep(step: StepLike | null | undefined): boolean {
     return stepType(step) === STEP_TYPES.TOUR;
 }
 
-export function isInlineStep(step) {
+export function isInlineStep(step: StepLike | null | undefined): boolean {
     // Anything the LessonPlayer renders itself (vs handing off to the engine).
     return !isTourStep(step);
 }
@@ -52,7 +54,7 @@ export function isInlineStep(step) {
 // Videos are never required, whatever the step says: the media may be missing
 // on a deployment, and a learner who reads the captions elsewhere (or skips the
 // clip) must not be locked out of the lesson.
-export function stepIsRequired(step) {
+export function stepIsRequired(step: StepLike | null | undefined): boolean {
     if (stepType(step) === STEP_TYPES.VIDEO) return false;
     return !step?.optional;
 }
@@ -63,7 +65,7 @@ export function stepIsRequired(step) {
 // fallback when the automatic check can't run) and 'skipped'. Videos record
 // 'watched' when the clip ends; they are listed for completeness only, since
 // stepIsRequired() never asks a video to be satisfied.
-const SATISFYING_STATUSES = {
+const SATISFYING_STATUSES: Record<string, readonly (string | undefined)[]> = {
     [STEP_TYPES.QUIZ]: ['passed'],
     [STEP_TYPES.EXERCISE]: ['passed', 'skipped'],
     [STEP_TYPES.SIM]: ['passed', 'revealed'],
@@ -71,7 +73,7 @@ const SATISFYING_STATUSES = {
     [STEP_TYPES.VIDEO]: ['watched', 'skipped'],
 };
 
-export function stepStatusSatisfies(step, status) {
+export function stepStatusSatisfies(step: StepLike | null | undefined, status: string | undefined): boolean {
     const allowed = SATISFYING_STATUSES[stepType(step)];
     if (!allowed) return true; // slides + tour steps are always satisfiable
     return allowed.includes(status);

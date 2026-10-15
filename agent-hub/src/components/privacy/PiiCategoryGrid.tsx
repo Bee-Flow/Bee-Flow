@@ -1,4 +1,12 @@
+import type { LucideIcon } from 'lucide-react';
 import React, { useId } from 'react';
+
+export interface PiiCategory {
+    id: string;
+    label: string;
+    icon?: string;
+    Icon?: LucideIcon;
+}
 
 /**
  * Two-column grid of PII categories with All / None shortcuts. The full
@@ -23,10 +31,20 @@ import React, { useId } from 'react';
  *    announcements between the real labels. The text beside it already names
  *    the category, so the icon is decorative by definition.
  */
-export function PiiCategoryGrid({ value, onChange, categories, label = 'Kinds of personal data', allLabel = 'All', noneLabel = 'None', disabled = false }) {
+interface PiiCategoryGridProps {
+    value?: string[] | null;
+    onChange: (value: string[]) => void;
+    categories: PiiCategory[];
+    label?: string;
+    allLabel?: string;
+    noneLabel?: string;
+    disabled?: boolean;
+}
+
+export function PiiCategoryGrid({ value, onChange, categories, label = 'Kinds of personal data', allLabel = 'All', noneLabel = 'None', disabled = false }: PiiCategoryGridProps) {
     const selected = Array.isArray(value) ? value : [];
     const legendId = useId();
-    const toggle = (id) => {
+    const toggle = (id: string) => {
         if (selected.includes(id)) onChange(selected.filter(x => x !== id));
         else onChange([...selected, id]);
     };

@@ -13,11 +13,12 @@
 
 import scopedStorage from '../../../utils/scopedStorage';
 import { stepType, STEP_TYPES } from '../stepTypes';
+import type { LessonUser, StepLike } from '../lessons.types';
 
 export const DOCK_PREF_KEY = 'learnPlayerLayout';
 export const LAYOUTS = { MODAL: 'modal', DOCKED: 'docked' };
 
-export function isMobileViewport() {
+export function isMobileViewport(): boolean {
     try {
         return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
     } catch (_) {
@@ -27,8 +28,8 @@ export function isMobileViewport() {
 
 // Docked by default only for lessons the learner works ALONGSIDE: verified
 // hands-on (action) steps and live-app tour segments.
-export function defaultLayoutForSteps(steps) {
-    const learnAlong = (steps || []).some((s) => {
+export function defaultLayoutForSteps(steps: StepLike[] | null | undefined): string {
+    const learnAlong = (steps || []).some((s: StepLike) => {
         const ty = stepType(s);
         return ty === STEP_TYPES.ACTION || ty === STEP_TYPES.TOUR;
     });
@@ -37,7 +38,7 @@ export function defaultLayoutForSteps(steps) {
 
 // Pure resolution: mobile forces modal; a stored preference wins; otherwise
 // the step-mix default applies.
-export function resolveInitialLayout(steps, storedPref, mobile) {
+export function resolveInitialLayout(steps: StepLike[] | null | undefined, storedPref: string | null | undefined, mobile: boolean): string {
     if (mobile) return LAYOUTS.MODAL;
     if (storedPref === LAYOUTS.DOCKED || storedPref === LAYOUTS.MODAL) return storedPref;
     return defaultLayoutForSteps(steps);
@@ -45,7 +46,7 @@ export function resolveInitialLayout(steps, storedPref, mobile) {
 
 /* ── Per-user preference (scopedStorage mirror, best-effort) ─────────────── */
 
-export function readDockPref(user) {
+export function readDockPref(user: LessonUser | null | undefined): string | null {
     try {
         if (user?.id) scopedStorage.setCurrentUser(user.id);
         const v = scopedStorage.getItem(DOCK_PREF_KEY);
@@ -55,7 +56,7 @@ export function readDockPref(user) {
     }
 }
 
-export function saveDockPref(user, layout) {
+export function saveDockPref(user: LessonUser | null | undefined, layout: string): void {
     try {
         if (user?.id) scopedStorage.setCurrentUser(user.id);
         scopedStorage.setItem(DOCK_PREF_KEY, layout);

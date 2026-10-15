@@ -19,9 +19,10 @@
 
 import { LESSONS, getLesson, lessonVisible } from './lessons';
 import { GENERATED_COURSES } from './generated/courses';
+import type { Certificate, Course, CourseBadge, HasFeature, LessonDoc, LessonUser, ServerCatalog, Track } from './lessons.types';
 
 /* ── Tracks ──────────────────────────────────────────────────────────────── */
-export const TRACKS = {
+export const TRACKS: Record<string, Track> = {
     foundations: { id: 'foundations', titleKey: 'learn.track.foundations', titleFallback: 'Foundations' },
     builder: { id: 'builder', titleKey: 'learn.track.builder', titleFallback: 'Agent Builder' },
     power: { id: 'power', titleKey: 'learn.track.power', titleFallback: 'Power User' },
@@ -37,9 +38,9 @@ export const TRACKS = {
  * prereqCourseIds — courses that must be complete before this unlocks
  * badge           — { id, icon, titleKey/Fallback, descFallback }
  * ──────────────────────────────────────────────────────────────────────────── */
-export const COURSES = GENERATED_COURSES;
+export const COURSES: Course[] = GENERATED_COURSES;
 
-const LEGACY_COURSES = [
+const LEGACY_COURSES: Course[] = [
     {
         id: 'course-foundations',
         titleKey: 'learn.course.foundations.title', titleFallback: 'Bee Flow Foundations',
@@ -178,7 +179,7 @@ const LEGACY_COURSES = [
  * Earned by completing every course in a `track`, or any N courses for a capstone
  * (`rule: { type:'count', n }`). The server recomputes eligibility before issuing.
  * ──────────────────────────────────────────────────────────────────────────── */
-export const CERTIFICATES = [
+export const CERTIFICATES: Certificate[] = [
     {
         id: 'cert-foundations', track: 'foundations',
         titleKey: 'learn.cert.foundations', titleFallback: 'Bee Flow AI Certified — Foundations',
@@ -202,22 +203,22 @@ export const CERTIFICATES = [
  * over the bundled presentation. Components re-render via the version counter
  * (include catalogVersion() in a useMemo dep after awaiting fetchCatalog()).
  * ──────────────────────────────────────────────────────────────────────────── */
-let activeCoursesList = COURSES;
-let activeCertificatesList = CERTIFICATES;
+let activeCoursesList: Course[] = COURSES;
+let activeCertificatesList: Certificate[] = CERTIFICATES;
 let activeCatalogVersion = 0;
 
-export function activeCourses() { return activeCoursesList; }
-export function activeCertificates() { return activeCertificatesList; }
-export function catalogVersion() { return activeCatalogVersion; }
+export function activeCourses(): Course[] { return activeCoursesList; }
+export function activeCertificates(): Certificate[] { return activeCertificatesList; }
+export function catalogVersion(): number { return activeCatalogVersion; }
 
 // Merge the server catalog's STRUCTURE over the bundled PRESENTATION. Server
 // courses matched by id keep the bundled copy's display fields (i18n keys,
 // icons, levels) and adopt the server's lessonIds/track/prereqs/badge id and
 // certificate rules. Server-only courses (org-authored, Phase 3) get display
 // fields synthesized from the server doc. Returns true when anything changed.
-export function applyServerCatalog(serverCatalog) {
+export function applyServerCatalog(serverCatalog: ServerCatalog | null | undefined): boolean {
     if (!serverCatalog || !Array.isArray(serverCatalog.courses)) return false;
-    const mergedCourses = serverCatalog.courses.map((sc) => {
+    const mergedCourses = serverCatalog.courses.map((sc): Course => {
         const local = COURSES.find((c) => c.id === sc.id);
         if (local) {
             return {
@@ -225,7 +226,7 @@ export function applyServerCatalog(serverCatalog) {
                 lessonIds: Array.isArray(sc.lessonIds) ? sc.lessonIds : local.lessonIds,
                 track: sc.track || local.track,
                 prereqCourseIds: Array.isArray(sc.prereqCourseIds) ? sc.prereqCourseIds : local.prereqCourseIds,
-                badge: { ...local.badge, ...(sc.badge?.id ? { id: sc.badge.id } : {}) },
+                badge: { ...local.badge, ...(sc.badge?.id ? { id: sc.badge.id } : {}) } as CourseBadge,
             };
         }
         return {
@@ -244,7 +245,7 @@ export function applyServerCatalog(serverCatalog) {
         };
     });
     const mergedCerts = Array.isArray(serverCatalog.certificates) && serverCatalog.certificates.length
-        ? serverCatalog.certificates.map((scert) => {
+        ? serverCatalog.certificates.map((scert): Certificate => {
             const local = CERTIFICATES.find((c) => c.id === scert.id);
             return local
                 ? { ...local, track: scert.track ?? local.track, rule: scert.rule ?? local.rule, level: scert.level || local.level }
@@ -260,85 +261,85 @@ export function applyServerCatalog(serverCatalog) {
 
 /* ── Lookups & resolvers ─────────────────────────────────────────────────── */
 
-export function getCourse(courseId) {
+export function getCourse(courseId: string): Course | undefined {
     return activeCoursesList.find((c) => c.id === courseId);
 }
 
-export function getCertificate(certId) {
+export function getCertificate(certId: string): Certificate | undefined {
     return activeCertificatesList.find((c) => c.id === certId);
 }
 
 // The lessons of a course this user can actually access (permission + feature
 // gated). hasFeature is optional (undefined → feature gates treated as visible).
-export function courseLessons(course, user, hasFeature) {
+export function courseLessons(course: Course | null | undefined, user: LessonUser | null | undefined, hasFeature?: HasFeature): LessonDoc[] {
     return (course?.lessonIds || [])
         .map(getLesson)
         .filter(Boolean)
-        .filter((l) => lessonVisible(l, user, hasFeature));
+        .filter((l: LessonDoc | undefined) => lessonVisible(l, user, hasFeature)) as LessonDoc[];
 }
 
 // Courses with at least one visible lesson, in catalog order.
-export function resolveCourses(user, { hasFeature } = {}) {
-    return activeCoursesList.filter((c) => courseLessons(c, user, hasFeature).length > 0);
+export function resolveCourses(user: LessonUser | null | undefined, { hasFeature }: { hasFeature?: HasFeature } = {}): Course[] {
+    return activeCoursesList.filter((c: Course) => courseLessons(c, user, hasFeature).length > 0);
 }
 
-export function courseEstMinutes(course, user, hasFeature) {
-    return courseLessons(course, user, hasFeature).reduce((sum, l) => sum + (l.estMinutes || 0), 0);
+export function courseEstMinutes(course: Course | null | undefined, user: LessonUser | null | undefined, hasFeature?: HasFeature): number {
+    return courseLessons(course, user, hasFeature).reduce((sum: number, l: LessonDoc) => sum + (l.estMinutes || 0), 0);
 }
 
 // Course completion = every VISIBLE lesson present in the completion map.
 // `completedMap` is { [lessonId]: true } (built by the page from progress).
-export function isCourseComplete(course, completedMap, user, hasFeature) {
+export function isCourseComplete(course: Course | null | undefined, completedMap: Record<string, boolean>, user: LessonUser | null | undefined, hasFeature?: HasFeature): boolean {
     const lessons = courseLessons(course, user, hasFeature);
     if (!lessons.length) return false;
-    return lessons.every((l) => !!completedMap[l.id]);
+    return lessons.every((l: LessonDoc) => !!completedMap[l.id]);
 }
 
-export function courseLessonsDone(course, completedMap, user, hasFeature) {
-    return courseLessons(course, user, hasFeature).filter((l) => !!completedMap[l.id]).length;
+export function courseLessonsDone(course: Course | null | undefined, completedMap: Record<string, boolean>, user: LessonUser | null | undefined, hasFeature?: HasFeature): number {
+    return courseLessons(course, user, hasFeature).filter((l: LessonDoc) => !!completedMap[l.id]).length;
 }
 
 // The set of course ids this user has completed (used for prereq/cert math).
-export function completedCourseIds(completedMap, user, hasFeature) {
+export function completedCourseIds(completedMap: Record<string, boolean>, user: LessonUser | null | undefined, hasFeature?: HasFeature): string[] {
     return resolveCourses(user, { hasFeature })
-        .filter((c) => isCourseComplete(c, completedMap, user, hasFeature))
-        .map((c) => c.id);
+        .filter((c: Course) => isCourseComplete(c, completedMap, user, hasFeature))
+        .map((c: Course) => c.id);
 }
 
 // Locked until all (visible) prereq courses are complete.
-export function courseLocked(course, doneCourseIds) {
-    const prereqs = (course?.prereqCourseIds || []).filter((id) => !!getCourse(id));
-    return prereqs.some((id) => !doneCourseIds.includes(id));
+export function courseLocked(course: Course | null | undefined, doneCourseIds: string[]): boolean {
+    const prereqs = (course?.prereqCourseIds || []).filter((id: string) => !!getCourse(id));
+    return prereqs.some((id: string) => !doneCourseIds.includes(id));
 }
 
 // Badges earned, derived from completed courses. The server is authoritative;
 // this drives the optimistic UI.
-export function earnedBadgesFromProgress(completedMap, user, hasFeature) {
+export function earnedBadgesFromProgress(completedMap: Record<string, boolean>, user: LessonUser | null | undefined, hasFeature?: HasFeature) {
     return resolveCourses(user, { hasFeature })
-        .filter((c) => isCourseComplete(c, completedMap, user, hasFeature))
-        .map((c) => ({ ...c.badge, courseId: c.id }));
+        .filter((c: Course) => isCourseComplete(c, completedMap, user, hasFeature))
+        .map((c: Course) => ({ ...c.badge, courseId: c.id }));
 }
 
 // Certificate eligibility, derived. A track cert needs every course in the track
 // (that's visible to the user) complete; a count cert needs N completed courses.
-export function certificateEligible(cert, doneCourseIds, user, hasFeature) {
+export function certificateEligible(cert: Certificate | null | undefined, doneCourseIds: string[], user: LessonUser | null | undefined, hasFeature?: HasFeature): boolean {
     if (cert?.rule?.type === 'count') return doneCourseIds.length >= cert.rule.n;
     if (cert?.track) {
-        const trackCourses = resolveCourses(user, { hasFeature }).filter((c) => c.track === cert.track);
+        const trackCourses = resolveCourses(user, { hasFeature }).filter((c: Course) => c.track === cert.track);
         if (!trackCourses.length) return false;
-        return trackCourses.every((c) => doneCourseIds.includes(c.id));
+        return trackCourses.every((c: Course) => doneCourseIds.includes(c.id));
     }
     return false;
 }
 
 // Progress toward a certificate, for the achievements UI: { done, total }.
-export function certificateProgress(cert, doneCourseIds, user, hasFeature) {
+export function certificateProgress(cert: Certificate | null | undefined, doneCourseIds: string[], user: LessonUser | null | undefined, hasFeature?: HasFeature): { done: number; total: number } {
     if (cert?.rule?.type === 'count') {
         return { done: Math.min(doneCourseIds.length, cert.rule.n), total: cert.rule.n };
     }
     if (cert?.track) {
-        const trackCourses = resolveCourses(user, { hasFeature }).filter((c) => c.track === cert.track);
-        const done = trackCourses.filter((c) => doneCourseIds.includes(c.id)).length;
+        const trackCourses = resolveCourses(user, { hasFeature }).filter((c: Course) => c.track === cert.track);
+        const done = trackCourses.filter((c: Course) => doneCourseIds.includes(c.id)).length;
         return { done, total: trackCourses.length };
     }
     return { done: 0, total: 0 };
@@ -366,16 +367,16 @@ export const LEVELS = [
 // courses + mastered lessons (only where also completed — mastery is a bonus on
 // top of completion, never a substitute). `masteredMap` is optional so callers
 // that don't track mastery keep working unchanged.
-export function xpFromProgress(completedMap, user, hasFeature, masteredMap = {}) {
+export function xpFromProgress(completedMap: Record<string, boolean>, user: LessonUser | null | undefined, hasFeature?: HasFeature, masteredMap: Record<string, boolean> = {}) {
     const visible = resolveCourses(user, { hasFeature });
-    const lessonIds = new Set();
-    visible.forEach((c) => courseLessons(c, user, hasFeature).forEach((l) => { if (completedMap[l.id]) lessonIds.add(l.id); }));
-    const doneCourses = visible.filter((c) => isCourseComplete(c, completedMap, user, hasFeature)).length;
-    const mastered = [...lessonIds].filter((id) => !!masteredMap[id]).length;
+    const lessonIds = new Set<string>();
+    visible.forEach((c: Course) => courseLessons(c, user, hasFeature).forEach((l: LessonDoc) => { if (completedMap[l.id]) lessonIds.add(l.id); }));
+    const doneCourses = visible.filter((c: Course) => isCourseComplete(c, completedMap, user, hasFeature)).length;
+    const mastered = [...lessonIds].filter((id: string) => !!masteredMap[id]).length;
     const xp = lessonIds.size * XP_PER_LESSON + doneCourses * XP_PER_COURSE + mastered * XP_PER_MASTERY;
 
     let level = LEVELS[0];
-    let next = null;
+    let next: (typeof LEVELS)[number] | null = null;
     for (let i = 0; i < LEVELS.length; i += 1) {
         if (xp >= LEVELS[i].min) { level = LEVELS[i]; next = LEVELS[i + 1] || null; }
     }
@@ -383,9 +384,9 @@ export function xpFromProgress(completedMap, user, hasFeature, masteredMap = {})
 }
 
 // Sanity helper used by tests: every course references real lessons.
-export function unknownLessonRefs() {
-    const known = new Set(LESSONS.map((l) => l.id));
-    const missing = [];
-    COURSES.forEach((c) => (c.lessonIds || []).forEach((id) => { if (!known.has(id)) missing.push({ course: c.id, lesson: id }); }));
+export function unknownLessonRefs(): { course: string; lesson: string }[] {
+    const known = new Set<string>(LESSONS.map((l: LessonDoc) => l.id));
+    const missing: { course: string; lesson: string }[] = [];
+    COURSES.forEach((c: Course) => (c.lessonIds || []).forEach((id: string) => { if (!known.has(id)) missing.push({ course: c.id, lesson: id }); }));
     return missing;
 }

@@ -18,7 +18,7 @@ import {
     WRAPPING_FENCE_OPEN,
 } from './normalize';
 
-const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.jsx`, 'utf8');
+const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
 
 describe('lockstep with the web', () => {
     it.each([

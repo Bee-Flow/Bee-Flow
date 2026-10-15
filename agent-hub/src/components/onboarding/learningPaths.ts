@@ -7,11 +7,12 @@
 // It never gates content — every visible course stays reachable on every path.
 
 import { GENERATED_PATH_ORDER } from './generated/pathOrder';
+import type { LearningPath } from './lessons.types';
 
 // courseOrder is DERIVED from the catalog (every course declares its pathId), not
 // hand-listed: with the 2026-09 curriculum the hand-written lists covered 9 of 20
 // courses and the other 11 fell into the unclaimed trailing column.
-export const LEARNING_PATHS = [
+export const LEARNING_PATHS: LearningPath[] = [
     {
         id: 'everyday',
         icon: '💬',
@@ -38,23 +39,25 @@ export const LEARNING_PATHS = [
     },
 ];
 
-LEARNING_PATHS.forEach((p) => { p.courseOrder = GENERATED_PATH_ORDER[p.id] || []; });
+LEARNING_PATHS.forEach((p: LearningPath) => { p.courseOrder = (GENERATED_PATH_ORDER as Record<string, string[]>)[p.id] || []; });
 
-export function getLearningPath(pathId) {
+export function getLearningPath(pathId: string | null | undefined): LearningPath | null {
     return LEARNING_PATHS.find((p) => p.id === pathId) || null;
 }
 
 // Stable reorder: the path's courses first (in its order), every other course
 // after in the order it arrived. Unknown/absent path → untouched input.
-export function orderCoursesForPath(courses, pathId) {
+export function orderCoursesForPath<T extends { id: string }>(courses: T[], pathId: string | null | undefined): T[];
+export function orderCoursesForPath<T extends { id: string }>(courses: T[] | null | undefined, pathId: string | null | undefined): T[] | null | undefined;
+export function orderCoursesForPath<T extends { id: string }>(courses: T[] | null | undefined, pathId: string | null | undefined): T[] | null | undefined {
     const path = getLearningPath(pathId);
     if (!path) return courses;
-    const rank = new Map(path.courseOrder.map((id, i) => [id, i]));
-    const first = [];
-    const rest = [];
+    const rank = new Map<string, number>(path.courseOrder.map((id: string, i: number): [string, number] => [id, i]));
+    const first: T[] = [];
+    const rest: T[] = [];
     for (const c of courses || []) {
         if (rank.has(c.id)) first.push(c); else rest.push(c);
     }
-    first.sort((a, b) => rank.get(a.id) - rank.get(b.id));
+    first.sort((a: T, b: T) => (rank.get(a.id) as number) - (rank.get(b.id) as number));
     return [...first, ...rest];
 }

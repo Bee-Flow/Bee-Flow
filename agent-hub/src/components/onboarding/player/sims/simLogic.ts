@@ -34,21 +34,23 @@
 //         },
 //       }
 
+import type { FlowAttempt, SimScenario } from '../../lessons.types';
+
 // ── match ────────────────────────────────────────────────────────────────────
 
 // True when the tapped left and right tiles belong to the same pair. Tiles are
 // keyed by their pair id on both sides, so a match is simply id equality — but
 // both ids must name a real pair (an unknown id never matches).
-export function matchPickCorrect(pairs, leftId, rightId) {
+export function matchPickCorrect(pairs: { id: string }[] | null | undefined, leftId: string | null, rightId: string): boolean {
     if (leftId !== rightId) return false;
-    return (pairs || []).some((p) => p.id === leftId);
+    return (pairs || []).some((p: { id: string }) => p.id === leftId);
 }
 
 // ── order ────────────────────────────────────────────────────────────────────
 
 // Grade an arrangement against the solution order. Returns the index of the
 // first misplaced item (for targeted feedback) or -1 when correct.
-export function evaluateOrder(solution, arrangement) {
+export function evaluateOrder(solution: string[] | null | undefined, arrangement: string[] | null | undefined): { correct: boolean; firstWrongIndex: number } {
     const sol = solution || [];
     const arr = arrangement || [];
     if (arr.length !== sol.length) return { correct: false, firstWrongIndex: Math.min(arr.length, sol.length) };
@@ -63,10 +65,10 @@ export function evaluateOrder(solution, arrangement) {
 // Grade one flow-build attempt: { triggerId, stepIds } against a scenario.
 // Returns { correct, problems: [string] } where problems are specific, kind
 // teaching messages (wrong-answer-specific feedback, not just "incorrect").
-export function evaluateFlow(scenario, attempt) {
-    const problems = [];
-    const trig = scenario?.trigger || {};
-    const stepsCfg = scenario?.steps || {};
+export function evaluateFlow(scenario: SimScenario | null | undefined, attempt: FlowAttempt | null | undefined): { correct: boolean; problems: string[] } {
+    const problems: string[] = [];
+    const trig: Partial<SimScenario['trigger']> = scenario?.trigger || {};
+    const stepsCfg: Partial<SimScenario['steps']> = scenario?.steps || {};
     const triggerId = attempt?.triggerId || null;
     const stepIds = Array.isArray(attempt?.stepIds) ? attempt.stepIds : [];
 
@@ -109,22 +111,22 @@ export function evaluateFlow(scenario, attempt) {
     return { correct: problems.length === 0, problems };
 }
 
-function paletteLabel(stepsCfg, id) {
-    const item = (stepsCfg.palette || []).find((p) => p.id === id);
+function paletteLabel(stepsCfg: Partial<SimScenario['steps']>, id: string): string {
+    const item = (stepsCfg.palette || []).find((p: { id: string }) => p.id === id);
     return item?.label || id;
 }
 
-function sameSet(a, b) {
+function sameSet(a: string[], b: string[]): boolean {
     if (a.length !== b.length) return false;
     const set = new Set(b);
-    return a.every((id) => set.has(id));
+    return a.every((id: string) => set.has(id));
 }
 
 // ── shared ───────────────────────────────────────────────────────────────────
 
 // Deterministic shuffle so a sim's tiles don't render in answer order but stay
 // stable across re-renders (seeded by the step id — no Math.random in render).
-export function seededShuffle(items, seedStr) {
+export function seededShuffle<T>(items: T[] | null | undefined, seedStr: string | null | undefined): T[] {
     const arr = [...(items || [])];
     let seed = 0;
     const s = String(seedStr || 'seed');

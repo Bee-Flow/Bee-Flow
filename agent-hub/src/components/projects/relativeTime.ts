@@ -5,7 +5,7 @@
  * heavy chunk and Solutions is lazy-loaded, so a helper this small is the only
  * thing they are allowed to have in common.
  */
-export function formatRelative(iso) {
+export function formatRelative(iso?: string | null): string {
     if (!iso) return '';
     const d = new Date(iso);
     const diff = Date.now() - d.getTime();

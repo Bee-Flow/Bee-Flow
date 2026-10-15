@@ -7,13 +7,26 @@
 // falls back to bundled quiz items; grading shows a friendly retry note).
 
 import { API_BASE, authFetch } from '../../utils/helpers';
+import type { PracticeItem } from './lessons.types';
+
+export interface PracticeSet {
+    practiceId: string;
+    items: PracticeItem[];
+}
+
+export interface PracticeGrade {
+    correct: boolean;
+    explanation: string;
+    correctChoiceIds?: string[];
+    error: string | null;
+}
 
 export { PRACTICE_LESSON_IDS } from './reviewEngine';
 
 // Generate fresh practice items for one or more practice-able lessons.
 // Resolves to { practiceId, items: [{ id, lessonId, question, choices }] } or
 // null when generation is unavailable (rate limit, LLM down, unknown lessons).
-export async function generatePractice({ lessonIds, count = 3, locale = 'en' }) {
+export async function generatePractice({ lessonIds, count = 3, locale = 'en' }: { lessonIds: string[]; count?: number; locale?: string }): Promise<PracticeSet | null> {
     try {
         const res = await authFetch(`${API_BASE}/ai/learning/practice/generate`, {
             method: 'POST',
@@ -33,7 +46,7 @@ export async function generatePractice({ lessonIds, count = 3, locale = 'en' }) 
 // Grade one practice answer. Resolves to
 //   { correct, explanation, correctChoiceIds?, error? }
 // with error 'practice_expired' when the server no longer holds the key.
-export async function gradePracticeItem({ practiceId, itemId, choiceIds }) {
+export async function gradePracticeItem({ practiceId, itemId, choiceIds }: { practiceId: string | null; itemId: string; choiceIds: string[] }): Promise<PracticeGrade> {
     try {
         const res = await authFetch(`${API_BASE}/ai/learning/practice/grade`, {
             method: 'POST',

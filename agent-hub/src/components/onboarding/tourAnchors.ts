@@ -13,7 +13,9 @@
 //   sidebar:true        — dispatch TOUR_ENSURE_SIDEBAR_EVENT first (rail auto-collapses)
 //   designerSection:'…' — dispatch TOUR_OPEN_DESIGNER_SECTION first (open that section)
 
-export const TOUR_ANCHORS = {
+import type { TourAnchor } from './lessons.types';
+
+export const TOUR_ANCHORS: Record<string, TourAnchor> = {
     'nav-new-chat': { selector: '[data-tour="nav-new-chat"]', owner: 'Sidebar.jsx', reveal: { sidebar: true } },
     'nav-cowork': { selector: '[data-tour="nav-cowork"]', owner: 'Sidebar.jsx', reveal: { sidebar: true } },
     'nav-studio': { selector: '[data-tour="nav-studio"]', owner: 'Sidebar.jsx', reveal: { sidebar: true } },
@@ -47,13 +49,13 @@ export const TOUR_ANCHORS = {
 };
 
 // All registered selectors (for the validator test).
-export const KNOWN_SELECTORS = new Set(Object.values(TOUR_ANCHORS).map((a) => a.selector));
+export const KNOWN_SELECTORS = new Set<string>(Object.values(TOUR_ANCHORS).map((a) => a.selector));
 
 // Reveal directives for a given target selector, or null when the selector isn't a
 // registered anchor (e.g. an ad-hoc selector). The engine calls this before
 // targeting so it can open the owning Designer section / sidebar first.
-export function revealForTarget(selector) {
+export function revealForTarget(selector: string | null | undefined): TourAnchor['reveal'] | null {
     if (!selector) return null;
-    const anchor = Object.values(TOUR_ANCHORS).find((a) => a.selector === selector);
+    const anchor = Object.values(TOUR_ANCHORS).find((a: TourAnchor) => a.selector === selector);
     return anchor ? (anchor.reveal || {}) : null;
 }

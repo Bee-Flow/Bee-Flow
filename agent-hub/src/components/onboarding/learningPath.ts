@@ -8,15 +8,16 @@
 
 import scopedStorage from '../../utils/scopedStorage';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import type { LessonUser } from './lessons.types';
 
 export const LEARNING_PATH_KEY = 'learningPath';
-export const PATH_VALUES = new Set(['everyday', 'builder', 'admin', 'skipped', '']);
+export const PATH_VALUES = new Set<string>(['everyday', 'builder', 'admin', 'skipped', '']);
 
-function withUser(user) {
+function withUser(user: LessonUser | null | undefined): void {
     try { if (user?.id) scopedStorage.setCurrentUser(user.id); } catch (_) { /* ignore */ }
 }
 
-export function readLearningPath(user) {
+export function readLearningPath(user: LessonUser | null | undefined): string {
     try {
         withUser(user);
         const v = scopedStorage.getItem(LEARNING_PATH_KEY) || '';
@@ -28,7 +29,7 @@ export function readLearningPath(user) {
 
 // Mirror a server-fetched value locally (the section already fetches
 // /ai/user-settings — no extra request needed).
-export function mirrorLearningPath(user, value) {
+export function mirrorLearningPath(user: LessonUser | null | undefined, value: string): void {
     if (!PATH_VALUES.has(value)) return;
     try {
         withUser(user);
@@ -36,7 +37,7 @@ export function mirrorLearningPath(user, value) {
     } catch (_) { /* preference only */ }
 }
 
-export async function saveLearningPath(user, value) {
+export async function saveLearningPath(user: LessonUser | null | undefined, value: string): Promise<void> {
     if (!PATH_VALUES.has(value)) return;
     mirrorLearningPath(user, value);
     try {
