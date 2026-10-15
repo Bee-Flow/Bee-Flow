@@ -43,7 +43,7 @@ const AGENT = 'agent-under-test';
 const OTHER = 'some-other-agent';
 
 /**
- * The shipped DDL for these two tables, read out of initSchema.js.
+ * The shipped DDL for these two tables, read out of initSchema.base.js + initSchema.agents.js.
  *
  * Extracted rather than copied so this suite cannot drift away from the
  * schema the app boots with — which is the entire reason it exists. The
@@ -51,7 +51,9 @@ const OTHER = 'some-other-agent';
  * a `${` in it would be a signal to stop doing this, so it is asserted.
  */
 function shippedDdl() {
-    const src = fs.readFileSync(path.join(__dirname, 'initSchema.js'), 'utf8');
+    // initSchema.js is a facade (LF-S3): the DDL lives in the sibling parts.
+    const src = ['initSchema.base.js', 'initSchema.agents.js']
+        .map((f) => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
     // De ALTERs horen erbij: `written_by` / `suggested_by` zijn kolommen die
     // `createTest` bij naam noemt, en `seq` op `agent_test_runs` is de
     // tiebreaker die `listTestRuns`/`getLastTestRun`/de prune gebruiken — een
@@ -59,7 +61,7 @@ function shippedDdl() {
     // waar hij voor bestaat.
     const found = [...src.matchAll(/`((?:CREATE TABLE IF NOT EXISTS agent_test|CREATE INDEX IF NOT EXISTS idx_agent_test|ALTER TABLE agent_test(?:s|_runs) )[\s\S]*?)`/g)]
         .map(m => m[1]);
-    assert.ok(found.length >= 6, `expected the two tables, their indexes and the column ladder in initSchema.js, found ${found.length}`);
+    assert.ok(found.length >= 6, `expected the two tables, their indexes and the column ladder in initSchema.base.js/initSchema.agents.js, found ${found.length}`);
     for (const s of found) assert.ok(!s.includes('${'), 'the test-set DDL must stay literal');
     return found;
 }

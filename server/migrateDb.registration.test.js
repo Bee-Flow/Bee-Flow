@@ -34,6 +34,14 @@ const EXEMPT = new Map([
     ['stores/lib/pgAppEngine.js', 'per-tenant engine — DDL per app-schema, niet bij boot'],
     ['stores/lib/pgAppEnginePartsTx.js', 'per-tenant engine (migration part) — DDL per app-schema, niet bij boot'],
     // Het schema van projectChatStore, eruit gesplitst; de store zelf staat in de ladder en draait het bij boot.
+    // initSchema.js (the agentStore ladder entry) is a facade since LF-S3: it runs
+    // these two parts in order, so the ladder still executes all of their DDL.
+    ['stores/agent/initSchema.base.js', 'DDL of stores/agent/initSchema.js — run by its initDB (agent schema facade)'],
+    ['stores/agent/initSchema.agents.js', 'DDL of stores/agent/initSchema.js — run by its initDB (agent schema facade)'],
+    // DDL of projectAiParticipationStore / projectTaskStore, split out of them
+    // (LF-S2); each store requires its DDL and is itself in STORE_MODULES.
+    ['stores/projectAiParticipationDdl.js', 'DDL of projectAiParticipationStore — covered via that store (ladder)'],
+    ['stores/projectTaskDdl.js', 'DDL of projectTaskStore — covered via that store (ladder)'],
     ['stores/lib/projectChatSchema.js', 'schema van projectChatStore — DDL draait via die store (ladder)'],
     ['stores/lib/sqliteBlobEngine.js', 'per-tenant engine — sqlite-blob per app, geen Postgres-DDL'],
     ['stores/lib/sqliteBlobStatements.js', 'statement API of the sqlite-blob engine — names CREATE TABLE only in a comment'],
