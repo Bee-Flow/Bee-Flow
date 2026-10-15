@@ -131,7 +131,7 @@ test('an unknown event is a programming error', () => {
 });
 
 test('the hand-mirrored UI copy agrees on vocabulary and defaults', async () => {
-    const mirrorPath = path.resolve(__dirname, '../../../agent-hub/src/components/automation/Builder/notificationDefaults.js');
+    const mirrorPath = path.resolve(__dirname, '../../../agent-hub/src/components/automation/Builder/notificationDefaults.ts');
     const mirror = await import(require('url').pathToFileURL(mirrorPath).href);
     assert.deepEqual([...mirror.NOTIFICATION_EVENTS], [...NOTIFICATION_EVENTS]);
     assert.deepEqual([...mirror.NOTIFICATION_CHANNELS], [...NOTIFICATION_CHANNELS]);

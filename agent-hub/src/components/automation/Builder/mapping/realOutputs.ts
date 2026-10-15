@@ -1,0 +1,166 @@
+/**
+ * Real step output — the bridge between "what a run/pin actually produced"
+ * and the design-time sample world the editors reason in.
+ *
+ * The builder used to keep these separate: `computeUpstreamGroups` (auto-map,
+ * VariableTree, LoopOverPicker) saw only static describer samples, while the
+ * one place that overlaid real data was a private helper inside NodeDetailView.
+ * The visible symptom: run a step, get 10 real records, add a Filter after it —
+ * and the new node still says "no list picked yet" because the auto-mapper
+ * never saw the records. This module is the single shared source:
+ *
+ *   buildRealOutputMap(definition, runSteps)  → Map<stepId, output>
+ *
+ * built once per render by the canvas owner (BuildTab) and threaded into
+ * computeUpstreamGroups / autoMapStep / NodeDetailView, so every consumer of
+ * `groups` heals at once.
+ *
+ * Pure, framework-free. Never deep-clones outputs (a pinned output can be
+ * 256 KB — the server's truncation cap); everything holds references.
+ */
+
+
+import type { RunStepRow } from '../flow/types';
+import type { SampleRoot } from './upstream/upstream.types';
+
+/** A node of the graph, as far as the output map reads it. */
+interface OutputNode {
+    id?: string;
+    pinnedOutput?: unknown;
+}
+
+/** The graph's nodes: a trigger, secondary triggers and steps. */
+export interface RealOutputDefinition {
+    trigger?: OutputNode | null;
+    triggers?: OutputNode[];
+    steps?: OutputNode[];
+}
+
+type Rec = Record<string, unknown>;
+
+/** The upstream group fields buildSampleRoot reads. */
+export interface SampleRootGroup {
+    id?: string;
+    kind?: string;
+    basePath?: string;
+    sample?: unknown;
+    hasRealData?: boolean;
+}
+/**
+ * The server replaces any step payload over its 256 KB cap with a sentinel
+ * `{ __truncated__: true, originalBytes, headSample }` (see
+ * server/automation/payloadTruncation.js). A sentinel is not data — it must
+ * never become a sample, an auto-map source, or a pin.
+ */
+export function isTruncatedOutput(v: unknown): boolean {
+    return !!v && typeof v === 'object' && (v as Rec).__truncated__ === true;
+}
+
+/**
+ * Overlay real output onto a design-time sample, key by key. Real data wins;
+ * a real scalar/array replaces the sample subtree wholesale (a real Gmail
+ * `results` array is the truth, not a merge candidate). Sample keys the real
+ * output lacks survive — a describer may know fields a particular run didn't
+ * happen to produce.
+ *
+ * (Moved verbatim from NodeDetailView so the whole builder shares one
+ * definition of "real wins".)
+ */
+export function deepOverlay(base: unknown, real: unknown): unknown {
+    if (real === null || typeof real !== 'object' || Array.isArray(real)) return real;
+    if (base === null || typeof base !== 'object' || Array.isArray(base)) return real;
+    const out: Rec = { ...base };
+    for (const k of Object.keys(real)) out[k] = (k in base) ? deepOverlay((base as Rec)[k], (real as Rec)[k]) : (real as Rec)[k];
+    return out;
+}
+
+/**
+ * What of a stored output the builder may treat as the step's real data.
+ * A truncation sentinel is not data — except its `preview`: a shape-preserving
+ * copy of the payload (every level kept, long lists cut to their first items,
+ * server/automation/payloadTruncation.js), which keeps the deep fields of a
+ * big output pickable. Undefined when there is nothing usable.
+ */
+function usableOutput(v: unknown): unknown {
+    if (v == null) return undefined;
+    if (!isTruncatedOutput(v)) return v;
+    return (v as Rec).preview != null ? (v as Rec).preview : undefined;
+}
+
+/**
+ * The freshest real output per node id.
+ *
+ *   - Only ids that exist in the definition (trigger, secondary triggers,
+ *     steps) — rows for deleted steps linger in the builder stream state and
+ *     must not resurrect them.
+ *   - Run rows: primary rows only (no `parentStepId` sub-rows from layer
+ *     calls), non-null output; a truncated one counts by its preview only.
+ *     First match wins, matching the long-standing NodeDetailView lookup
+ *     semantics.
+ *   - Pinned output (stored on the step in the definition) OVERRIDES a run
+ *     row — a pin is the user saying "this is the data I'm building against".
+ */
+export function buildRealOutputMap(definition: RealOutputDefinition | null | undefined, runSteps: RunStepRow[] | null | undefined): Map<string, unknown> {
+    const map = new Map<string, unknown>();
+    if (!definition) return map;
+
+    const nodes: OutputNode[] = [];
+    if (definition.trigger?.id) nodes.push(definition.trigger);
+    for (const t of (definition.triggers || [])) if (t?.id) nodes.push(t);
+    for (const s of (definition.steps || [])) if (s?.id) nodes.push(s);
+    const knownIds = new Set(nodes.map(n => n.id));
+
+    for (const r of (runSteps || [])) {
+        if (!r || r.parentStepId || !knownIds.has(r.stepId as string)) continue;
+        const out = usableOutput(r.output);
+        if (out !== undefined && !map.has(r.stepId as string)) map.set(r.stepId as string, out);
+    }
+
+    for (const node of nodes) {
+        const out = usableOutput(node.pinnedOutput);
+        if (out !== undefined) map.set(node.id as string, out);
+    }
+
+    return map;
+}
+
+/**
+ * Assemble the preview root tree ({trigger, steps, loop}) the binding editors
+ * resolve paths against — from groups that computeUpstreamGroups has ALREADY
+ * overlaid with real data (`hasRealData`).
+ *
+ * Replaces NodeDetailView's private builder and fixes two of its bugs by
+ * construction:
+ *   - multi-trigger clobber: every trigger-kind group used to write
+ *     trigger.output, so a secondary trigger's placeholder overwrote the
+ *     primary's real data. Now a group carrying real data locks the slot.
+ *   - loop scope: loop groups were assigned without any real overlay; the
+ *     overlay now happens upstream (inferLoopItemSample resolves against the
+ *     real sample root), so whatever the group holds IS the truth.
+ */
+export function buildSampleRoot(groups: SampleRootGroup[] | null | undefined): SampleRoot {
+    const root: SampleRoot & { loop: Record<string, unknown> } = { trigger: { output: {} }, steps: {}, loop: {} };
+    let triggerLocked = false;
+    for (const g of (groups || [])) {
+        if (g.kind === 'trigger') {
+            if (triggerLocked) continue;
+            root.trigger.output = g.sample || {};
+            if (g.hasRealData) triggerLocked = true;
+        } else if (String(g.basePath || '').startsWith('loop.')) {
+            // The group's BASE PATH decides its slot, not its `kind`. Two very
+            // different groups carry kind:'loop' — the per-item scope
+            // (`loop.<itemVar>`, describeForEachItem / computeLoopBodyGroups)
+            // AND a Loop STEP seen from downstream (`steps.<id>.output`, whose
+            // runtime value is execLoop's `{iterations, results:[…]}` envelope
+            // — see describeLoop). Keying on `kind` filed the STEP under
+            // `root.loop['<id>.output']`, colliding with the loop-scope
+            // namespace and leaving `root.steps.<id>` empty: nothing wired
+            // AFTER a Loop resolved in any preview, auto-map or picker.
+            const tail = String(g.basePath).split('.').slice(1).join('.');
+            if (tail) root.loop[tail] = g.sample || {};
+        } else {
+            root.steps[g.id as string] = { output: g.sample || {} };
+        }
+    }
+    return root;
+}

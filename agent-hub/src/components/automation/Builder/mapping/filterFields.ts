@@ -1,0 +1,54 @@
+/**
+ * Variable-tree filtering, shared by the {} VariablePicker popover and the
+ * NDV's INPUT panel so "search" means exactly the same thing in both.
+ *
+ * A node survives when its own key/path/label matches OR any descendant matches — a
+ * parent is kept as a PATH to its matching children, never as a false hit, and
+ * the surviving subtree is a copy so the caller's data is untouched.
+ */
+
+/** What the filter reads of a field; the caller's own field type rides through. */
+export interface FilterableField {
+    key?: string;
+    path?: string;
+    label?: unknown;
+    children?: unknown;
+}
+
+/** Filter a `[{key, path, sample, children?}]` tree against a lowercase query. */
+export function filterFields<F extends FilterableField>(fields: F[] | null | undefined, q: unknown): F[] {
+    const needle = String(q || '').toLowerCase();
+    if (!needle) return fields || [];
+    const out: F[] = [];
+    for (const f of fields || []) {
+        // `label` is the name a person reads for an internal key (a Condition
+        // output "Otherwise" for `matchesByCase.default`), so it is searchable.
+        const matchesSelf = f.key?.toLowerCase().includes(needle) || f.path?.toLowerCase().includes(needle)
+            || (typeof f.label === 'string' && f.label.toLowerCase().includes(needle));
+        let subs: F[] = [];
+        if (Array.isArray(f.children)) subs = filterFields(f.children, needle);
+        if (matchesSelf) {
+            out.push(subs.length > 0 ? { ...f, children: subs } : f);
+        } else if (subs.length > 0) {
+            out.push({ ...f, children: subs });
+        }
+    }
+    return out;
+}
+
+/**
+ * Filter whole groups. A group whose own LABEL matches is kept in full (that is
+ * how you ask for "everything from the Gmail step"); otherwise it is kept only
+ * for the fields that matched.
+ */
+export function filterGroups<G extends { label?: string; fields?: FilterableField[] }>(groups: G[] | null | undefined, q: unknown): G[] {
+    const needle = String(q || '').trim().toLowerCase();
+    if (!needle) return groups || [];
+    const out: G[] = [];
+    for (const g of groups || []) {
+        if (g?.label?.toLowerCase().includes(needle)) { out.push(g); continue; }
+        const fields = filterFields(g?.fields || [], needle);
+        if (fields.length > 0) out.push({ ...g, fields });
+    }
+    return out;
+}

@@ -1,5 +1,5 @@
 /**
- * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/autoMapInputs.js` and the
+ * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/autoMapInputs.ts` and the
  * port (autoMap + autoMapIteration + autoMapStep) map the same definitions the
  * same way. When this fails the web side changed — update the port, don't
  * loosen the test.
@@ -14,7 +14,7 @@ import type { FlowDefinition, FlowNode } from './types';
 import { computeUpstreamGroups } from './upstream';
 import { computeLoopBodyGroups } from './upstream/groups';
 
-const web = requireWeb(`${BUILDER}/mapping/autoMapInputs.js`);
+const web = requireWeb(`${BUILDER}/mapping/autoMapInputs.ts`);
 
 beforeAll(() => {
     jest.useFakeTimers({ now: new Date('2026-03-01T10:00:00Z') });

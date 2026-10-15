@@ -40,6 +40,7 @@ export interface BuilderMessage {
     isStreaming?: boolean;
     thinkingStartedAt?: number;
     thinkingEndedAt?: number;
+    autoSelectedTier?: string;
     [key: string]: unknown;
 }
 

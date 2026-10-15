@@ -13,6 +13,7 @@ import { defaultTriggerLabel } from '../flow/triggerLabels';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 import { applyAutoMapToStep as applyAutoMapToStepJs } from '../mapping/autoMapInputs';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
 
 type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 
@@ -21,11 +22,7 @@ const flowToScopePosition = flowToScopePositionJs as (
     prefix: string, absPos: Position, graph: FlowDefinition | null, sidecar: Map<string, SidecarEntry>, shiftById?: unknown,
 ) => Position;
 
-interface AutoMapResult { definition: FlowDefinition; mappedKeys: string[]; forEachEnabled?: boolean }
-// autoMapInputs.js is JavaScript whose `= {}` default reads as the parameter's whole type.
-const applyAutoMapToStep = applyAutoMapToStepJs as (
-    definition: FlowDefinition, stepId: string, catalog: unknown, opts: { realOutputById?: unknown },
-) => AutoMapResult;
+const applyAutoMapToStep = applyAutoMapToStepJs;
 
 interface ConfirmOptions { title: string; description: string; confirmLabel: string; destructive: boolean }
 
@@ -46,7 +43,7 @@ export interface UseAddStepOptions {
     onVisualEditRoot?: ((def: FlowDefinition) => void) | null;
     autoMapEnabled: boolean;
     catalog: unknown;
-    realOutputById: unknown;
+    realOutputById: RealOutputMap | null;
     recordUsage: (payload: AddStepPayload, sourceStep?: FlowStep | null) => void;
     confirmAction: (opts: ConfirmOptions) => Promise<boolean>;
     t: TranslateFn;
@@ -231,7 +228,7 @@ export default function useAddStep(o: UseAddStepOptions) {
 function usePendingAutoMapDrain({ pendingAutoMapRef, flatDef, realOutputById, catalog, onVisualEditFlat, t }: {
     pendingAutoMapRef: { current: string[] };
     flatDef: FlowDefinition | null;
-    realOutputById: unknown;
+    realOutputById: RealOutputMap | null;
     catalog: unknown;
     onVisualEditFlat?: ((def: FlowDefinition) => void) | null;
     t: Translate;

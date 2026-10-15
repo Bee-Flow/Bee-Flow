@@ -9,8 +9,8 @@ import { BUILDER, requireWeb, webValue } from './testing/web';
 import * as vp from './valueParts';
 import * as vt from './valueTransforms';
 
-const webVp = requireWeb(`${BUILDER}/mapping/valueParts.ts`);
-const webRt = requireWeb(`${BUILDER}/mapping/refTokens.js`);
+const webVp = requireWeb(`${BUILDER}/mapping/valueParts`);
+const webRt = requireWeb(`${BUILDER}/mapping/refTokens`);
 
 const BINDINGS: unknown[] = [
     null, undefined, '', 'plain', 12, false,

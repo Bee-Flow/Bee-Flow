@@ -8,7 +8,7 @@
  * beside servedOnPhoneWeb on the same addresses. A page the web adds to its
  * phone list, or an address it moves, fails here until the port follows.
  * So does a Settings section it adds to, or takes off, its desktop-only list
- * (pages/settings/settingsNavItems.jsx): those are PHONE_WEB_HIDDEN here.
+ * (pages/settings/settingsNavItems.tsx): those are PHONE_WEB_HIDDEN here.
  */
 
 import fs from 'node:fs';
@@ -18,7 +18,7 @@ import { PHONE_WEB_HIDDEN, PHONE_WEB_PAGES, servedOnPhoneWeb } from './links';
 
 const WEB = path.resolve(__dirname, '../../../../agent-hub/src/authedApp/appRoutes.js');
 /** Where the web decides which Settings sections a phone does not get. JSX, so read as text. */
-const SETTINGS_NAV = path.resolve(__dirname, '../../../../agent-hub/src/pages/settings/settingsNavItems.jsx');
+const SETTINGS_NAV = path.resolve(__dirname, '../../../../agent-hub/src/pages/settings/settingsNavItems.tsx');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 interface WebRoutes {

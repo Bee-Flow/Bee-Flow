@@ -45,7 +45,8 @@ export interface AddedStep {
 export interface ToolResult {
     error?: string;
     _fixHint?: string;
-    added?: AddedStep | AddedStep[];
+    /** One step, or an array for a batch (which has no id or icon of its own). */
+    added?: AddedStep | (AddedStep[] & { id?: undefined; icon?: undefined });
     staged?: boolean;
     name?: string;
     table?: { name?: string };
