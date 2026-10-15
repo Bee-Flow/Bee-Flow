@@ -3,7 +3,6 @@ import CmdButtonJs from '../../../../shared/ribbon/CmdButton';
 import RibbonDropdownJs from '../../../../shared/ribbon/RibbonDropdown';
 import InlineButtonJs from '../../../../shared/ribbon/InlineButton';
 import IntegrationLogoJs from '../nodes/IntegrationLogo';
-import { AppGlyph as AppGlyphJs } from '../appGlyphs';
 import type { IconType } from './ribbonCategories';
 
 /**
@@ -59,4 +58,4 @@ export const IntegrationLogo = IntegrationLogoJs as unknown as ComponentType<{
     size?: number;
 }>;
 
-export const AppGlyph = AppGlyphJs as unknown as ComponentType<{ integrationId: string; size?: number }>;
+export { AppGlyph } from '../appGlyphs';
