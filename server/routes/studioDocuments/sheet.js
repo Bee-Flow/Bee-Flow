@@ -92,6 +92,40 @@ function fileNameOf(name) {
 }
 
 /**
+ * Every tab of `doc` copied into a new table of `userId`'s own.
+ * @param {any} cellsApi  core/documents/sheetCells
+ * @param {any} doc
+ * @param {string} userId
+ * @returns {Promise<{ newTabs: { id: string, name: string, datatableId: string }[], tabIds: Map<string, string> }>}  tabIds: old tab id → the copy's
+ */
+async function copyTabs(cellsApi, doc, userId) {
+    const newTabs = [];
+    const tabIds = new Map();
+    for (const t of sheetTabsOf(doc)) {
+        const table = await cellsApi.createSheetTable({ ownerUserId: userId, name: `${t.name} — copy` });
+        await cellsApi.copyCells(doc.userId, t.datatableId, table.id, userId);
+        const id = newTabId();
+        tabIds.set(t.id, id);
+        newTabs.push({ id, name: t.name, datatableId: table.id });
+    }
+    return { newTabs, tabIds };
+}
+
+/**
+ * The charts of a sheet for its copy, which looks like the original: new
+ * ids, pinned to the copied tabs (a chart pinned to no tab stays on every
+ * tab); a chart pinned to a tab that no longer exists is left behind.
+ * @param {unknown} charts
+ * @param {Map<string, string>} tabIds
+ */
+function copiedCharts(charts, tabIds) {
+    if (!Array.isArray(charts)) return [];
+    return charts
+        .filter((c) => c && typeof c === 'object' && (!c.tab || tabIds.has(c.tab)))
+        .map((c) => ({ ...c, id: `chart-${crypto.randomBytes(5).toString('hex')}`, ...(c.tab ? { tab: tabIds.get(c.tab) } : {}) }));
+}
+
+/**
  * @param {object} [deps]
  * @param {any} [deps.documents]   stores/documentStore surface
  * @param {any} [deps.cells]       core/documents/sheetCells surface
@@ -262,19 +296,6 @@ function makeSheetRouter(deps = {}) {
     }));
 
     /**
-     * The charts of a sheet for its copy: new ids, pinned to the copied tabs;
-     * a chart pinned to a tab that no longer exists is left behind.
-     * @param {unknown} charts
-     * @param {Map<string, string>} tabIds
-     */
-    function copiedCharts(charts, tabIds) {
-        if (!Array.isArray(charts)) return [];
-        return charts
-            .filter((c) => c && typeof c === 'object' && (!c.tab || tabIds.has(c.tab)))
-            .map((c) => ({ ...c, id: `chart-${crypto.randomBytes(5).toString('hex')}`, ...(c.tab ? { tab: tabIds.get(c.tab) } : {}) }));
-    }
-
-    /**
      * POST /:id/duplicate for a spreadsheet: a new sheet of the caller's own,
      * in a new table of theirs, with the cells copied — never a second
      * document on the same table.
@@ -285,19 +306,7 @@ function makeSheetRouter(deps = {}) {
         });
         const name = (req.body?.name || `${doc.name} — copy`).slice(0, 200);
         try {
-            const sourceTabs = sheetTabsOf(doc);
-            const newTabs = [];
-            /** @type {Map<string, string>} old tab id → the copy's */
-            const tabIds = new Map();
-            for (const t of sourceTabs) {
-                const table = await cells().createSheetTable({ ownerUserId: req.session.user.id, name: `${t.name} — copy` });
-                await cells().copyCells(doc.userId, t.datatableId, table.id, req.session.user.id);
-                const id = newTabId();
-                tabIds.set(t.id, id);
-                newTabs.push({ id, name: t.name, datatableId: table.id });
-            }
-            // A copy looks like the original: its charts come along, pinned to
-            // the copied tabs (a chart pinned to no tab stays on every tab).
+            const { newTabs, tabIds } = await copyTabs(cells(), doc, req.session.user.id);
             const charts = copiedCharts(doc.settings?.sheet?.charts, tabIds);
             const copy = await documents().createDocument({
                 userId: req.session.user.id, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId: null,
