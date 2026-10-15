@@ -11,8 +11,8 @@ import { allFixtures } from '../testing/fixtures';
 import { loadWeb } from '../testing/loadWeb';
 
 type AnyFn = (...args: unknown[]) => unknown;
-const webForms = loadWeb<{ mergeFormValues: AnyFn }>('runtime/formValues.js');
-const webNav = loadWeb<{ navModel: AnyFn }>('runtime/shell/navModel.js');
+const webForms = loadWeb<{ mergeFormValues: AnyFn }>('runtime/formValues.ts');
+const webNav = loadWeb<{ navModel: AnyFn }>('runtime/shell/navModel.ts');
 const webScope = loadWeb<{ buildScope: AnyFn }>('runtime/RuntimeContext.jsx');
 
 describe('mergeFormValues', () => {

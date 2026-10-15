@@ -1,4 +1,5 @@
 import { createJsonResource } from '../../../../../api/client';
+import type { JsonResourceError, JsonResourceInit } from '../../../../../api/client';
 import { API_BASE } from '../../../../../utils/helpers';
 
 /**
@@ -26,7 +27,7 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
 // the rest behind nextCursor.
 export const PAGE_SIZE = 100;
 
-function recordsUrl(appId, tableId) {
+function recordsUrl(appId: string, tableId: string) {
     return `${API_BASE}/api/studio-apps/${enc(appId)}/data/tables/${enc(tableId)}/records`;
 }
 
@@ -34,15 +35,15 @@ function recordsUrl(appId, tableId) {
 // `err.retryAfter`; an empty 2xx body reads as {}.
 const resource = createJsonResource('', {
     contentType: 'none',
-    decorate: (err, _body, res) => {
+    decorate: (err: JsonResourceError, _body: Record<string, unknown> | null, res: Response) => {
         const header = typeof res.headers?.get === 'function' ? res.headers.get('Retry-After') : null;
         const seconds = Number(header);
         err.retryAfter = Number.isFinite(seconds) && seconds > 0 ? seconds : null;
     },
 });
-const request = async (url, options = {}) => (await resource(url, options)) || {};
+const request = async (url: string, options: JsonResourceInit = {}) => (await resource(url, options)) || {};
 
-export async function listRecords(appId, tableId, { limit = PAGE_SIZE, cursor = null } = {}) {
+export async function listRecords(appId: string, tableId: string, { limit = PAGE_SIZE, cursor = null }: { limit?: number; cursor?: string | null } = {}) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor) params.set('cursor', cursor);
     const body = await request(`${recordsUrl(appId, tableId)}?${params.toString()}`);
@@ -53,7 +54,7 @@ export async function listRecords(appId, tableId, { limit = PAGE_SIZE, cursor = 
 }
 
 /** Returns the created row as the server stored it ({ id, record }). */
-export function createRecord(appId, tableId, values) {
+export function createRecord(appId: string, tableId: string, values: Record<string, unknown>) {
     return request(recordsUrl(appId, tableId), {
         method: 'POST',
         headers: JSON_HEADERS,
@@ -70,7 +71,7 @@ export function createRecord(appId, tableId, values) {
  * `err.body.record`, instead of silently overwriting their change. Omit it and
  * the write stays last-write-wins, as before.
  */
-export function updateRecord(appId, tableId, recordId, values, { expectedUpdatedAt = null } = {}) {
+export function updateRecord(appId: string, tableId: string, recordId: string, values: Record<string, unknown>, { expectedUpdatedAt = null }: { expectedUpdatedAt?: string | null } = {}) {
     const payload = expectedUpdatedAt ? { values, expectedUpdatedAt } : { values };
     return request(`${recordsUrl(appId, tableId)}/${enc(recordId)}`, {
         method: 'PATCH',
@@ -79,7 +80,7 @@ export function updateRecord(appId, tableId, recordId, values, { expectedUpdated
     });
 }
 
-export function deleteRecord(appId, tableId, recordId) {
+export function deleteRecord(appId: string, tableId: string, recordId: string) {
     return request(`${recordsUrl(appId, tableId)}/${enc(recordId)}`, { method: 'DELETE' });
 }
 

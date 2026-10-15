@@ -12,7 +12,7 @@
  * so any accidental mutation throws loudly in tests and dev.
  */
 
-function deepFreeze(obj) {
+function deepFreeze<T>(obj: T): T {
     if (obj && typeof obj === 'object' && !Object.isFrozen(obj)) {
         Object.freeze(obj);
         for (const value of Object.values(obj)) deepFreeze(value);

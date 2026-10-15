@@ -2,6 +2,15 @@ import { useCallback } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import useConfirm from '../../../../shared/useConfirm';
 
+interface ConfirmStep {
+    title?: string;
+    heading?: string;
+    message?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    destructive?: boolean;
+}
+
 /**
  * App Studio runtime — the shared confirm, worded from an action step.
  *
@@ -16,7 +25,7 @@ export default function useConfirmDialog() {
     const { t } = useTranslation();
     const { confirm: ask, confirmDialog } = useConfirm();
 
-    const confirm = useCallback((step) => {
+    const confirm = useCallback((step: ConfirmStep | null | undefined) => {
         const s = step && typeof step === 'object' ? step : {};
         return ask({
             title: s.title || s.heading || t('studio_apps_runtime.confirm.title', 'Please confirm'),

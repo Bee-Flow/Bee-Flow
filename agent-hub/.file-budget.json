@@ -77,7 +77,7 @@
     "src/components/admin/Studio/AppStudio/runtime/styleResolver.js": 457,
     "src/components/admin/Studio/AppStudio/state/definitionOps.js": 802,
     "src/components/admin/Studio/AppStudio/state/definitionOps.test.js": 1054,
-    "src/components/admin/Studio/AppStudio/state/sampleDefinitions.js": 636,
+    "src/components/admin/Studio/AppStudio/state/sampleDefinitions.ts": 636,
     "src/components/admin/Studio/AppStudio/tables/RowsTab.jsx": 423,
     "src/components/admin/Studio/AppStudio/variables/VariablesManager.jsx": 432,
     "src/components/admin/Studio/attention/attentionChecks.js": 477,

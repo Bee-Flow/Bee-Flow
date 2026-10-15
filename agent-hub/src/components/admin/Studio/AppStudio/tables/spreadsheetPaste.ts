@@ -1,9 +1,44 @@
 import { optionPairs } from './rowValues';
+import type { OptionPair, RowField } from './rowValues';
+import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+
+/** A model field a paste can fill. */
+export interface ImportField extends RowField {
+    key: string;
+    name?: string;
+    required?: boolean;
+}
+
+/** A pasted block split into its header and data rows. */
+export interface ParsedPaste {
+    header: string[];
+    rows: string[][];
+    delimiter?: string;
+}
+
+/** One cell that would not convert, named for the preview. */
+export interface ImportProblem {
+    column: string;
+    fieldKey: string;
+    message: string;
+}
+
+/** One data row, converted. */
+export interface ImportRow {
+    line: number;
+    values: Record<string, unknown>;
+    problems: ImportProblem[];
+}
+
+export interface CoerceResult {
+    value: unknown;
+    error: string | null;
+}
 
 /** t() when the caller has one, the English default otherwise (tests, non-React callers). */
-const tr = (t, key, en, params) => (t
+const tr = (t: TranslateFn | null | undefined, key: string, en: string, params?: TranslateParams) => (t
     ? t(key, en, params)
-    : en.replace(/\{(\w+)\}/g, (m, name) => (params && name in params ? String(params[name]) : m)));
+    : en.replace(/\{(\w+)\}/g, (m: string, name: string) => (params && name in params ? String(params[name]) : m)));
 
 /**
  * App Studio — turning a block pasted out of Excel / Google Sheets into rows
@@ -31,9 +66,9 @@ const NO = new Set(['no', 'n', 'false', '0', '', 'nee', 'onwaar', 'off']);
 /** The characters a multi-select cell may separate its choices with. */
 const LIST_SPLIT = /[,;|]/;
 
-function parseRows(text, delimiter) {
-    const rows = [];
-    let row = [];
+function parseRows(text: string, delimiter: string) {
+    const rows: string[][] = [];
+    let row: string[] = [];
     let field = '';
     let quoted = false;
     for (let i = 0; i < text.length; i += 1) {
@@ -55,7 +90,7 @@ function parseRows(text, delimiter) {
 }
 
 /** The separator that splits the first line into the most columns. */
-function sniffDelimiter(text) {
+function sniffDelimiter(text: string) {
     const sample = text.slice(0, SNIFF_BYTES);
     let best = DELIMITERS[0];
     let width = 0;
@@ -70,35 +105,35 @@ function sniffDelimiter(text) {
  * Split pasted text into a header row plus data rows. Fully blank lines are
  * dropped — a spreadsheet selection almost always carries a trailing one.
  */
-export function parsePasted(text) {
+export function parsePasted(text: unknown): ParsedPaste {
     const raw = String(text ?? '').replace(/\r\n?/g, '\n').replace(/\n+$/, '');
     if (!raw.trim()) return { header: [], rows: [], delimiter: DELIMITERS[0] };
     const delimiter = sniffDelimiter(raw);
     const all = parseRows(raw, delimiter);
-    const header = (all[0] || []).map((h) => h.trim());
-    const rows = all.slice(1).filter((cells) => cells.some((c) => c.trim() !== ''));
+    const header = (all[0] || []).map((h: string) => h.trim());
+    const rows = all.slice(1).filter((cells: string[]) => cells.some((c: string) => c.trim() !== ''));
     return { header, rows, delimiter };
 }
 
 /** Fields a paste can fill — a computed field is worked out, never written. */
-export function importableFields(fields) {
-    return (Array.isArray(fields) ? fields : []).filter((f) => f && f.key && f.type !== 'computed');
+export function importableFields(fields: ImportField[] | null | undefined) {
+    return (Array.isArray(fields) ? fields : []).filter((f: ImportField) => f && f.key && f.type !== 'computed');
 }
 
-const norm = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 
 /**
  * Pre-match each pasted column to a field by its label or its column name,
  * ignoring case, spaces and punctuation. An unmatched column maps to '' —
  * "don't import this one" — and one field is never claimed twice.
  */
-export function suggestMapping(header, fields) {
+export function suggestMapping(header: string[] | null | undefined, fields: ImportField[] | null | undefined) {
     const usable = importableFields(fields);
-    const taken = new Set();
-    return (Array.isArray(header) ? header : []).map((h) => {
+    const taken = new Set<string>();
+    return (Array.isArray(header) ? header : []).map((h: string) => {
         const n = norm(h);
         if (!n) return '';
-        const hit = usable.find((f) => !taken.has(f.key) && (norm(f.name) === n || norm(f.key) === n));
+        const hit = usable.find((f: ImportField) => !taken.has(f.key) && (norm(f.name) === n || norm(f.key) === n));
         if (!hit) return '';
         taken.add(hit.key);
         return hit.key;
@@ -112,7 +147,7 @@ export function suggestMapping(header, fields) {
  * are the same amount); a lone comma is a decimal point unless it groups three
  * digits at a time ("1,234" and "1,234,567" are whole numbers).
  */
-export function parseNumberish(text) {
+export function parseNumberish(text: unknown) {
     let s = String(text ?? '').trim().replace(/[\s\u00a0]/g, '').replace(/^[€$£]|[€$£]$/g, '');
     if (!s) return NaN;
     const hasDot = s.includes('.');
@@ -129,9 +164,9 @@ export function parseNumberish(text) {
     return /^-?\d*\.?\d+$/.test(s) ? Number(s) : NaN;
 }
 
-const pad = (n) => String(n).padStart(2, '0');
+const pad = (n: number) => String(n).padStart(2, '0');
 
-function calendarDate(y, m, d) {
+function calendarDate(y: number, m: number, d: number) {
     if (m < 1 || m > 12 || d < 1) return null;
     const probe = new Date(Date.UTC(y, m - 1, d));
     if (probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) return null;
@@ -144,7 +179,7 @@ function calendarDate(y, m, d) {
  * genuinely ambiguous — it is read day-first unless the first number can only
  * be a day-of-month reading the other way round.
  */
-export function parseDateish(text) {
+export function parseDateish(text: unknown) {
     const s = String(text ?? '').trim();
     if (!s) return null;
     const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -162,7 +197,7 @@ export function parseDateish(text) {
 }
 
 /** Split a datetime cell into its date and its 'HH:mm' clock time, if any. */
-function parseDatetimeish(text) {
+function parseDatetimeish(text: unknown) {
     const s = String(text ?? '').trim();
     const m = s.match(/^(.*?)[T\s]+(\d{1,2}):(\d{2})(?::\d{2})?/);
     const date = parseDateish(m ? m[1] : s);
@@ -174,24 +209,24 @@ function parseDatetimeish(text) {
     return `${date}T${pad(hh)}:${pad(mm)}`;
 }
 
-function matchChoice(text, field) {
+function matchChoice(text: string, field: RowField | null | undefined) {
     const wanted = norm(text);
-    const hit = optionPairs(field).find((o) => norm(o.value) === wanted || norm(o.label) === wanted);
+    const hit = optionPairs(field).find((o: OptionPair) => norm(o.value) === wanted || norm(o.label) === wanted);
     return hit ? hit.value : null;
 }
 
-function choiceList(field) {
-    return optionPairs(field).map((o) => o.label).join(', ');
+function choiceList(field: RowField | null | undefined) {
+    return optionPairs(field).map((o: OptionPair) => o.label).join(', ');
 }
 
-const fieldLabel = (field, t) => field?.name || field?.key || tr(t, 'studio_apps_tables.cell.this_column', 'This column');
+const fieldLabel = (field: ImportField | null | undefined, t: TranslateFn | null | undefined) => field?.name || field?.key || tr(t, 'studio_apps_tables.cell.this_column', 'This column');
 
 /**
  * Convert one pasted cell for one field. Returns { value, error }: `error` is
  * the sentence shown next to the cell in the preview and in the skipped list,
  * so it always names the value that would not convert.
  */
-export function coerceCell(raw, field, t) {
+export function coerceCell(raw: unknown, field: ImportField | null | undefined, t?: TranslateFn | null): CoerceResult {
     const text = String(raw ?? '').trim();
     const type = field?.type || 'text';
     if (text === '') {
@@ -223,8 +258,8 @@ export function coerceCell(raw, field, t) {
             return { value: null, error: tr(t, 'studio_apps_tables.cell.not_choice', '“{text}” is not one of the choices ({choices})', { text, choices: choiceList(field) }) };
         }
         case 'multiselect': {
-            const wanted = text.split(LIST_SPLIT).map((p) => p.trim()).filter(Boolean);
-            const picked = [];
+            const wanted = text.split(LIST_SPLIT).map((p: string) => p.trim()).filter(Boolean);
+            const picked: string[] = [];
             for (const part of wanted) {
                 const v = matchChoice(part, field);
                 if (v === null) return { value: null, error: tr(t, 'studio_apps_tables.cell.not_choice', '“{text}” is not one of the choices ({choices})', { text: part, choices: choiceList(field) }) };
@@ -243,12 +278,12 @@ export function coerceCell(raw, field, t) {
  * can be pointed at. A field left empty is omitted rather than sent as null,
  * which lets the column's own default apply.
  */
-export function buildImportRows({ header = [], rows = [] } = {}, mapping = [], fields = [], t) {
-    const byKey = new Map(importableFields(fields).map((f) => [f.key, f]));
-    return rows.map((cells, index) => {
-        const values = {};
-        const problems = [];
-        mapping.forEach((key, col) => {
+export function buildImportRows({ header = [], rows = [] }: Partial<ParsedPaste> = {}, mapping: string[] = [], fields: ImportField[] = [], t?: TranslateFn | null): ImportRow[] {
+    const byKey = new Map(importableFields(fields).map((f: ImportField): [string, ImportField] => [f.key, f]));
+    return rows.map((cells: string[], index: number) => {
+        const values: Record<string, unknown> = {};
+        const problems: ImportProblem[] = [];
+        mapping.forEach((key: string, col: number) => {
             const field = key ? byKey.get(key) : null;
             if (!field) return;
             const { value, error } = coerceCell(cells[col], field, t);

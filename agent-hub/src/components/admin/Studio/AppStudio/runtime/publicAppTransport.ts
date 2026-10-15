@@ -25,12 +25,12 @@ import { API_BASE } from '../../../../../utils/helpers';
  */
 
 /** Build a Response the way fetch would, so callers need no special-casing. */
-function json(body, status) {
+function json(body: unknown, status: number): Response {
     return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
 /** Strip API_BASE (absolute in dev, '' in prod) and split off the query. */
-function splitUrl(url) {
+function splitUrl(url: unknown) {
     const raw = String(url || '');
     const withoutOrigin = raw.replace(/^https?:\/\/[^/]+/i, '');
     const [path, query = ''] = withoutOrigin.split('#')[0].split('?');
@@ -67,19 +67,22 @@ const ALLOWED_SUFFIXES = [
     /^\/actions\/[^/]+\/step$/,
 ];
 
-export function isPublicSuffix(suffix) {
+export function isPublicSuffix(suffix: string) {
     return ALLOWED_SUFFIXES.some((re) => re.test(suffix));
 }
 
-/**
- * @param {object} opts
- * @param {string} opts.token             the public page token from the URL
- * @param {() => string|null} opts.getVisitorToken  reads the CURRENT visitor
- *   token — a function, not a value, so a token refreshed after a 401 is picked
- *   up without reinstalling the transport.
- */
-export function createPublicAppTransport({ token, getVisitorToken }) {
-    return async (url, options = {}) => {
+interface PublicAppTransportOptions {
+    /** The public page token from the URL. */
+    token: string;
+    /**
+     * Reads the CURRENT visitor token — a function, not a value, so a token
+     * refreshed after a 401 is picked up without reinstalling the transport.
+     */
+    getVisitorToken: () => string | null;
+}
+
+export function createPublicAppTransport({ token, getVisitorToken }: PublicAppTransportOptions) {
+    return async (url: unknown, options: RequestInit & { headers?: Record<string, string> } = {}) => {
         const { path, query } = splitUrl(url);
 
         const match = path.match(/^\/api\/studio-apps\/[^/]+(\/.*)?$/);
@@ -97,7 +100,7 @@ export function createPublicAppTransport({ token, getVisitorToken }) {
         const qs = params.toString();
 
         const visitor = getVisitorToken();
-        const headers = { ...(options.headers || {}) };
+        const headers: Record<string, string> = { ...(options.headers || {}) };
         if (visitor) headers.Authorization = `Bearer ${visitor}`;
 
         return fetch(

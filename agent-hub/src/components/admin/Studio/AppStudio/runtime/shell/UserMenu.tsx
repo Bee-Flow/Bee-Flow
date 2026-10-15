@@ -11,7 +11,21 @@ import useTranslation from '../../../../../../hooks/useTranslation';
  * anonymous surfaces) — the shell stays byte-stable for those hosts.
  */
 
-function initialsOf(viewer) {
+export interface UserMenuViewer {
+    name?: string;
+    email?: string;
+    isOwner?: boolean;
+    roleKey?: string | null;
+}
+
+interface UserMenuProps {
+    viewer?: UserMenuViewer | null;
+    onExit?: (() => void) | null;
+    collapsed?: boolean;
+    direction?: 'up' | 'down';
+}
+
+function initialsOf(viewer: UserMenuViewer | null | undefined) {
     const name = (viewer?.name || '').trim();
     if (name) {
         const parts = name.split(/\s+/);
@@ -23,19 +37,19 @@ function initialsOf(viewer) {
     return email ? email[0].toUpperCase() : '?';
 }
 
-export default function UserMenu({ viewer, onExit = null, collapsed = false, direction = 'down' }) {
+export default function UserMenu({ viewer, onExit = null, collapsed = false, direction = 'down' }: UserMenuProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const rootRef = useRef(null);
+    const rootRef = useRef<HTMLDivElement>(null);
 
     // Close on outside pointerdown / Escape — same pattern as the editor's
     // screen-tab kebab menu.
     useEffect(() => {
         if (!open) return undefined;
-        const onDown = (e) => {
-            if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+        const onDown = (e: PointerEvent) => {
+            if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
         };
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false);
         };
         document.addEventListener('pointerdown', onDown);
@@ -57,7 +71,7 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
         <div ref={rootRef} className="relative shrink-0" data-app-user-menu="true">
             <button
                 type="button"
-                onClick={() => setOpen((v) => !v)}
+                onClick={() => setOpen((v: boolean) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-label={t('studio_apps_runtime.user_menu.account', 'Account: {name}', {
