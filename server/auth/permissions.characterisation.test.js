@@ -349,8 +349,11 @@ test('requireAuth: a deleted account is signed out; a store error is 503', async
     const origError = console.error;
     console.error = () => {};
     try {
-        const r2 = await run(perms.requireAuth, { session: session({ id: 'down' }) });
-        assert.deepEqual([r2.status, r2.body], [503, { error: 'auth_unavailable' }]);
+        const r2 = { res: mkRes(), err: null, nexted: false };
+        await perms.requireAuth({ session: session({ id: 'down' }) }, r2.res, (e) => { r2.nexted = true; r2.err = e; });
+        // forwarded to the terminal handler as an HttpError; nothing written here
+        assert.deepEqual([r2.err.status, r2.err.code, r2.err.message, r2.err.expose], [503, 'auth_unavailable', 'auth_unavailable', true]);
+        assert.equal(r2.res.statusCode, 200);
     } finally { console.error = origError; }
 });
 

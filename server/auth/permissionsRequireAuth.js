@@ -11,6 +11,7 @@ const { dep } = require('./permissionsDeps');
 const userStore = dep('userStore');
 const { tagGate } = require('./gateMeta');
 const log = require('../telemetry/log');
+const { HttpError } = require('../shared/httpErrors');
 const { getRedis } = require('../db');
 const { buildKey } = require('../utils/buildInfo');
 const { USER_CHECK_TTL, _makeBoundedMap, _userExistsCache } = require('./permissionsCache');
@@ -115,7 +116,7 @@ const requireAuth = async (req, res, next) => {
                 // exists; letting it through would keep a deleted user signed in
                 // for the length of the outage.
                 log.error('[Auth] user existence check failed:', e.message);
-                return res.status(503).json({ error: 'auth_unavailable' });
+                return next(new HttpError(503, 'auth_unavailable', 'auth_unavailable'));
             }
         }
 

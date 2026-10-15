@@ -41,6 +41,7 @@ const { checkConnectorSignupAllowed } = require('./signupGuards');
 // write itself happens off this stack.
 const orgHealth = require('../services/orgHealth');
 const log = require('../telemetry/log');
+const { HttpError } = require('../shared/httpErrors');
 
 // True iff the request's Nextcloud uid is THIS org's recorded NC admin. Used to
 // let the org admin past the NC_ONBOARDING_PENDING gate so onboarding can never
@@ -264,7 +265,6 @@ async function _listOrgIdsFallback() {
         .filter(k => k.startsWith(TENANT_KEY_PREFIX))
         .map(k => k.slice(TENANT_KEY_PREFIX.length));
 }
-
 
 /**
  * Best-effort email-DOMAIN extraction from an UNVERIFIED JWT payload. Used
@@ -525,7 +525,7 @@ async function connectorJwtMiddleware(req, res, next) {
                         orgId, source: 'connectorJwt', req,
                         meta: { reason: r.reason || 'unknown' },
                     });
-                    return res.status(500).json({ error: 'Failed to provision user' });
+                    return next(new HttpError(500, 'provision_failed', 'Failed to provision user'));
                 }
                 user = await userStore.getUser(userId);
                 log.info(`[ConnectorJWT] Auto-provisioned user ${userId} (org=${orgId}, status=${status})`);
