@@ -17,17 +17,60 @@
  */
 
 export const AI_STEP_TYPES = Object.freeze(['ai_step', 'data_extraction', 'ai_tool']);
-const _AI = new Set(AI_STEP_TYPES);
+const _AI = new Set<unknown>(AI_STEP_TYPES);
+
+/** A JSON object out of an automation record: the members the walkers read are optional. */
+export interface GraphObject {
+    type?: string;
+    kind?: string;
+    id?: string | number;
+    body?: unknown;
+    branches?: unknown;
+    steps?: unknown;
+    layers?: unknown;
+    definition?: unknown;
+    graph?: unknown;
+    trigger?: unknown;
+    triggers?: unknown;
+    is_published?: unknown;
+    isPublished?: unknown;
+    status?: unknown;
+    [key: string]: unknown;
+}
+
+export interface StepItem {
+    step: GraphObject;
+    parentId: string | number | null;
+    layer: string | null;
+}
+
+interface StepRef {
+    id: string | number | null;
+    label: string;
+}
+
+export interface AiActSignals {
+    contains_ai: boolean;
+    customer_facing: boolean;
+    generates_content: boolean;
+    disclosure_present: boolean | null;
+    marking_enabled: boolean | null;
+    annex_iii_hint: string | null;
+    steps: { ai: StepRef[]; generating: StepRef[] };
+    step_count: number | null;
+    surface: 'form' | 'published_agent' | null;
+    source: 'client';
+}
 
 /** Steps that stand between an automation and a person outside the org. */
-export const CUSTOMER_FACING_STEP_TYPES = Object.freeze(['form_page']);
+export const CUSTOMER_FACING_STEP_TYPES: ReadonlyArray<string | undefined> = Object.freeze(['form_page']);
 
 /** Steps that write model output into a file (Art. 50(2) marking subjects). */
-export const GENERATING_STEP_TYPES = Object.freeze(['generate_document']);
+export const GENERATING_STEP_TYPES: ReadonlyArray<string | undefined> = Object.freeze(['generate_document']);
 
-function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+function isObject(v: unknown): v is GraphObject { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
-export function isAiStep(step) {
+export function isAiStep(step: unknown) {
     return isObject(step) && _AI.has(step.type);
 }
 
@@ -37,8 +80,8 @@ export function isAiStep(step) {
  * (`step.branches[][]`), parents before their children. condition/switch
  * steps have no nested arms in this grammar (their branches are edges).
  */
-export function listSteps(definition) {
-    const out = [];
+export function listSteps(definition: unknown) {
+    const out: StepItem[] = [];
     if (!isObject(definition)) return out;
     _walkGraph(definition.steps, null, out);
     if (isObject(definition.layers)) {
@@ -49,7 +92,7 @@ export function listSteps(definition) {
     return out;
 }
 
-function _walkGraph(steps, layer, out, parentId = null, seen = new Set()) {
+function _walkGraph(steps: unknown, layer: string | null, out: StepItem[], parentId: string | number | null = null, seen = new Set<unknown>()) {
     if (!Array.isArray(steps)) return;
     for (const step of steps) {
         if (!isObject(step) || seen.has(step)) continue;
@@ -66,7 +109,7 @@ function _walkGraph(steps, layer, out, parentId = null, seen = new Set()) {
 }
 
 /** A step's human label — the builder's `label`/`name`/`title`, else its id, else its type. */
-export function stepLabel(step) {
+export function stepLabel(step: unknown) {
     if (!isObject(step)) return '';
     for (const k of ['label', 'name', 'title']) {
         if (typeof step[k] === 'string' && step[k].trim()) return step[k].trim();
@@ -74,12 +117,12 @@ export function stepLabel(step) {
     return String(step.id ?? step.type ?? '');
 }
 
-function isFormTrigger(trigger) {
+function isFormTrigger(trigger: unknown) {
     return isObject(trigger) && (trigger.kind === 'form' || trigger.type === 'form');
 }
 
 /** The definition object of an automation record (`definition` may be a JSON string on older rows). */
-export function definitionOf(automation) {
+export function definitionOf(automation: unknown) {
     if (!isObject(automation)) return null;
     const d = automation.definition ?? automation.graph ?? null;
     if (typeof d === 'string') {
@@ -91,11 +134,8 @@ export function definitionOf(automation) {
 /**
  * Signals for an automation (automation) from its record — `signalsForAutomation`
  * on the server, minus what needs the database.
- * @returns {{ contains_ai, customer_facing, generates_content, disclosure_present: null,
- *             marking_enabled: null, annex_iii_hint: null, steps: { ai: [{id,label}], generating: [{id,label}] },
- *             step_count: number, surface: 'form'|null, source: 'client' }}
  */
-export function signalsForAutomation(automation) {
+export function signalsForAutomation(automation: unknown): AiActSignals {
     const def = definitionOf(automation) || {};
     const items = listSteps(def);
     const ai = items.filter(x => isAiStep(x.step)).map(x => ({ id: x.step.id ?? null, label: stepLabel(x.step) }));
@@ -127,7 +167,7 @@ export function signalsForAutomation(automation) {
  * model, so it always contains AI and always generates content; it faces
  * customers when published.
  */
-export function signalsForAgent(agent) {
+export function signalsForAgent(agent: unknown): AiActSignals {
     const a = isObject(agent) ? agent : {};
     const published = a.is_published === true || a.isPublished === true || a.status === 'published';
     return {
@@ -145,7 +185,7 @@ export function signalsForAgent(agent) {
 }
 
 /** Dispatch on `kind` ('automation' | 'agent'); unknown kind → null (renders nothing). */
-export function fallbackSignals(kind, target) {
+export function fallbackSignals(kind: string, target: unknown): AiActSignals | null {
     if (kind === 'automation') return signalsForAutomation(target);
     if (kind === 'agent') return signalsForAgent(target);
     return null;

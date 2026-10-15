@@ -13,7 +13,20 @@
 //   placeholder — input placeholder while no key is configured
 //   docsUrl / docsLabel — "Get your API key from …" footer link
 
-export const PROVIDER_KEY_CONFIGS = {
+export type ProviderKeyConfig = {
+    name: string;
+    statusField: string;
+    bodyField: string;
+    deleteSlug: string;
+    icon: string;
+    iconBackground: string;
+    description: string;
+    placeholder: string;
+    docsUrl: string;
+    docsLabel: string;
+};
+
+export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
     claude: {
         name: 'Claude',
         statusField: 'hasClaudeKey',

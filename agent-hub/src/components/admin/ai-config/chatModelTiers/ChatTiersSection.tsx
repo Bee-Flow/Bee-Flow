@@ -2,10 +2,36 @@
 // custom-tier list + the save button). Subtree moved verbatim from
 // ChatModelTiersConfig.jsx; all bindings are threaded in as props.
 import React from 'react';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { TierConfig, CustomTier, StatusMessage } from './tierTypes';
+import type { ClaudeSettingsState } from './useClaudeSettings';
+import type { CustomTiersState } from './useCustomTiers';
+import type { TierConfigsState } from './useTierConfigs';
 import { TIERS, TIER_DEFAULTS } from './constants';
 import CustomTierCard from './CustomTierCard';
 import TierCard from './TierCard';
 import { useTranslation } from '../../../../hooks/useTranslation';
+
+interface ChatTiersSectionProps extends ModelPickerSource {
+    config: TierConfig;
+    customTiers: CustomTier[];
+    saving: boolean;
+    message: StatusMessage | null;
+    save: TierConfigsState['save'];
+    addCustomTier: CustomTiersState['addCustomTier'];
+    updateTier: TierConfigsState['updateTier'];
+    expandedTier: TierConfigsState['expandedTier'];
+    setExpandedTier: TierConfigsState['setExpandedTier'];
+    expandedCustomId: CustomTiersState['expandedCustomId'];
+    setExpandedCustomId: CustomTiersState['setExpandedCustomId'];
+    isLocal: (id: string) => boolean;
+    reasoningCapable: (id: string) => boolean;
+    applyClaudeRecommendedForTier: ClaudeSettingsState['applyClaudeRecommendedForTier'];
+    updateCustomTier: CustomTiersState['updateCustomTier'];
+    renameCustomTier: CustomTiersState['renameCustomTier'];
+    removeCustomTier: CustomTiersState['removeCustomTier'];
+    toggleCustomTaskType: CustomTiersState['toggleCustomTaskType'];
+}
 
 export default function ChatTiersSection({
     config, customTiers, saving, message, save, addCustomTier, updateTier,
@@ -13,7 +39,7 @@ export default function ChatTiersSection({
     chatModels, byProvider, hiddenModelIds, toggleHiddenModel,
     isLocal, reasoningCapable, applyClaudeRecommendedForTier,
     updateCustomTier, renameCustomTier, removeCustomTier, toggleCustomTaskType,
-}) {
+}: ChatTiersSectionProps) {
     const { t } = useTranslation();
     return (
             <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>

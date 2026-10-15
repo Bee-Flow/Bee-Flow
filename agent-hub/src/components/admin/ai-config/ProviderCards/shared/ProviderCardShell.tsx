@@ -26,12 +26,26 @@ const TONE_CLS = {
     orange: 'bg-orange-500/20 text-orange-400',
 };
 
+interface ProviderStatusPillProps {
+    tone?: keyof typeof TONE_CLS;
+    children?: React.ReactNode;
+}
+
+interface ProviderCardShellProps {
+    icon?: React.ReactNode;
+    iconGradient?: string;
+    title?: React.ReactNode;
+    subtitle?: React.ReactNode;
+    badges?: React.ReactNode;
+    children?: React.ReactNode;
+}
+
 /** A small rounded status pill (Endpoint / Key / model badges). */
-export const ProviderStatusPill = ({ tone = 'green', children }) => (
+export const ProviderStatusPill = ({ tone = 'green', children }: ProviderStatusPillProps) => (
     <span className={`text-[10px] px-2 py-0.5 rounded-full ${TONE_CLS[tone] || TONE_CLS.green}`}>{children}</span>
 );
 
-export default function ProviderCardShell({ icon, iconGradient, title, subtitle, badges, children }) {
+export default function ProviderCardShell({ icon, iconGradient, title, subtitle, badges, children }: ProviderCardShellProps) {
     return (
         <div className="mb-6 p-5 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-default)]">
             <div className="flex items-center gap-3 mb-4">

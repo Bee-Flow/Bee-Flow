@@ -20,6 +20,18 @@ export const API = (import.meta.env.VITE_API_URL || '') + '/api/compliance';
 export const API_DSR = (import.meta.env.VITE_API_URL || '') + '/api/dsr';
 export const OPTS = Object.freeze({ credentials: 'include' });
 
+/** A parsed JSON body: objects, scalars, null. (Arrays are rejected by `asObject` at runtime.) */
+export type JsonValue = string | number | boolean | null | undefined | JsonObject;
+export interface JsonObject { [key: string]: JsonValue }
+
+/** The Error `fetchJson` throws for a refused request. */
+export interface FetchJsonError extends Error {
+    status?: number;
+    code?: string | null;
+    serverMessage?: string | null;
+    details?: JsonObject | null;
+}
+
 /**
  * A refused request throws an Error whose message stays `"<status> <statusText>"`
  * (callers test it with /^404\b/), and which also carries what the server
@@ -28,11 +40,11 @@ export const OPTS = Object.freeze({ credentials: 'include' });
  * with a `details` object (a 422 listing the missing field codes) hands that
  * over as `details`; anything else leaves it null.
  */
-export async function fetchJson(url, init) {
+export async function fetchJson(url: string, init?: RequestInit) {
     const r = await authFetch(url, { ...OPTS, ...(init || {}) });
     if (!r.ok) {
-        const err = new Error(`${r.status} ${r.statusText}`);
-        let body = null;
+        const err: FetchJsonError = new Error(`${r.status} ${r.statusText}`);
+        let body: { code?: unknown; error?: unknown; details?: JsonObject } | null = null;
         try { body = typeof r.json === 'function' ? await r.json() : null; } catch { body = null; }
         err.status = r.status;
         err.code = body && typeof body.code === 'string' ? body.code : null;
@@ -49,14 +61,14 @@ export async function fetchJson(url, init) {
  */
 export const chatMonitoringUrls = Object.freeze({
     config: () => `${API}/chat-monitoring`,
-    summary: (days) => `${API}/chat-monitoring/summary?days=${days === 90 ? 90 : 30}`,
+    summary: (days: number) => `${API}/chat-monitoring/summary?days=${days === 90 ? 90 : 30}`,
     counts: () => `${API}/chat-monitoring/counts`,
     dpia: () => `${API}/dpia/chat_monitoring`,
     ropa: () => `${API}/ropa`,
 });
 
 /** `{ method, headers, body }` for a JSON write; `body` undefined → `'{}'` so an empty POST still parses server-side. */
-export function jsonInit(method, body) {
+export function jsonInit(method: string, body?: unknown) {
     return {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -65,10 +77,10 @@ export function jsonInit(method, body) {
 }
 
 /** Shorthand for the common case. */
-export const json = (body) => jsonInit('POST', body);
+export const json = (body?: unknown) => jsonInit('POST', body);
 
 /** A download url, or null when exports are switched off (the public demo). */
-export function downloadUrl(exportsEnabled, url) {
+export function downloadUrl(exportsEnabled: boolean | undefined, url: string) {
     return exportsEnabled ? url : null;
 }
 
@@ -79,11 +91,11 @@ export function downloadUrl(exportsEnabled, url) {
  * the body is an array or junk. A hook must then render NOTHING for that data
  * (never a "0"), so this returns null for anything that is not a plain object.
  */
-export function asObject(body) {
+export function asObject(body: JsonValue) {
     return body && typeof body === 'object' && !Array.isArray(body) ? body : null;
 }
 
 /** Same rule for list endpoints: anything that is not an array reads as "not loaded". */
-export function asArray(body) {
+export function asArray(body: unknown) {
     return Array.isArray(body) ? body : null;
 }

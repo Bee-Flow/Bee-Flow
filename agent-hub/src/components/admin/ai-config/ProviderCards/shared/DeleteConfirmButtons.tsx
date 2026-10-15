@@ -17,6 +17,13 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
+interface DeleteConfirmButtonsProps {
+    onConfirm: () => void;
+    label?: React.ReactNode;
+    title?: string;
+    size?: 'sm' | 'xs';
+}
+
 const SIZE_CLASSES = {
     sm: {
         trigger: 'px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-red-500/20',
@@ -30,7 +37,7 @@ const SIZE_CLASSES = {
     }
 };
 
-const DeleteConfirmButtons = ({ onConfirm, label = '🗑️', title, size = 'sm' }) => {
+const DeleteConfirmButtons = ({ onConfirm, label = '🗑️', title, size = 'sm' }: DeleteConfirmButtonsProps) => {
     const { t } = useTranslation();
     const [confirming, setConfirming] = useState(false);
     const classes = SIZE_CLASSES[size] || SIZE_CLASSES.sm;

@@ -3,7 +3,31 @@
 // ChatModelTiersConfig.jsx; only the `export` keywords are new.
 import beeFlowIcon from '../../../../assets/BeeFlow-logo-Icon-2026.svg';
 
-export const TIERS = [
+export interface TierDef {
+    key: string;
+    icon: string;
+    iconSrc?: string;
+    label: string;
+    desc: string;
+}
+
+export interface TierDefaults {
+    maxTokens: number;
+    temperature: number;
+    verbosity: string;
+}
+
+interface ClaudeRecommendation {
+    modelId: string;
+    maxTokens: number;
+    temperature: number;
+    reasoningEffort: string | undefined;
+    reasoningSummary: boolean;
+    budgetTokens: number | undefined;
+    note: string;
+}
+
+export const TIERS: TierDef[] = [
     { key: 'fast', icon: '⚡', label: 'Fast', desc: 'Quick responses for simple questions' },
     { key: 'standard', icon: '🐝', iconSrc: beeFlowIcon, label: 'Flow (Direct)', desc: 'Direct chat tier with per-chat orchestrated stages' },
     { key: 'swarm', icon: '🐝🐝', iconSrc: beeFlowIcon, label: 'Swarm (Direct)', desc: 'Direct chat tier that runs a multi-agent swarm (Deep Research) and synthesises one answer' },
@@ -14,7 +38,7 @@ export const TIERS = [
 
 // Must match the server-side TIER_DEFAULTS in server/core/modelResolver.js —
 // keep these two tables in sync so the admin UI shows the real fallback.
-export const TIER_DEFAULTS = {
+export const TIER_DEFAULTS: Record<string, TierDefaults> = {
     fast: { maxTokens: 4096, temperature: 0.2, verbosity: 'low' },
     standard: { maxTokens: 16384, temperature: 0.5, verbosity: 'medium' },
     thinking: { maxTokens: 32768, temperature: 0.7, verbosity: 'medium' },
@@ -29,7 +53,7 @@ export const CUSTOM_TIER_DEFAULTS = { maxTokens: 32768, temperature: 0.7 };
 // Applied by the "Claude Settings" panel's Apply buttons. Values picked
 // from Anthropic docs (Sonnet 64K / Opus 128K max output, Haiku no
 // adaptive thinking, Opus 4.7 adaptive-only with no manual budget).
-export const CLAUDE_RECOMMENDED = {
+export const CLAUDE_RECOMMENDED: Record<string, ClaudeRecommendation> = {
     fast: {
         modelId: 'claude-haiku-4-5',
         maxTokens: 4096, temperature: 0.2,
@@ -76,7 +100,7 @@ export const TASK_TYPES = [
 ];
 
 // Convert a free-form label into a stable custom tier id (slug, namespaced).
-export const slugifyTierLabel = (label) => {
+export const slugifyTierLabel = (label: string | null | undefined) => {
     const slug = String(label || '')
         .toLowerCase()
         .normalize('NFKD')

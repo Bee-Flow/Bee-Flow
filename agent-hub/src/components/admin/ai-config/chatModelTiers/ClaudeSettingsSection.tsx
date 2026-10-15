@@ -2,15 +2,20 @@
 // table + robustness toggles). Subtree moved verbatim from
 // ChatModelTiersConfig.jsx; all bindings are threaded in as props.
 import React from 'react';
+import type { ClaudeSettingsState } from './useClaudeSettings';
 import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER, TIERS } from './constants';
 import { getModelMeta } from './modelMeta';
 import { useTranslation } from '../../../../hooks/useTranslation';
+
+type ClaudeSettingsSectionProps = Pick<ClaudeSettingsState,
+    'claudeAutoRetry' | 'setClaudeAutoRetry' | 'claudeSaving' | 'claudeMessage' | 'claudeRecAppliedTier'
+    | 'saveClaudeSettings' | 'applyClaudeRecommendedForTier' | 'applyAllClaudeRecommended'>;
 
 export default function ClaudeSettingsSection({
     claudeAutoRetry, setClaudeAutoRetry, claudeSaving, claudeMessage,
     claudeRecAppliedTier, saveClaudeSettings,
     applyClaudeRecommendedForTier, applyAllClaudeRecommended,
-}) {
+}: ClaudeSettingsSectionProps) {
     const { t } = useTranslation();
     return (
             <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
