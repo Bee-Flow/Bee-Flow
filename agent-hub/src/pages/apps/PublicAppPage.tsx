@@ -9,6 +9,23 @@ import EmptyState from '../../components/shared/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
 
+/** A load failure; `status` is the HTTP status when the server answered. */
+type PublicAppError = Error & { status?: number };
+
+/** GET /api/public-app/:token: the entry screen's app plus a visitor token. */
+interface PublicAppPayload {
+    visitorToken?: string;
+    entryScreenId?: string;
+    definition?: { homeScreenId?: string; theme?: unknown } | null;
+    app?: { id?: string; name?: string };
+}
+
+interface PageState {
+    status: 'loading' | 'ready' | 'error';
+    payload: PublicAppPayload | null;
+    error: PublicAppError | null;
+}
+
 /**
  * PublicAppPage — the anonymous surface of a Studio app. Route: /p/:token
  * (App.jsx, mounted before any auth handling).
@@ -36,15 +53,15 @@ import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
  *  not orphan the rows already written under it. sessionStorage, not local:
  *  it dies with the tab, and a shared computer must not hand the next person
  *  the previous visitor's identity. */
-function storageKey(token) {
+function storageKey(token: string) {
     return `bf.publicApp.visitor.${token}`;
 }
 
-function readStoredVisitor(token) {
+function readStoredVisitor(token: string) {
     try { return window.sessionStorage.getItem(storageKey(token)) || null; } catch { return null; }
 }
 
-function storeVisitor(token, visitorToken) {
+function storeVisitor(token: string, visitorToken: string) {
     try { window.sessionStorage.setItem(storageKey(token), visitorToken); } catch { /* private mode — in-memory is fine */ }
 }
 
@@ -67,7 +84,7 @@ function LoadingSkeleton() {
  * unpublished, unknown token — so there is exactly one thing that can honestly
  * be said here, and a retry button would be a lie.
  */
-function NotAvailable({ error, onRetry }) {
+function NotAvailable({ error, onRetry }: { error: PublicAppError | null; onRetry: () => void }) {
     const { t } = useTranslation();
     const notFound = error?.status === 404 || error?.message === 'not_found';
     return (
@@ -86,13 +103,13 @@ function NotAvailable({ error, onRetry }) {
     );
 }
 
-export default function PublicAppPage({ token }) {
-    const [state, setState] = useState({ status: 'loading', payload: null, error: null });
-    const [screenId, setScreenId] = useState(null);
+export default function PublicAppPage({ token }: { token: string }) {
+    const [state, setState] = useState<PageState>({ status: 'loading', payload: null, error: null });
+    const [screenId, setScreenId] = useState<string | null>(null);
 
     // The live visitor token, read through a ref so the transport installed
     // once below always sees the CURRENT one.
-    const visitorRef = useRef(readStoredVisitor(token));
+    const visitorRef = useRef<string | null>(readStoredVisitor(token));
 
     // Installed during the first render — see the docblock.
     useState(() => {
@@ -117,11 +134,11 @@ export default function PublicAppPage({ token }) {
                 cache: 'no-store',
             });
             if (!res.ok) {
-                const err = new Error(res.status === 404 ? 'not_found' : `Request failed (${res.status})`);
+                const err: PublicAppError = new Error(res.status === 404 ? 'not_found' : `Request failed (${res.status})`);
                 err.status = res.status;
                 throw err;
             }
-            const payload = await res.json();
+            const payload: PublicAppPayload = await res.json();
             if (payload?.visitorToken) {
                 visitorRef.current = payload.visitorToken;
                 storeVisitor(token, payload.visitorToken);
@@ -129,7 +146,7 @@ export default function PublicAppPage({ token }) {
             setScreenId(payload?.entryScreenId || payload?.definition?.homeScreenId || null);
             setState({ status: 'ready', payload, error: null });
         } catch (err) {
-            setState({ status: 'error', payload: null, error: err });
+            setState({ status: 'error', payload: null, error: err as PublicAppError });
         }
     }, [token]);
 

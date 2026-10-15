@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
 import { Lock, Loader2, CheckCircle2 } from 'lucide-react';
+import type { FormEvent } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+
+interface ResetPasswordStepProps {
+    onSubmit: (password: string) => void;
+    onDone: () => void;
+    isLoading: boolean;
+    done: boolean;
+    inputClass: string;
+    labelClass: string;
+}
 
 /**
  * New-password form for the reset link (token comes from the URL, held by the
  * parent). Local validation only; server errors surface via the parent's
  * shared error block.
  */
-const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labelClass }) => {
+const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labelClass }: ResetPasswordStepProps) => {
     const { t } = useTranslation();
     const [pw, setPw] = useState('');
     const [confirm, setConfirm] = useState('');
@@ -27,7 +37,7 @@ const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labe
         );
     }
 
-    const submit = (e) => {
+    const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLocalErr('');
         if (pw.length < 8) { setLocalErr(t('reset.min_length', 'Password must be at least 8 characters')); return; }

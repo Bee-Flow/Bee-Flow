@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookMarked, X } from 'lucide-react';
 import useTranslation from '../../../hooks/useTranslation';
+import type { TocItem } from '../../../editor/react/toc';
 
 /**
  * NotebookTOC — Table of Contents sidebar panel.
@@ -14,9 +15,15 @@ import useTranslation from '../../../hooks/useTranslation';
  */
 // Indent per heading level as literal classes (Tailwind only emits what it can read whole).
 const INDENT = ['pl-3', 'pl-6', 'pl-9', 'pl-12', 'pl-[60px]', 'pl-[72px]'];
-const WEIGHT = { 1: 'font-semibold', 2: 'font-medium' };
+const WEIGHT: Record<number, string> = { 1: 'font-semibold', 2: 'font-medium' };
 
-export default function NotebookTOC({ items = [], onClose, onSelect }) {
+interface NotebookTOCProps {
+    items?: TocItem[] | null;
+    onClose?: () => void;
+    onSelect?: (index: number) => void;
+}
+
+export default function NotebookTOC({ items = [], onClose, onSelect }: NotebookTOCProps) {
     const { t } = useTranslation();
     if (!items || items.length === 0) {
         return (
@@ -27,7 +34,7 @@ export default function NotebookTOC({ items = [], onClose, onSelect }) {
         );
     }
 
-    const scrollTo = (item, index) => {
+    const scrollTo = (item: TocItem, index: number) => {
         if (onSelect) { onSelect(item.itemIndex ?? index); return; }
         const el = item.id ? document.getElementById(item.id) : null;
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -58,7 +65,7 @@ export default function NotebookTOC({ items = [], onClose, onSelect }) {
 
             {/* TOC Items */}
             <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
-                {items.map((item, index) => (
+                {items.map((item: TocItem, index: number) => (
                     <button
                         key={item.id ?? item.itemIndex ?? index}
                         type="button"

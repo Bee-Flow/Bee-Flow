@@ -1,13 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { User, Lock, LogIn, Loader2, Zap, UserPlus, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import type { ChangeEventHandler, FormEvent } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { TranslateFn } from '../../hooks/useTranslation';
 
-function getCookie(name) {
+interface PasswordInputProps {
+    value: string;
+    onChange: ChangeEventHandler<HTMLInputElement>;
+    inputClass: string;
+    placeholder?: string;
+    label?: string;
+    labelClass: string;
+    setupMode?: { _t: TranslateFn } | false;
+    minLength?: number;
+    id?: string;
+}
+
+interface LoginFormProps {
+    username: string;
+    setUsername: (username: string) => void;
+    password: string;
+    setPassword: (password: string) => void;
+    confirmPassword: string;
+    setConfirmPassword: (password: string) => void;
+    setupMode: boolean;
+    isLoading: boolean;
+    handleSubmit: (e: FormEvent<HTMLFormElement>) => void;
+    handleOAuthLogin: () => void;
+    handleGoogleLogin: () => void;
+    handleMicrosoftLogin: () => void;
+    isOAuthConfigured: boolean;
+    isGoogleConfigured: boolean;
+    isMicrosoftConfigured: boolean;
+    setSignupMode: ((signupMode: boolean) => void) | null;
+    setError: (message: string) => void;
+    onForgotPassword?: () => void;
+    allowSignups?: boolean | null;
+    allowPasswordLogin?: boolean | null;
+    inputClass: string;
+    labelClass: string;
+}
+
+function getCookie(name: string): string | null {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
     return match ? decodeURIComponent(match[2]) : null;
 }
 
-function setCookie(name, value, days = 365) {
+function setCookie(name: string, value: string, days = 365): void {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
     document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`;
 }
@@ -36,7 +75,7 @@ const MicrosoftIcon = () => (
     </svg>
 );
 
-const PasswordInput = ({ value, onChange, inputClass, placeholder = "••••••••", label = "Password", labelClass, setupMode, minLength, id = "password" }) => {
+const PasswordInput = ({ value, onChange, inputClass, placeholder = "••••••••", label = "Password", labelClass, setupMode, minLength, id = "password" }: PasswordInputProps) => {
     const [showPassword, setShowPassword] = useState(false);
     return (
         <div>
@@ -71,7 +110,7 @@ const PasswordInput = ({ value, onChange, inputClass, placeholder = "•••�
     );
 };
 
-const Divider = ({ label }) => (
+const Divider = ({ label }: { label: string }) => (
     <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t-2 border-[var(--border-subtle)]" />
@@ -93,9 +132,9 @@ const LoginForm = ({
     setSignupMode, setError, onForgotPassword,
     allowSignups = true, allowPasswordLogin = true,
     inputClass, labelClass
-}) => {
+}: LoginFormProps) => {
     const { t } = useTranslation();
-    const [preferredMethod, setPreferredMethod] = useState(null);
+    const [preferredMethod, setPreferredMethod] = useState<string | null>(null);
     const [showAllMethods, setShowAllMethods] = useState(false);
 
     useEffect(() => {
@@ -103,7 +142,7 @@ const LoginForm = ({
         if (saved) setPreferredMethod(saved);
     }, []);
 
-    const handlePasswordLogin = (e) => {
+    const handlePasswordLogin = (e: FormEvent<HTMLFormElement>) => {
         setCookie('bf_preferred_login', 'password');
         handleSubmit(e);
     };

@@ -9,13 +9,25 @@ import SecurityKeyEnrolment from '../../components/mfa/SecurityKeyEnrolment';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 
+/** POST /auth/mfa/setup: the enrollment secret and how to hand it to an app. */
+interface MfaSetupData {
+    otpauthUrl?: string;
+    qr: string;
+    secret: string;
+}
+
+interface MfaSetupGateProps {
+    onDone: () => void;
+    onLogout: () => void;
+}
+
 // Module-level in-flight dedupe for the mount-effect POST /auth/mfa/setup.
 // A remount (or React StrictMode's dev double-invoke) would otherwise fire
 // two concurrent /setup calls racing on session.save — the QR on screen could
 // then belong to a DIFFERENT secret than the session holds, making every
 // entered code "Invalid" (BFSF-274). The server-side /setup is now idempotent
 // too; this is belt-and-braces so only one request exists at a time.
-let _setupInFlight = null;
+let _setupInFlight: Promise<MfaSetupData> | null = null;
 
 /**
  * Full-screen forced MFA-enrollment gate. Shown (by App.jsx) when the server
@@ -27,17 +39,17 @@ let _setupInFlight = null;
  * Reuses the same /auth/mfa/{setup,enable} endpoints and the shared
  * RecoveryCodes panel as Settings → Security, so enrollment behaves identically.
  */
-export default function MfaSetupGate({ onDone, onLogout }) {
+export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
     const { t } = useTranslation();
-    const [setupData, setSetupData] = useState(null); // { otpauthUrl, qr, secret }
+    const [setupData, setSetupData] = useState<MfaSetupData | null>(null); // { otpauthUrl, qr, secret }
     const [code, setCode] = useState('');
-    const [newCodes, setNewCodes] = useState(null);   // recovery codes shown once
+    const [newCodes, setNewCodes] = useState<string[] | null>(null);   // recovery codes shown once
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     // A security key instead of the app: either one satisfies the duty.
     const [withKey, setWithKey] = useState(false);
 
-    const post = async (path, body) => {
+    const post = async (path: string, body?: Record<string, unknown>) => {
         const res = await authFetch(`${API_BASE}/auth/mfa/${path}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body || {}),
@@ -59,7 +71,7 @@ export default function MfaSetupGate({ onDone, onLogout }) {
                 const data = await _setupInFlight;
                 if (alive) setSetupData(data);
             } catch (e) {
-                if (alive) setError(e.message);
+                if (alive) setError((e as Error).message);
             } finally {
                 if (alive) setBusy(false);
             }
@@ -73,7 +85,7 @@ export default function MfaSetupGate({ onDone, onLogout }) {
             const data = await post('enable', { code: code.trim() });
             setNewCodes(data.recoveryCodes || []);
             setCode('');
-        } catch (e) { setError(e.message); }
+        } catch (e) { setError((e as Error).message); }
         finally { setBusy(false); }
     };
 

@@ -6,17 +6,18 @@
  * generation requests.
  */
 import { useState, useEffect } from 'react';
+import type { ModelTierMap } from '../../../../api/queries/modelTiers';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
 export default function useModelTiers() {
-    const [modelTiers, setModelTiers] = useState({});
-    const [selectedTier, setSelectedTier] = useState('auto');
+    const [modelTiers, setModelTiers] = useState<ModelTierMap>({});
+    const [selectedTier, setSelectedTier] = useState<string>('auto');
 
     useEffect(() => {
         authFetch(`${API_BASE}/ai/config/chat-models`)
-            .then(r => (r.ok ? r.json() : {}))
+            .then((r: Response) => (r.ok ? r.json() : {}))
             .then(setModelTiers)
-            .catch(e => console.warn('[notebooks] load model tiers failed', e));
+            .catch((e: unknown) => console.warn('[notebooks] load model tiers failed', e));
     }, []);
 
     return { modelTiers, selectedTier, setSelectedTier };

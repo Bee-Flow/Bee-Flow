@@ -13,6 +13,7 @@
  */
 
 import fs from 'node:fs';
+import ts from 'typescript';
 
 /** The web tree, resolved from mobile/src/shared/testing. */
 export const AGENT_HUB_SRC = `${__dirname}/../../../../agent-hub/src`;
@@ -57,6 +58,12 @@ const LIST_EXPORT_RX = /^export\s*\{([^}]*)\};?[ \t]*$/gm;
 /** A path under agent-hub/src, or an absolute one (a caller that resolved it itself). */
 const resolveWeb = (file: string) => (file.startsWith('/') ? file : `${AGENT_HUB_SRC}/${file}`);
 
+/** A `.ts`/`.tsx` web file loses its type annotations first; a `.js` one is used as it is. */
+function stripTypes(file: string, src: string): string {
+    if (!/\.tsx?$/.test(file)) return src;
+    return ts.transpileModule(src, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.Preserve } }).outputText;
+}
+
 /**
  * Evaluate a web module's source with `deps` in scope; answers its named
  * exports — declared ones (`export function x`, `export async function`,
@@ -66,8 +73,7 @@ const resolveWeb = (file: string) => (file.startsWith('/') ? file : `${AGENT_HUB
  */
 export function loadWebModule<T = Record<string, unknown>>(file: string, deps: Record<string, unknown> = {}): T {
     const names = new Set<string>();
-    const body = fs
-        .readFileSync(resolveWeb(file), 'utf8')
+    const body = stripTypes(file, fs.readFileSync(resolveWeb(file), 'utf8'))
         .replace(IMPORT_RX, '')
         .replace(/^export \* from .*$/gm, '')
         .replace(REEXPORT_RX, '')

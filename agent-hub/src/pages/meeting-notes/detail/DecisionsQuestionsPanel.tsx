@@ -1,9 +1,22 @@
 import { CircleHelp, Clock, Gavel } from 'lucide-react';
 import React from 'react';
+import type { ReactNode } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 // The strict parser (null for junk) — an unreadable model timestamp must lose
 // its chip, not seek to 0:00. Same rule as ActionItemsList.
 import { toSeconds } from '../lib/timelineMarkers';
+import type { MeetingActionItem } from './meetingDetailTypes';
+
+interface ArtifactBadge {
+    label: string;
+    tone: 'open' | 'muted';
+}
+
+interface DecisionsQuestionsPanelProps {
+    decisions?: MeetingActionItem[];
+    questions?: MeetingActionItem[];
+    onSeek?: (seconds: number) => void;
+}
 
 /**
  * The two structured artifacts extracted alongside action items: decisions
@@ -11,7 +24,7 @@ import { toSeconds } from '../lib/timelineMarkers';
  * nothing at all for older notes that predate the extraction — no empty
  * cards, no upgrade nag; Regenerate backfills them.
  */
-export default function DecisionsQuestionsPanel({ decisions = [], questions = [], onSeek }) {
+export default function DecisionsQuestionsPanel({ decisions = [], questions = [], onSeek }: DecisionsQuestionsPanelProps) {
     const { t } = useTranslation();
     if (!decisions.length && !questions.length) return null;
 
@@ -50,7 +63,7 @@ export default function DecisionsQuestionsPanel({ decisions = [], questions = []
     );
 }
 
-function ArtifactCard({ icon, title, count, children }) {
+function ArtifactCard({ icon, title, count, children }: { icon: ReactNode; title: string; count: number; children: ReactNode }) {
     return (
         <div>
             <h2 className="text-sm font-semibold flex items-center gap-2 mb-2 text-[var(--text-primary)]">
@@ -71,7 +84,7 @@ function ArtifactCard({ icon, title, count, children }) {
     );
 }
 
-function ArtifactRow({ text, timestamp, badge, onSeek }) {
+function ArtifactRow({ text, timestamp, badge, onSeek }: { text?: string; timestamp?: string; badge?: ArtifactBadge; onSeek?: (seconds: number) => void }) {
     const seconds = toSeconds(timestamp);
     return (
         <li className="px-3 py-2.5 border-[var(--border-subtle)]">

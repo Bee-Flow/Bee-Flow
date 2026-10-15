@@ -1,6 +1,33 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 
+export type CaptchaGlobal = 'turnstile' | 'hcaptcha' | 'grecaptcha';
+
+/** The slice of a provider's global this component calls. */
+export interface CaptchaApi {
+    ready?: (callback: () => void) => void;
+    render?: (container: HTMLElement, options: Record<string, unknown>) => unknown;
+    remove?: (widgetId: unknown) => void;
+}
+
+declare global {
+    interface Window {
+        turnstile?: CaptchaApi;
+        hcaptcha?: CaptchaApi;
+        grecaptcha?: CaptchaApi;
+    }
+}
+
+/** GET /auth/setup-status `signupCaptcha`: { enabled: false } unless an operator configured a provider. */
+export type CaptchaConfig =
+    | { enabled?: false; provider?: string; siteKey?: string }
+    | { enabled: true; provider: string; siteKey: string };
+
+interface CaptchaWidgetProps {
+    config?: CaptchaConfig | null;
+    onToken?: (token: string) => void;
+}
+
 /**
  * Bot challenge for the signup form.
  *
@@ -24,7 +51,7 @@ import { useTranslation } from '../../hooks/useTranslation';
  * user staring at an inert form.
  */
 
-const PROVIDERS = {
+const PROVIDERS: Record<string, { src: string; global: CaptchaGlobal }> = {
     turnstile: {
         src: 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit',
         global: 'turnstile',
@@ -40,11 +67,11 @@ const PROVIDERS = {
 };
 
 /** One <script> per provider per page, however many times this mounts. */
-const loaders = new Map();
-function loadProviderScript(provider) {
-    if (loaders.has(provider)) return loaders.get(provider);
+const loaders = new Map<string, Promise<CaptchaApi | undefined>>();
+function loadProviderScript(provider: string): Promise<CaptchaApi | undefined> {
+    if (loaders.has(provider)) return loaders.get(provider) as Promise<CaptchaApi | undefined>;
     const spec = PROVIDERS[provider];
-    const promise = new Promise((resolve, reject) => {
+    const promise = new Promise<CaptchaApi | undefined>((resolve, reject) => {
         if (window[spec.global]) return resolve(window[spec.global]);
         const el = document.createElement('script');
         el.src = spec.src;
@@ -63,17 +90,17 @@ function loadProviderScript(provider) {
     return promise;
 }
 
-const CaptchaWidget = ({ config, onToken }) => {
+const CaptchaWidget = ({ config, onToken }: CaptchaWidgetProps) => {
     const { t } = useTranslation();
-    const containerRef = useRef(null);
-    const widgetIdRef = useRef(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const widgetIdRef = useRef<unknown>(null);
     const [failed, setFailed] = useState(false);
 
     // Held in a ref so the widget is rendered exactly once. Re-running the
     // effect because the parent happened to re-create its callback would tear
     // down and re-mount the challenge, discarding a token the user already
     // solved for.
-    const onTokenRef = useRef(onToken);
+    const onTokenRef = useRef<CaptchaWidgetProps['onToken']>(onToken);
     useEffect(() => { onTokenRef.current = onToken; });
 
     const enabled = !!config?.enabled && !!PROVIDERS[config.provider] && !!config.siteKey;
@@ -89,7 +116,7 @@ const CaptchaWidget = ({ config, onToken }) => {
                 if (widgetIdRef.current !== null) return;
                 widgetIdRef.current = api.render(containerRef.current, {
                     sitekey: config.siteKey,
-                    callback: (token) => onTokenRef.current?.(token),
+                    callback: (token: string) => onTokenRef.current?.(token),
                     'expired-callback': () => onTokenRef.current?.(''),
                     'error-callback': () => onTokenRef.current?.(''),
                 });

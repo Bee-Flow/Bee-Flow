@@ -2,12 +2,14 @@ import React from 'react';
 import { Mic, Upload, FileAudio } from 'lucide-react';
 import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
 import useTranslation from '../../../hooks/useTranslation';
+import type { LucideIcon } from 'lucide-react';
+import type { CaptureMode } from '../capture/CaptureContext';
 import { useCapture } from '../capture/CaptureContext';
 
 export default function DetailEmptyState() {
     const { t } = useTranslation();
     const { openCapture } = useCapture();
-    const actions = [
+    const actions: [LucideIcon, string, CaptureMode][] = [
         [Mic, t('meetings.record', 'Record'), 'record'],
         [Upload, t('meetings.upload', 'Upload'), 'upload'],
     ];

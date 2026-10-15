@@ -12,7 +12,9 @@
  */
 import React, { useEffect } from 'react';
 
-function ResizeStrip({ onMouseDown, side }) {
+type ResizeStart = (e: React.MouseEvent<HTMLDivElement>) => void;
+
+function ResizeStrip({ onMouseDown, side }: { onMouseDown?: ResizeStart; side: 'left' | 'right' }) {
     return (
         <div
             role="separator"
@@ -21,6 +23,18 @@ function ResizeStrip({ onMouseDown, side }) {
             className={`w-[5px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--accent-primary)] z-10 border-[var(--border-subtle)] ${side === 'right' ? 'border-l' : 'border-r'}`}
         />
     );
+}
+
+interface DrawerProps {
+    side?: 'left' | 'right';
+    open?: boolean;
+    width?: number;
+    mode?: 'push' | 'overlay';
+    resizable?: boolean;
+    onResizeStart?: ResizeStart;
+    onClose?: () => void;
+    label?: string;
+    children?: React.ReactNode;
 }
 
 export default function Drawer({
@@ -33,11 +47,11 @@ export default function Drawer({
     onClose,
     label,
     children,
-}) {
+}: DrawerProps) {
     // Escape closes overlay drawers.
     useEffect(() => {
         if (mode !== 'overlay' || !open) return;
-        const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose?.(); };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [mode, open, onClose]);

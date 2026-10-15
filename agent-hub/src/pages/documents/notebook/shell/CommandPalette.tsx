@@ -11,11 +11,20 @@
 import { Search, CornerDownLeft } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Modal from '../../../../components/shared/Modal';
+import type { PaletteCommand } from './buildCommands';
 
-export default function CommandPalette({ open, onClose, commands = [], placeholder = 'Type a command…', emptyText = 'No matching commands' }) {
-    const [query, setQuery] = useState('');
-    const [activeIdx, setActiveIdx] = useState(0);
-    const inputRef = useRef(null);
+interface CommandPaletteProps {
+    open?: boolean;
+    onClose?: () => void;
+    commands?: PaletteCommand[];
+    placeholder?: string;
+    emptyText?: string;
+}
+
+export default function CommandPalette({ open, onClose, commands = [], placeholder = 'Type a command…', emptyText = 'No matching commands' }: CommandPaletteProps) {
+    const [query, setQuery] = useState<string>('');
+    const [activeIdx, setActiveIdx] = useState<number>(0);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (open) {
@@ -27,10 +36,10 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
     }, [open]);
 
     const filtered = useMemo(() => {
-        const list = commands.filter(c => c.enabled !== false);
+        const list = commands.filter((c: PaletteCommand) => c.enabled !== false);
         const q = query.trim().toLowerCase();
         if (!q) return list;
-        return list.filter(c => `${c.label} ${c.keywords || ''} ${c.group || ''}`.toLowerCase().includes(q));
+        return list.filter((c: PaletteCommand) => `${c.label} ${c.keywords || ''} ${c.group || ''}`.toLowerCase().includes(q));
     }, [commands, query]);
 
     useEffect(() => { setActiveIdx(0); }, [query]);
@@ -40,19 +49,19 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
 
     if (!open) return null;
 
-    const run = (cmd) => {
+    const run = (cmd: PaletteCommand | undefined) => {
         if (!cmd) return;
         onClose?.();
         try { cmd.run?.(); } catch (e) { console.error('[CommandPalette] command failed', e); }
     };
 
-    const onKeyDown = (e) => {
-        if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filtered.length - 1)); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx((i: number) => Math.min(i + 1, filtered.length - 1)); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i: number) => Math.max(i - 1, 0)); }
         else if (e.key === 'Enter') { e.preventDefault(); run(filtered[activeIdx]); }
     };
 
-    let lastGroup = null;
+    let lastGroup: string | undefined | null = null;
 
     return (
         <Modal
@@ -74,7 +83,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                     <input
                         ref={inputRef}
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                         onKeyDown={onKeyDown}
                         placeholder={placeholder}
                         role="combobox"
@@ -89,7 +98,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                     {filtered.length === 0 && (
                         <div className="px-4 py-6 text-center text-xs text-[var(--text-tertiary)]">{emptyText}</div>
                     )}
-                    {filtered.map((cmd, i) => {
+                    {filtered.map((cmd: PaletteCommand, i: number) => {
                         const showGroup = cmd.group && cmd.group !== lastGroup;
                         lastGroup = cmd.group;
                         const Icon = cmd.icon;

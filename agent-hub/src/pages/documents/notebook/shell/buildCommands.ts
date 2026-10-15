@@ -10,12 +10,74 @@ import {
     Minus, Table2, FileDown, FileText, PenLine, Cloud, PanelLeft, MessageSquare, History,
     MessagesSquare, ListTree, MessageSquarePlus, Type, FileUp, Search, Keyboard,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+/** The chain of editor commands the palette uses (the editor's `chain().focus()`). */
+export interface EditorChain {
+    toggleBold: () => EditorChain;
+    toggleItalic: () => EditorChain;
+    toggleUnderline: () => EditorChain;
+    toggleStrike: () => EditorChain;
+    toggleCode: () => EditorChain;
+    toggleHighlight: () => EditorChain;
+    toggleHeading: (attrs: { level: number }) => EditorChain;
+    toggleBulletList: () => EditorChain;
+    toggleOrderedList: () => EditorChain;
+    toggleTaskList: () => EditorChain;
+    toggleBlockquote: () => EditorChain;
+    setCodeBlock: () => EditorChain;
+    insertTable: (attrs: { rows: number; cols: number; withHeaderRow: boolean }) => EditorChain;
+    setHorizontalRule: () => EditorChain;
+    run: () => boolean;
+}
+
+/** The slice of the editor ref the commands reach into. */
+export interface CommandEditorRef {
+    current?: {
+        getEditor?: () => { chain?: () => { focus: () => EditorChain } } | null;
+    } | null;
+}
+
+/** One entry of the ⌘K palette. */
+export interface PaletteCommand {
+    id: string;
+    group?: string;
+    icon?: LucideIcon;
+    label: string;
+    keywords?: string;
+    hint?: string;
+    enabled?: boolean;
+    run?: () => void;
+}
+
+/** The handlers and flags the page hands in. */
+export interface BuildCommandsContext {
+    t?: (key: string, fallback?: string) => string;
+    editorRef?: CommandEditorRef;
+    onExport?: (format: 'pdf' | 'docx') => void;
+    hasExportContent?: boolean;
+    signRequestConfigured?: boolean;
+    onSign?: () => void;
+    nextcloudConfigured?: boolean;
+    onNextcloud?: () => void;
+    onToggleLeft?: () => void;
+    onToggleRight?: () => void;
+    onVersions?: () => void;
+    onComments?: () => void;
+    onToggleToc?: () => void;
+    onNewChat?: () => void;
+    onRename?: () => void;
+    onImport?: () => void;
+    onFind?: () => void;
+    onShortcuts?: () => void;
+    readOnly?: boolean;
+}
 
 /** ⌘ on a Mac, Ctrl elsewhere — for the shortcut hints next to a command. */
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl+';
 const ALT = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌥' : 'Alt+';
 
-export default function buildCommands(ctx = {}) {
+export default function buildCommands(ctx: BuildCommandsContext = {}): PaletteCommand[] {
     const {
         t = (k, fb) => fb || k,
         editorRef,
@@ -41,7 +103,7 @@ export default function buildCommands(ctx = {}) {
 
     // Run an editor chain command via the shared facade. Optional-chained so a
     // missing method is a no-op rather than a crash.
-    const ed = (apply) => () => {
+    const ed = (apply: (chain: EditorChain) => EditorChain) => () => {
         const editor = editorRef?.current?.getEditor?.();
         if (!editor?.chain) return;
         const chain = editor.chain().focus();
@@ -54,26 +116,26 @@ export default function buildCommands(ctx = {}) {
     const VIEW = t('notebooks.cmd_group_view', 'View');
     const NOTEBOOK = t('notebooks.cmd_group_notebook', 'Notebook');
 
-    const cmds = [
+    const cmds: PaletteCommand[] = [
         // ── Format ──
-        { id: 'bold', group: FORMAT, icon: Bold, label: t('notebooks.bold', 'Bold'), keywords: 'strong', run: ed(c => c.toggleBold()) },
-        { id: 'italic', group: FORMAT, icon: Italic, label: t('notebooks.italic', 'Italic'), keywords: 'emphasis', run: ed(c => c.toggleItalic()) },
-        { id: 'underline', group: FORMAT, icon: UnderlineIcon, label: t('notebooks.underline', 'Underline'), run: ed(c => c.toggleUnderline()) },
-        { id: 'strike', group: FORMAT, icon: Strikethrough, label: t('notebooks.strikethrough', 'Strikethrough'), run: ed(c => c.toggleStrike()) },
-        { id: 'code', group: FORMAT, icon: Code, label: t('notebooks.inline_code', 'Inline code'), run: ed(c => c.toggleCode()) },
-        { id: 'highlight', group: FORMAT, icon: Highlighter, label: t('notebooks.highlight', 'Highlight'), run: ed(c => c.toggleHighlight()) },
-        { id: 'h1', group: FORMAT, icon: Heading1, label: t('notebooks.heading_1', 'Heading 1'), run: ed(c => c.toggleHeading({ level: 1 })) },
-        { id: 'h2', group: FORMAT, icon: Heading2, label: t('notebooks.heading_2', 'Heading 2'), run: ed(c => c.toggleHeading({ level: 2 })) },
-        { id: 'h3', group: FORMAT, icon: Heading3, label: t('notebooks.heading_3', 'Heading 3'), run: ed(c => c.toggleHeading({ level: 3 })) },
-        { id: 'bullet', group: FORMAT, icon: List, label: t('notebooks.bullet_list', 'Bullet list'), run: ed(c => c.toggleBulletList()) },
-        { id: 'ordered', group: FORMAT, icon: ListOrdered, label: t('notebooks.numbered_list', 'Numbered list'), run: ed(c => c.toggleOrderedList()) },
-        { id: 'task', group: FORMAT, icon: ListChecks, label: t('notebooks.task_list', 'Task list'), run: ed(c => c.toggleTaskList()) },
+        { id: 'bold', group: FORMAT, icon: Bold, label: t('notebooks.bold', 'Bold'), keywords: 'strong', run: ed((c: EditorChain) => c.toggleBold()) },
+        { id: 'italic', group: FORMAT, icon: Italic, label: t('notebooks.italic', 'Italic'), keywords: 'emphasis', run: ed((c: EditorChain) => c.toggleItalic()) },
+        { id: 'underline', group: FORMAT, icon: UnderlineIcon, label: t('notebooks.underline', 'Underline'), run: ed((c: EditorChain) => c.toggleUnderline()) },
+        { id: 'strike', group: FORMAT, icon: Strikethrough, label: t('notebooks.strikethrough', 'Strikethrough'), run: ed((c: EditorChain) => c.toggleStrike()) },
+        { id: 'code', group: FORMAT, icon: Code, label: t('notebooks.inline_code', 'Inline code'), run: ed((c: EditorChain) => c.toggleCode()) },
+        { id: 'highlight', group: FORMAT, icon: Highlighter, label: t('notebooks.highlight', 'Highlight'), run: ed((c: EditorChain) => c.toggleHighlight()) },
+        { id: 'h1', group: FORMAT, icon: Heading1, label: t('notebooks.heading_1', 'Heading 1'), run: ed((c: EditorChain) => c.toggleHeading({ level: 1 })) },
+        { id: 'h2', group: FORMAT, icon: Heading2, label: t('notebooks.heading_2', 'Heading 2'), run: ed((c: EditorChain) => c.toggleHeading({ level: 2 })) },
+        { id: 'h3', group: FORMAT, icon: Heading3, label: t('notebooks.heading_3', 'Heading 3'), run: ed((c: EditorChain) => c.toggleHeading({ level: 3 })) },
+        { id: 'bullet', group: FORMAT, icon: List, label: t('notebooks.bullet_list', 'Bullet list'), run: ed((c: EditorChain) => c.toggleBulletList()) },
+        { id: 'ordered', group: FORMAT, icon: ListOrdered, label: t('notebooks.numbered_list', 'Numbered list'), run: ed((c: EditorChain) => c.toggleOrderedList()) },
+        { id: 'task', group: FORMAT, icon: ListChecks, label: t('notebooks.task_list', 'Task list'), run: ed((c: EditorChain) => c.toggleTaskList()) },
 
         // ── Insert ──
-        { id: 'quote', group: INSERT, icon: Quote, label: t('notebooks.blockquote', 'Quote'), run: ed(c => c.toggleBlockquote()) },
-        { id: 'codeblock', group: INSERT, icon: Code2, label: t('notebooks.code_block', 'Code block'), run: ed(c => c.setCodeBlock()) },
-        { id: 'table', group: INSERT, icon: Table2, label: t('notebooks.table', 'Table'), run: ed(c => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true })) },
-        { id: 'divider', group: INSERT, icon: Minus, label: t('notebooks.divider', 'Divider'), run: ed(c => c.setHorizontalRule()) },
+        { id: 'quote', group: INSERT, icon: Quote, label: t('notebooks.blockquote', 'Quote'), run: ed((c: EditorChain) => c.toggleBlockquote()) },
+        { id: 'codeblock', group: INSERT, icon: Code2, label: t('notebooks.code_block', 'Code block'), run: ed((c: EditorChain) => c.setCodeBlock()) },
+        { id: 'table', group: INSERT, icon: Table2, label: t('notebooks.table', 'Table'), run: ed((c: EditorChain) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true })) },
+        { id: 'divider', group: INSERT, icon: Minus, label: t('notebooks.divider', 'Divider'), run: ed((c: EditorChain) => c.setHorizontalRule()) },
 
         // ── Export ──
         { id: 'export-pdf', group: EXPORT, icon: FileDown, label: t('notebooks.export_pdf', 'Export as PDF'), enabled: hasExportContent && !!onExport, run: () => onExport?.('pdf') },
@@ -97,5 +159,5 @@ export default function buildCommands(ctx = {}) {
     ];
 
     // Formatting and inserting change the document: not for a viewer.
-    return readOnly ? cmds.filter((c) => c.group !== FORMAT && c.group !== INSERT) : cmds;
+    return readOnly ? cmds.filter((c: PaletteCommand) => c.group !== FORMAT && c.group !== INSERT) : cmds;
 }
