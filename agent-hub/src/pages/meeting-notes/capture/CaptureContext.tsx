@@ -1,10 +1,22 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
-const CaptureContext = createContext(null);
+export type CaptureMode = 'record' | 'upload' | 'talk' | 'gmeet' | 'teams';
 
-export function CaptureProvider({ children }) {
+export interface CaptureValue {
+    open: boolean;
+    mode: CaptureMode | null;
+    session: number;
+    setMode: (mode: CaptureMode | null) => void;
+    openCapture: (initialMode?: CaptureMode | null) => number;
+    closeCapture: () => void;
+}
+
+const CaptureContext = createContext<CaptureValue | null>(null);
+
+export function CaptureProvider({ children }: { children: ReactNode }) {
     const [open, setOpen] = useState(false);
-    const [mode, setMode] = useState(null); // null = choose tile screen; 'record' | 'upload'
+    const [mode, setMode] = useState<CaptureMode | null>(null); // null = choose tile screen; 'record' | 'upload'
     // Every opening is a new capture session, numbered. A caller that files
     // the result somewhere (a project's meetings tab) keeps the number
     // openCapture returns, and takes a result only while no other opening
@@ -12,7 +24,7 @@ export function CaptureProvider({ children }) {
     const sessionRef = useRef(0);
     const [session, setSession] = useState(0);
 
-    const openCapture = useCallback((initialMode = null) => {
+    const openCapture = useCallback((initialMode: CaptureMode | null = null) => {
         sessionRef.current += 1;
         setSession(sessionRef.current);
         setMode(initialMode);
@@ -36,7 +48,7 @@ export function CaptureProvider({ children }) {
     return <CaptureContext.Provider value={value}>{children}</CaptureContext.Provider>;
 }
 
-export function useCapture() {
+export function useCapture(): CaptureValue {
     const ctx = useContext(CaptureContext);
     if (!ctx) {
         return {

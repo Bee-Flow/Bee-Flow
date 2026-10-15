@@ -9,6 +9,17 @@ import { Download, FileDown, Loader2, ChevronDown, PenTool, FileType2 } from 'lu
 import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 import useTranslation from '../../../hooks/useTranslation';
 
+interface ExportMenuProps {
+    onExport?: (format: 'pdf' | 'docx') => void;
+    exporting?: string | null | false;
+    hasContent?: boolean;
+    signRequestConfigured?: boolean;
+    onSignRequest?: () => void;
+    nextcloudConfigured?: boolean;
+    onNextcloudExport?: () => void;
+    nextcloudExporting?: boolean;
+}
+
 export default function ExportMenu({
     onExport,
     exporting,
@@ -18,15 +29,15 @@ export default function ExportMenu({
     nextcloudConfigured = false,
     onNextcloudExport,
     nextcloudExporting = false,
-}) {
+}: ExportMenuProps) {
     const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+    const [open, setOpen] = useState<boolean>(false);
+    const ref = useRef<HTMLDivElement>(null);
 
     useOutsideDismiss(ref, () => setOpen(false), { defer: false });
 
     const isExporting = !!exporting;
-    const select = (format) => { setOpen(false); onExport?.(format); };
+    const select = (format: 'pdf' | 'docx') => { setOpen(false); onExport?.(format); };
 
     return (
         <div className="flex items-center gap-1">
@@ -34,7 +45,7 @@ export default function ExportMenu({
                 <button
                     type="button"
                     disabled={!hasContent || isExporting}
-                    onClick={() => setOpen((p) => !p)}
+                    onClick={() => setOpen((p: boolean) => !p)}
                     aria-haspopup="menu"
                     aria-expanded={open}
                     className="flex items-center gap-1.5 h-8 px-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-40 transition-colors"

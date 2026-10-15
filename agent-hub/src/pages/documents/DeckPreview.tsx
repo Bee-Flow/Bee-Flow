@@ -14,7 +14,51 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 const RATIO = 9 / 16;
 
-function Slide({ theme, children, background, style, side = 'content' }) {
+/** A slide-template layer: a full-slide background image plus positioned overlay images (fractions of the slide). */
+interface TemplateSide {
+    image?: string;
+    overlays?: Array<{ image: string; x: number; y: number; w: number; h: number }>;
+}
+
+/** A resolved deck theme (the server's deckThemeOptions.resolveDeckTheme output). */
+export interface DeckTheme {
+    template?: { cover?: TemplateSide; content?: TemplateSide } | null;
+    background: string;
+    fontStack: string;
+    titleFontStack: string;
+    logoDataUrl?: string | null;
+    logoPlacement: string;
+    onAccent: string;
+    muted: string;
+    footerText?: string | null;
+    brandName?: string | null;
+    brandOnSlides?: boolean;
+    slideNumbers?: boolean;
+    coverStyle: string;
+    text: string;
+    accent: string;
+    accentOnSlide: string;
+    chartColors?: string[];
+    tableLine: string;
+    tableStyle: string;
+    tableHeaderFill: string;
+    tableHeaderText: string;
+    tableBand: string;
+    titleStyle: string;
+    titleColor: string;
+    titleInset?: number;
+    bandColor: string;
+}
+
+interface SlideProps {
+    theme: DeckTheme;
+    children?: React.ReactNode;
+    background?: string;
+    style?: React.CSSProperties;
+    side?: 'cover' | 'content';
+}
+
+function Slide({ theme, children, background, style, side = 'content' }: SlideProps) {
     const tpl = theme.template && theme.template[side];
     const overlays = tpl && Array.isArray(tpl.overlays) ? tpl.overlays : [];
     return (
@@ -27,18 +71,18 @@ function Slide({ theme, children, background, style, side = 'content' }) {
             }}
             data-template={tpl ? 'yes' : undefined}
         >
-            {overlays.map((o, i) => <img key={i} src={o.image} alt="" style={{ position: 'absolute', left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.w * 100}%`, height: `${o.h * 100}%`, objectFit: 'contain' }} />)}
+            {overlays.map((o: NonNullable<TemplateSide['overlays']>[number], i: number) => <img key={i} src={o.image} alt="" style={{ position: 'absolute', left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.w * 100}%`, height: `${o.h * 100}%`, objectFit: 'contain' }} />)}
             <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
         </div>
     );
 }
 
-function Logo({ theme, style }) {
+function Logo({ theme, style }: { theme: DeckTheme; style?: React.CSSProperties }) {
     if (!theme.logoDataUrl) return null;
     return <img src={theme.logoDataUrl} alt="" style={{ objectFit: 'contain', ...style }} />;
 }
 
-function Footer({ theme, onDark = false }) {
+function Footer({ theme, onDark = false }: { theme: DeckTheme; onDark?: boolean }) {
     const color = onDark ? theme.onAccent : theme.muted;
     const showLogo = theme.logoPlacement === 'footer';
     return (
@@ -52,7 +96,7 @@ function Footer({ theme, onDark = false }) {
     );
 }
 
-export function CoverSlide({ theme, title = 'Quarterly review', subtitle = 'Board meeting · Q3' }) {
+export function CoverSlide({ theme, title = 'Quarterly review', subtitle = 'Board meeting · Q3' }: { theme: DeckTheme; title?: string; subtitle?: string }) {
     const tpl = !!theme.template;
     const accent = !tpl && theme.coverStyle === 'accent';
     const split = !tpl && theme.coverStyle === 'split';
@@ -76,22 +120,22 @@ export function CoverSlide({ theme, title = 'Quarterly review', subtitle = 'Boar
 }
 
 /** Four bars in the theme's chart palette — the colours a chart on a slide will use. */
-function MiniChart({ theme }) {
+function MiniChart({ theme }: { theme: DeckTheme }) {
     const colours = Array.isArray(theme.chartColors) && theme.chartColors.length ? theme.chartColors : [theme.accent];
     const bars = [0.55, 0.85, 0.7, 1];
     return (
         <div data-testid="deck-preview-chart" style={{ display: 'flex', alignItems: 'flex-end', gap: '3%', height: '22%', marginTop: '6%', paddingLeft: '4%', borderBottom: `1px solid ${theme.tableLine}` }}>
-            {bars.map((h, i) => <div key={i} style={{ flex: 1, height: `${h * 100}%`, background: colours[i % colours.length], borderRadius: '2px 2px 0 0' }} />)}
+            {bars.map((h: number, i: number) => <div key={i} style={{ flex: 1, height: `${h * 100}%`, background: colours[i % colours.length], borderRadius: '2px 2px 0 0' }} />)}
         </div>
     );
 }
 
-export function ContentSlide({ theme, title = 'Overview of invoices' }) {
+export function ContentSlide({ theme, title = 'Overview of invoices' }: { theme: DeckTheme; title?: string }) {
     const { t } = useTranslation();
     const band = theme.titleStyle === 'band' && !theme.template;
     const cornerLogo = theme.logoPlacement === 'corner';
-    const cell = (text, i, header = false) => {
-        const base = { padding: '0.12em 0.3em', fontSize: '0.36em', textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' };
+    const cell = (text: string, i: number, header = false): React.CSSProperties => {
+        const base: React.CSSProperties = { padding: '0.12em 0.3em', fontSize: '0.36em', textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' };
         if (theme.tableStyle === 'banded') {
             return header
                 ? { ...base, background: theme.tableHeaderFill, color: theme.tableHeaderText, fontWeight: 700, border: `1px solid ${theme.tableLine}` }
@@ -130,10 +174,10 @@ export function ContentSlide({ theme, title = 'Overview of invoices' }) {
                     <MiniChart theme={theme} />
                 </div>
                 <table style={{ borderCollapse: 'collapse', width: '100%', alignSelf: 'start' }}>
-                    <thead><tr>{['Supplier', 'Invoice', 'Total'].map((h, i) => <th key={h} style={cell(h, i, true)}>{h}</th>)}</tr></thead>
+                    <thead><tr>{['Supplier', 'Invoice', 'Total'].map((h: string, i: number) => <th key={h} style={cell(h, i, true)}>{h}</th>)}</tr></thead>
                     <tbody>
-                        {rows.map((r, ri) => (
-                            <tr key={ri}>{r.map((c, i) => <td key={i} style={{ ...cell(c, i), ...(theme.tableStyle === 'banded' && ri % 2 === 1 ? { background: theme.tableBand } : {}) }}>{c}</td>)}</tr>
+                        {rows.map((r: string[], ri: number) => (
+                            <tr key={ri}>{r.map((c: string, i: number) => <td key={i} style={{ ...cell(c, i), ...(theme.tableStyle === 'banded' && ri % 2 === 1 ? { background: theme.tableBand } : {}) }}>{c}</td>)}</tr>
                         ))}
                     </tbody>
                 </table>
@@ -146,11 +190,11 @@ export function ContentSlide({ theme, title = 'Overview of invoices' }) {
 /**
  * @param {{ theme: object|null, loading?: boolean }} props  a resolved deck theme; null renders placeholders
  */
-export default function DeckPreview({ theme, loading = false }) {
+export default function DeckPreview({ theme, loading = false }: { theme: DeckTheme | null; loading?: boolean }) {
     if (!theme) {
         return (
             <div className="grid grid-cols-2 gap-3" data-testid="deck-preview-empty">
-                {[0, 1].map((i) => <div key={i} className="rounded-md" style={{ paddingTop: `${RATIO * 100}%`, background: 'var(--bg-tertiary)' }} />)}
+                {[0, 1].map((i: number) => <div key={i} className="rounded-md" style={{ paddingTop: `${RATIO * 100}%`, background: 'var(--bg-tertiary)' }} />)}
             </div>
         );
     }

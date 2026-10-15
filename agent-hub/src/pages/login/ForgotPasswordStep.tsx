@@ -2,11 +2,20 @@ import React, { useState } from 'react';
 import { Mail, Loader2, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 
+interface ForgotPasswordStepProps {
+    onSubmit: (email: string) => void;
+    onBack: () => void;
+    isLoading: boolean;
+    sent: boolean;
+    inputClass: string;
+    labelClass: string;
+}
+
 /**
  * "Forgot password" email-entry step. Submits the email; the parent always
  * shows the same success state regardless of whether the account exists.
  */
-const ForgotPasswordStep = ({ onSubmit, onBack, isLoading, sent, inputClass, labelClass }) => {
+const ForgotPasswordStep = ({ onSubmit, onBack, isLoading, sent, inputClass, labelClass }: ForgotPasswordStepProps) => {
     const { t } = useTranslation();
     const [email, setEmail] = useState('');
 

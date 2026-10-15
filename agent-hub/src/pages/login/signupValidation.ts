@@ -8,6 +8,52 @@
  * did not — so which rules applied depended on which button you pressed.
  */
 
+import type { Dispatch, SetStateAction } from 'react';
+
+/** What the signup form collects, as LoginPage holds it. */
+export interface SignupData {
+    username: string;
+    password: string;
+    confirmPassword: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    signupType: string;
+    organizationId: string;
+    /** Set from an invitation; the org's name when joining an existing one. */
+    orgName?: string;
+    newOrgName: string;
+    orgTagline: string;
+    orgDescription: string;
+    orgAddress: string;
+    orgEmail: string;
+    orgPhone: string;
+    orgWebsite: string;
+    orgKvk: string;
+    orgVat: string;
+    orgCountry: string;
+    country?: string;
+    orgAllowSignup: boolean;
+    authMethod: string;
+    shieldEnabled: boolean;
+    piiCategories: string[];
+    piiAction: string;
+    euModeEnabled: boolean;
+    selectedPlanId: string | null;
+}
+
+/** The state setter LoginPage hands to each signup step. */
+export type SetSignupData = Dispatch<SetStateAction<SignupData>>;
+
+/** Outcome of a validation: `reason` is a stable code, `error` the translated message. */
+export interface ValidationResult {
+    ok: boolean;
+    reason?: string;
+    error?: string;
+}
+
+type SignupTranslate = (key: string, fallback: string) => string;
+
 /**
  * Must match MIN_PASSWORD_LENGTH in server/auth/passwordPolicy.js. The server
  * is authoritative; this only spares the user a round-trip. Signup used to
@@ -29,7 +75,7 @@ export const MIN_PASSWORD_LENGTH = 8;
  * the handful of passwords people genuinely try first. A pentest signed up with
  * `password`; that one should never reach the network.
  */
-const OBVIOUSLY_WEAK = new Set([
+const OBVIOUSLY_WEAK = new Set<string>([
     'password', 'password1', 'password123', 'passw0rd', 'p@ssword', 'p@ssw0rd',
     '12345678', '123456789', '1234567890', 'qwerty123', 'qwertyui', 'qwertyuiop',
     'welcome1', 'welcome123', 'letmein1', 'iloveyou1', 'admin123', 'administrator',
@@ -37,12 +83,12 @@ const OBVIOUSLY_WEAK = new Set([
     'beeflow', 'beeflow123', 'changeme1', 'secret123', 'sunshine1', 'football1',
 ]);
 
-export function isObviouslyWeakPassword(value) {
+export function isObviouslyWeakPassword(value: unknown): boolean {
     const raw = String(value || '');
     if (!raw) return false;
     const lower = raw.toLowerCase();
     // Same canonical forms the server checks, minus the exhaustive list.
-    const deleet = lower.replace(/[4@31!05$7+]/g, (c) => ({ 4: 'a', '@': 'a', 3: 'e', 1: 'i', '!': 'i', 0: 'o', 5: 's', $: 's', 7: 't', '+': 't' }[c] || c));
+    const deleet = lower.replace(/[4@31!05$7+]/g, (c: string) => (({ 4: 'a', '@': 'a', 3: 'e', 1: 'i', '!': 'i', 0: 'o', 5: 's', $: 's', 7: 't', '+': 't' } as Record<string, string>)[c] || c));
     const alnum = deleet.replace(/[^a-z0-9]/g, '');
     const core = alnum.replace(/^[0-9]+/, '').replace(/[0-9]+$/, '');
     if ([lower, deleet, alnum, core].some((f) => OBVIOUSLY_WEAK.has(f))) return true;
@@ -58,7 +104,7 @@ export function isObviouslyWeakPassword(value) {
 }
 
 /** Countries whose company registration we collect at signup. */
-const REGISTRATION_REQUIRED_COUNTRIES = ['nl'];
+const REGISTRATION_REQUIRED_COUNTRIES: string[] = ['nl'];
 
 /**
  * Are the Dutch chamber-of-commerce (KvK) and VAT numbers mandatory here?
@@ -68,7 +114,7 @@ const REGISTRATION_REQUIRED_COUNTRIES = ['nl'];
  * enabled and nothing said why. Now they are required only where we actually
  * need them, and optional (still collected) elsewhere.
  */
-export function requiresDutchRegistration(signupData = {}, locale = '') {
+export function requiresDutchRegistration(signupData: Partial<SignupData> = {}, locale = ''): boolean {
     const country = String(
         signupData.orgCountry || signupData.country || '',
     ).trim().toLowerCase();
@@ -78,13 +124,12 @@ export function requiresDutchRegistration(signupData = {}, locale = '') {
     return REGISTRATION_REQUIRED_COUNTRIES.includes(String(locale || '').toLowerCase());
 }
 
-const isNonEmpty = (v) => typeof v === 'string' && v.trim().length > 0;
+const isNonEmpty = (v: unknown): boolean => typeof v === 'string' && v.trim().length > 0;
 
 /**
  * Can the wizard advance past `step`?
- * @returns {{ok: boolean, reason?: string}}
  */
-export function validateStep(step, signupData = {}, { locale = '' } = {}) {
+export function validateStep(step: string, signupData: Partial<SignupData> = {}, { locale = '' }: { locale?: string } = {}): ValidationResult {
     switch (step) {
         case 'welcome':
             return { ok: true };
@@ -136,17 +181,18 @@ export function validateStep(step, signupData = {}, { locale = '' } = {}) {
  * Final gate before POST /auth/signup. Re-checks every step's rules, so a user
  * who reached the last step through an odd path still can't submit a form the
  * server will reject.
- *
- * @returns {{ok: boolean, error?: string, reason?: string}}
  */
-export function validateSubmit(signupData = {}, { locale = '', isInvite = false, t = (_k, d) => d } = {}) {
+export function validateSubmit(
+    signupData: Partial<SignupData> = {},
+    { locale = '', isInvite = false, t = (_k: string, d: string) => d }: { locale?: string; isInvite?: boolean; t?: SignupTranslate } = {},
+): ValidationResult {
     if (!isNonEmpty(signupData.username)) {
         return { ok: false, reason: 'username_required', error: t('signup.err_username_required', 'Please choose a username.') };
     }
-    if (signupData.username.trim() === 'admin') {
+    if ((signupData.username as string).trim() === 'admin') {
         return { ok: false, reason: 'username_reserved', error: t('signup.err_username_reserved', 'This username is not available.') };
     }
-    if (!isNonEmpty(signupData.password) || signupData.password.length < MIN_PASSWORD_LENGTH) {
+    if (!isNonEmpty(signupData.password) || (signupData.password as string).length < MIN_PASSWORD_LENGTH) {
         return {
             ok: false,
             reason: 'password_too_short',
@@ -180,12 +226,12 @@ export function validateSubmit(signupData = {}, { locale = '', isInvite = false,
  * Deliberately permissive — the address is confirmed by a verification email,
  * so the only job here is catching obvious typos, not enforcing RFC 5322.
  */
-export function isPlausibleEmail(value) {
+export function isPlausibleEmail(value: unknown): boolean {
     const s = String(value || '').trim();
     return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
 }
 
-function messageForReason(reason, t) {
+function messageForReason(reason: string | undefined, t: SignupTranslate): string {
     switch (reason) {
         case 'org_name_required': return t('signup.err_org_name', 'Please enter your organisation name.');
         case 'kvk_required': return t('signup.err_kvk', 'Please enter your Chamber of Commerce (KvK) number.');

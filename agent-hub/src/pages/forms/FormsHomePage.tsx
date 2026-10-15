@@ -1,9 +1,16 @@
 import { AlertCircle, ClipboardList } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import type { MouseEvent } from 'react';
 import EmptyState from '../../components/shared/EmptyState';
 import useAutomationApi from '../../hooks/useAutomationApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { rememberFormOpened } from '../../utils/formRecents';
+import type { OrgFormRow } from './FormsHomePage.types';
+
+interface FormCardProps {
+    form: OrgFormRow;
+    onNavigate?: ((path: string) => void) | null;
+}
 
 /**
  * FormsHomePage — the directory at /app/forms.
@@ -39,16 +46,16 @@ const accentTile = () => ({ background: `${ACCENT}1a`, color: ACCENT });
  * this. Pointing at the destination keeps the sidebar, and makes the address
  * bar show something a colleague can be sent.
  */
-export function formViewPath(form) {
+export function formViewPath(form: Pick<OrgFormRow, 'id'> | null | undefined) {
     return `/app/forms/${form?.id}`;
 }
 
-function FormCard({ form, onNavigate }) {
+function FormCard({ form, onNavigate }: FormCardProps) {
     const { t } = useTranslation();
     // A real href, so the row can be middle-clicked, copied and read in the
     // status bar — but an in-app navigation on a plain left click, so opening
     // a form does not reload the workspace.
-    const go = (e) => {
+    const go = (e: MouseEvent<HTMLAnchorElement>) => {
         rememberFormOpened(form.id);
         if (!onNavigate || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
@@ -106,25 +113,25 @@ function SkeletonGrid() {
     );
 }
 
-export default function FormsHomePage({ onNavigate = null }) {
+export default function FormsHomePage({ onNavigate = null }: Pick<FormCardProps, 'onNavigate'>) {
     const { t } = useTranslation();
     const api = useAutomationApi();
-    const [forms, setForms] = useState([]);
+    const [forms, setForms] = useState<OrgFormRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await api.listOrgForms();
+            const res = (await api.listOrgForms()) as { forms?: OrgFormRow[] };
             // A tile is a form this person can FILL IN. `canOpen` is the
             // visitor gate's own verdict per row (a form shared with specific
             // people and groups is not for everyone); a row that predates
             // the flag is one the gate lets through.
-            setForms((Array.isArray(res?.forms) ? res.forms : []).filter(f => f && f.canOpen !== false));
+            setForms((Array.isArray(res?.forms) ? res.forms : []).filter((f: OrgFormRow) => f && f.canOpen !== false));
         } catch (err) {
-            setError(err?.message || 'Could not load the forms.');
+            setError((err as Error | null)?.message || 'Could not load the forms.');
         } finally {
             setLoading(false);
         }

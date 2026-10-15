@@ -1,6 +1,7 @@
 import React from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import { AlertTriangle, Download, RefreshCw } from 'lucide-react';
+import type { MeetingNote } from './meetingDetailTypes';
 
 /**
  * Shown in place of the player when a meeting's audio cannot be served.
@@ -18,13 +19,13 @@ import { AlertTriangle, Download, RefreshCw } from 'lucide-react';
  *                        do NOT ask for a file the user cannot produce
  *   otherwise            an uploaded file → asking for the original is fair
  */
-export default function AudioUnavailable({ audio, onRetry }) {
+export default function AudioUnavailable({ audio, onRetry }: { audio?: MeetingNote['audio']; onRetry?: () => void }) {
     const { t } = useTranslation();
     const recoverable = !!audio?.recoverable;
     const wasRecorded = audio?.capture === 'recording';
 
-    let title;
-    let detail;
+    let title: string;
+    let detail: string;
     if (recoverable) {
         title = t('meeting_notes.audio_temp_title', 'Audio is temporarily unavailable');
         detail = t('meeting_notes.audio_temp_detail', 'The recording is stored safely — the audio service just isn’t reachable right now.');
@@ -63,7 +64,7 @@ export default function AudioUnavailable({ audio, onRetry }) {
  * on a multi-replica deploy that is one restart from the state above. Offers the
  * download, which is the user's own escape hatch while it still exists.
  */
-export function AudioNotBackedUp({ downloadUrl }) {
+export function AudioNotBackedUp({ downloadUrl }: { downloadUrl?: string | null }) {
     const { t } = useTranslation();
     return (
         <div
