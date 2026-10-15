@@ -1,3 +1,5 @@
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { AppNode } from './appDefinition';
 import { getComponentEntry } from '../runtime/componentRegistry';
 
 /**
@@ -30,7 +32,7 @@ const NAMING_PROPS = ['label', 'title', 'text', 'heading'];
  * actual width) and the warning form has always cut at 24 characters. Adding a
  * character here would change every existing warning string by one.
  */
-export function nodeOwnText(node, max = 40) {
+export function nodeOwnText(node: AppNode | null | undefined, max = 40): string {
     const props = node?.props || {};
     for (const key of NAMING_PROPS) {
         const value = props[key];
@@ -44,7 +46,7 @@ export function nodeOwnText(node, max = 40) {
  * Falls back to the raw type — an unknown type is better named by its id than
  * by nothing.
  */
-export function nodeTypeLabel(node, t = null) {
+export function nodeTypeLabel(node: AppNode | null | undefined, t: TranslateFn | null = null): string {
     return getComponentEntry(node?.type)?.label || node?.type
         || (t ? t('studio_apps_insp.node.component', 'Component') : 'Component');
 }
@@ -57,7 +59,7 @@ export function nodeTypeLabel(node, t = null) {
  * truest thing that can be said about it — inventing "Untitled button" would
  * claim a name the app does not have.
  */
-export function nodeLabel(node) {
+export function nodeLabel(node: AppNode | null | undefined): string {
     return nodeOwnText(node) || nodeTypeLabel(node);
 }
 
@@ -67,7 +69,7 @@ export function nodeLabel(node) {
  * unchanged, so the shared-action and delete dialogs keep reading exactly as
  * they did.
  */
-export function nodeLabelWithType(node) {
+export function nodeLabelWithType(node: AppNode | null | undefined): string {
     const base = nodeTypeLabel(node);
     const text = nodeOwnText(node, 24);
     return text ? `${base} “${text}”` : base;

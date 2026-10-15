@@ -1,11 +1,15 @@
 import React, { useMemo } from 'react';
+import type { ReactNode } from 'react';
+import type { AppAction, AppDefinition, AppNode, AppScreen } from '../appDefinition';
+import type { StudioFieldGroup, StudioScopeField } from './studioFieldOptions';
 import { VariablePickerProvider } from '../../../../../automation/Builder/mapping/VariablePickerContext';
 import { coerceVariableDefault, seedVariableDefaults } from '../../runtime/appVariables';
 import APP_COMPONENT_TYPES from '../../runtime/componentRegistry';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 
 // Stand-in for t() when a caller has none (tests, non-UI callers): the English text.
-const plainEnglish = (_key, en) => en;
+const plainEnglish = (_key: string | undefined, en: string): string => en;
 
 /**
  * App Studio inspector — the variable source for every formula/condition field.
@@ -24,16 +28,19 @@ const plainEnglish = (_key, en) => en;
 
 const SAMPLE_USER = { id: 'usr_sample', name: 'Alex Rivera', email: 'alex@example.com' };
 
-function isInputType(type) {
-    return !!APP_COMPONENT_TYPES[type]?.isInput;
+function isInputType(type: string): boolean {
+    return !!(APP_COMPONENT_TYPES as Record<string, { isInput?: boolean } | undefined>)[type]?.isInput;
 }
 
 /** Locate the node's enclosing form + screen in one walk. */
-function locate(definition, nodeId) {
-    let formAncestor = null;
-    let screenOf = null;
+function locate(
+    definition: AppDefinition | null | undefined,
+    nodeId: string | undefined,
+): { form: AppNode | null; screen: AppScreen | null } {
+    let formAncestor: AppNode | null = null;
+    let screenOf: AppScreen | null = null;
     for (const screen of definition?.screens || []) {
-        const walk = (nodes, form) => {
+        const walk = (nodes: AppNode[] | undefined, form: AppNode | null): boolean => {
             for (const n of nodes || []) {
                 const nextForm = n.type === 'form' ? n : form;
                 if (n.id === nodeId) { formAncestor = form; screenOf = screen; return true; }
@@ -57,7 +64,7 @@ function locate(definition, nodeId) {
  * The sample is the only type signal that reaches inferType, so it has to be
  * shaped like the value the field really submits.
  */
-export function sampleForInputType(type) {
+export function sampleForInputType(type: string): string | number | boolean | unknown[] | null {
     switch (type) {
         case 'input_number': return 0;
         case 'input_checkbox': return false;
@@ -71,11 +78,18 @@ export function sampleForInputType(type) {
 }
 
 /** Input fields of the node's enclosing form (or of the node if it is a form). */
-function formFields(definition, node) {
+/** One input field of the form a node sits in. */
+interface ScopeFormField {
+    name: string;
+    type: string;
+    label: string | null;
+}
+
+function formFields(definition: AppDefinition | null | undefined, node: AppNode | null | undefined): ScopeFormField[] {
     const form = node?.type === 'form' ? node : locate(definition, node?.id).form;
     if (!form) return [];
-    const out = [];
-    const walk = (children) => {
+    const out: ScopeFormField[] = [];
+    const walk = (children: AppNode[] | undefined): void => {
         for (const c of children || []) {
             if (isInputType(c.type) && c.props?.name) {
                 out.push({ name: c.props.name, type: c.type, label: c.props.label || null });
@@ -87,6 +101,18 @@ function formFields(definition, node) {
     return out;
 }
 
+/** What visit() reads of a value it walks; every other member is walked, not read. */
+interface Visited {
+    kind?: unknown;
+    tableId?: unknown;
+    connectorId?: unknown;
+    // Shared with a node, so that a list of nodes is something visit() can take.
+    id?: unknown;
+    type?: unknown;
+}
+
+type Visitable = Visited | Visited[] | string | number | boolean | null | undefined;
+
 /**
  * Every table and connector the app's BINDINGS actually reach.
  *
@@ -96,10 +122,10 @@ function formFields(definition, node) {
  * so a perfectly valid formula over them had to be typed from memory and
  * previewed as nothing.
  */
-function referencedSources(definition) {
-    const tableIds = new Set();
-    const connectorIds = new Set();
-    const visit = (value, depth = 0) => {
+function referencedSources(definition: AppDefinition | null | undefined): { tableIds: string[]; connectorIds: string[] } {
+    const tableIds = new Set<string>();
+    const connectorIds = new Set<string>();
+    const visit = (value: Visitable, depth = 0): void => {
         if (!value || typeof value !== 'object' || depth > 8) return;
         if (Array.isArray(value)) { for (const v of value) visit(v, depth + 1); return; }
         if ((value.kind === 'records' || value.kind === 'record') && typeof value.tableId === 'string' && value.tableId) {
@@ -118,7 +144,7 @@ function referencedSources(definition) {
 }
 
 /** What the picker should call an action, so the list is not a wall of ids. */
-const actionKindLabels = (t) => ({
+const actionKindLabels = (t: TranslateFn): Record<string, string> => ({
     run_automation: t('studio_apps_insp.scope.kind_automation', 'automation'),
     ai_extract: t('studio_apps_insp.scope.kind_ai_extract', 'AI · extract'),
     ai_generate: t('studio_apps_insp.scope.kind_ai_generate', 'AI · generate'),
@@ -127,7 +153,7 @@ const actionKindLabels = (t) => ({
     sequence: t('studio_apps_insp.scope.kind_sequence', 'flow'),
 });
 
-function datasetIds(definition) {
+function datasetIds(definition: AppDefinition | null | undefined): string[] {
     const ds = definition?.datasets;
     if (Array.isArray(ds)) return ds.map((d) => d?.id).filter(Boolean);
     if (ds && typeof ds === 'object') return Object.keys(ds);
@@ -141,7 +167,13 @@ function datasetIds(definition) {
  * Pure — reused by StudioScopeProvider AND by ConditionField (which must hand
  * the same previewSample down to the ConditionBuilder for datatype inference).
  */
-export function buildStudioScope(definition, node, previewSampleOverride = null, extraGroups = null, t = plainEnglish) {
+export function buildStudioScope(
+    definition: AppDefinition | null | undefined,
+    node: AppNode | null | undefined,
+    previewSampleOverride: Record<string, unknown> | null = null,
+    extraGroups: StudioFieldGroup[] | null = null,
+    t: TranslateFn = plainEnglish,
+): { groups: StudioFieldGroup[]; previewSample: Record<string, unknown> } {
     const kindLabels = actionKindLabels(t);
     const { screen } = node ? locate(definition, node.id) : { screen: null };
     const fields = formFields(definition, node);
@@ -154,7 +186,7 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
     const { tableIds, connectorIds } = referencedSources(definition);
     const screenName = screen?.name || definition?.screens?.[0]?.name || t('studio_apps_insp.scope.screen_fallback', 'Screen');
 
-    const groups = [
+    const groups: StudioFieldGroup[] = [
         {
             id: 'currentUser', label: t('studio_apps_insp.scope.current_user', 'Current user'), kind: 'trigger', basePath: 'currentUser',
             fields: [
@@ -301,7 +333,7 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
 }
 
 /** The field names an AI action's declared schema produces, as picker children. */
-function aiResultChildren(id, action) {
+function aiResultChildren(id: string, action: AppAction | null | undefined): StudioScopeField[] | undefined {
     const schema = action?.schema;
     const names = Array.isArray(schema)
         ? schema.map((f) => (typeof f === 'string' ? f : f?.name)).filter(Boolean)
@@ -315,13 +347,21 @@ function aiResultChildren(id, action) {
  * rule, so it is opt-in rather than a permanent entry that previews as
  * undefined everywhere else. ValidationRuleEditor is the one caller.
  */
-export const valueGroup = (t = plainEnglish) => ({
+export const valueGroup = (t: TranslateFn = plainEnglish): StudioFieldGroup => ({
     id: 'value', label: t('studio_apps_insp.scope.this_field', 'This field'), kind: 'code', basePath: 'value',
     fields: [{ key: 'value', path: 'value', label: t('studio_apps_insp.scope.value_checked', 'The value being checked'), sample: '' }],
 });
 export const VALUE_GROUP = valueGroup();
 
-export default function StudioScopeProvider({ definition, node, previewSample = null, extraGroups = null, children }) {
+export interface StudioScopeProviderProps {
+    definition: AppDefinition | null | undefined;
+    node: AppNode | null | undefined;
+    previewSample?: Record<string, unknown> | null;
+    extraGroups?: StudioFieldGroup[] | null;
+    children?: ReactNode;
+}
+
+export default function StudioScopeProvider({ definition, node, previewSample = null, extraGroups = null, children }: StudioScopeProviderProps) {
     const { t } = useTranslation();
     const { groups, previewSample: sample } = useMemo(
         () => buildStudioScope(definition, node, previewSample, extraGroups, t),

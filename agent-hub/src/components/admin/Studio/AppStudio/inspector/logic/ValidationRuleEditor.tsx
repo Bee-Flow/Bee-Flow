@@ -5,6 +5,8 @@ import StudioScopeProvider, { valueGroup } from './StudioScopeProvider';
 import IconButton from '../../../../../shared/IconButton';
 import { INPUT_CLS } from '../panels/kit';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { AppDefinition, AppNode, ValidationRule } from '../appDefinition';
 
 /**
  * ValidationRuleEditor — a repeatable list of field validation rules, written
@@ -25,15 +27,30 @@ import useTranslation from '../../../../../../hooks/useTranslation';
  * a FormulaField (Studio scope), so custom rules get the picker + live-eval.
  */
 
+/** A rule as the editor holds it while it is edited. */
+interface RuleRow {
+    kind: string;
+    number?: number | null;
+    expr?: string;
+    message: string;
+}
+
 // Bounds with no native rule type. `value` is a legal formula scope root
 // (componentSpecs.FORMULA_SCOPE_ROOTS), so these validate without warnings.
-const NUMERIC_FORMULAS = {
-    maxLength: { build: (n) => `len(value) <= ${n}`, read: /^len\(value\) <= (-?\d+(?:\.\d+)?)$/ },
-    min: { build: (n) => `number(value) >= ${n}`, read: /^number\(value\) >= (-?\d+(?:\.\d+)?)$/ },
-    max: { build: (n) => `number(value) <= ${n}`, read: /^number\(value\) <= (-?\d+(?:\.\d+)?)$/ },
+const NUMERIC_FORMULAS: Record<string, { build: (n: number) => string; read: RegExp }> = {
+    maxLength: { build: (n: number) => `len(value) <= ${n}`, read: /^len\(value\) <= (-?\d+(?:\.\d+)?)$/ },
+    min: { build: (n: number) => `number(value) >= ${n}`, read: /^number\(value\) >= (-?\d+(?:\.\d+)?)$/ },
+    max: { build: (n: number) => `number(value) <= ${n}`, read: /^number\(value\) <= (-?\d+(?:\.\d+)?)$/ },
 };
 
-const ruleTypes = (t) => [
+/** The menu of rule kinds; `input` names the control a kind shows under its select. */
+interface RuleType {
+    value: string;
+    label: string;
+    input: 'number' | 'formula' | null;
+}
+
+const ruleTypes = (t: TranslateFn): RuleType[] => [
     { value: 'required', label: t('studio_apps_insp.validation.rule_required', 'Required'), input: null },
     { value: 'email', label: t('studio_apps_insp.validation.rule_email', 'Valid email'), input: null },
     { value: 'url', label: t('studio_apps_insp.validation.rule_url', 'Valid URL'), input: null },
@@ -49,7 +66,7 @@ const ruleTypes = (t) => [
 // parse, and the row would be unsaveable before the user has typed anything.
 const NEW_FORMULA = 'value != null';
 
-function defaultMessage(t, kind) {
+function defaultMessage(t: TranslateFn, kind: string): string {
     switch (kind) {
         case 'required': return t('studio_apps_insp.validation.message_required', 'This field is required.');
         case 'email': return t('studio_apps_insp.validation.message_email', 'Enter a valid email address.');
@@ -60,8 +77,8 @@ function defaultMessage(t, kind) {
 
 // A message that is still the default — in the current language, or in the
 // English an earlier session may have stored — may be replaced when the kind changes.
-const englishOnly = (_key, en) => en;
-function isDefaultMessage(t, kind, message) {
+const englishOnly = (_key: string | undefined, en: string): string => en;
+function isDefaultMessage(t: TranslateFn, kind: string, message: string): boolean {
     return message === defaultMessage(t, kind) || message === defaultMessage(englishOnly, kind);
 }
 
@@ -71,7 +88,7 @@ function isDefaultMessage(t, kind, message) {
  * what was meant — and writeRule turns the row into a saveable shape the
  * moment anything in it is edited.
  */
-function readRule(rule) {
+function readRule(rule: ValidationRule | null | undefined): RuleRow {
     const message = typeof rule?.message === 'string' ? rule.message : '';
     const number = typeof rule?.value === 'number' ? rule.value : null;
     switch (rule?.type) {
@@ -100,9 +117,9 @@ function readRule(rule) {
 }
 
 /** Row state → the server shape. Never emits a type validate.js rejects. */
-function writeRule(row) {
+function writeRule(row: RuleRow): ValidationRule {
     const n = Number(row.number);
-    const rule = { type: 'required' };
+    const rule: ValidationRule = { type: 'required' };
     if (row.kind === 'email' || row.kind === 'url') {
         rule.type = 'format';
         rule.format = row.kind;
@@ -120,7 +137,16 @@ function writeRule(row) {
     return rule;
 }
 
-export default function ValidationRuleEditor({ value, onChange, definition = null, node = null, disabled = false }) {
+export interface ValidationRuleEditorProps {
+    /** node.validations. */
+    value: ValidationRule[] | null | undefined;
+    onChange?: (rules: ValidationRule[]) => void;
+    definition?: AppDefinition | null;
+    node?: AppNode | null;
+    disabled?: boolean;
+}
+
+export default function ValidationRuleEditor({ value, onChange, definition = null, node = null, disabled = false }: ValidationRuleEditorProps) {
     const { t } = useTranslation();
     const rules = Array.isArray(value) ? value : [];
     // Memoised so the memo inside StudioScopeProvider sees a stable reference.
@@ -129,7 +155,7 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
     const TYPE_BY_VALUE = new Map(RULE_TYPES.map((rt) => [rt.value, rt]));
 
     const addRule = () => onChange?.([...rules, writeRule({ kind: 'required', message: defaultMessage(t, 'required') })]);
-    const removeRule = (i) => onChange?.(rules.filter((_, k) => k !== i));
+    const removeRule = (i: number) => onChange?.(rules.filter((_, k) => k !== i));
 
     // `value` — the field being checked — is a legal root here and nowhere
     // else, so the picker offers it only inside a rule. Without it the
@@ -143,7 +169,7 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
                     const spec = TYPE_BY_VALUE.get(row.kind) || RULE_TYPES[0];
                     // Every edit rebuilds the whole rule, so a legacy row can
                     // never keep its rejected `type` through a patch.
-                    const put = (patch) => {
+                    const put = (patch: Partial<RuleRow>): void => {
                         const next = rules.slice();
                         next[i] = writeRule({ ...row, ...patch });
                         onChange?.(next);
@@ -200,7 +226,7 @@ export default function ValidationRuleEditor({ value, onChange, definition = nul
                             {spec.input === 'formula' && (
                                 <FormulaField
                                     value={row.expr || ''}
-                                    onChange={(expr) => put({ expr })}
+                                    onChange={(expr: string) => put({ expr })}
                                     definition={definition}
                                     node={node}
                                     placeholder={t('studio_apps_insp.validation.formula_placeholder', 'e.g. len(value) > 0')}

@@ -20,13 +20,19 @@
  * would close an import cycle.
  */
 
+/** An unnamed row, and the position it was left in. */
+export interface RowDraft<R> {
+    at: number;
+    row: R;
+}
+
 /**
  * The visible row list: the stored (named) rows, with each unnamed draft
  * spliced back in at the position it was left in.
  *
  * `stored` is Object.entries(map); `drafts` is [{ at, row }].
  */
-export function mergeDrafts(stored, drafts) {
+export function mergeDrafts<R>(stored: R[], drafts: Array<RowDraft<R>> | null | undefined): R[] {
     const out = [...stored];
     for (const d of [...(drafts || [])].sort((a, b) => a.at - b.at)) {
         out.splice(Math.min(d.at, out.length), 0, d.row);
@@ -38,9 +44,12 @@ export function mergeDrafts(stored, drafts) {
  * Split an edited row list into what can be stored and what is still unnamed.
  * → { named: [[name, value]], drafts: [{ at, row }] }
  */
-export function splitNamed(rows) {
-    const named = [];
-    const drafts = [];
+export function splitNamed<V>(rows: Array<[string, V]> | null | undefined): {
+    named: Array<[string, V]>;
+    drafts: Array<RowDraft<[string, V]>>;
+} {
+    const named: Array<[string, V]> = [];
+    const drafts: Array<RowDraft<[string, V]>> = [];
     (rows || []).forEach(([name, value], i) => {
         if (name === '') drafts.push({ at: i, row: [name, value] });
         else named.push([name, value]);
