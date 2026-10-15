@@ -1,5 +1,6 @@
 import type { CmsActivePage, CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsSiteDoc, CmsSiteListEntry } from './cmsPanelTypes';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { LocaleCoverage } from '../shell/LocaleMenu';
 import {
     ANALYTICS_VIRTUAL_ID, DESIGN_VIRTUAL_ID,
     isChromeEntryId, normalizeVirtualId,
@@ -34,7 +35,7 @@ export interface PanelView {
     activeLocaleName: string;
     defaultLocaleName: string;
     isLive: boolean;
-    coverageByLocale: Record<string, unknown>;
+    coverageByLocale: Record<string, LocaleCoverage>;
     otherLiveSite: CmsSiteListEntry | null;
     statusText: string | null;
     /** Which empty-state the stage shows, if any. */
@@ -77,7 +78,7 @@ export function derivePanelView(input: PanelViewInput): PanelView {
 
     // Per-locale translation coverage for the locale menu ("n/m fields").
     // Cheap walk over client-side state; soft numbers by design (D3).
-    const coverageByLocale: Record<string, unknown> = {};
+    const coverageByLocale: Record<string, LocaleCoverage> = {};
     for (const l of locales) {
         if (l.code === defaultLocale || !site) continue;
         coverageByLocale[l.code] = coverageForLocale(site, pages, localeOverrides, l.code);
