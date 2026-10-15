@@ -9,6 +9,13 @@ function isUnlinkedUpload(a: unknown, fileName: string): a is Record<string, unk
     return typeof a === 'object' && a !== null && 'name' in a && a.name === fileName && !('documentId' in a && a.documentId);
 }
 
+/** The attachments with `documentId` on the FIRST unlinked chip of that name: two uploads may share one. */
+function linkFirst(attachments: unknown[], fileName: string, documentId: string): unknown[] {
+    const at = attachments.findIndex((a) => isUnlinkedUpload(a, fileName));
+    if (at === -1) return attachments;
+    return attachments.map((a, i) => (i === at && isUnlinkedUpload(a, fileName) ? { ...a, documentId } : a));
+}
+
 export const notebookHandlers: SseHandlerMap = {
     workspace_update(ctx, data) {
         const { onNotebookUpdate } = ctx;
@@ -86,7 +93,7 @@ export const notebookHandlers: SseHandlerMap = {
         const fileName = data.filename;
         if (typeof fileName !== 'string' || !fileName) return;
         ctx.setMessages((prev) => prev.map((m) => (m.id === ids.userMsgId && Array.isArray(m.attachments)
-            ? { ...m, attachments: m.attachments.map((a) => (isUnlinkedUpload(a, fileName) ? { ...a, documentId } : a)) }
+            ? { ...m, attachments: linkFirst(m.attachments, fileName, documentId) }
             : m)));
     },
 

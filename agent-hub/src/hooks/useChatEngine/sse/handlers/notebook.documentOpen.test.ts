@@ -61,6 +61,18 @@ describe('document_open', () => {
         expect(messages[1].attachments).toEqual([{ name: 'a.xlsx', type: 'x' }]);
     });
 
+    it('two uploads with the same name get one document each, in order', () => {
+        let messages: ChatMessage[] = [{ id: 'u', role: 'user', content: 'two', attachments: [{ name: 'a.xlsx', type: 'x' }, { name: 'a.xlsx', type: 'x' }] }];
+        const local: SseDispatchContext = { ...ctx, setMessages: (next) => { messages = typeof next === 'function' ? next(messages) : next; } };
+        const seen = vi.fn((e: Event) => e.preventDefault());
+        window.addEventListener('beeflow:open-document-side', seen);
+        dispatchSSEEvent(local, 'document_open', { documentId: 'd1', filename: 'a.xlsx' }, ids);
+        expect(messages[0].attachments).toEqual([{ name: 'a.xlsx', type: 'x', documentId: 'd1' }, { name: 'a.xlsx', type: 'x' }]);
+        dispatchSSEEvent(local, 'document_open', { documentId: 'd2', filename: 'a.xlsx' }, ids);
+        window.removeEventListener('beeflow:open-document-side', seen);
+        expect(messages[0].attachments).toEqual([{ name: 'a.xlsx', type: 'x', documentId: 'd1' }, { name: 'a.xlsx', type: 'x', documentId: 'd2' }]);
+    });
+
     it('without a filename only the panel opens', () => {
         const setMessages = vi.fn();
         dispatchSSEEvent({ ...ctx, setMessages }, 'document_open', { documentId: 'd1' }, ids);
