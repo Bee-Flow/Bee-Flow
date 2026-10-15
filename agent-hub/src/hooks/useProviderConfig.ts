@@ -26,7 +26,11 @@ import { API_BASE, authFetch } from '../utils/helpers';
 
 /** The raw GET /ai/config body: per-provider has-flags and plain settings.
  *  Each card reads its own keys, so the shape stays open. */
-export type ProviderConfig = Record<string, unknown>;
+export interface ProviderConfig {
+    /** Always a string: the server falls back to 'europe-west4' (routes/ai/config/instanceConfig.js). */
+    googleVertexLocation?: string;
+    [key: string]: unknown;
+}
 
 export interface ProviderMessage {
     type: 'success' | 'error';

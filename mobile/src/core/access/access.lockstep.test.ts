@@ -135,7 +135,7 @@ describe('the web logic this ports', () => {
 
     it('studioApps: makeCanUse and the lock hint keys', () => {
         // studioApps.jsx re-exports makeCanUse from studioGates.ts, where the lock hints live too.
-        expect(read('agent-hub/src/components/admin/Studio/studioApps.jsx')).toMatch(/\bmakeCanUse\b[\s\S]*?from '\.\/studioGates'/);
+        expect(read('agent-hub/src/components/admin/Studio/studioApps.tsx')).toMatch(/\bmakeCanUse\b[\s\S]*?from '\.\/studioGates'/);
         const src = read('agent-hub/src/components/admin/Studio/studioGates.ts');
         expect(
             contains(
