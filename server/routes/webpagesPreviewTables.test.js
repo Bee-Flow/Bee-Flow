@@ -39,6 +39,7 @@ dtAccess.resolveDatatablePrincipalForUser = async (userId) => {
 
 const datatableRuntime = require('../core/dataEngine/datatableRuntime');
 const router = require('./webpagesPreviewTables');
+const { createTerminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 // ── harnas ───────────────────────────────────────────────────────────
 function withPatches(patches, fn) {
@@ -51,6 +52,7 @@ async function withServer(t, fn) {
     const app = express();
     app.use(express.json());
     app.use(router);
+    app.use(createTerminalErrorHandler({ log: { error() {}, warn() {} } }));
     const server = await new Promise((resolve) => {
         const s = app.listen(0, '127.0.0.1', () => resolve(s));
     });
@@ -203,7 +205,8 @@ test('a runner refusal keeps its status and code; an unexpected throw becomes a 
             const res = await post(base, '/wp1/tables/tbl_1/query');
             assert.strictEqual(res.status, 500);
             const body = await res.json();
-            assert.strictEqual(body.error, 'Could not read the table');
+            assert.strictEqual(body.error, 'Internal server error');
+            assert.ok(body.correlationId);
             assert.strictEqual(/10\.0\.0\.5/.test(JSON.stringify(body)), false,
                 'an internal message must not ride out on a refusal');
         }));

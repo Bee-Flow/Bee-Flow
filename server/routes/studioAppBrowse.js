@@ -103,7 +103,7 @@ const BrowseBody = partOf({
     value: z.unknown().optional(),
 });
 
-router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (req, res) => {
+router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (req, res, next) => {
     // Body cap (mirrors bodySizeGuard) before anything else.
     try {
         if (req.body && typeof req.body === 'object' && Buffer.byteLength(JSON.stringify(req.body), 'utf8') > MAX_BODY_BYTES) {
@@ -195,9 +195,10 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
             res.end();
         }
     } catch (err) {
+        if (!res.headersSent) return next(err);
         log.error(`[StudioAppBrowse] ${err.message}`);
-        if (!res.headersSent) res.status(500).json({ error: 'Browse failed' });
-        else { try { res.write(`data: ${JSON.stringify({ type: 'result', ok: false, error: 'Browse failed' })}\n\n`); } catch { /* gone */ } res.end(); }
+        try { res.write(`data: ${JSON.stringify({ type: 'result', ok: false, error: 'Browse failed' })}\n\n`); } catch { /* gone */ }
+        res.end();
     }
 });
 

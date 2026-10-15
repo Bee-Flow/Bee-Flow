@@ -73,7 +73,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 
 const { requirePreviewToken } = require('../auth/webpagePreviewToken');
@@ -181,7 +180,7 @@ async function requireBinding(req, { write = false } = {}) {
 }
 
 /** Elke weigering met `safe` mag letterlijk terug; de rest wordt een 500. */
-function sendError(res, err, fallback) {
+function sendError(res, err, _fallback) {
     if (err && err.safe === true && typeof err.status === 'number') {
         return res.status(err.status).json({
             error: err.message,
@@ -195,8 +194,7 @@ function sendError(res, err, fallback) {
     if (err && err.name === 'CompileError') {
         return res.status(400).json({ error: err.message, code: 'bad_descriptor' });
     }
-    log.error(`[WebpagesPreview/tables] ${fallback}:`, err && err.message);
-    return res.status(500).json({ error: fallback });
+    throw err;
 }
 
 /** De bezoeker + zijn graad op deze tabel. Gooit als een van beide ontbreekt. */
