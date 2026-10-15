@@ -24,6 +24,7 @@ export interface TableColumn {
     subtype: string | null;
     mandatory: boolean;
     description: string;
+    [key: string]: unknown;
 }
 
 /** A column as the server spells it; every member may be missing. */
@@ -219,7 +220,7 @@ export function placeKeys(map: Record<string, unknown> | null | undefined, colum
         ...keys.filter(k => !exact.has(k.toLowerCase())),
     ];
     for (const key of ordered) {
-        const col = resolveKeyToColumn(key, columns as Parameters<typeof resolveKeyToColumn>[1]);
+        const col = resolveKeyToColumn(key, columns);
         if (!col || keyForColumn[col.title] !== undefined) { stray.push(key); continue; }
         keyForColumn[col.title] = key;
     }

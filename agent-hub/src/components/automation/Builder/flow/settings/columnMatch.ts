@@ -109,7 +109,7 @@ export function matchColumns(fieldNames: unknown[] | null | undefined, columnTit
 }
 
 export interface TableColumn {
-    id?: number | string;
+    id?: number | string | null;
     title: string;
     [key: string]: unknown;
 }

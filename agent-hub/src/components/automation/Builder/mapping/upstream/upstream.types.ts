@@ -1,6 +1,7 @@
 import type { Field } from './fieldTree';
 import type { FlowDefinition, FlowStep } from '../../flow/types';
 import type { TriggerParamsSchema } from '../../flow/triggerSchemaUtils';
+import type { SetOperation } from '../../flow/setOperations';
 
 /** A form question as the builder declares it (trigger.form / form_page.form). */
 export interface FormFieldDecl {
@@ -68,7 +69,7 @@ export interface UpstreamNode extends FlowStep {
     style?: unknown;
     // set / parse_json / datetime / aggregate / layer_output
     fields?: unknown;
-    operations?: unknown;
+    operations?: SetOperation[];
     sourceRef?: string;
     itemsRef?: string;
     unit?: string;

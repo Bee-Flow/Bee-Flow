@@ -162,7 +162,7 @@ export interface NodeStep extends FlowStep {
     blockId?: string;
     layerKey?: string;
     inputs?: Record<string, unknown> | null;
-    fields?: unknown;
+    fields?: Record<string, unknown>;
     appEvent?: AppEventConfig | null;
     schedule?: { cron?: string; tz?: string; [key: string]: unknown } | null;
     toolName?: string;
