@@ -12,6 +12,7 @@ import FormulaBar from './FormulaBar';
 import SheetAssistantPanel from './SheetAssistantPanel';
 import SheetChartCreator from './SheetChartCreator';
 import useSheetCharts from './useSheetCharts';
+import { chartsOnTab, type SheetChartConfig } from './sheetCharts';
 import SheetGrid from './SheetGrid';
 import SheetStatusBar from './SheetStatusBar';
 import SheetTabs from './SheetTabs';
@@ -95,9 +96,14 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
                     ? <span className="text-[11px] text-[var(--text-tertiary)]" data-testid="sheet-view-only">{t('spreadsheet.view_only', 'View only')}</span>
                     : <SaveStatusChip state={sheet.status} lastSavedAt={sheet.savedAt} onRetry={sheet.retry} />}
                 primary={(
-                    <button type="button" className={BUTTON} onClick={() => { page.download().catch(() => undefined); }} disabled={page.downloading || !ready}>
-                        <Download size={14} aria-hidden="true" />{t('spreadsheet.download_csv', 'Download CSV')}
-                    </button>
+                    <>
+                        <button type="button" className={BUTTON} onClick={() => { page.download('xlsx').catch(() => undefined); }} disabled={page.downloading || !ready}>
+                            <Download size={14} aria-hidden="true" />{t('spreadsheet.download_xlsx', 'Download Excel')}
+                        </button>
+                        <button type="button" className={BUTTON} onClick={() => { page.download('csv').catch(() => undefined); }} disabled={page.downloading || !ready}>
+                            <Download size={14} aria-hidden="true" />{t('spreadsheet.download_csv', 'Download CSV')}
+                        </button>
+                    </>
                 )}
                 extras={(
                     <>
@@ -128,7 +134,7 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
             <SheetChartCreator
                 open={chartCreatorOpen}
                 onClose={() => setChartCreatorOpen(false)}
-                onCreate={charts.addChart}
+                onCreate={(config: SheetChartConfig) => charts.addChart({ ...config, tab: sheet.activeTab })}
                 selection={selection}
                 selectionKind={grid.kind}
                 activeCell={grid.activeName}
@@ -145,7 +151,7 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
                                 {t('spreadsheet.empty_hint', 'Type a value or a formula such as =SUM(A1:A5)')}
                             </p>
                         )}
-                        <SheetGrid grid={grid} cells={sheet.cells} computed={sheet.computed} readOnly={sheet.readOnly} flashed={assistant.flashed} ask={ask} containerRef={gridRef} onToggleFormulaBar={toggleFormulaBar} charts={charts.charts} onRemoveChart={charts.removeChart} />
+                        <SheetGrid grid={grid} cells={sheet.cells} computed={sheet.computed} readOnly={sheet.readOnly} flashed={assistant.flashed} ask={ask} containerRef={gridRef} onToggleFormulaBar={toggleFormulaBar} charts={chartsOnTab(charts.charts, sheet.activeTab)} onRemoveChart={charts.removeChart} />
                         <SheetStatusBar range={grid.range} kind={grid.kind} computed={sheet.computed} usedRows={sheet.usedRows} usedCols={grid.usedCols} />
                         <SheetTabs
                             tabs={sheet.tabs}
@@ -154,7 +160,8 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
                             onChange={sheet.setActiveTab}
                             onAdd={sheet.createTab}
                             onRename={sheet.renameTab}
-                            onDelete={sheet.deleteTab}
+                            // a removed tab takes its charts along on the server: show that list
+                            onDelete={(tabId) => { void sheet.deleteTab(tabId).then(charts.reload); }}
                         />
                     </div>
                     {assistantOpen && <SheetAssistantPanel assistant={assistant} selection={selection} selectionKind={grid.kind} tier={tier} readOnly={sheet.readOnly} onClose={toggleAssistant} />}

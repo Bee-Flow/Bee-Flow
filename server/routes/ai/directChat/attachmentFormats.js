@@ -6,12 +6,13 @@
  * attachmentIntake.js; behaviour unchanged.
  *
  * Shared context `ctx`: { userId, adapter, modelId, config, shield,
- * contentParts, persistedAttachments, pushAttachment, scan, summaries }.
+ * contentParts, persistedAttachments, pushAttachment, scan, summaries, req, send, documentScope }.
  */
 
 const crypto = require('crypto');
 const configStore = require('../../../stores/configStore');
 const log = require('../../../telemetry/log');
+const { importUploadedSpreadsheet, isSpreadsheetUpload } = require('./spreadsheetImportIntake');
 
 const IMAGE_FALLBACK_MAX_BASE64 = 300 * 1024;
 
@@ -231,13 +232,8 @@ async function handleOffice(att, ctx) {
     }
 }
 
-const isSpreadsheet = (att) => att.type?.includes('spreadsheetml') || att.type?.includes('ms-excel') ||
-    att.type === 'text/csv' || att.type === 'application/csv' ||
-    att.name?.toLowerCase().endsWith('.xlsx') || att.name?.toLowerCase().endsWith('.xls') ||
-    att.name?.toLowerCase().endsWith('.csv');
-
 async function handleSpreadsheet(att, ctx) {
-    const { userId, contentParts, pushAttachment, scan } = ctx;
+    const { req, send, userId, contentParts, pushAttachment, scan, documentScope } = ctx;
     // Spreadsheet: Azure Document Intelligence (when enabled), then the XLSX library
     try {
         const spreadsheetBuffer = Buffer.from(base64Of(att.content), 'base64');
@@ -248,16 +244,19 @@ async function handleSpreadsheet(att, ctx) {
         });
         const sheetProxyUrl = stored ? stored.url : null;
 
+        // Also open it as a spreadsheet document next to the chat (when the person has them)
+        const { base: importedBase, note: importedNote } = await importUploadedSpreadsheet({ req, send, userId, buffer: spreadsheetBuffer, att, documentScope });
+
         if (sheetText && !sheetText.startsWith('[Spreadsheet:')) {
             const safeSheetText = await scan(sheetText, undefined, att.name);
-            const docText = `[Spreadsheet: ${att.name}]\n---\n${safeSheetText}\n---`;
+            const docText = `[Spreadsheet: ${att.name}]\n---\n${safeSheetText}\n---${importedNote}`;
             contentParts.push({ type: 'text', text: docText });
-            await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl }, docText);
+            await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl, ...importedBase }, docText);
             log.info(`[DirectChat] Extracted ${sheetText.length} chars from spreadsheet: ${att.name}`);
         } else {
-            const note = sheetText || `[Spreadsheet: ${att.name} — no data found]`;
+            const note = (sheetText || `[Spreadsheet: ${att.name} — no data found]`) + importedNote;
             contentParts.push({ type: 'text', text: note });
-            await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl }, note);
+            await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl, ...importedBase }, note);
         }
     } catch (e) {
         log.error(`[DirectChat] Spreadsheet processing failed for ${att.name}:`, e.message);
@@ -288,7 +287,7 @@ async function processAttachment(att, ctx) {
     }
     if (att.content && att.type && att.type.includes('pdf')) return handlePdf(att, ctx);
     if (att.content && isOfficeDoc(att)) return handleOffice(att, ctx);
-    if (att.content && isSpreadsheet(att)) return handleSpreadsheet(att, ctx);
+    if (att.content && isSpreadsheetUpload(att)) return handleSpreadsheet(att, ctx);
     if (att.source === 'gmail' && att.content) {
         // Gmail email: GmailPicker sends the body as plain text (type
         // 'text/plain'). Inject it directly like Google Drive does; otherwise it

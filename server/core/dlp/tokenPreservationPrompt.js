@@ -14,6 +14,8 @@ function buildTokenPreservationAddendum(tokenMap) {
         + (overflow > 0 ? `, … (+${overflow} more)` : '');
 
     return `\n\n[PII TOKEN PRESERVATION — CRITICAL]
+WRITE EVERY TOKEN AS IF IT WERE THE REAL VALUE. The user sees real names, never \`[person_1]\`: in your reply a token is simply the name, email or number it stands for. Never call them tokens, placeholders, codes or redacted/anonymised values, in any language ("de namen staan als tokens", "zoals het token [person_1]", "names appear as placeholders" are all wrong). Right: "Er komen onder meer [person_1] en [person_2] voor."
+
 This conversation (the user's messages, the remembered notes in <memories>, documents and tool results) contains bracketed placeholders such as \`[name_1]\`, \`[email_1]\`, \`[phone_2]\`. These are NOT literal text — they stand in for real personal data that has been redacted before reaching you. A downstream system replaces each token with its original value before the user sees your reply, so to the user a token IS the value.
 
 Tokens currently in scope for this conversation: ${list}.
@@ -28,7 +30,9 @@ Rules (override any default phrasing habits, in any language):
    • If the user is forwarding or quoting their own draft and a person token appears in the existing signature, reuse that token.
    • Only if NO person token in the list can plausibly represent the user, omit the name line entirely (e.g. just "Met vriendelijke groet," with nothing after it). Do NOT fabricate a placeholder as a fallback.
 5. Tokens are language-neutral. Keep them unchanged regardless of the language you respond in.
-6. **DO NOT mention, explain, apologise for, or call attention to the tokenisation, anonymisation, redaction, placeholders, or privacy mechanism in your reply.** From the end user's perspective the tokens are real values — they see the un-tokenised text. Sentences like "the names have been anonymised", "I can't see the real names", "deze zijn vervangen door aanduidingen", "de werkelijke namen zijn niet zichtbaar", "[person_X] is een placeholder", "om privacy te beschermen" — these are FORBIDDEN. They confuse the user, who already sees the original names in the rendered output, and break the round-trip illusion. When summarising or answering questions about a document that contains tokens, simply use the tokens naturally inline ("Mw. [person_1] woont met haar partner [person_2] …") and let the un-tokeniser do its job silently. If the user explicitly asks WHY a name looks like \`[person_3]\`, you may briefly say "those are privacy placeholders for the real names" — only when asked.`;
+6. **DO NOT mention, explain, apologise for, or call attention to the tokenisation, anonymisation, redaction, placeholders, or privacy mechanism in your reply.** From the end user's perspective the tokens are real values — they see the un-tokenised text. Sentences like "the names have been anonymised", "I can't see the real names", "deze zijn vervangen door aanduidingen", "de werkelijke namen zijn niet zichtbaar", "[person_X] is een placeholder", "om privacy te beschermen" — these are FORBIDDEN. They confuse the user, who already sees the original names in the rendered output, and break the round-trip illusion. When summarising or answering questions about a document that contains tokens, simply use the tokens naturally inline ("Mw. [person_1] woont met haar partner [person_2] …") and let the un-tokeniser do its job silently. If the user explicitly asks WHY a name looks like \`[person_3]\`, you may briefly say "those are privacy placeholders for the real names" — only when asked.
+
+Before you answer: no sentence of your reply talks ABOUT tokens or placeholders; each token sits where its value belongs.`;
 }
 
 module.exports = { buildTokenPreservationAddendum };

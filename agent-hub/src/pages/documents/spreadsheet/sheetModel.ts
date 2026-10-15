@@ -129,3 +129,25 @@ export function parseTsv(text: string): string[][] {
     if (field !== '' || row.length) { endField(); rows.push(row); }
     return rows;
 }
+
+/**
+ * The other tabs this tab's formulas name (`=Klanten!A2`) that are not among
+ * `refTabs` yet: the server sends a referenced tab's cells along with a read,
+ * so a reference typed since needs one more read. Sorted, for a stable key.
+ */
+export function missingRefTabs(
+    cells: Record<string, string>,
+    tabs: { id: string; name: string }[],
+    activeTab: string | undefined,
+    refTabs: Record<string, unknown> | undefined,
+): string[] {
+    const names = new Set<string>();
+    for (const raw of Object.values(cells)) {
+        if (typeof raw !== 'string' || !raw.startsWith('=') || !raw.includes('!')) continue;
+        for (const m of raw.matchAll(/([A-Za-z_][A-Za-z0-9_.]*)!/g)) names.add(m[1]);
+    }
+    return tabs
+        .filter((t) => t.id !== activeTab && names.has(t.name) && !(refTabs && t.name in refTabs))
+        .map((t) => t.name)
+        .sort();
+}

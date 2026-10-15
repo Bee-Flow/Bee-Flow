@@ -290,6 +290,9 @@ module.exports = {
     'chat.model.search': 'Search models...',
     // Chat — message item
     'chat.msg.attachment': 'Attachment',
+    // The chip of an upload that became a library document (an imported spreadsheet)
+    'chat.attachments.open_document': 'Open',
+    'chat.attachments.open_document_label': 'Open {name} as a document',
     'chat.msg.auto_picked': 'Auto → {tier}',
     'chat.msg.browse_done': 'done',
     'chat.msg.browse_opening': 'Opening the browser…',

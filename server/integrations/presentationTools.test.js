@@ -25,8 +25,20 @@ const storage = {
     uploadFile: async (key, buffer, contentType) => { uploads.push({ key, size: buffer.length, contentType }); },
 };
 const library = [];
+// OneDrive (officeFileDelivery → msGraphClient): one Graph PUT, or a refusal.
+const graphPuts = [];
+const graph = { status: 201 };
+const msGraph = {
+    isMicrosoftConnected: (session) => !!(session?.accessToken && session?.oauthProvider === 'microsoft'),
+    graphRequest: async (path, _session, options) => {
+        graphPuts.push({ path, method: options.method });
+        const body = graph.status < 300 ? { id: 'I1', name: 'Q3.pptx', webUrl: 'https://contoso-my.sharepoint.com/q3' } : { error: { message: 'no licence' } };
+        return { ok: graph.status < 300, status: graph.status, json: async () => body, text: async () => JSON.stringify(body) };
+    },
+};
 installResolveStub({
     '../stores/storageStore': storage,
+    './msGraphClient': msGraph,
     '../../stores/configStore': { getConfig: async () => null, setConfig: async () => {} },
     // The library the deck is also kept in (core/documents/deckDocument.js).
     '../../stores/documentStore': {
@@ -131,4 +143,27 @@ test('the deck is also kept in Studio → Documents as a presentation: the outli
         assert.strictEqual(down.documentId, undefined);
         assert.match(down.message, /Reply with the download link/);
     } finally { library.fail = false; console.warn = warn; }
+});
+
+test('oneDrivePath: the deck also lands in the user\'s OneDrive; the download link stays, a refusal is reported', async () => {
+    const MS = { accessToken: 't', oauthProvider: 'microsoft' };
+    graphPuts.length = 0;
+    const res = await executePresentationTool({ title: 'Q3', slides: [{ title: 'a' }], oneDrivePath: '/Presentaties', saveToLibrary: false }, { userId: 'u1', session: MS });
+    assert.strictEqual(res.success, true, JSON.stringify(res));
+    assert.deepStrictEqual(graphPuts, [{ path: '/me/drive/root:/Presentaties/Q3.pptx:/content?@microsoft.graph.conflictBehavior=rename', method: 'PUT' }]);
+    assert.ok(res.downloadUrl, 'still a download');
+    assert.strictEqual(res.onedrive.webUrl, 'https://contoso-my.sharepoint.com/q3');
+    assert.match(res.message, /\[Open in OneDrive\]\(https:\/\/contoso-my\.sharepoint\.com\/q3\)/);
+
+    graph.status = 403;
+    try {
+        const refused = await executePresentationTool({ title: 'Q3', slides: [{ title: 'a' }], oneDrivePath: '/Presentaties', saveToLibrary: false }, { userId: 'u1', session: MS });
+        assert.ok(refused.downloadUrl);
+        assert.match(refused.message, /could NOT be saved to OneDrive \(OneDrive refused the upload \(403: no licence\)\)/);
+    } finally { graph.status = 201; }
+
+    graphPuts.length = 0;
+    const none = await executePresentationTool({ title: 'Q3', slides: [{ title: 'a' }], saveToLibrary: false }, { userId: 'u1', session: MS });
+    assert.strictEqual(none.onedrive, undefined);
+    assert.strictEqual(graphPuts.length, 0, 'no OneDrive without oneDrivePath');
 });

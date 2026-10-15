@@ -14,7 +14,7 @@ import {
     createSheetTab, deleteSheetTab, getSheet, MAX_CELLS_PER_REQUEST, patchSheet, renameSheetTab,
 } from './sheetApi';
 import { evaluateSheet } from './sheetEngine';
-import { usedRowsOf } from './sheetModel';
+import { missingRefTabs, usedRowsOf } from './sheetModel';
 import useServerCells, { overlay } from './useServerCells';
 import useSheetHistory from './useSheetHistory';
 
@@ -59,7 +59,13 @@ export default function useSheet(id: string) {
     const cells = useMemo(() => overlay(data?.cells, edits), [data, edits]);
     const cellsRef = useRef(cells);
     useLayoutEffect(() => { cellsRef.current = cells; });
-    const computed = useMemo(() => evaluateSheet(cells), [cells]);
+    // Formulas over another tab (`Klanten!A1`) compute against that tab's cells, which the server sends along.
+    const computed = useMemo(() => {
+        const refTabs = data?.refTabs;
+        const name = data?.tabs?.find((t) => t.id === data.activeTab)?.name;
+        if (!refTabs || !name || !Object.keys(refTabs).length) return evaluateSheet(cells);
+        return evaluateSheet(cells, { workbook: { ...refTabs, [name]: cells }, activeSheet: name });
+    }, [cells, data]);
     const usedRows = useMemo(() => usedRowsOf(cells, data?.rows ?? 0), [cells, data]);
 
     const historyRef = useRef<ReturnType<typeof useSheetHistory> | null>(null);
@@ -118,6 +124,19 @@ export default function useSheet(id: string) {
     const { applySaved, refresh } = useServerCells(idRef, activeTabRef, pending, setEdits, setSavedAt, query.refetch);
 
     refreshRef.current = refresh;
+
+    // A formula typed here may name a tab the server did not send along (`=Omzet!B2`): once the
+    // edit is saved, read the sheet again so `refTabs` carries it. Once per set of names, so a
+    // name the server cannot resolve never loops.
+    const askedRefs = useRef('');
+    useEffect(() => {
+        if (status !== 'saved' || !data?.tabs) return;
+        const missing = missingRefTabs(cells, data.tabs, data.activeTab, data.refTabs);
+        const key = missing.join('\u0000');
+        if (!missing.length || key === askedRefs.current) return;
+        askedRefs.current = key;
+        refreshRef.current().catch(() => undefined);
+    }, [status, cells, data]);
 
     // The AI wrote to this document (chat tool): take its cells, but never under an unsaved edit.
     useEffect(() => {

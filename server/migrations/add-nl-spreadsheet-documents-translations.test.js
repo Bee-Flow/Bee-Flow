@@ -21,5 +21,7 @@ registerNlCatalogueChecks({
         'documents.sheet.type_filter': 'Spreadsheets',
         'documents.type.spreadsheet': 'Spreadsheet',
         'spreadsheet.grid_label': 'Spreadsheet',
+        'spreadsheet.chart.kpi': 'KPI',
+        'spreadsheet.chart.format_percent': 'Percentage',
     },
 });

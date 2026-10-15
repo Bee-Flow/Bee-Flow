@@ -1,8 +1,10 @@
+import { ExternalLink } from 'lucide-react';
 import { resolveUrl } from './messageItemHelpers';
+import { openLibraryDocument } from './openLibraryDocument';
 import useTranslation from '../../../hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
 
-interface Attachment { type?: string; url?: string; content?: string; name?: string }
+interface Attachment { type?: string; url?: string; content?: string; name?: string; documentId?: string }
 
 /**
  * The attachment chips under a message bubble. Lifted verbatim out of
@@ -28,6 +30,17 @@ const MessageAttachments = ({ msg, isUser, setLightboxImage }: { msg: ChatMessag
                             <span className="font-medium truncate block max-w-[200px]">{att.name || t('chat.msg.attachment', 'Attachment')}</span>
                         )}
                     </div>
+                    {typeof att.documentId === 'string' && att.documentId && (
+                        <button
+                            type="button"
+                            onClick={() => openLibraryDocument(att.documentId as string)}
+                            aria-label={t('chat.attachments.open_document_label', 'Open {name} as a document', { name: att.name || t('chat.msg.attachment', 'Attachment') })}
+                            className="flex items-center gap-1 px-2 py-1.5 font-medium hover:underline flex-shrink-0"
+                        >
+                            <ExternalLink size={12} aria-hidden="true" />
+                            {t('chat.attachments.open_document', 'Open')}
+                        </button>
+                    )}
                 </div>
             );
         })}

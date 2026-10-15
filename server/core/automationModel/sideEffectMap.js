@@ -201,8 +201,8 @@ const SIDE_EFFECTS = new Set([
     'automation_propose_evolution', 'automation_apply_evolution',
     // Presentations — a .pptx is written into storage (chat) or Nextcloud.
     'create_presentation', 'nextcloud_create_presentation',
-    // Word documents — a .docx is written into storage or Nextcloud.
-    'create_word_document',
+    // Word / Excel files — a .docx / .xlsx is written into storage, Nextcloud or OneDrive.
+    'create_word_document', 'create_spreadsheet',
     // Nextcloud Files
     'nextcloud_upload_file', 'nextcloud_create_spreadsheet', 'nextcloud_create_document',
     'nextcloud_create_folder', 'nextcloud_delete', 'nextcloud_move', 'nextcloud_copy',

@@ -51,5 +51,5 @@ export function useFileHandOff() {
         return { label: t('mobile.chat.open_in_browser', 'Open in browser'), icon: 'ExternalLink', onPress: () => openLink(source.uri) };
     };
 
-    return { busy, openLink, actionFor };
+    return { busy, openLink, actionFor, share };
 }

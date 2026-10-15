@@ -8,7 +8,13 @@ import * as engine from '@shared/expr/sheet.mjs';
 export interface CellResult { value: unknown; error: string | null; display: string }
 export type Computed = Record<string, CellResult>;
 
-interface EvaluateOptions { now?: Date }
+interface EvaluateOptions {
+    now?: Date;
+    /** Every tab's typed cells by tab name, for cross-tab references (`Klanten!A1`). */
+    workbook?: Record<string, Record<string, string>>;
+    /** The name of the tab `cells` belongs to, within `workbook`. */
+    activeSheet?: string;
+}
 interface EngineApi {
     evaluateSheet: (cells: Record<string, string>, options?: EvaluateOptions) => Computed;
     evaluateCell: (cells: Record<string, string>, name: string, options?: EvaluateOptions) => CellResult;

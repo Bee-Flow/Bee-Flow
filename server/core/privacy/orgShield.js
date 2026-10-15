@@ -336,8 +336,8 @@ function synthesizeToolPiiPolicy(shield) {
  * Guard always fires; keep this regex in sync with the chatStream tool loop.
  *
  * `toolArgs` matters for tools whose destination depends on the call: a
- * create_word_document / create_presentation with `nextcloudPath` writes into
- * Nextcloud and is external; without it the file stays on-box.
+ * create_word_document / create_spreadsheet / create_presentation with
+ * `nextcloudPath` (or `oneDrivePath`) is external; without it the file stays on-box.
  *
  * Pure + side-effect-free (lazy-requires the map to avoid a circular import).
  */

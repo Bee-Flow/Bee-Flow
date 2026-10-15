@@ -175,6 +175,8 @@ const INLINE_TOOL_APPS = [
     { app: 'presentations',   label: 'Presentations', module: '../integrations/presentationTools',  arrayName: 'PRESENTATION_TOOLS',     enabledKey: null,            availableTo: ['agent', 'automation_step'], availability: 'installation', grantsRequireEntry: true },
     // The .docx sibling of create_presentation, injected next to it.
     { app: 'word-documents',  label: 'Word documents', module: '../integrations/wordDocumentTools', arrayName: 'WORD_DOCUMENT_TOOLS',    enabledKey: null,            availableTo: ['agent', 'automation_step'], availability: 'installation', grantsRequireEntry: true },
+    // The .xlsx sibling, injected next to it.
+    { app: 'spreadsheets',   label: 'Spreadsheets', module: '../integrations/spreadsheetTools', arrayName: 'SPREADSHEET_TOOLS',       enabledKey: null,            availableTo: ['agent', 'automation_step'], availability: 'installation', grantsRequireEntry: true },
 ];
 
 /**

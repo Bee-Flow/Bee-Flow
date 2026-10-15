@@ -3,7 +3,7 @@
  * Document Parser — Central module for extracting text from uploaded documents.
  * 
  * Supports: PDF (via Mistral OCR / pdf-parse), DOCX (mammoth), PPTX (pptxExtractor —
- * slide text + speaker notes, one section per slide), CSV/XLSX (xlsx).
+ * slide text + speaker notes, one section per slide), CSV/XLSX/ODS (xlsx).
  * All binary formats are converted to readable text/markdown for LLM consumption.
  */
 
@@ -39,12 +39,14 @@ async function parseDocument(buffer, mimeType, filename, options = {}) {
         return parsePptx(buffer, filename);
     }
 
-    // ── XLSX / XLS ──
+    // ── XLSX / XLS / ODS ──
     if (
         type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
         type === 'application/vnd.ms-excel' ||
+        type === 'application/vnd.oasis.opendocument.spreadsheet' ||
         filename?.toLowerCase().endsWith('.xlsx') ||
-        filename?.toLowerCase().endsWith('.xls')
+        filename?.toLowerCase().endsWith('.xls') ||
+        filename?.toLowerCase().endsWith('.ods')
     ) {
         return parseSpreadsheet(buffer, filename);
     }
@@ -199,6 +201,7 @@ function isSupportedDocument(mimeType, filename) {
         type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
         type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
         type === 'application/vnd.ms-excel' ||
+        type === 'application/vnd.oasis.opendocument.spreadsheet' ||
         type === 'text/csv' ||
         type === 'application/csv' ||
         type.startsWith('text/') ||
@@ -207,6 +210,7 @@ function isSupportedDocument(mimeType, filename) {
         name.endsWith('.pptx') ||
         name.endsWith('.xlsx') ||
         name.endsWith('.xls') ||
+        name.endsWith('.ods') ||
         name.endsWith('.csv')
     );
 }

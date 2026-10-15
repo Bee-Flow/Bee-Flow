@@ -4,9 +4,10 @@
  * routes/studioDocuments.js under /api/studio-documents.
  *
  *   POST  /sheets             { name?, folderId? }  → 201 { document }   start one
- *   GET   /:id/sheet          → { columns, rows, cells: { A1: raw }, readOnly }
+ *   GET   /:id/sheet          → { columns, rows, cells: { A1: raw }, refTabs: { Tab: cells }, readOnly }
  *   PATCH /:id/sheet          { cells: { B3: '12', C3: '=SUM(B1:B3)', D4: '' } } → { ok, cells }
  *   GET   /:id/sheet.csv      the computed values, as a CSV download
+ *   GET   /:id/sheet.xlsx     every tab as one Excel workbook, formulas kept (core/documents/sheetExport)
  *   POST  /:id/sheet/assistant  { message, selection?, selectionKind?, history?, modelTier? }
  *                             → { reply, changes: { B2: { before, after } }, tier }
  *                             the spreadsheet assistant (core/documents/sheetAssist):
@@ -31,11 +32,13 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { HttpError, notFound, forbidden } = require('../../core/http/errors');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
-const { sheetTabsOf, newTabId } = require('../../stores/lib/sheetDocument');
+const { sheetTabsOf, newTabId, settingsWithTabs } = require('../../stores/lib/sheetDocument');
+const { sheetCsv, buildSheetWorkbook } = require('../../core/documents/sheetExport');
 
 const NAME_TEXT = 'name is the spreadsheet\'s name, at most 200 characters.';
 const CreateBody = bodyOf({
@@ -83,41 +86,43 @@ const handle = (/** @type {Function} */ fn) => async (/** @type {any} */ req, /*
     try { await fn(req, res); } catch (e) { throw asHttp(e); }
 };
 
-/** One CSV field: quoted when it has to be, quotes doubled. */
-function csvField(text) {
-    const s = String(text ?? '');
-    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-/**
- * The computed sheet as CSV: rows 1 … the last used row, columns A … the last
- * used column. Values as they show (formulas evaluated, errors as their code).
- *
- * @param {Record<string, string>} cells
- * @param {(cells: Record<string, string>) => Record<string, { display: string }>} evaluate
- */
-function sheetCsv(cells, evaluate) {
-    const shown = evaluate(cells);
-    let lastRow = 0;
-    let lastCol = -1;
-    for (const name of Object.keys(cells)) {
-        const m = /^([A-Z])(\d+)$/.exec(name);
-        if (!m) continue;
-        lastRow = Math.max(lastRow, Number(m[2]));
-        lastCol = Math.max(lastCol, m[1].charCodeAt(0) - 65);
-    }
-    const lines = [];
-    for (let r = 1; r <= lastRow; r++) {
-        const fields = [];
-        for (let c = 0; c <= lastCol; c++) fields.push(csvField(shown[`${String.fromCharCode(65 + c)}${r}`]?.display ?? ''));
-        lines.push(fields.join(','));
-    }
-    return lines.join('\r\n') + (lines.length ? '\r\n' : '');
-}
-
 /** A safe download name. */
 function fileNameOf(name) {
     return (String(name || 'spreadsheet').replace(/[^\p{L}\p{N} ._-]+/gu, '').trim().slice(0, 100) || 'spreadsheet') + '.csv';
+}
+
+/**
+ * Every tab of `doc` copied into a new table of `userId`'s own.
+ * @param {any} cellsApi  core/documents/sheetCells
+ * @param {any} doc
+ * @param {string} userId
+ * @returns {Promise<{ newTabs: { id: string, name: string, datatableId: string }[], tabIds: Map<string, string> }>}  tabIds: old tab id → the copy's
+ */
+async function copyTabs(cellsApi, doc, userId) {
+    const newTabs = [];
+    const tabIds = new Map();
+    for (const t of sheetTabsOf(doc)) {
+        const table = await cellsApi.createSheetTable({ ownerUserId: userId, name: `${t.name} — copy` });
+        await cellsApi.copyCells(doc.userId, t.datatableId, table.id, userId);
+        const id = newTabId();
+        tabIds.set(t.id, id);
+        newTabs.push({ id, name: t.name, datatableId: table.id });
+    }
+    return { newTabs, tabIds };
+}
+
+/**
+ * The charts of a sheet for its copy, which looks like the original: new
+ * ids, pinned to the copied tabs (a chart pinned to no tab stays on every
+ * tab); a chart pinned to a tab that no longer exists is left behind.
+ * @param {unknown} charts
+ * @param {Map<string, string>} tabIds
+ */
+function copiedCharts(charts, tabIds) {
+    if (!Array.isArray(charts)) return [];
+    return charts
+        .filter((c) => c && typeof c === 'object' && (!c.tab || tabIds.has(c.tab)))
+        .map((c) => ({ ...c, id: `chart-${crypto.randomBytes(5).toString('hex')}`, ...(c.tab ? { tab: tabIds.get(c.tab) } : {}) }));
 }
 
 /**
@@ -198,7 +203,9 @@ function makeSheetRouter(deps = {}) {
         const { doc, tabs } = await sheetFor(req);
         const tab = resolveTab(tabs, req.query.tab);
         const sheet = await cells().readSheet(doc.userId, tab.datatableId);
-        res.json({ ...sheet, tabs, activeTab: tab.id, readOnly: (doc.projectRole === 'viewer' || doc.sharingRole === 'viewer') });
+        // The tabs its formulas point at, so the editor computes `Klanten!A1` instead of #REF!.
+        const refTabs = await require('../../core/documents/sheetWorkbook').readReferencedTabs(doc, tabs, tab.id, sheet.cells, cells());
+        res.json({ ...sheet, refTabs, tabs, activeTab: tab.id, readOnly: (doc.projectRole === 'viewer' || doc.sharingRole === 'viewer') });
     }));
 
     router.patch('/:id/sheet', requireAuth, validate({ body: WriteBody }), handle(async (req, res) => {
@@ -220,6 +227,15 @@ function makeSheetRouter(deps = {}) {
         res.send('\uFEFF' + sheetCsv(raw, evaluate));
     }));
 
+    router.get('/:id/sheet.xlsx', requireAuth, handle(async (req, res) => {
+        const { doc } = await sheetFor(req);
+        const file = await buildSheetWorkbook(doc, { cells: cells() });
+        res.setHeader('Content-Type', file.contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.send(file.buffer);
+    }));
+
     router.post('/:id/sheet/tabs', requireAuth, validate({ body: TabCreateBody }), handle(async (req, res) => {
         const { doc, tabs } = await sheetFor(req);
         if ((doc.projectRole === 'viewer' || doc.sharingRole === 'viewer')) throw forbidden('document_read_only', 'You can read this spreadsheet, but only its editors can change it.');
@@ -228,7 +244,7 @@ function makeSheetRouter(deps = {}) {
         const tab = { id: newTabId(), name, datatableId: table.id };
         const nextTabs = [...tabs, tab];
         const updated = await documents().updateDocument(doc.id, actorContext(req), {
-            settings: { ...doc.settings, sheet: { tabs: nextTabs } },
+            settings: settingsWithTabs(doc.settings, nextTabs),
             expectedVersionId: doc.versionId,
         });
         if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
@@ -242,7 +258,7 @@ function makeSheetRouter(deps = {}) {
         if (idx === -1) throw new HttpError(404, 'sheet_tab_not_found', 'This tab does not exist.');
         tabs[idx] = { ...tabs[idx], name: req.body.name.trim() };
         const updated = await documents().updateDocument(doc.id, actorContext(req), {
-            settings: { ...doc.settings, sheet: { tabs: [...tabs] } },
+            settings: settingsWithTabs(doc.settings, [...tabs]),
             expectedVersionId: doc.versionId,
         });
         if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
@@ -257,7 +273,7 @@ function makeSheetRouter(deps = {}) {
         if (idx === -1) throw new HttpError(404, 'sheet_tab_not_found', 'This tab does not exist.');
         const [removed] = tabs.splice(idx, 1);
         const updated = await documents().updateDocument(doc.id, actorContext(req), {
-            settings: { ...doc.settings, sheet: { tabs: [...tabs] } },
+            settings: settingsWithTabs(doc.settings, [...tabs]),
             expectedVersionId: doc.versionId,
         });
         if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
@@ -290,24 +306,22 @@ function makeSheetRouter(deps = {}) {
         });
         const name = (req.body?.name || `${doc.name} — copy`).slice(0, 200);
         try {
-            const sourceTabs = sheetTabsOf(doc);
-            const newTabs = [];
-            for (const t of sourceTabs) {
-                const table = await cells().createSheetTable({ ownerUserId: req.session.user.id, name: `${t.name} — copy` });
-                await cells().copyCells(doc.userId, t.datatableId, table.id, req.session.user.id);
-                newTabs.push({ id: newTabId(), name: t.name, datatableId: table.id });
-            }
+            const { newTabs, tabIds } = await copyTabs(cells(), doc, req.session.user.id);
+            const charts = copiedCharts(doc.settings?.sheet?.charts, tabIds);
             const copy = await documents().createDocument({
                 userId: req.session.user.id, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId: null,
                 sheetTableId: newTabs[0].datatableId,
             });
-            if (newTabs.length > 1) {
-                await documents().updateDocument(copy.id, actorContext(req), {
-                    settings: { ...copy.settings, sheet: { tabs: newTabs } },
+            let updated = null;
+            if (newTabs.length > 1 || charts.length) {
+                const settings = settingsWithTabs(copy.settings, newTabs);
+                updated = await documents().updateDocument(copy.id, actorContext(req), {
+                    settings: { ...settings, sheet: { ...settings.sheet, ...(charts.length ? { charts } : {}) } },
                     expectedVersionId: copy.versionId,
                 });
             }
-            res.status(201).json({ document: copy });
+            // The copy as stored now: its tabs, its charts and the version after that save.
+            res.status(201).json({ document: updated || copy });
         } catch (e) { throw asHttp(e); }
     }
 

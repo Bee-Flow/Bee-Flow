@@ -105,24 +105,13 @@ async function executeCreatePresentation(toolName, toolArgs, context) {
     return { ...local, nextcloud: { error: (nc && nc.error) || 'Nextcloud is not available' }, message: `${local.message || ''} It could NOT be saved to Nextcloud (${(nc && nc.error) || 'not connected'}) — tell the user and give the download link.` };
 }
 
-// ─── Word documents (.docx) ────────────────────────────────────
-// "Save it in Nextcloud": the destination passes the same scope guard a
-// direct nextcloud_create_document call would. Denied or not connected, the
-// document is still built and kept in Bee Flow storage with the reason
-// alongside (as create_presentation does) — never lost, and nothing reaches
-// Nextcloud.
-async function executeCreateWordDocument(toolName, toolArgs, context) {
-    const { userId, session, orgId } = context;
-    const { executeWordDocumentTool, nextcloudDocxPath } = require('./wordDocumentTools');
-    const wordCtx = { userId, session, orgId: documentOrgId(context) };
-    const ncPath = nextcloudDocxPath(toolArgs?.nextcloudPath, toolArgs || {});
-    if (ncPath) {
-        const ncScopeGuard = require('../core/integrations/ncScopeGuard');
-        const denied = await ncScopeGuard.checkToolCall({ toolName: 'nextcloud_create_document', toolArgs: { path: ncPath }, userId, orgId });
-        if (denied) wordCtx.nextcloudError = denied.error || 'Nextcloud access was denied';
-        else wordCtx.nextcloudPath = ncPath;
-    }
-    return await executeWordDocumentTool(toolArgs, wordCtx);
+// ─── Word (.docx) and Excel (.xlsx) files ─────────────────────
+// Built in-process, then a download link, OneDrive or Nextcloud (after its
+// scope guard): integrations/officeFileDelivery.js.
+async function executeOfficeFile(toolName, toolArgs, context) {
+    const { userId, session } = context;
+    const { executeOfficeFileTool } = require('./officeFileDelivery');
+    return await executeOfficeFileTool(toolName, toolArgs, { userId, session, orgId: documentOrgId(context) });
 }
 
 // ─── n8n workflow tools ────────────────────────────────────────
@@ -283,7 +272,7 @@ const INTEGRATION_TOOL_FAMILIES = [
     // `parseName` gives core's progressive disclosure the cint_<slug>_<tool> grammar.
     { name: 'custom_integration', order: 0, isTool: n => require('./customIntegrationRunner').isCustomIntegrationTool(n), execute: executeCustomIntegration, parseName: n => require('./customIntegrationRunner').parsePrefixedName(n) },
     { name: 'create_presentation', order: 40, isTool: n => n === 'create_presentation', execute: executeCreatePresentation },
-    { name: 'create_word_document', order: 50, isTool: n => n === 'create_word_document', execute: executeCreateWordDocument },
+    { name: 'create_word_document', order: 50, isTool: n => n === 'create_word_document' || n === 'create_spreadsheet', execute: executeOfficeFile },
     { name: 'fireflies', order: 100, isTool: isFirefliesTool, execute: byUser(executeFirefliesTool) },
     { name: 'regex_generator', order: 110, isTool: isRegexGeneratorTool, execute: (n, a) => executeRegexGeneratorTool(n, a) },
     { name: 'youtrack', order: 120, isTool: isYouTrackTool, execute: byUser(executeYouTrackTool) },

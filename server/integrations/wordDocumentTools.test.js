@@ -67,7 +67,11 @@ installResolveStub({
 });
 
 const { setMarkingResolver } = require('../core/automationRunner/documentMarking');
-const { executeWordDocumentTool, WORD_DOCUMENT_TOOLS, isWordDocumentTool, safeWordFileName, nextcloudDocxPath } = require('./wordDocumentTools');
+const { WORD_DOCUMENT_TOOLS, isWordDocumentTool, safeWordFileName } = require('./wordDocumentTools');
+// The builder is pure; storage and Nextcloud are the shared delivery's (officeFileDelivery.js).
+const { buildAndDeliver, destinationPath } = require('./officeFileDelivery');
+const executeWordDocumentTool = (args, ctx) => buildAndDeliver('create_word_document', args, ctx);
+const nextcloudDocxPath = (p, a) => destinationPath(p, 'docx', safeWordFileName(a.fileName || a.title));
 
 async function documentXml(buffer) {
     const JSZip = require('jszip');

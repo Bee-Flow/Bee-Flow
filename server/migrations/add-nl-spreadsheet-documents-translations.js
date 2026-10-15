@@ -30,6 +30,8 @@ const NL_TRANSLATIONS = Object.freeze({
     'spreadsheet.cell_input': 'Cel {cell}',
     'spreadsheet.download_csv': 'CSV downloaden',
     'spreadsheet.download_failed': 'De CSV kon niet worden gedownload.',
+    'spreadsheet.download_xlsx': 'Excel downloaden',
+    'spreadsheet.download_xlsx_failed': 'Het Excel-bestand kon niet worden gedownload.',
     'spreadsheet.empty_hint': 'Typ een waarde of een formule zoals =SUM(A1:A5)',
     'spreadsheet.error.cycle': 'De formule hangt af van haar eigen uitkomst (een kringverwijzing).',
     'spreadsheet.error.div0': 'Deling door nul.',
@@ -99,7 +101,19 @@ const NL_TRANSLATIONS = Object.freeze({
     'spreadsheet.stats.cells_other': '{count} cellen',
     'spreadsheet.chart.add': 'Grafiek toevoegen',
     'spreadsheet.chart.anchor': 'Ankercel',
-    'spreadsheet.chart.bar': 'Staaf',
+    // bar is a column chart since the chart types grew (#164); a workspace
+    // that has the older "Staaf" keeps it, so hbar is "Liggende staaf" and
+    // the two never read the same.
+    'spreadsheet.chart.bar': 'Kolom',
+    'spreadsheet.chart.hbar': 'Liggende staaf',
+    'spreadsheet.chart.stacked': 'Gestapeld',
+    'spreadsheet.chart.area': 'Vlak',
+    'spreadsheet.chart.doughnut': 'Ring',
+    'spreadsheet.chart.scatter': 'Spreiding',
+    'spreadsheet.chart.format': 'Getalnotatie',
+    'spreadsheet.chart.format_auto': 'Automatisch',
+    'spreadsheet.chart.format_currency': 'Valuta',
+    'spreadsheet.chart.format_number': 'Getal',
     'spreadsheet.chart.categories_range': 'Bereik van de categorieën (optioneel)',
     'spreadsheet.chart.create': 'Grafiek toevoegen',
     'spreadsheet.chart.data_range': 'Gegevensbereik',
@@ -118,14 +132,16 @@ const NL_TRANSLATIONS = Object.freeze({
 });
 
 /**
- * Keys whose Dutch IS the English string: "Spreadsheet" and "Spreadsheets"
- * are the Dutch words too.
+ * Keys whose Dutch IS the English string: "Spreadsheet", "Spreadsheets",
+ * "KPI" and "Percentage" are the Dutch words too.
  */
 const SAME_AS_ENGLISH = Object.freeze([
     'documents.sheet.new',
     'documents.sheet.type_filter',
     'documents.type.spreadsheet',
     'spreadsheet.grid_label',
+    'spreadsheet.chart.kpi',
+    'spreadsheet.chart.format_percent',
 ]);
 
 /**
