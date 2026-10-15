@@ -5,6 +5,7 @@
  * ignores the operator's instruction.
  */
 const log = require('../telemetry/log');
+const { HttpError } = require('../shared/httpErrors');
 function featureGate(name, label) {
     return async function gate(req, res, next) {
         let enabled;
@@ -12,7 +13,7 @@ function featureGate(name, label) {
             enabled = await require('../stores/configStore').getConfig(`feature_${name}_enabled`);
         } catch (err) {
             log.error(`[${label}] feature gate lookup failed:`, err.message);
-            return res.status(503).json({ error: `${label} availability could not be determined` });
+            return next(new HttpError(503, 'feature_gate_unavailable', `${label} availability could not be determined`));
         }
         if (enabled === false) return res.status(403).json({ error: `${label} feature is disabled` });
         next();
