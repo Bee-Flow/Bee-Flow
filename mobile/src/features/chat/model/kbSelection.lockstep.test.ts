@@ -1,6 +1,6 @@
 /**
  * TEXTUAL lockstep: why a knowledge-base change did not save, against the
- * web's conversationKbApi.js and KnowledgeBasePanel.jsx.
+ * web's conversationKbApi.ts and KnowledgeBasePanel.jsx.
  */
 
 import fs from 'node:fs';
@@ -10,14 +10,14 @@ import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
 
 import { KB_REFUSAL_WORDS, kbRefusalOf, MAX_ATTACHED_KBS, sameSelection } from './kbSelection';
 
-const API = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/conversationKbApi.js`, 'utf8');
+const API = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/conversationKbApi.ts`, 'utf8');
 const PANEL = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/InputArea/KnowledgeBasePanel.jsx`, 'utf8');
-const CLAIM = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/knowledgeBaseClaim.js`, 'utf8');
+const CLAIM = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/knowledgeBaseClaim.ts`, 'utf8');
 
 const refused = (status: number, body?: unknown) => Object.assign(new ApiError('x'), { status, body });
 
 it('reads a refusal by status as the web does', () => {
-    expect(API).toContain("const STATUS_REASONS = { 403: 'forbidden', 404: 'gone', 503: 'unavailable' };");
+    expect(API).toContain("const STATUS_REASONS: Record<number, string> = { 403: 'forbidden', 404: 'gone', 503: 'unavailable' };");
     expect(kbRefusalOf(refused(403))).toBe('forbidden');
     expect(kbRefusalOf(refused(404))).toBe('gone');
     expect(kbRefusalOf(refused(503))).toBe('unavailable');

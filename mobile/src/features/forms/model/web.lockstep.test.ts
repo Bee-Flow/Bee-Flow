@@ -4,7 +4,7 @@
  *   DIFFERENTIAL  answersRange.js runs beside answersRange.ts; isBlankForm
  *                 (AiDraftPanel.jsx), formLiveness / publicFormPath /
  *                 canOpenAutomation / canOpenForm (FormsStudio.jsx) and
- *                 fileSize / fileKind / initialValues (PublicFormRenderer.jsx)
+ *                 fileSize / fileKind / initialValues (PublicFormRenderer.tsx)
  *                 are cut out of their component files and run beside the
  *                 ports on the same inputs, and resultFilename runs from
  *                 resultFile.ts itself;
@@ -13,6 +13,8 @@
  *
  * When this fails the web side changed. Update the port; don't loosen the test.
  */
+
+import ts from 'typescript';
 
 import { isBlankForm } from './aiDraft';
 import { defaultRange, PRESETS, rangeToQuery, type AnswersRange } from './answersRange';
@@ -30,7 +32,8 @@ const FORMS = 'components/admin/Studio/Forms';
 function cut(rel: string, names: string[], prelude = ''): Record<string, Fn> {
     const src = readWeb(rel);
     const body = `${prelude}\n${names.map((n) => functionText(src, n)).join('\n')}\nreturn { ${names.join(', ')} };`;
-    return new Function(body)() as Record<string, Fn>;
+    const js = ts.transpileModule(body, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    return new Function(js)() as Record<string, Fn>;
 }
 
 describe('answersRange.js', () => {
@@ -89,9 +92,9 @@ describe('FormsStudio.jsx and FormPage.jsx', () => {
     });
 });
 
-describe('PublicFormRenderer.jsx and PublicFormPage.jsx', () => {
-    const rendererSrc = readWeb('components/forms/PublicFormRenderer.jsx');
-    const web = cut('components/forms/PublicFormRenderer.jsx', ['fileSize', 'fileKind', 'initialValues'], `const DISPLAY_FIELD_TYPES = ['download', 'notebook']; const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);`);
+describe('PublicFormRenderer.tsx and PublicFormPage.jsx', () => {
+    const rendererSrc = readWeb('components/forms/PublicFormRenderer.tsx');
+    const web = cut('components/forms/PublicFormRenderer.tsx', ['fileSize', 'fileKind', 'initialValues'], `const DISPLAY_FIELD_TYPES = ['download', 'notebook']; const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);`);
 
     it.each([[0], [-1], [512], [1023], [1024], [900 * 1024], [1024 * 1024], [5.55 * 1024 * 1024], ['12'], [null], ['x']])('fileSize(%s)', (bytes) => {
         expect(fileSize(bytes)).toBe(web.fileSize?.(bytes));

@@ -10,7 +10,7 @@ import { confirmDecisionOf } from './toolConfirm';
 import type { DlpFinding, PendingToolCall } from './types';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webSpans = require(`${AGENT_HUB_SRC}/components/chat/dlpReview/dlpFindingsState.js`) as {
+const webSpans = require(`${AGENT_HUB_SRC}/components/chat/dlpReview/dlpFindingsState.ts`) as {
     mergeSpans: (a: unknown, m: unknown) => unknown[];
     spansInRange: (s: unknown, a: number, b: number) => unknown;
     buildRuns: (t: string, s: unknown) => unknown;

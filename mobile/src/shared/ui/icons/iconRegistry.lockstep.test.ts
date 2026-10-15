@@ -2,7 +2,7 @@
  * Every icon name the web can store, the phone can draw — as the same glyph.
  *
  * `app.icon`, a CMS block's `icon` and friends hold names from the web's
- * ICON_REGISTRY (agent-hub/src/components/icons/iconRegistry.js). The phone's
+ * ICON_REGISTRY (agent-hub/src/components/icons/iconRegistry.ts). The phone's
  * registry is generated from that file (scripts/sync-web-icons.mjs); this
  * reads the web file as text — Metro and this Jest project cannot load it —
  * and checks the result:
@@ -22,13 +22,13 @@ import path from 'node:path';
 import { ICON_REGISTRY, WEB_FALLBACK_ICON, WEB_ICON_NAMES } from './registry.generated';
 
 const MOBILE = path.resolve(__dirname, '../../../..');
-const WEB_REGISTRY = path.resolve(MOBILE, '../agent-hub/src/components/icons/iconRegistry.js');
+const WEB_REGISTRY = path.resolve(MOBILE, '../agent-hub/src/components/icons/iconRegistry.ts');
 const LUCIDE_BARREL = path.join(MOBILE, 'node_modules/lucide-react-native/dist/esm/lucide-react-native.mjs');
 
 const webSrc = fs.readFileSync(WEB_REGISTRY, 'utf8');
 
 function webNames(): string[] {
-    const body = /export const ICON_REGISTRY\s*=\s*\{([\s\S]*?)\};/.exec(webSrc)?.[1] ?? '';
+    const body = /export const ICON_REGISTRY(?::[^=]+)?\s*=\s*\{([\s\S]*?)\};/.exec(webSrc)?.[1] ?? '';
     return body
         .split(',')
         .map((s) => s.trim())
