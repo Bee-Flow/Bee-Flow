@@ -10,7 +10,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { chartsFrom, addCharts, MAX_CHARTS, CHART_TYPES } = require('./sheetChartSpec');
+const { chartsFrom, addCharts, chartSummary, MAX_CHARTS, CHART_TYPES } = require('./sheetChartSpec');
 
 test('a chart is checked and pinned to its tab', () => {
     const out = chartsFrom([{ type: 'pie', dataRange: 'b2:b5', categoriesRange: 'A2:A5', anchor: 'e2', title: 'Segmenten' }], 't9', []);
@@ -79,4 +79,18 @@ test('an id updates a chart on this tab, removeCharts deletes, and both are save
     };
     assert.deepStrictEqual(await addCharts({ id: 'd', userId: 'o' }, out.charts, { documents }, out), { saved: 0, updated: 1, removed: 1 });
     assert.deepStrictEqual(updates[0].settings.sheet.charts.map((c) => [c.id, c.type]), [['a', 'doughnut']]);
+});
+
+test('an update only reaches a chart on this tab (or one without a tab), and never one being removed', () => {
+    const existing = [{ id: 'a', type: 'bar', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392, tab: 't1' }, { id: 'old', type: 'line', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392 }];
+    assert.match(chartsFrom([{ id: 'a', anchor: 'K2' }], 't2', existing).error, /no chart "a" on this tab/);
+    const legacy = chartsFrom([{ id: 'old', title: 'Trend' }], 't2', existing);
+    assert.deepStrictEqual(legacy.updated.map((c) => [c.id, c.title, c.tab]), [['old', 'Trend', 't2']], 'a chart without a tab is pinned to the tab that updates it');
+    assert.match(chartsFrom([{ id: 'a', anchor: 'K2' }], 't1', existing, ['a']).error, /both updated and removed/);
+});
+
+test('the summary the chat reads: size in cells (default when stored without one) and the categories', () => {
+    assert.deepStrictEqual(chartSummary({ id: 'a', type: 'bar', dataRange: 'B2:B5', categoriesRange: 'A2:A5', anchor: 'E2', width: 336, height: 140 }),
+        { id: 'a', type: 'bar', title: undefined, dataRange: 'B2:B5', categoriesRange: 'A2:A5', anchor: 'E2', size: { cols: 3, rows: 5 } });
+    assert.deepStrictEqual(chartSummary({ id: 'b', type: 'kpi', dataRange: 'B2', anchor: 'A1' }).size, { cols: 6, rows: 14 });
 });

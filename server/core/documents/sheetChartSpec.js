@@ -41,8 +41,9 @@ function chartsFrom(list, tabId, existing, remove) {
     const updated = [];
     for (const [i, c] of items.entries()) {
         const at = `Chart ${i + 1}`;
-        const old = c?.id ? have.find((x) => x.id === String(c.id)) : null;
-        if (c?.id && !old) return { error: `${at}: no chart "${c.id}" to update; leave out id for a new chart.` };
+        const old = c?.id ? have.find((x) => x.id === String(c.id) && (!x.tab || x.tab === tabId)) : null;
+        if (c?.id && !old) return { error: `${at}: no chart "${c.id}" on this tab to update; leave out id for a new chart, or pass the chart's own tab.` };
+        if (old && removed.includes(old.id)) return { error: `${at}: chart "${old.id}" is both updated and removed.` };
         const fields = chartFieldsOf(c || {});
         if (old) {
             const merged = { ...old, ...fields, tab: old.tab || tabId };
@@ -59,9 +60,14 @@ function chartsFrom(list, tabId, existing, remove) {
     return { charts, updated, removed };
 }
 
-/** How the chat sees a stored chart: enough to lay a new one out around it. */
+/** How the chat sees a stored chart: enough to lay a new one out around it, or to update it. */
 function chartSummary(c) {
-    return { id: c.id, type: c.type, title: c.title, dataRange: c.dataRange, anchor: c.anchor, size: { cols: Math.round(c.width / COL_PX), rows: Math.round(c.height / ROW_PX) } };
+    const { width, height } = sizeInPx(c);
+    return {
+        id: c.id, type: c.type, title: c.title, dataRange: c.dataRange,
+        ...(c.categoriesRange ? { categoriesRange: c.categoriesRange } : {}),
+        anchor: c.anchor, size: { cols: Math.round(width / COL_PX), rows: Math.round(height / ROW_PX) },
+    };
 }
 
 /**

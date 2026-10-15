@@ -319,6 +319,7 @@ test('the assistant can add a chart via the add_chart tool', async () => {
     assert.strictEqual(out.charts.length, 1);
     assert.strictEqual(out.charts[0].type, 'bar');
     assert.strictEqual(out.charts[0].title, 'Sales');
+    assert.strictEqual(out.charts[0].tab, 'default', 'pinned to the tab it reads, not shown on every tab');
 });
 
 test('the assistant can create a pivot summary with create_pivot', async () => {

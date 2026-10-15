@@ -160,6 +160,7 @@ test('`charts` puts charts in the sheet, on the tab written to; cells may be lef
     };
     const out = await writeSheetDocument(doc, { tab: 'Totals', charts: [{ type: 'bar', dataRange: 'B2:B5', categoriesRange: 'A2:A5', anchor: 'D2' }] }, { cells, documents, actorUserId: 'editor' });
     assert.strictEqual(out.charts, 1, JSON.stringify(out));
+    assert.deepStrictEqual(out.chartIds, [updates[0].settings.sheet.charts[0].id], 'the new ids come back, so the chat can update the chart later');
     assert.match(out.message, /1 chart\(s\)/);
     assert.deepStrictEqual(updates[0].settings.sheet.charts.map((c) => [c.type, c.tab]), [['bar', 't2']]);
     assert.match((await writeSheetDocument(doc, { charts: [{ type: 'radar', dataRange: 'B2:B5', anchor: 'D2' }] }, { cells, documents })).error, /type must be one of/);
@@ -182,6 +183,7 @@ test('reads list the tab\'s charts; a write can update a chart by id and remove 
     const out = await writeSheetDocument(charted, { tab: 'Main', charts: [{ id: 'k1', anchor: 'H2', type: 'hbar' }], removeCharts: [] }, { cells, documents });
     assert.strictEqual(out.chartsUpdated, 1, JSON.stringify(out));
     assert.deepStrictEqual(updates[0].settings.sheet.charts.map((c) => [c.id, c.type, c.anchor]), [['k1', 'hbar', 'H2'], ['k2', 'pie', 'D20']]);
+    assert.match((await writeSheetDocument(charted, { tab: 'Totals', charts: [{ id: 'k1', anchor: 'H2' }] }, { cells, documents })).error, /no chart "k1" on this tab/, 'a chart is updated from its own tab');
     const gone = await writeSheetDocument(charted, { tab: 'Totals', removeCharts: ['k2'] }, { cells, documents });
     assert.strictEqual(gone.chartsRemoved, 1);
     assert.deepStrictEqual(updates[1].settings.sheet.charts.map((c) => c.id), ['k1']);

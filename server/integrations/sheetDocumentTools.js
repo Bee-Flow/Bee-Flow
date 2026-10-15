@@ -236,7 +236,7 @@ async function writeSheetDocument(doc, args, deps = {}) {
         return {
             documentId: doc.id, saved, tab: { id: picked.tab.id, name: picked.tab.name },
             ...(created ? { createdTab: true, tabs: picked.tabs.map((t) => ({ id: t.id, name: t.name })) } : {}),
-            ...(charted ? { charts: charted.saved, chartsUpdated: charted.updated, chartsRemoved: charted.removed } : {}),
+            ...(charted ? { charts: charted.saved, chartIds: newCharts.charts.map((c) => c.id), chartsUpdated: charted.updated, chartsRemoved: charted.removed } : {}),
             message: `Saved ${saved} cell(s)${charted ? ` and ${charted.saved} chart(s) (${charted.updated} updated, ${charted.removed} removed)` : ''} in ${created ? 'the new ' : ''}tab "${picked.tab.name}" of "${doc.name}".`
                 + (charted ? ' The charts show in the sheet next to the user; they follow the cells when values change.' : ''),
         };

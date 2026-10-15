@@ -333,6 +333,8 @@ function makeSheetAssistant(deps = {}) {
                     // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a chart id inside one sheet, not a secret
                     id: `chart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                     ...sizeInPx({}), ...fields,
+                    // pinned to the tab it reads, as the chat's charts are; without one it shows on every tab
+                    tab: activeTab.id,
                 };
                 newCharts.push(chart);
                 return `Added ${chart.type} chart anchored at ${chart.anchor} using ${chart.dataRange}.`;
