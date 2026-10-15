@@ -477,7 +477,7 @@ const TEXT_HELPERS = [
     { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
     { rel: 'utils/dateFormatters.ts', pending: 'shared — durations and byte sizes; the unit suffix is copy too' },
     { rel: 'pages/settings/usage/format.js', pending: 'USE — billing-period ranges, browser locale' },
-    { rel: 'components/cowork/coworkSchedule.js', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
+    { rel: 'components/cowork/coworkSchedule.ts', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
     // Registered CLEAN, with no pending: every English string in its two
     // tables is a fallback beside a key (`admin.shield_activity_action_*`,
     // `admin.shield_activity_marker_*`, both in the dictionaries), which is
