@@ -60,7 +60,7 @@ export const DEMO_USER = {
     organizationId: 'demo-org',
     permissions: DEMO_PERMISSIONS,
     betaFeatures: DEMO_CAPABILITIES,
-    canUseFeature: Object.fromEntries(DEMO_CAPABILITIES.map(id => [id, true])),
+    canUseFeature: Object.fromEntries(DEMO_CAPABILITIES.map((id: string) => [id, true])),
 };
 
 /** GET /auth/my-entitlements — shape read by EntitlementsContext. */
@@ -98,7 +98,7 @@ export const COMMON_ROUTES = {
     'GET /api/health': () => ({ status: 'ok', demo: true }),
     'GET /api/languages/:locale': () => ({}),
     'GET /api/admin/ai-config': () => ({ modelTiers: {}, demo: true }),
-    'GET /agents/all': ({ state }) => state.agents || [],
+    'GET /agents/all': ({ state }: { state: { agents?: unknown[] } }) => state.agents || [],
     'GET /api/integrations/connections': () => ({ connections: [] }),
     'GET /api/notifications': () => ({ notifications: [], unread: 0 }),
     // The remote-module runtime starts on idle (main.jsx), so it fires on
@@ -150,11 +150,11 @@ export const COMMON_ROUTES = {
 
 /** Deterministic ids — a demo must render identically on every visit. */
 let seq = 0;
-export const demoId = (prefix) => `${prefix}_demo${String(++seq).padStart(4, '0')}`;
+export const demoId = (prefix: string) => `${prefix}_demo${String(++seq).padStart(4, '0')}`;
 
 /**
  * Timestamps relative to page load, so a demo never shows a stale "updated
  * 8 months ago" and never needs re-authoring.
  */
-export const daysAgo = (n) => new Date(Date.now() - n * 86_400_000).toISOString();
-export const minutesAgo = (n) => new Date(Date.now() - n * 60_000).toISOString();
+export const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+export const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000).toISOString();

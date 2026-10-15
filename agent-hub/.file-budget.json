@@ -186,7 +186,7 @@
     "src/components/shell/Sidebar.jsx": 424,
     "src/components/skills/SkillFormModal.jsx": 462,
     "src/components/skills/SkillsPopover.jsx": 538,
-    "src/components/support/SupportInboxPanel.jsx": 838,
+    "src/components/support/SupportInboxPanel.tsx": 838,
     "src/editor/engine/tables.js": 727,
     "src/editor/engine/transforms.js": 905,
     "src/editor/engine/view.js": 1179,

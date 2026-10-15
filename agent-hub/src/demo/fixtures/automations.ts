@@ -16,6 +16,7 @@ import { COMMON_ROUTES, daysAgo, minutesAgo } from './common';
 import { AI_ACT_ROUTES, seedAiAct } from './automationsAiAct';
 import { REPEATING_ROUTES } from './automationsRepeating';
 import { recordRun, runRoutes, seedRuns } from './automationsRuns';
+import type { DemoRun } from './automationsRuns';
 import { SETTINGS_LIBRARY_ROUTES, SETTINGS_ROUTES, seedFolders, seedShares, seedTrash, seedWebhooks } from './automationsSettings';
 import { TEMPLATE_ROUTES } from './automationsTemplates';
 import { CODE_ROUTES, CODE_STEP } from './automationsCode';
@@ -26,6 +27,81 @@ import { MAIL_FANOUT_CATALOG_APP, MAIL_FANOUT_STEP_RESULTS, mailFanoutAutomation
 import { MAIL_FLATTEN_STEP_RESULTS, ORDERS_FLATTEN_STEP_RESULTS, mailFlattenAutomationFields, ordersFlattenAutomationFields, seedMailFlattenRuns } from './automationsMailFlatten';
 import { NESTED_CATALOG_APPS, NESTED_STEP_RESULTS, nestedAutomationFields, seedNestedRuns } from './automationsNested';
 import { VERSION_ROUTES, recordSave, seedVersions } from './automationsVersions';
+
+type Obj = Record<string, unknown>;
+
+interface DemoAutomation {
+    id: string;
+    version: number;
+    liveVersion: number | null;
+    liveAt?: string | null;
+    pendingChanges?: number;
+    neverLive?: boolean;
+    definition?: unknown;
+    title?: string;
+    isActive?: boolean;
+    lastRunAt?: string | null;
+    lastStatus?: string | null;
+    [key: string]: unknown;
+}
+
+interface DemoTask {
+    id: string;
+    userId: string;
+    title: string;
+    prompt: string;
+    repeatInterval: string;
+    nextRunAt: string;
+    lastRunAt: string | null;
+    lastResult: string | null;
+    lastStatus: string;
+    isActive: boolean;
+    modelTier: string;
+    toolsEnabled: string[];
+    maxResultLength: number;
+    runCount: number;
+    timezone: string;
+    createdAt: string;
+    agentId: string | null;
+    conversationId: string | null;
+    daysOfWeek: number[] | null;
+    timeOfDay: string;
+}
+
+interface DemoStep {
+    id: string;
+    [key: string]: unknown;
+}
+
+interface DemoAgentRef {
+    id: string;
+    name: string;
+    avatar: string;
+    description: string;
+}
+
+interface AutomationsState {
+    automations: DemoAutomation[];
+    tasks: DemoTask[];
+    steps: DemoStep[];
+    agents: DemoAgentRef[];
+    runs: DemoRun[];
+    versions: ReturnType<typeof seedVersions>;
+    aiAct: ReturnType<typeof seedAiAct>;
+    shares: ReturnType<typeof seedShares>;
+    folders: ReturnType<typeof seedFolders>;
+    trash: ReturnType<typeof seedTrash>;
+    webhooks: ReturnType<typeof seedWebhooks>;
+    orgTemplates: Obj[];
+}
+
+type Ctx = { state: AutomationsState; params: Record<string, string>; body: Obj | null };
+
+interface StepResult {
+    stepType: string;
+    input: unknown;
+    output: unknown;
+}
 
 const AUTOMATION_ID = 'auto_demo_spend_report';
 const STEP_LIBRARY_ID = 'blk_demo_vendor_lookup';
@@ -169,7 +245,7 @@ function onboardingDefinition() {
 }
 
 /** What every automation row carries; each automation below says how it differs. */
-const automationRow = (fields) => ({
+const automationRow = (fields: Obj): DemoAutomation => ({
     userId: 'demo-user',
     organizationId: 'demo-org',
     kind: 'automation',
@@ -189,13 +265,13 @@ const automationRow = (fields) => ({
     accessVia: 'owner',
     neverLive: false,
     pendingChanges: 0,
-    ...fields,
+    ...(fields as DemoAutomation),
 });
 
 // Live state (handoff 5): `version` is the working copy, `liveVersion` what
 // runs execute. The spend report and the digest are live on v3 with two
 // changes not live yet, so the header offers "Make v5 live".
-const AUTOMATIONS = () => ([
+const AUTOMATIONS = (): DemoAutomation[] => ([
     automationRow({
         id: AUTOMATION_ID,
         title: 'Weekly AI/SaaS spend report',
@@ -321,7 +397,7 @@ const AUTOMATIONS = () => ([
     automationRow(mailFlattenAutomationFields()), automationRow(ordersFlattenAutomationFields()),
 ]);
 
-const TASKS = () => ([
+const TASKS = (): DemoTask[] => ([
     {
         id: 'task_demo_competitors',
         userId: 'demo-user',
@@ -368,7 +444,7 @@ const TASKS = () => ([
     },
 ]);
 
-const STEPS = () => ([
+const STEPS = (): DemoStep[] => ([
     {
         id: STEP_LIBRARY_ID,
         kind: 'block',
@@ -397,12 +473,12 @@ const STEPS = () => ([
     },
 ]);
 
-const AGENTS = () => ([
+const AGENTS = (): DemoAgentRef[] => ([
     { id: 'agent_demo_analyst', name: 'Finance analyst', avatar: '📊', description: 'Answers questions about spend, contracts and renewals.' },
     { id: 'agent_demo_intake', name: 'Client intake', avatar: '📥', description: 'Reads incoming documents and files them.' },
 ]);
 
-export function createState() {
+export function createState(): AutomationsState {
     const automations = AUTOMATIONS();
     return {
         automations,
@@ -438,7 +514,16 @@ export function createState() {
 //
 // Row shape mirrors the server's: { stepId, stepType, status, input, output }.
 
-const INVOICES = [
+interface Invoice {
+    id: string;
+    from: string;
+    subject: string;
+    date: string;
+    vendor: string;
+    amount: number;
+}
+
+const INVOICES: Invoice[] = [
     { id: 'msg_a1', from: 'billing@anthropic.com', subject: 'Your Anthropic invoice', date: '2026-07-22', vendor: 'Anthropic', amount: 842.00 },
     { id: 'msg_a2', from: 'invoice@openai.com', subject: 'OpenAI receipt', date: '2026-07-23', vendor: 'OpenAI', amount: 611.40 },
     { id: 'msg_a3', from: 'billing@scaleway.com', subject: 'Facture Scaleway', date: '2026-07-24', vendor: 'Scaleway', amount: 388.05 },
@@ -446,7 +531,7 @@ const INVOICES = [
     { id: 'msg_a5', from: 'no-reply@figma.com', subject: 'Figma monthly', date: '2026-07-26', vendor: 'Figma', amount: 300.00 },
 ];
 
-const LINE_ITEMS = INVOICES.map(i => ({
+const LINE_ITEMS = INVOICES.map((i: Invoice) => ({
     vendor: i.vendor,
     description: `${i.vendor} — monthly subscription`,
     amount: i.amount,
@@ -454,7 +539,7 @@ const LINE_ITEMS = INVOICES.map(i => ({
     period: '2026-07',
 }));
 
-const TOTAL = LINE_ITEMS.reduce((n, l) => n + l.amount, 0);   // 2317.45
+const TOTAL = LINE_ITEMS.reduce((n: number, l: { amount: number }) => n + l.amount, 0);   // 2317.45
 
 const SUMMARY_TEXT = [
     'AI/SaaS spend, week of 22–26 July: 2.317,45 EUR across 5 vendors.',
@@ -469,7 +554,7 @@ const SUMMARY_TEXT = [
 ].join('\n');
 
 /** stepId → what a real run of that step would produce. */
-const STEP_RESULTS = {
+const STEP_RESULTS: Record<string, StepResult> = {
     trg: {
         stepType: 'trigger',
         input: null,
@@ -478,7 +563,7 @@ const STEP_RESULTS = {
     search_invoices: {
         stepType: 'integration_action',
         input: { query: 'from:(billing OR invoice OR receipt) newer_than:7d', maxResults: 100 },
-        output: { messages: INVOICES.map(({ id, from, subject, date }) => ({ id, from, subject, date })), resultSizeEstimate: INVOICES.length },
+        output: { messages: INVOICES.map(({ id, from, subject, date }: Invoice) => ({ id, from, subject, date })), resultSizeEstimate: INVOICES.length },
     },
     read_message: {
         stepType: 'integration_action',
@@ -500,7 +585,7 @@ const STEP_RESULTS = {
         input: { groupBy: 'vendor', operation: 'sum', field: 'amount' },
         output: {
             groups: LINE_ITEMS
-                .map(l => ({ vendor: l.vendor, total: l.amount }))
+                .map((l: { vendor: string; amount: number }) => ({ vendor: l.vendor, total: l.amount }))
                 .sort((a, b) => b.total - a.total),
             total: Number(TOTAL.toFixed(2)),
             currency: 'EUR',
@@ -532,13 +617,13 @@ const STEP_RESULTS = {
 /** Execution order, so `mode: 'from'` can run the tail of the graph. */
 const RUN_ORDER = ['trg', 'search_invoices', 'read_each', 'total_per_vendor', 'over_budget', 'write_summary', 'notify_finance'];
 
-function stepRow(stepId) {
+function stepRow(stepId: string) {
     const r = STEP_RESULTS[stepId];
     if (!r) return { stepId, stepType: 'unknown', status: 'success', input: null, output: { demo: 'No sample output for this step.' } };
     return { stepId, stepType: r.stepType, status: 'success', input: r.input, output: r.output, error: null };
 }
 
-function runEnvelope(automationId, stepIds) {
+function runEnvelope(automationId: string, stepIds: string[]) {
     return {
         run: {
             id: 'run_demo_live',
@@ -553,7 +638,7 @@ function runEnvelope(automationId, stepIds) {
     };
 }
 
-const find = (list, id) => list.find(x => x.id === id) || null;
+const find = <T extends { id: string }>(list: T[], id: string): T | null => list.find((x: T) => x.id === id) || null;
 const notFound = () => new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
 export const ROUTES = {
@@ -566,28 +651,28 @@ export const ROUTES = {
     ...TEMPLATE_ROUTES,
     // Literal paths under /api/automation, so ahead of `/:id` like the rest.
     ...CODE_ROUTES,
-    'GET /api/automation/catalog': ({ state }) => ({ tools: [], apps: [...NESTED_CATALOG_APPS, MAIL_FANOUT_CATALOG_APP], steps: state.steps, flags: { code: true, codeReason: null } }),
+    'GET /api/automation/catalog': ({ state }: Ctx) => ({ tools: [], apps: [...NESTED_CATALOG_APPS, MAIL_FANOUT_CATALOG_APP], steps: state.steps, flags: { code: true, codeReason: null } }),
 
     // ── Scheduled agent work (Cowork items that run as an agent) ──
-    'GET /api/cowork': ({ state }) => ({ schedules: state.tasks, maxSchedules: 25 }),
-    'POST /api/cowork': ({ state, body }) => {
+    'GET /api/cowork': ({ state }: Ctx) => ({ schedules: state.tasks, maxSchedules: 25 }),
+    'POST /api/cowork': ({ state, body }: Ctx) => {
         const task = { ...TASKS()[0], ...body, id: `task_demo_${state.tasks.length + 1}`, runCount: 0, lastStatus: 'pending', lastResult: null };
         state.tasks.unshift(task);
         return task;
     },
-    'PUT /api/cowork/:id': ({ state, params, body }) => {
+    'PUT /api/cowork/:id': ({ state, params, body }: Ctx) => {
         const task = find(state.tasks, params.id);
         if (!task) return notFound();
         Object.assign(task, body || {});
         return { success: true };
     },
-    'POST /api/cowork/:id/toggle': ({ state, params }) => {
+    'POST /api/cowork/:id/toggle': ({ state, params }: Ctx) => {
         const task = find(state.tasks, params.id);
         if (!task) return notFound();
         task.isActive = !task.isActive;
         return { success: true, isActive: task.isActive };
     },
-    'POST /api/cowork/:id/run-now': ({ state, params }) => {
+    'POST /api/cowork/:id/run-now': ({ state, params }: Ctx) => {
         const task = find(state.tasks, params.id);
         if (!task) return notFound();
         task.lastStatus = 'success';
@@ -596,15 +681,15 @@ export const ROUTES = {
         task.lastResult = 'Demo run — this is sample output. In the product this is what the model actually returned.';
         return { success: true, message: 'Cowork started. The result arrives in your notifications.' };
     },
-    'DELETE /api/cowork/:id': ({ state, params }) => {
-        state.tasks = state.tasks.filter(t => t.id !== params.id);
+    'DELETE /api/cowork/:id': ({ state, params }: Ctx) => {
+        state.tasks = state.tasks.filter((t: DemoTask) => t.id !== params.id);
         return { success: true };
     },
 
     // ── Automations ──
-    'GET /api/automation': ({ state }) => ({ automations: state.automations }),
-    'GET /api/automation/:id': ({ state, params }) => find(state.automations, params.id) || notFound(),
-    'POST /api/automation': ({ state, body }) => {
+    'GET /api/automation': ({ state }: Ctx) => ({ automations: state.automations }),
+    'GET /api/automation/:id': ({ state, params }: Ctx) => find(state.automations, params.id) || notFound(),
+    'POST /api/automation': ({ state, body }: Ctx) => {
         const created = automationRow({
             id: `auto_demo_${state.automations.length + 1}`,
             title: body?.title || 'Untitled automation',
@@ -618,7 +703,7 @@ export const ROUTES = {
     },
     // Autosave. Only a structural change is a new version (and, on a live
     // automation, one more change not live); moving a node is not.
-    'PUT /api/automation/:id': ({ state, params, body }) => {
+    'PUT /api/automation/:id': ({ state, params, body }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
         const { version: _v, liveVersion: _l, pendingChanges: _p, ...changes } = body || {};
@@ -628,20 +713,20 @@ export const ROUTES = {
         return { success: true, automation: a, warnings: [] };
     },
     // Never live: the working copy goes live and on. Live: just switched on.
-    'POST /api/automation/:id/activate': ({ state, params }) => {
+    'POST /api/automation/:id/activate': ({ state, params }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
         if (a.liveVersion == null) Object.assign(a, { liveVersion: a.version, liveAt: new Date().toISOString(), neverLive: false, isDraft: false, pendingChanges: 0 });
         a.isActive = true;
         return { success: true, automation: a, warnings: [] };
     },
-    'POST /api/automation/:id/deactivate': ({ state, params }) => {
+    'POST /api/automation/:id/deactivate': ({ state, params }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
         a.isActive = false;
         return { success: true, automation: a };
     },
-    'POST /api/automation/:id/run': ({ state, params, body }) => {
+    'POST /api/automation/:id/run': ({ state, params, body }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
         a.lastRunAt = new Date().toISOString();
@@ -655,7 +740,7 @@ export const ROUTES = {
 
     // Per-node ▶. `mode: 'only'` runs this step; `mode: 'from'` runs it and
     // everything downstream — the same two modes the real endpoint takes.
-    'POST /api/automation/:id/steps/:stepId/run': ({ state, params, body }) => {
+    'POST /api/automation/:id/steps/:stepId/run': ({ state, params, body }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
         const idx = RUN_ORDER.indexOf(params.stepId);
@@ -667,7 +752,7 @@ export const ROUTES = {
     },
 
     // Dry run — same rows, flagged so the UI can label it.
-    'POST /api/automation/:id/dry-run': ({ params }) => ({
+    'POST /api/automation/:id/dry-run': ({ params }: Ctx) => ({
         ...runEnvelope(params.id, RUN_ORDER),
         dryRun: true,
     }),
@@ -697,8 +782,8 @@ export const ROUTES = {
     'GET /api/automation/:id/usage': () => ({ usage: [], complete: true }),
 
     // ── Reusable Steps ──
-    'GET /api/step': ({ state }) => ({ steps: state.steps }),
-    'GET /api/step/:id': ({ state, params }) => find(state.steps, params.id) || notFound(),
+    'GET /api/step': ({ state }: Ctx) => ({ steps: state.steps }),
+    'GET /api/step/:id': ({ state, params }: Ctx) => find(state.steps, params.id) || notFound(),
 
     // ── Things the builder asks for that have no demo answer ──
     // Explicitly empty rather than missing, so the panels render their real

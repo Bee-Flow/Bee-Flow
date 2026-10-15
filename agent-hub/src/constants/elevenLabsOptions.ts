@@ -2,7 +2,12 @@
 // TTS_VOICES arrays that were copy-pasted into both ElevenLabsSettings
 // and NanoBananaSettings — voice/model additions now happen in one place.
 
-export const TTS_MODELS = [
+export interface TtsOption {
+    label: string;
+    value: string;
+}
+
+export const TTS_MODELS: TtsOption[] = [
     { label: 'Flash v2.5 (Fast)', value: 'eleven_flash_v2_5' },
     { label: 'v3 (Highest Quality)', value: 'eleven_v3' },
     { label: 'Multilingual v2', value: 'eleven_multilingual_v2' },
@@ -10,7 +15,7 @@ export const TTS_MODELS = [
 
 export const DEFAULT_TTS_MODEL = 'eleven_flash_v2_5';
 
-export const TTS_VOICES = [
+export const TTS_VOICES: TtsOption[] = [
     { label: 'George (Default)', value: 'JBFqnCBsd6RMkjVDRZzb' },
     { label: 'Rachel', value: '21m00Tcm4TlvDq8ikWAM' },
     { label: 'Drew', value: '29vD33N1CtxCmqQRPOHJ' },

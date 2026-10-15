@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { setDemoTransport } from '../utils/helpers';
 import { createDemoTransport } from './demoTransport';
+import type { DemoRoutes } from './demoTransport';
 import { getDemoFeature, DEMO_FEATURE_IDS } from './registry';
 import { COMMON_ROUTES, DEMO_USER } from './fixtures/common';
 import { EntitlementsProvider } from '../components/licensing/EntitlementsContext';
@@ -32,10 +33,19 @@ import ErrorBoundary from '../components/shell/ErrorBoundary';
  *     content, so nothing here can be poisoned by what someone types.
  *   • Writes mutate a plain object in the tab and are gone on reload.
  */
-export default function DemoHost({ feature: featureId }) {
+interface DemoFixtureModule {
+    createState: () => object;
+    ROUTES: DemoRoutes;
+}
+
+interface DemoHostProps {
+    feature?: string;
+}
+
+export default function DemoHost({ feature: featureId }: DemoHostProps) {
     const feature = getDemoFeature(featureId);
-    const [fixtures, setFixtures] = useState(null);
-    const [loadError, setLoadError] = useState(null);
+    const [fixtures, setFixtures] = useState<{ state: object } | null>(null);
+    const [loadError, setLoadError] = useState<unknown>(null);
 
     // The host provides everything a feature needs to stand alone — the
     // App Studio demo is the first react-query consumer, and in the browser
@@ -62,7 +72,7 @@ export default function DemoHost({ feature: featureId }) {
         if (!feature) return undefined;
         let cancelled = false;
         feature.loadFixtures()
-            .then((mod) => {
+            .then((mod: DemoFixtureModule) => {
                 if (cancelled) return;
                 const state = mod.createState();
                 setDemoTransport(createDemoTransport({ ...COMMON_ROUTES, ...mod.ROUTES }, state));
@@ -72,7 +82,7 @@ export default function DemoHost({ feature: featureId }) {
                 catch (err) { console.warn('[demo] beforeMount failed', err); }
                 setFixtures({ state });
             })
-            .catch((err) => { if (!cancelled) setLoadError(err); });
+            .catch((err: unknown) => { if (!cancelled) setLoadError(err); });
         return () => { cancelled = true; };
     }, [feature]);
 
@@ -177,7 +187,12 @@ export default function DemoHost({ feature: featureId }) {
     );
 }
 
-function DemoFrame({ title, children }) {
+interface DemoFrameProps {
+    title: string;
+    children?: React.ReactNode;
+}
+
+function DemoFrame({ title, children }: DemoFrameProps) {
     return (
         <div className="h-[100dvh] flex flex-col items-center justify-center gap-2 bg-[var(--bg-primary)] text-[var(--text-primary)] p-8">
             {isStandaloneFullScreen() ? <CloseDemoButton /> : null}
@@ -201,7 +216,7 @@ function isStandaloneFullScreen() {
 }
 
 function CloseDemoButton() {
-    const ref = useRef(null);
+    const ref = useRef<HTMLButtonElement>(null);
 
     // With the widened viewport meta the layout viewport is ~1280px while the
     // phone shows it pinch-zoomed out; position:fixed sticks to the LAYOUT

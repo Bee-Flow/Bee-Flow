@@ -34,7 +34,7 @@ const web = require(path.join(FLOW, 'stepPalette.js'));
 const webAppLabels = require(path.join(FLOW, 'appLabels.js'));
 const webRibbon = require(path.join(FLOW, 'appsRibbonLayout.js'));
 const webIcons = require(path.join(REPO, 'agent-hub/src/utils/integrationIcons.js'));
-const webCatalog = require(path.join(REPO, 'agent-hub/src/config/integrationCatalog.js'));
+const webCatalog = require(path.join(REPO, 'agent-hub/src/config/integrationCatalog.ts'));
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const CATALOG: PaletteCatalog = {

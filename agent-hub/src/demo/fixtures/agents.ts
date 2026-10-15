@@ -16,6 +16,68 @@
 
 import { COMMON_ROUTES, daysAgo } from './common';
 
+interface DemoAgent {
+    id: string;
+    name: string;
+    description: string;
+    avatar: string;
+    model: string;
+    system_prompt: string;
+    category_id: string | null;
+    starter_prompts: string[];
+    shared_groups: string[];
+    embed_enabled: boolean;
+    threads_enabled: boolean;
+    workspace_enabled: boolean;
+    is_published: boolean;
+    rev: number;
+    created_at: string;
+    updated_at: string;
+    config: { avatar: string; systemPrompt: string; temperature: number; maxTokens: number };
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+interface AgentInput {
+    id: string;
+    name: string;
+    description: string;
+    avatar: string;
+    model: string;
+    systemPrompt: string;
+    category?: string | null;
+    published?: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface DemoSkill {
+    id: string;
+    name: string;
+    description: string;
+    updatedAt: string;
+}
+
+interface DemoKb {
+    id: string;
+    name: string;
+    documentCount: number;
+    chunkCount: number;
+    updatedAt: string;
+}
+
+interface AgentsState {
+    agents: DemoAgent[];
+    skills: DemoSkill[];
+    kbs: DemoKb[];
+}
+
+interface RefineBody {
+    plan?: { name?: string; description?: string; avatar?: string; systemPrompt?: string; capabilities?: unknown };
+    current?: { model?: string | null; enabledIntegrations?: string[]; attachedSkills?: string[]; knowledge_base_ids?: string[] };
+    refinement?: string;
+}
+
 /**
  * BuilderSplit reads the agent as SNAKE_CASE top-level fields —
  * `initialAgent.system_prompt`, `.category_id`, `.starter_prompts`,
@@ -24,7 +86,7 @@ import { COMMON_ROUTES, daysAgo } from './common';
  * its placeholder while everything around it looked correct, which reads as
  * "the demo has no content" rather than "the fixture used the wrong key".
  */
-function agent({ id, name, description, avatar, model, systemPrompt, category = null, published = false, createdAt, updatedAt }) {
+function agent({ id, name, description, avatar, model, systemPrompt, category = null, published = false, createdAt, updatedAt }: AgentInput): DemoAgent {
     return {
         id,
         name,
@@ -56,7 +118,7 @@ function agent({ id, name, description, avatar, model, systemPrompt, category = 
 
 const LINKEDIN_AGENT_ID = 'agent_demo_linkedin';
 
-const AGENTS = () => ([
+const AGENTS = (): DemoAgent[] => ([
     agent({
         id: LINKEDIN_AGENT_ID,
         name: 'LinkedIn Schrijver',
@@ -99,18 +161,18 @@ const AGENTS = () => ([
     }),
 ]);
 
-const SKILLS = () => ([
+const SKILLS = (): DemoSkill[] => ([
     { id: 'skill_demo_tone', name: 'Merkstem', description: 'Onze schrijfregels: actief, concreet, geen superlatieven.', updatedAt: daysAgo(20) },
     { id: 'skill_demo_review', name: 'Post-review checklist', description: 'Loopt een concept na op hook, waarde en call-to-action.', updatedAt: daysAgo(41) },
 ]);
 
-const KBS = () => ([
+const KBS = (): DemoKb[] => ([
     { id: 'kb_demo_brand', name: 'Merk & tone of voice', documentCount: 12, chunkCount: 148, updatedAt: daysAgo(20) },
     { id: 'kb_demo_contracts', name: 'Contracten', documentCount: 87, chunkCount: 2431, updatedAt: daysAgo(4) },
     { id: 'kb_demo_handbook', name: 'Personeelshandboek', documentCount: 34, chunkCount: 612, updatedAt: daysAgo(66) },
 ]);
 
-export function createState() {
+export function createState(): AgentsState {
     return { agents: AGENTS(), skills: SKILLS(), kbs: KBS() };
 }
 
@@ -122,12 +184,12 @@ export function createState() {
  * otherwise appends the request as an explicit rule, which is what a careful
  * human editor would do with an instruction they did not want to lose.
  */
-function refineInstructions(currentPrompt, ask) {
+function refineInstructions(currentPrompt: string, ask: string): string {
     const base = String(currentPrompt || '').trimEnd();
     const lower = ask.toLowerCase();
     if (!ask) return base;
 
-    const RULES = [
+    const RULES: { match: RegExp; line: string }[] = [
         {
             match: /nederlands|dutch|in het nl/,
             line: 'Antwoord altijd in het Nederlands, tenzij de gebruiker expliciet om een andere taal vraagt.',
@@ -150,7 +212,7 @@ function refineInstructions(currentPrompt, ask) {
         },
     ];
 
-    const hit = RULES.find(r => r.match.test(lower));
+    const hit = RULES.find((r: { match: RegExp; line: string }) => r.match.test(lower));
     const addition = hit ? hit.line : `${ask.charAt(0).toUpperCase()}${ask.slice(1)}`;
 
     // Idempotent: asking twice must not duplicate the rule.
@@ -158,14 +220,14 @@ function refineInstructions(currentPrompt, ask) {
     return `${base}\n\n${addition}`;
 }
 
-const find = (list, id) => list.find(x => x.id === id) || null;
+const find = <T extends { id: string }>(list: T[], id: string): T | null => list.find((x: T) => x.id === id) || null;
 const notFound = () => new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
 export const ROUTES = {
     ...COMMON_ROUTES,
 
     // AgentStudio reads a bare array here, not an envelope.
-    'GET /agents/all': ({ state }) => state.agents,
+    'GET /agents/all': ({ state }: { state: AgentsState }) => state.agents,
     'GET /agents/system': () => [],
     /**
      * Wie deze agent gebruikt. A2 stap 1 gaf de editor een Gebruikt-door-tab
@@ -233,15 +295,15 @@ export const ROUTES = {
         lendingEnabled: false,
     }),
 
-    'GET /agents/:id': ({ state, params }) => find(state.agents, params.id) || notFound(),
-    'PUT /agents/:id': ({ state, params, body }) => {
+    'GET /agents/:id': ({ state, params }: { state: AgentsState; params: Record<string, string> }) => find(state.agents, params.id) || notFound(),
+    'PUT /agents/:id': ({ state, params, body }: { state: AgentsState; params: Record<string, string>; body: Partial<DemoAgent> | null }) => {
         const a = find(state.agents, params.id);
         if (!a) return notFound();
         Object.assign(a, body || {});
         a.updatedAt = new Date().toISOString();
         return { success: true, agent: a };
     },
-    'POST /agents': ({ state, body }) => {
+    'POST /agents': ({ state, body }: { state: AgentsState; body: { name?: string; description?: string } | null }) => {
         const created = {
             ...AGENTS()[0],
             id: `agent_demo_new_${state.agents.length + 1}`,
@@ -253,8 +315,8 @@ export const ROUTES = {
         state.agents.unshift(created);
         return { success: true, agent: created };
     },
-    'DELETE /agents/:id': ({ state, params }) => {
-        state.agents = state.agents.filter(a => a.id !== params.id);
+    'DELETE /agents/:id': ({ state, params }: { state: AgentsState; params: Record<string, string> }) => {
+        state.agents = state.agents.filter((a: DemoAgent) => a.id !== params.id);
         return { success: true };
     },
 
@@ -264,15 +326,15 @@ export const ROUTES = {
     // `.map` on it directly. Wrapping them crashes the editor with
     // "(x || []).map is not a function", which an envelope-shaped fixture
     // makes look like a component bug rather than a fixture one.
-    'GET /api/skills': ({ state }) => state.skills,
+    'GET /api/skills': ({ state }: { state: AgentsState }) => state.skills,
     'GET /agents/categories': () => ([
         { id: 'cat_legal', name: 'Legal' },
         { id: 'cat_hr', name: 'HR' },
         { id: 'cat_marketing', name: 'Marketing' },
     ]),
-    'GET /api/knowledge': ({ state }) => state.kbs,
+    'GET /api/knowledge': ({ state }: { state: AgentsState }) => state.kbs,
     // BuilderSplit does setAllKbs(await res.json()) — bare array again.
-    'GET /api/kb': ({ state }) => state.kbs,
+    'GET /api/kb': ({ state }: { state: AgentsState }) => state.kbs,
     'GET /api/kb/categories': () => ([
         { id: 'kbc_internal', name: 'Internal', icon: 'Building2' },
         { id: 'kbc_product', name: 'Product', icon: 'Package' },
@@ -302,7 +364,7 @@ export const ROUTES = {
     // The rewrite is deterministic string work, not a model: a handful of
     // recognised intents plus a generic "append it as a rule" fallback. The
     // reply says so rather than implying an LLM ran.
-    'POST /agents/wizard/refine': ({ body }) => {
+    'POST /agents/wizard/refine': ({ body }: { body: RefineBody | null }) => {
         const plan = body?.plan || {};
         const current = body?.current || {};
         const ask = String(body?.refinement || '').trim();

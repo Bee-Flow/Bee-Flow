@@ -2,13 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { CannedResponse } from '../SupportInboxPanel.types';
 
 const VARS = ['{{requester_name}}', '{{requester_email}}', '{{org_name}}', '{{thread_subject}}', '{{staff_first_name}}'];
 
 export default function SupportCannedResponsesTab() {
     const { t } = useTranslation();
-    const [items, setItems] = useState([]);
-    const [error, setError] = useState(null);
+    const [items, setItems] = useState<CannedResponse[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const [draft, setDraft] = useState({ title: '', shortcut: '', body: '' });
     const [busy, setBusy] = useState(false);
 
@@ -16,7 +17,7 @@ export default function SupportCannedResponsesTab() {
         try {
             const res = await authFetch(`${API_BASE}/api/support/canned`);
             if (res.ok) setItems((await res.json()).responses || []);
-        } catch (e) { setError(e.message); }
+        } catch (e) { setError((e as Error).message); }
     }, []);
     useEffect(() => { load(); }, [load]);
 
@@ -31,11 +32,11 @@ export default function SupportCannedResponsesTab() {
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Create failed'); }
             setDraft({ title: '', shortcut: '', body: '' });
             await load();
-        } catch (e) { setError(e.message); }
+        } catch (e) { setError((e as Error).message); }
         finally { setBusy(false); }
     };
 
-    const remove = async (id) => {
+    const remove = async (id: string) => {
         const res = await authFetch(`${API_BASE}/api/support/canned/${id}`, { method: 'DELETE' });
         if (res.ok) await load();
     };
@@ -50,12 +51,12 @@ export default function SupportCannedResponsesTab() {
 
             <div className="rounded-lg border p-3 mb-4 space-y-2 border-[var(--border-default)] bg-[var(--bg-card)]">
                 <div className="flex gap-2">
-                    <input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder={t('support.support_canned_responses_title', 'Title')}
+                    <input value={draft.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, title: e.target.value })} placeholder={t('support.support_canned_responses_title', 'Title')}
                         className="flex-1 px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
-                    <input value={draft.shortcut} onChange={e => setDraft({ ...draft, shortcut: e.target.value })} placeholder="/shortcut"
+                    <input value={draft.shortcut} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, shortcut: e.target.value })} placeholder="/shortcut"
                         className="w-32 px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                 </div>
-                <textarea value={draft.body} onChange={e => setDraft({ ...draft, body: e.target.value })} rows={3} placeholder={t('support.support_canned_responses_template_body_use_variables_like', 'Template body — use variables like {{requester_name}}')}
+                <textarea value={draft.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, body: e.target.value })} rows={3} placeholder={t('support.support_canned_responses_template_body_use_variables_like', 'Template body — use variables like {{requester_name}}')}
                     className="w-full px-2 py-1.5 rounded border text-sm resize-y" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                 <div className="flex justify-end">
                     <button onClick={create} disabled={busy || !draft.title.trim() || !draft.body.trim()}
@@ -68,7 +69,7 @@ export default function SupportCannedResponsesTab() {
 
             <div className="space-y-2">
                 {items.length === 0 && <div className="text-xs text-[var(--text-muted)]">{t('support.support_canned_responses_no_templates_yet', 'No templates yet.')}</div>}
-                {items.map(c => (
+                {items.map((c: CannedResponse) => (
                     <div key={c.id} className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                         <div className="flex items-center justify-between">
                             <div className="text-sm font-medium flex items-center gap-2 text-[var(--text-primary)]">

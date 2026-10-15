@@ -2,14 +2,32 @@ import React, { useEffect, useState } from 'react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 
-function fmtDuration(secs) {
+interface Insights {
+    csat: { avg7d: number | null; avg30d: number | null; responseRate?: number; responses: number };
+    handling: {
+        aiResolved: number;
+        staffResolved: number;
+        slaBreaches: number;
+        total: number;
+        avgFirstResponseSecs: number | null;
+        avgResolutionSecs: number | null;
+    };
+}
+
+interface StatProps {
+    label: string;
+    value: React.ReactNode;
+    sub?: string;
+}
+
+function fmtDuration(secs: number | null): string {
     if (secs == null) return '—';
     if (secs < 3600) return `${Math.round(secs / 60)}m`;
     if (secs < 86400) return `${(secs / 3600).toFixed(1)}h`;
     return `${(secs / 86400).toFixed(1)}d`;
 }
 
-function Stat({ label, value, sub }) {
+function Stat({ label, value, sub }: StatProps) {
     return (
         <div className="rounded-lg border p-4 border-[var(--border-default)] bg-[var(--bg-card)]">
             <div className="text-2xl font-semibold text-[var(--text-primary)]">{value}</div>
@@ -21,8 +39,8 @@ function Stat({ label, value, sub }) {
 
 export default function SupportInsightsTab() {
     const { t } = useTranslation();
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
+    const [data, setData] = useState<Insights | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -30,7 +48,7 @@ export default function SupportInsightsTab() {
                 const res = await authFetch(`${API_BASE}/api/support/insights`);
                 if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed'); }
                 setData(await res.json());
-            } catch (e) { setError(e.message); }
+            } catch (e) { setError((e as Error).message); }
         })();
     }, []);
 

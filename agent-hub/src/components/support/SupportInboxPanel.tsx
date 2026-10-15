@@ -10,7 +10,7 @@ import useConfirm from '../shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // Mirrors server/auth/permissions.js OrgRoles for display purposes.
-const ROLE_LABELS = {
+const ROLE_LABELS: Record<string, string> = {
     org_admin: 'Org admin',
     admin: 'Org admin',         // legacy variant — normalised to org_admin server-side
     dpo: 'DPO',
@@ -18,12 +18,12 @@ const ROLE_LABELS = {
     agent_editor: 'Agent editor',
     member: 'Member',
 };
-function roleLabel(role) {
+function roleLabel(role?: string | null): string {
     if (!role) return 'Guest';
     return ROLE_LABELS[role] || role;
 }
 
-const STATUS_LABELS = {
+const STATUS_LABELS: Record<string, string> = {
     open: 'Open',
     ai_responding: 'AI replying',
     awaiting_user: 'Awaiting user',
@@ -32,7 +32,7 @@ const STATUS_LABELS = {
     closed: 'Closed',
 };
 
-const STATUS_DOT = {
+const STATUS_DOT: Record<string, string> = {
     open: '#3b82f6',
     ai_responding: '#0ea5e9',
     awaiting_user: '#94a3b8',
@@ -41,14 +41,14 @@ const STATUS_DOT = {
     closed: '#6b7280',
 };
 
-const PRIORITY_BADGES = {
+const PRIORITY_BADGES: Record<string, { label: string; bg: string; fg: string }> = {
     low: { label: 'Low', bg: 'rgba(148,163,184,0.15)', fg: '#64748b' },
     normal: { label: 'Normal', bg: 'rgba(59,130,246,0.12)', fg: '#2563eb' },
     high: { label: 'High', bg: 'rgba(245,158,11,0.15)', fg: '#b45309' },
     urgent: { label: 'Urgent', bg: 'rgba(239,68,68,0.15)', fg: '#dc2626' },
 };
 
-function formatRelative(iso) {
+function formatRelative(iso?: string | null): string {
     if (!iso) return '';
     const d = new Date(iso);
     const diffMs = Date.now() - d.getTime();
@@ -65,7 +65,7 @@ function formatRelative(iso) {
 // Live-counting SLA badge. Green when comfortably ahead, amber within 30min of
 // the due time, red once breached. Pauses (grey) when the thread waits on the
 // customer or is already resolved/closed.
-function SlaBadge({ thread }) {
+function SlaBadge({ thread }: import('./SupportInboxPanel.types').SlaBadgeProps) {
     const [, force] = useState(0);
     useEffect(() => {
         const t = setInterval(() => force(n => n + 1), 30000);
@@ -78,13 +78,13 @@ function SlaBadge({ thread }) {
     if (!dueAt && !breached) return null;
     if (['resolved', 'closed'].includes(thread.status)) return null;
 
-    let bg = 'rgba(16,185,129,0.12)', fg = '#059669', label;
+    let bg = 'rgba(16,185,129,0.12)', fg = '#059669', label: string;
     if (breached) {
         bg = 'rgba(239,68,68,0.15)'; fg = '#dc2626'; label = 'SLA breached';
     } else if (thread.sla_paused) {
         bg = 'var(--bg-tertiary)'; fg = 'var(--text-muted)'; label = 'SLA paused';
     } else {
-        const ms = new Date(dueAt).getTime() - Date.now();
+        const ms = new Date(dueAt as string).getTime() - Date.now();
         const mins = Math.round(ms / 60000);
         if (mins <= 30) { bg = 'rgba(245,158,11,0.15)'; fg = '#b45309'; }
         if (mins < 0) { label = 'SLA breached'; bg = 'rgba(239,68,68,0.15)'; fg = '#dc2626'; }
@@ -95,7 +95,7 @@ function SlaBadge({ thread }) {
     return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: bg, color: fg }}>{label}</span>;
 }
 
-function TagChips({ tags, onRemove }) {
+function TagChips({ tags, onRemove }: import('./SupportInboxPanel.types').TagChipsProps) {
     if (!Array.isArray(tags) || !tags.length) return null;
     return (
         <div className="flex items-center gap-1 flex-wrap">
@@ -112,7 +112,7 @@ function TagChips({ tags, onRemove }) {
     );
 }
 
-function CsatStars({ score }) {
+function CsatStars({ score }: import('./SupportInboxPanel.types').CsatStarsProps) {
     if (!score) return null;
     return (
         <span className="text-xs inline-flex items-center" title={`Customer rated ${score}/5`} style={{ color: '#f59e0b' }}>
@@ -121,34 +121,34 @@ function CsatStars({ score }) {
     );
 }
 
-export default function SupportInboxPanel({ focusThreadId = null }) {
+export default function SupportInboxPanel({ focusThreadId = null }: import('./SupportInboxPanel.types').SupportInboxPanelProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    const [threads, setThreads] = useState([]);
-    const [counts, setCounts] = useState({});
+    const [threads, setThreads] = useState<import('./SupportInboxPanel.types').SupportThread[]>([]);
+    const [counts, setCounts] = useState<Record<string, number>>({});
     const [statusFilter, setStatusFilter] = useState('active'); // 'active' | 'all' | one of statuses
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
-    const [selectedId, setSelectedId] = useState(focusThreadId || null);
-    const [thread, setThread] = useState(null);
-    const [messages, setMessages] = useState([]);
+    const [selectedId, setSelectedId] = useState<string | null>(focusThreadId || null);
+    const [thread, setThread] = useState<import('./SupportInboxPanel.types').SupportThread | null>(null);
+    const [messages, setMessages] = useState<import('./SupportInboxPanel.types').SupportMessage[]>([]);
     const [reply, setReply] = useState('');
     const [internalNote, setInternalNote] = useState(false);
     const [sending, setSending] = useState(false);
     const [view, setView] = useState('inbox'); // 'inbox' | 'ai-config' | 'connections'
     const [showActivity, setShowActivity] = useState(false);
-    const [activity, setActivity] = useState([]);
-    const [selectedIds, setSelectedIds] = useState(() => new Set()); // bulk selection
+    const [activity, setActivity] = useState<import('./SupportInboxPanel.types').SupportEvent[]>([]);
+    const [selectedIds, setSelectedIds] = useState(() => new Set<string>()); // bulk selection
     const [bulkBusy, setBulkBusy] = useState(false);
-    const [cannedResponses, setCannedResponses] = useState([]);
+    const [cannedResponses, setCannedResponses] = useState<import('./SupportInboxPanel.types').CannedResponse[]>([]);
     const [showCanned, setShowCanned] = useState(false);
     const [newTag, setNewTag] = useState('');
     // Mailbox feeding this inbox. The company inbox has no connector of its own,
     // so anything here arrived from a Support-studio mailbox — see
     // GET /api/support/mailbox.
-    const [mailbox, setMailbox] = useState(null);
+    const [mailbox, setMailbox] = useState<import('./SupportInboxPanel.types').SupportMailbox | null>(null);
     const [disconnecting, setDisconnecting] = useState(false);
-    const esRef = useRef(null);
+    const esRef = useRef<EventSource | null>(null);
 
     const statusInQuery = useMemo(() => {
         if (statusFilter === 'all') return null;
@@ -174,13 +174,13 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                 setCounts(data.counts || {});
             }
         } catch (e) {
-            console.warn('[Support] fetchThreads:', e.message);
+            console.warn('[Support] fetchThreads:', (e as Error).message);
         } finally {
             setLoading(false);
         }
     }, [statusInQuery, statusFilter, search]);
 
-    const fetchThread = useCallback(async (id) => {
+    const fetchThread = useCallback(async (id: string | null) => {
         if (!id) return;
         try {
             const res = await authFetch(`${API_BASE}/api/support/threads/${id}`);
@@ -190,7 +190,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                 setMessages(data.messages || []);
             }
         } catch (e) {
-            console.warn('[Support] fetchThread:', e.message);
+            console.warn('[Support] fetchThread:', (e as Error).message);
         }
     }, []);
 
@@ -204,7 +204,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                 setMailbox(data.mailbox || null);
             }
         } catch (e) {
-            console.warn('[Support] fetchMailbox:', e.message);
+            console.warn('[Support] fetchMailbox:', (e as Error).message);
         }
     }, []);
 
@@ -234,7 +234,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
             setSelectedId(null);
             await Promise.all([fetchMailbox(), fetchThreads()]);
         } catch (e) {
-            toast.error(`Disconnecting the mailbox failed: ${e.message}`);
+            toast.error(`Disconnecting the mailbox failed: ${(e as Error).message}`);
         } finally {
             setDisconnecting(false);
         }
@@ -267,7 +267,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
             const es = new EventSource(`${API_BASE}/api/support/stream`, { withCredentials: true });
             esRef.current = es;
             const refresh = () => fetchThreads();
-            const refreshOpen = (e) => {
+            const refreshOpen = (e: MessageEvent) => {
                 try {
                     const payload = JSON.parse(e.data || '{}');
                     if (selectedId && payload.threadId === selectedId) fetchThread(selectedId);
@@ -285,7 +285,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                 try { es.close(); } catch {}
             };
         } catch (e) {
-            console.warn('[Support] SSE failed:', e.message);
+            console.warn('[Support] SSE failed:', (e as Error).message);
         }
     }, [fetchThreads, fetchThread, fetchMailbox, selectedId]);
 
@@ -310,7 +310,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
         }
     };
 
-    const patchThread = async (patch) => {
+    const patchThread = async (patch: import('./SupportInboxPanel.types').ThreadPatch) => {
         if (!selectedId) return;
         const res = await authFetch(`${API_BASE}/api/support/threads/${selectedId}`, {
             method: 'PATCH',
@@ -331,7 +331,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
             const res = await authFetch(`${API_BASE}/api/support/threads/${selectedId}/followup-done`, { method: 'POST' });
             if (res.ok) { await fetchThread(selectedId); await fetchThreads(); }
         } catch (e) {
-            console.warn('[Support] clearFollowup:', e.message);
+            console.warn('[Support] clearFollowup:', (e as Error).message);
         }
     };
 
@@ -345,7 +345,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
         })();
     }, []);
 
-    const toggleSelected = (id) => {
+    const toggleSelected = (id: string) => {
         setSelectedIds(prev => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id); else next.add(id);
@@ -353,7 +353,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
         });
     };
 
-    const runBulk = async (action, params = {}) => {
+    const runBulk = async (action: string, params: Record<string, string> = {}) => {
         const ids = Array.from(selectedIds);
         if (!ids.length) return;
         setBulkBusy(true);
@@ -380,12 +380,12 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
         setNewTag('');
         await patchThread({ tags });
     };
-    const removeTag = async (t) => {
+    const removeTag = async (t: string) => {
         if (!thread) return;
         await patchThread({ tags: (thread.tags || []).filter(x => x !== t) });
     };
 
-    const insertCanned = async (canned) => {
+    const insertCanned = async (canned: import('./SupportInboxPanel.types').CannedResponse) => {
         try {
             const res = await authFetch(`${API_BASE}/api/support/canned/${canned.id}/render`, {
                 method: 'POST',
@@ -400,7 +400,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
         setShowCanned(false);
     };
 
-    const counter = (key) => counts[key] || 0;
+    const counter = (key: string) => counts[key] || 0;
     const activeTotal = counter('open') + counter('ai_responding') + counter('awaiting_user') + counter('awaiting_agent');
 
     return (
@@ -505,8 +505,8 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                     <div className="p-3 border-b flex items-center gap-2 border-[var(--border-default)]">
                         <input
                             value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && fetchThreads()}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                            onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && fetchThreads()}
                             placeholder={t('support.support_inbox_search_subject_or_email', 'Search subject or email...')}
                             className="flex-1 px-3 py-1.5 rounded-md border text-sm"
                             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -539,14 +539,14 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                         <div className="px-3 py-2 border-b flex items-center gap-2 flex-wrap text-xs border-[var(--border-default)] bg-[var(--bg-tertiary)]">
                             <span className="text-[var(--text-secondary)]">{t('support.support_inbox_selected', '{count} selected', { count: selectedIds.size })}</span>
                             <button disabled={bulkBusy} onClick={() => runBulk('resolve')} className="px-2 py-1 rounded border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]">{t('support.support_inbox_resolve', 'Resolve')}</button>
-                            <select disabled={bulkBusy} onChange={e => { if (e.target.value) { runBulk('priority', { priority: e.target.value }); e.target.value = ''; } }} className="px-1.5 py-1 rounded border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }} defaultValue="">
+                            <select disabled={bulkBusy} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { if (e.target.value) { runBulk('priority', { priority: e.target.value }); e.target.value = ''; } }} className="px-1.5 py-1 rounded border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }} defaultValue="">
                                 <option value="">{t('support.support_inbox_set_priority', 'Set priority…')}</option>
                                 {Object.entries(PRIORITY_BADGES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                             </select>
                             <input
                                 placeholder={t('support.support_inbox_add_tag_enter', 'Add tag + Enter')}
                                 disabled={bulkBusy}
-                                onKeyDown={e => { if (e.key === 'Enter' && e.target.value.trim()) { runBulk('tag', { tag: e.target.value.trim() }); e.target.value = ''; } }}
+                                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) { runBulk('tag', { tag: (e.target as HTMLInputElement).value.trim() }); (e.target as HTMLInputElement).value = ''; } }}
                                 className="px-2 py-1 rounded border w-28" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             />
                             <button onClick={() => setSelectedIds(new Set())} className="px-2 py-1 rounded text-[var(--text-muted)]">{t('support.support_inbox_clear', 'Clear')}</button>
@@ -569,7 +569,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                 <input
                                     type="checkbox"
                                     checked={selectedIds.has(th.id)}
-                                    onClick={e => e.stopPropagation()}
+                                    onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}
                                     onChange={() => toggleSelected(th.id)}
                                     className="mt-1 shrink-0"
                                 />
@@ -645,8 +645,8 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                             <TagChips tags={thread.tags} onRemove={removeTag} />
                                             <input
                                                 value={newTag}
-                                                onChange={e => setNewTag(e.target.value)}
-                                                onKeyDown={e => e.key === 'Enter' && addTag()}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTag(e.target.value)}
+                                                onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && addTag()}
                                                 placeholder={t('support.support_inbox_tag', '+ tag')}
                                                 className="text-xs px-1.5 py-0.5 rounded border w-20"
                                                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -656,7 +656,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                     <div className="flex items-center gap-1.5">
                                         <select
                                             value={thread.status}
-                                            onChange={e => patchThread({ status: e.target.value })}
+                                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => patchThread({ status: e.target.value })}
                                             className="px-2 py-1 rounded-md border text-xs"
                                             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                         >
@@ -664,7 +664,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                         </select>
                                         <select
                                             value={thread.priority}
-                                            onChange={e => patchThread({ priority: e.target.value })}
+                                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => patchThread({ priority: e.target.value })}
                                             className="px-2 py-1 rounded-md border text-xs"
                                             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                         >
@@ -796,8 +796,8 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                 <textarea
                                     rows={3}
                                     value={reply}
-                                    onChange={e => setReply(e.target.value)}
-                                    onKeyDown={e => {
+                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReply(e.target.value)}
+                                    onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
                                         // Open the canned picker when "/" is typed on an empty line.
                                         if (e.key === '/' && !reply.trim()) setShowCanned(true);
                                         if (e.key === 'Escape') setShowCanned(false);
@@ -809,7 +809,7 @@ export default function SupportInboxPanel({ focusThreadId = null }) {
                                 <div className="mt-2 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                     <label className="text-xs flex items-center gap-1.5 text-[var(--text-secondary)]">
-                                        <input type="checkbox" checked={internalNote} onChange={e => setInternalNote(e.target.checked)} />
+                                        <input type="checkbox" checked={internalNote} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInternalNote(e.target.checked)} />
                                         {t('support.support_inbox_internal_note_2', 'Internal note')}
                                     </label>
                                     {cannedResponses.length > 0 && (

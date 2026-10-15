@@ -3,6 +3,31 @@ import { Loader2, X, Pencil, Globe } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import WebpagePreview from '../../pages/webpages/WebpagePreview';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { ExtraFileMeta, PrimaryContent, WebpageRow } from '../../pages/webpages/webpageEditorTypes';
+import type { PreviewSelection } from '../../pages/webpages/preview/usePreviewToken';
+
+interface WebpageBundle {
+    webpage?: WebpageRow;
+    files?: Partial<PrimaryContent>;
+    extraFiles?: ExtraFileMeta[];
+}
+
+interface PanelState {
+    loading: boolean;
+    error: string | null;
+    data: WebpageBundle | null;
+}
+
+interface SideWebpagePanelProps {
+    webpageId: string;
+    onClose: () => void;
+    user?: { id?: string } | null;
+    onLoaded?: (webpage: WebpageRow | null) => void;
+    onFilesLoaded?: (files: (PrimaryContent & { extraFiles: ExtraFileMeta[] }) | null) => void;
+    onSelectionAttach?: (selection: PreviewSelection) => void;
+    reloadKey?: number;
+    onNavigate?: (page: string) => void;
+}
 
 /**
  * Read-only webpage view for the right-hand chat slot. Fetches the webpage
@@ -18,9 +43,9 @@ export default function SideWebpagePanel({
     onSelectionAttach, // (selection) — user highlighted text in the preview
     reloadKey = 0,    // bump to force a refetch (e.g. after AI edits)
     onNavigate,       // (page) — same shape as App.jsx's navigateToPage
-}) {
+}: SideWebpagePanelProps) {
     const { t } = useTranslation();
-    const [state, setState] = useState({ loading: true, error: null, data: null });
+    const [state, setState] = useState<PanelState>({ loading: true, error: null, data: null });
     // Stash the callbacks in refs so the effect's deps stay limited to
     // webpageId + reloadKey. Parents typically pass inline arrows that get a
     // new reference on every render — listing them as deps causes the panel
@@ -55,7 +80,7 @@ export default function SideWebpagePanel({
                 }
             } catch (err) {
                 if (!cancelled) {
-                    setState({ loading: false, error: err.message, data: null });
+                    setState({ loading: false, error: (err as Error).message, data: null });
                     if (typeof onLoadedRef.current === 'function') onLoadedRef.current(null);
                     if (typeof onFilesLoadedRef.current === 'function') onFilesLoadedRef.current(null);
                 }

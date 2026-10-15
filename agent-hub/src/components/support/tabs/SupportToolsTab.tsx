@@ -8,7 +8,7 @@ export default function SupportToolsTab() {
     const [v2Enabled, setV2Enabled] = useState(false);
     const [threshold, setThreshold] = useState(0.78);
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
@@ -20,7 +20,7 @@ export default function SupportToolsTab() {
                     setV2Enabled(!!d.v2Enabled);
                     setThreshold(d.autoResolveThreshold ?? 0.78);
                 }
-            } catch (e) { setError(e.message); }
+            } catch (e) { setError((e as Error).message); }
         })();
     }, []);
 
@@ -33,7 +33,7 @@ export default function SupportToolsTab() {
             });
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Save failed'); }
             setSaved(true);
-        } catch (e) { setError(e.message); }
+        } catch (e) { setError((e as Error).message); }
         finally { setBusy(false); }
     };
 
@@ -47,7 +47,7 @@ export default function SupportToolsTab() {
 
             <div className="rounded-lg border p-4 mb-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                 <label className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={v2Enabled} onChange={e => setV2Enabled(e.target.checked)} className="mt-1" />
+                    <input type="checkbox" checked={v2Enabled} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setV2Enabled(e.target.checked)} className="mt-1" />
                     <div>
                         <div className="text-sm font-medium text-[var(--text-primary)]">{t('support.support_tools_enable_tool_using_ai_v2', 'Enable tool-using AI (v2)')}</div>
                         <div className="text-xs mt-0.5 text-[var(--text-muted)]">
@@ -63,7 +63,7 @@ export default function SupportToolsTab() {
                     {t('support.support_tools_when_the_ai_signals_it_fully_resolved', 'When the AI signals it fully resolved an issue and the top knowledge-base match scores above this, the thread is marked resolved and the customer gets a confirmation + CSAT email.')}
                 </div>
                 <div className="flex items-center gap-3">
-                    <input type="range" min="0" max="1" step="0.01" value={threshold} onChange={e => setThreshold(parseFloat(e.target.value))} className="flex-1" />
+                    <input type="range" min="0" max="1" step="0.01" value={threshold} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setThreshold(parseFloat(e.target.value))} className="flex-1" />
                     <span className="text-sm tabular-nums w-12 text-right text-[var(--text-primary)]">{Number(threshold).toFixed(2)}</span>
                 </div>
             </div>

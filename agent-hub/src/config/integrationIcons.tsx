@@ -10,7 +10,7 @@ const OutlookIcon = (
     <svg className="w-5 h-5" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ol_ag" x1="24" y1="2" x2="24" y2="46" gradientUnits="userSpaceOnUse"><stop stopColor="#1490DF" /><stop offset="1" stopColor="#1068BF" /></linearGradient></defs><path d="M44 10.88V37.12A2.88 2.88 0 0 1 41.12 40H22V8h19.12A2.88 2.88 0 0 1 44 10.88z" fill="#1490DF" /><path d="M22 8h11v16H22z" fill="#1068BF" fillOpacity="0.5" /><path d="M33 8h8.12A2.88 2.88 0 0 1 44 10.88V24H33z" fill="#28A8EA" /><path d="M33 24H44v13.12A2.88 2.88 0 0 1 41.12 40H33z" fill="#0078D4" /><path d="M22 24h11v16H22z" fill="#1068BF" /><path d="M26 14L44 14V10.88A2.88 2.88 0 0 0 41.12 8H22l4 6z" fill="#28A8EA" fillOpacity="0.7" /><rect x="2" y="12" width="24" height="24" rx="2.4" fill="url(#ol_ag)" /><text x="14" y="30" textAnchor="middle" fontFamily="Segoe UI,Arial,sans-serif" fontWeight="600" fontSize="16" fill="white">O</text></svg>
 );
 
-export const INTEGRATION_ICONS = {
+export const INTEGRATION_ICONS: Record<string, React.ReactElement> = {
     gmail: (
         <svg className="w-5 h-5" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M45 16.2l-5 2.75-5 4.75V40h7c1.66 0 3-1.34 3-3V16.2z" fill="#4caf50" /><path d="M3 16.2l3.04 1.67L13 24.7V40H6c-1.66 0-3-1.34-3-3V16.2z" fill="#1e88e5" /><path d="M35 11.2l-11 8.5-11-8.5V24.7l11 8.5 11-8.5V11.2z" fill="#e53935" /><path d="M3 12.3V16.2l10 8.5V11.2L7.96 7.57A2.98 2.98 0 003 12.3z" fill="#c62828" /><path d="M45 12.3V16.2l-10 8.5V11.2l5.04-3.63A2.98 2.98 0 0145 12.3z" fill="#fbc02d" /></svg>
     ),
@@ -109,7 +109,7 @@ const FallbackIcon = (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 3h6v4h4v6h-4v4h-6v-4H5v-6h4V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
 );
 
-export function getIntegrationIcon(id) {
+export function getIntegrationIcon(id?: string | null): React.ReactElement {
     if (!id) return FallbackIcon;
     // Tool callers spell integration ids in either kebab- or snake_case
     // (`google-calendar` vs `google_calendar`) — normalise both directions
@@ -127,7 +127,7 @@ export function getIntegrationIcon(id) {
  * Callers use this to fall back to a generic icon container when there's no
  * brand asset rather than rendering the puzzle-piece placeholder.
  */
-export function hasIntegrationIcon(id) {
+export function hasIntegrationIcon(id?: string | null): boolean {
     if (!id) return false;
     return !!(INTEGRATION_ICONS[id]
         || INTEGRATION_ICONS[id.replace(/_/g, '-')]
