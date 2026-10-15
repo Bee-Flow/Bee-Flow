@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import type { AuthFetchOptions } from '../../../../utils/helpers';
 
 /** One organization in `GET /auth/organizations`. */
 export interface OrgListEntry {
@@ -14,11 +15,11 @@ export interface OrgListEntry {
 /** `GET /auth/organizations`: a bare list, or wrapped under `organizations` / `orgs`. */
 export type OrgListPayload = OrgListEntry[] | { organizations?: OrgListEntry[]; orgs?: OrgListEntry[] };
 
-export function api(path: string, opts?: RequestInit) {
+export function api(path: string, opts?: AuthFetchOptions) {
     return authFetch(`${API_BASE}${path}`, opts);
 }
 
-export async function apiJson(path: string, opts?: RequestInit) {
+export async function apiJson(path: string, opts?: AuthFetchOptions) {
     const res = await api(path, opts);
     let body = null;
     try { body = await res.json(); } catch { body = null; }
