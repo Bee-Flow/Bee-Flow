@@ -46,9 +46,11 @@ function mock(absId, exports) {
 const touched = [];
 
 mock(path.join(SERVER, 'modules'), {
+    invalidateCache: () => {},
+});
+mock(path.join(SERVER, 'modules/moduleLifecycle'), {
     importModule: async () => ({ ok: true, module: {} }),
     removeModule: async () => ({ ok: true, module: {} }),
-    invalidateCache: () => {},
 });
 mock(path.join(SERVER, 'modules/hubClient'), {
     getConnection: async () => ({ connected: true, hubUrl: 'https://hub.example' }),

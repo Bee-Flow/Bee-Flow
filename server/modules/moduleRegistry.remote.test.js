@@ -104,6 +104,7 @@ mock('./packageLoader', {
 });
 
 const modules = require('./index');
+const lifecycle = require('./moduleLifecycle');
 
 function fakeRes() {
     return {
@@ -146,21 +147,21 @@ test('listInactiveCapabilityIds includes lapsed remote caps, excludes active one
 
 test('importModule gates a lapsed paid remote module with not_entitled (→402)', async () => {
     stateRows.set('crm_exp', remoteRow('crm_exp', { exp: SECONDS(-90_000_000), status: 'removed', cap: 'crm_exp_cap' }));
-    const r = await modules.importModule('crm_exp', { actorId: 'admin1' });
+    const r = await lifecycle.importModule('crm_exp', { actorId: 'admin1' });
     assert.deepStrictEqual(r, { ok: false, error: 'not_entitled' });
     assert.strictEqual(loaderCalls.length, 0, 'must not activate an unentitled module');
 });
 
 test('importModule on an entitled remote module delegates to packageLoader.activate', async () => {
     stateRows.set('crm_ok', remoteRow('crm_ok', { exp: SECONDS(3600_000), status: 'removed', cap: 'crm_ok_cap' }));
-    const r = await modules.importModule('crm_ok', { actorId: 'admin1' });
+    const r = await lifecycle.importModule('crm_ok', { actorId: 'admin1' });
     assert.strictEqual(r.ok, true);
     assert.deepStrictEqual(loaderCalls[0], ['activate', 'crm_ok', '1.0.0']);
 });
 
 test('removeModule on a remote module delegates to packageLoader.deactivate', async () => {
     stateRows.set('crm_ok', remoteRow('crm_ok', { exp: SECONDS(3600_000), cap: 'crm_ok_cap' }));
-    const r = await modules.removeModule('crm_ok', { actorId: 'admin1' });
+    const r = await lifecycle.removeModule('crm_ok', { actorId: 'admin1' });
     assert.strictEqual(r.ok, true);
     assert.deepStrictEqual(loaderCalls[0], ['deactivate', 'crm_ok']);
     assert.strictEqual(r.module.status, 'removed');
