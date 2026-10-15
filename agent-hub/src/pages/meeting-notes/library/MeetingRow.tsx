@@ -4,6 +4,7 @@ import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
 import useTranslation from '../../../hooks/useTranslation';
 import { formatDuration, formatRelativeDate } from '../lib/format';
 import { getSourceMeta } from '../lib/sourceMeta';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 
 /**
  * One row of the library rail (Meeting Notes artboard 1a, lines 33-37):
@@ -21,7 +22,36 @@ import { getSourceMeta } from '../lib/sourceMeta';
  * carry.
  */
 
-export function actionsPhrase(meeting, t) {
+/** One note as the library list carries it (GET /api/transcriptions, list aggregates). */
+export interface LibraryMeeting {
+    id: string;
+    title?: string;
+    fileName?: string;
+    status?: string;
+    source?: string;
+    createdAt?: string;
+    durationSeconds?: number;
+    failureReason?: string;
+    actionsTotal?: number;
+    actionsOpen?: number;
+    actionItems?: unknown[];
+    sharedGroups?: string[];
+    isPublished?: boolean;
+    isOwner?: boolean;
+    ownerId?: string;
+    tags?: string[];
+    transcriptSnippet?: string;
+    fullText?: string;
+    transcript?: string;
+}
+
+interface MeetingRowProps {
+    meeting: LibraryMeeting;
+    active: boolean;
+    onClick: () => void;
+}
+
+export function actionsPhrase(meeting: LibraryMeeting, t: TranslateFn): string {
     const status = meeting.status || 'completed';
     if (status === 'processing') return t('meetings.row_transcribing', 'transcribing…');
     if (status === 'failed') {
@@ -35,7 +65,7 @@ export function actionsPhrase(meeting, t) {
     return '';
 }
 
-export default function MeetingRow({ meeting, active, onClick }) {
+export default function MeetingRow({ meeting, active, onClick }: MeetingRowProps) {
     const { t } = useTranslation();
     const status = meeting.status || 'completed';
     const sourceMeta = getSourceMeta(meeting.source);

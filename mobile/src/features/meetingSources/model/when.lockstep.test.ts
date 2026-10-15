@@ -9,7 +9,7 @@ import { loadWebModule } from '@/shared/testing/webModule';
 
 import { dateBlockParts, meetingDurationMinutes, parseWhen, timeRange } from './when';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/pages/meeting-notes/lib/upcomingWhen.js');
+const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/pages/meeting-notes/lib/upcomingWhen.ts');
 const web = loadWebModule<{
     parseWhen: typeof parseWhen;
     meetingDurationMinutes: typeof meetingDurationMinutes;

@@ -4,17 +4,30 @@ import Modal from '../../../components/shared/Modal';
 import MarkdownRenderer from '../../../components/renderers/MarkdownRenderer';
 import useTranslation from '../../../hooks/useTranslation';
 import { reportMeetings } from '../lib/transcriptionsApi';
+import type { LibraryMeeting } from './MeetingRow';
+
+interface ReportResult {
+    report: string;
+    usedTranscripts: boolean;
+    truncatedNotes: number;
+}
+
+interface ReportModalProps {
+    open: boolean;
+    onClose: () => void;
+    meetings?: LibraryMeeting[];
+}
 
 /**
  * Multi-meeting AI report: the user picked N notes in the library, asks one
  * question, and gets a cited markdown report back. One-shot, nothing persisted
  * — closing the modal discards the report.
  */
-export default function ReportModal({ open, onClose, meetings = [] }) {
+export default function ReportModal({ open, onClose, meetings = [] }: ReportModalProps) {
     const { t } = useTranslation();
     const [prompt, setPrompt] = useState('');
-    const [result, setResult] = useState(null);
-    const [error, setError] = useState(null);
+    const [result, setResult] = useState<ReportResult | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(false);
 
@@ -33,17 +46,17 @@ export default function ReportModal({ open, onClose, meetings = [] }) {
         t('meeting_notes.report_preset_open', 'List everything that is still open or unresolved'),
     ];
 
-    const generate = async (text) => {
+    const generate = async (text?: string) => {
         const question = String(text ?? prompt).trim();
         if (!question || busy) return;
         setPrompt(question);
         setBusy(true);
         setError(null);
         try {
-            const res = await reportMeetings({ ids: meetings.map((m) => m.id), prompt: question });
+            const res = await reportMeetings({ ids: meetings.map((m: LibraryMeeting) => m.id), prompt: question });
             setResult(res);
         } catch (err) {
-            setError(err.message);
+            setError((err as Error).message);
         } finally {
             setBusy(false);
         }
@@ -64,13 +77,13 @@ export default function ReportModal({ open, onClose, meetings = [] }) {
             onClose={onClose}
             size="lg"
             title={t('meeting_notes.report_title', 'Ask AI about these meetings')}
-            description={meetings.map((m) => m.title).join(' · ')}
+            description={meetings.map((m: LibraryMeeting) => m.title).join(' · ')}
         >
             <div className="flex flex-col gap-3">
                 <textarea
                     value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
                         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generate(); }
                     }}
                     placeholder={t('meeting_notes.report_placeholder', 'Ask a question or describe the report you want…')}
@@ -82,7 +95,7 @@ export default function ReportModal({ open, onClose, meetings = [] }) {
 
                 {!result && !busy && (
                     <div className="flex flex-wrap gap-2">
-                        {PRESETS.map((p) => (
+                        {PRESETS.map((p: string) => (
                             <button
                                 key={p}
                                 type="button"

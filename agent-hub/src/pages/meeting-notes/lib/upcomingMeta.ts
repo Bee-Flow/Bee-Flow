@@ -17,6 +17,7 @@
  */
 
 import { nOf } from '../../../components/admin/Studio/KnowledgeStudio/plural';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 import { parseWhen, meetingDurationMinutes, dateBlockParts, timeRange } from './upcomingWhen';
 
 // De datumregels staan in een IMPORTLOZE buurmodule, zodat de hele-dag-fix in
@@ -38,19 +39,78 @@ export { parseWhen, meetingDurationMinutes, dateBlockParts, timeRange };
  * Een LEGE deelnemerslijst levert NULL: dat is "de agenda vertelde ons niets".
  * Een 0 uit de payload is om dezelfde reden onbekend, niet nul mensen.
  */
-function identityOf(entry) {
+export interface Attendee {
+    email?: string;
+    cn?: string;
+    displayName?: string;
+    name?: string;
+}
+
+/** A calendar meeting as Talk, Meet and Teams hand it over (the fields this module and the Upcoming panel read). */
+export interface UpcomingMeeting {
+    title?: string;
+    start?: string | null;
+    end?: string | null;
+    participantCount?: number | null;
+    attendees?: (Attendee | string | null)[];
+    organizerEmail?: string;
+    organizer?: Attendee | string | null;
+    tags?: string[];
+    status?: string;
+    excluded?: boolean;
+    recordReason?: string | null;
+    recordDecided?: boolean;
+    importedNoteId?: string | null;
+    organizerSelf?: boolean;
+    isModerator?: boolean;
+    uid?: string;
+    seriesMasterId?: string;
+    meetingCode?: string;
+}
+
+export interface MetaSegment {
+    key: string;
+    text: string;
+    title?: string;
+    dim?: boolean;
+}
+
+export interface AttendeeNotice {
+    key: string;
+    en: string;
+}
+
+export interface NoticeRow {
+    provider: string;
+    m?: UpcomingMeeting;
+    status?: string;
+}
+
+export interface AttendeeNoticeInput {
+    rows?: NoticeRow[];
+    postSummaryBack?: boolean;
+    meetAutoRecordArmed?: boolean;
+    teamsAutoRecordArmed?: boolean;
+}
+
+export interface RecordHintOptions {
+    recordDecided?: boolean;
+    overridden?: boolean;
+}
+
+function identityOf(entry: Attendee | string | null | undefined): string | null {
     if (entry && typeof entry === 'object') return entry.email || entry.cn || entry.displayName || entry.name || null;
     return typeof entry === 'string' ? entry : null;
 }
 
-function organizerIdentityOf(meeting) {
+function organizerIdentityOf(meeting: UpcomingMeeting): string | null {
     if (meeting.organizerEmail) return meeting.organizerEmail;          // Meet
     const organizer = meeting.organizer;                                 // Talk (ICS ORGANIZER)
     if (organizer && typeof organizer === 'object') return organizer.email || organizer.cn || null;
     return typeof organizer === 'string' ? organizer : null;
 }
 
-export function attendeeCountOf(meeting) {
+export function attendeeCountOf(meeting: UpcomingMeeting | null | undefined): number | null {
     if (!meeting || typeof meeting !== 'object') return null;
 
     const explicit = meeting.participantCount;
@@ -61,7 +121,7 @@ export function attendeeCountOf(meeting) {
     }
 
     if (!Array.isArray(meeting.attendees)) return null;
-    const ids = new Set();
+    const ids = new Set<string>();
     let anon = 0;
     for (const entry of meeting.attendees) {
         const ident = identityOf(entry);
@@ -76,12 +136,12 @@ export function attendeeCountOf(meeting) {
 }
 
 /** De tags van deze vergadering (meeting_prefs). Alles wat geen tekst is valt weg. */
-export function meetingTags(m) {
-    return (Array.isArray(m?.tags) ? m.tags : []).filter(x => typeof x === 'string' && x.trim()).map(x => x.trim());
+export function meetingTags(m: UpcomingMeeting | null | undefined): string[] {
+    return (Array.isArray(m?.tags) ? m.tags : []).filter((x: string) => typeof x === 'string' && x.trim()).map((x: string) => x.trim());
 }
 
 /** '30 min' / '2 hr' / '1 hr 30 min'; '' als de duur onbekend is. */
-export function durationPhrase(minutes, t) {
+export function durationPhrase(minutes: number | null | undefined, t: TranslateFn): string {
     if (minutes == null) return '';
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
@@ -101,8 +161,8 @@ export function durationPhrase(minutes, t) {
  * `nOf` zet de ternary om de SLEUTEL heen (basis + `_plural`), nooit een
  * "participant(s)" in de zin.
  */
-export function metaSegments(m, t) {
-    const out = [];
+export function metaSegments(m: UpcomingMeeting | null | undefined, t: TranslateFn): MetaSegment[] {
+    const out: MetaSegment[] = [];
     const when = parseWhen(m?.start);
     if (when && when.dateOnly) out.push({ key: 'time', text: t('meetings.upcoming_all_day', 'All day') });
     else {
@@ -138,7 +198,7 @@ export function metaSegments(m, t) {
  * occurrence. Zonder dat onderscheid zag een gebruiker zijn eigen klik
  * terugspringen zonder één woord waarom.
  */
-export function recordReasonHint(reason, record, t, opts = {}) {
+export function recordReasonHint(reason: string | null | undefined, record: boolean, t: TranslateFn, opts: RecordHintOptions = {}): string | undefined {
     const { recordDecided, overridden } = opts;
     if (record) return undefined;
     if (recordDecided === false) {
@@ -159,7 +219,7 @@ export function recordReasonHint(reason, record, t, opts = {}) {
  * Het woord onder de toggle. "Skip" is een BEWERING dat er niets gebeurt; bij
  * een nog niet genomen beslissing is dat onwaar.
  */
-export function toggleStateLabel(record, recordDecided, t) {
+export function toggleStateLabel(record: boolean, recordDecided: boolean | undefined, t: TranslateFn): string {
     if (record) return t('meetings.upcoming_record', 'Record');
     // Dezelfde sleutel als de statuschip: één woord, één vertaling.
     if (recordDecided === false) return t('meetings.upcoming_decides', 'Decides at start');
@@ -234,26 +294,23 @@ export const NOTICE_TEAMS_AUTORECORD = Object.freeze({
 });
 
 /** De statussen waarin er werkelijk een notitie uit deze rij gaat komen. */
-const PRODUCES_NOTE = new Set(['will_record', 'recording_now', 'will_import', 'manual_record', 'manual_record_teams']);
+const PRODUCES_NOTE = new Set<string | undefined>(['will_record', 'recording_now', 'will_import', 'manual_record', 'manual_record_teams']);
 
-export function producesNote(row) {
+export function producesNote(row: NoticeRow | null | undefined): boolean {
     return PRODUCES_NOTE.has(row?.status);
 }
 
 /**
- * @param {object} p
- * @param {Array} p.rows            [{ provider, m, status }] — `status` is de
- *                                  EFFECTIEVE chipstatus van de rij, niet `!excluded`.
- * @param {boolean|undefined} p.postSummaryBack  undefined = de payload zei niets
- * @param {boolean} p.meetAutoRecordArmed  Meets eigen auto-opname kan door deze
- *                                  knop worden aangezet (autoRecordConfig aan,
- *                                  settings-scope aanwezig)
- * @param {boolean} [p.teamsAutoRecordArmed]  same for Teams' "record automatically"
- *                                  (autoRecordConfig on, OnlineMeetings.ReadWrite granted)
+ * `rows` is [{ provider, m, status }] — `status` is de EFFECTIEVE chipstatus
+ * van de rij, niet `!excluded`. `postSummaryBack` undefined = de payload zei
+ * niets. `meetAutoRecordArmed`: Meets eigen auto-opname kan door deze knop
+ * worden aangezet (autoRecordConfig aan, settings-scope aanwezig).
+ * `teamsAutoRecordArmed`: same for Teams' "record automatically"
+ * (autoRecordConfig on, OnlineMeetings.ReadWrite granted).
  */
-export function attendeeNotices({ rows = [], postSummaryBack, meetAutoRecordArmed = false, teamsAutoRecordArmed = false } = {}) {
-    const on = (provider) => rows.some(r => r && r.provider === provider && producesNote(r));
-    const notices = [];
+export function attendeeNotices({ rows = [], postSummaryBack, meetAutoRecordArmed = false, teamsAutoRecordArmed = false }: AttendeeNoticeInput = {}): AttendeeNotice[] {
+    const on = (provider: string) => rows.some((r: NoticeRow) => r && r.provider === provider && producesNote(r));
+    const notices: AttendeeNotice[] = [];
     if (on('talk')) {
         if (postSummaryBack === true) notices.push(NOTICE_TALK_POST);
         else if (postSummaryBack === false) notices.push(NOTICE_TALK_QUIET);
@@ -263,7 +320,7 @@ export function attendeeNotices({ rows = [], postSummaryBack, meetAutoRecordArme
         notices.push(NOTICE_MEET_SHARE);
         // Alleen als de knop die melding ook echt kan veroorzaken: de vlag
         // wordt uitsluitend gezet voor een vergadering die de lezer ORGANISEERT.
-        const organises = rows.some(r => r && r.provider === 'gmeet' && producesNote(r) && r.m?.organizerSelf === true);
+        const organises = rows.some((r: NoticeRow) => r && r.provider === 'gmeet' && producesNote(r) && r.m?.organizerSelf === true);
         if (meetAutoRecordArmed && organises) notices.push(NOTICE_MEET_AUTORECORD);
     }
     // Teams rows only produce a note for meetings the reader organises, so the

@@ -26,7 +26,7 @@ import { parseWhen, meetingDurationMinutes, dateBlockParts, timeRange } from './
 
 // `import.meta.url` is in de vitest-worker geen file:-URL, dus het pad komt
 // uit de werkmap (de suite draait per contract vanuit agent-hub/).
-const MODULE_PATH = path.resolve(process.cwd(), 'src/pages/meeting-notes/lib/upcomingWhen.js');
+const MODULE_PATH = path.resolve(process.cwd(), 'src/pages/meeting-notes/lib/upcomingWhen.ts');
 const MODULE_URL = pathToFileURL(MODULE_PATH).href;
 
 function inZone(tz, expression) {
