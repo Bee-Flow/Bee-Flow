@@ -5,6 +5,12 @@ import type { Field } from './upstream/fieldTree';
 import { FieldRow } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+interface OutputFieldsViewProps {
+    value?: unknown;
+    basePath?: string;
+    onInsert?: ((path: string) => void) | null;
+}
+
 /**
  * A step's output as a FIELD LIST — the "Continues on" column of design 1h:
  *
@@ -23,12 +29,6 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *   basePath  — `steps.<id>.output`, so a row can still be dragged as a path
  *   onInsert  — optional (path) => void; absent, clicking a row does nothing
  */
-interface OutputFieldsViewProps {
-    value?: unknown;
-    basePath?: string;
-    onInsert?: ((path: string) => void) | null;
-}
-
 export default function OutputFieldsView({ value, basePath = '', onInsert = null }: OutputFieldsViewProps) {
     const { t } = useTranslation();
     // A record lists its own fields, every level of them; a list or a value is

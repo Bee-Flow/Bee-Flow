@@ -255,7 +255,7 @@ export function describeListPath(path: unknown, stepLabelById: Map<string, strin
     const raw = String(path || '').trim();
     const { arrayPath, tail } = splitColumnPath(raw);
     const isColumn = raw.includes(WILDCARD);
-    const base = (describeDataPath as (path: string, stepLabelById: Map<string, string> | null) => { name: string; suffix: string })(isColumn ? arrayPath : raw, stepLabelById);
+    const base = describeDataPath(isColumn ? arrayPath : raw, stepLabelById);
     const field = isColumn ? humanizeFieldTail(tail) : base.suffix;
     const step = base.name;
     if (!isColumn) return field ? `${step} ▸ ${field}` : step;

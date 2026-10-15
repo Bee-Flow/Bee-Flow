@@ -17,6 +17,11 @@ interface FormPagesApi {
  * Never PROVISIONS one: an automation whose form page has not been created yet
  * has no address to open, and creating one as a side effect of watching a run
  * would mint a public URL nobody asked for. The banner simply omits the button.
+ *
+ * api          useAutomationApi()
+ * automationId the saved automation's id (null before first save)
+ * waiting     a run is parked on a form right now
+ * Returns the form's URL, or null.
  */
 export default function useWaitingFormUrl(api: FormPagesApi | null | undefined, automationId: string | null, waiting: boolean): string | null {
     const [url, setUrl] = useState<string | null>(null);

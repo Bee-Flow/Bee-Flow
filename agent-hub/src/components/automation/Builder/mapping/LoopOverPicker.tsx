@@ -12,7 +12,6 @@ import type { UpstreamGroup } from './deepFields';
 import type { ForEachParent } from './itemRefs';
 import type { LoopListChoice } from './loopLists';
 
-/** What the last pick changed, with Undo. */
 /** What a list change did to the fields (see pickLoopList). */
 interface ListNote {
     item: string;
@@ -62,6 +61,7 @@ interface ListPickOptions {
     definition: unknown;
 }
 
+/** What the last pick changed, with Undo. */
 function ListChangeNote({ note, onUndo, t }: { note: ListNote; onUndo: () => void; t: TranslateFn }) {
     return (
         <div role="status" className={`${AMBER_NOTE} text-[11px] space-y-0.5`}>

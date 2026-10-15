@@ -5,6 +5,8 @@ import { fieldInUse } from './fieldInUse';
 import FieldKindIcon from './FieldKindIcon';
 import { describeField } from './fieldKinds';
 import { jsonTextValue } from './upstream/fieldTree';
+import type { Field } from './upstream/fieldTree';
+import type { Group } from './upstream/upstream.types';
 import { fieldLabelText } from './upstream/routeFieldLabel';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
@@ -12,26 +14,8 @@ import { humanizeFieldKey } from '../flow/displayHelpers';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { FieldDescription } from './fieldKinds';
 
-/** A picker row: a field, with the fields inside it. */
-export interface TreeField {
-    key: string;
-    path: string;
-    sample?: unknown;
-    children?: TreeField[];
-    label?: string;
-    labelKey?: string;
-    perIteration?: boolean;
-}
-
-/** One step's (or the trigger's) output, with its fields. */
-export interface TreeGroup {
-    id?: string;
-    label?: string;
-    kind?: string;
-    basePath?: string;
-    sample?: unknown;
-    fields?: TreeField[];
-}
+/** A row's field: the picker's `Field`, with the sample optional. */
+type RowField = Omit<Field, 'sample' | 'children'> & { sample?: unknown; children?: RowField[] };
 
 type InsertHandler = (path: string, opts?: { raw: boolean }) => void;
 
@@ -61,6 +45,13 @@ function shownValue(path: string, sample: unknown, previewSample: unknown): unkn
  */
 export { startPathDrag };
 
+interface VariableTreeProps {
+    groups?: Group[];
+    onInsert?: InsertHandler;
+    activeFieldLabel?: string | null;
+    previewSample?: unknown;
+}
+
 /**
  * Right-side variable browser inside the StepInspector. Lists all
  * upstream nodes (trigger + reachable steps) with their output fields
@@ -74,13 +65,6 @@ export { startPathDrag };
  *   activeFieldLabel — optional string shown at the top so the user knows
  *                     which field the insert will target
  */
-interface VariableTreeProps {
-    groups?: TreeGroup[];
-    onInsert?: InsertHandler;
-    activeFieldLabel?: string | null;
-    previewSample?: unknown;
-}
-
 export default function VariableTree({ groups = [], onInsert, activeFieldLabel = null, previewSample = null }: VariableTreeProps) {
     const { t } = useTranslation();
     if (!groups || groups.length === 0) {
@@ -97,7 +81,7 @@ export default function VariableTree({ groups = [], onInsert, activeFieldLabel =
         <div className="h-full flex flex-col">
             <TreeHeader activeFieldLabel={activeFieldLabel} />
             <div className="flex-1 overflow-auto custom-scrollbar py-1">
-                {groups.map((group: TreeGroup) => (
+                {groups.map((group: Group) => (
                     <GroupNode key={group.id} group={group} onInsert={onInsert} previewSample={previewSample} />
                 ))}
             </div>
@@ -124,7 +108,7 @@ function TreeHeader({ activeFieldLabel }: { activeFieldLabel: string | null }) {
     );
 }
 
-const KIND_ICON: Record<string, (group: TreeGroup) => React.ReactElement> = {
+const KIND_ICON: Record<string, (group: Group) => React.ReactElement> = {
     trigger:            () => <Zap size={12} />,
     integration_action: () => <Database size={12} />,
     ai_step:            () => <Sparkles size={12} />,
@@ -174,7 +158,7 @@ export function friendlyBasePath(basePath: unknown, label: unknown = ''): string
     return words;
 }
 
-function GroupNode({ group, onInsert, previewSample }: { group: TreeGroup; onInsert?: InsertHandler; previewSample: unknown }) {
+function GroupNode({ group, onInsert, previewSample }: { group: Group; onInsert?: InsertHandler; previewSample: unknown }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(true);
     const Icon = KIND_ICON[group.kind as string] ? KIND_ICON[group.kind as string](group) : <Workflow size={12} />;
@@ -185,7 +169,7 @@ function GroupNode({ group, onInsert, previewSample }: { group: TreeGroup; onIns
         <div className="border-b border-[var(--border-default)] last:border-b-0 group/grp">
             <div
                 draggable
-                onDragStart={(e: React.DragEvent<HTMLDivElement>) => startPathDrag(e, group.basePath as string)}
+                onDragStart={(e: React.DragEvent<HTMLDivElement>) => startPathDrag(e, group.basePath)}
                 onClick={() => setOpen((o: boolean) => !o)}
                 role="button"
                 tabIndex={0}
@@ -205,7 +189,7 @@ function GroupNode({ group, onInsert, previewSample }: { group: TreeGroup; onIns
             </div>
             {open && (
                 <div className="pb-1">
-                    {(group.fields || []).map((f: TreeField) => (
+                    {(group.fields || []).map((f: Field) => (
                         <FieldRow key={f.path} field={f} onInsert={onInsert} depth={1} previewSample={previewSample} />
                     ))}
                     {(group.fields || []).length === 0 && (
@@ -237,8 +221,17 @@ function valueLabel(desc: FieldDescription, value: unknown): string {
  * column, “text” for text, nothing for a group): the tree's own wording, for
  * the {} picker to show the same thing.
  */
-export function fieldValueLabel(field: TreeField, previewSample: unknown, t: TranslateFn | null): string {
+export function fieldValueLabel(field: RowField, previewSample: unknown, t: TranslateFn | null): string {
     return valueLabel(describeField(field, previewSample, t), shownValue(field.path, field.sample, previewSample));
+}
+
+interface FieldRowProps {
+    field: RowField;
+    onInsert?: InsertHandler | null;
+    depth: number;
+    previewSample: unknown;
+    inUse?: Set<string> | null;
+    human?: boolean;
 }
 
 /**
@@ -247,15 +240,6 @@ export function fieldValueLabel(field: TreeField, previewSample: unknown, t: Tra
  * path. Shared with the NDV's INPUT panel — the tree IS the input panel now
  * (BFSF-329), so this is the single row implementation for both.
  */
-interface FieldRowProps {
-    field: TreeField;
-    onInsert?: InsertHandler | null;
-    depth: number;
-    previewSample: unknown;
-    inUse?: Set<string> | null;
-    human?: boolean;
-}
-
 export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, human = false }: FieldRowProps) {
     const [open, setOpen] = useState(false);
     const { t } = useTranslation();
@@ -349,7 +333,7 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 </span>
                 <GripVertical size={11} className="shrink-0 text-[var(--text-tertiary)] opacity-40 group-hover:opacity-100" />
             </div>
-            {hasChildren && open && (field.children as TreeField[]).map((c: TreeField) => (
+            {hasChildren && open && (field.children as RowField[]).map((c: RowField) => (
                 <FieldRow key={c.path} field={c} onInsert={onInsert} depth={depth + 1} previewSample={previewSample} inUse={inUse} human={human} />
             ))}
         </div>

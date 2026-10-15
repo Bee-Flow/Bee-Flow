@@ -59,6 +59,7 @@ export interface ChipLabel {
 }
 
 /** id → human label; the chip reads it with `has` / `get`. */
+export type { TypeLookup, PillOptions, FragmentOptions, InsertOptions } from './refEditorDom.types';
 export type LabelLookup = { has?(id: string | undefined): boolean; get?(id: string | undefined): string | undefined };
 
 // The roots a pill can name.
@@ -289,7 +290,7 @@ export function hasRefTokens(text: unknown, mode?: string): boolean {
  * ref whose id is no longer in the definition (deleted step) — rendered as
  * a muted chip, never an error.
  */
-export function resolveChipLabel(token: RefToken | null | undefined, stepLabelById: LabelLookup | null = null): ChipLabel {
+export function resolveChipLabel(token: (RefInfo & { path?: string }) | null | undefined, stepLabelById: LabelLookup | null = null): ChipLabel {
     if (!token) return { name: '', suffix: '', missing: false };
     if (token.source === 'steps') {
         const known = !!stepLabelById?.has?.(token.stepId);

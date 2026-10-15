@@ -1,7 +1,6 @@
-import { fieldTailLabel, parseRefTokens, resolveChipLabel, type RefToken } from './refTokens';
+import { fieldTailLabel, parseRefTokens, resolveChipLabel, type RefToken, type TypeLookup, type PillOptions, type FragmentOptions, type InsertOptions } from './refTokens';
 import { stepFamily } from '../flow/nodeDefs';
 import { typeColorVar } from '../flow/nodeTypeColors';
-import type { TypeLookup, PillOptions, FragmentOptions, InsertOptions } from './refEditorDom.types';
 
 /**
  * The DOM half of the reference editor: turn a stored field value into editable
@@ -137,19 +136,19 @@ export function serializeHost(host: Element | null | undefined): string {
     if (!host) return '';
     let out = '';
 
-    const walk = (node: Element, topLevel: boolean): void => {
+    const walk = (node: Node, topLevel: boolean): void => {
         for (let i = 0; i < node.childNodes.length; i += 1) {
-            const child = node.childNodes[i] as HTMLElement;
+            const child = node.childNodes[i];
             if (child.nodeType === 3) { out += child.nodeValue; continue; }
             if (child.nodeType !== 1) continue;
-            if (child.hasAttribute?.(PILL_ATTR)) { out += child.dataset.raw ?? ''; continue; }
-            if (child.tagName === 'BR') {
-                if (!child.hasAttribute?.(FILLER_ATTR)) out += '\n';
+            if ((child as HTMLElement).hasAttribute?.(PILL_ATTR)) { out += (child as HTMLElement).dataset.raw ?? ''; continue; }
+            if ((child as HTMLElement).tagName === 'BR') {
+                if (!(child as HTMLElement).hasAttribute?.(FILLER_ATTR)) out += '\n';
                 continue;
             }
             // A block wrapper starts a new line — except the very first one,
             // which is the existing line rather than a break from it.
-            if (BLOCK_TAGS.has(child.tagName) && !(topLevel && i === 0)) out += '\n';
+            if (BLOCK_TAGS.has((child as HTMLElement).tagName) && !(topLevel && i === 0)) out += '\n';
             walk(child, false);
         }
     };
@@ -207,23 +206,24 @@ export function caretToEnd(host: Node | null | undefined, win: Window = window):
     sel.addRange(range);
 }
 
+/** A pill reads as a word for spacing purposes. */
 const WORD = /[\p{L}\p{N}]/u;
 const SPACE_BEFORE = /[\p{L}\p{N},;:!?]/u;
 const PILL_CHAR = 'x';
 
 /** The character a node shows at its start (dir 1) or end (dir -1); a pill counts as a word character. */
-function edgeChar(node: Element, dir: number): string | null {
+function edgeChar(node: Node, dir: number): string | null {
     if (node.nodeType === 3) {
         const t = node.nodeValue || '';
         return t ? (dir < 0 ? t[t.length - 1] : t[0]) : null;
     }
     if (node.nodeType !== 1) return null;
-    if (node.hasAttribute?.(PILL_ATTR)) return PILL_CHAR;
-    if (node.hasAttribute?.(FILLER_ATTR)) return null;
+    if ((node as Element).hasAttribute?.(PILL_ATTR)) return PILL_CHAR;
+    if ((node as Element).hasAttribute?.(FILLER_ATTR)) return null;
     if (node.nodeName === 'BR') return '\n';
     const kids = node.childNodes;
     for (let i = dir < 0 ? kids.length - 1 : 0; i >= 0 && i < kids.length; i += dir < 0 ? -1 : 1) {
-        const ch = edgeChar(kids[i] as Element, dir);
+        const ch = edgeChar(kids[i], dir);
         if (ch) return ch;
     }
     return null;
@@ -247,7 +247,7 @@ function neighbourChar(range: Range, host: Node, dir: number): string | null {
     }
     for (;;) {
         while (node) {
-            const ch = edgeChar(node as Element, dir);
+            const ch = edgeChar(node, dir);
             if (ch) return ch;
             node = dir < 0 ? node.previousSibling : node.nextSibling;
         }

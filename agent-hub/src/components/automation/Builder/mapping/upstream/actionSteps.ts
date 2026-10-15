@@ -9,19 +9,9 @@
  */
 import { outputFields } from './fieldTree';
 import { sampleToFields } from './sampleFields';
-import type { UpstreamGroup } from '../deepFields';
+import type { Group, UpstreamNode } from './upstream.types';
 
-/** The members of a step node these describers read. */
-interface ActionNode {
-    id: string;
-    label?: string;
-    tool?: string;
-    parseResponse?: string;
-    title?: string;
-    body?: string;
-}
-
-export function describeIntegration(node: ActionNode, meta: { sample?: unknown } | null | undefined): UpstreamGroup {
+export function describeIntegration(node: UpstreamNode, meta: { sample?: unknown } | null | undefined): Group {
     const sample = meta?.sample || {};
     return {
         id: node.id,
@@ -37,7 +27,7 @@ export function describeIntegration(node: ActionNode, meta: { sample?: unknown }
 
 // Mirrors execHttpRequest's actual return shape (server/core/automationRunner/
 // engine.js) — status/ok/headers/body/truncated, regardless of method.
-export function describeHttpRequest(node: ActionNode): UpstreamGroup {
+export function describeHttpRequest(node: UpstreamNode): Group {
     // `data` is the parsed body when the response is JSON — the field to bind a
     // list to, since `body` is a string and arrayRef/repeat_for_each both need
     // a real array. A placeholder here is enough: overlayGroupWithReal replaces
@@ -59,7 +49,7 @@ export function describeHttpRequest(node: ActionNode): UpstreamGroup {
     };
 }
 
-export function describeCode(node: ActionNode): UpstreamGroup {
+export function describeCode(node: UpstreamNode): Group {
     // The code can return ANYTHING — a string, a record, a list — so the shape
     // is not known before a run. `null` is the codebase's "not seen yet" sample
     // (a switch's `value` does the same): the UI says so instead of claiming a
@@ -76,7 +66,7 @@ export function describeCode(node: ActionNode): UpstreamGroup {
     };
 }
 
-export function describeNotification(node: ActionNode): UpstreamGroup {
+export function describeNotification(node: UpstreamNode): Group {
     // Mirrors execNotification's real output — `{ delivered: { title, body,
     // channels } }`. The old `{ sent: true }` field has never existed at run
     // time (C22).
@@ -92,7 +82,7 @@ export function describeNotification(node: ActionNode): UpstreamGroup {
 }
 
 /** Mirrors execGuard's output — the branch plus what it found. */
-export function describeGuard(node: ActionNode): UpstreamGroup {
+export function describeGuard(node: UpstreamNode): Group {
     const sample = {
         branch: 'then', hasPii: true, count: 2,
         categories: { Person: 1, Email: 1 },
@@ -113,7 +103,7 @@ export function describeGuard(node: ActionNode): UpstreamGroup {
  * Mirrors execTokenize's output. `text` leads because it is the whole point of
  * the step — the value every downstream node should bind to.
  */
-export function describeTokenize(node: ActionNode): UpstreamGroup {
+export function describeTokenize(node: UpstreamNode): Group {
     const sample = {
         text: 'mail [person_1] at [email_1]',
         count: 2,
@@ -132,7 +122,7 @@ export function describeTokenize(node: ActionNode): UpstreamGroup {
 }
 
 /** Mirrors execUntokenize's output, including what it could NOT resolve. */
-export function describeUntokenize(node: ActionNode): UpstreamGroup {
+export function describeUntokenize(node: UpstreamNode): Group {
     const sample = {
         text: 'mail Jan de Vries at jan@acme.nl',
         value: 'mail Jan de Vries at jan@acme.nl',

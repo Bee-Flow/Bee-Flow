@@ -21,6 +21,7 @@
 
 
 import type { RunStepRow } from '../flow/types';
+import type { SampleRoot } from './upstream/upstream.types';
 
 /** A node of the graph, as far as the output map reads it. */
 interface OutputNode {
@@ -44,13 +45,6 @@ export interface SampleRootGroup {
     basePath?: string;
     sample?: unknown;
     hasRealData?: boolean;
-}
-
-/** The root a preview resolves paths against. */
-export interface SampleRoot {
-    trigger: { output: unknown };
-    steps: Record<string, { output: unknown }>;
-    loop: Record<string, unknown>;
 }
 /**
  * The server replaces any step payload over its 256 KB cap with a sentinel
@@ -163,7 +157,7 @@ export function buildSampleRoot(groups: SampleRootGroup[] | null | undefined): S
             // namespace and leaving `root.steps.<id>` empty: nothing wired
             // AFTER a Loop resolved in any preview, auto-map or picker.
             const tail = String(g.basePath).split('.').slice(1).join('.');
-            if (tail) root.loop[tail] = g.sample || {};
+            if (tail) (root.loop as Record<string, unknown>)[tail] = g.sample || {};
         } else {
             root.steps[g.id as string] = { output: g.sample || {} };
         }

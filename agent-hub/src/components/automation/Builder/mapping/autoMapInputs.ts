@@ -13,16 +13,14 @@ import { autoMapFlatten } from './autoMapFlatten';
 import { firstKeyIsDiagnostic, sampleType, tryIterationMapping, typeCompatible } from './autoMapIteration';
 import { listColumnPatch } from './autoMapListInput';
 import { ownItemIdPatch } from './autoMapOwnItem';
-import { foldKey, groupListSources, groupValueFields, isRecord } from './deepFields';
+import { foldKey, groupListSources, groupValueFields, isRecord, type GroupField, type ListSource, type UpstreamGroup } from './deepFields';
 import { isEmptyBinding } from './partitionInputs';
 import { matchSchema } from './schemaMatch';
 import { computeUpstreamGroups } from './upstream';
 import { getLayerContract } from '../flow/flowletScope';
 import { reconcileRouteEdges } from '../flow/routeEdges';
 import { isDiagnosticOutputKey } from '../flow/stepPayload';
-import type { GroupField, ListSource, UpstreamGroup } from './deepFields';
-import type { Binding } from './itemRefs';
-import type { InputSchema, AutoMapStep, AutoMapDefinition, AutoMapStepResult, AutoMapOptions, Candidate, ToolCatalogLike } from './autoMapInputs.types';
+import type { InputSchema, AutoMapStep, AutoMapDefinition, AutoMapStepResult, AutoMapOptions, Candidate, ToolCatalogLike, Binding, FlowDefinition, FlowStep, ForEachSpec, UpstreamDefinition } from './autoMapInputs.types';
 
 export { sampleType };
 
@@ -46,7 +44,7 @@ export function isSecretLikeKey(key: unknown): boolean {
 export function findInputSchemaForTool(catalog: ToolCatalogLike | null | undefined, tool: unknown): InputSchema | null {
     for (const app of (catalog?.apps || [])) {
         for (const action of (app.actions || [])) {
-            if (action?.name === tool) return ((action as { inputSchema?: object | null }).inputSchema as InputSchema | null) || null;
+            if (action?.name === tool) return (action.inputSchema as InputSchema | null) || null;
         }
     }
     return null;
@@ -192,7 +190,7 @@ export function autoMapInputs(targetInputSchema: InputSchema | null | undefined,
     // What names alone did not settle: schema matching (schemaMatch.ts) —
     // synonyms, the step's entity for a generic `id`, value kinds, allowed
     // values. Conservative threshold, one field per parameter.
-    const rest = keys.filter((k: string) => !patch[k] && isEmptyBinding((existingInputs || {})[k] as Binding) && !isSecretLikeKey(k));
+    const rest = keys.filter((k: string) => !patch[k] && isEmptyBinding((existingInputs || {})[k]) && !isSecretLikeKey(k));
     if (rest.length && Object.keys(patch).length < maxPerStep) {
         const params = rest.map((k: string) => ({ key: k, ...(properties?.[k] || {}) }));
         for (const r of matchSchema(params, candidates, used)) {
@@ -251,12 +249,14 @@ function isScaffoldExpr(expr: unknown): boolean {
  * `definition` must already contain `step` and its incoming edge so
  * upstream resolves correctly.
  */
-export function autoMapStep<S extends AutoMapStep>(step: S | null | undefined, definition: AutoMapDefinition | null | undefined, catalog: ToolCatalogLike | null | undefined, opts: AutoMapOptions = {}): AutoMapStepResult<S> {
-    if (!step || !definition) return { step: step as S, mappedKeys: [] };
+export function autoMapStep<S extends AutoMapStep>(step: S, definition: AutoMapDefinition | null | undefined, catalog: ToolCatalogLike | null | undefined, opts?: AutoMapOptions): AutoMapStepResult<S>;
+export function autoMapStep(step: null | undefined, definition: AutoMapDefinition | null | undefined, catalog: ToolCatalogLike | null | undefined, opts?: AutoMapOptions): { step: null | undefined; mappedKeys: string[] };
+export function autoMapStep<S extends AutoMapStep>(step: S | null | undefined, definition: AutoMapDefinition | null | undefined, catalog: ToolCatalogLike | null | undefined, opts: AutoMapOptions = {}): { step: S | null | undefined; mappedKeys: string[]; forEachEnabled?: boolean } {
+    if (!step || !definition) return { step, mappedKeys: [] };
     // opts.realOutputById (mapping/realOutputs.js) folds run/pinned outputs
     // into the groups — so a node added below a step that just produced 10
     // real records maps against those records, not against placeholders.
-    const groups = (computeUpstreamGroups as (definition: unknown, stepId: string | undefined, catalog: unknown, realOutputById: Map<string, unknown> | null) => UpstreamGroup[])(definition, step.id, catalog, opts.realOutputById || null);
+    const groups = computeUpstreamGroups(definition as UpstreamDefinition, step.id, catalog, opts.realOutputById || null);
     if (!groups.length) return { step, mappedKeys: [] };
 
     const type = step.type;
@@ -275,7 +275,7 @@ export function autoMapStep<S extends AutoMapStep>(step: S | null | undefined, d
         const patch = iter ? single : autoMapInputs(schema, inputs, groups, opts);
         let nextInputs = { ...inputs, ...patch };
         let keys = Object.keys(patch);
-        let forEach: object | null = null;
+        let forEach: ForEachSpec | null = null;
         if (iter) {
             nextInputs = { ...nextInputs, ...iter.patch };
             keys = [...keys, ...Object.keys(iter.patch)];
@@ -336,7 +336,7 @@ export function autoMapStep<S extends AutoMapStep>(step: S | null | undefined, d
             const ref = nearestArrayRef(groups);
             if (ref) return { step: { ...step, arrayRef: ref }, mappedKeys: ['arrayRef'] };
         }
-        const patch = autoMapInputs(null, step.fields || {}, groups, opts);
+        const patch = autoMapInputs(null, (step.fields || {}) as Record<string, unknown>, groups, opts);
         const keys = Object.keys(patch);
         if (!keys.length) return { step, mappedKeys: [] };
         return { step: { ...step, fields: { ...(step.fields || {}), ...patch } }, mappedKeys: keys };
@@ -420,7 +420,7 @@ export function applyAutoMapToStep<D extends AutoMapDefinition>(definition: D, s
     // the same commit — a step spliced onto an existing connection already has
     // an outgoing edge by the time auto-map runs.
     if (withMarker.type !== steps[idx].type) {
-        next = reconcileRouteEdges(next, stepId, steps[idx], withMarker) as typeof next;
+        next = reconcileRouteEdges(next as FlowDefinition, stepId, steps[idx] as FlowStep, withMarker as FlowStep) as typeof next;
     }
     return { definition: next, mappedKeys, forEachEnabled: !!forEachEnabled };
 }

@@ -10,6 +10,7 @@ import { applyAutoMapToStep } from '../mapping/autoMapInputs';
 import { toast } from '../../../shared/Toast';
 import { isTerminalStep } from './terminalSteps';
 import type { DiagramDefinition, DiagramEdge, DiagramStep, FlowNode, Rf } from './diagramPaneTypes';
+import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
 
 /** The edge a canvas button was clicked on (edges.jsx threads its identity). */
 export interface EdgeClick {
@@ -27,7 +28,7 @@ interface EdgeEditCallbacksArgs {
     onDefinitionChange?: ((next: DiagramDefinition) => void) | null;
     autoMapEnabled?: boolean;
     catalog?: unknown;
-    realOutputById?: unknown;
+    realOutputById?: RealOutputMap | null;
     onAutoMapped?: ((stepId: string, mappedCount: number, forEachEnabled: boolean) => void) | null;
     inLoopBody: (id: string) => boolean;
     onRequestAddNode?: ((req: { sourceId: string; position: XYPosition; sourceHandle: string | null }) => void) | null;

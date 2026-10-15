@@ -1,4 +1,6 @@
 import type { SchemaProp } from './toolInput/toolInputHelpers';
+import type { Catalog, ForEachSpec, UpstreamDefinition } from './upstream/upstream.types';
+import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
 
 /** A tool's (or flowlet's) input schema, as far as auto-map reads it. */
 export interface InputSchema {
@@ -14,8 +16,8 @@ export type AutoMapStep = {
     tool?: string;
     layerKey?: string;
     inputs?: Record<string, unknown>;
-    fields?: Record<string, unknown>;
-    forEach?: object | null;
+    fields?: unknown;
+    forEach?: ForEachSpec | null;
     sourceRef?: string;
     arrayRef?: string;
     overRef?: string;
@@ -38,7 +40,7 @@ export interface AutoMapOptions {
     maxPerStep?: number;
     /** false leaves list inputs without a column (autoMapStep, while it decides whether the step runs once per item). */
     listColumns?: boolean;
-    realOutputById?: Map<string, unknown> | null;
+    realOutputById?: RealOutputMap | null;
 }
 
 /** One field of an upstream group, flattened with where it sits. */
@@ -54,7 +56,10 @@ export interface Candidate {
 }
 
 /** Tool catalog as far as findInputSchemaForTool reads it. */
-export interface ToolCatalogLike {
-    apps?: Array<{ actions?: Array<{ name?: string; inputSchema?: object | null } | null> }>;
-    [key: string]: unknown;
+export interface ToolCatalogLike extends Catalog {
+    apps?: Array<{ actions?: Array<{ name?: string; outputSample?: unknown; outputSchema?: unknown; inputSchema?: object | null }> }>;
 }
+
+export type { Binding } from './itemRefs';
+export type { FlowDefinition, FlowStep } from '../flow/types';
+export type { ForEachSpec, UpstreamDefinition };

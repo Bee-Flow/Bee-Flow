@@ -5,17 +5,9 @@
  * declaration exists — no run, no schema round-trip.
  */
 import { sampleToFields, samplePlaceholderFor, schemaToSample } from './sampleFields';
-import type { UpstreamGroup } from '../deepFields';
+import type { Group, UpstreamNode } from './upstream.types';
 
-/** The members of a step node these describers read. */
-interface AiNode {
-    id: string;
-    label?: string;
-    outputSchema?: Record<string, unknown> | null;
-    fields?: Array<{ name?: string; type?: string } | null>;
-}
-
-export function describeAiStep(node: AiNode): UpstreamGroup {
+export function describeAiStep(node: UpstreamNode): Group {
     // When the user (or AI builder) declared an outputSchema, surface its
     // fields so downstream steps can bind to them directly. We accept both
     // JSON Schema shape and the flat `{field:'type'}` shape — same tolerance
@@ -26,7 +18,7 @@ export function describeAiStep(node: AiNode): UpstreamGroup {
     // fiction (neither key has ever existed at run time; every binding built
     // from it resolved undefined — C21). One honest leaf: bind the whole
     // output.
-    const props = aiStepOutputProps(node.outputSchema);
+    const props = aiStepOutputProps(node.outputSchema as Record<string, unknown> | null | undefined);
     if (!props) {
         return {
             id: node.id,
@@ -59,7 +51,7 @@ export function describeAiStep(node: AiNode): UpstreamGroup {
  * author has typed a name — no schema, no run needed. Typed placeholders so
  * the kind badges and the mismatch box know a date from an amount.
  */
-export function describeDataExtraction(node: AiNode): UpstreamGroup {
+export function describeDataExtraction(node: UpstreamNode): Group {
     const declared = (Array.isArray(node.fields) ? node.fields : [])
         .filter((f: { name?: string; type?: string } | null) => f && typeof f.name === 'string' && f.name.trim());
     const sample: Record<string, unknown> = {};

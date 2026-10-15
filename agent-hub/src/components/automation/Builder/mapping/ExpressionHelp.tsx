@@ -36,15 +36,15 @@ export function ExpressionHelpBody() {
     );
 }
 
+interface ExpressionHelpProps {
+    defaultOpen?: boolean;
+}
+
 /**
  * The help body behind its own disclosure toggle. Use this where there is no
  * existing toggle to hang the body off (ConditionBuilder has its own, so it
  * renders `ExpressionHelpBody` directly).
  */
-interface ExpressionHelpProps {
-    defaultOpen?: boolean;
-}
-
 export default function ExpressionHelp({ defaultOpen = false }: ExpressionHelpProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(defaultOpen);

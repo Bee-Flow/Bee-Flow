@@ -47,7 +47,7 @@ export interface BindingShape {
  * example too — the "list of 2" badge beside it says it is a list. `maxLen`
  * is how much text the line may hold (the visual editor wraps it).
  */
-export default function previewBinding(binding: Binding | null | undefined, sampleRoot: unknown, { raw = true, listAs = 'text', maxLen = 60 }: PreviewOptions = {}) {
+export default function previewBinding(binding: Binding | null | undefined, sampleRoot: unknown, { raw = true, listAs = 'text', maxLen = 60 }: PreviewOptions = {}): string | null {
     if (!binding) return null;
     if (binding.kind === 'literal') {
         if (binding.value == null || binding.value === '') return null;
@@ -56,7 +56,7 @@ export default function previewBinding(binding: Binding | null | undefined, samp
     if (binding.kind === 'ref') return previewRef(binding.path, sampleRoot, { raw, listAs, maxLen });
     if (binding.kind === 'template') {
         if (!binding.value) return null;
-        if (!sampleRoot) return raw ? binding.value : null;
+        if (!sampleRoot) return raw ? (binding.value as string) : null;
         let resolvedAny = false;
         const lists = listAs === 'json' ? 'json' : 'join';
         // The runtime's placeholder scan, walker and text rendering — the

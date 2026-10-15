@@ -4,7 +4,6 @@ import { countFieldsInUse } from './fieldInUse';
 import { filterGroups } from './filterFields';
 import InputNodeSection from './InputNodeSection';
 import { FieldRow } from './VariableTree';
-import type { TreeField } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { walkPath } from '../../../../utils/bindingHelpers';
 import { typeGroupOf } from '../flow/nodeTypeColors';
@@ -189,7 +188,7 @@ export default function InputDataPanel({
                         {shown.map((g: InputGroup) => (
                             <React.Fragment key={g.id}>
                                 <div className="px-2 pt-1 text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)] truncate">{g.label}</div>
-                                {(g.fields || []).map((f: TreeField) => (
+                                {(g.fields || []).map((f: NonNullable<InputGroup['fields']>[number]) => (
                                     <FieldRow key={f.path} field={f} onInsert={onPick} depth={0} previewSample={previewSample} inUse={usedPaths} human />
                                 ))}
                             </React.Fragment>

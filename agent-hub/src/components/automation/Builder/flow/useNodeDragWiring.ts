@@ -10,6 +10,7 @@ import type { NodeDropTarget } from './nodeDropTarget';
 import { isRouteStep, routePorts } from './routeModel';
 import { applyAutoMapToStep } from '../mapping/autoMapInputs';
 import type { DiagramDefinition, DiagramStep, Rf, Sidecar } from './diagramPaneTypes';
+import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
 
 /** What a dragged loose node would attach to (flow/nodeDropTarget.js). */
 export type NodeDropHit = NodeDropTarget;
@@ -17,7 +18,7 @@ export type NodeDropHit = NodeDropTarget;
 /** The latest values the delayed commit reads (kept in a ref by the pane). */
 export interface NodeOps {
     catalog?: unknown;
-    realOutputById?: unknown;
+    realOutputById?: RealOutputMap | null;
     autoMapEnabled?: boolean;
     onAutoMapped?: (stepId: string, mappedCount: number, forEachEnabled: boolean) => void;
     definition: DiagramDefinition;

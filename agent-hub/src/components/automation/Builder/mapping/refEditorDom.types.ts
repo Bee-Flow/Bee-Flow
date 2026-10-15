@@ -13,7 +13,7 @@ export interface FragmentOptions extends PillOptions {
     mode?: string;
 }
 
-/** A pill reads as a word for spacing purposes. */
+/** Where `insertAtCaret` puts the nodes: an explicit range, the window and document to read the caret from, and whether to pad with spaces. */
 export interface InsertOptions {
     win?: Window;
     doc?: Document;
