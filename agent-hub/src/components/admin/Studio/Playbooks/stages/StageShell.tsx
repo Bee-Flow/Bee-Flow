@@ -1,4 +1,6 @@
 import React from 'react';
+import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { TONES } from '../../../../shared/statusTone';
 import { kindTileStyle } from '../../../../shared/kindColors';
 import { heroCard, stagePadding, stageType, WIDTH } from './stageChrome';
@@ -17,7 +19,28 @@ import { heroCard, stagePadding, stageType, WIDTH } from './stageChrome';
  *   status    the one line under the title that says what is happening
  *   tone      'busy' | 'ok' | 'warn' | 'error' — colours the status line only
  */
-const STATUS_INK = {
+type StageTone = 'busy' | 'ok' | 'warn' | 'error';
+
+interface StageHeaderProps {
+    kind?: string;
+    icon?: LucideIcon | null;
+    title?: ReactNode;
+    subtitle?: ReactNode;
+    status?: ReactNode;
+    tone?: StageTone;
+    presenter?: boolean;
+    actions?: ReactNode;
+}
+
+interface StageShellProps extends StageHeaderProps {
+    width?: 'narrow' | 'default' | 'wide' | 'full';
+    testId?: string | null;
+    phaseKey?: string | null;
+    card?: boolean;
+    children?: ReactNode;
+}
+
+const STATUS_INK: Record<StageTone, string> = {
     busy: 'var(--text-secondary)',
     ok: 'var(--text-secondary)',
     warn: TONES.warning.ink,
@@ -29,7 +52,7 @@ const STATUS_INK = {
  * scroll container: the fill phase is a flex column whose canvas fills the
  * height. It used to open with a bare 11px uppercase `h3` and no tile at all.
  */
-export function StageHeader({ kind = 'playbook', icon: Icon = null, title, subtitle = null, status = null, tone = 'busy', presenter = false, actions = null }) {
+export function StageHeader({ kind = 'playbook', icon: Icon = null, title, subtitle = null, status = null, tone = 'busy', presenter = false, actions = null }: StageHeaderProps) {
     const type = stageType(presenter);
     const { tile, glyph } = kindTileStyle(kind, { size: presenter ? 48 : 40 });
     return (
@@ -59,7 +82,7 @@ export default function StageShell({
     kind = 'playbook', icon: Icon = null, title, subtitle = null,
     status = null, tone = 'busy', width = 'default', presenter = false,
     testId = null, phaseKey = null, actions = null, card = false, children,
-}) {
+}: StageShellProps) {
     const max = WIDTH[width] === undefined ? WIDTH.default : WIDTH[width];
 
     return (

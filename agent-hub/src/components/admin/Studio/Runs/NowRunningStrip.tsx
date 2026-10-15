@@ -1,8 +1,10 @@
 import { Activity, AlertCircle, Loader2 } from 'lucide-react';
 import React from 'react';
 import { nowRunningLines } from './nowRunning';
+import type { NowRunningFacets, NowRunningLine, NowRunningTone } from './nowRunning';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { errorClassLabel } from '../Executions/runLanguage';
 import { nOf } from '../KnowledgeStudio/plural';
 
@@ -32,7 +34,7 @@ import { nOf } from '../KnowledgeStudio/plural';
  */
 
 /** dot colour + text tone per state. Four states, one table. */
-const TONE = Object.freeze({
+const TONE: Readonly<Record<NowRunningTone, { dot: string; ink: string }>> = Object.freeze({
     error: { dot: 'var(--error)', ink: 'var(--error-ink, var(--error))' },
     waiting: { dot: 'var(--warning)', ink: 'var(--warning-ink, var(--warning))' },
     running: { dot: 'var(--accent-primary)', ink: 'var(--text-secondary)' },
@@ -40,7 +42,7 @@ const TONE = Object.freeze({
 });
 
 /** The phrase after the automation's name. */
-function lineText(line, t) {
+function lineText(line: NowRunningLine, t: TranslateFn): string {
     if (line.tone === 'error') {
         // The CLASS, in plain words — never the free-text message, which can
         // quote a customer and, in the organisation scope, somebody else's.
@@ -59,7 +61,7 @@ function lineText(line, t) {
     return nOf(t, 'runs.now.done', line.total, 'done · {count} run', 'done · {count} runs');
 }
 
-function StripLine({ line, onOpen }) {
+function StripLine({ line, onOpen }: { line: NowRunningLine; onOpen: ((automationId: string) => void) | null }) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const tone = TONE[line.tone] || TONE.done;
@@ -96,7 +98,7 @@ function StripLine({ line, onOpen }) {
  * FIRST read is in flight — a refresh keeps the previous lines on screen
  * rather than blanking a strip somebody is reading.
  */
-export default function NowRunningStrip({ facets = null, loading = false, failed = false, onOpenAutomation = null }) {
+export default function NowRunningStrip({ facets = null, loading = false, failed = false, onOpenAutomation = null }: { facets?: NowRunningFacets | null; loading?: boolean; failed?: boolean; onOpenAutomation?: ((automationId: string) => void) | null }) {
     const { t } = useTranslation();
     const model = nowRunningLines(facets);
 
@@ -136,7 +138,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
             ) : (
                 <>
                     <ul className="flex flex-col gap-1.5 list-none p-0 m-0" data-testid="now-running-list">
-                        {model.lines.map(line => (
+                        {model.lines.map((line: NowRunningLine) => (
                             <StripLine key={line.automationId} line={line} onOpen={onOpenAutomation} />
                         ))}
                     </ul>

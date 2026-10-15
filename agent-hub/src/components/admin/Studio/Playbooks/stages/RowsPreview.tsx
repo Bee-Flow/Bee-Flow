@@ -1,5 +1,8 @@
 import { ExternalLink, Loader2, Table2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { ArtifactField } from '../phaseMachine';
 import { revealSchedule } from '../../../../shared/builder/revealSchedule';
 import { kindColorVar } from '../../../../shared/kindColors';
 import { cellText } from '../../Datatables/datatableDisplay';
@@ -8,6 +11,24 @@ import { datatablesApi } from '../../Datatables/datatablesApi';
 const PREVIEW_ROWS = 8;
 const ROW_STAGGER_MS = 120;
 
+interface PreviewRow {
+    id?: string | number;
+    [column: string]: unknown;
+}
+
+interface RowsPreviewProps {
+    datatableId: string | number;
+    fields?: ArtifactField[];
+    rowCount?: number | null;
+    refreshKey?: number | string;
+    t: TranslateFn;
+    onNavigate?: ((to: string) => void) | null;
+    reducedMotion?: boolean;
+    presenter?: boolean;
+    title?: string | null;
+    compact?: boolean;
+}
+
 /**
  * The table's values, so the person SEES what the automation extracted: the
  * first rows of the datatable in a compact grid, one row arriving after
@@ -15,9 +36,9 @@ const ROW_STAGGER_MS = 120;
  * section shows); `refreshKey` re-reads (the fill's row count changing).
  * A door to the full table sits in the header.
  */
-export default function RowsPreview({ datatableId, fields = [], rowCount = null, refreshKey = 0, t, onNavigate = null, reducedMotion = false, title = null, compact = false }) {
-    const [rows, setRows] = useState(null);
-    const [error, setError] = useState(null);
+export default function RowsPreview({ datatableId, fields = [], rowCount = null, refreshKey = 0, t, onNavigate = null, reducedMotion = false, title = null, compact = false }: RowsPreviewProps) {
+    const [rows, setRows] = useState<PreviewRow[] | null>(null);
+    const [error, setError] = useState<unknown>(null);
 
     useEffect(() => {
         if (!datatableId) return undefined;
@@ -32,7 +53,7 @@ export default function RowsPreview({ datatableId, fields = [], rowCount = null,
 
     const columns = (Array.isArray(fields) ? fields : []).filter((f) => f && f.key).slice(0, compact ? 6 : 9);
     const list = Array.isArray(rows) ? rows : [];
-    const schedule = revealSchedule(list.map((r, i) => String(r.id || i)), { stagger: ROW_STAGGER_MS });
+    const schedule = revealSchedule(list.map((r: PreviewRow, i: number) => String(r.id || i)), { stagger: ROW_STAGGER_MS });
 
     return (
         <section className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }} data-testid="playbook-rows-preview">
@@ -67,10 +88,10 @@ export default function RowsPreview({ datatableId, fields = [], rowCount = null,
                             </tr>
                         </thead>
                         <tbody>
-                            {list.map((r, i) => {
+                            {list.map((r: PreviewRow, i: number) => {
                                 const slot = schedule.get(String(r.id || i));
                                 return (
-                                    <tr key={r.id || i} className={reducedMotion ? '' : 'pbk-col-in'} style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, borderBottom: '1px solid var(--border-default)' }} data-testid="playbook-rows-row">
+                                    <tr key={r.id || i} className={reducedMotion ? '' : 'pbk-col-in'} style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, borderBottom: '1px solid var(--border-default)' } as CSSProperties} data-testid="playbook-rows-row">
                                         {columns.map((c) => (
                                             <td key={c.key} className="px-3 py-1.5 whitespace-nowrap max-w-[220px] truncate text-[var(--text-primary)]" title={cellText(r[c.key], c.type)}>
                                                 {cellText(r[c.key], c.type)}

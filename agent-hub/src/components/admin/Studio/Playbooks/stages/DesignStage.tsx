@@ -1,5 +1,9 @@
 import { LayoutTemplate, Loader2, PenTool, Wand2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { DesignElement, DesignScreen, DesignSection, Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
+import type { StageType } from './stageChrome';
 import StageShell from './StageShell';
 import { isBusy, panelCard, STAGE_BUTTON, stageType } from './stageChrome';
 import { revealSchedule } from '../../../../shared/builder/revealSchedule';
@@ -7,7 +11,15 @@ import { TONES } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 
 const SCREEN_STAGGER_MS = 450;
-const EMPTY = Object.freeze([]);
+const EMPTY: readonly DesignScreen[] = Object.freeze([]);
+
+interface DesignStageProps {
+    phase: Phase;
+    dispatch: (event: PlaybookEvent) => Promise<PlaybookLike | null>;
+    t: TranslateFn;
+    reducedMotion?: boolean;
+    presenter?: boolean;
+}
 
 /**
  * The DESIGN phase on stage: the designer's answer drawn as wireframes —
@@ -20,11 +32,11 @@ const EMPTY = Object.freeze([]);
  * here, and the app phase's brief is recomposed around the new one — so what
  * the builder gets is always the design on screen.
  */
-export default function DesignStage({ phase, dispatch, t, reducedMotion = false, presenter = false }) {
+export default function DesignStage({ phase, dispatch, t, reducedMotion = false, presenter = false }: DesignStageProps) {
     const status = phase?.status;
     const art = phase?.artifacts || {};
     const design = art.design || null;
-    const startedRef = useRef(null);
+    const startedRef = useRef<string | null>(null);
     useEffect(() => {
         if (status !== 'ready') return;
         const stamp = `${phase.key}:${phase.attempt || 0}`;
@@ -54,7 +66,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
     // one moment built to show the AI answering the room.
     const revision = Array.isArray(art.revisions) ? art.revisions.length : 0;
     const schedule = useMemo(
-        () => revealSchedule(screens.map((_, i) => `s${i}`), { stagger: SCREEN_STAGGER_MS }),
+        () => revealSchedule(screens.map((_: DesignScreen, i: number) => `s${i}`), { stagger: SCREEN_STAGGER_MS }),
         [screens],
     );
     const accent = (design && design.look && design.look.accent) || 'var(--kind-app)';
@@ -96,13 +108,13 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
 
                 {screens.length > 0 && (
                     <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${presenter ? 320 : 280}px, 1fr))` }} data-testid="playbook-design-screens">
-                        {screens.map((s, i) => {
+                        {screens.map((s: DesignScreen, i: number) => {
                             const slot = schedule.get(`s${i}`);
                             return (
                                 <article
                                     key={`${revision}:${s.name}-${i}`}
                                     className={reducedMotion ? '' : 'pbk-col-in'}
-                                    style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, ...panelCard(presenter), padding: 0, boxShadow: 'var(--shadow-md)', overflow: 'hidden' }}
+                                    style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, ...panelCard(presenter), padding: 0, boxShadow: 'var(--shadow-md)', overflow: 'hidden' } as CSSProperties}
                                     data-testid="playbook-design-screen"
                                 >
                                     <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--bg-primary)' }}>
@@ -113,7 +125,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                                     </div>
                                     <div className="p-3 space-y-3">
                                         {s.purpose && <p style={{ fontSize: type.meta, color: 'var(--text-secondary)' }}>{s.purpose}</p>}
-                                        {s.sections.map((sec, j) => <Section key={j} section={sec} accent={accent} type={type} />)}
+                                        {s.sections.map((sec: DesignSection, j: number) => <Section key={j} section={sec} accent={accent} type={type} />)}
                                     </div>
                                 </article>
                             );
@@ -166,7 +178,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
 
                 {design && Array.isArray(design.principles) && design.principles.length > 0 && (
                     <ul className="mt-5 flex flex-wrap gap-2" data-testid="playbook-design-principles">
-                        {design.principles.map((p, i) => (
+                        {design.principles.map((p: string, i: number) => (
                             <li key={i} className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
                                 <LayoutTemplate className="w-3 h-3" aria-hidden="true" />{p}
                             </li>
@@ -177,28 +189,28 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
     );
 }
 
-const LAYOUT_STYLE = {
+const LAYOUT_STYLE: Record<string, CSSProperties> = {
     row: { display: 'flex', gap: 8, flexWrap: 'wrap' },
     grid: { display: 'grid', gap: 8, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' },
     split: { display: 'grid', gap: 8, gridTemplateColumns: '1fr 1fr' },
     stack: { display: 'flex', flexDirection: 'column', gap: 8 },
 };
 
-function Section({ section, accent, type }) {
+function Section({ section, accent, type }: { section: DesignSection; accent: string; type: StageType }) {
     return (
         <section>
             {section.title && <div className="font-semibold uppercase tracking-wide mb-1.5" style={{ fontSize: type.micro, color: 'var(--text-tertiary)' }}>{section.title}</div>}
             <div style={LAYOUT_STYLE[section.layout] || LAYOUT_STYLE.stack}>
-                {section.elements.map((e, i) => <Element key={i} element={e} accent={accent} type={type} grow={section.layout === 'row'} />)}
+                {section.elements.map((e: DesignElement, i: number) => <Element key={i} element={e} accent={accent} type={type} grow={section.layout === 'row'} />)}
             </div>
         </section>
     );
 }
 
 /** A wireframe glyph per element kind — a sketch, never a real component. */
-function Element({ element, accent, type, grow }) {
+function Element({ element, accent, type, grow }: { element: DesignElement; accent: string; type: StageType; grow: boolean }) {
     const box = { border: '1px solid var(--border-default)', borderRadius: 10, padding: '8px 10px', background: 'var(--bg-primary)', minWidth: 0, flex: grow ? '1 1 120px' : undefined };
-    const line = (w, h = 6) => <span style={{ display: 'block', width: w, height: h, borderRadius: 4, background: 'var(--border-default)' }} />;
+    const line = (w: string, h = 6) => <span style={{ display: 'block', width: w, height: h, borderRadius: 4, background: 'var(--border-default)' }} />;
     const label = <span className="block font-medium truncate mb-1" style={{ fontSize: type.meta, color: 'var(--text-primary)' }} title={element.note || ''}>{element.label}</span>;
     switch (element.kind) {
         case 'stat':
@@ -207,7 +219,7 @@ function Element({ element, accent, type, grow }) {
             return (
                 <div style={box} data-kind="chart">{label}
                     <span className="flex items-end gap-1" style={{ height: 34 }} aria-hidden="true">
-                        {[40, 70, 55, 90, 65, 80].map((h, i) => <span key={i} style={{ flex: 1, height: `${h}%`, borderRadius: 3, background: i === 3 ? accent : 'color-mix(in srgb, currentColor 18%, transparent)', color: accent }} />)}
+                        {[40, 70, 55, 90, 65, 80].map((h: number, i: number) => <span key={i} style={{ flex: 1, height: `${h}%`, borderRadius: 3, background: i === 3 ? accent : 'color-mix(in srgb, currentColor 18%, transparent)', color: accent }} />)}
                     </span>
                 </div>
             );
