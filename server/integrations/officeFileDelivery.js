@@ -132,7 +132,12 @@ async function uploadToOneDrive(built, ctx, path) {
     }
     if (!res.ok) {
         let reason = '';
-        try { reason = JSON.parse(await res.text()).error?.message || ''; } catch { /* no JSON body: the status says enough */ }
+        try {
+            reason = JSON.parse(await res.text()).error?.message || '';
+        } catch (e) {
+            // No JSON body: the status says enough.
+            log.debug(`[OfficeFileDelivery] OneDrive error body not readable: ${e.message}`);
+        }
         return { error: `OneDrive refused the upload (${res.status}${reason ? `: ${reason}` : ''})` };
     }
     const item = await res.json();

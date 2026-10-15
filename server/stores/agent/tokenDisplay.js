@@ -74,7 +74,10 @@ function _restoreTokensInMessages(messages, convTokenMap = null) {
         if (userMap && Object.keys(userMap).length > 0) {
             try {
                 return { ...m, content: restoreTokens(m.content, userMap) };
-            } catch (e) { /* fall through with original */ }
+            } catch (e) {
+                // Showing the placeholders beats failing the whole read.
+                log.debug(`[Conversations] user tokens not restored for display: ${e.message}`);
+            }
         }
         // Assistant messages: use the conversation-level token map. Assistant
         // tokens come from attachment scans + cross-turn message PII and are
@@ -84,7 +87,9 @@ function _restoreTokensInMessages(messages, convTokenMap = null) {
         if (m.role === 'assistant' && convMapHasEntries) {
             try {
                 return { ...m, content: restoreTokens(m.content, convTokenMap) };
-            } catch (e) { /* fall through with original */ }
+            } catch (e) {
+                log.debug(`[Conversations] assistant tokens not restored for display: ${e.message}`);
+            }
         }
         return m;
     });
