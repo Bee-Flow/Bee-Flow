@@ -19,8 +19,9 @@ export interface ApprovalRowLike {
     status?: string;
     source?: string;
     stage?: string | null;
+    // the code tolerates null entries (filter(Boolean)); TS cannot narrow through Boolean
     stages?: ApprovalStageInfo[] | null;
-    context?: { solutionId?: unknown; [key: string]: unknown } | null;
+    context?: Record<string, unknown> | null;
     automationTitle?: string | null;
     prompt?: string | null;
 }

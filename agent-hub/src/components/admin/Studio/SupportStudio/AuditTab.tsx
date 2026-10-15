@@ -4,13 +4,9 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { metaFor, categoryLabel, CATEGORY_IDS } from './auditMeta';
 import type { SupportInbox } from './supportStudio.types';
+import type { SupportEvent } from '../../../support/SupportInboxPanel.types';
 
-interface AuditEvent {
-    id?: string;
-    thread_id?: string | null;
-    inbox_id?: string | null;
-    created_at: string;
-}
+type AuditEvent = SupportEvent & { thread_id?: string | null; inbox_id?: string | null };
 
 interface AuditFilters {
     inbox: string;

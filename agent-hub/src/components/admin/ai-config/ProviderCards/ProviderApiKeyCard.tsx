@@ -10,25 +10,12 @@ import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import SecretInput from './shared/SecretInput';
 import useProviderConfig from '../../../../hooks/useProviderConfig';
 import type { ProviderMessage } from '../../../../hooks/useProviderConfig';
+import type { ProviderKeyConfig } from './providerKeyConfig';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 /** The props of every thin provider card that wraps ProviderApiKeyCard. */
 export interface ProviderCardProps {
     onMessage?: (message: ProviderMessage) => void;
-}
-
-/** One entry of PROVIDER_KEY_CONFIGS (providerKeyConfig.js). */
-interface ProviderKeyConfig {
-    name: string;
-    statusField: string;
-    bodyField: string;
-    deleteSlug: string;
-    icon: string;
-    iconBackground: string;
-    description: string;
-    placeholder: string;
-    docsUrl: string;
-    docsLabel: string;
 }
 
 interface ProviderApiKeyCardProps extends ProviderCardProps {

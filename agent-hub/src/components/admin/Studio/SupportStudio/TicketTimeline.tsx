@@ -3,12 +3,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { metaFor } from './auditMeta';
 import type { SupportTeammate } from './supportStudio.types';
-
-interface TimelineEvent {
-    id?: string;
-    actor_user_id?: string | null;
-    created_at: string;
-}
+import type { SupportEvent } from '../../../support/SupportInboxPanel.types';
 
 interface TicketTimelineProps {
     threadId: string;
@@ -23,7 +18,7 @@ interface TicketTimelineProps {
  */
 export default function TicketTimeline({ threadId, teammates = [] }: TicketTimelineProps) {
     const { t } = useTranslation();
-    const [events, setEvents] = useState<TimelineEvent[]>([]);
+    const [events, setEvents] = useState<SupportEvent[]>([]);
     const [loading, setLoading] = useState(true);
 
     const nameFor = useCallback((id?: string | null) => {

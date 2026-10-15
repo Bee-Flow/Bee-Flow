@@ -21,9 +21,9 @@ const _AI = new Set<unknown>(AI_STEP_TYPES);
 
 /** A JSON object out of an automation record: the members the walkers read are optional. */
 export interface GraphObject {
-    type?: string;
-    kind?: string;
-    id?: string | number;
+    type?: unknown;
+    kind?: unknown;
+    id?: unknown;
     body?: unknown;
     branches?: unknown;
     steps?: unknown;
@@ -40,12 +40,12 @@ export interface GraphObject {
 
 export interface StepItem {
     step: GraphObject;
-    parentId: string | number | null;
+    parentId: unknown;
     layer: string | null;
 }
 
 interface StepRef {
-    id: string | number | null;
+    id: unknown;
     label: string;
 }
 
@@ -63,10 +63,10 @@ export interface AiActSignals {
 }
 
 /** Steps that stand between an automation and a person outside the org. */
-export const CUSTOMER_FACING_STEP_TYPES: ReadonlyArray<string | undefined> = Object.freeze(['form_page']);
+export const CUSTOMER_FACING_STEP_TYPES: ReadonlyArray<unknown> = Object.freeze(['form_page']);
 
 /** Steps that write model output into a file (Art. 50(2) marking subjects). */
-export const GENERATING_STEP_TYPES: ReadonlyArray<string | undefined> = Object.freeze(['generate_document']);
+export const GENERATING_STEP_TYPES: ReadonlyArray<unknown> = Object.freeze(['generate_document']);
 
 function isObject(v: unknown): v is GraphObject { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
@@ -92,7 +92,7 @@ export function listSteps(definition: unknown) {
     return out;
 }
 
-function _walkGraph(steps: unknown, layer: string | null, out: StepItem[], parentId: string | number | null = null, seen = new Set<unknown>()) {
+function _walkGraph(steps: unknown, layer: string | null, out: StepItem[], parentId: unknown = null, seen = new Set<unknown>()) {
     if (!Array.isArray(steps)) return;
     for (const step of steps) {
         if (!isObject(step) || seen.has(step)) continue;

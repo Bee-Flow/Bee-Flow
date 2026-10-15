@@ -19,8 +19,8 @@ export default function useSupportInboxEvents(onEvent?: ((type: string, data: un
         try {
             es = new EventSource(`${API_BASE}/api/support-inbox/stream`, { withCredentials: true });
         } catch (_) { return undefined; }
-        const handle = (e: Event) => {
-            try { onEvent?.(e.type, JSON.parse((e as MessageEvent<string>).data)); } catch (_) { /* ignore */ }
+        const handle = (e: MessageEvent<string>) => {
+            try { onEvent?.(e.type, JSON.parse(e.data)); } catch (_) { /* ignore */ }
         };
         es.addEventListener('thread_created', handle);
         es.addEventListener('thread_updated', handle);

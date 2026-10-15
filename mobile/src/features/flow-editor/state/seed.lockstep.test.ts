@@ -57,7 +57,7 @@ describe('the new-automation seed', () => {
 
     it('studioApps.jsx still hands out both helpers', () => {
         expect(BARREL).toMatch(/export \{[^}]*\bcreateFormAutomation\b[^}]*\} from '\.\/studioGates';/);
-        expect(BARREL).toContain('export async function createAutomationDraft(ctx: AutomationDraftCtx, options?: AutomationDraftOptions) {');
+        expect(BARREL).toMatch(/export async function createAutomationDraft\(ctx[^,]*, options[^)]*\) \{/);
         expect(BARREL).toContain("await import('../../../api/queries/automation/createDraft')");
     });
 });

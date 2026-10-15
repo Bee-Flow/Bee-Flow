@@ -3,17 +3,11 @@ import { Users, ShieldCheck, ChevronDown } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import Section from '../../../shared/Section';
-import type { SupportInbox, SupportUser } from './supportStudio.types';
+import type { SupportInbox, SupportTeammate, SupportUser } from './supportStudio.types';
 
 interface AccessGroup {
     id: string;
     name?: string;
-}
-
-interface AccessMember {
-    id: string;
-    name?: string;
-    email?: string;
 }
 
 interface AccessTabProps {
@@ -44,7 +38,7 @@ export default function AccessTab({ inbox, user, onChanged }: AccessTabProps) {
     const [mode, setMode] = useState('everyone');
     const [groupIds, setGroupIds] = useState<string[]>([]);
     const [availableGroups, setAvailableGroups] = useState<AccessGroup[]>([]);
-    const [members, setMembers] = useState<AccessMember[]>([]);
+    const [members, setMembers] = useState<SupportTeammate[]>([]);
     const [showMembers, setShowMembers] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);

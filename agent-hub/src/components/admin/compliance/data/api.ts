@@ -20,16 +20,12 @@ export const API = (import.meta.env.VITE_API_URL || '') + '/api/compliance';
 export const API_DSR = (import.meta.env.VITE_API_URL || '') + '/api/dsr';
 export const OPTS = Object.freeze({ credentials: 'include' });
 
-/** A parsed JSON body: objects, scalars, null. (Arrays are rejected by `asObject` at runtime.) */
-export type JsonValue = string | number | boolean | null | undefined | JsonObject;
-export interface JsonObject { [key: string]: JsonValue }
-
 /** The Error `fetchJson` throws for a refused request. */
 export interface FetchJsonError extends Error {
     status?: number;
     code?: string | null;
     serverMessage?: string | null;
-    details?: JsonObject | null;
+    details?: Record<string, unknown> | null;
 }
 
 /**
@@ -44,7 +40,7 @@ export async function fetchJson(url: string, init?: RequestInit) {
     const r = await authFetch(url, { ...OPTS, ...(init || {}) });
     if (!r.ok) {
         const err: FetchJsonError = new Error(`${r.status} ${r.statusText}`);
-        let body: { code?: unknown; error?: unknown; details?: JsonObject } | null = null;
+        let body: { code?: unknown; error?: unknown; details?: Record<string, unknown> } | null = null;
         try { body = typeof r.json === 'function' ? await r.json() : null; } catch { body = null; }
         err.status = r.status;
         err.code = body && typeof body.code === 'string' ? body.code : null;
@@ -91,7 +87,7 @@ export function downloadUrl(exportsEnabled: boolean | undefined, url: string) {
  * the body is an array or junk. A hook must then render NOTHING for that data
  * (never a "0"), so this returns null for anything that is not a plain object.
  */
-export function asObject(body: JsonValue) {
+export function asObject(body: unknown) {
     return body && typeof body === 'object' && !Array.isArray(body) ? body : null;
 }
 

@@ -5,19 +5,12 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import Section from '../../../shared/Section';
 import FormField from '../../../shared/FormField';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
+import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
 
 interface SupportTag {
     id: string;
-    name?: string;
-    color?: string;
-    organization_id?: string | null;
-}
-
-interface CannedReply {
-    id: string;
-    title?: string;
-    shortcut?: string | null;
-    body?: string;
+    name: string;
+    color?: string | null;
     organization_id?: string | null;
 }
 
@@ -87,7 +80,7 @@ function Tags() {
 
 function Canned() {
     const { t } = useTranslation();
-    const [items, setItems] = useState<CannedReply[]>([]);
+    const [items, setItems] = useState<CannedResponse[]>([]);
     const [adding, setAdding] = useState(false);
     const [form, setForm] = useState({ title: '', shortcut: '', body: '' });
     const [error, setError] = useState<string | null>(null);

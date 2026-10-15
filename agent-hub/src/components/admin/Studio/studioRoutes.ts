@@ -1,13 +1,7 @@
 import { STUDIO_APPS } from './studioApps';
 import { STUDIO_START } from './studioStart';
 import { getRuntimeStudioApps } from '../../../moduleRuntime/registry';
-
-/** A parsed `app:<appId>:<screenId>:<nodeId>` reference. */
-export interface AppRef {
-    appId: string;
-    screenId: string;
-    nodeId: string;
-}
+import type { AppRef } from './AppStudio/inspector/appDefinition';
 
 /** The automation the Studio shell keeps `from` pinned to. */
 export interface StickyFrom {

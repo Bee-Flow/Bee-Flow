@@ -21,10 +21,10 @@ interface RuntimeInfo {
 /** What "Test connection" answers. */
 interface ProbeData {
     ok: boolean;
-    error?: string;
-    version?: string;
+    error?: string | null;
+    version?: string | null;
     modelCount?: number;
-    models?: { id: string; cat?: string }[];
+    models?: { id: string; name?: string; cat?: string }[];
 }
 
 /** What the form hands to onConnect. */

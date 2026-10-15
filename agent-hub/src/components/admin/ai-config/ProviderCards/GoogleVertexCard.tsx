@@ -14,7 +14,7 @@ const GoogleVertexConfigCard = ({ onMessage }: ProviderCardProps) => {
     const { config, saving, save, deleteKey, deleteSetting, patchConfig } = useProviderConfig({
         onMessage,
         onLoaded: data => {
-            if (data.googleVertexLocation) setLocation(data.googleVertexLocation as string);
+            if (data.googleVertexLocation) setLocation(data.googleVertexLocation);
         }
     });
     const hasProject = !!config?.hasGoogleVertexProject;
