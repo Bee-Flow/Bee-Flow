@@ -32,11 +32,12 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { HttpError, notFound, forbidden } = require('../../core/http/errors');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
-const { sheetTabsOf, newTabId } = require('../../stores/lib/sheetDocument');
+const { sheetTabsOf, newTabId, settingsWithTabs } = require('../../stores/lib/sheetDocument');
 const { sheetCsv, buildSheetWorkbook } = require('../../core/documents/sheetExport');
 
 const NAME_TEXT = 'name is the spreadsheet\'s name, at most 200 characters.';
@@ -209,7 +210,7 @@ function makeSheetRouter(deps = {}) {
         const tab = { id: newTabId(), name, datatableId: table.id };
         const nextTabs = [...tabs, tab];
         const updated = await documents().updateDocument(doc.id, actorContext(req), {
-            settings: { ...doc.settings, sheet: { tabs: nextTabs } },
+            settings: settingsWithTabs(doc.settings, nextTabs),
             expectedVersionId: doc.versionId,
         });
         if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
@@ -223,7 +224,7 @@ function makeSheetRouter(deps = {}) {
         if (idx === -1) throw new HttpError(404, 'sheet_tab_not_found', 'This tab does not exist.');
         tabs[idx] = { ...tabs[idx], name: req.body.name.trim() };
         const updated = await documents().updateDocument(doc.id, actorContext(req), {
-            settings: { ...doc.settings, sheet: { tabs: [...tabs] } },
+            settings: settingsWithTabs(doc.settings, [...tabs]),
             expectedVersionId: doc.versionId,
         });
         if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
@@ -238,7 +239,7 @@ function makeSheetRouter(deps = {}) {
         if (idx === -1) throw new HttpError(404, 'sheet_tab_not_found', 'This tab does not exist.');
         const [removed] = tabs.splice(idx, 1);
         const updated = await documents().updateDocument(doc.id, actorContext(req), {
-            settings: { ...doc.settings, sheet: { tabs: [...tabs] } },
+            settings: settingsWithTabs(doc.settings, [...tabs], removed.id),
             expectedVersionId: doc.versionId,
         });
         if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
@@ -261,6 +262,19 @@ function makeSheetRouter(deps = {}) {
     }));
 
     /**
+     * The charts of a sheet for its copy: new ids, pinned to the copied tabs;
+     * a chart pinned to a tab that no longer exists is left behind.
+     * @param {unknown} charts
+     * @param {Map<string, string>} tabIds
+     */
+    function copiedCharts(charts, tabIds) {
+        if (!Array.isArray(charts)) return [];
+        return charts
+            .filter((c) => c && typeof c === 'object' && (!c.tab || tabIds.has(c.tab)))
+            .map((c) => ({ ...c, id: `chart-${crypto.randomBytes(5).toString('hex')}`, ...(c.tab ? { tab: tabIds.get(c.tab) } : {}) }));
+    }
+
+    /**
      * POST /:id/duplicate for a spreadsheet: a new sheet of the caller's own,
      * in a new table of theirs, with the cells copied — never a second
      * document on the same table.
@@ -273,18 +287,26 @@ function makeSheetRouter(deps = {}) {
         try {
             const sourceTabs = sheetTabsOf(doc);
             const newTabs = [];
+            /** @type {Map<string, string>} old tab id → the copy's */
+            const tabIds = new Map();
             for (const t of sourceTabs) {
                 const table = await cells().createSheetTable({ ownerUserId: req.session.user.id, name: `${t.name} — copy` });
                 await cells().copyCells(doc.userId, t.datatableId, table.id, req.session.user.id);
-                newTabs.push({ id: newTabId(), name: t.name, datatableId: table.id });
+                const id = newTabId();
+                tabIds.set(t.id, id);
+                newTabs.push({ id, name: t.name, datatableId: table.id });
             }
+            // A copy looks like the original: its charts come along, pinned to
+            // the copied tabs (a chart pinned to no tab stays on every tab).
+            const charts = copiedCharts(doc.settings?.sheet?.charts, tabIds);
             const copy = await documents().createDocument({
                 userId: req.session.user.id, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId: null,
                 sheetTableId: newTabs[0].datatableId,
             });
-            if (newTabs.length > 1) {
+            if (newTabs.length > 1 || charts.length) {
+                const settings = settingsWithTabs(copy.settings, newTabs);
                 await documents().updateDocument(copy.id, actorContext(req), {
-                    settings: { ...copy.settings, sheet: { tabs: newTabs } },
+                    settings: { ...settings, sheet: { ...settings.sheet, ...(charts.length ? { charts } : {}) } },
                     expectedVersionId: copy.versionId,
                 });
             }

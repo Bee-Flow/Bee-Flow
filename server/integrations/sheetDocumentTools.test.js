@@ -112,6 +112,22 @@ test('createTab adds the named tab, then writes there; without it an unknown tab
     assert.deepStrictEqual(writes, [['owner', 'dt-new-1', { A1: 'Segment', B2: '=COUNTIF(Main!$A$1:$A$3,A2)' }]]);
 });
 
+test('a new tab with a chart keeps the charts the other tabs already have', async () => {
+    writes.length = 0; cells.created.length = 0;
+    const old = { id: 'c1', type: 'bar', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392, tab: 't1' };
+    // A store that saves what it is sent, no merge: what a writer leaves out is gone.
+    let stored = { ...doc, versionId: 'v1', settings: { sheet: { ...doc.settings.sheet, charts: [old] } } };
+    const documents = {
+        async getDocument() { return stored; },
+        async updateDocument(id, actor, u) { stored = { ...stored, settings: u.settings, versionId: `${stored.versionId}+` }; return stored; },
+    };
+    const out = await writeSheetDocument(stored, { tab: 'Dashboard', createTab: true, cells: { A1: 'Total', B2: '5' }, charts: [{ type: 'kpi', dataRange: 'B2', anchor: 'D2' }] }, { cells, documents });
+    assert.strictEqual(out.createdTab, true, JSON.stringify(out));
+    assert.strictEqual(out.charts, 1);
+    const dash = stored.settings.sheet.tabs.find((t) => t.name === 'Dashboard');
+    assert.deepStrictEqual(stored.settings.sheet.charts.map((c) => [c.type, c.tab]), [['bar', 't1'], ['kpi', dash.id]]);
+});
+
 test('a refused new tab drops its table and comes back as text', async () => {
     cells.created.length = 0; cells.dropped.length = 0;
     const documents = { async updateDocument() { throw new HttpError(403, 'document_owner_only', 'Only the owner can change this.'); } };

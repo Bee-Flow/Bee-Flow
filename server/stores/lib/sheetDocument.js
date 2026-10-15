@@ -36,6 +36,23 @@ function sheetTabsOf(doc) {
     return [];
 }
 
+/**
+ * The settings with a new tab list, everything else on the sheet kept (its
+ * charts above all: a writer that rebuilt `sheet` as `{ tabs }` relied on the
+ * store's merge to keep them). With `removedTabId`, the charts pinned to that
+ * tab go with it; a chart without a tab shows on every tab and stays.
+ * @param {any} settings
+ * @param {any[]} tabs
+ * @param {string | null} [removedTabId]
+ */
+function settingsWithTabs(settings, tabs, removedTabId = null) {
+    const sheet = settings?.sheet || {};
+    const charts = Array.isArray(sheet.charts) && removedTabId
+        ? { charts: sheet.charts.filter((/** @type {any} */ c) => c?.tab !== removedTabId) }
+        : {};
+    return { ...settings, sheet: { ...sheet, tabs, ...charts } };
+}
+
 
 
 /**
@@ -98,5 +115,5 @@ function sheetSettingsForCreate(settings, docType, sheetTableId, failure) {
 
 module.exports = {
     SHEET_DOC_TYPE, applySheetRules, keepSheetOnUpdate, sheetSettingsForCreate,
-    newTabId, singleTabSettings, sheetTabsOf,
+    newTabId, singleTabSettings, sheetTabsOf, settingsWithTabs,
 };

@@ -26,7 +26,7 @@
 
 const { HttpError } = require('../http/errors');
 const log = require('../../telemetry/log');
-const { newTabId } = require('../../stores/lib/sheetDocument');
+const { newTabId, settingsWithTabs } = require('../../stores/lib/sheetDocument');
 
 /** Tabs per workbook; more worksheets are skipped and reported. */
 const MAX_TABS = 20;
@@ -239,7 +239,7 @@ function makeSheetImport(deps = {}) {
                 // rest (and the real tab names) go in with a settings save.
                 try {
                     await documents().updateDocument(doc.id, { userId }, {
-                        settings: { ...(doc.settings || {}), sheet: { tabs } },
+                        settings: settingsWithTabs(doc.settings || {}, tabs),
                         ...(doc.versionId ? { expectedVersionId: doc.versionId } : {}),
                     });
                 } catch (e) {

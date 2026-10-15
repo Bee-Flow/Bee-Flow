@@ -14,7 +14,7 @@
 
 'use strict';
 
-const { sheetTabsOf, newTabId } = require('../stores/lib/sheetDocument');
+const { sheetTabsOf, newTabId, settingsWithTabs } = require('../stores/lib/sheetDocument');
 
 /** Cells per document_write call; the store takes 500 at a time, so a call is written in chunks. */
 const MAX_CELLS_PER_CALL = 5000;
@@ -81,7 +81,7 @@ async function addTab(doc, name, deps) {
     let updated = null;
     try {
         updated = await documents.updateDocument(doc.id, deps.actorUserId || doc.userId, {
-            settings: { ...doc.settings, sheet: { tabs: nextTabs } },
+            settings: settingsWithTabs(doc.settings, nextTabs),
             expectedVersionId: doc.versionId,
         });
     } catch (e) {
