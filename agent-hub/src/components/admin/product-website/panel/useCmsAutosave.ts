@@ -3,14 +3,22 @@
 // the panel (threaded in as arguments); this hook only groups the save
 // callbacks + lifecycle effects.
 import { useCallback, useEffect } from 'react';
+import type useCmsPanelState from './useCmsPanelState';
+import { messageOf, errorMessage } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 
+type PanelState = ReturnType<typeof useCmsPanelState>;
+
+interface AutosaveInput extends Pick<PanelState,
+    'activeSiteIdRef' | 'builderRunningRef' | 'pendingSaves' | 'saveTimerRef' | 'saveStatusTimer'
+    | 'inFlightSaveRef' | 'failedSavesRef' | 'setSaveStatus' | 'setError' | 'setDirtySincePublish'> {}
+
 export default function useCmsAutosave({
     activeSiteIdRef, builderRunningRef, pendingSaves, saveTimerRef, saveStatusTimer,
     inFlightSaveRef, failedSavesRef, setSaveStatus, setError, setDirtySincePublish,
-}) {
+}: AutosaveInput) {
     // ── auto-save (debounced) ────────────────────────────────────────
 
     const flushSaves = useCallback(async () => {
@@ -88,16 +96,16 @@ export default function useCmsAutosave({
         } catch (err) {
             // Keep the batch so the user can retry without retyping.
             failedSavesRef.current = batch;
-            setError(err.message);
+            setError(messageOf(err, ''));
             setSaveStatus('error');
-            toast.error(`Save failed: ${err.message}`);
+            toast.error(`Save failed: ${errorMessage(err)}`);
             return false; // let callers (publish) know the drain didn't land
         } finally {
             inFlightSaveRef.current = null;
         }
     }, [activeSiteIdRef, failedSavesRef, pendingSaves, inFlightSaveRef, setSaveStatus, setDirtySincePublish, saveStatusTimer, setError]);
 
-    const scheduleSave = useCallback((key, payload) => {
+    const scheduleSave = useCallback((key: string, payload: unknown) => {
         if (builderRunningRef.current) {
             // Stream lock: a human write raced the AI turn past the UI locks.
             // Dropping it is deliberate — the next draft event would overwrite
@@ -139,7 +147,7 @@ export default function useCmsAutosave({
             || !!failedSavesRef.current
             || !!inFlightSaveRef.current
             || !!saveTimerRef.current;
-        const onBeforeUnload = (e) => {
+        const onBeforeUnload = (e: BeforeUnloadEvent) => {
             if (!hasUnsaved()) return undefined;
             try { flushSaves(); } catch { /* browsers keep the request alive briefly on unload */ }
             e.preventDefault();

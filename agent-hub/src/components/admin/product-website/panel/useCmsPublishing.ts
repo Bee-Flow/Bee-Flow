@@ -2,11 +2,29 @@
 // default-locale switch of the ProductWebsitePanel container — moved
 // verbatim from ProductWebsitePanel.jsx. State stays owned by the panel.
 import { useCallback } from 'react';
+import type { CmsSiteDoc } from './cmsPanelTypes';
+import type useCmsAutosave from './useCmsAutosave';
+import type useCmsHistory from './useCmsHistory';
+import type useCmsPanelState from './useCmsPanelState';
+import { messageOf, errorMessage } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
 import { mutate } from '../../../../api/mutate';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { AI_LOCK_MSG } from './helpers';
+
+type PanelState = ReturnType<typeof useCmsPanelState>;
+type History = ReturnType<typeof useCmsHistory>;
+
+interface PublishingInput extends Pick<PanelState,
+    'activeSiteId' | 'activeSiteIdRef' | 'liveSiteId' | 'setLiveSiteId' | 'sites' | 'confirm' | 'builderRunningRef'
+    | 'saveTimerRef' | 'inFlightSaveRef' | 'failedSavesRef' | 'setPublishing' | 'setPublishedAt'
+    | 'setDirtySincePublish' | 'setError' | 'locales' | 'setDefaultLocale'> {
+    history: History['history'];
+    siteStateRef: History['siteStateRef'];
+    pagesStateRef: History['pagesStateRef'];
+    flushSaves: ReturnType<typeof useCmsAutosave>['flushSaves'];
+}
 
 export default function useCmsPublishing({
     history, siteStateRef, pagesStateRef,
@@ -14,12 +32,12 @@ export default function useCmsPublishing({
     saveTimerRef, inFlightSaveRef, failedSavesRef, flushSaves,
     setPublishing, setPublishedAt, setDirtySincePublish, setError,
     locales, setDefaultLocale,
-}) {
+}: PublishingInput) {
     // ── site chrome mutations ────────────────────────────────────────
 
     // The history object is rebuilt per render; its commit is a stable callback.
     const commitHistory = history.commit;
-    const updateSiteChrome = useCallback((nextSite) => {
+    const updateSiteChrome = useCallback((nextSite: CmsSiteDoc) => {
         commitHistory({ site: nextSite, pages: pagesStateRef.current });
     }, [commitHistory, pagesStateRef]);
 
@@ -28,7 +46,7 @@ export default function useCmsPublishing({
     // by a header edit (or vice versa) coalesces into ONE PUT carrying the
     // latest snapshot of both. Last-write-wins on the entire SiteDoc — no
     // separate /design endpoint, no race window.
-    const updateDesign = useCallback((nextDesign) => {
+    const updateDesign = useCallback((nextDesign: Record<string, unknown>) => {
         const prev = siteStateRef.current;
         if (!prev) return;
         commitHistory({ site: { ...prev, design: nextDesign }, pages: pagesStateRef.current });
@@ -36,7 +54,7 @@ export default function useCmsPublishing({
 
     // Analytics settings live on the site doc too — same coalesced
     // pendingSaves['site'] slot, same undo/redo history as chrome/design.
-    const updateSiteAnalytics = useCallback((nextAnalytics) => {
+    const updateSiteAnalytics = useCallback((nextAnalytics: Record<string, unknown>) => {
         const prev = siteStateRef.current;
         if (!prev) return;
         commitHistory({ site: { ...prev, analytics: nextAnalytics }, pages: pagesStateRef.current });
@@ -47,7 +65,7 @@ export default function useCmsPublishing({
     // Toggle whether *this* site (activeSiteId) is the live one. Only one
     // project can be live at a time; when another site is currently live
     // the user must confirm taking it offline before this one goes live.
-    const persistLive = async (next) => {
+    const persistLive = async (next: boolean) => {
         if (!activeSiteId) return;
         if (builderRunningRef.current) { toast.error(AI_LOCK_MSG); return; }
         if (next) {
@@ -71,7 +89,7 @@ export default function useCmsPublishing({
                 });
                 if (!res.ok) throw new Error(`Failed to set live (${res.status})`);
             } catch (err) {
-                toast.error(err.message);
+                toast.error(messageOf(err, ''));
                 setLiveSiteId(liveSiteId);   // roll back optimistic update
             }
         } else {
@@ -84,7 +102,7 @@ export default function useCmsPublishing({
                 });
                 if (!res.ok) throw new Error(`Failed to take site offline (${res.status})`);
             } catch (err) {
-                toast.error(err.message);
+                toast.error(messageOf(err, ''));
                 setLiveSiteId(liveSiteId);
             }
         }
@@ -126,7 +144,7 @@ export default function useCmsPublishing({
             setPublishedAt(data.publishedAt || new Date().toISOString());
             setDirtySincePublish(false);
         } catch (err) {
-            setError(err.message);
+            setError(messageOf(err, ''));
         } finally {
             setPublishing(false);
         }
@@ -134,7 +152,7 @@ export default function useCmsPublishing({
 
     // "Set as default locale" — an org-wide switch of the site's source
     // language; consequential enough to confirm (it flips translate mode).
-    const handleSetDefaultLocale = async (code) => {
+    const handleSetDefaultLocale = async (code: string) => {
         const name = locales.find(l => l.code === code)?.name || code;
         const ok = await confirm({
             title: `Make ${name} the default locale?`,
@@ -145,7 +163,7 @@ export default function useCmsPublishing({
         await persistDefaultLocale(code);
     };
 
-    const persistDefaultLocale = async (next) => {
+    const persistDefaultLocale = async (next: string) => {
         setDefaultLocale(next);
         try {
             await mutate(cmsApi.defaultLocale(), {
@@ -153,7 +171,7 @@ export default function useCmsPublishing({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ locale: next }),
             });
-        } catch (err) { toast.error(`Failed to set default locale: ${err.message}`); }
+        } catch (err) { toast.error(`Failed to set default locale: ${errorMessage(err)}`); }
     };
 
     return {

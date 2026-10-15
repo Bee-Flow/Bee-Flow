@@ -3,6 +3,21 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { toast } from '../../../../shared/Toast';
 import Toggle from '../../../../shared/Toggle';
 import { saveDirectChatGuardrails } from '../api/guardrailsApi';
+import { messageOf } from '../../../../../utils/caughtError';
+import type { RuleCollection } from '../patterns/patternTypes';
+
+/** The installation-wide direct-chat binding. */
+export interface DirectChatConfig {
+    enabled: boolean;
+    collectionIds: string[];
+}
+
+interface DirectChatViewProps {
+    collections: RuleCollection[];
+    directChat: DirectChatConfig;
+    setDirectChat: (config: DirectChatConfig) => void;
+    onSaved?: () => void;
+}
 
 /**
  * Regex collections applied to direct chat.
@@ -12,11 +27,11 @@ import { saveDirectChatGuardrails } from '../api/guardrailsApi';
  * installation. It is stored under `direct_chat_regex_guardrails`, not per org,
  * so an admin flipping it here changes direct chat for every tenant at once.
  */
-const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }) => {
+const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }: DirectChatViewProps) => {
     const { t } = useTranslation();
     const [saving, setSaving] = useState(false);
 
-    const toggleCollection = (id) => {
+    const toggleCollection = (id: string) => {
         const has = directChat.collectionIds.includes(id);
         setDirectChat({
             ...directChat,
@@ -33,7 +48,7 @@ const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }) => 
             toast.success(t('admin.guard_saved'));
             onSaved?.();
         } catch (e) {
-            toast.error(e.message || 'Failed to save');
+            toast.error(messageOf(e, 'Failed to save'));
         } finally {
             setSaving(false);
         }
@@ -68,7 +83,7 @@ const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }) => 
             <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 space-y-4">
                 <Toggle
                     checked={directChat.enabled}
-                    onChange={(v) => setDirectChat({ ...directChat, enabled: v })}
+                    onChange={(v: boolean) => setDirectChat({ ...directChat, enabled: v })}
                     label={t('admin.gr_directchat_enable', 'Apply regex collections to direct chat')}
                     description={t('admin.gr_directchat_enable_desc', 'Scan direct-chat messages in both directions and remove anything a selected collection matches.')}
                 />

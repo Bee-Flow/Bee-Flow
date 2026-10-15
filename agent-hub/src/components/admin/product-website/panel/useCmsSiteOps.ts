@@ -3,18 +3,37 @@
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in;
 // only the transient siteIoStatus lives here, still on the panel's fiber).
 import { useCallback, useState } from 'react';
+import type { CmsSiteListEntry } from './cmsPanelTypes';
+import type useCmsAutosave from './useCmsAutosave';
+import type useCmsPanelState from './useCmsPanelState';
+import { errorMessage, messageOf } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
 
+type PanelState = ReturnType<typeof useCmsPanelState>;
+
+/** Progress of a site export or import, shown under the site menu. */
+export interface SiteIoStatus {
+    kind: 'success' | 'error' | 'busy';
+    text: string;
+}
+
+interface SiteOpsInput extends Pick<PanelState,
+    'activeSiteIdRef' | 'setActiveSiteId' | 'setSites' | 'setLiveSiteId' | 'liveSiteId' | 'sites'
+    | 'confirm' | 'builderRunningRef' | 'saveTimerRef' | 'inFlightSaveRef'> {
+    flushSaves: ReturnType<typeof useCmsAutosave>['flushSaves'];
+    reloadPayload: () => Promise<unknown>;
+}
+
 export default function useCmsSiteOps({
     activeSiteIdRef, setActiveSiteId, setSites, setLiveSiteId, liveSiteId, sites,
     confirm, builderRunningRef, saveTimerRef, inFlightSaveRef, flushSaves, reloadPayload,
-}) {
+}: SiteOpsInput) {
     // ── site/project CRUD (multi-site switcher) ──────────────────────
 
-    const handleSwitchSite = useCallback(async (newSiteId) => {
+    const handleSwitchSite = useCallback(async (newSiteId: string) => {
         if (!newSiteId || newSiteId === activeSiteIdRef.current) return;
         if (builderRunningRef.current) { toast.error('The AI assistant is editing — press Stop in the assistant to take over.'); return; }
         // Drain any pending debounced saves so the edits land on the
@@ -33,7 +52,7 @@ export default function useCmsSiteOps({
         const res = await authFetch(cmsApi.listSites());
         if (!res.ok) return [];
         const data = await res.json();
-        const list = Array.isArray(data.sites) ? data.sites : [];
+        const list: CmsSiteListEntry[] = Array.isArray(data.sites) ? data.sites : [];
         setSites(list);
         // Server clears cms_live_site_id when the live project is deleted —
         // mirror that here so the toggle/indicator stay in sync without a
@@ -42,7 +61,7 @@ export default function useCmsSiteOps({
         return list;
     }, [setLiveSiteId, setSites]);
 
-    const handleCreateSite = useCallback(async (name) => {
+    const handleCreateSite = useCallback(async (name: string) => {
         try {
             const res = await authFetch(cmsApi.createSite(), {
                 method: 'POST',
@@ -55,12 +74,12 @@ export default function useCmsSiteOps({
             await handleSwitchSite(data.id);
             return data;
         } catch (err) {
-            toast.error(`Failed to create site: ${err.message}`);
+            toast.error(`Failed to create site: ${errorMessage(err)}`);
             return null;
         }
     }, [handleSwitchSite, refreshSites]);
 
-    const handleRenameSite = useCallback(async (siteId, name) => {
+    const handleRenameSite = useCallback(async (siteId: string, name: string) => {
         try {
             const res = await authFetch(cmsApi.site(siteId), {
                 method: 'PATCH',
@@ -75,7 +94,7 @@ export default function useCmsSiteOps({
             // If we renamed the active site, refresh its payload so the
             // header/displays pick up the new name.
             if (siteId === activeSiteIdRef.current) await reloadPayload();
-        } catch (err) { toast.error(`Rename failed: ${err.message}`); }
+        } catch (err) { toast.error(`Rename failed: ${errorMessage(err)}`); }
     }, [refreshSites, reloadPayload, activeSiteIdRef]);
 
     // ── Site export / import ────────────────────────────────────────
@@ -83,7 +102,7 @@ export default function useCmsSiteOps({
     // a temporary <a download> to trigger a file save dialog. We rely
     // on the Content-Disposition filename the server sets — falling
     // back to a generic name if the browser strips it.
-    const [siteIoStatus, setSiteIoStatus] = useState(null);   // { kind: 'success'|'error'|'busy', text }
+    const [siteIoStatus, setSiteIoStatus] = useState<SiteIoStatus | null>(null);   // { kind: 'success'|'error'|'busy', text }
 
     const handleExportSite = useCallback(async (format = 'zip') => {
         const siteId = activeSiteIdRef.current;
@@ -113,7 +132,7 @@ export default function useCmsSiteOps({
             setSiteIoStatus({ kind: 'success', text: 'Exported' });
             setTimeout(() => setSiteIoStatus(null), 2400);
         } catch (err) {
-            setSiteIoStatus({ kind: 'error', text: err.message || 'Export failed' });
+            setSiteIoStatus({ kind: 'error', text: messageOf(err, 'Export failed') });
         }
     }, [activeSiteIdRef]);
 
@@ -126,13 +145,13 @@ export default function useCmsSiteOps({
     //          before the zip existed is one of these — and the cheap
     //          client-side marker check gives a far better error than a
     //          round-trip for the common "wrong file" mistake.
-    const handleImportFileChosen = useCallback(async (file) => {
+    const handleImportFileChosen = useCallback(async (file: File | null | undefined) => {
         if (!file) return;
         if (builderRunningRef.current) { toast.error('The AI assistant is editing — press Stop in the assistant to take over.'); return; }
         const isZip = /\.zip$/i.test(file.name || '') || file.type === 'application/zip';
         setSiteIoStatus({ kind: 'busy', text: 'Importing…' });
 
-        let request;
+        let request: RequestInit;
         if (isZip) {
             const form = new FormData();
             form.append('file', file, file.name || 'site.zip');
@@ -181,13 +200,13 @@ export default function useCmsSiteOps({
             for (const w of warnings.slice(0, 3)) toast.error(w);
             setTimeout(() => setSiteIoStatus(null), bad ? 6000 : 2400);
         } catch (err) {
-            setSiteIoStatus({ kind: 'error', text: err.message || 'Import failed' });
+            setSiteIoStatus({ kind: 'error', text: messageOf(err, 'Import failed') });
         }
     }, [handleSwitchSite, refreshSites, builderRunningRef]);
 
     // Receives the full site object from SiteSwitcher (which no longer
     // confirms itself) — the shared ConfirmDialog names what's deleted.
-    const handleDeleteSite = useCallback(async (siteOrId) => {
+    const handleDeleteSite = useCallback(async (siteOrId: string | CmsSiteListEntry | null | undefined) => {
         const siteId = typeof siteOrId === 'string' ? siteOrId : siteOrId?.id;
         if (!siteId) return;
         const name = typeof siteOrId === 'object' ? siteOrId?.name : sites.find(s => s.id === siteId)?.name;
@@ -217,7 +236,7 @@ export default function useCmsSiteOps({
                     try { localStorage.removeItem(ACTIVE_SITE_LS_KEY); } catch { /* ignore */ }
                 }
             }
-        } catch (err) { toast.error(`Failed to delete site: ${err.message}`); }
+        } catch (err) { toast.error(`Failed to delete site: ${errorMessage(err)}`); }
     }, [handleSwitchSite, refreshSites, sites, confirm, activeSiteIdRef, setActiveSiteId]);
 
     // ── version management (multi-version per site) ──────────────────
@@ -248,13 +267,13 @@ export default function useCmsSiteOps({
             if (!res.ok) throw new Error(data.error || `Duplicate failed (${res.status})`);
             await refreshSites();
             if (data.id) await handleSwitchSite(data.id);
-        } catch (err) { toast.error(`Failed to duplicate version: ${err.message}`); }
+        } catch (err) { toast.error(`Failed to duplicate version: ${errorMessage(err)}`); }
     }, [flushSaves, refreshSites, handleSwitchSite, activeSiteIdRef, inFlightSaveRef, saveTimerRef]);
 
     // Make a specific version live. Only one site is live at a time
     // (cms_live_site_id), so this takes the previously-live one — sibling
     // or otherwise — offline. Optimistic with rollback on failure.
-    const handleSetLiveVersion = useCallback(async (siteId) => {
+    const handleSetLiveVersion = useCallback(async (siteId: string) => {
         if (!siteId || siteId === liveSiteId) return;
         // Same consequence as the Live toggle: making a version live takes
         // the currently-live site/version offline — confirm when one exists.
@@ -278,7 +297,7 @@ export default function useCmsSiteOps({
             });
             if (!res.ok) throw new Error(`Failed to set version live (${res.status})`);
         } catch (err) {
-            toast.error(err.message);
+            toast.error(messageOf(err, ''));
             setLiveSiteId(prevLive);
         }
     }, [liveSiteId, sites, confirm, setLiveSiteId]);
