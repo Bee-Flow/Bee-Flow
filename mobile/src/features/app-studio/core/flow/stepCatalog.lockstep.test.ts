@@ -32,7 +32,7 @@ interface WebCatalog {
     groupLabel: (group: string, t?: ((key: string, en: string) => string) | null) => string;
 }
 
-const web = loadWeb<WebCatalog>('flow/stepCatalog.js');
+const web = loadWeb<WebCatalog>('flow/stepCatalog.ts');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { STEP_KINDS } = require('../../../../../../server/appStudio/componentSpecs/actionSpecs.js') as { STEP_KINDS: string[] };
 

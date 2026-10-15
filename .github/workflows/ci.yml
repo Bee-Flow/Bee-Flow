@@ -164,7 +164,7 @@ jobs:
               - 'server/services/stripe/invoicesPromos.js'
               - 'server/utils/stableJson.js'
               - 'server/shared/appDefinition/{sectionStyle,ids,variables}.mjs'
-              - 'server/stores/agent/{agentTools,directConversations,initSchema}.js'
+              - 'server/stores/agent/{agentTools,directConversations,initSchema,initSchema.base,initSchema.agents}.js'
               - 'server/stores/automationStore/rowMappers.js'
               - 'server/stores/document/rowMappers.js'
               - 'server/automation/goLive.js'

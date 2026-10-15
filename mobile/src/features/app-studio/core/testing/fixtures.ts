@@ -38,7 +38,7 @@ export interface Samples {
 
 /** Every fixture by name: the web's samples, then WIRED and BROKEN. */
 export function allFixtures(): Record<string, AppDefinition> {
-    const samples = loadWeb<Samples>('state/sampleDefinitions.js');
+    const samples = loadWeb<Samples>('state/sampleDefinitions.ts');
     return {
         BLANK_APP: samples.BLANK_APP,
         KITCHEN_SINK: samples.KITCHEN_SINK,

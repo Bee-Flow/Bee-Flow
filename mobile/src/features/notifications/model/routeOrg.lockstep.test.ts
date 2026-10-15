@@ -1,6 +1,6 @@
 /**
  * The organisation deep links, held to the web's segment table
- * (agent-hub/src/authedApp/settingsRoutes.js) and to features/org's section
+ * (agent-hub/src/authedApp/settingsRoutes.ts) and to features/org's section
  * registry, so a segment the web adds or a section that moves goes red here.
  */
 
@@ -13,12 +13,12 @@ import { WEB_ONLY_ORG_SECTIONS, WEB_ORG_SECTIONS } from '@/features/org/model/se
 import { translateWebLink } from './route';
 import { ORG_SETTINGS_SEGMENTS, adminTarget, legacyOrgSettingsTarget } from './routeOrg';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/authedApp/settingsRoutes.js');
+const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/authedApp/settingsRoutes.ts');
 
 /** SETTINGS_ORG_ID_TO_URL as [id, segment] pairs, in the web's order. */
 function webOrgSegments(): [string, string][] {
     const src = fs.readFileSync(WEB, 'utf8');
-    const body = /export const SETTINGS_ORG_ID_TO_URL\s*=\s*\{([\s\S]*?)\};/.exec(src)?.[1] ?? '';
+    const body = /export const SETTINGS_ORG_ID_TO_URL(?::[^=]+)?\s*=\s*\{([\s\S]*?)\};/.exec(src)?.[1] ?? '';
     return [...body.matchAll(/(\w+):\s*'([^']+)'/g)].map((m) => [m[1] as string, m[2] as string]);
 }
 
