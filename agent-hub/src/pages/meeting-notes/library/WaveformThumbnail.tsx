@@ -1,12 +1,19 @@
 import React, { useEffect, useRef } from 'react';
 
+interface WaveformThumbnailProps {
+    id?: string;
+    bars?: number;
+    height?: number;
+    color?: string;
+}
+
 /**
  * Deterministic pseudo-waveform thumbnail derived from the meeting id. Cheap,
  * never re-fetches audio for the library view (we'd rather render instantly
  * than block the grid on hundreds of audio decodes).
  */
-export default function WaveformThumbnail({ id = '', bars = 40, height = 40, color = 'var(--accent-primary)' }) {
-    const canvasRef = useRef(null);
+export default function WaveformThumbnail({ id = '', bars = 40, height = 40, color = 'var(--accent-primary)' }: WaveformThumbnailProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         const c = canvasRef.current;
@@ -42,7 +49,7 @@ export default function WaveformThumbnail({ id = '', bars = 40, height = 40, col
     );
 }
 
-function hashSeed(s) {
+function hashSeed(s: string): number {
     let h = 2166136261;
     for (let i = 0; i < s.length; i++) {
         h ^= s.charCodeAt(i);
@@ -51,7 +58,7 @@ function hashSeed(s) {
     return Math.abs(h) || 1;
 }
 
-function pseudoRand(n) {
+function pseudoRand(n: number): number {
     const x = Math.sin(n * 12.9898) * 43758.5453;
     return Math.abs(x - Math.floor(x));
 }

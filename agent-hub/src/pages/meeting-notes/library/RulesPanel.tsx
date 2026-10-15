@@ -17,6 +17,7 @@ import {
     runCountOf,
     triggerConditionOf,
 } from '../lib/meetingRules';
+import type { TranslateFn, RuleRow, RuleError, RuleIdea, SuggestDone, RulesState, RunFacets, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RunLabelInput, RuleFooterProps, RuleCardProps, ComposerProps, RulesPanelProps, TriggerCondition, Consequences } from './RulesPanel.types';
 
 /**
  * "Rules" (Regels) — de automations die op een AFGERONDE vergadernotitie
@@ -69,8 +70,7 @@ const RANGE_HOURS = 24;
 // Hoeveel ideeën de composer toont. De server levert er hoogstens zes
 // (SUGGEST_MAX_SUGGESTIONS); in een rail van 300px zijn er drie genoeg.
 const MAX_IDEAS = 3;
-
-const list = (v) => (Array.isArray(v) ? v : []);
+const list = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
 
 /**
  * De licentiepoort spreekt in MACHINETOKENS, niet in Engelse zinnen.
@@ -85,7 +85,7 @@ const list = (v) => (Array.isArray(v) ? v : []);
  */
 const LICENCE_TOKENS = new Set(['feature_locked', 'tier_required', 'license_required', 'licence_required']);
 
-export function licenceMessage(err, t) {
+export function licenceMessage(err: RuleError | null | undefined, t: TranslateFn): string | null {
     const message = String(err?.message || err || '').trim();
     const locked = LICENCE_TOKENS.has(message)
         || err?.code === 'feature_locked' || err?.code === 'tier_required'
@@ -109,7 +109,7 @@ export function licenceMessage(err, t) {
  * app_event-event is voor de validator een WARNING, geen error, dus zo'n
  * definitie slaat op, verschijnt hier, en vuurt nooit.
  */
-export function conditionSentence(condition, t) {
+export function conditionSentence(condition: TriggerCondition, t: TranslateFn): string | null {
     if (!condition) return null;
     const tags = list(condition.tags);
     if (!condition.onlyProcessed) {
@@ -134,11 +134,11 @@ export function conditionSentence(condition, t) {
  * is per taal anders, en de scheider is hier hetzelfde teken dat de rest van
  * dit product tussen feiten zet (AutomationTile).
  */
-export function consequenceParts(consequences, t) {
+export function consequenceParts(consequences: Consequences, t: TranslateFn): string[] {
     if (!consequences || consequences.readable === false) {
         return [t('meetings.rules_steps_unreadable', 'its steps could not be read')];
     }
-    const parts = [];
+    const parts: string[] = [];
     if (consequences.kb) parts.push(t('meetings.rules_does_kb', 'files it in a knowledge base'));
     if (consequences.notify) parts.push(t('meetings.rules_does_notify', 'sends a notification'));
     if (consequences.table) parts.push(t('meetings.rules_does_table', 'writes a row to a datatable'));
@@ -172,7 +172,7 @@ export function consequenceParts(consequences, t) {
  * en staat de automatisering niet in de facetten, dan is dat een echte nul over een
  * echt bereik en zegt de zin dat óók met zoveel woorden.
  */
-export function runLabel({ facets, facetsError, automationId, hours }, t) {
+export function runLabel({ facets, facetsError, automationId, hours }: RunLabelInput, t: TranslateFn): string | null {
     if (facetsError || !facets) return null;
     const n = runCountOf(facets, automationId);
     // NULL is hier "niemand heeft geteld" (geen automationId-map in het
@@ -216,7 +216,7 @@ const smallButton = 'inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[1
  * naar `isDraft`), en `crud.js` rekent om dezelfde reden `live = isActive &&
  * !isDraft`.
  */
-function StateChip({ row, t }) {
+function StateChip({ row, t }: { row: RuleRow; t: TranslateFn }) {
     // `undefined` is geen "uit": een rij zonder deze kolommen krijgt geen chip.
     if (typeof row?.isActive !== 'boolean' && typeof row?.isDraft !== 'boolean') return null;
     const status = automationStatus(row);
@@ -242,7 +242,7 @@ function StateChip({ row, t }) {
 }
 
 /** De regel onder de zin: wiens runs het zijn, en of hij te openen is. */
-function RuleFooter({ row, runs, open, onOpen, t }) {
+function RuleFooter({ row, runs, open, onOpen, t }: RuleFooterProps) {
     return (
         <div className="flex items-center justify-between gap-2 min-w-0">
             <span className="text-[11px] truncate text-[var(--text-tertiary)]" data-testid="rule-runs">
@@ -267,7 +267,7 @@ function RuleFooter({ row, runs, open, onOpen, t }) {
     );
 }
 
-export function RuleCard({ row, facets, facetsError, hours, currentUserId, onOpen, t }) {
+export function RuleCard({ row, facets, facetsError, hours, currentUserId, onOpen, t }: RuleCardProps) {
     const condition = triggerConditionOf(row?.definition);
     const parts = consequenceParts(consequencesOf(row?.definition), t);
     const runs = runLabel({ facets, facetsError, automationId: row?.id, hours }, t);
@@ -316,7 +316,7 @@ export function RuleCard({ row, facets, facetsError, hours, currentUserId, onOpe
 
 /* ── de composer ─────────────────────────────────────────────────────── */
 
-function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }) {
+function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }: ComposerProps) {
     return (
         <div className="mx-3 mb-2 px-2.5 py-2 rounded-lg border flex flex-col gap-1.5 border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <label className="text-[11px] text-[var(--text-tertiary)]" htmlFor="meeting-rules-composer">
@@ -326,7 +326,7 @@ function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }) {
                 id="meeting-rules-composer"
                 type="text"
                 value={text}
-                onChange={(e) => onText(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onText(e.target.value)}
                 placeholder={t('meetings.rules_ai_placeholder', 'put the decisions in the sales knowledge base')}
                 className="w-full px-2 py-1 rounded-md border text-[12px]"
                 style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
@@ -357,7 +357,7 @@ function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }) {
                             : t('meetings.rules_ai_empty', 'The scan ran and came back with nothing.')}
                 </div>
             )}
-            {ideas.items.map((idea, i) => (
+            {ideas.items.map((idea: RuleIdea, i: number) => (
                 <div key={idea?.id ?? `idea-${i}`} className="px-2 py-1.5 rounded-md border flex flex-col gap-1 border-[var(--border-subtle)] bg-[var(--bg-card)]" data-testid="rules-idea">
                     <span className="text-[12px] font-medium text-[var(--text-primary)]">{idea?.title}</span>
                     {idea?.description && (
@@ -383,50 +383,50 @@ export default function RulesPanel({
     onNavigate = null,
     onComposeRule = null,
     onRulesChange = null,
-}) {
+}: RulesPanelProps) {
     const { t } = useTranslation();
     const api = useAutomationApi();
 
-    const [rules, setRules] = useState({ loading: true, error: null, rows: null });
-    const [runs, setRuns] = useState({ loading: true, error: null, facets: null, hours: RANGE_HOURS });
+    const [rules, setRules] = useState<RulesState>({ loading: true, error: null, rows: null });
+    const [runs, setRuns] = useState<RunsState>({ loading: true, error: null, facets: null, hours: RANGE_HOURS });
     const [creating, setCreating] = useState(false);
-    const [createError, setCreateError] = useState(null);
+    const [createError, setCreateError] = useState<string | null>(null);
 
     const [composerOpen, setComposerOpen] = useState(false);
     const [composerText, setComposerText] = useState('');
     // `ran` scheidt "nog niet gevraagd" van "gevraagd en niets gekregen" — de
     // banner hieronder gaat alleen over dat tweede.
-    const [ideas, setIdeas] = useState({ busy: false, ran: false, error: null, reason: null, items: [] });
-    const abortRef = useRef(null);
+    const [ideas, setIdeas] = useState<IdeasState>({ busy: false, ran: false, error: null, reason: null, items: [] });
+    const abortRef = useRef<AbortController | null>(null);
 
     const loadRules = useCallback(async () => {
-        setRules(s => ({ ...s, loading: true, error: null }));
+        setRules((s: RulesState) => ({ ...s, loading: true, error: null }));
         try {
-            const body = await api.listAutomations({ triggerProvider: RULE_TRIGGER_PROVIDER });
+            const body = await api.listAutomations<{ automations?: RuleRow[] }>({ triggerProvider: RULE_TRIGGER_PROVIDER });
             setRules({ loading: false, error: null, rows: list(body?.automations) });
         } catch (err) {
             // Geen lege lijst bij een fout: "geen regels" en "ik kon het niet
             // lezen" zijn verschillende antwoorden.
-            setRules({ loading: false, error: err, rows: null });
+            setRules({ loading: false, error: err as RuleError, rows: null });
         }
     }, [api]);
 
     const loadRuns = useCallback(async () => {
-        setRuns(s => ({ ...s, loading: true, error: null }));
+        setRuns((s: RunsState) => ({ ...s, loading: true, error: null }));
         try {
             // `mode: 'live'` — een DRY-RUN is geen run die vanzelf draait, en de
             // kop van dit paneel zegt precies dat ("What runs by itself once a
             // meeting note is ready"). Zonder mode telt `parseRunFilters` alle
             // modi mee, terwijl de store-helper die dezelfde vraag elders
             // beantwoordt wél `mode = 'live'` als default kiest.
-            const body = await api.getRunFacets({ range: RANGE_HOURS, mode: 'live' });
+            const body = (await api.getRunFacets({ range: RANGE_HOURS, mode: 'live' })) as RunFacetsBody;
             // De server klemt `range` op [1,720] en kan dus een ANDER venster
             // terugmelden dan gevraagd; de zin noemt dat getal, dus hij komt uit
             // het antwoord en niet uit de constante.
-            const hours = Number.isFinite(body?.rangeHours) ? body.rangeHours : RANGE_HOURS;
+            const hours = Number.isFinite(body?.rangeHours) ? (body.rangeHours as number) : RANGE_HOURS;
             setRuns({ loading: false, error: null, facets: body?.facets ?? null, hours });
         } catch (err) {
-            setRuns({ loading: false, error: err, facets: null, hours: RANGE_HOURS });
+            setRuns({ loading: false, error: err as RuleError, facets: null, hours: RANGE_HOURS });
         }
     }, [api]);
 
@@ -445,16 +445,16 @@ export default function RulesPanel({
     const ruleCount = rows ? rows.length : null;
     useEffect(() => { onRulesChange?.(ruleCount); }, [ruleCount, onRulesChange]);
 
-    const openRule = useCallback((id) => {
+    const openRule = useCallback((id: string) => {
         const href = ruleHref(id);
         if (href && typeof onNavigate === 'function') onNavigate(href);
     }, [onNavigate]);
 
-    const createRule = useCallback(async ({ title, description } = {}) => {
+    const createRule = useCallback(async ({ title, description }: { title?: string; description?: string } = {}) => {
         setCreating(true);
         setCreateError(null);
         try {
-            const created = await api.createAutomation({
+            const created = await api.createAutomation<CreatedAutomation>({
                 title: title || 'New meeting rule',
                 description: description || 'Runs when a meeting note is ready.',
                 triggerType: 'app_event',
@@ -464,7 +464,7 @@ export default function RulesPanel({
             await loadRules();
             if (id) openRule(id);
         } catch (err) {
-            setCreateError(licenceMessage(err, t) || String(err?.message || err));
+            setCreateError(licenceMessage(err as RuleError, t) || String((err as RuleError)?.message || err));
         } finally {
             setCreating(false);
         }
@@ -475,7 +475,7 @@ export default function RulesPanel({
         const controller = new AbortController();
         abortRef.current = controller;
         setIdeas({ busy: true, ran: false, error: null, reason: null, items: [] });
-        let done = null;
+        let done = null as SuggestDone | null;
         try {
             await api.suggestAutomationsStream(
                 // Geen integratiekeuze: leeg betekent server-side "alles wat
@@ -483,14 +483,14 @@ export default function RulesPanel({
                 // Ideas mode: the model proposes rules; the default pattern
                 // scan only reports work the user already repeats.
                 { mode: 'ideas', integrationIds: [], focus: composerSeed(composerText) },
-                (event, data) => {
-                    if (event === 'done') done = data;
-                    else if (event === 'error') setIdeas(s => ({ ...s, error: data?.error || null }));
+                (event: string, data: unknown) => {
+                    if (event === 'done') done = data as SuggestDone;
+                    else if (event === 'error') setIdeas((s: IdeasState) => ({ ...s, error: (data as { error?: string })?.error || null }));
                 },
                 controller.signal,
             );
             const items = list(done?.suggestions).slice(0, MAX_IDEAS);
-            setIdeas(s => ({
+            setIdeas((s: IdeasState) => ({
                 busy: false,
                 ran: true,
                 error: s.error
@@ -505,20 +505,20 @@ export default function RulesPanel({
             }));
         } catch (err) {
             if (controller.signal.aborted) return;
-            const retry = Number(err?.retryAfter);
+            const retry = Number((err as RuleError)?.retryAfter);
             setIdeas({
                 busy: false,
                 ran: true,
                 reason: null,
                 items: [],
-                error: err?.status === 429 || Number.isFinite(retry)
+                error: (err as RuleError)?.status === 429 || Number.isFinite(retry)
                     ? t('meetings.rules_ai_busy', 'Too many scans just now — try again in a moment.')
-                    : (err?.message || t('meetings.rules_ai_failed', 'Could not come up with ideas right now.')),
+                    : ((err as RuleError)?.message || t('meetings.rules_ai_failed', 'Could not come up with ideas right now.')),
             });
         }
     }, [api, composerText, t]);
 
-    const startIdea = useCallback((suggestion) => {
+    const startIdea = useCallback((suggestion: RuleIdea) => {
         // De composer LEVERT een spec, hij bouwt niets: de aanroeper mag hem in
         // de bouw-assistent laten vallen. Kan die dat niet, dan blijft er iets
         // bruikbaars over — een concept met de juiste trigger, de titel en de
@@ -562,7 +562,7 @@ export default function RulesPanel({
                     {creating ? t('meetings.rules_new_busy', 'Making it…') : t('meetings.rules_new', 'Rule')}
                 </button>
                 <button
-                    type="button" onClick={() => setComposerOpen(v => !v)} disabled={creating}
+                    type="button" onClick={() => setComposerOpen((v: boolean) => !v)} disabled={creating}
                     aria-expanded={composerOpen}
                     className={smallButton}
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
@@ -627,7 +627,7 @@ export default function RulesPanel({
                     </div>
                 )}
 
-                {list(rows).map((row) => (
+                {list(rows).map((row: RuleRow) => (
                     <RuleCard
                         key={row.id}
                         row={row}

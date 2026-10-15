@@ -3,7 +3,11 @@ import { Mic } from 'lucide-react';
 import EmptyState from '../../../components/shared/EmptyState';
 import useTranslation from '../../../hooks/useTranslation';
 
-export default function LibraryEmptyState({ onCapture }) {
+interface LibraryEmptyStateProps {
+    onCapture: () => void;
+}
+
+export default function LibraryEmptyState({ onCapture }: LibraryEmptyStateProps) {
     const { t } = useTranslation();
     return (
         <EmptyState

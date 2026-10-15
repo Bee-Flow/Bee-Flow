@@ -15,6 +15,20 @@
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** What a calendar payload carries for a moment: an ISO string, a Date, or nothing. */
+export type WhenInput = string | Date | null | undefined;
+
+export interface ParsedWhen {
+    date: Date;
+    dateOnly: boolean;
+}
+
+export interface DateBlockParts {
+    weekday: string;
+    day: string;
+    month: string;
+}
+
 /**
  * Eén agendamoment. Geeft `{ date, dateOnly }` of NULL als er niets bruikbaars
  * staat — `null` betekent hier "onbekend", nooit "nu".
@@ -25,7 +39,7 @@ const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
  * vroeg op het scherm komt. Daarom parsen we hem als LOKALE middernacht en
  * markeren we hem als `dateOnly`: er staat een dag in, geen tijdstip.
  */
-export function parseWhen(value) {
+export function parseWhen(value: WhenInput): ParsedWhen | null {
     if (!value) return null;
     if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : { date: value, dateOnly: false };
     const s = String(value).trim();
@@ -44,7 +58,7 @@ export function parseWhen(value) {
  * onbekend bij: een ontbrekende of onleesbare kant, een hele-dag-afspraak (een
  * datum is geen lengte) en een einde dat niet ná het begin ligt.
  */
-export function meetingDurationMinutes(start, end) {
+export function meetingDurationMinutes(start: WhenInput, end: WhenInput): number | null {
     const s = parseWhen(start);
     const e = parseWhen(end);
     if (!s || !e) return null;
@@ -54,7 +68,7 @@ export function meetingDurationMinutes(start, end) {
 }
 
 /** `do 12 sep` in stukken voor het datumblok, of NULL zonder begintijd. */
-export function dateBlockParts(start) {
+export function dateBlockParts(start: WhenInput): DateBlockParts | null {
     const when = parseWhen(start);
     if (!when) return null;
     return {
@@ -64,10 +78,10 @@ export function dateBlockParts(start) {
     };
 }
 
-const hhmm = (d) => d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+const hhmm = (d: Date) => d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
 /** `14:00–15:00`, `14:00`, of '' — een hele dag heeft geen tijdvak. */
-export function timeRange(start, end) {
+export function timeRange(start: WhenInput, end: WhenInput): string {
     const s = parseWhen(start);
     if (!s || s.dateOnly) return '';
     const e = parseWhen(end);

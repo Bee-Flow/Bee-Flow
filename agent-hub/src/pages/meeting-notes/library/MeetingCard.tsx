@@ -3,8 +3,15 @@ import { Clock, Users, ListChecks, Share2, AlertTriangle, Loader2 } from 'lucide
 import WaveformThumbnail from './WaveformThumbnail';
 import { formatDuration, formatRelativeDate } from '../lib/format';
 import { getSourceMeta } from '../lib/sourceMeta';
+import type { LibraryMeeting } from './MeetingRow';
 
-export default function MeetingCard({ meeting, active, onClick }) {
+interface MeetingCardProps {
+    meeting: LibraryMeeting & { speakerCount: number };
+    active: boolean;
+    onClick: () => void;
+}
+
+export default function MeetingCard({ meeting, active, onClick }: MeetingCardProps) {
     const status = meeting.status || 'completed';
     const sourceMeta = getSourceMeta(meeting.source);
     const actionItems = Array.isArray(meeting.actionItems) ? meeting.actionItems.length : 0;
@@ -26,7 +33,7 @@ export default function MeetingCard({ meeting, active, onClick }) {
                 borderColor: active ? 'var(--accent-primary)' : 'var(--border-default)',
                 color: 'var(--text-primary)',
                 '--tw-ring-color': 'var(--accent-primary)',
-            }}
+            } as React.CSSProperties}
         >
             <div className="px-4 pt-4 pb-2">
                 <WaveformThumbnail id={meeting.id} bars={40} height={48} color={active ? 'var(--accent-primary)' : 'var(--text-muted)'} />
@@ -72,7 +79,7 @@ export default function MeetingCard({ meeting, active, onClick }) {
                 </div>
                 {Array.isArray(meeting.tags) && meeting.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
-                        {meeting.tags.slice(0, 3).map((tag) => (
+                        {meeting.tags.slice(0, 3).map((tag: string) => (
                             <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                 {tag}
                             </span>
