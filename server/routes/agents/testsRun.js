@@ -7,6 +7,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const agentStore = require('../../stores/agentStore');
 const { getUserAuth } = require('../../utils/routeHelpers');
 const { setupSSE, startSseHeartbeat } = require('../../core/http/sseHelpers');
@@ -128,7 +129,7 @@ async function runTests(req, res) {
             return res.status(400).json({ error: 'There is nothing to run yet — add a question first.', code: 'no_tests' });
         }
 
-        const workspace = await resolveOrgOrRefuse(req, res);
+        const workspace = await resolveOrgOrRefuse(req);
         if (!workspace) return;
         const { orgId, orgIdSet } = workspace;
 
@@ -148,7 +149,7 @@ async function runTests(req, res) {
         const userAuth = await getUserAuth(req);
         // The grading call sends the agent's ANSWER to this model, so "which
         // model" is the whole question.
-        const gradeModelId = await resolveFastTierOrRefuse(res, { orgId, userId, what: GRADER_MODEL });
+        const gradeModelId = await resolveFastTierOrRefuse({ orgId, userId, what: GRADER_MODEL });
         if (!gradeModelId) return;
 
         const info = versionInfo(gate.views);
@@ -283,13 +284,14 @@ async function runTests(req, res) {
         if (stopHeartbeat) stopHeartbeat();
         return res.end();
     } catch (err) {
-        log.error('[agents/tests] run error:', err);
+        if (!(err instanceof HttpError)) log.error('[agents/tests] run error:', err);
         if (stopHeartbeat) stopHeartbeat();
         if (headersSent) {
             sendEvent('error', { error: err.message, code: 'run_failed' });
             return res.end();
         }
-        return res.status(500).json({ error: 'Could not run these tests' });
+        if (err instanceof HttpError) throw err;
+        throw new HttpError(500, 'run_failed', 'Could not run these tests');
     }
 }
 

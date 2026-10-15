@@ -26,7 +26,7 @@ const AudioQuery = z.object({ download: flag(DOWNLOAD_TEXT) }).strict();
 
 // ── Serve audio file for playback ────────────────────────
 
-router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (req, res) => {
+router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (req, res, next) => {
     const userId = req.session.user.id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
@@ -79,7 +79,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
                         res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${total}`);
                     }
                     if (contentLength) res.setHeader('Content-Length', String(contentLength));
-                    stream.on('error', () => { if (!res.headersSent) res.status(500).end(); else res.destroy(); });
+                    stream.on('error', next);
                     stream.pipe(res);
                     return;
                 } catch (e) {

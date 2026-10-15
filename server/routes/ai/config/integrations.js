@@ -5,7 +5,7 @@
  */
 
 const express = require('express');
-const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
@@ -670,8 +670,7 @@ router.get('/mcp-registry/search', requireAuth, requireMcp, validate({ query: Re
         mcpRegistryCache.set(cacheKey, payload);
         res.json(payload);
     } catch (err) {
-        log.error('[MCP] Registry search error:', err);
-        res.status(502).json({ error: 'mcp_registry_unavailable', detail: err.message });
+        throw new HttpError(502, 'mcp_registry_unavailable', 'mcp_registry_unavailable');
     }
 });
 

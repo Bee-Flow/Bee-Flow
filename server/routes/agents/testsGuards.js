@@ -8,6 +8,7 @@
 
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const agentStore = require('../../stores/agentStore');
 const { resolveUserOrgIds } = require('../../auth');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
@@ -86,7 +87,7 @@ function versionInfo(views) {
  *          `orgId: null` after a SUCCESSFUL resolve means super admin; a failed
  *          resolve never gets here, so the two cannot be confused.
  */
-async function resolveOrgOrRefuse(req, res) {
+async function resolveOrgOrRefuse(req) {
     try {
         const orgIds = await resolveUserOrgIds(req, { strict: true });
         return {
@@ -95,11 +96,7 @@ async function resolveOrgOrRefuse(req, res) {
         };
     } catch (e) {
         log.error('[agents/tests] could not resolve the workspace:', e.message);
-        res.status(503).json({
-            error: 'Could not check your workspace right now. Try again.',
-            code: 'org_check_failed',
-        });
-        return null;
+        throw new HttpError(503, 'org_check_failed', 'Could not check your workspace right now. Try again.');
     }
 }
 
@@ -122,11 +119,7 @@ async function checkPlanOrRefuse(res, { orgId, userId }) {
         return true;
     } catch (e) {
         log.error('[agents/tests] subscription check failed:', e.message);
-        res.status(503).json({
-            error: 'Could not check your plan limits right now. Try again.',
-            code: 'limit_check_failed',
-        });
-        return false;
+        throw new HttpError(503, 'limit_check_failed', 'Could not check your plan limits right now. Try again.');
     }
 }
 
@@ -144,19 +137,17 @@ async function checkPlanOrRefuse(res, { orgId, userId }) {
  *
  * @returns {Promise<string|null>} null once answered.
  */
-async function resolveFastTierOrRefuse(res, { orgId, userId, what }) {
+async function resolveFastTierOrRefuse({ orgId, userId, what }) {
     let modelId = null;
     try {
         const { resolveModelForTierName } = require('../../core/llm/modelResolver');
         modelId = await resolveModelForTierName('fast', { userOrgId: orgId, userId });
     } catch (e) {
         log.error(`[agents/tests] ${what.label} model unreadable:`, e.message);
-        res.status(503).json({ error: what.unreadableError, code: what.unreadableCode });
-        return null;
+        throw new HttpError(503, what.unreadableCode, what.unreadableError);
     }
     if (!modelId) {
-        res.status(503).json({ error: what.missingError, code: what.missingCode });
-        return null;
+        throw new HttpError(503, what.missingCode, what.missingError);
     }
     return modelId;
 }

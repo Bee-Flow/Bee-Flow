@@ -61,6 +61,7 @@ const multer = require('multer');
 const { z, typeError } = require('../../utils/zod');
 const { orEmpty } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
@@ -314,8 +315,7 @@ router.get('/availability', requireAuth, async (req, res) => {
             defaultModel: DEFAULT_LLM_MODEL,
         });
     } catch (err) {
-        log.error('[Voice] availability error:', err);
-        res.status(500).json({ enabled: false, reason: 'error' });
+        throw new HttpError(500, 'availability_failed', 'Could not check voice availability.');
     }
 });
 

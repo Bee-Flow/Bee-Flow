@@ -96,6 +96,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -381,13 +382,13 @@ router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLim
     }
     const toolsUsed = req.body.toolsUsed || [];
 
-    const workspace = await resolveOrgOrRefuse(req, res);
+    const workspace = await resolveOrgOrRefuse(req);
     if (!workspace) return;
     const { orgId } = workspace;
     // One model call, but it is still inference on somebody's plan.
     if (!(await checkPlanOrRefuse(res, { orgId, userId: gate.userId }))) return;
 
-    const modelId = await resolveFastTierOrRefuse(res, { orgId, userId: gate.userId, what: SUGGEST_MODEL });
+    const modelId = await resolveFastTierOrRefuse({ orgId, userId: gate.userId, what: SUGGEST_MODEL });
     if (!modelId) return;
 
     const startMs = Date.now();
@@ -413,10 +414,7 @@ router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLim
         // one outcome this route may not produce: the test would then
         // guard something neither a person nor a model wrote down. The tab
         // opens an empty form instead — the person writes it themselves.
-        return res.status(503).json({
-            error: 'Could not write a suggestion for this answer.',
-            code: 'suggestion_unreadable',
-        });
+        throw new HttpError(503, 'suggestion_unreadable', 'Could not write a suggestion for this answer.');
     }
 
     res.json({ suggestion, suggestedBy: suggestion.suggestedBy, model: modelId });
