@@ -219,6 +219,23 @@ function ActionRow({ action, app, on, readOnly, showEffect, txt, onToggle }) {
     );
 }
 
+/**
+ * @typedef {{ name?: string, label?: string, description?: string, [key: string]: unknown }} PickerAction
+ * @typedef {{ id?: string, label?: string, actions?: PickerAction[], [key: string]: unknown }} PickerApp
+ */
+
+/**
+ * @param {{
+ *   apps?: PickerApp[],
+ *   selected?: string[],
+ *   selection?: Map<string | undefined, unknown> | Record<string, unknown> | null,
+ *   onToggle?: (name: string) => void,
+ *   onToggleApp?(app: PickerApp, on: boolean, visibleActions?: PickerAction[] | null): void,
+ *   onClose?: () => void, title?: string, emptyLabel?: string,
+ *   footer?: import('react').ReactNode, unavailableHint?: string,
+ *   focusAppId?: string | null, readOnly?: boolean, text?: Record<string, string> | null,
+ * }} props
+ */
 export default function AppActionPicker({
     apps = [],
     selected = [],
