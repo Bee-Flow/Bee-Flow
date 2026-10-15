@@ -338,11 +338,11 @@ jobs:
               - 'agent-hub/src/utils/{bindingHelpers,scopedStorage}.*'
               - 'agent-hub/src/hooks/useUpstreamVariables.ts'
               - 'agent-hub/src/api/client.*'
-              - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{themeVars.js,uiBits.jsx}'
+              - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{resolveBinding.ts,resolveBinding.types.ts,themeVars.js,uiBits.jsx}'
               - 'agent-hub/src/components/admin/security/guardrails/Info.jsx'
               - 'agent-hub/src/components/automation/Builder/BuilderConfirmContext.tsx'
               - 'agent-hub/src/components/forms/{PublicFormRenderer.tsx,PublicFormRenderer.types.ts,resultFile.ts}'
-              - 'agent-hub/src/components/shared/{AnchoredMenu.jsx,illustrations.tsx}'
+              - 'agent-hub/src/components/shared/{AnchoredMenu.tsx,illustrations.tsx}'
               - 'agent-hub/src/hooks/{useAutomationApi.ts,useTranslation.tsx}'
               - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,copyText.ts,helpers.js,sseStream.js,storageMigrations.ts}'
             python:

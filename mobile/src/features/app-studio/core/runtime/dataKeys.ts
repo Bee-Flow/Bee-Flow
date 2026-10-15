@@ -1,7 +1,7 @@
 /**
  * Data-binding cache keys and the client-side resolution of a binding's
  * dynamic parts (filters, aggregate shape, connector params) against the live
- * scope. Part of the port of agent-hub AppStudio/runtime/resolveBinding.js.
+ * scope. Part of the port of agent-hub AppStudio/runtime/resolveBinding.ts.
  *
  * The request only ever carries literals: formulas resolve here, before the
  * key is computed, so a vars/currentUser change refetches. Row-level security

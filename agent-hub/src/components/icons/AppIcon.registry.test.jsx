@@ -66,7 +66,7 @@ describe('AppIcon icon registry', () => {
     });
 
     it('AppIcon itself has no wildcard lucide import', () => {
-        const src = fs.readFileSync(path.join(here, 'AppIcon.jsx'), 'utf8');
+        const src = fs.readFileSync(path.join(here, 'AppIcon.tsx'), 'utf8');
         expect(src).not.toMatch(/import \* as .* from 'lucide-react'/);
     });
 });
