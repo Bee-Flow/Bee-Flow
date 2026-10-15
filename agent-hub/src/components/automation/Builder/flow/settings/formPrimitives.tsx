@@ -5,7 +5,7 @@
 // CollapsibleSection — which App Studio's inspector also renders — can share
 // them without importing FieldHint. Everything is re-exported here so existing
 // importers keep working unchanged.
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useId, useRef, type ReactNode } from 'react';
 import { AlertTriangle, Info } from 'lucide-react';
 import FieldHint from '../FieldHint';
 import { humanizeIssueText } from '../displayHelpers';
@@ -27,6 +27,24 @@ export {
 const NATIVE_CONTROL = 'select, textarea, input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="file"])';
 const CUSTOM_CONTROL = '[role="textbox"], [role="combobox"]';
 
+interface FormRowProps {
+    label?: string | null;
+    hint?: ReactNode;
+    required?: boolean;
+    optional?: boolean;
+    htmlFor?: string | null;
+    children?: ReactNode;
+}
+
+/** One validation record as the drawer prints it; saved ones may lack any member. */
+interface ValidationLineRecord {
+    severity?: string;
+    message?: string;
+    hint?: string | null;
+    code?: string | null;
+    [key: string]: unknown;
+}
+
 /**
  * Labelled field row.
  *
@@ -47,10 +65,10 @@ const CUSTOM_CONTROL = '[role="textbox"], [role="combobox"]';
  * FormRowLabelContext, so the "Comes in" header can name the setting a pick
  * will land in.
  */
-export function FormRow({ label, hint, required = false, optional = false, htmlFor = null, children }) {
+export function FormRow({ label, hint, required = false, optional = false, htmlFor = null, children }: FormRowProps) {
     const { t } = useTranslation();
-    const rowRef = useRef(null);
-    const labelRef = useRef(null);
+    const rowRef = useRef<HTMLDivElement>(null);
+    const labelRef = useRef<HTMLLabelElement>(null);
     const autoId = useId();
     const labelId = `${autoId}-label`;
     // Runs after every render of the row: a control that mounts later (a
@@ -116,7 +134,7 @@ export function FormRow({ label, hint, required = false, optional = false, htmlF
  * reader can no longer see. The words stay on screen for everyone; the
  * literal record is one hover away for whoever needs to act on it.
  */
-export function ValidationLine({ record }) {
+export function ValidationLine({ record }: { record: ValidationLineRecord }) {
     const isErr = record.severity === 'error';
     const { stepLabelById } = useVariablePickerContext();
     const message = humanizeIssueText(record.message, stepLabelById);
@@ -153,7 +171,7 @@ export function ValidationLine({ record }) {
  *   'info' — neutral explanation ("These run once per item, top to bottom.")
  *   'warn' — advisory ("A list here will probably fail when it runs.")
  */
-export function SectionNote({ tone = 'info', children }) {
+export function SectionNote({ tone = 'info', children }: { tone?: 'info' | 'warn'; children?: ReactNode }) {
     const warn = tone === 'warn';
     const Icon = warn ? AlertTriangle : Info;
     return (
@@ -165,6 +183,6 @@ export function SectionNote({ tone = 'info', children }) {
 }
 
 /** The consistent "nothing here yet" line for an empty section body. */
-export function EmptySectionNote({ children }) {
+export function EmptySectionNote({ children }: { children?: ReactNode }) {
     return <p className={`${hintTextClass()} italic text-[var(--text-tertiary)]`}>{children}</p>;
 }
