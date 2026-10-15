@@ -50,6 +50,10 @@ regexes = [
   # (agent-hub/src/marketing/marketing.css) — slash-separated English words
   # clear the rule's entropy bar.
   '''distance/duration/easing''',
+  # False positive: `linkedin-client-id` takes the 14-letter TypeScript type
+  # name in `linkedInDraftStatuses: DraftStatusMap` (LinkedInDraftCard.tsx) as a
+  # client id — a type name, never a credential. Anchored to the whole match.
+  '''^DraftStatusMap$''',
   # False positive: `generic-api-key` fires on translation-key IDENTIFIERS —
   # `label_key: 'compliance.fw_aia_phase_art50'`, `key: 'compliance.reg_gdpr'`
   # — in server/compliance/frameworks.js, the demo fixture complianceCatalog.js
