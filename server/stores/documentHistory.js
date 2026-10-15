@@ -25,34 +25,11 @@ const crypto = require('crypto');
 const versions = require('./documentVersions');
 const solutionTemplates = require('./document/solutionTemplates');
 
-/**
- * @param {object} deps
- * @param {Function} deps.initDB
- * @param {Function} deps.withTransaction
- * @param {(sql: string, params: any[]) => Promise<any[]>} deps.getAll
- * @param {Function} deps.getOne
- * @param {Function} deps.run
- * @param {Function} deps.getDocument          (id, context) => document | null (read access)
- * @param {Function} deps.getDocumentVersion   (id, context, versionId) => document at that revision | null
- * @param {Function} deps.updateDocument       (id, context, updates) => document | null (write access)
- * @param {Function} deps.lockForWrite         (client, id, actor) => { row, asMember } | null
- * @param {Function} deps.mapRow
- * @param {Function} deps.sanitizePageBody
- * @param {Function} deps.assertWithinCaps
- * @param {Function} deps.failure              (message, status, errorClass) => Error
- * @param {string}   deps.PAGE_DOC_TYPE
- */
-function makeDocumentHistory(deps) {
-    const { initDB, withTransaction, getAll, getOne, run, getDocument, getDocumentVersion, updateDocument,
-        lockForWrite, mapRow, sanitizePageBody, assertWithinCaps, failure, PAGE_DOC_TYPE } = deps;
-    const actorOf = (context) => (typeof context === 'string' ? { userId: context } : context || {});
-    const cleanName = (name) => {
-        if (name == null) return null;
-        const text = String(name).replace(/\s+/g, ' ').trim();
-        if (!text) return null;
-        if (text.length > versions.MAX_VERSION_NAME) throw failure(`A version name is at most ${versions.MAX_VERSION_NAME} characters.`, 422, 'version_name_invalid');
-        return text;
-    };
+const actorOf = (context) => (typeof context === 'string' ? { userId: context } : context || {});
+
+/** Listing, naming, restoring and deleting versions. */
+function makeVersionApi(deps, cleanName) {
+    const { initDB, withTransaction, getAll, getOne, run, getDocument, getDocumentVersion, updateDocument, lockForWrite, mapRow, failure } = deps;
 
     /** One page of the history, newest first; null when the caller may not read the document. */
     async function listVersions(documentId, context, options = {}) {
@@ -178,6 +155,13 @@ function makeDocumentHistory(deps) {
         const result = await run('DELETE FROM studio_document_versions WHERE id = $1 AND document_id = $2', [ref, documentId]);
         return (result?.rowCount || 0) > 0;
     }
+
+    return { listVersions, getVersion, createNamedVersion, nameVersion, restoreVersion, deleteVersion };
+}
+
+/** Live co-editing (pages): body writes, checkpoints, pruning, authorship. */
+function makeCollabApi(deps, cleanName) {
+    const { initDB, withTransaction, getAll, getOne, run, lockForWrite, mapRow, sanitizePageBody, assertWithinCaps, PAGE_DOC_TYPE } = deps;
 
     // ── Live co-editing (pages) ─────────────────────────────────────────
     //
@@ -372,9 +356,39 @@ function makeDocumentHistory(deps) {
         return row ? Number(row.version_seq) || 0 : null;
     }
 
+    return { writeCollabBody, recordVersion, keepConflictCopy, pruneVersions, firstAuthorOf, revisionSeqOf };
+}
+
+/**
+ * @param {object} deps
+ * @param {Function} deps.initDB
+ * @param {Function} deps.withTransaction
+ * @param {(sql: string, params: any[]) => Promise<any[]>} deps.getAll
+ * @param {Function} deps.getOne
+ * @param {Function} deps.run
+ * @param {Function} deps.getDocument          (id, context) => document | null (read access)
+ * @param {Function} deps.getDocumentVersion   (id, context, versionId) => document at that revision | null
+ * @param {Function} deps.updateDocument       (id, context, updates) => document | null (write access)
+ * @param {Function} deps.lockForWrite         (client, id, actor) => { row, asMember } | null
+ * @param {Function} deps.mapRow
+ * @param {Function} deps.sanitizePageBody
+ * @param {Function} deps.assertWithinCaps
+ * @param {Function} deps.failure              (message, status, errorClass) => Error
+ * @param {string}   deps.PAGE_DOC_TYPE
+ */
+function makeDocumentHistory(deps) {
+    const { failure } = deps;
+    const cleanName = (name) => {
+        if (name == null) return null;
+        const text = String(name).replace(/\s+/g, ' ').trim();
+        if (!text) return null;
+        if (text.length > versions.MAX_VERSION_NAME) throw failure(`A version name is at most ${versions.MAX_VERSION_NAME} characters.`, 422, 'version_name_invalid');
+        return text;
+    };
+
     return {
-        listVersions, getVersion, createNamedVersion, nameVersion, restoreVersion, deleteVersion, writeCollabBody, recordVersion,
-        keepConflictCopy, pruneVersions, firstAuthorOf, revisionSeqOf,
+        ...makeVersionApi(deps, cleanName),
+        ...makeCollabApi(deps, cleanName),
     };
 }
 
