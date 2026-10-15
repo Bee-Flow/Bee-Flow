@@ -19,6 +19,15 @@ const log = require('../../telemetry/log');
  * @param {{ exec: (sql: string) => Promise<unknown>, runDdl: (tag: string, statements: any[]) => Promise<unknown> }} runners
  */
 async function applyProjectSchema({ exec, runDdl }) {
+    await createBaseTables(exec);
+    await addProvenanceColumns(runDdl);
+    await addKindColumns(runDdl);
+    await addStageColumns(runDdl);
+    await addChangeFeedColumns(runDdl);
+}
+
+/** @param {(sql: string) => Promise<unknown>} exec */
+async function createBaseTables(exec) {
     await exec(`
         CREATE TABLE IF NOT EXISTS projects (
             id TEXT PRIMARY KEY,
@@ -190,6 +199,11 @@ async function applyProjectSchema({ exec, runDdl }) {
             ON project_activity(project_id, created_at DESC);
     `);
 
+    
+}
+
+/** @param {(tag: string, statements: any[]) => Promise<unknown>} runDdl */
+async function addProvenanceColumns(runDdl) {
     // ── Where this Solution came from ───────────────────────────────────────
     //
     // Via runDdl (stores/lib/_ddl.js) rather than another `DO $$ … EXCEPTION
@@ -237,6 +251,11 @@ async function applyProjectSchema({ exec, runDdl }) {
         `ALTER TABLE projects ADD COLUMN IF NOT EXISTS installed_version INTEGER`,
     ]);
 
+    
+}
+
+/** @param {(tag: string, statements: any[]) => Promise<unknown>} runDdl */
+async function addKindColumns(runDdl) {
     // ── Workspace or Solution ───────────────────────────────────────────────
     //
     // `kind` tells a collaborative project from a Studio Solution. NULL is a
@@ -263,6 +282,11 @@ async function applyProjectSchema({ exec, runDdl }) {
         `ALTER TABLE projects ADD COLUMN IF NOT EXISTS kind_guessed BOOLEAN NOT NULL DEFAULT FALSE`,
     ]);
 
+    
+}
+
+/** @param {(tag: string, statements: any[]) => Promise<unknown>} runDdl */
+async function addStageColumns(runDdl) {
     // ── Solution stages (UAT / PRD) ──────────────────────────────────────────
     //
     // A stage is its own `projects` row (kind 'solution') with `stage` and
@@ -288,6 +312,11 @@ async function applyProjectSchema({ exec, runDdl }) {
         END $$`,
     ]);
 
+    
+}
+
+/** @param {(tag: string, statements: any[]) => Promise<unknown>} runDdl */
+async function addChangeFeedColumns(runDdl) {
     // ── What changed, and what each member has seen ─────────────────────────
     //
     // project_activity becomes the change feed as well as the audit trail
