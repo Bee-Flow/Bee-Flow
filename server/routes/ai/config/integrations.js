@@ -6,7 +6,6 @@
 
 const express = require('express');
 const { HttpError } = require('../../../core/http/errors');
-
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
 const { resolveOrgAllowListWithSource } = require('../../../core/integrations/enabledIntegrations');
@@ -646,6 +645,7 @@ router.post('/mcp-servers/user-credentials', requireAuth, requireMcp, validate({
 // install shape server-side and cached briefly to spare the upstream.
 const mcpRegistry = require('../../../integrations/mcpRegistryClient');
 const { createTtlCache } = require('../../../utils/ttlCache');
+const log = require('../../../telemetry/log');
 const mcpRegistryCache = createTtlCache({ ttlMs: 5 * 60 * 1000, max: 200 });
 
 // GET /ai/mcp-registry/search?q=&cursor=&verifiedOnly=1
@@ -670,6 +670,7 @@ router.get('/mcp-registry/search', requireAuth, requireMcp, validate({ query: Re
         mcpRegistryCache.set(cacheKey, payload);
         res.json(payload);
     } catch (err) {
+        log.error('[McpRegistry] official registry search failed:', err);
         throw new HttpError(502, 'mcp_registry_unavailable', 'mcp_registry_unavailable');
     }
 });

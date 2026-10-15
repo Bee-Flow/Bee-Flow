@@ -81,6 +81,7 @@ const { getBridgeGrants } = require('../stores/webpage/bridgeGrants');
 const { resolveDatatablePrincipalForUser } = require('../auth/datatableAccess');
 const datatableRuntime = require('../core/dataEngine/datatableRuntime');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 
 /** Een body die óók geen body accepteert: Express 5 laat `req.body` dan undefined. */
@@ -180,7 +181,7 @@ async function requireBinding(req, { write = false } = {}) {
 }
 
 /** Elke weigering met `safe` mag letterlijk terug; de rest wordt een 500. */
-function sendError(res, err, _fallback) {
+function sendError(res, err, fallback) {
     if (err && err.safe === true && typeof err.status === 'number') {
         return res.status(err.status).json({
             error: err.message,
@@ -194,7 +195,8 @@ function sendError(res, err, _fallback) {
     if (err && err.name === 'CompileError') {
         return res.status(400).json({ error: err.message, code: 'bad_descriptor' });
     }
-    throw err;
+    if (err instanceof HttpError) throw err;
+    throw Object.assign(new Error(fallback), { cause: err });
 }
 
 /** De bezoeker + zijn graad op deze tabel. Gooit als een van beide ontbreekt. */

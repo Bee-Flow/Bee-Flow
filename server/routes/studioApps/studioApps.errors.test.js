@@ -1,6 +1,7 @@
 /**
- * What the Studio app templates, publish-history, runtime and public-page
- * routes tell the client when the database fails (routes/studioApps/).
+ * What the Studio app CRUD, import, templates, publish-history, runtime and
+ * public-page routes tell the client when the database fails
+ * (routes/studioApps.js and routes/studioApps/).
  *
  * They used to catch, log and answer a route-specific 500 sentence; now the
  * failure reaches the terminal handler: a generic 500 with a correlationId and
@@ -17,6 +18,8 @@ process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'validation-test-sess
 const test = require('node:test');
 const assert = require('node:assert');
 const h = require('../../testUtils/routeHarness');
+const { APP_FORMAT, APP_SCHEMA_VERSION } = require('../../appStudio/appPortability');
+const { emptyDefinition } = require('../../appStudio/componentSpecs');
 
 const APP_ID = '5b0a7c1e-0000-4000-8000-000000000001';
 const DOWN = () => Object.assign(
@@ -41,6 +44,16 @@ function assertGeneric500(res) {
     assert.doesNotMatch(res.text, /terminating|db-primary|5432/);
 }
 
+// The facade (CRUD + import): every statement fails while `failing` is set.
+let failing = false;
+const { api: facade } = h.routeUnderTest(test, '/api/studio-apps', () => require('../studioApps'), {
+    answer: (sql) => {
+        if (failing && /^\s*(INSERT|UPDATE|DELETE|SELECT)\b/i.test(sql)) throw DOWN();
+        return undefined;
+    },
+});
+test.afterEach(() => { failing = false; });
+
 const templates = serve('./templates', '/api/studio-apps');
 const publish = serve('./publish', '/api/studio-apps');
 const runtime = serve('./runtime', '/api/studio-apps');
@@ -60,4 +73,23 @@ test('runtime: a database failure is a generic 500', async () => {
 
 test('public pages: a database failure is a generic 500', async () => {
     assertGeneric500(await publicPages.call('GET', `/api/studio-apps/${APP_ID}/public-pages`));
+});
+
+test('crud: a store failure is a generic 500', async () => {
+    failing = true;
+    assertGeneric500(await facade.call('GET', '/api/studio-apps/mine'));
+    assertGeneric500(await facade.call('GET', '/api/studio-apps/app1'));
+    assertGeneric500(await facade.call('DELETE', '/api/studio-apps/app1'));
+});
+
+test('import: a store failure is a generic 500', async () => {
+    failing = true;
+    assertGeneric500(await facade.call('POST', '/api/studio-apps/import', {
+        body: {
+            format: APP_FORMAT,
+            schemaVersion: APP_SCHEMA_VERSION,
+            app: { name: 'Requests' },
+            template: { definition: emptyDefinition('Requests') },
+        },
+    }));
 });

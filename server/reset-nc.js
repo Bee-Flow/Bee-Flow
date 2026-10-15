@@ -3,6 +3,7 @@
 // pairing codes gone, all sessions gone. Invoked by scripts/dev-nc.sh reset.
 
 require('./projects/erasurePorts'); // deleteOrganization erases users through these ports
+require('./jobs/datatableChangePorts'); // datatable deletes notify their listeners through these
 const u = require('./stores/userStore');
 const db = require('./db');
 const log = require('./telemetry/log');

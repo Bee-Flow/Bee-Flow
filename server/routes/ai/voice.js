@@ -66,7 +66,6 @@ const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
 const { canSeePublished, resolveAudienceContext } = require('../../auth/audience');
-
 const configStore = require('../../stores/configStore');
 const { getAdapter } = require('../../core/providers');
 const voxtralStt = require('../../core/voice/voxtralStt');
@@ -315,6 +314,7 @@ router.get('/availability', requireAuth, async (req, res) => {
             defaultModel: DEFAULT_LLM_MODEL,
         });
     } catch (err) {
+        log.error('[Voice] availability check failed:', err);
         throw new HttpError(500, 'availability_failed', 'Could not check voice availability.');
     }
 });

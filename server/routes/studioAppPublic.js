@@ -241,7 +241,10 @@ function handleErr(res, err, _where) {
     if (status === 422 || status === 400 || status === 403) {
         return res.status(status).json({ error: err.message });
     }
-    throw err;
+    // Public and unauthenticated: only an HttpError may carry its own message;
+    // anything else is a generic 500 (the terminal handler logs the cause).
+    if (err instanceof HttpError) throw err;
+    throw Object.assign(new Error('Request failed'), { cause: err });
 }
 
 // ═══════════════════════════════════════════════════════════════════

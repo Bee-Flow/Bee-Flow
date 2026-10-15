@@ -200,3 +200,15 @@ test('routes/webpages gebruikt DEZELFDE implementatie, geen tweede kopie', () =>
     assert.ok(!/listSharesForWebpage\(webpageId, ownerId\)/.test(src),
         'de oude inline-lus mag niet naast de gedeelde implementatie blijven bestaan');
 });
+
+// ── de verdeling over luisteraars ────────────────────────────────────
+
+test('een luisteraar die omvalt houdt de volgende niet tegen', async () => {
+    const liveChanges = require('../../stores/datatableStore/liveChanges');
+    const seen = [];
+    liveChanges.onDatatableChanged(async () => { throw new Error('arm failed'); }, 'test: failing');
+    liveChanges.onDatatableChanged(async (id) => { seen.push(id); }, 'test: recording');
+    liveChanges.notifyDatatableChanged('dt-listener-isolation', { delayMs: 0 });
+    for (let i = 0; i < 50 && !seen.length; i++) await new Promise((r) => setTimeout(r, 10));
+    assert.deepStrictEqual(seen, ['dt-listener-isolation']);
+});

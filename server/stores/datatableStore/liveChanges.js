@@ -60,6 +60,7 @@ const _liveTimers = new Map();
 // Consumers register themselves at boot (jobs/datatableChangePorts.js, loaded by
 // boot/featureRegistrations.js), so the storage layer never requires a feature.
 const _listeners = [];
+let _warnedNoListener = false;
 
 /**
  * Register a consumer of "this table's rows moved". `listener(datatableId)` may
@@ -83,6 +84,10 @@ function notifyDatatableChanged(datatableId, { delayMs = LIVE_DEBOUNCE_MS, arm =
         // Tests inject arm / reSnapshot; they replace the registered consumers.
         const injected = [arm, reSnapshot].filter(Boolean).map(listener => ({ listener, label: 'injected' }));
         const targets = injected.length ? injected : _listeners;
+        if (!targets.length && !_warnedNoListener) {
+            _warnedNoListener = true;
+            log.warn('[Datatables] a table changed but no live-change listener is registered (load jobs/datatableChangePorts.js); knowledge sources and shared pages will not refresh');
+        }
         // Caught separately on purpose: if one falls over the other must still
         // run (a deleted row has to leave the public page even when the
         // knowledge-source arm fails).

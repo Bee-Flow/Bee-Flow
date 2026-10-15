@@ -45,9 +45,14 @@ function erasurePort(name) {
     return /** @type {ErasurePorts[K]} */ (port);
 }
 
+/** Both ports at once (the notebooks port and a project teardown), so a caller can refuse before its first write. */
+function resolveErasurePorts() {
+    return { notebooks: erasurePort('notebooks'), teardown: erasurePort('projects').makeTeardown() };
+}
+
 /** Test helper: forget every registration. */
 function resetErasurePortsForTests() {
     ports = {};
 }
 
-module.exports = { registerErasurePorts, erasurePort, resetErasurePortsForTests };
+module.exports = { registerErasurePorts, erasurePort, resolveErasurePorts, resetErasurePortsForTests };
