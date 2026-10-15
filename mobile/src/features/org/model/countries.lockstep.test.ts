@@ -11,7 +11,7 @@ import { COUNTRIES, countryName } from './countries';
 
 const WEB = path.resolve(
     __dirname,
-    '../../../../../agent-hub/src/components/admin/subscriptions/access/countries.js',
+    '../../../../../agent-hub/src/components/admin/subscriptions/access/countries.ts',
 );
 
 function webCountries(): { code: string; name: string }[] {
