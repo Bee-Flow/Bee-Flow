@@ -1,6 +1,40 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { isAgentCallable } from './skillModel';
+import type { CallableAutomation } from './skillModel.types';
+
+/** An automation row as the picker reads it. */
+export interface PickerAutomation extends CallableAutomation {
+    id: string | number;
+    title?: string;
+    name?: string;
+}
+export interface PickerKnowledgeBase { id: string | number; name?: string }
+export interface PickerDatatable { id: string | number; name?: string; key?: string }
+
+export interface PickerData {
+    orgGroups: unknown[];
+    automations: PickerAutomation[];
+    knowledgeBases: PickerKnowledgeBase[];
+    datatables: PickerDatatable[];
+    unavailable: string[];
+    loaded: boolean;
+    reload?: () => void;
+}
+
+interface ListBody {
+    automations?: unknown[];
+    knowledgeBases?: unknown[];
+    datatables?: unknown[];
+}
+
+interface ReadResult<T> { rows: T[]; ok: boolean }
+
+export interface ListStatus {
+    loaded?: boolean;
+    unavailable?: string[];
+    reload?: () => void;
+}
 
 /**
  * The four lists every picker in the skill editor needs, fetched ONCE per
@@ -34,7 +68,7 @@ import { isAgentCallable } from './skillModel';
  */
 const UNREAD = Object.freeze({ rows: [], ok: false });
 
-async function readList(path, pick) {
+async function readList<T>(path: string, pick: (body: ListBody | null) => unknown): Promise<ReadResult<T>> {
     try {
         const res = await authFetch(`${API_BASE}${path}`);
         if (!res.ok) return UNREAD;
@@ -47,13 +81,13 @@ async function readList(path, pick) {
 }
 
 /** Before the first answer: four empty lists and no claim about any of them. */
-export const EMPTY_PICKER_DATA = Object.freeze({
+export const EMPTY_PICKER_DATA: PickerData = Object.freeze({
     orgGroups: [], automations: [], knowledgeBases: [], datatables: [],
     unavailable: [], loaded: false,
 });
 
-export default function useSkillPickerData(enabled = true) {
-    const [data, setData] = useState(EMPTY_PICKER_DATA);
+export default function useSkillPickerData(enabled = true): PickerData {
+    const [data, setData] = useState<PickerData>(EMPTY_PICKER_DATA);
     const [attempt, setAttempt] = useState(0);
 
     /** Ask all four again. Safe to call while a read is in flight. */
@@ -64,10 +98,10 @@ export default function useSkillPickerData(enabled = true) {
         let alive = true;
         (async () => {
             const [groups, automations, kbs, tables] = await Promise.all([
-                readList('/auth/groups', (b) => b),
-                readList('/api/automation', (b) => b?.automations),
-                readList('/api/kb?context=agent', (b) => (Array.isArray(b) ? b : b?.knowledgeBases)),
-                readList('/api/datatables', (b) => b?.datatables),
+                readList<unknown>('/auth/groups', (b) => b),
+                readList<PickerAutomation>('/api/automation', (b) => b?.automations),
+                readList<PickerKnowledgeBase>('/api/kb?context=agent', (b) => (Array.isArray(b) ? b : b?.knowledgeBases)),
+                readList<PickerDatatable>('/api/datatables', (b) => b?.datatables),
             ]);
             if (!alive) return;
             setData({
@@ -78,10 +112,10 @@ export default function useSkillPickerData(enabled = true) {
                 // The ids a consumer names on screen. `loaded` stays false
                 // while `enabled` is false — nothing was asked, so nothing is
                 // known, and that is not the same as an empty org either.
-                unavailable: [
+                unavailable: ([
                     ['groups', groups], ['automations', automations],
                     ['kbs', kbs], ['tables', tables],
-                ].filter(([, read]) => !read.ok).map(([id]) => id),
+                ] as const).filter(([, read]) => !read.ok).map(([id]) => id),
                 loaded: true,
                 reload,
             });
@@ -106,7 +140,7 @@ export default function useSkillPickerData(enabled = true) {
  * crashing the card: this note is an explanation, and an explanation must
  * never be the thing that takes the editor down.
  */
-export function readListStatus(listStatus) {
+export function readListStatus(listStatus?: ListStatus | null) {
     return {
         loaded: listStatus?.loaded !== false,
         unread: Array.isArray(listStatus?.unavailable) ? listStatus.unavailable : [],
@@ -115,7 +149,7 @@ export function readListStatus(listStatus) {
 }
 
 /** The `refOptions` shape SkillStepEditor's picker reads. */
-export function refOptionsOf({ automations, knowledgeBases, datatables }) {
+export function refOptionsOf({ automations, knowledgeBases, datatables }: Partial<Pick<PickerData, 'automations' | 'knowledgeBases' | 'datatables'>>) {
     return {
         automation: (automations || []).map(a => ({ id: String(a.id), name: a.title || a.name || a.id })),
         kb: (knowledgeBases || []).map(k => ({ id: String(k.id), name: k.name || k.id })),

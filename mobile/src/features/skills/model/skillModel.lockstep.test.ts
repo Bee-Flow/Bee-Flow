@@ -22,8 +22,12 @@ const STUDIO = path.resolve(__dirname, '../../../../../agent-hub/src/components/
  */
 function loadWeb(): Record<string, (...args: unknown[]) => unknown> {
     const strip = (src: string) => src.replace(/^import .*$/gm, '').replace(/^export (default )?/gm, '');
-    const plural = strip(ts.transpileModule(fs.readFileSync(path.join(STUDIO, 'KnowledgeStudio/plural.ts'), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText);
-    const model = fs.readFileSync(path.join(STUDIO, 'SkillsStudio/skillModel.js'), 'utf8');
+    // Both modules carry types: transpile to plain ES first, then strip as before.
+    const plain = (src: string) => ts.transpileModule(src, {
+        compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    const plural = strip(plain(fs.readFileSync(path.join(STUDIO, 'KnowledgeStudio/plural.ts'), 'utf8')));
+    const model = plain(fs.readFileSync(path.join(STUDIO, 'SkillsStudio/skillModel.ts'), 'utf8'));
     const names = [...model.matchAll(/^export (?:function|const) (\w+)/gm)].map((m) => m[1] as string);
     return new Function(`${plural}\n${strip(model)}\nreturn { ${names.join(', ')} };`)() as Record<
         string,
@@ -76,7 +80,7 @@ const same = (name: keyof typeof port, ...args: unknown[]) => {
     expect({ name, value: mine }).toEqual({ name, value: theirs });
 };
 
-describe('skillModel ↔ the web skillModel.js', () => {
+describe('skillModel ↔ the web skillModel.ts', () => {
     it('normalises every facet the same way', () => {
         for (const skill of [...SKILLS, null, undefined, {}]) {
             same('stepsOf', skill);

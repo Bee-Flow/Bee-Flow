@@ -1,6 +1,13 @@
 import { Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+
+interface FillInCardProps {
+    onFillIn?: (sentence: string) => void;
+    drafting: boolean;
+    t: TranslateFn;
+}
 
 /**
  * The empty-skill head start (artboard 1a, "Let AI fill it in").
@@ -10,8 +17,8 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
  * "Improve with AI" in the header is the action that makes sense — it has
  * the current skill to work from and it says what it changed.
  */
-export default function FillInCard({ onFillIn, drafting, t }) {
-    const [sentence, setSentence] = useState('');
+export default function FillInCard({ onFillIn, drafting, t }: FillInCardProps) {
+    const [sentence, setSentence] = useState<string>('');
     const submit = () => { if (sentence.trim()) onFillIn?.(sentence); };
     return (
         <div
@@ -25,8 +32,8 @@ export default function FillInCard({ onFillIn, drafting, t }) {
             <div className="flex gap-2">
                 <input
                     value={sentence}
-                    onChange={(e) => setSentence(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentence(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') submit(); }}
                     aria-label={t('skills_studio.fill.label', 'What should this skill do?')}
                     placeholder={t('skills_studio.fill.placeholder', 'Describe in one sentence what this skill should do…')}
                     className="flex-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-xs outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"

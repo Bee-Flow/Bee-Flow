@@ -7,7 +7,23 @@ import { filterSolutions, partitionSolutions } from './solutionOverviewModel';
 import { CatalogueTab, EmptyOurs, GridSkeleton, OperatedStages, OverviewFilters, OverviewNotices, SolutionGrid } from './SolutionsOverviewParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import SegmentedControl from '../../../shared/SegmentedControl';
+import SegmentedControl, { type SegmentedOption } from '../../../shared/SegmentedControl';
+import type { OperatedStage } from './pipeline/stagesApi';
+
+/** One Solution row of GET /api/projects/summary; the model reads the rest. */
+export type SummaryRow = Record<string, unknown>;
+
+/** What SolutionsStudio keeps of the summary read, status beside the rows. */
+export interface SolutionsSummary {
+    status: string;
+    rows: SummaryRow[];
+    unavailable: string[];
+    hasMore: boolean;
+    checkedCount?: number | null;
+    operatedStages?: OperatedStage[];
+}
+
+type OverviewTab = 'ours' | 'installed' | 'catalogue';
 
 /**
  * The Solutions overview: three tabs and a card per Solution.
@@ -36,15 +52,15 @@ import SegmentedControl from '../../../shared/SegmentedControl';
  * read.
  */
 
-function NewSolutionForm({ onCreated, focus = false }) {
+function NewSolutionForm({ onCreated, focus = false }: { onCreated: (project: { id: string }) => void; focus?: boolean }) {
     const { t } = useTranslation();
-    const [name, setName] = useState('');
-    const inputRef = useRef(null);
+    const [name, setName] = useState<string>('');
+    const inputRef = useRef<HTMLInputElement>(null);
     // `studio/solutions/new` (the Studio's "+ New → Solution") lands here with
     // the name field ready, instead of being read as the id of a Solution.
     useEffect(() => { if (focus) inputRef.current?.focus(); }, [focus]);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState('');
+    const [busy, setBusy] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
 
     const create = async () => {
         if (!name.trim() || busy) return;
@@ -74,8 +90,8 @@ function NewSolutionForm({ onCreated, focus = false }) {
             <input
                 ref={inputRef}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') create(); }}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') create(); }}
                 placeholder={t('solutions.name_placeholder', 'Name the Solution…')}
                 aria-label={t('solutions.name_placeholder', 'Name the Solution…')}
                 className="px-3 py-2 min-h-[40px] rounded-[var(--radius-sm)] text-sm border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] min-w-0 flex-1 sm:flex-none sm:w-56 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
@@ -94,7 +110,14 @@ function NewSolutionForm({ onCreated, focus = false }) {
     );
 }
 
-function OverviewHeader({ createRef, onCreated, onInstalled, focusCreate }) {
+interface OverviewHeaderProps {
+    createRef: React.RefObject<HTMLDivElement | null>;
+    onCreated: (project: { id: string }) => void;
+    onInstalled: (id: string) => void;
+    focusCreate: boolean;
+}
+
+function OverviewHeader({ createRef, onCreated, onInstalled, focusCreate }: OverviewHeaderProps) {
     const { t } = useTranslation();
     return (
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
@@ -116,13 +139,23 @@ function OverviewHeader({ createRef, onCreated, onInstalled, focusCreate }) {
     );
 }
 
-export default function SolutionsOverview({ summary, onOpen, onCreated, onInstalled, onOpenStage, onRetry, focusCreate = false }) {
+interface SolutionsOverviewProps {
+    summary: SolutionsSummary;
+    onOpen: (row: SummaryRow) => void;
+    onCreated: (project: { id: string }) => void;
+    onInstalled: (id: string) => void;
+    onOpenStage: (entry: Record<string, unknown>) => void;
+    onRetry: () => void;
+    focusCreate?: boolean;
+}
+
+export default function SolutionsOverview({ summary, onOpen, onCreated, onInstalled, onOpenStage, onRetry, focusCreate = false }: SolutionsOverviewProps) {
     const { t } = useTranslation();
-    const [tab, setTab] = useState('ours');
-    const [source, setSource] = useState(null);
-    const [query, setQuery] = useState('');
-    const [scope, setScope] = useState('all');
-    const createRef = useRef(null);
+    const [tab, setTab] = useState<OverviewTab>('ours');
+    const [source, setSource] = useState<{ blueprintId: string } | null>(null);
+    const [query, setQuery] = useState<string>('');
+    const [scope, setScope] = useState<string>('all');
+    const createRef = useRef<HTMLDivElement>(null);
 
     const { ours, installed } = useMemo(() => partitionSolutions(summary.rows), [summary.rows]);
     const loading = summary.status === 'loading';
@@ -131,7 +164,7 @@ export default function SolutionsOverview({ summary, onOpen, onCreated, onInstal
     const shownOurs = useMemo(() => filterSolutions(ours, { query, scope }), [ours, query, scope]);
     const shownInstalled = useMemo(() => filterSolutions(installed, { query, scope }), [installed, query, scope]);
 
-    const options = [
+    const options: SegmentedOption<OverviewTab>[] = [
         { value: 'ours', label: t('solutions.tab_ours', 'From us') },
         {
             value: 'installed',
@@ -167,7 +200,7 @@ export default function SolutionsOverview({ summary, onOpen, onCreated, onInstal
                 </div>
 
                 {tab === 'catalogue' ? (
-                    <CatalogueTab onInstall={(id) => setSource({ blueprintId: id })} />
+                    <CatalogueTab onInstall={(id: string) => setSource({ blueprintId: id })} />
                 ) : (
                     <>
                         <OverviewNotices summary={summary} onRetry={onRetry} />

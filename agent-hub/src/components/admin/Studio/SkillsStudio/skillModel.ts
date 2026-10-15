@@ -34,6 +34,21 @@
  */
 
 import { nOf } from '../KnowledgeStudio/plural';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type {
+    Step,
+    Rule,
+    Example,
+    LastTest,
+    Skill,
+    UsageSummary,
+    UsageSummaryMap,
+    SortMode,
+    SkillIdField,
+    SkillDraft,
+    TestChip,
+    CallableAutomation,
+} from './skillModel.types';
 
 /** The three things a step may point at (S1 `steps[].refs[].kind`). */
 export const REF_KINDS = Object.freeze(['automation', 'kb', 'table']);
@@ -42,10 +57,10 @@ export const REF_KINDS = Object.freeze(['automation', 'kb', 'table']);
 export const RULE_POLARITIES = Object.freeze(['must', 'never']);
 
 /** How the "All skills" table can be ordered (artboard 1c, right). */
-export const SORT_MODES = Object.freeze(['used', 'recent', 'name']);
+export const SORT_MODES = Object.freeze<SortMode[]>(['used', 'recent', 'name']);
 
 /** A ref kind → the kindColors key that paints it. `table` is a datatable. */
-export function refKindKey(refKind) {
+export function refKindKey(refKind: string): string | null {
     if (refKind === 'kb') return 'kb';
     if (refKind === 'table') return 'datatable';
     if (refKind === 'automation') return 'automation';
@@ -58,19 +73,19 @@ export function refKindKey(refKind) {
  * a stable id is what lets dnd-kit and React key a row that has no text yet.
  */
 let seq = 0;
-export function newLocalId(prefix = 'x') {
+export function newLocalId(prefix = 'x'): string {
     seq += 1;
     const rand = Math.random().toString(36).slice(2, 8);
     return `${prefix}_${Date.now().toString(36)}${seq.toString(36)}${rand}`;
 }
 
 /** Any nullable list facet → a real array. */
-function list(value) {
+function list<T>(value: readonly T[] | null | undefined): T[] {
     return Array.isArray(value) ? value : [];
 }
 
 /** `skill.steps`, normalised: every entry has an id, a text and a refs array. */
-export function stepsOf(skill) {
+export function stepsOf(skill: Skill | null | undefined): Step[] {
     return list(skill?.steps).map((raw, i) => ({
         id: (raw && typeof raw.id === 'string' && raw.id) || `step_${i + 1}`,
         text: typeof raw?.text === 'string' ? raw.text : '',
@@ -81,7 +96,7 @@ export function stepsOf(skill) {
 }
 
 /** `skill.rulesV2`, normalised. An unknown polarity reads as `must`. */
-export function rulesOf(skill) {
+export function rulesOf(skill: Skill | null | undefined): Rule[] {
     return list(skill?.rulesV2).map((raw, i) => ({
         id: (raw && typeof raw.id === 'string' && raw.id) || `rule_${i + 1}`,
         polarity: RULE_POLARITIES.includes(raw?.polarity) ? raw.polarity : 'must',
@@ -90,7 +105,7 @@ export function rulesOf(skill) {
 }
 
 /** `skill.examplesV2`, normalised. `bad` and `violatedRuleId` stay optional. */
-export function examplesOf(skill) {
+export function examplesOf(skill: Skill | null | undefined): Example[] {
     return list(skill?.examplesV2).map((raw, i) => ({
         id: (raw && typeof raw.id === 'string' && raw.id) || `ex_${i + 1}`,
         question: typeof raw?.question === 'string' ? raw.question : '',
@@ -103,7 +118,7 @@ export function examplesOf(skill) {
 }
 
 /** The ids a skill may use, normalised to string arrays. */
-export function idsOf(skill, field) {
+export function idsOf(skill: Skill | null | undefined, field: SkillIdField): string[] {
     return list(skill?.[field]).filter(v => typeof v === 'string' && v).map(String);
 }
 
@@ -112,8 +127,8 @@ export function idsOf(skill, field) {
  * This is what the overview's "uses table Pricelist" line is derived from
  * (plan S2: derived from the refs, never a second column).
  */
-export function refIdsOfKind(skill, kind) {
-    const seen = new Set();
+export function refIdsOfKind(skill: Skill | null | undefined, kind: string): string[] {
+    const seen = new Set<string>();
     for (const step of stepsOf(skill)) {
         for (const ref of step.refs) if (ref.kind === kind) seen.add(ref.id);
     }
@@ -121,7 +136,7 @@ export function refIdsOfKind(skill, kind) {
 }
 
 /** A skill nobody has written anything into yet — the "draft · empty" row. */
-export function isEmptySkill(skill) {
+export function isEmptySkill(skill: Skill | null | undefined): boolean {
     return stepsOf(skill).length === 0 && !String(skill?.description || '').trim();
 }
 
@@ -130,7 +145,7 @@ export function isEmptySkill(skill) {
  * instead of "0 steps · 0 rules · 0 examples", which is three facts where
  * one word does.
  */
-export function metaLine(skill, t) {
+export function metaLine(skill: Skill | null | undefined, t: TranslateFn): string {
     if (isEmptySkill(skill)) return t('skills_studio.meta.empty', 'draft · empty');
     const parts = [
         nOf(t, 'skills_studio.meta.steps', stepsOf(skill).length, '{count} step', '{count} steps'),
@@ -147,7 +162,7 @@ export function metaLine(skill, t) {
  * the endpoint has not answered for it. Undefined returns '' — an unknown
  * count is not "nobody".
  */
-export function usageSubline(skill, summary, t) {
+export function usageSubline(skill: Skill | null | undefined, summary: UsageSummary | null | undefined, t: TranslateFn): string {
     if (isEmptySkill(skill)) return t('skills_studio.meta.empty', 'draft · empty');
     if (!summary) return '';
     const agents = Number(summary.agents) || 0;
@@ -175,7 +190,7 @@ export function usageSubline(skill, summary, t) {
  * An empty skill offers "Let AI fill it in" instead — that is a different
  * answer to a different question and the caller decides which to render.
  */
-export function testChip(lastTest, t) {
+export function testChip(lastTest: LastTest | null | undefined, t: TranslateFn): TestChip {
     if (!lastTest || !lastTest.status) {
         return { tone: 'idle', label: t('skills_studio.test.untested', 'not tested') };
     }
@@ -190,7 +205,7 @@ export function testChip(lastTest, t) {
 }
 
 /** `--success` / `--warning` / `--error` / tertiary — never a hex. */
-export function testChipColor(tone) {
+export function testChipColor(tone: string): string {
     if (tone === 'ok') return 'var(--success-ink)';
     if (tone === 'warning') return 'var(--warning-ink)';
     if (tone === 'error') return 'var(--error-ink)';
@@ -198,18 +213,18 @@ export function testChipColor(tone) {
 }
 
 /** Free-text filter over the list (name + description), case-insensitive. */
-export function filterSkills(skills, query) {
+export function filterSkills(skills: Skill[] | null | undefined, query: string | null | undefined): Skill[] {
     const q = String(query || '').trim().toLowerCase();
     if (!q) return list(skills);
-    return list(skills).filter(s => `${s?.name || ''} ${s?.description || ''}`.toLowerCase().includes(q));
+    return list(skills).filter((s: Skill) => `${s?.name || ''} ${s?.description || ''}`.toLowerCase().includes(q));
 }
 
-function usageWeight(summary) {
+function usageWeight(summary: UsageSummary | null | undefined): number {
     if (!summary) return 0;
     return (Number(summary.agents) || 0) + (Number(summary.automations) || 0);
 }
 
-function lastUsedMs(skill, summary) {
+function lastUsedMs(skill: Skill | null | undefined, summary: UsageSummary | null | undefined): number {
     const iso = summary?.lastUsedAt || skill?.lastUsedAt || null;
     if (!iso) return 0;
     const ms = Date.parse(iso);
@@ -221,10 +236,10 @@ function lastUsedMs(skill, summary) {
  * ties fall back to the name so two renders of the same data cannot swap
  * two rows. Returns a NEW array; the caller's list is never mutated.
  */
-export function sortSkills(skills, mode, summary) {
+export function sortSkills(skills: Skill[] | null | undefined, mode: string, summary?: UsageSummaryMap | null): Skill[] {
     const rows = list(skills).slice();
-    const sum = (id) => (summary && summary[id]) || null;
-    const byName = (a, b) => String(a?.name || '').localeCompare(String(b?.name || ''));
+    const sum = (id: string) => (summary && summary[id]) || null;
+    const byName = (a: Skill, b: Skill) => String(a?.name || '').localeCompare(String(b?.name || ''));
     if (mode === 'name') return rows.sort(byName);
     if (mode === 'recent') {
         return rows.sort((a, b) => (lastUsedMs(b, sum(b.id)) - lastUsedMs(a, sum(a.id))) || byName(a, b));
@@ -241,7 +256,7 @@ export function sortSkills(skills, mode, summary) {
  * step id (skillStructure.resolveBodyWrite). The six text fields mobile
  * sends stay valid — this client simply is not one of them.
  */
-export function buildSavePayload(draft) {
+export function buildSavePayload(draft: SkillDraft): SkillDraft {
     return {
         name: draft.name,
         description: draft.description,
@@ -261,7 +276,7 @@ export function buildSavePayload(draft) {
 }
 
 /** The editable draft a detail view starts from — every facet normalised. */
-export function draftOf(skill) {
+export function draftOf(skill: Skill | null | undefined): SkillDraft {
     return {
         name: skill?.name || '',
         description: skill?.description || '',
@@ -305,7 +320,7 @@ export function draftOf(skill) {
  * picker then hid an automation the runtime WOULD call, under the sentence "a
  * automation appears here once its trigger is 'an agent calls it'".
  */
-export function isAgentCallable(automation) {
+export function isAgentCallable(automation: CallableAutomation | null | undefined): boolean {
     const kind = automation?.definition?.trigger?.kind
         ?? automation?.triggerKind
         ?? automation?.triggerType
@@ -314,7 +329,7 @@ export function isAgentCallable(automation) {
 }
 
 /** Move one item of an array; returns a new array (dnd-kit reorder). */
-export function moveItem(items, from, to) {
+export function moveItem<T>(items: readonly T[] | null | undefined, from: number, to: number): T[] {
     const rows = list(items).slice();
     if (from < 0 || to < 0 || from >= rows.length || to >= rows.length || from === to) return rows;
     const [row] = rows.splice(from, 1);

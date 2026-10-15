@@ -1,5 +1,14 @@
+import type { LucideIcon } from 'lucide-react';
 import React from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import Notice from './Notice';
+
+interface StripProps {
+    tone?: string;
+    icon?: LucideIcon;
+    children?: React.ReactNode;
+    testId?: string;
+}
 
 /**
  * The two things every Solution screen needs when the server could not read
@@ -21,7 +30,7 @@ import Notice from './Notice';
  * icon and its own severity. This is the sentence that says how much the list
  * is worth.
  */
-export function Strip({ tone, icon, children, testId }) {
+export function Strip({ tone, icon, children, testId }: StripProps) {
     // Callers still pass the colour variable they always did; it picks the tone.
     const raw = String(tone || '');
     const kind = raw.includes('error') ? 'error' : raw.includes('warning') ? 'warning' : raw.includes('success') ? 'success' : 'info';
@@ -38,7 +47,7 @@ export function Strip({ tone, icon, children, testId }) {
  * never as nothing — silently shortening the list of what could not be read
  * is the same fail-open one layer down.
  */
-const SECTION_LABEL = {
+const SECTION_LABEL: Record<string, [string, string]> = {
     apps: ['solutions.section_apps', 'apps'],
     automations: ['solutions.section_automations', 'automations'],
     webpages: ['solutions.section_webpages', 'pages'],
@@ -62,8 +71,8 @@ const SECTION_LABEL = {
 };
 
 /** The section keys the server named, in the reader's own language. */
-export function sectionNames(keys, t) {
+export function sectionNames(keys: unknown, t: TranslateFn) {
     return (Array.isArray(keys) ? keys : [])
-        .filter(k => typeof k === 'string' && k)
-        .map(k => (SECTION_LABEL[k] ? t(SECTION_LABEL[k][0], SECTION_LABEL[k][1]) : k));
+        .filter((k: string) => typeof k === 'string' && k)
+        .map((k: string) => (SECTION_LABEL[k] ? t(SECTION_LABEL[k][0], SECTION_LABEL[k][1]) : k));
 }
