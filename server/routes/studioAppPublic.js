@@ -56,7 +56,6 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
@@ -229,7 +228,7 @@ async function publicDataContext(found, req, res, { tableId } = {}) {
 }
 
 /** Same error contract as studioAppData.js — safe messages only, generic 500s. */
-function handleErr(res, err, where) {
+function handleErr(res, err, _where) {
     const status = err && typeof err.status === 'number' ? err.status : null;
     // dataReadRunner marks its own refusals `safe` — the same 'Table not found'
     // / 'Forbidden' text these handlers used to return inline.
@@ -242,8 +241,7 @@ function handleErr(res, err, where) {
     if (status === 422 || status === 400 || status === 403) {
         return res.status(status).json({ error: err.message });
     }
-    log.error(`[StudioAppPublic/${where}] ${err && err.message}`);
-    return res.status(500).json({ error: 'Request failed' });
+    throw err;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -534,55 +532,45 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
     });
 });
 
-router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireVisitor, async (req, res) => {
+router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireVisitor, async (req, res, next) => {
+    privateHeaders(res);
+    const found = await loadPublicApp(req, res);
+    if (!found) return undefined;
+    const ctx = await publicDataContext(found, req, res);
+    if (!ctx) return undefined;
+
+    const attachment = await studioAppDataStore.getAttachment(req.params.fileId, found.app.id, found.app.userId);
+    if (!attachment || attachment.quarantined) return res.status(404).json({ error: 'Attachment not found' });
+
+    // The SAME record-shaped rule the signed-in download uses: readable
+    // exactly when a record it hangs off is readable under this role. An
+    // upload that is not yet on a record is therefore not yet readable —
+    // which is correct, and is why the uploader is never handed a
+    // capability by virtue of having uploaded.
+    const allowed = await attachmentAccess.viewerMayReadAttachment(found.app, attachment, {
+        id: ctx.viewerId, role: ctx.role, model: ctx.model, organizationId: null,
+    });
+    if (!allowed) return res.status(404).json({ error: 'Attachment not found' });
+
+    const key = attachmentKey(found.app.userId, found.app.id, attachment.sha256);
+    let obj;
     try {
-        privateHeaders(res);
-        const found = await loadPublicApp(req, res);
-        if (!found) return undefined;
-        const ctx = await publicDataContext(found, req, res);
-        if (!ctx) return undefined;
-
-        const attachment = await studioAppDataStore.getAttachment(req.params.fileId, found.app.id, found.app.userId);
-        if (!attachment || attachment.quarantined) return res.status(404).json({ error: 'Attachment not found' });
-
-        // The SAME record-shaped rule the signed-in download uses: readable
-        // exactly when a record it hangs off is readable under this role. An
-        // upload that is not yet on a record is therefore not yet readable —
-        // which is correct, and is why the uploader is never handed a
-        // capability by virtue of having uploaded.
-        const allowed = await attachmentAccess.viewerMayReadAttachment(found.app, attachment, {
-            id: ctx.viewerId, role: ctx.role, model: ctx.model, organizationId: null,
-        });
-        if (!allowed) return res.status(404).json({ error: 'Attachment not found' });
-
-        const key = attachmentKey(found.app.userId, found.app.id, attachment.sha256);
-        let obj;
-        try {
-            obj = await storageStore.streamFile(key);
-        } catch (err) {
-            if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
-                return res.status(404).json({ error: 'Attachment not found' });
-            }
-            throw err;
-        }
-
-        const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
-        res.setHeader('Content-Type', mime);
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        const inline = /^image\//.test(mime) || mime === 'application/pdf';
-        res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
-        if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
-        obj.stream.on('error', (e) => {
-            log.error(`[StudioAppPublic/stream] ${e.message}`);
-            if (!res.headersSent) res.status(500).json({ error: 'Stream failed' });
-            else res.destroy();
-        });
-        return obj.stream.pipe(res);
+        obj = await storageStore.streamFile(key);
     } catch (err) {
-        log.error(`[StudioAppPublic/get] ${err.message}`);
-        if (!res.headersSent) return res.status(500).json({ error: 'Failed to load attachment' });
-        return undefined;
+        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+            return res.status(404).json({ error: 'Attachment not found' });
+        }
+        throw err;
     }
+
+    const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    const inline = /^image\//.test(mime) || mime === 'application/pdf';
+    res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
+    if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
+    obj.stream.on('error', next);
+    return obj.stream.pipe(res);
 });
 
 // Re-picking a file three times must not leave three dead blobs charging
