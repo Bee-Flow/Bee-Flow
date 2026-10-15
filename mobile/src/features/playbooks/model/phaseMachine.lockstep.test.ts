@@ -17,7 +17,7 @@ import { loadWebModule } from '@/shared/testing/webModule';
 import * as port from './phaseMachine';
 import type { Phase, PhaseStatus } from './types';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks/phaseMachine.js');
+const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks/phaseMachine.ts');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 type Fn = (...args: unknown[]) => unknown;

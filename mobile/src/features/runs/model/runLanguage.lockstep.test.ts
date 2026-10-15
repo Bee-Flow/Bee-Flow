@@ -28,7 +28,7 @@ import {
     type RunLike,
 } from './runLanguage';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Executions/runLanguage.js');
+const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Executions/runLanguage.ts');
 
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 

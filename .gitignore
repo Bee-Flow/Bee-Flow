@@ -1,5 +1,7 @@
 # ── Dependencies ────────────────────────────────────────────────
 **/node_modules/
+# A symlinked node_modules (git worktrees) is a file, not a directory: ignore that too.
+**/node_modules
 **/__pycache__/
 **/.venv/
 *.pyc

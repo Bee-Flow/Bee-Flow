@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import type { ComponentType } from 'react';
 import { MoreHorizontal, RotateCcw, Ban, Check, X, ExternalLink, Copy, Eye, Link2, Loader2 } from 'lucide-react';
 import { statusLabel, tokenFor } from '../../../shared/statusTokens';
 import { RunStatusIcon, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
-import ContextMenuJs from '../AutomationsStudio/ContextMenu';
+import ContextMenu from '../AutomationsStudio/ContextMenu';
 import { formatRelative, formatDuration, absoluteTime } from '../AutomationsStudio/historyUtils';
 import type useAutomationApi from '../../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -13,9 +12,6 @@ import { StepBars } from '../../../automation/Builder/runs/RunStatusIcon';
 import { enteredTriggerLabel, runTitle } from './runLanguage';
 import { runLogSentence, sentenceTooltip } from './runLogSentence';
 import type { RunLogRow } from './runLogSentence';
-
-// A .jsx module whose `= null` defaults would type its props as null-only.
-const ContextMenu = ContextMenuJs as unknown as ComponentType<Record<string, unknown>>;
 
 /**
  * The log's columns by the list's OWN width (@container/runlog, set by
