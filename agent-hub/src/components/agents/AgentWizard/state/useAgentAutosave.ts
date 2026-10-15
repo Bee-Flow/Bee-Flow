@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { errorMessage } from '../../../../utils/caughtError';
+import type { Conflict, EditorSnapshot, LimitWarning } from '../builderSplit/agentSaveTypes';
+import type { SaveResult, SavedAgent } from './agentSaveApi';
+
+type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 /**
  * Agent Studio — draft autosave with optimistic concurrency.
@@ -33,10 +38,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const DEBOUNCE_MS = 700;
 
-export default function useAgentAutosave({ agentId, getSnapshot, baseVersion, enabled = true, saveFn, onSaved, onConflict, onLimit, onError }) {
-    const [status, setStatus] = useState('idle');
-    const [error, setError] = useState(null);
-    const [savedAt, setSavedAt] = useState(null);
+export default function useAgentAutosave({ agentId, getSnapshot, baseVersion, enabled = true, saveFn, onSaved, onConflict, onLimit, onError }: {
+    agentId?: string | number | null;
+    getSnapshot: () => EditorSnapshot;
+    baseVersion: number | null;
+    enabled?: boolean;
+    saveFn: (id: string | number | null | undefined, snapshot: EditorSnapshot, baseVersion: number | null) => Promise<SaveResult>;
+    onSaved?: (updated: SavedAgent, version: number | undefined, meta: { warnings: unknown[] }) => void;
+    onConflict?: (conflict: Conflict) => void;
+    onLimit?: (limit: LimitWarning) => void;
+    /** Gets the raw error (it carries .status/.code from saveAgent). */
+    onError?: (err: unknown) => void;
+}) {
+    const [status, setStatus] = useState<AutosaveStatus>('idle');
+    const [error, setError] = useState<string | null>(null);
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
 
     // Refs so the stable callbacks never read stale props.
     const agentIdRef = useRef(agentId);
@@ -60,10 +76,10 @@ export default function useAgentAutosave({ agentId, getSnapshot, baseVersion, en
     useEffect(() => { baseVersionRef.current = baseVersion; }, [baseVersion]);
 
     const dirtyRef = useRef(false);
-    const timerRef = useRef(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const inFlightRef = useRef(false);
     const queuedRef = useRef(false);
-    const inFlightPromiseRef = useRef(null);
+    const inFlightPromiseRef = useRef<Promise<void> | null>(null);
     const aliveRef = useRef(true);
     useEffect(() => {
         aliveRef.current = true;
@@ -71,7 +87,7 @@ export default function useAgentAutosave({ agentId, getSnapshot, baseVersion, en
     }, []);
 
     // setState guarded against the fire-and-forget save on unmount.
-    const setSafe = useCallback((nextStatus, nextError = null) => {
+    const setSafe = useCallback((nextStatus: AutosaveStatus, nextError: string | null = null) => {
         if (!aliveRef.current) return;
         setStatus(nextStatus);
         setError(nextError);
@@ -104,12 +120,12 @@ export default function useAgentAutosave({ agentId, getSnapshot, baseVersion, en
                     dirtyRef.current = false;
                     const snap = getSnapshotRef.current();
                     setSafe('saving');
-                    let res;
+                    let res: SaveResult;
                     try {
                         res = await saveFnRef.current(agentIdRef.current, snap, baseVersionRef.current);
                     } catch (err) {
                         dirtyRef.current = true; // keep for retry on next edit
-                        setSafe('error', String(err?.message || err || 'Saving failed.').slice(0, 500));
+                        setSafe('error', String(errorMessage(err) || err || 'Saving failed.').slice(0, 500));
                         // Surface the raw error (carries .status/.code from
                         // saveAgent) so the editor can react to specific
                         // failures — e.g. flip to read-only on a permission 403
@@ -167,7 +183,7 @@ export default function useAgentAutosave({ agentId, getSnapshot, baseVersion, en
     }, [doSave]);
 
     /** Adopt a server-confirmed agent/version without re-saving it. */
-    const markSaved = useCallback((_agent, version) => {
+    const markSaved = useCallback((_agent: unknown, version?: number | null) => {
         dirtyRef.current = false;
         queuedRef.current = false;
         if (version !== undefined) baseVersionRef.current = version;

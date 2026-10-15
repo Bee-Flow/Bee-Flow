@@ -4,10 +4,41 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
 import Modal from '../../../shared/Modal';
 import { kbDocumentCount, uploadKbIdOf } from '../builderSplit/uploadKb';
+import { errorMessage } from '../../../../utils/caughtError';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+/** A knowledge base as the dialog lists it (`GET /api/kb`). */
+interface KnowledgeBaseRow {
+    id: string;
+    name?: string;
+    documentCount?: number | null;
+    documentCountAll?: number | null;
+}
+
+/** One document of the base (`GET /api/kb/:id/documents`). */
+interface KbDocument {
+    id: string;
+    title?: string;
+    source_url?: string;
+    chunk_count?: number | null;
+}
+
+/** The agent shell the dialog reads; the editor passes the whole row. */
+interface AgentShell {
+    id?: string;
+    name?: string;
+    config?: { wizard?: { primaryKbId?: string | null } | null } | null;
+}
 
 // Sub-component: list of all KBs the user can link/unlink to this agent,
 // plus an inline create-form. Co-located here because nothing else uses it.
-function KbList({ kbs, linkedIds, onToggle, onCreate, t }) {
+function KbList({ kbs, linkedIds, onToggle, onCreate, t }: {
+    kbs: KnowledgeBaseRow[];
+    linkedIds: string[];
+    onToggle: (id: string) => void;
+    onCreate: (name: string, description: string) => Promise<unknown>;
+    t: TranslateFn;
+}) {
     const [creating, setCreating] = useState(false);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -102,21 +133,33 @@ function KbList({ kbs, linkedIds, onToggle, onCreate, t }) {
  * genegeerd — een prop die niets doet is de volgende die per ongeluk weer
  * gebruikt wordt.
  */
-export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds, onKnowledgeBaseIdsChange, allKbs, onToggleKbLink, onCreateKb, onDocCountChange, onKbsChange, onClose }) {
+export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds, onKnowledgeBaseIdsChange, allKbs, onToggleKbLink, onCreateKb, onDocCountChange, onKbsChange, onClose }: {
+    t: TranslateFn;
+    agent?: AgentShell | null;
+    agentName?: string;
+    knowledgeBaseIds: string[];
+    onKnowledgeBaseIdsChange: (ids: string[]) => void;
+    allKbs?: KnowledgeBaseRow[] | null;
+    onToggleKbLink: (id: string) => void;
+    onCreateKb: (name: string, description: string) => Promise<unknown>;
+    onDocCountChange?: (kbId: string, total: number) => void;
+    onKbsChange?: () => void;
+    onClose: () => void;
+}) {
     // Primary KB = the auto-created KB at wizard/commit time, or the first
     // linked KB. The "Upload files" pill counts the same base (uploadKb.ts).
     const initialKbId = uploadKbIdOf(agent, knowledgeBaseIds);
-    const [kbId, setKbId] = useState(initialKbId);
-    const [docs, setDocs] = useState([]);
+    const [kbId, setKbId] = useState<string | null>(initialKbId);
+    const [docs, setDocs] = useState<KbDocument[]>([]);
     // The server's count of every document in the base; `docs` is one page.
-    const [total, setTotal] = useState(null);
+    const [total, setTotal] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [dragOver, setDragOver] = useState(false);
 
     useEffect(() => {
-        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
     }, [onClose]);
@@ -140,16 +183,16 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
             onKnowledgeBaseIdsChange(next);
             return created.id;
         } catch (err) {
-            setError(err.message);
+            setError(errorMessage(err));
             return null;
         }
     }, [kbId, agentName, agent?.name, agent?.id, knowledgeBaseIds, onKnowledgeBaseIdsChange]);
 
     // Tells the parent the number this dialog shows, so the pill that opened
     // it shows the same one.
-    const reportDocCount = useEffectEvent((id, n) => { onDocCountChange?.(id, n); });
+    const reportDocCount = useEffectEvent((id: string, n: number) => { onDocCountChange?.(id, n); });
 
-    const loadDocs = useCallback(async (id) => {
+    const loadDocs = useCallback(async (id: string | null) => {
         if (!id) return;
         setLoading(true);
         try {
@@ -166,11 +209,11 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
     useEffect(() => { if (kbId) loadDocs(kbId); }, [kbId, loadDocs]);
     useEffect(() => { if (kbId && total !== null) reportDocCount(kbId, total); }, [kbId, total]);
 
-    const uploadFiles = async (files) => {
+    const uploadFiles = async (files: File[]) => {
         if (!files || files.length === 0) return;
         setError(null);
         setUploading(true);
-        let id = null;
+        let id: string | null = null;
         try {
             id = await ensureKB();
             if (!id) return;
@@ -187,7 +230,7 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
                 }
             }
         } catch (err) {
-            setError(err.message);
+            setError(errorMessage(err));
         } finally {
             setUploading(false);
         }
@@ -199,20 +242,20 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
         onKbsChange?.();
     };
 
-    const onDrop = (e) => {
+    const onDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setDragOver(false);
         if (e.dataTransfer?.files?.length) uploadFiles(Array.from(e.dataTransfer.files));
     };
 
-    const deleteDoc = async (docId) => {
+    const deleteDoc = async (docId: string) => {
         if (!kbId) return;
         try {
             const res = await authFetch(`${API_BASE}/api/kb/${kbId}/documents/${docId}`, { method: 'DELETE' });
             if (!res.ok) throw new Error(await res.text());
             await loadDocs(kbId);
             onKbsChange?.();
-        } catch (err) { setError(err.message); }
+        } catch (err) { setError(errorMessage(err)); }
     };
 
     return (
