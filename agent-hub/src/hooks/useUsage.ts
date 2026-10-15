@@ -31,7 +31,19 @@ import { API_BASE, authFetch } from '../utils/helpers';
 
 /** One "this depends on you" row. A legacy endpoint answers a different
  *  shape, adapted at the render side, so nothing beyond the list is claimed. */
-export type UsageRow = Record<string, unknown>;
+export interface UsageRow {
+    kind?: string;
+    id?: string | number | null;
+    title?: string | null;
+    role?: string;
+    siteLabel?: string | null;
+    ownerId?: string | null;
+    href?: string;
+    /** Knowledge lines filed from this note (the meeting usage rows). */
+    lineCount?: number;
+    unfiltered?: boolean;
+    [key: string]: unknown;
+}
 
 export type UsageKind = 'kb' | 'agent' | 'skill' | 'datatable' | 'webpage' | 'meeting';
 

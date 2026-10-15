@@ -4,13 +4,13 @@ import useTranslation from '../../../hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 
-export default function UploadPanel({ onComplete }) {
+export default function UploadPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
     const { uploadFile, retryWithProvider, canRetry, setSettings, uploading, uploadStage, uploadError, clearError } = useRecorder();
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [dragOver, setDragOver] = useState(false);
 
-    const handleFiles = async (files) => {
+    const handleFiles = async (files: FileList | null | undefined) => {
         const file = files?.[0];
         if (!file) return;
         clearError();

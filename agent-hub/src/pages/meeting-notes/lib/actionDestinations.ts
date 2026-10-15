@@ -9,7 +9,7 @@ export interface DatatableField {
 }
 
 /** The `destination` record an action item stores. */
-interface DestinationRecord {
+export interface DestinationRecord {
     kind: string;
     ref: string;
     label: string;

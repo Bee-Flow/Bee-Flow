@@ -1,6 +1,14 @@
 import React from 'react';
 import { formatDuration } from '../../lib/format';
 import { EmptyState, MetricRow } from './primitives';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { Highlight, InsightsModel, SeekFn } from './insights.types';
+
+interface OverviewTabProps {
+    model: InsightsModel;
+    onSeek?: SeekFn;
+    t: TranslateFn;
+}
 
 /**
  * The five-second read: one line per headline fact, each jumping into the
@@ -9,13 +17,13 @@ import { EmptyState, MetricRow } from './primitives';
  * highlight that names somebody simply isn't in the list when the org
  * disabled attribution.
  */
-export default function OverviewTab({ model, onSeek, t }) {
+export default function OverviewTab({ model, onSeek, t }: OverviewTabProps) {
     const highlights = model.overview || [];
     if (!highlights.length) {
         return <EmptyState>{t('meeting_notes.insights_empty', 'Not enough data for insights on this meeting.')}</EmptyState>;
     }
 
-    const LABELS = {
+    const LABELS: Record<string, string> = {
         longest_monologue: t('meeting_notes.insights_hl_monologue', 'Longest monologue'),
         most_questions: t('meeting_notes.insights_hl_questions', 'Most questions asked'),
         biggest_topic: t('meeting_notes.insights_hl_topic', 'Biggest topic'),
@@ -24,14 +32,14 @@ export default function OverviewTab({ model, onSeek, t }) {
         attention: t('meeting_notes.insights_hl_attention', 'Attention spent'),
     };
 
-    const render = (h) => {
+    const render = (h: Highlight) => {
         if (h.kind === 'duration') return formatDuration(h.value);
         if (h.kind === 'percent') return `${h.value}%`;
         if (h.kind === 'hours') return `${h.value.toFixed(1)} h`;
         return String(h.value);
     };
 
-    const detailFor = (h) => {
+    const detailFor = (h: Highlight) => {
         if (h.id === 'participants' && h.detail) {
             return t('meeting_notes.insights_hl_silent', '{n} silent').replace('{n}', h.detail.split(' ')[0]);
         }
@@ -50,7 +58,7 @@ export default function OverviewTab({ model, onSeek, t }) {
                     detail={detailFor(h)}
                     value={render(h)}
                     flagged={h.id === 'open_actions' && h.value > 0 && model.followUp?.overdue > 0}
-                    onClick={h.seconds != null && onSeek ? () => onSeek(h.seconds) : undefined}
+                    onClick={h.seconds != null && onSeek ? () => onSeek(h.seconds as number) : undefined}
                     title={h.seconds != null ? t('meeting_notes.insights_jump', 'Jump to this moment') : undefined}
                 />
             ))}

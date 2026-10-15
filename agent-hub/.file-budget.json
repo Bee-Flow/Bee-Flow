@@ -212,7 +212,7 @@
     "src/pages/meeting-notes/lib/insightsMetrics.js": 577,
     "src/pages/meeting-notes/lib/transcriptionsApi.ts": 426,
     "src/pages/meeting-notes/library/RulesPanel.tsx": 645,
-    "src/pages/meeting-notes/library/UpcomingMeetings.jsx": 583,
+    "src/pages/meeting-notes/library/UpcomingMeetings.tsx": 583,
     "src/pages/PublicFormPage.jsx": 468,
     "src/pages/settings/ConnectionsManager.jsx": 488,
     "src/pages/settings/IntegrationsSection.jsx": 1100,

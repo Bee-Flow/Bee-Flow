@@ -2,8 +2,79 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import useAudioRecorder from './useAudioRecorder';
 import * as api from '../lib/transcriptionsApi';
 import { generateAutoTitle } from '../lib/format';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 
-const RecorderContext = createContext(null);
+/** Why an upload was moved to another engine (server/routes/transcriptions/upload.js). */
+export interface ProviderFallback {
+    from?: string;
+    to?: string;
+    reason?: string;
+    message?: string;
+}
+
+export interface UploadResultBody {
+    id?: string;
+    jobId?: string;
+    providerFallback?: ProviderFallback | null;
+}
+
+/** What an upload or import answered: `ok`, or why not. */
+export interface UploadOutcome {
+    ok: boolean;
+    result?: UploadResultBody;
+    error?: unknown;
+    pending?: boolean;
+}
+
+export type UploadError = Error & { code?: string };
+
+export interface CaptureSettings {
+    language: string;
+    provider: string;
+    contextTerms: string;
+    attendees: string;
+    numSpeakers: string;
+}
+
+interface ImportOptions {
+    language?: string;
+    contextTerms?: string;
+}
+
+/** The MediaRecorder wrapper's surface (hooks/useAudioRecorder). */
+export interface RecorderHandle {
+    state: string;
+    elapsed: number;
+    level: number;
+    error: Error | null;
+    start: () => void | Promise<void>;
+    stop: () => void;
+    pause: () => void;
+    resume: () => void;
+    cancel: () => void;
+}
+
+export interface RecorderValue {
+    recorder: RecorderHandle;
+    settings: CaptureSettings;
+    setSettings: Dispatch<SetStateAction<CaptureSettings>>;
+    uploading: boolean;
+    uploadStage: string;
+    uploadError: UploadError | null;
+    lastResultId: string | null;
+    lastResultMeta: { providerFallback: ProviderFallback | null } | null;
+    consumeLastResult: () => { id: string | null; meta: { providerFallback: ProviderFallback | null } | null };
+    uploadFile: (file: File) => Promise<UploadOutcome>;
+    uploadFromNextcloud: (item: { path: string; name?: string }) => Promise<UploadOutcome>;
+    importFromGoogleMeet: (item: { eventId: string; meetingCode?: string; title?: string }, opts?: ImportOptions) => Promise<UploadOutcome>;
+    importFromTeams: (item: { eventId: string }, opts?: ImportOptions) => Promise<UploadOutcome>;
+    retryWithProvider: (provider?: string) => Promise<UploadOutcome>;
+    canRetry: boolean;
+    version: number;
+    clearError: () => void;
+}
+
+const RecorderContext = createContext<RecorderValue | null>(null);
 
 const STAGES = [
     'Uploading audio…',
@@ -19,33 +90,29 @@ const STAGES = [
  * Declared once so the provider and the out-of-provider fallback cannot drift
  * apart — they already had, which is how `attendees` and `numSpeakers` went
  * missing from the fallback and from every consumer's inferred type.
- *
- * @typedef {{ language: string, provider: string, contextTerms: string,
- *             attendees: string, numSpeakers: string }} CaptureSettings
  */
 
-/** @type {CaptureSettings} */
-const DEFAULT_SETTINGS = { language: 'nl', provider: '', contextTerms: '', attendees: '', numSpeakers: '' };
+const DEFAULT_SETTINGS: CaptureSettings = { language: 'nl', provider: '', contextTerms: '', attendees: '', numSpeakers: '' };
 
 /**
  * Shell-level provider. One MediaRecorder for the whole app — survives modal
  * close and page navigation. Pages call `useRecorder()` to read state and
  * trigger start/stop.
  */
-export function RecorderProvider({ children }) {
-    const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+export function RecorderProvider({ children }: { children?: ReactNode }) {
+    const [settings, setSettings] = useState<CaptureSettings>(DEFAULT_SETTINGS);
     const [uploading, setUploading] = useState(false);
     const [uploadStage, setUploadStage] = useState('');
-    const [uploadError, setUploadError] = useState(/** @type {(Error & { code?: string }) | null} */ (null));
-    const [lastResultId, setLastResultId] = useState(null);
-    const [lastResultMeta, setLastResultMeta] = useState(null);
-    const [lastFailedFile, setLastFailedFile] = useState(null);
+    const [uploadError, setUploadError] = useState<UploadError | null>(/** @type {(Error & { code?: string }) | null} */ (null));
+    const [lastResultId, setLastResultId] = useState<string | null>(null);
+    const [lastResultMeta, setLastResultMeta] = useState<{ providerFallback: ProviderFallback | null } | null>(null);
+    const [lastFailedFile, setLastFailedFile] = useState<File | null>(null);
     // Retained alongside the file: a failed RECORDING retried through
     // "switch engine & retry" must not be re-filed as an upload.
-    const [lastFailedCapture, setLastFailedCapture] = useState('upload');
+    const [lastFailedCapture, setLastFailedCapture] = useState<string>('upload');
     const [version, setVersion] = useState(0); // bumps when a transcription finishes — list listeners refetch
 
-    const handleFileReady = useCallback(async (file, overrideProvider, captureMode = 'upload') => {
+    const handleFileReady = useCallback(async (file: File, overrideProvider?: string, captureMode = 'upload'): Promise<UploadOutcome> => {
         setUploading(true);
         setUploadError(null);
         let stageIdx = 0;
@@ -85,7 +152,7 @@ export function RecorderProvider({ children }) {
         } catch (err) {
             setLastFailedFile(file);
             setLastFailedCapture(captureMode);
-            setUploadError(err);
+            setUploadError(err as UploadError);
             return { ok: false, error: err };
         } finally {
             clearInterval(stageTimer);
@@ -94,18 +161,18 @@ export function RecorderProvider({ children }) {
         }
     }, [settings.language, settings.provider, settings.contextTerms, settings.attendees, settings.numSpeakers]);
 
-    const recorder = useAudioRecorder({ onStopped: (file) => handleFileReady(file, undefined, 'recording') });
+    const recorder = useAudioRecorder({ onStopped: (file: File) => handleFileReady(file, undefined, 'recording') });
 
-    const uploadFile = useCallback(async (file) => {
+    const uploadFile = useCallback(async (file: File): Promise<UploadOutcome> => {
         return handleFileReady(file, undefined, 'upload');
     }, [handleFileReady]);
 
-    const retryWithProvider = useCallback(async (provider) => {
+    const retryWithProvider = useCallback(async (provider?: string): Promise<UploadOutcome> => {
         if (!lastFailedFile) return { ok: false };
         return handleFileReady(lastFailedFile, provider, lastFailedCapture);
     }, [lastFailedFile, lastFailedCapture, handleFileReady]);
 
-    const uploadFromNextcloud = useCallback(async (item) => {
+    const uploadFromNextcloud = useCallback(async (item: { path: string; name?: string }): Promise<UploadOutcome> => {
         setUploading(true);
         setUploadError(null);
         setUploadStage(STAGES[0]);
@@ -122,7 +189,7 @@ export function RecorderProvider({ children }) {
             setVersion((v) => v + 1);
             return { ok: true, result };
         } catch (err) {
-            setUploadError(err);
+            setUploadError(err as UploadError);
             return { ok: false, error: err };
         } finally {
             setUploading(false);
@@ -130,7 +197,7 @@ export function RecorderProvider({ children }) {
         }
     }, [settings.language, settings.provider, settings.contextTerms]);
 
-    const importFromGoogleMeet = useCallback(async (item, { language, contextTerms } = {}) => {
+    const importFromGoogleMeet = useCallback(async (item: { eventId: string; meetingCode?: string; title?: string }, { language, contextTerms }: ImportOptions = {}): Promise<UploadOutcome> => {
         setUploading(true);
         setUploadError(null);
         setUploadStage(STAGES[0]);
@@ -147,7 +214,7 @@ export function RecorderProvider({ children }) {
             setVersion((v) => v + 1);
             return { ok: true, result };
         } catch (err) {
-            setUploadError(err);
+            setUploadError(err as UploadError);
             return { ok: false, error: err };
         } finally {
             setUploading(false);
@@ -155,7 +222,7 @@ export function RecorderProvider({ children }) {
         }
     }, [settings.language, settings.contextTerms]);
 
-    const importFromTeams = useCallback(async (item, { language, contextTerms } = {}) => {
+    const importFromTeams = useCallback(async (item: { eventId: string }, { language, contextTerms }: ImportOptions = {}): Promise<UploadOutcome> => {
         setUploading(true);
         setUploadError(null);
         setUploadStage(STAGES[0]);
@@ -173,7 +240,7 @@ export function RecorderProvider({ children }) {
             setVersion((v) => v + 1);
             return { ok: true, result };
         } catch (err) {
-            setUploadError(err);
+            setUploadError(err as UploadError);
             return { ok: false, error: err };
         } finally {
             setUploading(false);
@@ -216,7 +283,7 @@ export function RecorderProvider({ children }) {
     return <RecorderContext.Provider value={value}>{children}</RecorderContext.Provider>;
 }
 
-export function useRecorder() {
+export function useRecorder(): RecorderValue {
     const ctx = useContext(RecorderContext);
     if (!ctx) {
         // Safe no-op fallback so components used outside the provider

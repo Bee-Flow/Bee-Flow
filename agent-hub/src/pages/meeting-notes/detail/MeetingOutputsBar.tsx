@@ -34,6 +34,24 @@ import React, { useMemo } from 'react';
 import { kindColorVar, kindIcon } from '../../../components/shared/kindColors';
 import { isForeignRow, kindLabelFor, usageHref, usageKind } from '../../../components/shared/UsedByTab';
 import useTranslation from '../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { UsageRow } from '../../../hooks/useUsage';
+
+interface MeetingOutputsBarProps {
+    rows?: UsageRow[] | null;
+    unchecked?: string[];
+    error?: string | null;
+    currentUserId?: string | null;
+    onNavigate?: ((href: string) => void) | null;
+    className?: string;
+}
+
+interface OutputChipProps {
+    row: UsageRow;
+    currentUserId: string | null;
+    onNavigate: ((href: string) => void) | null;
+    t: TranslateFn;
+}
 
 /**
  * The rows worth putting in a one-line bar, in a stable order so the chips do
@@ -42,7 +60,7 @@ import useTranslation from '../../../hooks/useTranslation';
  */
 const ORDER = Object.freeze(['kb', 'automation', 'notebook']);
 
-export function orderRows(rows) {
+export function orderRows(rows: UsageRow[] | null | undefined) {
     if (!Array.isArray(rows)) return [];
     return rows
         .filter(r => r && typeof r === 'object')
@@ -67,7 +85,7 @@ export default function MeetingOutputsBar({
     currentUserId = null,
     onNavigate = null,
     className = '',
-}) {
+}: MeetingOutputsBarProps) {
     const { t } = useTranslation();
     const list = useMemo(() => orderRows(rows), [rows]);
     const pending = rows === null || rows === undefined;
@@ -129,7 +147,7 @@ export default function MeetingOutputsBar({
 }
 
 /** Icon + colour for a kind, resolved together — the shape UsedByTab uses. */
-function kindVisual(kind) {
+function kindVisual(kind: string | null) {
     return { Icon: kindIcon(kind), color: kindColorVar(kind) };
 }
 
@@ -139,7 +157,7 @@ function kindVisual(kind) {
  * it is, because a colleague's automation has no page this account can open and
  * a link that lands on nothing is worse than no link.
  */
-function OutputChip({ row, currentUserId, onNavigate, t }) {
+function OutputChip({ row, currentUserId, onNavigate, t }: OutputChipProps) {
     const kind = usageKind(row);
     const { Icon, color } = kindVisual(kind);
     const href = usageHref(row);
@@ -159,7 +177,7 @@ function OutputChip({ row, currentUserId, onNavigate, t }) {
     // two identical chips making two different claims.
     const detail = row.unfiltered
         ? t('meetings.outputs_every_meeting', 'on every meeting')
-        : Number.isInteger(row.lineCount) && row.lineCount > 0
+        : Number.isInteger(row.lineCount) && (row.lineCount as number) > 0
             ? (row.lineCount === 1
                 ? t('meetings.extracted_lines', '{count} knowledge line', { count: row.lineCount })
                 : t('meetings.extracted_lines_plural', '{count} knowledge lines', { count: row.lineCount }))

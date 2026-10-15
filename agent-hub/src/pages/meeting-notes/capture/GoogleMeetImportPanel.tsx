@@ -8,19 +8,29 @@ import { listGoogleMeetRecordings } from '../lib/transcriptionsApi';
 import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 
+interface MeetRecording {
+    eventId: string;
+    meetingCode?: string;
+    title?: string;
+    start: string;
+    end: string;
+    importedNoteId?: string | null;
+    recordingState?: string;
+}
+
 /**
  * Meet keeps its green, but as the THEME's green — the token the source chip
  * on a row already uses (lib/sourceMeta.js) instead of the Google brand hex.
  */
 const MEET_GREEN = 'var(--success)';
 
-function fmtDate(s) {
+function fmtDate(s?: string) {
     if (!s) return '';
     const d = new Date(s);
     return isNaN(d.getTime()) ? '' : d.toLocaleString();
 }
 
-function fmtDuration(start, end) {
+function fmtDuration(start: string, end: string) {
     const s = new Date(start).getTime();
     const e = new Date(end).getTime();
     if (isNaN(s) || isNaN(e) || e <= s) return '';
@@ -31,17 +41,17 @@ function fmtDuration(start, end) {
     return m ? `${h} h ${m} min` : `${h} h`;
 }
 
-export default function GoogleMeetImportPanel({ onComplete }) {
+export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
     const { importFromGoogleMeet, settings, uploading, uploadStage, uploadError, clearError } = useRecorder();
     const { needsReconsent } = useGoogleMeetConnected(true);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [items, setItems] = useState([]);
-    const [busyKey, setBusyKey] = useState(null);
+    const [error, setError] = useState<Error | null>(null);
+    const [items, setItems] = useState<MeetRecording[]>([]);
+    const [busyKey, setBusyKey] = useState<string | null | undefined>(null);
     const [reauthorized, setReauthorized] = useState(false);
     const [reauthBusy, setReauthBusy] = useState(false);
-    const [reauthError, setReauthError] = useState(null);
+    const [reauthError, setReauthError] = useState<Error | null>(null);
 
     const load = async () => {
         setLoading(true);
@@ -50,7 +60,7 @@ export default function GoogleMeetImportPanel({ onComplete }) {
             const data = await listGoogleMeetRecordings();
             setItems(Array.isArray(data?.items) ? data.items : []);
         } catch (err) {
-            setError(err);
+            setError(err as Error);
         } finally {
             setLoading(false);
         }
@@ -58,7 +68,7 @@ export default function GoogleMeetImportPanel({ onComplete }) {
 
     useEffect(() => { load(); }, []);
 
-    const handleImport = async (item) => {
+    const handleImport = async (item: MeetRecording) => {
         clearError();
         setBusyKey(item.eventId || item.meetingCode);
         try {
@@ -79,7 +89,7 @@ export default function GoogleMeetImportPanel({ onComplete }) {
                 load();
             }
         } catch (err) {
-            setReauthError(err);
+            setReauthError(err as Error);
         } finally {
             setReauthBusy(false);
         }

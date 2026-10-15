@@ -11,7 +11,7 @@ import { formatDuration } from '../lib/format';
  * repo-wide colour hygiene rule forbids: `--accent-primary` is that yellow in
  * the light theme and stays right in the dark one.
  */
-export default function RecordPanel({ onComplete }) {
+export default function RecordPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
     const { recorder, uploading, uploadError, clearError, retryWithProvider, canRetry } = useRecorder();
     const { state, elapsed, level, error, start, stop, pause, resume, cancel } = recorder;
@@ -19,7 +19,7 @@ export default function RecordPanel({ onComplete }) {
     // Auto-close only after a successful upload completes: track when
     // `uploading` flipped to true at least once, then close on the
     // true → false transition if there's no error to show.
-    const wasUploading = useRef(false);
+    const wasUploading = useRef<boolean>(false);
     useEffect(() => {
         if (uploading) {
             wasUploading.current = true;

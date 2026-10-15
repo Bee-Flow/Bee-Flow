@@ -37,6 +37,16 @@
  *            geschreven is, is de tweede lezing de gewone.
  */
 
+import type { MeetingNote } from '../detail/meetingDetailTypes';
+import type { SummaryTemplates } from '../detail/summaryTemplates.types';
+
+export interface SummaryStamp {
+    state: string;
+    name: string | null;
+    nameKey: string | null;
+    version: number | null;
+}
+
 /** Zo markeert de server een ingebouwd sjabloon (core/meetingNotes/summaryStamp.js). */
 export const BUILTIN_STAMP_PREFIX = 'builtin:';
 
@@ -51,13 +61,13 @@ export const SUMMARY_STAMP = Object.freeze({
 const NOTHING = Object.freeze({ state: SUMMARY_STAMP.NONE, name: null, nameKey: null, version: null });
 
 /** Een bruikbare, niet-lege naam? */
-function nonEmpty(v) {
+function nonEmpty(v: unknown): v is string {
     return typeof v === 'string' && v.trim() !== '';
 }
 
 /** Een versienummer, of null. Alles wat geen positief geheel getal is telt niet. */
-function readVersion(raw) {
-    return Number.isInteger(raw) && raw > 0 ? raw : null;
+function readVersion(raw: number | null | undefined): number | null {
+    return Number.isInteger(raw) && (raw as number) > 0 ? (raw as number) : null;
 }
 
 /**
@@ -69,7 +79,7 @@ function readVersion(raw) {
  *        (`{ builtins, custom }`); `null`/onleesbaar = nog niet bruikbaar.
  * @returns {{state: string, name: string|null, nameKey: string|null, version: number|null}}
  */
-function builtinStamp(key, templates) {
+function builtinStamp(key: string, templates: SummaryTemplates | null | undefined): SummaryStamp {
     const builtins = Array.isArray(templates?.builtins) ? templates.builtins : null;
     // Zonder lijst geen naam. Zwijgen, niet gokken.
     if (!builtins) return { state: SUMMARY_STAMP.LOADING, name: null, nameKey: null, version: null };
@@ -89,7 +99,7 @@ function builtinStamp(key, templates) {
     };
 }
 
-function customStamp(id, templates, version) {
+function customStamp(id: string, templates: SummaryTemplates | null | undefined, version: number | null): SummaryStamp {
     const custom = Array.isArray(templates?.custom) ? templates.custom : null;
     if (!custom) return { state: SUMMARY_STAMP.LOADING, name: null, nameKey: null, version };
     const hit = custom.find((c) => c && c.id === id);
@@ -100,7 +110,7 @@ function customStamp(id, templates, version) {
     return { state: SUMMARY_STAMP.CUSTOM, name: hit.name.trim(), nameKey: null, version };
 }
 
-export function buildSummaryStamp(meeting, templates) {
+export function buildSummaryStamp(meeting: Pick<MeetingNote, 'summaryTemplateId' | 'summaryTemplateVersion'> | null | undefined, templates: SummaryTemplates | null | undefined): SummaryStamp {
     const raw = meeting?.summaryTemplateId;
     if (typeof raw !== 'string' || !raw.trim()) return { ...NOTHING };
     const id = raw.trim();
