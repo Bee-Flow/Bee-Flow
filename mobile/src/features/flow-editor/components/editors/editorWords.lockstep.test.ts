@@ -50,7 +50,7 @@ const WEB: Record<string, string[]> = {
     set: ['flow/settings/setEditors.jsx', 'flow/settings/SetOperationsEditor.tsx', 'flow/setOperations.ts', 'mapping/JsonTreePicker.tsx'],
     approval: ['flow/settings/approvalEditors.jsx', 'flow/settings/approvalStages.jsx'],
     datatable: ['flow/settings/datatableEditors.jsx'],
-    http: ['flow/settings/actionEditors/httpRequestFields.jsx', 'flow/settings/HttpAuthPicker.jsx', 'flow/settings/actionEditors/cacheIntoRow.tsx'],
+    http: ['flow/settings/actionEditors/httpRequestFields.jsx', 'flow/settings/HttpAuthPicker.tsx', 'flow/settings/actionEditors/cacheIntoRow.tsx'],
     code: ['flow/settings/actionEditors/codeFields.tsx', 'flow/settings/codeStep/CodeSourceBlock.tsx', 'flow/settings/codeStep/ReachPanel.tsx'],
     document: ['flow/settings/actionEditors/documentFields.jsx'],
 };
