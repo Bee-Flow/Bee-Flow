@@ -11,7 +11,6 @@
  * walkers in walkPath.ts. Pinned by bindingHelpers.lockstep.test.ts.
  */
 
-import type { BindingValue } from './types';
 import {
     AUTOCOMPLETE_ROOTS,
     getAutocompleteTokenFromPrefix as webGetAutocompleteTokenFromPrefix,
@@ -19,6 +18,7 @@ import {
     isStructuredBinding as webIsStructuredBinding,
     structuredFromText as webStructuredFromText,
 } from './mirror/utils/bindingHelpers';
+import type { BindingValue } from './types';
 
 export {
     canonicalRefPath, detectTemplate, isCleanPath, pathLeafKey, previewValue, refPathTokens, walkPath, walkRelativePath,

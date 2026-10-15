@@ -6,8 +6,8 @@
  * pinned by bindingHelpers.lockstep.test.ts.
  */
 
-import type { BindingValue } from './types';
 import { buildConditionExpr as webBuildConditionExpr } from './mirror/utils/bindingHelpers';
+import type { BindingValue } from './types';
 import { renderBindingValue } from '../model/route/bindingText';
 
 export { parseSimpleCondition } from './mirror/utils/bindingHelpers';

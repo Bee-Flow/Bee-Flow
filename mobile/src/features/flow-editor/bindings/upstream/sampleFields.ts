@@ -4,8 +4,8 @@
  * fails on a stale copy). Change the web file, never the mirror; this path stays
  * so the phone's importers did not change.
  */
-import type { VariableField, VariableGroup } from '../types';
 import { sampleToFields } from '../mirror/mapping/upstream/sampleFields';
+import type { VariableField, VariableGroup } from '../types';
 
 export * from '../mirror/mapping/upstream/sampleFields';
 

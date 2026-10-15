@@ -210,12 +210,6 @@
             "why": "The Wait step's limits and unit formatting (1 s to 24 h); model/waitDuration.ts re-exports it."
         },
         {
-            "source": "agent-hub/src/pages/meeting-notes/lib/upcomingWhen.ts",
-            "target": "mobile/src/features/flow-editor/bindings/mirror/meetingSources/upcomingWhen.ts",
-            "transform": "none",
-            "why": "When a meeting is (parse, length, time range, date block): the web's meeting-notes list and the phone's upcoming meetings read an invite the same way; meetingSources/model/when.ts re-exports it and keeps the When alias."
-        },
-        {
             "source": "agent-hub/src/components/automation/Builder/flow/settings/formState/types.ts",
             "target": "mobile/src/features/flow-editor/bindings/mirror/formState/types.ts",
             "transform": "none",

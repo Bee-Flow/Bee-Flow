@@ -14,13 +14,14 @@
  * is stored in the spelling every other editor writes.
  */
 
-import type { Binding } from '../types';
 import {
     bindingFromInput as webBindingFromInput,
     detectTemplate,
     isCleanPath,
     renderBindingValue as webRenderBindingValue,
-} from '../../bindings/mirror/utils/bindingHelpers';
+} from '@/features/flow-editor/bindings/mirror/utils/bindingHelpers';
+
+import type { Binding } from '../types';
 
 export { detectTemplate, isCleanPath };
 
