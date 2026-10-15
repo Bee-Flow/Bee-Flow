@@ -3,7 +3,8 @@
     "generatedRoots": [
         "mobile/src/features/flow-editor/bindings/mirror",
         "mobile/src/features/forms/mirror",
-        "mobile/src/features/runs/mirror"
+        "mobile/src/features/runs/mirror",
+        "mobile/src/features/app-studio/mirror"
     ],
     "entries": [
         {
@@ -257,6 +258,12 @@
             "target": "mobile/src/features/runs/mirror/nowRunning.ts",
             "transform": "none",
             "why": "The model behind the Now running strip (rollups, tone, order, hidden count, null-not-empty rule): one implementation for web and phone; nowRunning.lockstep.test.ts still runs the fixtures; model/nowRunning.ts adapts the phone's RunFacets (null) to it."
+        },
+        {
+            "source": "agent-hub/src/components/admin/Studio/AppStudio/inspector/typeEventLists.ts",
+            "target": "mobile/src/features/app-studio/mirror/typeEventLists.ts",
+            "transform": "none",
+            "why": "Which events a component type may carry (a mirror of each type's `events` in the server's COMPONENT_SPECS): the inspector and the phone read one list; core/logic/events.ts re-exports it, and catalogLockstep.test.js still pins it against the server spec."
         }
     ]
 }

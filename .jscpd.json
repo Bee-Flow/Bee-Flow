@@ -48,6 +48,7 @@
     "mobile/src/features/flow-editor/bindings/mirror/**",
     "mobile/src/features/forms/mirror/**",
     "mobile/src/features/runs/mirror/**",
+    "mobile/src/features/app-studio/mirror/**",
     "**/*.generated.mjs",
     "components/*/ssrfGuard.js",
     "components/webpage-to-markdown/htmlToMarkdown.js",
