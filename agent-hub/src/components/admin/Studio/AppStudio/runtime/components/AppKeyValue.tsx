@@ -2,8 +2,22 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
+import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'keyValue'. Spec: server/appStudio/componentSpecs.js. */
+
+interface KeyValueField {
+    key: string;
+    label?: string;
+}
+
+interface KeyValueProps {
+    fields?: KeyValueField[];
+    layout?: string;
+    columns?: number;
+    emptyText?: string;
+    source?: unknown;
+}
 
 /**
  * One labelled value, readable.
@@ -15,14 +29,14 @@ import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } f
  * where a person expects to READ the list, so expand it to a comma list.
  * Anything that is not a JSON array falls through untouched.
  */
-function readableLeaf(value) {
+function readableLeaf(value: unknown) {
     if (typeof value === 'string') {
         const str = value.trim();
         if (str.startsWith('[')) {
             try {
                 const parsed = JSON.parse(str);
                 if (Array.isArray(parsed)) {
-                    const items = parsed.filter((v) => v != null && v !== '').map((v) => String(v));
+                    const items = parsed.filter((v: unknown) => v != null && v !== '').map((v: unknown) => String(v));
                     return items.length ? items.join(', ') : displayValue(null);
                 }
             } catch {
@@ -33,7 +47,7 @@ function readableLeaf(value) {
     return displayValue(value);
 }
 
-export default function AppKeyValue({ node }) {
+export default function AppKeyValue({ node }: NodeProps<KeyValueProps>) {
     const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
     const { fields = [], layout = 'rows', columns = 2, emptyText = t('studio_apps_runtime.key_value.empty', 'No data yet.') } = node.props || {};

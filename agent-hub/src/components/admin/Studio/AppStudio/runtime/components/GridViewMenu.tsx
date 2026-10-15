@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Settings2 } from 'lucide-react';
 import { VIEW_OPTIONS } from './gridViewPrefs';
+import type { ViewPrefs } from './gridViewPrefs';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 
 /**
  * The reader's own controls for one grid: how tall the rows are, how they are
@@ -14,7 +16,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 
 const LABEL_KEYS = ['density', 'look', 'clamp'];
 
-const labelsFor = (t) => ({
+const labelsFor = (t: TranslateFn): Record<string, { label: string; options: Record<string, string> }> => ({
     density: {
         label: t('studio_apps_runtime.view_menu.row_height', 'Row height'),
         options: {
@@ -43,7 +45,11 @@ const labelsFor = (t) => ({
     },
 });
 
-function Segmented({ groupKey, value, onChange }) {
+function Segmented({ groupKey, value, onChange }: {
+    groupKey: string;
+    value: string | undefined;
+    onChange: (value: string) => void;
+}) {
     const { t } = useTranslation();
     const meta = labelsFor(t)[groupKey];
     return (
@@ -83,18 +89,25 @@ function Segmented({ groupKey, value, onChange }) {
     );
 }
 
-export default function GridViewMenu({ view, onChange, onReset, hasOverrides }) {
+interface GridViewMenuProps {
+    view: ViewPrefs;
+    onChange: (key: string, value: string) => void;
+    onReset: () => void;
+    hasOverrides: boolean;
+}
+
+export default function GridViewMenu({ view, onChange, onReset, hasOverrides }: GridViewMenuProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const wrapRef = useRef(null);
+    const wrapRef = useRef<HTMLDivElement>(null);
 
     // Click-outside and Escape both close it. Without the outside handler the
     // panel stayed open behind the next thing you clicked, which on a wide
     // table means it covers the rows you were trying to read.
     useEffect(() => {
         if (!open) return undefined;
-        const onDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
-        const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+        const onDown = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         document.addEventListener('mousedown', onDown);
         document.addEventListener('keydown', onKey);
         return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
