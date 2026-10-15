@@ -142,9 +142,3 @@ export function windowText(t: TranslateFn, { rows, total, page }: { rows: number
     }
     return t('datatables.rows_recent', 'the {n} most recent of {total}', { n: rows, total });
 }
-
-/** An error's message, or the given fallback. */
-export function messageOf(e: unknown, fallback: string): string {
-    const message = (e as ApiError | null)?.message;
-    return message || fallback;
-}
