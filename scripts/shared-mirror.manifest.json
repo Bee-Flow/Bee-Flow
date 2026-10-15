@@ -4,7 +4,8 @@
         "mobile/src/features/flow-editor/bindings/mirror",
         "mobile/src/features/forms/mirror",
         "mobile/src/features/runs/mirror",
-        "mobile/src/shared/ui/mirror"
+        "mobile/src/shared/ui/mirror",
+        "mobile/src/features/app-studio/mirror"
     ],
     "entries": [
         {
@@ -264,6 +265,12 @@
             "target": "mobile/src/shared/ui/mirror/kindKeys.ts",
             "transform": "none",
             "why": "The Studio kinds in rail order and the names the product folds onto them: one table for the web's kindColors and the phone's shared/ui/kinds (which re-exports it)."
+        },
+        {
+            "source": "agent-hub/src/components/admin/Studio/AppStudio/inspector/typeEventLists.ts",
+            "target": "mobile/src/features/app-studio/mirror/typeEventLists.ts",
+            "transform": "none",
+            "why": "Which events a component type may carry (a mirror of each type's `events` in the server's COMPONENT_SPECS): the inspector and the phone read one list; core/logic/events.ts re-exports it, and catalogLockstep.test.js still pins it against the server spec."
         }
     ]
 }
