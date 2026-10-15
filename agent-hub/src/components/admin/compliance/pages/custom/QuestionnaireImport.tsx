@@ -3,6 +3,7 @@ import { ClipboardPaste, Upload } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { TONES } from '../../../../shared/statusTone';
+import { messageOf } from '../../../../../utils/caughtError';
 
 /**
  * QuestionnaireImport — paste a customer's NIS2 questionnaire or a sector code
@@ -153,7 +154,7 @@ export default function QuestionnaireImport({ onImport, busy = false, className 
             setText('');
             setOpen(false);
         } catch (e) {
-            setFailure(String(e?.message || 'error'));
+            setFailure(String(messageOf(e, 'error')));
         }
     };
 
