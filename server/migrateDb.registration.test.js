@@ -32,6 +32,7 @@ const EXEMPT = new Map([
     // dat die tenant ontstaat, in een eigen schema — er bestaat geen globale
     // boot-DDL om hier af te wachten.
     ['stores/lib/pgAppEngine.js', 'per-tenant engine — DDL per app-schema, niet bij boot'],
+    ['stores/lib/pgAppEnginePartsTx.js', 'per-tenant engine (migration part) — DDL per app-schema, niet bij boot'],
     // Het schema van projectChatStore, eruit gesplitst; de store zelf staat in de ladder en draait het bij boot.
     ['stores/lib/projectChatSchema.js', 'schema van projectChatStore — DDL draait via die store (ladder)'],
     ['stores/lib/sqliteBlobEngine.js', 'per-tenant engine — sqlite-blob per app, geen Postgres-DDL'],
