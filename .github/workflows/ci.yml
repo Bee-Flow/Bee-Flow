@@ -326,7 +326,10 @@ jobs:
               - 'agent-hub/src/pages/meeting-notes/lib/**'
               # agent-hub files the flow editor's and expr's lockstep tests
               # require(), and what those require in turn (serverClosure.test.ts)
-              - 'agent-hub/src/components/automation/Builder/{applyAddNode,notificationDefaults}.js'
+              - 'agent-hub/src/components/automation/Builder/{applyAddNode,notificationDefaults}.{js,ts}'
+              - 'agent-hub/src/components/automation/Builder/applyAddNode.types.ts'
+              - 'agent-hub/src/components/automation/Builder/build/addStepModel.ts'
+              - 'agent-hub/src/components/shared/builder/revealSchedule.js'
               - 'agent-hub/src/components/automation/Builder/{flow,mapping,utils}/**'
               - 'agent-hub/src/components/agents/AgentWizard/state/refineMerge.js'
               # the form editor's options, run by form.lockstep.test.ts (BFSF-483)
