@@ -59,7 +59,6 @@ export interface ChipLabel {
 }
 
 /** id → human label; the chip reads it with `has` / `get`. */
-export type { TypeLookup, PillOptions, FragmentOptions, InsertOptions } from './refEditorDom.types';
 export type LabelLookup = { has?(id: string | undefined): boolean; get?(id: string | undefined): string | undefined };
 
 // The roots a pill can name.

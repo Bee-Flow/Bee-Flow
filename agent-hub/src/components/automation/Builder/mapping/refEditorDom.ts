@@ -1,4 +1,4 @@
-import { fieldTailLabel, parseRefTokens, resolveChipLabel, type RefToken, type TypeLookup, type PillOptions, type FragmentOptions, type InsertOptions } from './refTokens';
+import { fieldTailLabel, parseRefTokens, resolveChipLabel, type LabelLookup, type RefToken } from './refTokens';
 import { stepFamily } from '../flow/nodeDefs';
 import { typeColorVar } from '../flow/nodeTypeColors';
 
@@ -55,7 +55,7 @@ const PILL_OK = PILL_TINT_CLASS;
 const PILL_MISSING = 'border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]';
 
 /** The family colour for the step a token points at; ink-grey when unknown. */
-export function pillTint(token: Pick<RefToken, 'source' | 'stepId'> | null | undefined, stepTypeById: TypeLookup | null = null): string {
+export function pillTint(token: Pick<RefToken, 'source' | 'stepId'> | null | undefined, stepTypeById: { get?(id: string | undefined): string | undefined } | null = null): string {
     const family = token?.source === 'trigger' ? 'trigger'
         : token?.source === 'loop' ? 'loop'
         : stepFamily(stepTypeById?.get?.(token?.stepId));
@@ -69,7 +69,7 @@ export function pillTint(token: Pick<RefToken, 'source' | 'stepId'> | null | und
  * included), which is what makes the round-trip byte-faithful — the pill is a
  * different presentation of that text, never a re-rendering of it.
  */
-export function buildPill(token: RefToken, { stepLabelById = null, stepTypeById = null, doc = document }: PillOptions = {}): HTMLSpanElement {
+export function buildPill(token: RefToken, { stepLabelById = null, stepTypeById = null, doc = document }: { stepLabelById?: LabelLookup | null; stepTypeById?: { get?(id: string | undefined): string | undefined } | null; doc?: Document } = {}): HTMLSpanElement {
     const { name, suffix, missing } = resolveChipLabel(token, stepLabelById);
     const el = doc.createElement('span');
     el.setAttribute(PILL_ATTR, '');
@@ -103,7 +103,7 @@ export function buildPill(token: RefToken, { stepLabelById = null, stepTypeById 
  * A value → the editor's child nodes. Literal runs become text nodes with `<br>`
  * for newlines; every recognised reference becomes a pill.
  */
-export function buildFragment(value: unknown, { mode = 'fixed', stepLabelById = null, stepTypeById = null, doc = document }: FragmentOptions = {}): DocumentFragment {
+export function buildFragment(value: unknown, { mode = 'fixed', stepLabelById = null, stepTypeById = null, doc = document }: { mode?: string; stepLabelById?: LabelLookup | null; stepTypeById?: { get?(id: string | undefined): string | undefined } | null; doc?: Document } = {}): DocumentFragment {
     const frag = doc.createDocumentFragment();
     for (const token of parseRefTokens(value, { mode })) {
         if (token.type === 'ref') {
@@ -165,7 +165,7 @@ const BLOCK_TAGS = new Set(['DIV', 'P', 'LI', 'SECTION', 'ARTICLE', 'H1', 'H2', 
  * on blur — which is what turns a `{{…}}` someone typed or pasted by hand into
  * a pill.
  */
-export function renderInto(host: HTMLElement | null | undefined, value: unknown, { mode, stepLabelById, stepTypeById = null, doc = document }: FragmentOptions = {}): void {
+export function renderInto(host: HTMLElement | null | undefined, value: unknown, { mode, stepLabelById, stepTypeById = null, doc = document }: { mode?: string; stepLabelById?: LabelLookup | null; stepTypeById?: { get?(id: string | undefined): string | undefined } | null; doc?: Document } = {}): void {
     if (!host) return;
     host.textContent = '';
     host.appendChild(buildFragment(value, { mode, stepLabelById, stepTypeById, doc }));
@@ -268,7 +268,7 @@ function neighbourChar(range: Range, host: Node, dir: number): string | null {
  * ("/{{id}}", "({{x}})", "{{x}}."), and a data slot (a URL, a JSON body)
  * passes `spaced: false`.
  */
-export function insertAtCaret(host: Element | null | undefined, nodes: Node[], opts: InsertOptions = {}): void {
+export function insertAtCaret(host: Element | null | undefined, nodes: Node[], opts: { win?: Window; doc?: Document; range?: Range | null; spaced?: boolean } = {}): void {
     if (!host || !nodes.length) return;
     const { win = window, doc = document } = opts;
     const sel = win.getSelection?.();

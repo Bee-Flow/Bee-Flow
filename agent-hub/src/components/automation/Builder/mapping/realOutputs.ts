@@ -139,7 +139,7 @@ export function buildRealOutputMap(definition: RealOutputDefinition | null | und
  *     real sample root), so whatever the group holds IS the truth.
  */
 export function buildSampleRoot(groups: SampleRootGroup[] | null | undefined): SampleRoot {
-    const root: SampleRoot = { trigger: { output: {} }, steps: {}, loop: {} };
+    const root: SampleRoot & { loop: Record<string, unknown> } = { trigger: { output: {} }, steps: {}, loop: {} };
     let triggerLocked = false;
     for (const g of (groups || [])) {
         if (g.kind === 'trigger') {
@@ -157,7 +157,7 @@ export function buildSampleRoot(groups: SampleRootGroup[] | null | undefined): S
             // namespace and leaving `root.steps.<id>` empty: nothing wired
             // AFTER a Loop resolved in any preview, auto-map or picker.
             const tail = String(g.basePath).split('.').slice(1).join('.');
-            if (tail) (root.loop as Record<string, unknown>)[tail] = g.sample || {};
+            if (tail) root.loop[tail] = g.sample || {};
         } else {
             root.steps[g.id as string] = { output: g.sample || {} };
         }

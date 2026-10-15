@@ -5,9 +5,17 @@
  * declaration exists — no run, no schema round-trip.
  */
 import { sampleToFields, samplePlaceholderFor, schemaToSample } from './sampleFields';
-import type { Group, UpstreamNode } from './upstream.types';
+import type { Group } from './upstream.types';
 
-export function describeAiStep(node: UpstreamNode): Group {
+/** The members of a step node these describers read. */
+interface AiNode {
+    id: string;
+    label?: string;
+    outputSchema?: unknown;
+    fields?: unknown;
+}
+
+export function describeAiStep(node: AiNode): Group {
     // When the user (or AI builder) declared an outputSchema, surface its
     // fields so downstream steps can bind to them directly. We accept both
     // JSON Schema shape and the flat `{field:'type'}` shape — same tolerance
@@ -18,7 +26,7 @@ export function describeAiStep(node: UpstreamNode): Group {
     // fiction (neither key has ever existed at run time; every binding built
     // from it resolved undefined — C21). One honest leaf: bind the whole
     // output.
-    const props = aiStepOutputProps(node.outputSchema as Record<string, unknown> | null | undefined);
+    const props = aiStepOutputProps(node.outputSchema);
     if (!props) {
         return {
             id: node.id,
@@ -51,7 +59,7 @@ export function describeAiStep(node: UpstreamNode): Group {
  * author has typed a name — no schema, no run needed. Typed placeholders so
  * the kind badges and the mismatch box know a date from an amount.
  */
-export function describeDataExtraction(node: UpstreamNode): Group {
+export function describeDataExtraction(node: AiNode): Group {
     const declared = (Array.isArray(node.fields) ? node.fields : [])
         .filter((f: { name?: string; type?: string } | null) => f && typeof f.name === 'string' && f.name.trim());
     const sample: Record<string, unknown> = {};
@@ -77,10 +85,10 @@ function extractionPlaceholderFor(type: string | undefined) {
 }
 
 /** The declared top-level properties, each as its own (sub)schema; null when none. */
-function aiStepOutputProps(schema: Record<string, unknown> | null | undefined): Record<string, unknown> | null {
+function aiStepOutputProps(schema: unknown): Record<string, unknown> | null {
     if (!schema || typeof schema !== 'object') return null;
-    const raw = schema.properties && typeof schema.properties === 'object'
-        ? schema.properties
+    const raw = (schema as Record<string, unknown>).properties && typeof (schema as Record<string, unknown>).properties === 'object'
+        ? (schema as Record<string, unknown>).properties
         : schema;
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(raw || {})) {
