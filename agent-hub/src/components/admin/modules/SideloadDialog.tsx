@@ -2,33 +2,46 @@ import { CheckCircle2, FileUp, KeyRound, Loader2, Upload, X } from 'lucide-react
 import React, { useRef, useState } from 'react';
 import PermissionConsentDialog from './PermissionConsentDialog';
 import { normalizePermissions } from './permissionCopy';
+import type { ModulePermission } from './permissionCopy';
 import { useActivateStaged, useOfflineGrant, useSideloadModule } from '../../../api/queries/modules';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
+import { errorBodyRecord, errorMessage, errorStatus } from '../../../utils/caughtError';
+
+interface SideloadResult {
+    version: string;
+    requiresRestart: boolean;
+    activated?: boolean;
+}
+
+interface SideloadDialogProps {
+    onClose: () => void;
+    onDone?: (res: unknown) => void;
+}
 
 // Enterprise sideload: upload a raw .bfmod package. Two recoverable detours:
 //   402 offline_grant_required → pick + apply a .bfgrant JSON, then
 //        activate-staged brings the already-stored package up;
 //   409 consent_required     → permission consent dialog, then retry the
 //        upload with acceptedPermissions (query param — body is the package).
-export default function SideloadDialog({ onClose, onDone }) {
+export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps) {
     const { t } = useTranslation();
     const sideload = useSideloadModule();
     const offlineGrant = useOfflineGrant();
     const activateStaged = useActivateStaged();
 
-    const fileRef = useRef(null);
-    const grantRef = useRef(null);
-    const [file, setFile] = useState(null);          // File (.bfmod)
-    const [error, setError] = useState(null);        // user-facing text
+    const fileRef = useRef<HTMLInputElement>(null);
+    const grantRef = useRef<HTMLInputElement>(null);
+    const [file, setFile] = useState<File | null>(null);          // File (.bfmod)
+    const [error, setError] = useState<string | null>(null);        // user-facing text
     const [needGrant, setNeedGrant] = useState(false);
-    const [consent, setConsent] = useState(null);    // [{id,reason?}] | null
-    const [result, setResult] = useState(null);      // { version, requiresRestart, activated? }
+    const [consent, setConsent] = useState<ModulePermission[] | null>(null);    // [{id,reason?}] | null
+    const [result, setResult] = useState<SideloadResult | null>(null);      // { version, requiresRestart, activated? }
 
     const busy = sideload.isPending || offlineGrant.isPending || activateStaged.isPending;
 
-    const errText = (e) => {
-        const slug = e?.body?.error || e?.message;
+    const errText = (e: unknown) => {
+        const slug = errorBodyRecord(e)?.error || errorMessage(e);
         if (slug === 'package_verify_failed') return t('modules.sideload_verify_failed');
         if (slug === 'module_id_conflict') return t('modules.sideload_id_conflict');
         if (slug === 'incompatible') return t('modules.sideload_incompatible');
@@ -36,26 +49,26 @@ export default function SideloadDialog({ onClose, onDone }) {
         return t('modules.sideload_failed');
     };
 
-    const doSideload = (acceptedPermissions = null) => {
+    const doSideload = (acceptedPermissions: string[] | null = null) => {
         if (!file) return;
         setError(null);
         sideload.mutate({ file, acceptedPermissions: acceptedPermissions || undefined }, {
-            onSuccess: (res) => {
+            onSuccess: (res: { version: string; requiresRestart?: boolean } | null) => {
                 setResult({ version: res?.version || '', requiresRestart: !!res?.requiresRestart });
                 onDone?.(res);
             },
-            onError: (e) => {
-                if (e?.status === 402 || e?.body?.error === 'offline_grant_required') { setNeedGrant(true); return; }
-                const missing = e?.body?.error === 'consent_required' ? (e.body.missingPermissions || []) : null;
+            onError: (e: Error) => {
+                if (errorStatus(e) === 402 || errorBodyRecord(e)?.error === 'offline_grant_required') { setNeedGrant(true); return; }
+                const missing = errorBodyRecord(e)?.error === 'consent_required' ? (errorBodyRecord(e)?.missingPermissions || []) : null;
                 if (missing) { setConsent(normalizePermissions(missing)); return; }
                 setError(errText(e));
             },
         });
     };
 
-    const applyGrant = async (grantFile) => {
+    const applyGrant = async (grantFile: File) => {
         setError(null);
-        let grant = null;
+        let grant: Record<string, unknown> | null = null;
         try { grant = JSON.parse(await grantFile.text()); } catch { grant = null; }
         const moduleId = grant && (grant.module_id || grant.moduleId || grant.sub);
         if (!grant || !moduleId) {
@@ -67,13 +80,13 @@ export default function SideloadDialog({ onClose, onDone }) {
                 // The package was already verified + staged by the 402'd upload;
                 // the grant unlocks it — bring it up.
                 activateStaged.mutate({ id: String(moduleId) }, {
-                    onSuccess: (res) => {
+                    onSuccess: (res: { version: string } | null) => {
                         setNeedGrant(false);
                         setResult({ version: res?.version || '', requiresRestart: false, activated: true });
                         onDone?.(res);
                     },
-                    onError: (e) => {
-                        if (e?.status === 404 || e?.body?.error === 'no_staged_version') {
+                    onError: (e: Error) => {
+                        if (errorStatus(e) === 404 || errorBodyRecord(e)?.error === 'no_staged_version') {
                             // Grant applied but nothing staged — re-run the upload.
                             setNeedGrant(false);
                             doSideload();
@@ -96,7 +109,7 @@ export default function SideloadDialog({ onClose, onDone }) {
                     mode="install"
                     busy={busy}
                     onCancel={() => setConsent(null)}
-                    onAccept={(ids) => { setConsent(null); doSideload(ids); }}
+                    onAccept={(ids: string[]) => { setConsent(null); doSideload(ids); }}
                 />
             )}
             <Modal
@@ -153,7 +166,7 @@ export default function SideloadDialog({ onClose, onDone }) {
                                 type="file"
                                 accept=".bfgrant,application/json,.json"
                                 className="hidden"
-                                onChange={(e) => { const f = e.target.files?.[0]; if (f) applyGrant(f); e.target.value = ''; }}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) applyGrant(f); e.target.value = ''; }}
                             />
                             <div className="flex items-center justify-end gap-2 pt-1">
                                 <button
@@ -186,7 +199,7 @@ export default function SideloadDialog({ onClose, onDone }) {
                                 type="file"
                                 accept=".bfmod,application/octet-stream,application/zip"
                                 className="hidden"
-                                onChange={(e) => { setFile(e.target.files?.[0] || null); setError(null); }}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFile(e.target.files?.[0] || null); setError(null); }}
                             />
                             <button
                                 onClick={() => fileRef.current?.click()}
