@@ -508,6 +508,24 @@ test('org nc_admin_uid matching the signed sub also takes the carve-out', async 
     assert.equal(called, 1);
 });
 
+test('carve-out admin whose row is pending: 403 Account is pending admin approval, no next()', async () => {
+    const adminUser = { id: `adm${++uid}`, email: 'ann@acme.example', organizationId: ORG, status: 'pending' };
+    connectorBootstrap.helpers.ensureOrgAdminUser = async () => adminUser;
+    const req = connectorReq(goodPayload({ nc_admin: true }));
+    assertRejected(await run(req), 403, { error: 'Account is pending admin approval' });
+    assert.equal(req.session.isAuthenticated, undefined);
+    assert.deepEqual(rec.problems[0].opts.meta, { lastUserId: adminUser.id, reason: 'existing_user_pending' });
+});
+
+test('carve-out users skip the cross-tenant check (deliberate, today\'s behaviour)', async () => {
+    const adminUser = { id: `adm${++uid}`, email: 'ann@acme.example', organizationId: 'otherOrg' };
+    connectorBootstrap.helpers.ensureOrgAdminUser = async () => adminUser;
+    const req = connectorReq(goodPayload({ nc_admin: true }));
+    assertNextOnce(await run(req));
+    assert.equal(req.session.user.organizationId, 'otherOrg');
+    assert.ok(!problemCodes().includes('auth.blocked_org_mismatch'));
+});
+
 test('carve-out: ensureOrgAdminUser returning null falls into the onboarding gate (403)', async () => {
     userStore.getOrganization = async () => ({ id: ORG, nc_instance_id: 'nc1', nc_onboarding_completed_at: null });
     const out = await run(connectorReq(goodPayload({ nc_admin: true })));
@@ -754,4 +772,28 @@ test('next(err) path: a throw from next(HttpError) is also turned into 401', asy
     assert.deepEqual(out.actions, ['next', 'res.status', 'res.json']);
     assert.equal(out.statusCode, 401);
     assert.equal(out.nextArgs[0].code, 'provision_failed');
+});
+
+// ── fail-closed guards of the orchestrator (split-specific) ─────────────────
+
+test('an unknown outcome kind from the last phase is 401, never next()', async (t) => {
+    const phases = require('./connectorJwtPhases');
+    const orig = phases.establishConnectorSession;
+    t.after(() => { phases.establishConnectorSession = orig; });
+    phases.establishConnectorSession = async () => ({ kind: 'weird' });
+    const id = `u${++uid}`;
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    assertRejected(await run(connectorReq(goodPayload())), 401, INVALID);
+});
+
+test('a gate that returns ok() without an authenticated session is 401, never next()', async (t) => {
+    const phases = require('./connectorJwtPhases');
+    const orig = phases.pendingApprovalGate;
+    t.after(() => { phases.pendingApprovalGate = orig; });
+    phases.pendingApprovalGate = () => ({ kind: 'ok', user: null });
+    const id = `u${++uid}`;
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    const req = connectorReq(goodPayload());
+    assertRejected(await run(req), 401, INVALID);
+    assert.equal(req.session.isAuthenticated, undefined);
 });

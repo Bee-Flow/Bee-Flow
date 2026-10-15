@@ -383,8 +383,11 @@ async function connectorJwtMiddleware(req, res, next) {
         const outcome = await _authenticateConnectorToken(req, token);
         if (outcome.kind === 'reject') return res.status(outcome.status).json(outcome.body);
         if (outcome.kind === 'error') return next(outcome.error);
-        // Fail closed: only an explicit 'ok' continues the chain.
-        if (outcome.kind !== 'ok') throw new Error('unexpected connector auth outcome');
+        // Fail closed: only an explicit 'ok' WITH an authenticated session
+        // (what establishConnectorSession writes) continues the chain.
+        if (outcome.kind !== 'ok' || req.session?.isAuthenticated !== true) {
+            throw new Error('unexpected connector auth outcome');
+        }
         next();
         return;
     } catch (err) {
