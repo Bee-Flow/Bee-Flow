@@ -17,7 +17,7 @@ import type { Msg } from '../declarative/spec';
 
 const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow');
 const src = fs.readFileSync(path.join(FLOW, 'settings/fieldDesigner.tsx'), 'utf8');
-const editors = fs.readFileSync(path.join(FLOW, 'settings/triggerEditors.jsx'), 'utf8');
+const editors = fs.readFileSync(path.join(FLOW, 'settings/triggerEditors.tsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const renameHelpers = require(path.join(FLOW, 'renameFormField.ts'));
 

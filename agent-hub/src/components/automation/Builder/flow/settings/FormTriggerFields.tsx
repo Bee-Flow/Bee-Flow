@@ -8,6 +8,7 @@ import { useBuilderConfirm } from '../../BuilderConfirmContext';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { copyText } from '../../../../../utils/copyText';
 import type { FormEditorContext } from './FormPageEditor';
+import type { TriggerAutomation } from './triggerEditors.types';
 
 /**
  * The authoring surface for a hosted form trigger (`kind: 'form'`) — page one
@@ -30,22 +31,6 @@ type FormDeclaration = Record<string, unknown>;
 
 type RenameFieldFn = ((from: string, to: string) => number | undefined) | null;
 
-interface PersistedTrigger {
-    id?: string;
-    kind?: string;
-    [key: string]: unknown;
-}
-
-interface UrlPanelAutomation {
-    id?: string;
-    definition?: {
-        trigger?: PersistedTrigger | null;
-        triggers?: PersistedTrigger[];
-        [key: string]: unknown;
-    };
-    [key: string]: unknown;
-}
-
 interface PublicFormPage {
     id: string;
     url?: string;
@@ -57,7 +42,7 @@ interface PublicFormPage {
 interface Props {
     draft: { form?: FormDeclaration | null; [key: string]: unknown };
     set: (key: string, value: unknown) => void;
-    automation?: UrlPanelAutomation | null;
+    automation?: TriggerAutomation | null;
     stepId?: string | null;
     onTestSubmit?: ((answers: Record<string, unknown>) => Promise<unknown>) | null;
     onRenameField?: RenameFieldFn;
@@ -116,7 +101,7 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
  * triggerStepId against the SAVED definition, so asking while the node is still
  * inside the autosave debounce deterministically 400s.
  */
-export function FormTriggerUrlPanel({ automation, stepId }: { automation?: UrlPanelAutomation | null; stepId?: string | null }) {
+export function FormTriggerUrlPanel({ automation, stepId }: { automation?: TriggerAutomation | null; stepId?: string | null }) {
     const { t } = useTranslation();
     const api = useAutomationApi();
     const confirmAction = useBuilderConfirm();
@@ -129,7 +114,7 @@ export function FormTriggerUrlPanel({ automation, stepId }: { automation?: UrlPa
         const def = automation?.definition;
         if (!def || !stepId) return null;
         if (def.trigger?.id === stepId) return def.trigger;
-        return (def.triggers || []).find((t: PersistedTrigger) => t?.id === stepId) || null;
+        return (def.triggers || []).find((t) => t?.id === stepId) || null;
     }, [automation?.definition, stepId]);
     const provisionable = persistedTrigger?.kind === 'form';
 
@@ -177,7 +162,7 @@ export function FormTriggerUrlPanel({ automation, stepId }: { automation?: UrlPa
         if (!ok) return;
         setBusy(true);
         try {
-            const r = await api.rotateFormPage((automation as UrlPanelAutomation).id as string, page.id) as { form?: PublicFormPage };
+            const r = await api.rotateFormPage((automation as TriggerAutomation).id as string, page.id) as { form?: PublicFormPage };
             setPage(r.form || null);
         } catch (e) {
             setError((e as Error).message);

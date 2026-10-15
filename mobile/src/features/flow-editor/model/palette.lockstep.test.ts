@@ -3,7 +3,7 @@
  * required from agent-hub with Lucide replaced by a proxy that hands out each
  * icon's NAME — so the web's own items, groups and search results come out
  * with icon names, and are compared with the port's field for field. The
- * step-symbol map is rebuilt from stepIcons.jsx's text (it is a component
+ * step-symbol map is rebuilt from stepIcons.tsx's text (it is a component
  * file), and the icon-pack hook, which only the logo component calls, is
  * stubbed.
  */
@@ -20,7 +20,7 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/stepI
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const src: string = require('node:fs').readFileSync(
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require('node:path').resolve(__dirname, '../../../../../agent-hub/src/components/automation/Builder/flow/stepIcons.jsx'),
+        require('node:path').resolve(__dirname, '../../../../../agent-hub/src/components/automation/Builder/flow/stepIcons.tsx'),
         'utf8',
     );
     const names = [...src.matchAll(/\['([A-Za-z0-9]+)', [A-Za-z0-9]+\]/g)].map((m) => m[1]);
@@ -215,8 +215,8 @@ describe('app naming and the integration catalogue', () => {
         expect(missing).toEqual([]);
     });
 
-    it('the step symbols are stepIcons.jsx\'s, in order', () => {
-        const src = fs.readFileSync(path.join(FLOW, 'stepIcons.jsx'), 'utf8');
+    it('the step symbols are stepIcons.tsx\'s, in order', () => {
+        const src = fs.readFileSync(path.join(FLOW, 'stepIcons.tsx'), 'utf8');
         const names = [...src.matchAll(/\['([A-Za-z0-9]+)', [A-Za-z0-9]+\]/g)].map((m) => m[1]);
         expect(names.length).toBeGreaterThan(50);
         expect([...palette.STEP_ICON_NAMES]).toEqual(names);

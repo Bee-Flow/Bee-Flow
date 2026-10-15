@@ -13,6 +13,18 @@ import {
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { messageOf } from '../../../../utils/caughtError';
 
+interface ScheduleBuilderProps {
+    cron?: string | null;
+    tz?: string | null;
+    onChange?: ((v: { cron: string; tz: string }) => void) | null;
+}
+
+interface PreviewState {
+    valid: boolean;
+    error: string | null;
+    next: string[];
+}
+
 /**
  * Visual schedule builder. Replaces the two raw cron/timezone text
  * inputs with a frequency-driven UI: pick a mode (Every N minutes /
@@ -28,18 +40,6 @@ import { messageOf } from '../../../../utils/caughtError';
  *   onChange({ cron, tz }) fires on every meaningful edit so the
  *   existing autosave plumbing in StepInspector picks it up unchanged.
  */
-interface ScheduleBuilderProps {
-    cron?: string | null;
-    tz?: string | null;
-    onChange?: ((v: { cron: string; tz: string }) => void) | null;
-}
-
-interface PreviewState {
-    valid: boolean;
-    error: string | null;
-    next: string[];
-}
-
 export default function ScheduleBuilder({ cron, tz, onChange }: ScheduleBuilderProps) {
     const { t } = useTranslation();
     const [preset, setPreset] = useState(() => presetFromCron(cron));

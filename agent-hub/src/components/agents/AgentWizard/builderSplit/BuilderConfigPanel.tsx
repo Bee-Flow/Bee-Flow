@@ -16,17 +16,6 @@ import type { Skill } from '../../../../api/queries/skills';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { Schedule } from './useAgentSchedules';
 
-/**
- * De ROL-tab van de agent-editor: de actiepillen-balk met haar popovers en de
- * instructie-editor.
- *
- * Sinds A2 stap 1 zit hier GEEN kopbalk en GEEN identiteitsblok meer. De
- * opslagstatus, publiceren, de zichtbaarheidscapsule en de terugpijl zitten in
- * de gedeelde `AgentEditorHeader`; avatar, naam, omschrijving, de chips en —
- * sinds A3 deel B — de categorietag in `AgentHero`, boven de tabs. Dit bestand
- * tekent alleen nog wat ONDER de heldere identiteit hoort — en alles komt nog
- * steeds via props binnen; er staat hier geen state.
- */
 type OpenSetter = Dispatch<SetStateAction<boolean>>;
 
 export interface BuilderConfigPanelProps {
@@ -78,6 +67,17 @@ export interface BuilderConfigPanelProps {
     updateInstructions: (value: string) => void;
 }
 
+/**
+ * De ROL-tab van de agent-editor: de actiepillen-balk met haar popovers en de
+ * instructie-editor.
+ *
+ * Sinds A2 stap 1 zit hier GEEN kopbalk en GEEN identiteitsblok meer. De
+ * opslagstatus, publiceren, de zichtbaarheidscapsule en de terugpijl zitten in
+ * de gedeelde `AgentEditorHeader`; avatar, naam, omschrijving, de chips en —
+ * sinds A3 deel B — de categorietag in `AgentHero`, boven de tabs. Dit bestand
+ * tekent alleen nog wat ONDER de heldere identiteit hoort — en alles komt nog
+ * steeds via props binnen; er staat hier geen state.
+ */
 export default function BuilderConfigPanel({
     ro, t, agent,
     flushNow,
