@@ -7,7 +7,11 @@
 // .claude/handoff/ts-conversion/README.md for the whole loop.
 //
 //   node scripts/ts-convert-local.mjs --batch .claude/handoff/ts-conversion/batches/23.txt \
-//        [--endpoint http://127.0.0.1:11434/v1] [--model qwen2.5-coder:32b] [--only a.jsx,b.js] [--dry]
+//        [--endpoint http://127.0.0.1:8080/v1] [--model local] [--only a.jsx,b.js] [--dry]
+//
+// Defaults fit a llama-server (llama.cpp) on the usual port; ollama is
+// --endpoint http://127.0.0.1:11434/v1 --model <name>. LOCAL_LLM_ENDPOINT and
+// LOCAL_LLM_MODEL set the same two things.
 //
 // Per file: git mv to the TypeScript name, ask the model for the typed source,
 // write it. Importers that name the file with an extension, tests that read it,
@@ -65,8 +69,8 @@ function arg(name, fallback) { const i = process.argv.indexOf(name); return i ==
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const batch = arg('--batch'); if (!batch) { console.error('usage: --batch <list file> [--endpoint url] [--model name] [--only a,b] [--dry]'); process.exit(2); }
-    const endpoint = arg('--endpoint', process.env.LOCAL_LLM_ENDPOINT || 'http://127.0.0.1:11434/v1');
-    const model = arg('--model', process.env.LOCAL_LLM_MODEL || 'qwen2.5-coder:32b');
+    const endpoint = arg('--endpoint', process.env.LOCAL_LLM_ENDPOINT || 'http://127.0.0.1:8080/v1');
+    const model = arg('--model', process.env.LOCAL_LLM_MODEL || 'local');
     const only = arg('--only', '').split(',').filter(Boolean);
     const dry = process.argv.includes('--dry');
     const files = fs.readFileSync(batch, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean)

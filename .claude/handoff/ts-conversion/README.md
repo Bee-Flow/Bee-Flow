@@ -57,10 +57,35 @@ converted. A file that cannot be typed without changing code (Date arithmetic,
    push, and let CI (`build-push-ghcr.yml`, channel dev) build before a dev deploy via
    `Bee-Flow-AI-internal/.github/workflows/deploy-dev.yml` (dry run first).
 
-## Local model notes
+## Local model: what the research says (October 2026)
 
-Tested nowhere yet; a 30B-class coder at 4-bit is the sensible start on 64 GB
-(`qwen2.5-coder:32b` in ollama, ~20 GB). Give it 32k context. Expect it to break the
-rules more often than Sonnet did; that is what the gate is for. A reject rate above
-~40% means the model is too small for this; switch the draft step to Claude and keep
-the local model for the easy folders (`utils/`, `components/shared/`).
+Decode on Strix Halo (Ryzen AI Max+ 395) is bound by memory bandwidth (~256 GB/s),
+so bytes read per token decide the speed, not parameter count. Measured by the
+community with llama.cpp on Vulkan (RADV):
+
+| Model | Weights (4-bit) | Decode | Note |
+|---|---|---|---|
+| Qwen3-Coder-30B-A3B (MoE, 3B active) | 16–24 GB | ~95 tok/s | fast, leaves ~40 GB free; older (mid-2025) |
+| Qwen3.6-35B-A3B (MoE) | ~22 GB | ~63 tok/s (124 with MTP in colibri) | newer general model, strong on code |
+| Qwen3-Coder-Next 80B-A3B (MoE) | 48–52 GB | 51 (ollama) – 63 tok/s | best quality that fits 64 GB; tight with typecheck running |
+| Qwen3.8-27B / Devstral Small 2 (dense) | 16–17 GB | 12–16 tok/s (30–36 with MTP) | too slow for whole-file drafts |
+
+A 300-line file is ~3.5k output tokens: ~40 s at 95 tok/s, ~65 s at 55, ~4 min at 14.
+Dense models are therefore out. Runtime: llama.cpp `llama-server`, Vulkan backend,
+`-fa 1 -c 32768 -ctk q8_0 -ctv q8_0 -b 2048 -ub 2048 --parallel 2`; the tuned
+gfx1151 build at github.com/Nathanw1014/strix-halo-llamacpp bundles a current Mesa
+RADV and fixes MoE prefill. Ollama works too but is slower on this chip and has had
+unified-memory detection regressions (0.30+); if used, `OLLAMA_VULKAN=1` and check
+`ollama ps` shows the model on GPU.
+
+Memory: BIOS UMA frame buffer small (512 MB–2 GB); Linux maps the rest through GTT.
+The 30B/35B MoE models fit the default GTT (half of RAM). Coder-Next needs
+`amdgpu.gttsize=57344 ttm.pages_limit=14680064` (56 GiB) on the kernel command line,
+leaving ~8 GB for the OS and the typecheck, which is tight; do not run two typechecks
+at once with it loaded.
+
+Decision rule: the gate makes a bake-off cheap. Run batch 42 with Qwen3-Coder-30B-A3B,
+then with Qwen3-Coder-Next; compare gate pass rate (identical files / drafted files),
+skipped files and wall time. Keep the one with the higher pass rate unless it is more
+than twice as slow. A pass rate under ~60% for both means the local model is too weak
+for this; let Claude draft and keep the local model for `utils/` and `components/shared/`.
