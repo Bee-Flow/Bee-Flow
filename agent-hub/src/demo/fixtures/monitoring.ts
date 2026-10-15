@@ -23,7 +23,7 @@
 
 import { COMMON_ROUTES } from './common';
 
-const dayKey = (n) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+const dayKey = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 
 /* ── Overview ─────────────────────────────────────────────────────────
    One model table is the source of truth; every other view derives from it,
@@ -38,14 +38,16 @@ const MODELS = () => ([
     { model: 'qwen3-8b (local)', calls: 647, prompt_tokens: 501_300, completion_tokens: 193_500, input_cost: 0, output_cost: 0 },
 ]);
 
-const withTotals = (m) => {
+type Model = ReturnType<typeof MODELS>[number];
+
+const withTotals = (m: Model) => {
     const total_tokens = m.prompt_tokens + m.completion_tokens;
     const estimated_cost = Number((m.input_cost + m.output_cost).toFixed(2));
     return { ...m, total_tokens, estimated_cost, billed_cost: estimated_cost, total_cost: estimated_cost };
 };
 
 const MODEL_ROWS = () => MODELS().map(withTotals);
-const sum = (rows, key) => rows.reduce((a, r) => a + (r[key] || 0), 0);
+const sum = <K extends string>(rows: readonly Record<K, number>[], key: K) => rows.reduce((a: number, r: Record<K, number>) => a + (r[key] || 0), 0);
 
 const SUMMARY = () => {
     const rows = MODEL_ROWS();
@@ -107,11 +109,11 @@ const AGENTS = () => ([
 
 /** Cost tracks each row's share of tokens, so "top by cost" can never
  *  contradict "top by tokens" on the same screen. */
-const costed = (list) => {
+const costed = <T extends { prompt_tokens: number; completion_tokens: number }>(list: readonly T[]) => {
     const s = SUMMARY();
-    const rows = list.map(r => ({ ...r, total_tokens: r.prompt_tokens + r.completion_tokens }));
+    const rows = list.map((r: T) => ({ ...r, total_tokens: r.prompt_tokens + r.completion_tokens }));
     const totalTok = sum(rows, 'total_tokens');
-    return rows.map(r => {
+    return rows.map((r) => {
         const cost = Number((s.total_estimated_cost * (r.total_tokens / totalTok)).toFixed(2));
         return { ...r, estimated_cost: cost, billed_cost: cost, total_cost: cost };
     });
@@ -141,9 +143,19 @@ const SOURCES = () => {
 };
 
 /** Cross-tabs: which model each agent / person actually used. */
-const MODELS_BY = (rows, key) => {
+type ModelsByRow = {
+    agent_id?: string | null;
+    user_id?: string;
+    agent_name?: string;
+    display_name?: string;
+    calls: number;
+    total_tokens: number;
+    estimated_cost: number;
+};
+
+const MODELS_BY = (rows: readonly ModelsByRow[], key: 'agent_id' | 'user_id') => {
     const models = MODEL_ROWS();
-    return rows.map((r, i) => {
+    return rows.map((r: ModelsByRow, i: number) => {
         const m = models[i % models.length];
         const cost = Number((r.estimated_cost * 0.6).toFixed(2));
         return {
@@ -319,7 +331,8 @@ const I_EGRESS = () => {
 /** SovereigntyRow reads `eu_count` / `local_count` / `non_eu_count` /
  *  `pii_non_eu_count` — NOT `eu` / `local` / `non`. With the short names every
  *  row scored 0 because `total > 0` but the numerator was undefined. */
-const sovRow = (axis, key, total, { nonPct = 0.06, localPct = 0.5, piiNonEu = 0, top_operator = '' } = {}) => {
+type SovOptions = { nonPct?: number; localPct?: number; piiNonEu?: number; top_operator?: string };
+const sovRow = (axis: string, key: string, total: number, { nonPct = 0.06, localPct = 0.5, piiNonEu = 0, top_operator = '' }: SovOptions = {}) => {
     // DISJOINT buckets. The score is `(eu_count + local_count) / total`, so if
     // local traffic is also counted inside eu_count the row scores over 100 —
     // the demo was showing 148/100, which is worse than showing nothing.
@@ -335,8 +348,10 @@ const sovRow = (axis, key, total, { nonPct = 0.06, localPct = 0.5, piiNonEu = 0,
     };
 };
 
-const I_SOVEREIGNTY = (axis) => {
-    const byAxis = {
+type SovereigntyRow = ReturnType<typeof sovRow>;
+
+const I_SOVEREIGNTY = (axis: string) => {
+    const byAxis: Record<string, SovereigntyRow[]> = {
         user: USERS().map((u, i) => sovRow('user', u.display_name, u.calls, {
             nonPct: i === 3 ? 0.11 : 0.04, localPct: 0.52,
             piiNonEu: i === 3 ? 2 : 0, top_operator: 'Google',
@@ -398,24 +413,27 @@ export function createState() {
 
 /* Azure service telemetry only exists on Azure deployments. Empty is the
    correct answer for a generic demo rather than an invented bill. */
-const EMPTY_AZURE = {};
+const EMPTY_AZURE: Record<string, () => unknown> = {};
 ['azure-services/summary', 'azure-services/by-type', 'azure-services/by-user'].forEach((ep) => {
     EMPTY_AZURE[`GET /api/usage/${ep}`] = ep.endsWith('summary') ? () => ({}) : () => ([]);
 });
+
+type State = ReturnType<typeof createState>;
+type Ctx = { state: State; query: URLSearchParams };
 
 export const ROUTES = {
     ...COMMON_ROUTES,
     ...EMPTY_AZURE,
 
     // ── Overview tab ─────────────────────────────────────────────────
-    'GET /api/usage/summary': ({ state }) => state.summary,
-    'GET /api/usage/timeline': ({ state }) => state.timeline,
-    'GET /api/usage/users': ({ state }) => state.users,
-    'GET /api/usage/sources': ({ state }) => state.sources,
-    'GET /api/usage/agents': ({ state }) => state.agents,
-    'GET /api/usage/models': ({ state }) => state.models,
-    'GET /api/usage/models-by-agent': ({ state }) => MODELS_BY(state.agents, 'agent_id'),
-    'GET /api/usage/models-by-user': ({ state }) => MODELS_BY(state.users, 'user_id'),
+    'GET /api/usage/summary': ({ state }: Ctx) => state.summary,
+    'GET /api/usage/timeline': ({ state }: Ctx) => state.timeline,
+    'GET /api/usage/users': ({ state }: Ctx) => state.users,
+    'GET /api/usage/sources': ({ state }: Ctx) => state.sources,
+    'GET /api/usage/agents': ({ state }: Ctx) => state.agents,
+    'GET /api/usage/models': ({ state }: Ctx) => state.models,
+    'GET /api/usage/models-by-agent': ({ state }: Ctx) => MODELS_BY(state.agents, 'agent_id'),
+    'GET /api/usage/models-by-user': ({ state }: Ctx) => MODELS_BY(state.users, 'user_id'),
 
     // ── Safety & Guardrails tab ──────────────────────────────────────
     'GET /api/usage/guardrails/summary': () => G_SUMMARY(),
@@ -447,7 +465,7 @@ export const ROUTES = {
     'GET /api/usage/integrations/egress': () => I_EGRESS(),
     'GET /api/usage/integrations/operator-summary': () => I_BY_TYPE(),
     'GET /api/usage/integrations/timeline': () => I_TIMELINE(),
-    'GET /api/usage/integrations/sovereignty': ({ query }) => I_SOVEREIGNTY(query.get('dimension') || 'user'),
+    'GET /api/usage/integrations/sovereignty': ({ query }: Ctx) => I_SOVEREIGNTY(query.get('dimension') || 'user'),
 
     // ── Plan cards ───────────────────────────────────────────────────
     'GET /api/subscriptions/orgs/:orgId': () => ({

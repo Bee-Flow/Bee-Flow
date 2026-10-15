@@ -94,7 +94,49 @@ const CHAPTERS = () => ([
     { title: 'Communicating with the pilot group', start: 219, end: 291 },
 ]);
 
-function detail() {
+type Speaker = ReturnType<typeof SPEAKERS>[number];
+type Segment = ReturnType<typeof SEGMENTS>[number];
+
+interface Detail {
+    id: string;
+    title: string;
+    fileName: string;
+    language: string;
+    durationSeconds: number;
+    speakerCount: number;
+    numSpeakers: number;
+    segmentCount: number;
+    status: string;
+    provider: string;
+    source: string;
+    talkRoomToken: string | null;
+    meetMeetingCode: string | null;
+    isPublished: boolean;
+    sharedGroups: string[];
+    sharedWith: string[];
+    tags: string[];
+    organizationId: string;
+    createdAt: string;
+    updatedAt: string;
+    isOwner: boolean;
+    ownerId: string;
+    fullText: string;
+    transcript: string;
+    summary: string;
+    segments: Segment[];
+    speakers: Speaker[];
+    attendees: string[];
+    actionItems: ReturnType<typeof ACTION_ITEMS>;
+    decisions: ReturnType<typeof DECISIONS>;
+    questions: ReturnType<typeof QUESTIONS>;
+    chapters: ReturnType<typeof CHAPTERS>;
+    voiceprintMatches: string[];
+    audioPath: string;
+    audioStorageKey: string | null;
+    sourceUri: string | null;
+}
+
+function detail(): Detail {
     return {
         id: MEETING_ID,
         title: 'Intake flow — pilot review',
@@ -138,7 +180,7 @@ function detail() {
 }
 
 /** Two more rows so the library looks like a library rather than one card. */
-function siblings() {
+function siblings(): Detail[] {
     const base = detail();
     return [
         {
@@ -169,7 +211,7 @@ function siblings() {
 }
 
 /** The list payload is a strict subset of the detail payload. */
-function toListItem(t) {
+function toListItem(t: Detail) {
     return {
         id: t.id, title: t.title, fileName: t.fileName, language: t.language,
         durationSeconds: t.durationSeconds, speakerCount: t.speakerCount,
@@ -182,44 +224,47 @@ function toListItem(t) {
     };
 }
 
-export function createState() {
+type State = { transcriptions: Detail[]; templates: unknown[]; agents: unknown[] };
+type Ctx = { state: State; params: Record<string, string>; body: ({ renames?: Record<string, string> } & Record<string, unknown>) | null };
+
+export function createState(): State {
     const all = [detail(), ...siblings()];
     return { transcriptions: all, templates: [], agents: [] };
 }
 
-const find = (state, id) => state.transcriptions.find(t => t.id === id) || null;
+const find = (state: State, id: string) => state.transcriptions.find((t: Detail) => t.id === id) || null;
 const notFound = () => new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
 export const ROUTES = {
     ...COMMON_ROUTES,
 
-    'GET /api/transcriptions': ({ state }) => ({
+    'GET /api/transcriptions': ({ state }: Ctx) => ({
         transcriptions: state.transcriptions.map(toListItem),
         total: state.transcriptions.length,
     }),
-    'GET /api/transcriptions/:id': ({ state, params }) => find(state, params.id) || notFound(),
-    'PATCH /api/transcriptions/:id': ({ state, params, body }) => {
+    'GET /api/transcriptions/:id': ({ state, params }: Ctx) => find(state, params.id) || notFound(),
+    'PATCH /api/transcriptions/:id': ({ state, params, body }: Ctx) => {
         const t = find(state, params.id);
         if (!t) return notFound();
         Object.assign(t, body || {});
         return { success: true, transcription: t };
     },
-    'DELETE /api/transcriptions/:id': ({ state, params }) => {
-        state.transcriptions = state.transcriptions.filter(t => t.id !== params.id);
+    'DELETE /api/transcriptions/:id': ({ state, params }: Ctx) => {
+        state.transcriptions = state.transcriptions.filter((t: Detail) => t.id !== params.id);
         return { success: true };
     },
 
     // Speaker renames land in memory so the transcript really does re-label.
-    'POST /api/transcriptions/:id/speakers': ({ state, params, body }) => {
+    'POST /api/transcriptions/:id/speakers': ({ state, params, body }: Ctx) => {
         const t = find(state, params.id);
         if (!t) return notFound();
         const renames = body?.renames || {};
-        t.speakers = t.speakers.map(s => (renames[s.id] ? { ...s, name: renames[s.id] } : s));
+        t.speakers = t.speakers.map((s: Speaker) => (renames[s.id] ? { ...s, name: renames[s.id] } : s));
         return { success: true, transcription: t };
     },
 
     // Regeneration is scripted — no model is called, and we say so.
-    'POST /api/transcriptions/:id/summary': ({ state, params }) => {
+    'POST /api/transcriptions/:id/summary': ({ state, params }: Ctx) => {
         const t = find(state, params.id);
         if (!t) return notFound();
         return { success: true, summary: t.summary, demo: true };
@@ -250,7 +295,7 @@ export const ROUTES = {
     // meeting is used by anything: its decisions feed a knowledge base
     // (K7: meeting notes as a KB source), so an assistant can cite them.
     // The demo mounts with no navigation, so neither id needs a page.
-    'GET /api/transcriptions/:id/usage': ({ state, params }) => {
+    'GET /api/transcriptions/:id/usage': ({ state, params }: Ctx) => {
         if (!find(state, params.id)) return notFound();
         if (params.id !== MEETING_ID) return { usage: [] };
         return {
@@ -261,8 +306,8 @@ export const ROUTES = {
         };
     },
 
-    'GET /api/summary-templates': ({ state }) => ({ templates: state.templates }),
-    'GET /api/summary-templates/org': ({ state }) => ({ templates: state.templates }),
+    'GET /api/summary-templates': ({ state }: Ctx) => ({ templates: state.templates }),
+    'GET /api/summary-templates/org': ({ state }: Ctx) => ({ templates: state.templates }),
     'GET /api/talk-notes-settings/user/me': () => ({ enabled: false }),
     'GET /api/gmeet-notes-settings/user/me': () => ({ enabled: false }),
     'GET /api/org/users': () => ({ users: [] }),
