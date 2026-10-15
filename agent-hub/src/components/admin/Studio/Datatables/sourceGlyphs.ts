@@ -15,6 +15,7 @@
  */
 import { ClipboardList, Cloud, FileSpreadsheet } from 'lucide-react';
 import { tableIconOf } from './datatableDisplay';
+import type { MaybeTable } from './datatableTypes';
 
 export const SOURCE_GLYPHS = Object.freeze({
     nextcloud: Cloud,
@@ -23,7 +24,7 @@ export const SOURCE_GLYPHS = Object.freeze({
 });
 
 /** The component for a table's source glyph, or null for "the kind's own icon". */
-export function sourceGlyphOf(table) {
+export function sourceGlyphOf(table: MaybeTable) {
     const name = tableIconOf(table);
-    return name ? SOURCE_GLYPHS[name] || null : null;
+    return name ? SOURCE_GLYPHS[name as keyof typeof SOURCE_GLYPHS] || null : null;
 }

@@ -8,6 +8,19 @@ import useDebouncedValue from '../../../../../hooks/useDebouncedValue';
 import useRelativeTime from '../../../../../hooks/useRelativeTime';
 import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
 import Tabs from '../../../../shared/Tabs';
+import type { ErrorLike, TranslateFn } from '../datatableTypes';
+import type { BrowseFolder, BrowseItem, BrowsePage, PickedFile, ProviderProbe } from './wizardTypes';
+
+type Rel = ReturnType<typeof useRelativeTime>;
+
+interface FileBrowserProps {
+    t: TranslateFn;
+    scope: string | null;
+    providers: ProviderProbe[];
+    files: Map<string, PickedFile>;
+    onToggle: (file: PickedFile) => void;
+    marks: Map<string, string>;
+}
 
 /**
  * Step 1 of the link-spreadsheet wizard: which files?
@@ -37,16 +50,16 @@ import Tabs from '../../../../shared/Tabs';
  * here — Tab works everywhere, and a half-finished arrow-key scheme is
  * worse than none.
  */
-export default function FileBrowser({ t, scope, providers, files, onToggle, marks }) {
+export default function FileBrowser({ t, scope, providers, files, onToggle, marks }: FileBrowserProps) {
     const rel = useRelativeTime();
     const connected = useMemo(() => providers.filter(p => p.connected), [providers]);
-    const [provider, setProvider] = useState(() => (connected[0] || providers[0] || {}).provider || null);
+    const [provider, setProvider] = useState<string | null>(() => ((connected[0] || providers[0] || {}) as Partial<ProviderProbe>).provider || null);
     const [folderId, setFolderId] = useState('root');
     const [shared, setShared] = useState(false);
     const [q, setQ] = useState('');
     const dq = useDebouncedValue(q.trim(), 300);
     const [tick, setTick] = useState(0);
-    const [page, setPage] = useState({ folder: null, items: [], nextPageToken: null, loading: true, error: null });
+    const [page, setPage] = useState<BrowsePage>({ folder: null, items: [], nextPageToken: null, loading: true, error: null });
     const [moreBusy, setMoreBusy] = useState(false);
     const current = providers.find(p => p.provider === provider) || null;
     const searching = dq.length > 0;
@@ -71,18 +84,18 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
         if (!page.nextPageToken || moreBusy) return;
         setMoreBusy(true);
         try {
-            const b = await datatablesApi.browseSpreadsheets({ provider, folderId: searching ? 'root' : folderId, q: searching ? dq : null, shared, pageToken: page.nextPageToken, scope });
+            const b = await datatablesApi.browseSpreadsheets({ provider: provider as string, folderId: searching ? 'root' : folderId, q: searching ? dq : null, shared, pageToken: page.nextPageToken, scope });
             setPage(p => ({ ...p, items: [...p.items, ...(b?.items || [])], nextPageToken: b?.nextPageToken || null }));
         } catch (e) {
-            setPage(p => ({ ...p, error: e }));
+            setPage(p => ({ ...p, error: e as ErrorLike }));
         } finally {
             setMoreBusy(false);
         }
     };
 
-    const switchProvider = (id) => { setProvider(id); setFolderId('root'); setShared(false); setQ(''); };
-    const toggleShared = (on) => { setShared(on); setFolderId(on ? 'shared' : 'root'); setQ(''); };
-    const openFolder = (id) => { setFolderId(id); setQ(''); };
+    const switchProvider = (id: string) => { setProvider(id); setFolderId('root'); setShared(false); setQ(''); };
+    const toggleShared = (on: boolean) => { setShared(on); setFolderId(on ? 'shared' : 'root'); setQ(''); };
+    const openFolder = (id: string) => { setFolderId(id); setQ(''); };
 
     const tabs = providers.map(p => {
         const Logo = getIntegrationLogo(providerLogoId(p.provider));
@@ -127,7 +140,7 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
                             aria-label={t('datatables.ss_search', 'Find a spreadsheet')} className={`${INPUT} pl-9`} style={INPUT_STYLE} />
                     </label>
                     <Listing t={t} page={page} provider={provider} searching={searching} q={dq} rel={rel} files={files} marks={marks}
-                        onOpen={openFolder} onToggle={(item) => onToggle({ ...item, provider })} onMore={more} moreBusy={moreBusy} />
+                        onOpen={openFolder} onToggle={(item) => onToggle({ ...item, provider: provider as string })} onMore={more} moreBusy={moreBusy} />
                 </>
             )}
             {selected.length > 0 && (
@@ -160,7 +173,7 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
 }
 
 /** Where you are: the root word, then every folder on the way; a search collapses it to one word. */
-function Breadcrumb({ t, shared, searching, folderId, folder, onOpen }) {
+function Breadcrumb({ t, shared, searching, folderId, folder, onOpen }: { t: TranslateFn; shared: boolean; searching: boolean; folderId: string; folder: BrowseFolder | null; onOpen: (id: string) => void }) {
     const rootId = shared ? 'shared' : 'root';
     const rootLabel = shared ? t('datatables.ss_shared_root', 'Shared with me') : t('datatables.ss_root', 'All files');
     // The server's `path` is the chain of folders down to here; when it stops
@@ -200,7 +213,22 @@ function Breadcrumb({ t, shared, searching, folderId, folder, onOpen }) {
     );
 }
 
-function Listing({ t, page, provider, searching, q, rel, files, marks, onOpen, onToggle, onMore, moreBusy }) {
+interface ListingProps {
+    t: TranslateFn;
+    page: BrowsePage;
+    provider: string | null;
+    searching: boolean;
+    q: string;
+    rel: Rel;
+    files: Map<string, PickedFile>;
+    marks: Map<string, string>;
+    onOpen: (id: string) => void;
+    onToggle: (item: BrowseItem) => void;
+    onMore: () => void;
+    moreBusy: boolean;
+}
+
+function Listing({ t, page, provider, searching, q, rel, files, marks, onOpen, onToggle, onMore, moreBusy }: ListingProps) {
     if (page.error) {
         const e = page.error;
         return (
@@ -245,7 +273,7 @@ function Listing({ t, page, provider, searching, q, rel, files, marks, onOpen, o
     );
 }
 
-function FolderRow({ item, rel, onOpen }) {
+function FolderRow({ item, rel, onOpen }: { item: BrowseItem; rel: Rel; onOpen: (id: string) => void }) {
     return (
         <button type="button" onClick={() => onOpen(item.id)} className="w-full flex items-center gap-3 p-2.5 text-left focus-visible:outline focus-visible:outline-2" style={{ ...CARD, outlineColor: 'var(--accent-primary)' }}>
             <Folder className="w-4 h-4 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
@@ -263,11 +291,11 @@ function FolderRow({ item, rel, onOpen }) {
  * nothing left to link and the sheets step would be a dead end. It is
  * disabled here, unless it is already ticked (so it can still be unticked).
  */
-function isDeadEnd(item, linked, checked) {
+function isDeadEnd(item: BrowseItem, linked: number, checked: boolean) {
     return item.format === 'csv' && linked > 0 && !checked;
 }
 
-function FileRow({ t, item, provider, rel, checked, mark, onToggle }) {
+function FileRow({ t, item, provider, rel, checked, mark, onToggle }: { t: TranslateFn; item: BrowseItem; provider: string | null; rel: Rel; checked: boolean; mark?: string; onToggle: (item: BrowseItem) => void }) {
     const SheetsLogo = item.format === 'gsheet' ? getIntegrationLogo('google_sheets') : null;
     const linked = Array.isArray(item.linkedAs) ? item.linkedAs.length : 0;
     const dead = isDeadEnd(item, linked, checked);

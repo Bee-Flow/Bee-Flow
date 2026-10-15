@@ -24,6 +24,9 @@ import { KIND_WORD } from '../../../automation/Builder/mapping/fieldKinds';
  */
 const RELATION_WORD = { key: 'datatables.kind_relation', en: 'link to a row' };
 
+/**
+ * @param {{ kind: string, size?: number, style?: import('react').CSSProperties, title?: string }} props
+ */
 export function ColumnKindIcon({ kind, size = 14, style, title }) {
     if (kind === 'relation') {
         return (

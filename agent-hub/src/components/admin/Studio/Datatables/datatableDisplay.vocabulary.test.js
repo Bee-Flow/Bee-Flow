@@ -1,5 +1,5 @@
 /**
- * The pinning test datatableDisplay.js says it has.
+ * The pinning test datatableDisplay.ts says it has.
  *
  * That module duplicates the server's grammar — KEY_RE, SYSTEM_COLUMNS, the
  * type list, the two caps, the managed-column contract — because the client

@@ -31,13 +31,15 @@
  */
 
 import { COLUMN_TYPES, keyFromName, providerName } from '../datatableDisplay';
+import type { ErrorLike, TranslateFn } from '../datatableTypes';
+import type { LinkErrorBody, PickedFile, SheetColumn, SheetName, SheetRelation, SheetSelection } from './wizardTypes';
 
-export const fileKeyOf = (provider, fileId) => `${provider}:${fileId}`;
-export const sheetKeyOf = (fileKey, sheet) => `${fileKey}#${sheet}`;
-export const describeKeyOf = (fileKey, sheet, headerRow) => `${fileKey}#${sheet}@${headerRow}`;
+export const fileKeyOf = (provider: string | null | undefined, fileId: string) => `${provider}:${fileId}`;
+export const sheetKeyOf = (fileKey: string, sheet: SheetName | undefined) => `${fileKey}#${sheet}`;
+export const describeKeyOf = (fileKey: string, sheet: SheetName | undefined, headerRow: number) => `${fileKey}#${sheet}@${headerRow}`;
 
 /** What a sheet is called on screen: its name, or — for the unnamed only sheet of a csv — the file's. */
-export const sheetLabelOf = (sheet, fileName) => (sheet === null || sheet === undefined || sheet === '' ? String(fileName || '') : String(sheet));
+export const sheetLabelOf = (sheet: SheetName | undefined, fileName?: string | null) => (sheet === null || sheet === undefined || sheet === '' ? String(fileName || '') : String(sheet));
 
 export const STEPS = Object.freeze(['files', 'sheets', 'names', 'relations', 'review']);
 export const MAX_TABLES_PER_LINK = 10;
@@ -58,7 +60,7 @@ export const INFERABLE_TYPES = Object.freeze(COLUMN_TYPES.filter(ct => INFERABLE
 const KEY_TYPES = new Set(['text', 'number']);
 
 /** "facturen.xlsx" → "facturen"; a Google Sheet's name has no extension and stays whole. */
-export function baseName(fileName) {
+export function baseName(fileName?: string | null) {
     const name = String(fileName || '').trim();
     const m = name.match(/^(.+)\.([a-z0-9]{1,5})$/i);
     return m ? m[1] : name;
@@ -70,24 +72,24 @@ export function baseName(fileName) {
  * the same file are linked — two tables both called "Facturen 2026" would
  * be told apart only by their technical names.
  */
-export function defaultName(file, sheet, sheetsChosenInFile) {
+export function defaultName(file: { name?: string | null } | null | undefined, sheet: SheetName, sheetsChosenInFile: number) {
     const base = baseName(file?.name);
     return sheetsChosenInFile > 1 ? `${base} – ${sheet}` : base;
 }
 
-export function defaultKey(name) {
+export function defaultKey(name: string) {
     return keyFromName(name);
 }
 
 /** How many sheets of one file are selected. */
-export function sheetsChosenIn(selection, fileKey) {
+export function sheetsChosenIn(selection: Map<string, SheetSelection>, fileKey: string) {
     let n = 0;
     for (const s of selection.values()) if (s.fileKey === fileKey) n += 1;
     return n;
 }
 
 /** How many files in one storage are selected — the tab badge. */
-export function filesSelectedIn(files, provider) {
+export function filesSelectedIn(files: Map<string, PickedFile>, provider: string) {
     let n = 0;
     for (const f of files.values()) if (f.provider === provider) n += 1;
     return n;
@@ -99,9 +101,9 @@ export function filesSelectedIn(files, provider) {
  * left alone (NamesStep shows the collision instead); an auto-suffixed
  * key is still `keyTouched:false`, so it re-derives when the name changes.
  */
-export function dedupeKeys(selection) {
-    const next = new Map();
-    const taken = new Set();
+export function dedupeKeys(selection: Map<string, SheetSelection>) {
+    const next = new Map<string, SheetSelection>();
+    const taken = new Set<string>();
     for (const s of selection.values()) if (s.keyTouched) taken.add(s.key);
     for (const [k, s] of selection) {
         if (s.keyTouched) { next.set(k, s); continue; }
@@ -120,9 +122,9 @@ export function dedupeKeys(selection) {
  * then the keys are made unique. Returns a NEW map only when something
  * moved, so a state setter can hand back the same object.
  */
-export function applyDefaults(selection) {
+export function applyDefaults(selection: Map<string, SheetSelection>) {
     let changed = false;
-    const named = new Map();
+    const named = new Map<string, SheetSelection>();
     for (const [k, s] of selection) {
         if (s.nameTouched) { named.set(k, s); continue; }
         const name = defaultName({ name: s.fileName }, s.sheet, sheetsChosenIn(selection, s.fileKey));
@@ -141,7 +143,7 @@ export function applyDefaults(selection) {
  * the person's retype, with a header to call it by. The reason is the word
  * the radio shows when it is off.
  */
-export function keyColumnEligible(col, keyCandidates = []) {
+export function keyColumnEligible(col: SheetColumn | null | undefined, keyCandidates: number[] = []) {
     if (!col) return { ok: false, reason: 'type' };
     if (col.blankHeader) return { ok: false, reason: 'no_header' };
     if (!KEY_TYPES.has(col.type)) return { ok: false, reason: 'type' };
@@ -154,7 +156,7 @@ export function keyColumnEligible(col, keyCandidates = []) {
  * choices where the same column is still there — same position AND same
  * header — and take the server's inference for everything else.
  */
-export function mergeColumns(prev, next) {
+export function mergeColumns(prev: SheetColumn[] | null | undefined, next: SheetColumn[] | null | undefined) {
     return (next || []).map((c) => {
         const p = (prev || []).find(x => x.col === c.col && x.header === c.header);
         return p && p.typeTouched ? { ...c, type: p.type, typeTouched: true } : c;
@@ -167,7 +169,7 @@ export function mergeColumns(prev, next) {
  * is what keeps Next off. `sheet` is the wire identity (null for a csv);
  * `sheetLabel` is the word for it on screen.
  */
-export function newSelection(file, sheet) {
+export function newSelection(file: PickedFile, sheet: SheetName): SheetSelection {
     const fileKey = fileKeyOf(file.provider, file.id);
     return {
         sheetKey: sheetKeyOf(fileKey, sheet),
@@ -192,7 +194,7 @@ export function newSelection(file, sheet) {
 }
 
 /** The body of POST /spreadsheets/link — EXACTLY the contract, nothing the server did not ask for. */
-export function buildLinkBody({ scope, selection, relations }) {
+export function buildLinkBody({ scope, selection, relations }: { scope: string | null; selection: Map<string, SheetSelection>; relations?: SheetRelation[] | null }) {
     return {
         scope,
         tables: [...selection.values()].map(s => ({
@@ -227,16 +229,16 @@ const FILE_ERRORS = new Set([
  * marked by its `ref` on the sheets step; a storage that refused is marked
  * on the file, back on the files step. Anything else stays where it was.
  */
-export function stepForError(err) {
-    const body = err?.body || {};
+export function stepForError(err?: ErrorLike | null) {
+    const body = (err?.body || {}) as LinkErrorBody;
     const ref = body.ref || {};
     const fileKey = ref.provider && ref.fileId ? fileKeyOf(ref.provider, ref.fileId) : null;
     switch (true) {
         case err?.code === 'key_taken':
             return { step: 'names', key: body.key || null, fileKey: null, sheetKey: null };
-        case SHEET_ERRORS.has(err?.code):
+        case SHEET_ERRORS.has(err?.code as string):
             return { step: 'sheets', key: null, fileKey, sheetKey: fileKey && ref.sheet ? sheetKeyOf(fileKey, ref.sheet) : null };
-        case FILE_ERRORS.has(err?.code):
+        case FILE_ERRORS.has(err?.code as string):
             return { step: 'files', key: null, fileKey, sheetKey: null };
         case err?.code === 'relation_cross_scope':
             return { step: 'relations', key: null, fileKey: null, sheetKey: null };
@@ -246,7 +248,7 @@ export function stepForError(err) {
 }
 
 /** Why a storage cannot be used right now — the probe's reason, as a sentence. */
-export function ssReasonText(t, { provider, reason } = {}) {
+export function ssReasonText(t: TranslateFn, { provider, reason }: { provider?: string; reason?: string } = {}) {
     const source = providerName(provider);
     switch (reason) {
         case 'not_connected':
@@ -265,6 +267,6 @@ export function ssReasonText(t, { provider, reason } = {}) {
 }
 
 /** The code family a refusal belongs to, for the "Connect it under Settings" hint. */
-export function isProviderError(err) {
+export function isProviderError(err?: ErrorLike | null) {
     return /^provider_/.test(String(err?.code || ''));
 }

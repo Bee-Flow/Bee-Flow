@@ -1,5 +1,7 @@
 import { Check, Link2, Lock, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
+import type { ReactNode } from 'react';
+import type { ErrorLike, TranslateFn } from './datatableTypes';
 
 /**
  * What the two link wizards — Nextcloud tables and spreadsheet files — have
@@ -25,6 +27,51 @@ import React, { useState } from 'react';
  * whatever the wizard needs to name them on the wire).
  */
 
+/** A column as the relations editor sees it. */
+export interface RelColumn {
+    id: string | number;
+    title: string;
+    type: string;
+}
+
+/** A table as the relations editor sees it. */
+export interface RelTable {
+    refKey: string;
+    name: string;
+    key: string;
+    columns?: RelColumn[];
+}
+
+/** A relation between a column of one selected table and a column of another. */
+export interface Relation {
+    from: RelTable;
+    localColumn: RelColumn;
+    to: RelTable;
+    targetColumn: RelColumn;
+}
+
+/** A relation the source declares itself: shown, not editable. */
+export interface LockedRelation {
+    key: string;
+    from: { name: string };
+    columnTitle: string;
+    targetName: string | null;
+}
+
+interface RelationsStepProps {
+    t: TranslateFn;
+    tables: RelTable[];
+    locked?: LockedRelation[];
+    lockedLabel?: string;
+    suggestions: Relation[];
+    relations: Relation[];
+    hasRel: (r: Relation) => boolean;
+    onAdd: (r: Relation) => void;
+    onRemove: (r: Relation) => void;
+    intro: ReactNode;
+    needTwo: ReactNode;
+}
+
 /** Column types two tables can be matched on. A date or a checkbox is not an identifier. */
 export const MATCHABLE = new Set(['text', 'number', 'select', 'richtext']);
 
@@ -35,7 +82,7 @@ export const CARD = { borderRadius: 12, background: 'var(--bg-primary)', border:
 export const SELECT = `${INPUT} appearance-none`;
 
 /** The refusals a link can answer with that are about the TABLE, not the source. */
-export function messageFor(t, err) {
+export function messageFor(t: TranslateFn, err?: ErrorLike | null) {
     switch (err?.code) {
         case 'key_taken': return t('datatables.err_key_taken', 'There is already a table with this key. Pick another one.');
         case 'quota_exceeded': return t('datatables.err_quota', 'You have reached the limit on tables here.');
@@ -45,7 +92,7 @@ export function messageFor(t, err) {
 }
 
 /** A few words in the header: where you are. `labels` are the wizard's own step names. */
-export function StepStrip({ t, at, labels }) {
+export function StepStrip({ t, at, labels }: { t: TranslateFn; at: number; labels: string[] }) {
     return (
         <ol className="flex items-center gap-2 text-[11px]" aria-label={t('datatables.nc_steps', 'Steps')}>
             {labels.map((label, i) => (
@@ -63,10 +110,10 @@ export function StepStrip({ t, at, labels }) {
 }
 
 /** What makes a relation the same relation: both ends, by table and column id. */
-export function relKeyOf(r) {
+export function relKeyOf(r: Relation) {
     return `${r.from.refKey}:${r.localColumn.id}>${r.to.refKey}:${r.targetColumn.id}`;
 }
-export function sameRel(a, b) { return relKeyOf(a) === relKeyOf(b); }
+export function sameRel(a: Relation, b: Relation) { return relKeyOf(a) === relKeyOf(b); }
 
 /**
  * Same title in two selected tables — offered, never assumed. `tables` are
@@ -74,8 +121,8 @@ export function sameRel(a, b) { return relKeyOf(a) === relKeyOf(b); }
  * ordered pair, so "A.x matches B.x" and "B.x matches A.x" are both offered
  * (a relation has a direction: which table gets the link column).
  */
-export function suggestRelations(tables) {
-    const out = [];
+export function suggestRelations(tables: RelTable[]) {
+    const out: Relation[] = [];
     for (let i = 0; i < tables.length; i += 1) {
         for (let j = 0; j < tables.length; j += 1) {
             if (i === j) continue;
@@ -98,9 +145,9 @@ export function suggestRelations(tables) {
  * — a relation the source declares itself, shown but not editable; the
  * wizard says where they come from with `lockedLabel`.
  */
-export function RelationsStep({ t, tables, locked = [], lockedLabel = '', suggestions, relations, hasRel, onAdd, onRemove, intro, needTwo }) {
+export function RelationsStep({ t, tables, locked = [], lockedLabel = '', suggestions, relations, hasRel, onAdd, onRemove, intro, needTwo }: RelationsStepProps) {
     const [draft, setDraft] = useState({ from: '', local: '', to: '', target: '' });
-    const cols = (s) => ((s && s.columns) || []).filter(c => MATCHABLE.has(c.type));
+    const cols = (s: RelTable | undefined) => ((s && s.columns) || []).filter(c => MATCHABLE.has(c.type));
     const fromSel = tables.find(s => s.refKey === draft.from);
     const toSel = tables.find(s => s.refKey === draft.to);
     const localCol = cols(fromSel).find(c => c.id === draft.local);
@@ -169,10 +216,10 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
                     {draftRel && (
                         <p className="text-[11px] text-[var(--text-secondary)]">
                             {t('datatables.nc_relation_sentence', 'Each row of {a} gets a link to the row of {b} whose {y} equals its {x}. The link column will be called {key}.',
-                                { a: fromSel.name, b: toSel.name, x: localCol.title, y: targetCol.title, key: `${toSel.key}_ref` })}
+                                { a: (fromSel as RelTable).name, b: (toSel as RelTable).name, x: (localCol as RelColumn).title, y: (targetCol as RelColumn).title, key: `${(toSel as RelTable).key}_ref` })}
                         </p>
                     )}
-                    <button type="button" disabled={!draftRel || hasRel(draftRel)} onClick={() => { onAdd(draftRel); setDraft({ from: '', local: '', to: '', target: '' }); }}
+                    <button type="button" disabled={!draftRel || hasRel(draftRel)} onClick={() => { onAdd(draftRel as Relation); setDraft({ from: '', local: '', to: '', target: '' }); }}
                         className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50 text-[var(--text-secondary)]">
                         <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.nc_relation_use', 'Use this relation')}
                     </button>
@@ -183,7 +230,7 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
 }
 
 /** The relations as the review step lists them: the source's own first, then the person's. */
-export function ReviewRelations({ t, locked = [], relations }) {
+export function ReviewRelations({ t, locked = [], relations }: { t: TranslateFn; locked?: LockedRelation[]; relations: Relation[] }) {
     if (locked.length + relations.length === 0) return null;
     return (
         <ul className="space-y-1">
@@ -202,7 +249,7 @@ export function ReviewRelations({ t, locked = [], relations }) {
 }
 
 /** Whose the tables will be — with the one word that takes the person back to change it. */
-export function AudienceLine({ t, scope, onChange }) {
+export function AudienceLine({ t, scope, onChange }: { t: TranslateFn; scope: string | null; onChange: () => void }) {
     return (
         <p className="text-[var(--text-secondary)]">
             {scope === 'personal'

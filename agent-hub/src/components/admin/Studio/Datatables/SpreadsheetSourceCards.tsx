@@ -2,6 +2,14 @@ import { ExternalLink, FileSpreadsheet, KeyRound, Loader2, ListOrdered, RefreshC
 import React, { useState } from 'react';
 import { formatLabel, providerLogoId, sourceErrorMessage, sourceNameOf, sourceWritable, writeReasonText } from './datatableDisplay';
 import { getIntegrationLogo } from '../../../../utils/integrationLogos';
+import type { ErrorLike, MaybeTable, TranslateFn } from './datatableTypes';
+import type { SourceMirror } from './useSourceMirror';
+
+interface CardProps {
+    t: TranslateFn;
+    table: MaybeTable;
+    mirror: SourceMirror;
+}
 
 /**
  * The three cards only a SPREADSHEET mirror has (the status and relations
@@ -19,12 +27,12 @@ import { getIntegrationLogo } from '../../../../utils/integrationLogos';
  * (`writeMode`, `writeReason`, `sync.lastError`), so a sentence cannot drift
  * into describing behaviour the engine no longer has.
  */
-export function FileCard({ t, rel, table, mirror, canEdit }) {
+export function FileCard({ t, rel, table, mirror, canEdit }: CardProps & { rel: (dateLike: string) => string; canEdit?: boolean }) {
     const source = mirror?.source || null;
     const sync = mirror?.sync || null;
     const [busy, setBusy] = useState(false);
-    const [note, setNote] = useState(null);
-    const [error, setError] = useState(null);
+    const [note, setNote] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const Logo = getIntegrationLogo(providerLogoId(source?.provider, source?.format));
 
     const relink = async () => {
@@ -33,7 +41,7 @@ export function FileCard({ t, rel, table, mirror, canEdit }) {
             await mirror.relink();
             setNote(t('datatables.ss_relink_done', 'The header row and the file’s access were re-read; new columns arrive on the next refresh.'));
         } catch (e) {
-            setError(sourceErrorMessage(t, e, table) || e.message);
+            setError(sourceErrorMessage(t, e as ErrorLike, table) || (e as Error).message);
         } finally { setBusy(false); }
     };
 
@@ -92,7 +100,7 @@ export function FileCard({ t, rel, table, mirror, canEdit }) {
  * the answer: "Changes go both ways" is a promise, and over a file the server
  * cannot write it would be a false one.
  */
-export function WriteCard({ t, table, mirror }) {
+export function WriteCard({ t, table, mirror }: CardProps) {
     const source = mirror?.source || null;
     const writable = sourceWritable(table, source);
     const sourceName = sourceNameOf(table, source);
@@ -125,7 +133,7 @@ export function WriteCard({ t, table, mirror }) {
 }
 
 /** The sentence per write MECHANISM — the server's `source.writeMode`. */
-function writeModeText(t, writeMode, source) {
+function writeModeText(t: TranslateFn, writeMode: string | undefined, source: string) {
     switch (writeMode) {
         case 'sheets_api':
             return t('datatables.ss_write_sheets_api', 'Rows added, changed or deleted here are written to the Google Sheet first, cell by cell; this copy is refreshed from what the sheet answered. When the sheet refuses a change, the refusal is shown here and nothing changes on either side.');
@@ -145,7 +153,7 @@ function writeModeText(t, writeMode, source) {
  * the sheet; a row number does not — and an automation that stored an id
  * needs to know which of the two it holds.
  */
-export function IdentityCard({ t, mirror }) {
+export function IdentityCard({ t, mirror }: Pick<CardProps, 't' | 'mirror'>) {
     const source = mirror?.source || null;
     const key = source?.keyColumn || null;
     return (

@@ -9,6 +9,7 @@
  */
 
 import { DEFINITION_MANAGED_KINDS } from './formAnswers';
+import type { ColumnLike, FilterEntry, FilterRow, KeyedColumn, ManagedColumn, MaybeTable, RowExpiry, TableLike, TranslateFn } from './datatableTypes';
 import { isSourceMirror, SOURCE_MANAGED_KINDS, sourceWritable } from './sourceMirrors';
 // The BUILDER's humaniser, not a second one. Same argument ColumnKind.jsx
 // makes for borrowing FieldKindIcon: a datatable column and a step's output
@@ -26,13 +27,13 @@ export const PRIVATE = 'private';
 export const ORG = 'org';
 export const GROUPS = 'groups';
 
-export function audienceOf(table) {
+export function audienceOf(table: MaybeTable) {
     if (!table || !table.isPublished) return PRIVATE;
     return (Array.isArray(table.sharedGroups) && table.sharedGroups.length) ? GROUPS : ORG;
 }
 
 /** ["a","b","c"] → "a, b and c" */
-export function joinNames(names, t) {
+export function joinNames(names: Array<string | null | undefined> | null | undefined, t?: TranslateFn | null) {
     const list = (names || []).filter(Boolean);
     if (list.length <= 1) return list[0] || '';
     const head = list.slice(0, -1).join(', ');
@@ -46,8 +47,8 @@ export function joinNames(names, t) {
  * reason they are is that publishing a table must never be the thing that made
  * it writable by everyone.
  */
-export function describeAccess(table, groupNames = new Map(), t = null) {
-    const tr = (key, en, params) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
+export function describeAccess(table: TableLike, groupNames: Map<string, string> = new Map(), t: TranslateFn | null = null) {
+    const tr = (key: string, en: string, params?: Record<string, unknown>) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
     const audience = audienceOf(table);
     const readers = audience === PRIVATE
         ? tr('studio_misc.access.readers_private', 'Only you and the people you share it with')
@@ -66,9 +67,9 @@ export const GRADE_LABEL = {
     viewer: 'You can read rows',
 };
 
-export const GRADE_ORDER = { viewer: 0, editor: 1, owner: 2 };
-export function gradeAtLeast(grade, min) {
-    return (GRADE_ORDER[grade] ?? -1) >= (GRADE_ORDER[min] ?? 99);
+export const GRADE_ORDER: Record<string, number> = { viewer: 0, editor: 1, owner: 2 };
+export function gradeAtLeast(grade: string | null | undefined, min: string) {
+    return (GRADE_ORDER[grade as string] ?? -1) >= (GRADE_ORDER[min] ?? 99);
 }
 
 // ── Columns ─────────────────────────────────────────────────────────────────
@@ -125,8 +126,8 @@ const COLUMN_TYPE_KIND = Object.freeze({
     relation: 'relation',
 });
 
-export function columnTypeKind(type) {
-    return COLUMN_TYPE_KIND[type] || 'unknown';
+export function columnTypeKind(type?: string | null) {
+    return COLUMN_TYPE_KIND[type as keyof typeof COLUMN_TYPE_KIND] || 'unknown';
 }
 
 // Mirrors vocabulary.KEY_RE exactly. Duplicated rather than imported because
@@ -146,7 +147,7 @@ export const MAX_FIELDS_PER_TABLE = 100;
 export const MAX_NAME_LEN = 120;
 
 /** "Invoice date " → "invoice_date". Never produces an invalid key. */
-export function keyFromName(name) {
+export function keyFromName(name?: string | null) {
     const slug = String(name || '')
         .toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -178,8 +179,8 @@ export function keyFromName(name) {
  * the real spelling and should get it one hover away. The card shows the
  * sentence; the tooltip keeps the exact value.
  */
-export function columnLabel(column) {
-    const c = column && typeof column === 'object' ? column : {};
+export function columnLabel(column?: ColumnLike | null) {
+    const c: ColumnLike = column && typeof column === 'object' ? column : {};
     const name = typeof c.name === 'string' ? c.name.trim() : '';
     if (name) return name;
     return humanizeFieldKey(c.key) || String(c.key || '');
@@ -190,8 +191,8 @@ export function columnLabel(column) {
  * it differs from what is shown. A tooltip that repeats the visible text is
  * noise, and a screen reader reads it twice.
  */
-export function columnKeyTitle(column) {
-    const c = column && typeof column === 'object' ? column : {};
+export function columnKeyTitle(column?: ColumnLike | null) {
+    const c: ColumnLike = column && typeof column === 'object' ? column : {};
     const key = String(c.key || '');
     return key && key !== columnLabel(c) ? key : undefined;
 }
@@ -200,10 +201,10 @@ export function columnKeyTitle(column) {
  * Everything wrong with one proposed column list, as messages a person can act
  * on. Returns [] when the list is fine.
  */
-export function validateColumns(fields) {
+export function validateColumns(fields?: ColumnLike[] | null) {
     const list = Array.isArray(fields) ? fields : [];
-    const errors = [];
-    const seen = new Set();
+    const errors: string[] = [];
+    const seen = new Set<string>();
     if (list.length > MAX_FIELDS_PER_TABLE) {
         errors.push(`A table can have at most ${MAX_FIELDS_PER_TABLE} columns; this has ${list.length}.`);
     }
@@ -241,18 +242,18 @@ export function validateColumns(fields) {
  * asks with the row count, because "this deletes a column" and "this deletes
  * 40,000 values" land very differently.
  */
-export function destructiveChanges(prev, next) {
-    const before = new Map((prev || []).map(f => [f.key, f]));
-    const after = new Map((next || []).map(f => [f.key, f]));
+export function destructiveChanges(prev?: KeyedColumn[] | null, next?: KeyedColumn[] | null) {
+    const before = new Map((prev || []).map((f): [string, KeyedColumn] => [f.key, f]));
+    const after = new Map((next || []).map((f): [string, KeyedColumn] => [f.key, f]));
     const removed = [...before.keys()].filter(k => !after.has(k));
     const retyped = [...after.entries()]
-        .filter(([k, f]) => before.has(k) && before.get(k).type !== f.type)
-        .map(([k, f]) => ({ key: k, from: before.get(k).type, to: f.type }));
+        .filter(([k, f]) => before.has(k) && (before.get(k) as KeyedColumn).type !== f.type)
+        .map(([k, f]) => ({ key: k, from: (before.get(k) as KeyedColumn).type, to: f.type }));
     return { removed, retyped, any: removed.length > 0 || retyped.length > 0 };
 }
 
 /** A cell as text, without ever pretending an empty value is a real one. */
-export function cellText(value, type) {
+export function cellText(value: unknown, type?: string | null) {
     if (value === null || value === undefined || value === '') return '—';
     if (type === 'bool') return value ? 'Yes' : 'No';
     if (Array.isArray(value)) return value.join(', ');
@@ -277,7 +278,7 @@ export function cellText(value, type) {
  * inside somebody's nightly automation, hit by the person who dropped the column
  * weeks after they did it.
  */
-export const MANAGED_COLUMNS = {
+export const MANAGED_COLUMNS: Record<string, ManagedColumn[]> = {
     // Nothing fixed: EVERY column comes from the source — Nextcloud's table,
     // or a spreadsheet's header row — so the whole list is locked
     // (SOURCE_MANAGED_KINDS below) rather than a declared subset.
@@ -348,14 +349,14 @@ export * from './formAnswers';
  * (mirrors) or a form's (its questions). Nothing can be added, nothing
  * renamed, and a schema save is refused outright on both sides.
  */
-export function isSchemaLocked(kind) {
-    return SOURCE_MANAGED_KINDS.includes(kind) || DEFINITION_MANAGED_KINDS.includes(kind);
+export function isSchemaLocked(kind?: string | null) {
+    return SOURCE_MANAGED_KINDS.includes(kind as string) || DEFINITION_MANAGED_KINDS.includes(kind as string);
 }
 
 /** Is this column one the platform fills in, rather than the author's own? */
-export function isManagedColumn(kind, key) {
+export function isManagedColumn(kind: string | null | undefined, key: string) {
     if (isSchemaLocked(kind)) return true;
-    return (MANAGED_COLUMNS[kind] || []).some(f => f.key === key);
+    return (MANAGED_COLUMNS[kind as string] || []).some(f => f.key === key);
 }
 
 /**
@@ -366,7 +367,7 @@ export function isManagedColumn(kind, key) {
  * file, where the row would have nowhere to go; a web-service cache no,
  * because its rows are somebody else's answers.
  */
-export function acceptsAdHocRows(table) {
+export function acceptsAdHocRows(table: MaybeTable) {
     return !table?.managedKind || (isSourceMirror(table) && sourceWritable(table));
 }
 
@@ -377,7 +378,7 @@ export function acceptsAdHocRows(table) {
  * actually read a given table (the Tables integration, its Nextcloud scope)
  * is the server's answer, which the card shows as its reason when it is no.
  */
-export function canLinkNextcloud(user) {
+export function canLinkNextcloud(user?: { ncOrg?: { instanceId?: string | null } | null } | null) {
     return !!user?.ncOrg?.instanceId;
 }
 
@@ -388,7 +389,7 @@ export function canLinkNextcloud(user) {
  * service, not your own rows. One place, so the list card, the header tile
  * and the create dialog cannot disagree.
  */
-export function tableKindOf(table) {
+export function tableKindOf(table: MaybeTable) {
     return table?.managedKind === 'http_cache' ? 'app' : 'datatable';
 }
 
@@ -408,15 +409,14 @@ const DAY_MS = 86400000;
  * Answers `null` when there is no window, no field, or the row's date is
  * missing or unparseable — never a guessed "today".
  *
- * @returns {{at: Date, days: number, overdue: boolean}|null} `days` is whole
- *   days from `now`, negative once the row is past due (the sweep runs on a
- *   schedule, so "expired" and "gone" are not the same moment).
+ * `days` is whole days from `now`, negative once the row is past due (the sweep
+ * runs on a schedule, so "expired" and "gone" are not the same moment).
  */
-export function rowExpiry(row, { retentionDays, retentionField } = {}, now = Date.now()) {
+export function rowExpiry(row: Record<string, unknown> | null | undefined, { retentionDays, retentionField }: { retentionDays?: number | null; retentionField?: string | null } = {}, now = Date.now()): RowExpiry | null {
     if (!row || !retentionDays || !retentionField) return null;
     const raw = row[retentionField];
     if (raw === null || raw === undefined || raw === '') return null;
-    const from = new Date(raw);
+    const from = new Date(raw as string);
     const ms = from.getTime();
     if (!Number.isFinite(ms)) return null;
     const at = new Date(ms + retentionDays * DAY_MS);
@@ -428,7 +428,7 @@ export function rowExpiry(row, { retentionDays, retentionField } = {}, now = Dat
 }
 
 /** The moment rows older than the window are already past due — an ISO string for a filter. */
-export function retentionCutoffIso(retentionDays, now = Date.now()) {
+export function retentionCutoffIso(retentionDays?: number | null, now = Date.now()) {
     if (!retentionDays) return null;
     return new Date(now - retentionDays * DAY_MS).toISOString();
 }
@@ -439,7 +439,7 @@ export function retentionCutoffIso(retentionDays, now = Date.now()) {
  * so it expires within the next `withinDays` when its field value is at or
  * before `now - (retentionDays - withinDays)` days.
  */
-export function expiringSoonCutoffIso(retentionDays, withinDays, now = Date.now()) {
+export function expiringSoonCutoffIso(retentionDays?: number | null, withinDays?: number | null, now = Date.now()) {
     if (!retentionDays || !withinDays) return null;
     return new Date(now - (retentionDays - withinDays) * DAY_MS).toISOString();
 }
@@ -472,17 +472,17 @@ const OPS_BY_KIND = Object.freeze({
 });
 
 /** The operators worth offering for a column, narrowest-useful set first. */
-export function opsForColumn(column) {
+export function opsForColumn(column?: ColumnLike | null) {
     return OPS_BY_KIND[columnTypeKind(column?.type)] || OPS_BY_KIND.unknown;
 }
 
 /** `isNull`/`isNotNull` take no value — the row is the whole condition. */
-export function opTakesNoValue(op) {
+export function opTakesNoValue(op?: string | null) {
     return op === 'isNull' || op === 'isNotNull';
 }
 
 /** `in`/`notIn`/`between` take a LIST; `assertFilterValue` refuses objects either way. */
-export function opTakesList(op) {
+export function opTakesList(op?: string | null) {
     return op === 'in' || op === 'notIn' || op === 'between';
 }
 
@@ -492,7 +492,7 @@ export function opTakesList(op) {
  * that needs one would be `field = ''`, which silently returns nothing and
  * reads as "no rows match" rather than "you have not finished".
  */
-export function filterEntry(row) {
+export function filterEntry(row?: FilterRow | null) {
     if (!row || !row.field || !row.op) return null;
     if (!FILTER_OPS.includes(row.op)) return null;
     if (opTakesNoValue(row.op)) return { field: row.field, op: row.op, value: null };
@@ -507,8 +507,8 @@ export function filterEntry(row) {
 }
 
 /** Every answerable row of a filter draft, as the server's `filters` array. */
-export function filterDescriptor(rows) {
-    return (Array.isArray(rows) ? rows : []).map(filterEntry).filter(Boolean);
+export function filterDescriptor(rows?: FilterRow[] | null) {
+    return (Array.isArray(rows) ? rows : []).map(filterEntry).filter(Boolean) as FilterEntry[];
 }
 
 /**
@@ -523,15 +523,15 @@ export function filterDescriptor(rows) {
  * `unique` is checked as hard as the rest. Dropping the unique index under the
  * writer's upsert does not fail loudly — it writes a DUPLICATE row every run.
  */
-export function managedColumnProblem(kind, fields) {
+export function managedColumnProblem(kind: string | null | undefined, fields?: ColumnLike[] | null) {
     // The whole list is the source's: there is no edit to allow, an identical
     // list included — the server's managedFieldsError says the same.
-    if (DEFINITION_MANAGED_KINDS.includes(kind)) return { reason: 'definition_owned' };
+    if (DEFINITION_MANAGED_KINDS.includes(kind as string)) return { reason: 'definition_owned' };
     if (isSchemaLocked(kind)) return { reason: 'source_owned' };
-    const want = MANAGED_COLUMNS[kind];
+    const want = MANAGED_COLUMNS[kind as string];
     if (!want) return null;
     const byKey = new Map((Array.isArray(fields) ? fields : [])
-        .filter(f => f && typeof f.key === 'string').map(f => [f.key, f]));
+        .filter(f => f && typeof f.key === 'string').map((f): [string, ColumnLike] => [f.key as string, f]));
     for (const w of want) {
         const got = byKey.get(w.key);
         if (!got) return { reason: 'missing', key: w.key };

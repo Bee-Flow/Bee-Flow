@@ -1,6 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isSourceMirror } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
+import type { Json, MirrorSource, SyncInfo, TableLike } from './datatableTypes';
+
+/** An answer that carries a mirror's blocks, bare or under `datatable`. */
+interface MirrorBody {
+    datatable?: MirrorBody | null;
+    source?: MirrorSource | null;
+    sync?: SyncInfo | null;
+    dataVersion: number;
+}
+
+interface MirrorState {
+    source?: MirrorSource | null;
+    sync?: SyncInfo | null;
+}
+
+/** The route family one kind of mirror uses. */
+interface MirrorApi {
+    pulse: (id: string) => Promise<MirrorBody | null>;
+    refresh: (id: string) => Promise<MirrorBody | null>;
+    update: (id: string, patch: Json) => Promise<MirrorBody | null>;
+    setRelations: (id: string, relations: Json[]) => Promise<MirrorBody | null>;
+    relink: (id: string, body: Json | null) => Promise<MirrorBody | null>;
+}
 
 /**
  * A mirror's `source` and `sync` blocks — and the PULSE that keeps it live.
@@ -28,34 +51,39 @@ import { datatablesApi } from './datatablesApi';
  */
 const PULSE_MS = 5000;
 
-const API = {
+const API: Record<string, MirrorApi> = {
     nextcloud_table: {
-        pulse: (id) => datatablesApi.pulseNc(id),
-        refresh: (id) => datatablesApi.refreshNc(id),
-        update: (id, patch) => datatablesApi.updateNc(id, patch),
-        setRelations: (id, relations) => datatablesApi.setNcRelations(id, relations),
-        relink: (id, body) => datatablesApi.relinkNc(id, body),
+        pulse: (id: string) => datatablesApi.pulseNc(id),
+        refresh: (id: string) => datatablesApi.refreshNc(id),
+        update: (id: string, patch: Json) => datatablesApi.updateNc(id, patch),
+        setRelations: (id: string, relations: Json[]) => datatablesApi.setNcRelations(id, relations),
+        relink: (id: string, body: Json | null) => (datatablesApi.relinkNc as (id: string, body: Json | null) => Promise<MirrorBody | null>)(id, body),
     },
     spreadsheet_file: {
-        pulse: (id) => datatablesApi.pulseSource(id),
-        refresh: (id) => datatablesApi.refreshSource(id),
-        update: (id, patch) => datatablesApi.updateSource(id, patch),
-        setRelations: (id, relations) => datatablesApi.setSourceRelations(id, relations),
-        relink: (id, body) => datatablesApi.relinkSource(id, body),
+        pulse: (id: string) => datatablesApi.pulseSource(id),
+        refresh: (id: string) => datatablesApi.refreshSource(id),
+        update: (id: string, patch: Json) => datatablesApi.updateSource(id, patch),
+        setRelations: (id: string, relations: Json[]) => datatablesApi.setSourceRelations(id, relations),
+        relink: (id: string, body: Json | null) => datatablesApi.relinkSource(id, body),
     },
 };
 
-export default function useSourceMirror(table) {
-    const mirror = isSourceMirror(table);
-    const api = API[table?.managedKind] || null;
-    const [state, setState] = useState(() => (mirror ? { source: table.source || null, sync: table.sync || null } : null));
-    const [dataVersion, setDataVersion] = useState(null);
-    const [loading, setLoading] = useState(mirror);
-    const [error, setError] = useState(null);
-    const [watching, setWatching] = useState(false);
-    const timer = useRef(null);
+/** A table the hook watches: it has an id to pulse. */
+interface MirrorTable extends TableLike {
+    id: string;
+}
 
-    const apply = useCallback((body) => {
+export default function useSourceMirror(table: MirrorTable) {
+    const mirror = isSourceMirror(table);
+    const api = (API[table?.managedKind as string] || null) as MirrorApi;
+    const [state, setState] = useState<MirrorState | null>(() => (mirror ? { source: table.source || null, sync: table.sync || null } : null));
+    const [dataVersion, setDataVersion] = useState<number | null>(null);
+    const [loading, setLoading] = useState(mirror);
+    const [error, setError] = useState<string | null>(null);
+    const [watching, setWatching] = useState(false);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const apply = useCallback((body?: MirrorBody | null) => {
         const dt = body && body.datatable ? body.datatable : body;
         if (!dt) return;
         setState({ source: dt.source || null, sync: dt.sync || null });
@@ -69,7 +97,7 @@ export default function useSourceMirror(table) {
             setError(null);
             return body && body.datatable;
         } catch (e) {
-            setError(e.message || 'mirror');
+            setError((e as Error).message || 'mirror');
             return null;
         } finally {
             setLoading(false);
@@ -93,7 +121,7 @@ export default function useSourceMirror(table) {
                 }
                 setError(null);
             } catch (e) {
-                if (alive) setError(e.message || 'pulse');
+                if (alive) setError((e as Error).message || 'pulse');
             } finally {
                 if (alive) timer.current = setTimeout(tick, PULSE_MS);
             }
@@ -102,7 +130,7 @@ export default function useSourceMirror(table) {
         return () => { alive = false; if (timer.current) clearTimeout(timer.current); };
     }, [mirror, watching, table.id, api]);
 
-    const watch = useCallback((on) => setWatching(!!on), []);
+    const watch = useCallback((on: unknown) => setWatching(!!on), []);
 
     const refreshNow = useCallback(async () => {
         if (!mirror || !api) return null;
@@ -116,24 +144,24 @@ export default function useSourceMirror(table) {
             else setDataVersion(v => (v === null ? 0 : v + 1));   // a manual refresh always reloads the rows
             return body;
         } catch (e) {
-            setError(e.message || 'refresh');
+            setError((e as Error).message || 'refresh');
             throw e;
         }
     }, [mirror, api, table.id, reload]);
 
-    const update = useCallback(async (patch) => {
+    const update = useCallback(async (patch: Json) => {
         const body = await api.update(table.id, patch);
         apply(body);
         return body;
     }, [api, table.id, apply]);
 
-    const setRelations = useCallback(async (relations) => {
+    const setRelations = useCallback(async (relations: Json[]) => {
         const body = await api.setRelations(table.id, relations);
         apply(body);
         return body;
     }, [api, table.id, apply]);
 
-    const relink = useCallback(async (body = null) => {
+    const relink = useCallback(async (body: Json | null = null) => {
         const answer = await api.relink(table.id, body);
         apply(answer);
         return answer;
@@ -156,5 +184,8 @@ export default function useSourceMirror(table) {
         relink,
     };
 }
+
+/** What the hook hands a mirror's panels (it is null for a table that mirrors nothing). */
+export type SourceMirror = NonNullable<ReturnType<typeof useSourceMirror>>;
 
 export { PULSE_MS };

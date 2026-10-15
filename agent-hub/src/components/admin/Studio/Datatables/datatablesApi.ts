@@ -33,6 +33,52 @@
 import { createJsonResource } from '../../../../api/client';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { fromError } from '../../../shared/managedPart';
+import type { Json } from './datatableTypes';
+
+type Id = string;
+/** The `{ confirmBreaking }` option of a destructive call. */
+interface ConfirmBreaking { confirmBreaking?: boolean }
+/** The scope a mirror call is made for (an organisation or a project key). */
+type Scope = string | null;
+
+interface ListRowsOptions {
+    limit?: number;
+    cursor?: string | null;
+    filters?: unknown[] | null;
+    match?: string | null;
+    sort?: string | null;
+    dir?: string | null;
+    q?: string | null;
+}
+
+interface DescribeNcOptions {
+    ncTableId?: string | number | null;
+    ncViewId?: string | number | null;
+    scope?: Scope;
+}
+
+interface BrowseSpreadsheetsOptions {
+    provider: string;
+    folderId?: string | null;
+    q?: string | null;
+    shared?: boolean;
+    pageToken?: string | null;
+    scope?: Scope;
+}
+
+interface DescribeSpreadsheetOptions {
+    provider: string;
+    fileId: string;
+    sheet?: string | null;
+    headerRow?: number | null;
+    scope?: Scope;
+}
+
+/** The Error exportCsv throws on a non-2xx answer. */
+interface ExportError extends Error {
+    status?: number;
+    code?: string | null;
+}
 
 const base = `${API_BASE}/api/datatables`;
 const enc = encodeURIComponent;
@@ -52,7 +98,7 @@ export const datatablesApi = {
     /** Every table the caller holds any grade on, each already carrying it. */
     list: () => request(base),
     /** body: { name, key, description, fields?, rowScope?, projectId? } */
-    create: (body) => request(base, { method: 'POST', body: JSON.stringify(body) }),
+    create: (body: Json) => request(base, { method: 'POST', body: JSON.stringify(body) }),
     /**
      * Provision a table whose COLUMNS the platform owns — today only
      * `kind:'http_cache'`, the visible half of "ask this web service once".
@@ -69,7 +115,7 @@ export const datatablesApi = {
      *
      * body: { kind, name, key, description?, retentionDays?, scope? }
      */
-    createManaged: (body) => request(`${base}/managed`, { method: 'POST', body: JSON.stringify(body) }),
+    createManaged: (body: Json) => request(`${base}/managed`, { method: 'POST', body: JSON.stringify(body) }),
     /**
      * "Build it with AI": `{ mode: 'create'|'revise', brief?, note?, current?, allowDestructive? }`
      * → `{ draft: { name, key, description, fields, notes, changes }, mode }`.
@@ -77,8 +123,8 @@ export const datatablesApi = {
      * to their own unsaved state; `allowDestructive` defaults to false and
      * is the person's explicit say-so that a column may go or change type.
      */
-    draft: (body) => request(`${base}/ai/draft`, { method: 'POST', body: JSON.stringify(body) }),
-    get: (id) => request(`${base}/${enc(id)}`),
+    draft: (body: Json) => request(`${base}/ai/draft`, { method: 'POST', body: JSON.stringify(body) }),
+    get: (id: Id) => request(`${base}/${enc(id)}`),
     /**
      * Change what the table IS, never what it holds: name, description,
      * lawful basis, row scope, and the retention pair.
@@ -93,7 +139,7 @@ export const datatablesApi = {
      * patch: { name?, description?, lawfulBasis?, rowScope?, retentionDays?,
      *          retentionField?, subjectColumn? }
      */
-    update: (id, patch) => request(`${base}/${enc(id)}`, {
+    update: (id: Id, patch: Json) => request(`${base}/${enc(id)}`, {
         method: 'PATCH', body: JSON.stringify(patch),
     }),
     /**
@@ -101,14 +147,14 @@ export const datatablesApi = {
      * `{ modelVersion, schemaStamp, tableExists, missingColumns, stampBehind,
      *    healthy }`.
      */
-    health: (id) => request(`${base}/${enc(id)}/health`),
+    health: (id: Id) => request(`${base}/${enc(id)}/health`),
     /**
      * Re-emit this table's own DDL. Every statement is IF NOT EXISTS and the
      * plan is add-only by construction, so on a healthy table it is a no-op —
      * which is what makes it safe to offer as a menu item rather than as a
      * support procedure. Answers `{ repaired: true, ...health }`.
      */
-    repair: (id) => request(`${base}/${enc(id)}/repair`, { method: 'POST' }),
+    repair: (id: Id) => request(`${base}/${enc(id)}/repair`, { method: 'POST' }),
     /**
      * The server refuses (409 `in_use`) when automations still name this table,
      * unless the caller confirms. Pass `{confirmBreaking:true}` only from a
@@ -117,7 +163,7 @@ export const datatablesApi = {
      * body: a DELETE with a body is dropped by enough proxies to be a bad place
      * for a confirmation.
      */
-    remove: (id, { confirmBreaking = false } = {}) => request(
+    remove: (id: Id, { confirmBreaking = false }: ConfirmBreaking = {}) => request(
         `${base}/${enc(id)}${confirmBreaking ? '?confirmBreaking=true' : ''}`, { method: 'DELETE' }),
 
     // Columns. The read hands back `modelVersion`; send it back on the write
@@ -125,8 +171,8 @@ export const datatablesApi = {
     // `confirmBreaking` answers the OTHER 409 (`breaking_change`): a column a
     // automation still reads. Two different 409 codes, and the caller must tell
     // them apart — one means reload, the other means ask.
-    getSchema: (id) => request(`${base}/${enc(id)}/schema`),
-    putSchema: (id, fields, expectedVersion, { confirmBreaking = false } = {}) => request(`${base}/${enc(id)}/schema`, {
+    getSchema: (id: Id) => request(`${base}/${enc(id)}/schema`),
+    putSchema: (id: Id, fields: unknown[], expectedVersion: number | string | null | undefined, { confirmBreaking = false }: ConfirmBreaking = {}) => request(`${base}/${enc(id)}/schema`, {
         method: 'PUT',
         body: JSON.stringify({ fields, expectedVersion, confirmBreaking }),
     }),
@@ -142,7 +188,7 @@ export const datatablesApi = {
     // `cursor` is the keyset token the PREVIOUS page returned as `nextCursor`.
     // Not an offset: on a table two automations are writing to, an offset both
     // skips and repeats rows between pages.
-    listRows: (id, { limit = 50, cursor = null, filters = null, match = null, sort = null, dir = null, q = null } = {}) => {
+    listRows: (id: Id, { limit = 50, cursor = null, filters = null, match = null, sort = null, dir = null, q = null }: ListRowsOptions = {}) => {
         const qs = new URLSearchParams();
         if (limit) qs.set('limit', String(limit));
         if (cursor) qs.set('cursor', cursor);
@@ -154,8 +200,8 @@ export const datatablesApi = {
         const query = qs.toString();
         return request(`${base}/${enc(id)}/rows${query ? `?${query}` : ''}`);
     },
-    getRow: (id, rowId) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`),
-    addRow: (id, values) => request(`${base}/${enc(id)}/rows`, {
+    getRow: (id: Id, rowId: Id) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`),
+    addRow: (id: Id, values: Json) => request(`${base}/${enc(id)}/rows`, {
         method: 'POST', body: JSON.stringify({ values }),
     }),
     /**
@@ -164,10 +210,10 @@ export const datatablesApi = {
      * silently overwrite each other. A stale one comes back 409 `row_conflict`
      * carrying the row as it now is, so the caller can show what changed.
      */
-    updateRow: (id, rowId, values, expectedUpdatedAt) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`, {
+    updateRow: (id: Id, rowId: Id, values: Json, expectedUpdatedAt: string | null | undefined) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`, {
         method: 'PUT', body: JSON.stringify({ values, expectedUpdatedAt }),
     }),
-    deleteRow: (id, rowId) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`, { method: 'DELETE' }),
+    deleteRow: (id: Id, rowId: Id) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`, { method: 'DELETE' }),
     /**
      * Delete up to 200 rows in ONE transaction — the answer to a ticked
      * select-all over a page of rows.
@@ -179,7 +225,7 @@ export const datatablesApi = {
      * `{ code: 'too_many_ids', limit, used }` — a number the caller can show,
      * not a truncated delete.
      */
-    bulkDeleteRows: (id, ids) => request(`${base}/${enc(id)}/rows/bulk-delete`, {
+    bulkDeleteRows: (id: Id, ids: Id[]) => request(`${base}/${enc(id)}/rows/bulk-delete`, {
         method: 'POST', body: JSON.stringify({ ids }),
     }),
     /**
@@ -187,7 +233,7 @@ export const datatablesApi = {
      * error}]}` — a spreadsheet with two bad dates in it is a fixable import,
      * so the bad rows are reported by line rather than failing the whole file.
      */
-    bulkImport: (id, rows) => request(`${base}/${enc(id)}/rows/bulk`, {
+    bulkImport: (id: Id, rows: Json[]) => request(`${base}/${enc(id)}/rows/bulk`, {
         method: 'POST', body: JSON.stringify({ rows }),
     }),
     /**
@@ -198,12 +244,12 @@ export const datatablesApi = {
      * navigates the SPA away from itself — the automations library learned that the
      * hard way. The caller turns the text into a Blob and revokes the URL.
      */
-    exportCsv: async (id) => {
+    exportCsv: async (id: Id) => {
         const res = await authFetch(`${base}/${enc(id)}/rows.csv`, { headers: { Accept: 'text/csv' } });
         if (!res.ok) {
             let body = null;
             try { body = await res.json(); } catch { /* not JSON */ }
-            const err = new Error(body?.error || `Export failed (${res.status})`);
+            const err: ExportError = new Error(body?.error || `Export failed (${res.status})`);
             err.status = res.status;
             err.code = body?.code || null;
             throw err;
@@ -222,17 +268,17 @@ export const datatablesApi = {
     // (`groups_required`), not a silent widening. Write access stays the
     // separate `writeMode` axis: publishing must never be what made a table
     // org-WRITABLE.
-    setSharing: (id, descriptor) => request(`${base}/${enc(id)}/sharing`, {
+    setSharing: (id: Id, descriptor: Json) => request(`${base}/${enc(id)}/sharing`, {
         method: 'PUT', body: JSON.stringify(descriptor),
     }),
-    listGrants: (id) => request(`${base}/${enc(id)}/grants`),
-    addGrant: (id, grant) => request(`${base}/${enc(id)}/grants`, {
+    listGrants: (id: Id) => request(`${base}/${enc(id)}/grants`),
+    addGrant: (id: Id, grant: Json) => request(`${base}/${enc(id)}/grants`, {
         method: 'POST', body: JSON.stringify(grant),
     }),
-    removeGrant: (id, grantId) => request(`${base}/${enc(id)}/grants/${enc(grantId)}`, { method: 'DELETE' }),
+    removeGrant: (id: Id, grantId: Id) => request(`${base}/${enc(id)}/grants/${enc(grantId)}`, { method: 'DELETE' }),
 
     /** Which automations read or write this table — the answer before a delete. */
-    listUsage: (id) => request(`${base}/${enc(id)}/usage`),
+    listUsage: (id: Id) => request(`${base}/${enc(id)}/usage`),
 
     // A table that MIRRORS a Nextcloud Tables table (server/core/dataEngine/
     // sources/nextcloudTable). The collection routes live under /nextcloud;
@@ -242,9 +288,9 @@ export const datatablesApi = {
     // emoji, rowsCount, columnsCount, views:[{ncViewId,title,linkedAs}],
     // linkedAs:[datatableId]}]}` — `connected:false` carries the server's
     // reason code, which the dialog turns into a sentence.
-    linkable: (scope = null) => request(`${base}/nextcloud/linkable${scope ? `?scope=${enc(scope)}` : ''}`),
+    linkable: (scope: Scope = null) => request(`${base}/nextcloud/linkable${scope ? `?scope=${enc(scope)}` : ''}`),
     /** The columns a link would arrive with: `{ncTableId, ncViewId, columns:[…]}`. */
-    describeNc: ({ ncTableId = null, ncViewId = null, scope = null } = {}) => {
+    describeNc: ({ ncTableId = null, ncViewId = null, scope = null }: DescribeNcOptions = {}) => {
         const qs = new URLSearchParams();
         if (ncViewId) qs.set('ncViewId', String(ncViewId)); else qs.set('ncTableId', String(ncTableId));
         if (scope) qs.set('scope', scope);
@@ -260,24 +306,24 @@ export const datatablesApi = {
      *         relations?:[{from:{ncTableId,ncColumnId}, to:{ncTableId,ncColumnId}}],
      *         schedule?:{everyMinutes} }
      */
-    linkNc: (body) => request(`${base}/nextcloud/link`, { method: 'POST', body: JSON.stringify(body) }),
-    getNc: (id) => request(`${base}/${enc(id)}/nextcloud`),
+    linkNc: (body: Json) => request(`${base}/nextcloud/link`, { method: 'POST', body: JSON.stringify(body) }),
+    getNc: (id: Id) => request(`${base}/${enc(id)}/nextcloud`),
     /**
      * The PULSE a client sends while it has a mirror open: `{dataVersion,
      * rowCount, sync}`. Every pulse makes the server re-check Nextcloud (at
      * most once per few seconds), and a `dataVersion` that moved is the
      * signal to reload the rows — that is what makes a mirror live.
      */
-    pulseNc: (id) => request(`${base}/${enc(id)}/nextcloud/pulse`),
+    pulseNc: (id: Id) => request(`${base}/${enc(id)}/nextcloud/pulse`),
     /** Refresh now. 200 `{ok, sync, warnings}` or 202 `{alreadyRunning, sync}`. */
-    refreshNc: (id) => request(`${base}/${enc(id)}/nextcloud/refresh`, { method: 'POST' }),
+    refreshNc: (id: Id) => request(`${base}/${enc(id)}/nextcloud/refresh`, { method: 'POST' }),
     /** Declared relations, replacing the previous list: [{targetDatatableId, localFieldId, targetFieldId}]. */
-    setNcRelations: (id, relations) => request(`${base}/${enc(id)}/nextcloud/relations`, {
+    setNcRelations: (id: Id, relations: Json[]) => request(`${base}/${enc(id)}/nextcloud/relations`, {
         method: 'PUT', body: JSON.stringify({ relations }),
     }),
     /** patch: { schedule?:{everyMinutes}, refreshOnView? } */
-    updateNc: (id, patch) => request(`${base}/${enc(id)}/nextcloud`, { method: 'PUT', body: JSON.stringify(patch) }),
-    relinkNc: (id) => request(`${base}/${enc(id)}/nextcloud/relink`, { method: 'POST' }),
+    updateNc: (id: Id, patch: Json) => request(`${base}/${enc(id)}/nextcloud`, { method: 'PUT', body: JSON.stringify(patch) }),
+    relinkNc: (id: Id) => request(`${base}/${enc(id)}/nextcloud/relink`, { method: 'POST' }),
 
     // A table that MIRRORS one worksheet of a spreadsheet file in Google
     // Drive, OneDrive or Nextcloud Files (server/core/dataEngine/sources/
@@ -290,7 +336,7 @@ export const datatablesApi = {
     // reason?}]}` for ONLY the storages this account has a credential or
     // binding for — cheap, no call to any provider — so the create dialog can
     // gate its card on one probe. An empty list means no card at all.
-    spreadsheetProviders: (scope = null) => request(`${base}/spreadsheets/providers${scope ? `?scope=${enc(scope)}` : ''}`),
+    spreadsheetProviders: (scope: Scope = null) => request(`${base}/spreadsheets/providers${scope ? `?scope=${enc(scope)}` : ''}`),
     /**
      * One folder of one storage: `{provider, folder:{id,name,path:[…]},
      * items:[{id, name, kind:'folder'|'file', format?, size?, modifiedAt?,
@@ -300,7 +346,7 @@ export const datatablesApi = {
      * handed out — for Nextcloud the id IS the path, and the client never
      * interprets it. Folders and spreadsheet files only.
      */
-    browseSpreadsheets: ({ provider, folderId = 'root', q = null, shared = false, pageToken = null, scope = null }) => {
+    browseSpreadsheets: ({ provider, folderId = 'root', q = null, shared = false, pageToken = null, scope = null }: BrowseSpreadsheetsOptions) => {
         const qs = new URLSearchParams();
         qs.set('provider', provider);
         if (folderId) qs.set('folderId', folderId);
@@ -317,7 +363,7 @@ export const datatablesApi = {
      * the key, and how the file can be written back (`write:{mode, reason?,
      * caveats}`). Without `sheet` the first sheet at header row 1.
      */
-    describeSpreadsheet: ({ provider, fileId, sheet = null, headerRow = null, scope = null }) => {
+    describeSpreadsheet: ({ provider, fileId, sheet = null, headerRow = null, scope = null }: DescribeSpreadsheetOptions) => {
         const qs = new URLSearchParams();
         qs.set('provider', provider);
         qs.set('fileId', fileId);
@@ -336,19 +382,19 @@ export const datatablesApi = {
      *         sharedWriteOptIn?, name, key, description? }] (1..10),
      *         relations:[{ from:{provider,fileId,sheet,col}, to:{…} }] }
      */
-    linkSpreadsheets: (body) => request(`${base}/spreadsheets/link`, { method: 'POST', body: JSON.stringify(body) }),
+    linkSpreadsheets: (body: Json) => request(`${base}/spreadsheets/link`, { method: 'POST', body: JSON.stringify(body) }),
 
-    getSource: (id) => request(`${base}/${enc(id)}/source`),
+    getSource: (id: Id) => request(`${base}/${enc(id)}/source`),
     /** The pulse, for any kind of mirror: `{dataVersion, rowCount, sync}` (see pulseNc). */
-    pulseSource: (id) => request(`${base}/${enc(id)}/source/pulse`),
-    refreshSource: (id) => request(`${base}/${enc(id)}/source/refresh`, { method: 'POST' }),
+    pulseSource: (id: Id) => request(`${base}/${enc(id)}/source/pulse`),
+    refreshSource: (id: Id) => request(`${base}/${enc(id)}/source/refresh`, { method: 'POST' }),
     /**
      * patch: { refreshOnView? } for either kind; a spreadsheet also takes
      * { headerRow?, keyColumn?:int|null, columns?:{[fieldId]:{type}} } — a
      * re-map, which the next refresh applies (a retyped column is a new one).
      */
-    updateSource: (id, patch) => request(`${base}/${enc(id)}/source`, { method: 'PUT', body: JSON.stringify(patch) }),
-    setSourceRelations: (id, relations) => request(`${base}/${enc(id)}/source/relations`, {
+    updateSource: (id: Id, patch: Json) => request(`${base}/${enc(id)}/source`, { method: 'PUT', body: JSON.stringify(patch) }),
+    setSourceRelations: (id: Id, relations: Json[]) => request(`${base}/${enc(id)}/source/relations`, {
         method: 'PUT', body: JSON.stringify({ relations }),
     }),
     /**
@@ -356,12 +402,12 @@ export const datatablesApi = {
      * for a spreadsheet, optionally point the table at another file or
      * sheet: body `{ file:{provider, fileId, path?}, sheet? }`.
      */
-    relinkSource: (id, body = null) => request(`${base}/${enc(id)}/source/relink`, {
+    relinkSource: (id: Id, body: Json | null = null) => request(`${base}/${enc(id)}/source/relink`, {
         method: 'POST', ...(body ? { body: JSON.stringify(body) } : {}),
     }),
     // ── A form's answers (managed_kind 'form_answers') ────────────────────
     // The dashboard's numbers in one answer, for a period of calendar days.
-    answersSummary: (id, { from = null, to = null } = {}) => {
+    answersSummary: (id: Id, { from = null, to = null }: { from?: string | null; to?: string | null } = {}) => {
         const q = new URLSearchParams();
         if (from) q.set('from', from);
         if (to) q.set('to', to);
@@ -369,12 +415,12 @@ export const datatablesApi = {
         return request(`${base}/${enc(id)}/answers/summary${qs ? `?${qs}` : ''}`);
     },
     // A validated aggregate over any table the caller may read.
-    aggregate: (id, body) => request(`${base}/${enc(id)}/aggregate`, { method: 'POST', body: JSON.stringify(body || {}) }),
+    aggregate: (id: Id, body: Json | null | undefined) => request(`${base}/${enc(id)}/aggregate`, { method: 'POST', body: JSON.stringify(body || {}) }),
     // The one DROP a form's table allows: a question no longer on the form.
-    removeAnswersColumn: (id, fieldId, { confirmBreaking = false } = {}) =>
+    removeAnswersColumn: (id: Id, fieldId: Id, { confirmBreaking = false }: ConfirmBreaking = {}) =>
         request(`${base}/${enc(id)}/answers/columns/${enc(fieldId)}${confirmBreaking ? '?confirmBreaking=1' : ''}`, { method: 'DELETE' }),
     // Keep the answers, forget the form: an ordinary table from here on.
-    releaseAnswers: (id) => request(`${base}/${enc(id)}/answers/release`, { method: 'POST' }),
+    releaseAnswers: (id: Id) => request(`${base}/${enc(id)}/answers/release`, { method: 'POST' }),
 };
 
 export default datatablesApi;

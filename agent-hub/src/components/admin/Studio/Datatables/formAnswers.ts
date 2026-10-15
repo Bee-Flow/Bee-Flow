@@ -14,6 +14,8 @@
  * keeps one import path for "what is a table".
  */
 
+import type { ColumnLike, MaybeTable, MirrorSource, SourceColumn, TranslateFn } from './datatableTypes';
+
 /**
  * Kinds whose column list follows a definition inside Bee Flow — mirrors the
  * server's `fieldsFromDefinition` flag, pinned by
@@ -22,24 +24,24 @@
 export const DEFINITION_MANAGED_KINDS = Object.freeze(['form_answers']);
 
 /** A table that holds the answers to a form. */
-export function isFormAnswers(table) {
+export function isFormAnswers(table: MaybeTable) {
     return table?.managedKind === 'form_answers';
 }
 
 /** The columns the server describes for a form-answers table, by field id. */
-export function formColumnsOf(source) {
+export function formColumnsOf(source: MirrorSource | null | undefined) {
     const list = Array.isArray(source?.columns) ? source.columns : [];
-    return new Map(list.map(c => [c.fieldId, c]));
+    return new Map(list.map((c): [string, SourceColumn] => [c.fieldId, c]));
 }
 
 /** The form's own description of one column (null for `run_id`/`completed_at`). */
-export function formColumnOf(source, field) {
+export function formColumnOf(source: MirrorSource | null | undefined, field: ColumnLike | null | undefined) {
     if (!field?.id) return null;
     return formColumnsOf(source).get(field.id) || null;
 }
 
 /** Is this a column whose question is no longer on the form? */
-export function isRetiredFormColumn(source, field) {
+export function isRetiredFormColumn(source: MirrorSource | null | undefined, field: ColumnLike | null | undefined) {
     const col = formColumnOf(source, field);
     return !!(col && col.retired === true);
 }
@@ -49,10 +51,10 @@ export function isRetiredFormColumn(source, field) {
  * "from the form · Your e-mail", or the retired variant. `null` for the two
  * fixed columns, which carry the ordinary "filled in automatically" hint.
  */
-export function formColumnHint(t, source, field) {
+export function formColumnHint(t: TranslateFn, source: MirrorSource | null | undefined, field: ColumnLike | null | undefined) {
     const col = formColumnOf(source, field);
     if (!col) return null;
     return col.retired
-        ? t('datatables.frm_column_retired', 'no longer on the form · {label}', { label: col.name || field.name })
-        : t('datatables.frm_column_hint', 'from the form · {label}', { label: col.name || field.name });
+        ? t('datatables.frm_column_retired', 'no longer on the form · {label}', { label: col.name || (field as ColumnLike).name })
+        : t('datatables.frm_column_hint', 'from the form · {label}', { label: col.name || (field as ColumnLike).name });
 }

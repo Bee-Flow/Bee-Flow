@@ -4,6 +4,21 @@ import { formatLabel, providerLogoId, providerName, ssErrorMessage, writeCaveatT
 import SheetSection from './SheetSection';
 import { describeKeyOf, fileKeyOf, sheetKeyOf, sheetLabelOf } from './wizardState';
 import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
+import type { TranslateFn } from '../datatableTypes';
+import type { FileDescribe, Fetched, PickedFile, SheetDescribe, SheetInfo, SheetName, SheetSelection } from './wizardTypes';
+
+interface SheetsStepProps {
+    t: TranslateFn;
+    files: Map<string, PickedFile>;
+    describes: Map<string, Fetched<FileDescribe>>;
+    sheetDescribes: Map<string, Fetched<SheetDescribe>>;
+    selection: Map<string, SheetSelection>;
+    marks: Map<string, string>;
+    onToggleSheet: (file: PickedFile, sheet: SheetName) => void;
+    onChange: (sheetKey: string, patch: Partial<SheetSelection>) => void;
+    onOptIn: (fileKey: string, on: boolean) => void;
+    onRetry: (fileKey: string) => void;
+}
 
 /**
  * Step 2 of the link-spreadsheet wizard: which sheets, and what their
@@ -42,7 +57,7 @@ import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
  * writeModeFor), and a checkbox that changes nothing would contradict the
  * read-only caveat printed right above it.
  */
-export default function SheetsStep({ t, files, describes, sheetDescribes, selection, marks, onToggleSheet, onChange, onOptIn, onRetry }) {
+export default function SheetsStep({ t, files, describes, sheetDescribes, selection, marks, onToggleSheet, onChange, onOptIn, onRetry }: SheetsStepProps) {
     return (
         <div className="space-y-3">
             <p className="text-sm text-[var(--text-secondary)]">
@@ -60,8 +75,15 @@ export default function SheetsStep({ t, files, describes, sheetDescribes, select
     );
 }
 
-function FileSection({ t, file, fileKey, describe, sheetDescribes, selection, mark, marks, onToggleSheet, onChange, onOptIn, onRetry }) {
-    const d = describe || { loading: true, error: null, data: null };
+interface FileSectionProps extends Omit<SheetsStepProps, 'files' | 'describes'> {
+    file: PickedFile;
+    fileKey: string;
+    describe?: Fetched<FileDescribe>;
+    mark?: string;
+}
+
+function FileSection({ t, file, fileKey, describe, sheetDescribes, selection, mark, marks, onToggleSheet, onChange, onOptIn, onRetry }: FileSectionProps) {
+    const d: Fetched<FileDescribe> = describe || { loading: true, error: null, data: null };
     const data = d.data;
     const Logo = getIntegrationLogo(providerLogoId(file.provider, file.format));
     const sheets = (data && data.sheets) || [];
@@ -155,7 +177,7 @@ function FileSection({ t, file, fileKey, describe, sheetDescribes, selection, ma
  * That chip is the only thing on the step that explains why nothing is
  * selected and Next stays off.
  */
-function OnlySheetLine({ t, sheet, fileName }) {
+function OnlySheetLine({ t, sheet, fileName }: { t: TranslateFn; sheet: SheetInfo; fileName: string }) {
     const linked = Array.isArray(sheet.linkedAs) && sheet.linkedAs.length > 0;
     return (
         <p className="text-xs inline-flex items-center gap-2 flex-wrap" style={{ color: 'var(--text-secondary)', opacity: linked ? 0.6 : 1 }}>

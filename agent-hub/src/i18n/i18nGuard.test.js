@@ -385,7 +385,7 @@ function unknownTableKeys(rels, srcOf) {
 // holds React list keys, node ids and localStorage names (`new-chat`,
 // `my-organization`, `sample-a`).
 const KEY_TABLE_FILES = [
-    'components/admin/Studio/Executions/runLanguage.js',
+    'components/admin/Studio/Executions/runLanguage.ts',
     'components/admin/Studio/KnowledgeStudio/SourceDetail.jsx',
     'components/admin/Studio/KnowledgeStudio/freshness.js',
     'components/admin/Studio/KnowledgeStudio/sourceKinds.js',
@@ -489,7 +489,7 @@ const TEXT_HELPERS = [
     // runLanguage.js that this register was built around.
     { rel: 'components/automation/Builder/flow/triggerLabels.js', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
     { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js' },
-    { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
+    { rel: 'components/admin/Studio/Datatables/datatableDisplay.ts', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
     { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
     { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.js', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },

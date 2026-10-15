@@ -17,6 +17,8 @@
  * datatableDisplay.vocabulary.test.js through SOURCE_MANAGED_KINDS.
  */
 
+import type { ErrorBody, ErrorLike, MaybeTable, MirrorSource, TranslateFn } from './datatableTypes';
+
 /**
  * Kinds whose ENTIRE column list belongs to an external source — mirrors the
  * server's `fieldsFromSource` flag (managedTables.js). Every column is locked,
@@ -26,17 +28,17 @@
 export const SOURCE_MANAGED_KINDS = Object.freeze(['nextcloud_table', 'spreadsheet_file']);
 
 /** A table that mirrors ANY external source (either kind). */
-export function isSourceMirror(table) {
-    return SOURCE_MANAGED_KINDS.includes(table?.managedKind);
+export function isSourceMirror(table: MaybeTable) {
+    return SOURCE_MANAGED_KINDS.includes(table?.managedKind as string);
 }
 
 /** A table that mirrors a Nextcloud Tables table or view. */
-export function isNcMirror(table) {
+export function isNcMirror(table: MaybeTable) {
     return table?.managedKind === 'nextcloud_table';
 }
 
 /** A table that mirrors one worksheet of a spreadsheet file. */
-export function isSpreadsheetMirror(table) {
+export function isSpreadsheetMirror(table: MaybeTable) {
     return table?.managedKind === 'spreadsheet_file';
 }
 
@@ -48,8 +50,8 @@ export function isSpreadsheetMirror(table) {
 export const PROVIDERS = Object.freeze(['google_drive', 'onedrive', 'nextcloud_files']);
 const PROVIDER_NAMES = Object.freeze({ google_drive: 'Google Drive', onedrive: 'OneDrive', nextcloud_files: 'Nextcloud' });
 
-export function providerName(provider) {
-    return PROVIDER_NAMES[provider] || provider || '';
+export function providerName(provider?: string | null) {
+    return PROVIDER_NAMES[provider as keyof typeof PROVIDER_NAMES] || provider || '';
 }
 
 /**
@@ -57,7 +59,7 @@ export function providerName(provider) {
  * Sheet wears the Sheets logo, not Drive's — it is the sheet the person
  * recognises, and the file is only ever seen through it.
  */
-export function providerLogoId(provider, format) {
+export function providerLogoId(provider?: string | null, format?: string | null) {
     if (format === 'gsheet') return 'google_sheets';
     if (provider === 'nextcloud_files') return 'nextcloud';
     return provider || null;
@@ -67,7 +69,7 @@ export function providerLogoId(provider, format) {
 export const FORMATS = Object.freeze(['xlsx', 'xlsm', 'xls', 'csv', 'ods', 'gsheet']);
 
 /** What a format is called on screen — with its extension, which is what the person sees in the folder. */
-export function formatLabel(t, format) {
+export function formatLabel(t: TranslateFn, format?: string | null) {
     switch (format) {
         case 'xlsx': return t('datatables.ss_format_xlsx', 'Excel workbook (.xlsx)');
         case 'xlsm': return t('datatables.ss_format_xlsm', 'Excel workbook with macros (.xlsm)');
@@ -85,20 +87,20 @@ export function formatLabel(t, format) {
  * kind renders through the shared `src_*` sentences is byte-for-byte what
  * its own `nc_*` sentences said, which is what lets one component serve both.
  */
-export function sourceNameOf(table, source = table?.source) {
+export function sourceNameOf(table: MaybeTable, source: MirrorSource | null | undefined = table?.source) {
     if (isNcMirror(table)) return 'Nextcloud';
     if (isSpreadsheetMirror(table)) return providerName(source?.provider);
     return '';
 }
 
 /** The table (or view) in Nextcloud's own Tables app — the server's deep link. */
-export function ncUrlOf(source) {
+export function ncUrlOf(source: MirrorSource | null | undefined) {
     if (!source || !source.ncTableId) return null;
     return source.ncUrl || `/apps/tables/#/${source.ncViewId ? `view/${source.ncViewId}` : `table/${source.ncTableId}`}`;
 }
 
 /** Where "Open in {source}" goes, or null when the source has no page to open. */
-export function sourceUrlOf(table, source = table?.source) {
+export function sourceUrlOf(table: MaybeTable, source: MirrorSource | null | undefined = table?.source) {
     if (isNcMirror(table)) return ncUrlOf(source);
     if (isSpreadsheetMirror(table)) return source?.webUrl || null;
     return null;
@@ -110,7 +112,7 @@ export function sourceUrlOf(table, source = table?.source) {
  * write the file (`writable`) — an .xls, a file the linker does not own, a
  * file without write permission are read here and changed in the file.
  */
-export function sourceWritable(table, source = table?.source) {
+export function sourceWritable(table: MaybeTable, source: MirrorSource | null | undefined = table?.source) {
     return isSourceMirror(table) && source?.writable !== false;
 }
 
@@ -122,7 +124,7 @@ export function sourceWritable(table, source = table?.source) {
  * Returns null for "the kind's own icon". The component behind each name
  * lives in sourceGlyphs.js, so this module stays free of React.
  */
-export function tableIconOf(table) {
+export function tableIconOf(table: MaybeTable) {
     if (isNcMirror(table)) return 'nextcloud';
     if (isSpreadsheetMirror(table)) return 'spreadsheet';
     if (table?.managedKind === 'form_answers') return 'form';
@@ -134,7 +136,7 @@ export function tableIconOf(table) {
  * `writeMode` is `none`. The server names the mechanism it lacks; this names
  * what the person can do about it.
  */
-export function writeReasonText(t, reason) {
+export function writeReasonText(t: TranslateFn, reason?: string | null) {
     switch (reason) {
         case 'xls':
             return t('datatables.ss_write_reason_xls', 'An Excel 97–2003 file (.xls) is read here but not written. Save it as .xlsx to write rows back.');
@@ -156,7 +158,7 @@ export function writeReasonText(t, reason) {
  * lost when a row is written back. Shown beside a file in the link wizard
  * and under the write card of the panel, so the sentence is here once.
  */
-export function writeCaveatText(t, writeMode, reason = null) {
+export function writeCaveatText(t: TranslateFn, writeMode?: string | null, reason: string | null = null) {
     switch (writeMode) {
         case 'sheets_api':
             return t('datatables.ss_caveat_sheets_api', 'Rows are written into the sheet cell by cell; number formats are kept.');
@@ -181,7 +183,7 @@ export function writeCaveatText(t, writeMode, reason = null) {
  * nextcloudTable/errors.js); `{detail}` is Nextcloud's own sentence where the
  * server passes one on, shown verbatim.
  */
-export function ncErrorMessage(t, err) {
+export function ncErrorMessage(t: TranslateFn, err: ErrorLike | null | undefined) {
     const detail = err?.message || '';
     switch (err?.code) {
         case 'nextcloud_forbidden':
@@ -236,8 +238,8 @@ export function ncErrorMessage(t, err) {
  * SAME stored path, so promising that an owner can "point the table at the
  * file again" would send them to a button that answers the same refusal.
  */
-export function ssErrorMessage(t, err, storage = null, { linked = false } = {}) {
-    const body = err?.body || {};
+export function ssErrorMessage(t: TranslateFn, err: ErrorLike | null | undefined, storage: string | null = null, { linked = false }: { linked?: boolean } = {}) {
+    const body = (err?.body || {}) as ErrorBody;
     const source = storage || providerName(body.ref?.provider || body.provider) || t('datatables.ss_the_storage', 'the storage');
     const detail = err?.message || '';
     switch (err?.code) {
@@ -305,7 +307,7 @@ export function ssErrorMessage(t, err, storage = null, { linked = false } = {}) 
  * A spreadsheet table that exists is `linked`: its refusals are about the
  * account that linked it, not about whoever is looking.
  */
-export function sourceErrorMessage(t, err, table = null) {
+export function sourceErrorMessage(t: TranslateFn, err: ErrorLike | null | undefined, table: MaybeTable = null) {
     if (isNcMirror(table)) return ncErrorMessage(t, err);
     if (isSpreadsheetMirror(table)) return ssErrorMessage(t, err, sourceNameOf(table), { linked: true });
     return ncErrorMessage(t, err) || ssErrorMessage(t, err);
@@ -325,28 +327,28 @@ export const SOURCE_KINDS = Object.freeze({
     nextcloud_table: Object.freeze({
         kind: 'nextcloud_table',
         icon: 'nextcloud',
-        tabLabel: (t) => t('datatables.tab_nextcloud', 'Nextcloud'),
-        liveExplain: (t) => t('datatables.nc_live_explain', 'Changes in Nextcloud appear here within seconds while the table is open; in the background it is checked every minute, and Nextcloud pushes changes as they happen.'),
-        truncated: (t, n) => t('datatables.nc_truncated', 'Not every row was copied — the copy is capped at {n} rows. Filter the view in Nextcloud, or link a view instead.', { n }),
-        unlinkNotice: (t) => t('datatables.nc_unlink_notice', 'Unlinking removes the copy kept here. The table in Nextcloud, and every row in it, stays exactly as it is. Automations and apps that use this table stop finding it.'),
-        linkedBody: (t, n) => (n === 1
+        tabLabel: (t: TranslateFn) => t('datatables.tab_nextcloud', 'Nextcloud'),
+        liveExplain: (t: TranslateFn) => t('datatables.nc_live_explain', 'Changes in Nextcloud appear here within seconds while the table is open; in the background it is checked every minute, and Nextcloud pushes changes as they happen.'),
+        truncated: (t: TranslateFn, n: number) => t('datatables.nc_truncated', 'Not every row was copied — the copy is capped at {n} rows. Filter the view in Nextcloud, or link a view instead.', { n }),
+        unlinkNotice: (t: TranslateFn) => t('datatables.nc_unlink_notice', 'Unlinking removes the copy kept here. The table in Nextcloud, and every row in it, stays exactly as it is. Automations and apps that use this table stop finding it.'),
+        linkedBody: (t: TranslateFn, n: number) => (n === 1
             ? t('datatables.nc_linked_body_one', 'The table is being filled in from Nextcloud now. Automations and apps can use it like any other table.')
             : t('datatables.nc_linked_body', '{n} tables are being filled in from Nextcloud now. Automations and apps can use them like any other table.', { n })),
     }),
     spreadsheet_file: Object.freeze({
         kind: 'spreadsheet_file',
         icon: 'spreadsheet',
-        tabLabel: (t) => t('datatables.ss_tab', 'Spreadsheet'),
-        liveExplain: (t) => t('datatables.ss_live_explain', 'Changes in the file appear here within seconds while the table is open; in the background the file is checked every minute. Only the file’s version is checked — it is read again only when it changed.'),
-        truncated: (t, n) => t('datatables.ss_truncated', 'Not every row was copied — the copy is capped at {n} rows. Split the sheet, or link a smaller one.', { n }),
-        unlinkNotice: (t, source) => t('datatables.ss_unlink_notice', 'Unlinking removes the copy kept here. The file in {source}, and every row in it, stays exactly as it is. Automations and apps that use this table stop finding it.', { source }),
-        linkedBody: (t, n) => (n === 1
+        tabLabel: (t: TranslateFn) => t('datatables.ss_tab', 'Spreadsheet'),
+        liveExplain: (t: TranslateFn) => t('datatables.ss_live_explain', 'Changes in the file appear here within seconds while the table is open; in the background the file is checked every minute. Only the file’s version is checked — it is read again only when it changed.'),
+        truncated: (t: TranslateFn, n: number) => t('datatables.ss_truncated', 'Not every row was copied — the copy is capped at {n} rows. Split the sheet, or link a smaller one.', { n }),
+        unlinkNotice: (t: TranslateFn, source: string) => t('datatables.ss_unlink_notice', 'Unlinking removes the copy kept here. The file in {source}, and every row in it, stays exactly as it is. Automations and apps that use this table stop finding it.', { source }),
+        linkedBody: (t: TranslateFn, n: number) => (n === 1
             ? t('datatables.ss_linked_body_one', 'The table is being filled in from the file now. Automations and apps can use it like any other table.')
             : t('datatables.ss_linked_body', '{n} tables are being filled in from the files now. Automations and apps can use them like any other table.', { n })),
     }),
 });
 
 /** The registry entry for a table's kind, or null for a table that mirrors nothing. */
-export function sourceKindSpec(table) {
-    return SOURCE_KINDS[table?.managedKind] || null;
+export function sourceKindSpec(table: MaybeTable) {
+    return SOURCE_KINDS[table?.managedKind as keyof typeof SOURCE_KINDS] || null;
 }

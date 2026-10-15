@@ -1,10 +1,20 @@
 import { AlertTriangle, Loader2, Minus, Plus } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ColumnKindIcon } from '../ColumnKind';
-import { columnTypeKind, ssErrorMessage } from '../datatableDisplay';
+import { COLUMN_TYPES, columnTypeKind, ssErrorMessage } from '../datatableDisplay';
 import { TypeSelect } from '../NewDatatableDialog';
 import { HEADER_ROW_MAX, HEADER_ROW_MIN, INFERABLE_TYPES, keyColumnEligible, sheetLabelOf } from './wizardState';
 import useDebouncedValue from '../../../../../hooks/useDebouncedValue';
+import type { TranslateFn } from '../datatableTypes';
+import type { Fetched, SheetDescribe, SheetSelection } from './wizardTypes';
+
+interface SheetSectionProps {
+    t: TranslateFn;
+    s: SheetSelection;
+    describe?: Fetched<SheetDescribe>;
+    mark?: string;
+    onChange: (sheetKey: string, patch: Partial<SheetSelection>) => void;
+}
 
 /**
  * One sheet that will become a table: its header row, the first rows as
@@ -31,8 +41,8 @@ import useDebouncedValue from '../../../../../hooks/useDebouncedValue';
  * shown, switched off, with the one word that says why. The help line
  * under it is what makes an automation author pick the key column anyway.
  */
-export default function SheetSection({ t, s, describe, mark, onChange }) {
-    const d = describe || { loading: true, error: null, data: null };
+export default function SheetSection({ t, s, describe, mark, onChange }: SheetSectionProps) {
+    const d: Fetched<SheetDescribe> = describe || { loading: true, error: null, data: null };
     const data = d.data;
     const columns = s.columns || [];
     const keyCandidates = (data && data.keyCandidates) || [];
@@ -42,12 +52,12 @@ export default function SheetSection({ t, s, describe, mark, onChange }) {
     // Retyping the key column to something that cannot identify a row (a
     // date, a checkbox) drops it back to the row number — the radio it
     // would leave checked is the disabled one.
-    const setType = (col, type) => {
+    const setType = (col: number, type: string) => {
         const next = columns.map(c => (c.col === col ? { ...c, type, typeTouched: true } : c));
         const keyCol = next.find(c => c.col === s.keyColumn);
         onChange(s.sheetKey, { columns: next, ...(keyCol && !keyColumnEligible(keyCol, keyCandidates).ok ? { keyColumn: null } : {}) });
     };
-    const setKey = (keyColumn) => onChange(s.sheetKey, { keyColumn });
+    const setKey = (keyColumn: number | null) => onChange(s.sheetKey, { keyColumn });
     // A csv has no sheet (null on the wire); the file name stands in for it.
     const sheetLabel = s.sheetLabel ?? sheetLabelOf(s.sheet, s.fileName);
 
@@ -90,7 +100,7 @@ export default function SheetSection({ t, s, describe, mark, onChange }) {
                                     </span>
                                 )}
                             </span>
-                            <TypeSelect t={t} value={c.type} onChange={(type) => setType(c.col, type)} types={INFERABLE_TYPES}
+                            <TypeSelect t={t} value={c.type} onChange={(type: string) => setType(c.col, type)} types={INFERABLE_TYPES as typeof COLUMN_TYPES}
                                 ariaLabel={`${t('datatables.ss_type_of', 'Type of')} ${c.blankHeader ? c.key : c.header}`} />
                         </li>
                     ))}
@@ -132,7 +142,7 @@ export default function SheetSection({ t, s, describe, mark, onChange }) {
 }
 
 /** The one word beside a key-column radio that is off. */
-function reasonWord(t, reason) {
+function reasonWord(t: TranslateFn, reason?: string | null) {
     switch (reason) {
         case 'no_header': return t('datatables.ss_key_no_header', 'no header');
         case 'type': return t('datatables.ss_key_type', 'only text or number');
@@ -140,7 +150,7 @@ function reasonWord(t, reason) {
     }
 }
 
-function Warning({ text }) {
+function Warning({ text }: { text: string }) {
     return (
         <li className="flex items-start gap-1.5">
             <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
@@ -149,12 +159,12 @@ function Warning({ text }) {
     );
 }
 
-function HeaderRowStepper({ t, sheet, value, onSettle }) {
-    const [draft, setDraft] = useState(value);
+function HeaderRowStepper({ t, sheet, value, onSettle }: { t: TranslateFn; sheet: string; value: number; onSettle: (headerRow: number) => void }) {
+    const [draft, setDraft] = useState<number | string>(value);
     const settled = useDebouncedValue(draft, 300);
-    const clamp = (n) => Math.min(HEADER_ROW_MAX, Math.max(HEADER_ROW_MIN, n));
+    const clamp = (n: number) => Math.min(HEADER_ROW_MAX, Math.max(HEADER_ROW_MIN, n));
     useEffect(() => {
-        if (Number.isInteger(settled) && settled !== value) onSettle(settled);
+        if (Number.isInteger(settled) && settled !== value) onSettle(settled as number);
     }, [settled, value, onSettle]);
     const label = t('datatables.ss_header_row', 'Header row');
     return (
@@ -178,7 +188,7 @@ function HeaderRowStepper({ t, sheet, value, onSettle }) {
 }
 
 /** The header row and up to five below it, as the file has them. */
-function Preview({ t, sheet, rows }) {
+function Preview({ t, sheet, rows }: { t: TranslateFn; sheet: string; rows: unknown[][] }) {
     return (
         <div className="overflow-x-auto rounded-lg" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-primary)' }}>
             <table className="text-[11px] w-full">
@@ -197,7 +207,7 @@ function Preview({ t, sheet, rows }) {
     );
 }
 
-function previewText(v) {
+function previewText(v: unknown) {
     if (v === null || v === undefined) return '';
     if (typeof v === 'object') return JSON.stringify(v);
     return String(v);
