@@ -67,7 +67,7 @@ function normaliseFieldArgs(raw, notes) {
         if (used.has(key)) { const k2 = keyFromTitle(key, i, used); notes.push(`fields[${i}]: key "${key}" was taken — "${k2}".`); key = k2; }
         used.add(key);
         let type = String(src.type || 'text').toLowerCase();
-        if (TYPE_ALIASES[type]) { notes.push(`fields[${i}]: type "${type}" read as "${TYPE_ALIASES[type]}".`); type = TYPE_ALIASES[type]; }
+        if (Object.hasOwn(TYPE_ALIASES, type)) { notes.push(`fields[${i}]: type "${type}" read as "${TYPE_ALIASES[type]}".`); type = TYPE_ALIASES[type]; }
         if (!FIELD_TYPES.includes(type)) { notes.push(`fields[${i}]: unknown type "${type}" read as "text".`); type = 'text'; }
         const field = { key, name, type };
         if (type === 'select' || type === 'multiselect') {
