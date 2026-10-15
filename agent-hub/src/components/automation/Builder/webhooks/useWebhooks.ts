@@ -12,7 +12,7 @@ export interface Webhook {
 }
 
 export interface AutomationLike {
-    id?: string;
+    id?: string | null;
     definition?: { trigger?: { id?: string; kind?: string } | null; triggers?: { id?: string; kind?: string }[] };
 }
 

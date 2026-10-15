@@ -20,7 +20,7 @@ export interface AstNode {
 export interface BindingLike {
     kind?: string;
     value?: unknown;
-    path?: string;
+    path?: unknown;
 }
 
 export type BindingInput = BindingLike | string | number | boolean | null | undefined;

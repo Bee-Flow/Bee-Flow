@@ -336,6 +336,7 @@ jobs:
               - 'agent-hub/src/components/forms/formOptions.ts'
               - 'agent-hub/src/shared/expr/**'
               - 'agent-hub/src/utils/{bindingHelpers,scopedStorage}.*'
+              - 'agent-hub/src/hooks/useUpstreamVariables.ts'
               - 'agent-hub/src/api/client.*'
               - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{themeVars.js,uiBits.jsx}'
               - 'agent-hub/src/components/admin/security/guardrails/Info.jsx'

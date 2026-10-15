@@ -1,5 +1,6 @@
 import type { Field } from './fieldTree';
 import type { FlowDefinition, FlowStep } from '../../flow/types';
+import type { TriggerParamsSchema } from '../../flow/triggerSchemaUtils';
 
 /** A form question as the builder declares it (trigger.form / form_page.form). */
 export interface FormFieldDecl {
@@ -34,7 +35,7 @@ export interface UpstreamNode extends FlowStep {
     tool?: string;
     // triggers
     params?: { name: string; type?: string }[];
-    parametersSchema?: unknown;
+    parametersSchema?: TriggerParamsSchema | null;
     appEvent?: { provider?: string; event?: string };
     schedule?: { cron?: string; tz?: string };
     form?: { fields?: FormFieldDecl[]; title?: string };

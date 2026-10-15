@@ -65,7 +65,7 @@ interface ExprNode {
 }
 
 /** Roots a user can PICK. `secrets` is deliberately absent — never a chip. */
-const DATA_ROOTS = new Set(['steps', 'trigger', 'vars', 'loop', 'item', '_index']);
+const DATA_ROOTS: ReadonlySet<unknown> = new Set(['steps', 'trigger', 'vars', 'loop', 'item', '_index']);
 
 // `fn(<path>, "<arg>")` and `fn(<path>, "<arg>", "<arg2>")` — the transforms
 // that carry string arguments: join's separator, formatNumber's style,

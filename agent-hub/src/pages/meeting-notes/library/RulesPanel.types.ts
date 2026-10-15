@@ -1,5 +1,6 @@
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import type { AutomationApiError } from '../../../hooks/useAutomationApi';
+import type { RepeatingSuggestion } from '../../../api/queries/automation/repeating';
 
 export type { TranslateFn };
 import type { consequencesOf, triggerConditionOf } from '../lib/meetingRules';
@@ -19,8 +20,8 @@ export interface RuleRow {
 /** An Error from the automation API, possibly carrying the server's code/status. */
 export type RuleError = AutomationApiError;
 
-/** One idea from the suggestion scan. */
-export interface RuleIdea {
+/** One idea from the suggestion scan (the scan's own shape; this panel reads only some of it). */
+export interface RuleIdea extends Pick<RepeatingSuggestion, 'buildPrompt' | 'evidence' | 'requiredIntegrations' | 'unavailableIntegrations' | 'triggerKind' | 'value'> {
     id?: string;
     title?: string;
     description?: string;
