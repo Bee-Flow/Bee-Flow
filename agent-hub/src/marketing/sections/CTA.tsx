@@ -4,6 +4,13 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
+import type { CmsHref, SectionDataBase } from './sectionData.types';
+
+interface CtaData extends SectionDataBase {
+    showMotif?: boolean;
+    secondaryCta?: { label?: string; href?: string; link?: CmsHref };
+    button?: { label?: string; href?: string };
+}
 
 // True inside the CMS editor's preview iframe (?preview) — empty fields keep
 // their clickable placeholder there, but never on the published site.
@@ -11,7 +18,7 @@ const isEditable = () =>
     typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).has('preview');
 
-export default function CTA({ data }) {
+export default function CTA({ data }: { data?: CtaData }) {
     if (!data?.enabled) return null;
     // Page-closing band: the hex-motif echo (accent line-art at whisper
     // opacity) is on by default but suppressible; an optional ghost

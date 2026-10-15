@@ -196,7 +196,7 @@
     "src/hooks/useAutomationApi.ts": 559,
     "src/hooks/useChatEngine.ts": 522,
     "src/hooks/useKnowledgeBases.ts": 621,
-    "src/marketing/HomePage.jsx": 897,
+    "src/marketing/HomePage.tsx": 897,
     "src/marketing/PricingPage.jsx": 539,
     "src/marketing/ProductWebsite.jsx": 1050,
     "src/marketing/sections/CustomerSupport.jsx": 506,

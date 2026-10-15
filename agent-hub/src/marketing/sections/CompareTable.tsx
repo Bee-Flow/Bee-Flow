@@ -5,6 +5,7 @@ import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
 import './compareTable.css';
+import type { SectionDataBase } from './sectionData.types';
 
 /**
  * Compare table — side-by-side comparison for the comparison pages
@@ -38,9 +39,23 @@ const isEditable = () =>
     typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).has('preview');
 
-const hasText = (v) => typeof v === 'string' && v.trim() !== '';
+interface CompareRow {
+    aspect?: string;
+    left?: string;
+    right?: string;
+}
 
-export default function CompareTable({ data }) {
+interface CompareTableData extends SectionDataBase {
+    leftLabel?: string;
+    rightLabel?: string;
+    rows?: CompareRow[];
+    footnote?: string;
+    footnoteAlign?: string;
+}
+
+const hasText = (v: unknown) => typeof v === 'string' && v.trim() !== '';
+
+export default function CompareTable({ data }: { data?: CompareTableData }) {
     if (!data?.enabled) return null;
     const editing = isEditable();
 

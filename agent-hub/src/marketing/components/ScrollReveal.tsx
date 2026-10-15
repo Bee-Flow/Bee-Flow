@@ -1,4 +1,5 @@
 import React, { useLayoutEffect } from 'react';
+import type { RefObject } from 'react';
 
 /**
  * Mounts a single IntersectionObserver that promotes any `.reveal` element
@@ -21,7 +22,7 @@ import React, { useLayoutEffect } from 'react';
  * already on screen at page load "animating in" is indistinguishable from
  * flicker.
  */
-export function useScrollReveal(rootRef, contentKey) {
+export function useScrollReveal(rootRef: RefObject<HTMLElement | null> | null | undefined, contentKey?: unknown) {
     useLayoutEffect(() => {
         const root = rootRef?.current || document;
         const elements = root.querySelectorAll('.reveal:not(.visible)');
@@ -37,8 +38,8 @@ export function useScrollReveal(rootRef, contentKey) {
 
         // All reads, then all writes — one layout pass, no thrash.
         const viewportH = window.innerHeight || document.documentElement.clientHeight;
-        const inView = [];
-        const below = [];
+        const inView: Element[] = [];
+        const below: Element[] = [];
         for (const el of elements) {
             const r = el.getBoundingClientRect();
             (r.top < viewportH && r.bottom > 0 ? inView : below).push(el);
@@ -66,7 +67,13 @@ export function useScrollReveal(rootRef, contentKey) {
     }, [rootRef, contentKey]);
 }
 
-export default function ScrollReveal({ delay = 0, children, className = '' }) {
+interface ScrollRevealProps {
+    delay?: number;
+    children?: React.ReactNode;
+    className?: string;
+}
+
+export default function ScrollReveal({ delay = 0, children, className = '' }: ScrollRevealProps) {
     const delayClass = delay > 0 ? `reveal-delay-${Math.min(delay, 6)}` : '';
     return <div className={`reveal ${delayClass} ${className}`.trim()}>{children}</div>;
 }

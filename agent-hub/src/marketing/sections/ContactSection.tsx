@@ -10,7 +10,7 @@ import CustomerSupport, { SUPPORT_DEFAULT_CONTENT } from './CustomerSupport';
  * sites (`<ContactSection />`, anchored at #contact) working unchanged while
  * sharing a single implementation.
  */
-export default function ContactSection({ id = 'contact' }) {
+export default function ContactSection({ id = 'contact' }: { id?: string }) {
     return (
         <CustomerSupport
             sectionId={id}

@@ -27,8 +27,16 @@ import ReactDOM from 'react-dom';
 import usePopupIframeHeight, { HEIGHT_SCRIPT } from './usePopupIframeHeight';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 
-export default function PopupModal({ title, embedHtml, onClose, modalStyle, iframeStyle }) {
-    const dialogRef = useRef(null);
+interface PopupModalProps {
+    title?: string;
+    embedHtml?: string;
+    onClose: () => void;
+    modalStyle?: React.CSSProperties;
+    iframeStyle?: React.CSSProperties;
+}
+
+export default function PopupModal({ title, embedHtml, onClose, modalStyle, iframeStyle }: PopupModalProps) {
+    const dialogRef = useRef<HTMLDivElement>(null);
     const iframeRef = usePopupIframeHeight();
 
     // Escape and any interaction outside the dialog (i.e. on the
@@ -77,7 +85,7 @@ export default function PopupModal({ title, embedHtml, onClose, modalStyle, ifra
 
 // Inline styles for the popup — kept here so the component stays self-
 // contained and doesn't require additions to marketing.css.
-const overlayStyle = {
+const overlayStyle: React.CSSProperties = {
     position: 'fixed',
     inset: 0,
     background: 'rgba(0, 0, 0, 0.6)',
@@ -94,7 +102,7 @@ const overlayStyle = {
 // modal also renders correctly if portaled outside the marketing root);
 // the token card shadow is layered under a deeper drop for the overlay
 // context.
-const baseModalStyle = {
+const baseModalStyle: React.CSSProperties = {
     position: 'relative',
     background: 'var(--bg-primary, #ffffff)',
     borderRadius: 'var(--radius-lg, 16px)',
@@ -102,7 +110,7 @@ const baseModalStyle = {
     zIndex: 10000,
 };
 
-const closeStyle = {
+const closeStyle: React.CSSProperties = {
     position: 'absolute',
     top: '8px',
     right: '12px',
@@ -120,7 +128,7 @@ const closeStyle = {
 
 // overflow:hidden on the wrap so the iframe's own borders don't peek
 // out before the height-report message lands.
-const iframeWrapStyle = {
+const iframeWrapStyle: React.CSSProperties = {
     overflow: 'hidden',
 };
 
@@ -129,7 +137,7 @@ const iframeWrapStyle = {
 // straight to iframe.style.height, which overrides whatever height
 // the caller starts from (0, '100%', …) while min-height keeps any
 // floor the caller sets.
-const baseIframeStyle = {
+const baseIframeStyle: React.CSSProperties = {
     width: '100%',
     border: 0,
     display: 'block',

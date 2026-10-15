@@ -10,7 +10,7 @@ import React, { createContext, useContext, useLayoutEffect, useRef } from 'react
  * means "not inside a block" (site chrome: header/footer), which the panel
  * routes by path prefix instead.
  */
-export const BlockIdContext = createContext(null);
+export const BlockIdContext = createContext<string | null>(null);
 
 /**
  * Click-to-edit text node, used inside the marketing site when it renders
@@ -31,12 +31,22 @@ export const BlockIdContext = createContext(null);
  *   "features.items.0.title"
  */
 
-let _previewModeCache = null;
+let _previewModeCache: boolean | null = null;
 function isPreviewMode() {
     if (_previewModeCache !== null) return _previewModeCache;
     if (typeof window === 'undefined') return false;
     _previewModeCache = new URLSearchParams(window.location.search).has('preview');
     return _previewModeCache;
+}
+
+interface EditableTextProps {
+    path: string;
+    as?: React.ElementType;
+    children?: React.ReactNode;
+    className?: string;
+    placeholder?: string;
+    multiline?: boolean;
+    style?: React.CSSProperties;
 }
 
 export default function EditableText({
@@ -47,8 +57,8 @@ export default function EditableText({
     placeholder,
     multiline = false,
     style,
-}) {
-    const ref = useRef(null);
+}: EditableTextProps) {
+    const ref = useRef<HTMLElement>(null);
     // Which block this editable belongs to (null for site chrome). Stamped
     // onto cms-edit so the panel writes to this exact block, not the first
     // block of the same type.
@@ -92,7 +102,7 @@ export default function EditableText({
         return <Tag className={className} style={mergedStyle}>{children}</Tag>;
     }
 
-    const handleBlur = (e) => {
+    const handleBlur = (e: React.FocusEvent<HTMLElement>) => {
         // Multi-line fields read `innerText` so newlines the user typed
         // (browsers store them as <div>/<br> inside contentEditable)
         // survive as "\n"; `textContent` would silently flatten them.
@@ -111,7 +121,7 @@ export default function EditableText({
         }
     };
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
         // Block paragraph breaks for single-line fields; commit on Enter.
         if (!multiline && e.key === 'Enter') {
             e.preventDefault();

@@ -17,6 +17,14 @@ import { consentAccepted } from './consent';
 
 const SCRIPT_ID = 'bf-umami-tracker';
 
+export interface TrackerOptions {
+    excludeHash?: boolean;
+    excludeSearch?: boolean;
+    doNotTrack?: boolean;
+    tag?: string;
+    domains?: string;
+}
+
 /**
  * The attribute set Umami reads off its own <script> tag at eval time.
  *
@@ -30,8 +38,8 @@ const SCRIPT_ID = 'bf-umami-tracker';
  * `data-exclude-hash` keeps #anchor links from fragmenting one page's vitals
  * (and its pageviews) across a row per anchor.
  */
-export function buildTrackerAttrs(websiteId, options = {}) {
-    const attrs = {
+export function buildTrackerAttrs(websiteId: string | number, options: TrackerOptions = {}): Record<string, string> {
+    const attrs: Record<string, string> = {
         'data-website-id': String(websiteId),
         'data-performance': 'true',
         'data-exclude-hash': options.excludeHash === false ? 'false' : 'true',
@@ -43,7 +51,7 @@ export function buildTrackerAttrs(websiteId, options = {}) {
     return attrs;
 }
 
-function injectTracker(scriptUrl, websiteId, options) {
+function injectTracker(scriptUrl: string, websiteId: string | number, options: TrackerOptions) {
     if (typeof document === 'undefined') return;
     const attrs = buildTrackerAttrs(websiteId, options);
     const existing = document.getElementById(SCRIPT_ID);
@@ -69,7 +77,14 @@ function removeTracker() {
     document.getElementById(SCRIPT_ID)?.remove();
 }
 
-export default function AnalyticsTracker({ websiteId, scriptUrl, consentMode, trackerOptions } = {}) {
+interface AnalyticsTrackerProps {
+    websiteId?: string | number | null;
+    scriptUrl?: string | null;
+    consentMode?: string | null;
+    trackerOptions?: TrackerOptions | null;
+}
+
+export default function AnalyticsTracker({ websiteId, scriptUrl, consentMode, trackerOptions }: AnalyticsTrackerProps = {}) {
     // Serialised so a new object literal with identical contents does not
     // retrigger the effect on every parent render.
     const optionsKey = JSON.stringify(trackerOptions || {});

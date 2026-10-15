@@ -19,7 +19,7 @@ import { consentAccepted } from './consent';
 
 const SCRIPT_ID = 'bf-umami-recorder';
 
-function injectRecorder(scriptUrl, websiteId) {
+function injectRecorder(scriptUrl: string, websiteId: string) {
     if (typeof document === 'undefined') return;
     if (document.getElementById(SCRIPT_ID)) return;
     const s = document.createElement('script');
@@ -38,7 +38,12 @@ function removeRecorder() {
     document.getElementById(SCRIPT_ID)?.remove();
 }
 
-export default function SessionRecorder({ websiteId, recorderUrl } = {}) {
+interface SessionRecorderProps {
+    websiteId?: string | null;
+    recorderUrl?: string | null;
+}
+
+export default function SessionRecorder({ websiteId, recorderUrl }: SessionRecorderProps = {}) {
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
         if (!websiteId || !recorderUrl) return undefined;

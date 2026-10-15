@@ -12,7 +12,7 @@ export const CONSENT_STORAGE_KEY = 'cookie_consent';
 export const LEGACY_CONSENT_STORAGE_KEY = 'bf_cookie_consent';
 
 /** True when the visitor has explicitly accepted cookies. */
-export function consentAccepted() {
+export function consentAccepted(): boolean {
     try {
         return window.localStorage.getItem(CONSENT_STORAGE_KEY) === 'accepted'
             || window.localStorage.getItem(LEGACY_CONSENT_STORAGE_KEY) === 'accepted';

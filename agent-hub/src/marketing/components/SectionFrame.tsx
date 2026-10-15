@@ -1,5 +1,12 @@
 import React from 'react';
 
+interface SectionFrameProps {
+    children?: React.ReactNode;
+    id?: string;
+    name?: string;
+    enabled?: boolean;
+}
+
 /**
  * Pass-through wrapper for marketing sections. The hover-toolbar (Edit
  * settings · Hide) is gone — its `id` was the block *type*, while the
@@ -13,6 +20,6 @@ import React from 'react';
  * which means threading block.id through ProductWebsite.jsx into each
  * section so the path / id can flow back the other direction too.
  */
-export default function SectionFrame({ children }) {
+export default function SectionFrame({ children }: SectionFrameProps) {
     return <>{children}</>;
 }

@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import EditableText from './EditableText';
 
 /**
@@ -43,7 +44,7 @@ const STORAGE_KEY = 'cms.announcementDismissed';
 
 // djb2 → base36. Short, stable, dependency-free; collisions are harmless
 // here (worst case one visitor doesn't re-see a changed announcement).
-function fingerprint(str) {
+function fingerprint(str: string) {
     let h = 5381;
     for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
     return (h >>> 0).toString(36);
@@ -55,13 +56,21 @@ const isPreviewMode = () =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('preview');
 
-const str = (v) => (typeof v === 'string' ? v : '');
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+interface AnnouncementStrings {
+    message?: string;
+    linkLabel?: string;
+    linkUrl?: string;
+}
+
+export type AnnouncementText = Record<string, AnnouncementStrings | undefined>;
 
 // Same locale resolution as the cookie banner: use the requested language
 // when the blob has copy for it, otherwise fall back to English.
 // (ProductWebsite.jsx resolves the language itself via resolveCookieLang()
 // and passes it in, so the URL/browser-language logic lives in one place.)
-function resolveStrings(text, language) {
+function resolveStrings(text: AnnouncementText | undefined, language: string) {
     const lang = text?.[language] ? language : 'en';
     const s = text?.[lang] || {};
     return {
@@ -79,18 +88,18 @@ function resolveStrings(text, language) {
  * before the first paint; removes (never zeroes) the property on teardown so
  * an absent bar leaves every calc() byte-identical to before this feature.
  */
-function useAnnounceHeight(barRef, visible) {
+function useAnnounceHeight(barRef: RefObject<HTMLDivElement | null>, visible: boolean) {
     useLayoutEffect(() => {
         const el = barRef.current;
         if (!el || typeof window === 'undefined') return undefined;
-        const root = el.closest('.marketing-root') || el.parentElement;
+        const root = el.closest<HTMLElement>('.marketing-root') || el.parentElement;
         if (!root) return undefined;
         const apply = () => {
             const h = Math.round(el.getBoundingClientRect().height);
             root.style.setProperty('--announce-height', `${h}px`);
         };
         apply();
-        let ro = null;
+        let ro: ResizeObserver | null = null;
         if (typeof ResizeObserver !== 'undefined') {
             ro = new ResizeObserver(apply);
             ro.observe(el);
@@ -102,17 +111,25 @@ function useAnnounceHeight(barRef, visible) {
     }, [barRef, visible]);
 }
 
+interface AnnouncementBarProps {
+    enabled?: boolean;
+    dismissible?: boolean;
+    variant?: string;
+    language?: string;
+    text?: AnnouncementText;
+}
+
 export default function AnnouncementBar({
     enabled = false,
     dismissible = true,
     variant = 'accent',
     language = 'en',
     text = undefined,
-} = {}) {
+}: AnnouncementBarProps = {}) {
     const { lang, message, linkLabel, linkUrl } = resolveStrings(text, language);
 
     const inPreview = isPreviewMode();
-    const barRef = useRef(null);
+    const barRef = useRef<HTMLDivElement>(null);
 
     // localStorage is read SYNCHRONOUSLY in the initializer, not in a mount
     // effect. The old 'unset'-then-effect pattern rendered null on the first
@@ -125,7 +142,7 @@ export default function AnnouncementBar({
     // sees a flash, and a first-time visitor gets the bar on frame 1.
     // In the admin preview we skip storage entirely: the editor must always
     // see what they're editing.
-    const [dismissedFor, setDismissedFor] = useState(() => {
+    const [dismissedFor, setDismissedFor] = useState<string | null>(() => {
         if (inPreview || typeof window === 'undefined') return null;
         try {
             return window.localStorage.getItem(STORAGE_KEY);
@@ -178,7 +195,7 @@ export default function AnnouncementBar({
                             // Same rule as every other marketing link: in the
                             // admin preview a click must not navigate the
                             // iframe away from what the user is editing.
-                            onClick={(e) => { if (inPreview) e.preventDefault(); }}
+                            onClick={(e: React.MouseEvent) => { if (inPreview) e.preventDefault(); }}
                         >
                             <EditableText path={`announcement.text.${lang}.linkLabel`} placeholder="Link">
                                 {linkLabel}

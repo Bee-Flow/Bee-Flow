@@ -4,8 +4,19 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
+import type { SectionDataBase } from './sectionData.types';
 
-export default function Architecture({ data }) {
+interface ArchitectureLayer {
+    label?: string;
+    labelAlign?: string;
+    tags?: string[];
+}
+
+interface ArchitectureData extends SectionDataBase {
+    layers?: ArchitectureLayer[];
+}
+
+export default function Architecture({ data }: { data?: ArchitectureData }) {
     if (!data?.enabled) return null;
     return (
         <SectionFrame id="architecture" name="Architecture" enabled={data.enabled}>

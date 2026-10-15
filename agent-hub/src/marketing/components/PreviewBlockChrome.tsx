@@ -29,11 +29,11 @@ import React from 'react';
 
 // Explicit target origin — the admin panel is same-origin with the preview
 // iframe; mirrors the guard on the panel's message listener.
-function postToPanel(msg) {
+function postToPanel(msg: Record<string, unknown>) {
     window.parent?.postMessage(msg, window.location.origin);
 }
 
-function Svg({ children }) {
+function Svg({ children }: { children?: React.ReactNode }) {
     return (
         <svg
             width="14"
@@ -51,7 +51,9 @@ function Svg({ children }) {
     );
 }
 
-const ICONS = {
+type BlockAction = 'move-up' | 'move-down' | 'duplicate' | 'delete' | 'settings';
+
+const ICONS: Record<BlockAction, React.ReactElement> = {
     'move-up':   <Svg><path d="M8 13V3" /><path d="M4 7l4-4 4 4" /></Svg>,
     'move-down': <Svg><path d="M8 3v10" /><path d="M4 9l4 4 4-4" /></Svg>,
     duplicate:   <Svg><rect x="6" y="6" width="7" height="7" rx="1.5" /><path d="M10.5 3.5H4.75A1.25 1.25 0 0 0 3.5 4.75v5.75" /></Svg>,
@@ -59,20 +61,28 @@ const ICONS = {
     settings:    <Svg><path d="M3 5.5h10" /><path d="M3 10.5h10" /><circle cx="6" cy="5.5" r="1.6" /><circle cx="10" cy="10.5" r="1.6" /></Svg>,
 };
 
+interface PreviewBlockChromeProps {
+    blockId: string;
+    label: string;
+    locked?: boolean;
+    isFirst?: boolean;
+    isLast?: boolean;
+}
+
 /**
  * Name tag (top-left) + floating action toolbar (top-right) for one block.
  * Visibility is pure CSS (wrapper :hover / .cms-block-active) — this
  * component renders unconditionally and stays cheap.
  */
-export function PreviewBlockChrome({ blockId, label, locked, isFirst, isLast }) {
-    const button = (action, title, disabled = false) => (
+export function PreviewBlockChrome({ blockId, label, locked, isFirst, isLast }: PreviewBlockChromeProps) {
+    const button = (action: BlockAction, title: string, disabled = false) => (
         <button
             type="button"
             className={action === 'delete' ? 'cms-chrome-btn cms-chrome-btn--danger' : 'cms-chrome-btn'}
             title={locked ? 'AI is editing' : title}
             aria-label={title}
             disabled={locked || disabled}
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
                 // Keep the wrapper's click-to-select (cms-select) out of it —
                 // the panel updates the selection itself where the action
                 // implies it (duplicate/settings).
@@ -92,7 +102,7 @@ export function PreviewBlockChrome({ blockId, label, locked, isFirst, isLast }) 
                 className={`cms-chrome-toolbar${locked ? ' cms-chrome-toolbar--locked' : ''}`}
                 role="toolbar"
                 aria-label={`${label} section actions`}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
                 {button('move-up', 'Move section up', isFirst)}
                 {button('move-down', 'Move section down', isLast)}
@@ -109,7 +119,7 @@ export function PreviewBlockChrome({ blockId, label, locked, isFirst, isLast }) 
  * before-first/after-last (preview only). `index` is the splice position in
  * the FULL page blocks array — the panel opens its Add-block dialog with it.
  */
-export function InsertZone({ index, locked }) {
+export function InsertZone({ index, locked }: { index: number; locked?: boolean }) {
     return (
         <div className="cms-insert-zone" role="presentation">
             <button
@@ -118,7 +128,7 @@ export function InsertZone({ index, locked }) {
                 title={locked ? 'AI is editing' : 'Insert section here'}
                 aria-label="Insert section here"
                 disabled={locked}
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     if (locked) return;
                     postToPanel({ type: 'cms-insert-at', index });

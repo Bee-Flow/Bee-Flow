@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     Bot, FileText, FilePlus2, Sparkles, Plug, ShieldCheck,
-    Search, Mic, PenLine, ArrowRight,
+    Search, Mic, PenLine, ArrowRight, type LucideIcon,
 } from 'lucide-react';
 import beeFlowLogo from '../assets/bee-flow-logo.svg';
 import { API_BASE } from '../utils/helpers';
@@ -31,7 +31,7 @@ const BRAND = {
     gradientEnd: '#FFFFFF',
 };
 
-const CAPABILITIES = [
+const CAPABILITIES: { Icon: LucideIcon; title: string; body: string }[] = [
     {
         Icon: Bot,
         title: 'Build assistants that know your business',
@@ -64,7 +64,7 @@ const CAPABILITIES = [
     },
 ];
 
-const STEPS = [
+const STEPS: { n: number; title: string; body: string }[] = [
     {
         n: 1,
         title: 'Sign up and connect',
@@ -82,7 +82,7 @@ const STEPS = [
     },
 ];
 
-const USE_CASES = [
+const USE_CASES: { Icon: LucideIcon; eyebrow: string; body: string }[] = [
     {
         Icon: Search,
         eyebrow: 'Sales',
@@ -356,7 +356,7 @@ function ChatPreview() {
 
 // ── Styles ────────────────────────────────────────────────────────────────
 
-const pageStyle = {
+const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
     background: BRAND.bg,
     color: BRAND.text,
@@ -365,7 +365,7 @@ const pageStyle = {
     flexDirection: 'column',
 };
 
-const headerStyle = {
+const headerStyle: React.CSSProperties = {
     borderBottom: `1px solid ${BRAND.border}`,
     background: BRAND.bg,
     position: 'sticky',
@@ -373,7 +373,7 @@ const headerStyle = {
     zIndex: 10,
 };
 
-const headerInnerStyle = {
+const headerInnerStyle: React.CSSProperties = {
     maxWidth: 1160,
     margin: '0 auto',
     padding: '16px 24px',
@@ -382,27 +382,27 @@ const headerInnerStyle = {
     justifyContent: 'space-between',
 };
 
-const brandStyle = {
+const brandStyle: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     textDecoration: 'none',
     color: BRAND.text,
 };
 
-const topNavStyle = {
+const topNavStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: 24,
 };
 
-const topNavLinkStyle = {
+const topNavLinkStyle: React.CSSProperties = {
     color: BRAND.text,
     textDecoration: 'none',
     fontSize: 14,
     fontWeight: 500,
 };
 
-const ctaButtonStyle = {
+const ctaButtonStyle: React.CSSProperties = {
     background: BRAND.primary,
     color: BRAND.textOnPrimary,
     padding: '10px 18px',
@@ -412,12 +412,12 @@ const ctaButtonStyle = {
     fontSize: 14,
 };
 
-const heroSectionStyle = {
+const heroSectionStyle: React.CSSProperties = {
     background: `radial-gradient(ellipse at top, ${BRAND.gradientStart} 0%, ${BRAND.gradientEnd} 60%)`,
     padding: '80px 24px 96px',
 };
 
-const heroInnerStyle = {
+const heroInnerStyle: React.CSSProperties = {
     maxWidth: 1160,
     margin: '0 auto',
     display: 'grid',
@@ -426,13 +426,13 @@ const heroInnerStyle = {
     alignItems: 'center',
 };
 
-const heroCopyStyle = {
+const heroCopyStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     gap: 22,
 };
 
-const pillStyle = {
+const pillStyle: React.CSSProperties = {
     alignSelf: 'flex-start',
     display: 'inline-block',
     background: BRAND.tile,
@@ -444,7 +444,7 @@ const pillStyle = {
     letterSpacing: '0.01em',
 };
 
-const heroTitleStyle = {
+const heroTitleStyle: React.CSSProperties = {
     fontSize: 56,
     lineHeight: 1.06,
     fontWeight: 700,
@@ -453,7 +453,7 @@ const heroTitleStyle = {
     margin: 0,
 };
 
-const heroLeadStyle = {
+const heroLeadStyle: React.CSSProperties = {
     fontSize: 19,
     lineHeight: 1.6,
     color: BRAND.muted,
@@ -461,14 +461,14 @@ const heroLeadStyle = {
     maxWidth: 540,
 };
 
-const heroActionsStyle = {
+const heroActionsStyle: React.CSSProperties = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: 16,
     alignItems: 'center',
 };
 
-const primaryButtonStyle = {
+const primaryButtonStyle: React.CSSProperties = {
     background: BRAND.primary,
     color: BRAND.textOnPrimary,
     padding: '14px 22px',
@@ -482,7 +482,7 @@ const primaryButtonStyle = {
     boxShadow: '0 1px 0 rgba(31,41,55,0.04), 0 8px 24px rgba(245,166,35,0.25)',
 };
 
-const secondaryButtonStyle = {
+const secondaryButtonStyle: React.CSSProperties = {
     background: BRAND.bg,
     color: BRAND.text,
     padding: '14px 22px',
@@ -493,7 +493,7 @@ const secondaryButtonStyle = {
     border: `1px solid ${BRAND.border}`,
 };
 
-const textLinkStyle = {
+const textLinkStyle: React.CSSProperties = {
     color: BRAND.primary,
     textDecoration: 'none',
     fontWeight: 500,
@@ -502,12 +502,12 @@ const textLinkStyle = {
 
 // Chat preview ─────────────────────────────────────────────────────────────
 
-const chatWrapStyle = {
+const chatWrapStyle: React.CSSProperties = {
     display: 'flex',
     justifyContent: 'center',
 };
 
-const chatWindowStyle = {
+const chatWindowStyle: React.CSSProperties = {
     width: '100%',
     maxWidth: 440,
     background: BRAND.bg,
@@ -517,7 +517,7 @@ const chatWindowStyle = {
     overflow: 'hidden',
 };
 
-const chatHeaderStyle = {
+const chatHeaderStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
@@ -526,22 +526,22 @@ const chatHeaderStyle = {
     background: BRAND.soft,
 };
 
-const chatHeaderDotsStyle = { display: 'flex', gap: 6 };
+const chatHeaderDotsStyle: React.CSSProperties = { display: 'flex', gap: 6 };
 
-const chatDotStyle = {
+const chatDotStyle: React.CSSProperties = {
     width: 10,
     height: 10,
     borderRadius: 999,
     display: 'inline-block',
 };
 
-const chatHeaderLabelStyle = {
+const chatHeaderLabelStyle: React.CSSProperties = {
     fontSize: 12,
     color: BRAND.muted,
     fontWeight: 500,
 };
 
-const chatBodyStyle = {
+const chatBodyStyle: React.CSSProperties = {
     padding: 20,
     display: 'flex',
     flexDirection: 'column',
@@ -549,7 +549,7 @@ const chatBodyStyle = {
     background: BRAND.bg,
 };
 
-const chatBubbleUserStyle = {
+const chatBubbleUserStyle: React.CSSProperties = {
     alignSelf: 'flex-end',
     maxWidth: '85%',
     padding: '10px 14px',
@@ -561,7 +561,7 @@ const chatBubbleUserStyle = {
     fontWeight: 500,
 };
 
-const chatBubbleAiStyle = {
+const chatBubbleAiStyle: React.CSSProperties = {
     alignSelf: 'flex-start',
     maxWidth: '90%',
     padding: '12px 14px',
@@ -574,7 +574,7 @@ const chatBubbleAiStyle = {
     boxShadow: '0 1px 2px rgba(31,41,55,0.04)',
 };
 
-const chatCitationStyle = {
+const chatCitationStyle: React.CSSProperties = {
     marginTop: 8,
     fontSize: 12,
     color: BRAND.muted,
@@ -584,22 +584,22 @@ const chatCitationStyle = {
 
 // Generic sections ────────────────────────────────────────────────────────
 
-const sectionStyle = {
+const sectionStyle: React.CSSProperties = {
     padding: '96px 24px',
     background: BRAND.bg,
 };
 
-const sectionAltStyle = {
+const sectionAltStyle: React.CSSProperties = {
     padding: '96px 24px',
     background: BRAND.soft,
 };
 
-const sectionInnerStyle = {
+const sectionInnerStyle: React.CSSProperties = {
     maxWidth: 1160,
     margin: '0 auto',
 };
 
-const sectionHeaderStyle = {
+const sectionHeaderStyle: React.CSSProperties = {
     textAlign: 'center',
     maxWidth: 720,
     margin: '0 auto 56px',
@@ -608,7 +608,7 @@ const sectionHeaderStyle = {
     gap: 14,
 };
 
-const sectionTitleStyle = {
+const sectionTitleStyle: React.CSSProperties = {
     fontSize: 36,
     lineHeight: 1.15,
     fontWeight: 700,
@@ -617,7 +617,7 @@ const sectionTitleStyle = {
     margin: 0,
 };
 
-const sectionLeadStyle = {
+const sectionLeadStyle: React.CSSProperties = {
     fontSize: 17,
     lineHeight: 1.6,
     color: BRAND.muted,
@@ -626,13 +626,13 @@ const sectionLeadStyle = {
 
 // Capability cards ────────────────────────────────────────────────────────
 
-const capabilityGridStyle = {
+const capabilityGridStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
     gap: 20,
 };
 
-const cardStyle = {
+const cardStyle: React.CSSProperties = {
     background: BRAND.bg,
     border: `1px solid ${BRAND.border}`,
     borderRadius: 14,
@@ -642,7 +642,7 @@ const cardStyle = {
     gap: 12,
 };
 
-const iconTileStyle = {
+const iconTileStyle: React.CSSProperties = {
     width: 44,
     height: 44,
     borderRadius: 10,
@@ -654,7 +654,7 @@ const iconTileStyle = {
     marginBottom: 4,
 };
 
-const cardTitleStyle = {
+const cardTitleStyle: React.CSSProperties = {
     fontSize: 17,
     fontWeight: 700,
     color: BRAND.text,
@@ -662,7 +662,7 @@ const cardTitleStyle = {
     lineHeight: 1.35,
 };
 
-const cardBodyStyle = {
+const cardBodyStyle: React.CSSProperties = {
     fontSize: 15,
     lineHeight: 1.6,
     color: BRAND.muted,
@@ -671,7 +671,7 @@ const cardBodyStyle = {
 
 // Steps ───────────────────────────────────────────────────────────────────
 
-const stepsStyle = {
+const stepsStyle: React.CSSProperties = {
     listStyle: 'none',
     padding: 0,
     margin: 0,
@@ -681,7 +681,7 @@ const stepsStyle = {
     counterReset: 'bf-step',
 };
 
-const stepStyle = {
+const stepStyle: React.CSSProperties = {
     background: BRAND.bg,
     border: `1px solid ${BRAND.border}`,
     borderRadius: 14,
@@ -691,7 +691,7 @@ const stepStyle = {
     gap: 12,
 };
 
-const stepNumberStyle = {
+const stepNumberStyle: React.CSSProperties = {
     width: 36,
     height: 36,
     borderRadius: 999,
@@ -705,14 +705,14 @@ const stepNumberStyle = {
     boxShadow: '0 4px 12px rgba(245,166,35,0.3)',
 };
 
-const stepTitleStyle = {
+const stepTitleStyle: React.CSSProperties = {
     fontSize: 18,
     fontWeight: 700,
     margin: 0,
     color: BRAND.text,
 };
 
-const stepBodyStyle = {
+const stepBodyStyle: React.CSSProperties = {
     fontSize: 15,
     lineHeight: 1.6,
     color: BRAND.muted,
@@ -721,13 +721,13 @@ const stepBodyStyle = {
 
 // Use cases ───────────────────────────────────────────────────────────────
 
-const useCaseGridStyle = {
+const useCaseGridStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
     gap: 20,
 };
 
-const useCaseCardStyle = {
+const useCaseCardStyle: React.CSSProperties = {
     background: BRAND.soft,
     border: `1px solid ${BRAND.border}`,
     borderRadius: 14,
@@ -737,13 +737,13 @@ const useCaseCardStyle = {
     gap: 16,
 };
 
-const useCaseHeaderStyle = {
+const useCaseHeaderStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
 };
 
-const useCaseIconStyle = {
+const useCaseIconStyle: React.CSSProperties = {
     width: 36,
     height: 36,
     borderRadius: 8,
@@ -755,7 +755,7 @@ const useCaseIconStyle = {
     border: `1px solid ${BRAND.border}`,
 };
 
-const useCaseEyebrowStyle = {
+const useCaseEyebrowStyle: React.CSSProperties = {
     fontSize: 12,
     fontWeight: 700,
     letterSpacing: '0.06em',
@@ -763,7 +763,7 @@ const useCaseEyebrowStyle = {
     color: BRAND.tileText,
 };
 
-const useCaseBodyStyle = {
+const useCaseBodyStyle: React.CSSProperties = {
     fontSize: 15,
     lineHeight: 1.6,
     color: BRAND.text,
@@ -772,14 +772,14 @@ const useCaseBodyStyle = {
 
 // Trust block ─────────────────────────────────────────────────────────────
 
-const trustSectionStyle = {
+const trustSectionStyle: React.CSSProperties = {
     padding: '80px 24px',
     background: BRAND.soft,
     borderTop: `1px solid ${BRAND.border}`,
     borderBottom: `1px solid ${BRAND.border}`,
 };
 
-const trustInnerStyle = {
+const trustInnerStyle: React.CSSProperties = {
     maxWidth: 760,
     margin: '0 auto',
     textAlign: 'center',
@@ -789,14 +789,14 @@ const trustInnerStyle = {
     alignItems: 'center',
 };
 
-const trustBodyStyle = {
+const trustBodyStyle: React.CSSProperties = {
     fontSize: 16,
     lineHeight: 1.7,
     color: BRAND.text,
     margin: 0,
 };
 
-const trustActionsStyle = {
+const trustActionsStyle: React.CSSProperties = {
     display: 'flex',
     gap: 12,
     flexWrap: 'wrap',
@@ -804,7 +804,7 @@ const trustActionsStyle = {
     marginTop: 4,
 };
 
-const trustButtonStyle = {
+const trustButtonStyle: React.CSSProperties = {
     background: BRAND.bg,
     color: BRAND.text,
     padding: '10px 18px',
@@ -817,12 +817,12 @@ const trustButtonStyle = {
 
 // Final CTA ───────────────────────────────────────────────────────────────
 
-const finalCtaSectionStyle = {
+const finalCtaSectionStyle: React.CSSProperties = {
     padding: '96px 24px',
     background: BRAND.bg,
 };
 
-const finalCtaInnerStyle = {
+const finalCtaInnerStyle: React.CSSProperties = {
     maxWidth: 720,
     margin: '0 auto',
     textAlign: 'center',
@@ -832,7 +832,7 @@ const finalCtaInnerStyle = {
     alignItems: 'center',
 };
 
-const finalCtaTitleStyle = {
+const finalCtaTitleStyle: React.CSSProperties = {
     fontSize: 36,
     lineHeight: 1.15,
     fontWeight: 700,
@@ -841,7 +841,7 @@ const finalCtaTitleStyle = {
     margin: 0,
 };
 
-const finalCtaLeadStyle = {
+const finalCtaLeadStyle: React.CSSProperties = {
     fontSize: 17,
     lineHeight: 1.6,
     color: BRAND.muted,
@@ -850,13 +850,13 @@ const finalCtaLeadStyle = {
 
 // Footer ──────────────────────────────────────────────────────────────────
 
-const footerStyle = {
+const footerStyle: React.CSSProperties = {
     borderTop: `1px solid ${BRAND.border}`,
     background: BRAND.soft,
     padding: '24px',
 };
 
-const footerInnerStyle = {
+const footerInnerStyle: React.CSSProperties = {
     maxWidth: 1160,
     margin: '0 auto',
     display: 'flex',
@@ -867,12 +867,12 @@ const footerInnerStyle = {
     gap: 12,
 };
 
-const footerNavStyle = {
+const footerNavStyle: React.CSSProperties = {
     display: 'flex',
     gap: 20,
 };
 
-const footerLinkStyle = {
+const footerLinkStyle: React.CSSProperties = {
     color: BRAND.text,
     textDecoration: 'none',
     fontWeight: 500,
