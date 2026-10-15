@@ -33,10 +33,11 @@ import {
     MapPin, Map, Home, Truck, Coffee, Printer, Calculator, Activity,
     Smile,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // [name, component] pairs — order here = order in the picker grid.
-const ICON_DEFS = [
+const ICON_DEFS: Array<[string, LucideIcon]> = [
     ['Mail', Mail], ['MessageSquare', MessageSquare], ['MessagesSquare', MessagesSquare], ['Send', Send], ['Bell', Bell], ['Phone', Phone], ['AtSign', AtSign],
     ['FileText', FileText], ['File', File], ['Files', Files], ['Folder', Folder], ['FolderOpen', FolderOpen], ['Paperclip', Paperclip], ['Clipboard', Clipboard], ['ClipboardList', ClipboardList],
     ['Book', Book], ['BookOpen', BookOpen], ['Newspaper', Newspaper], ['Image', Image], ['Mic', Mic], ['Video', Video], ['Camera', Camera],
@@ -57,17 +58,34 @@ const ICON_DEFS = [
 export const STEP_ICON_MAP = Object.fromEntries(ICON_DEFS);
 export const STEP_ICON_NAMES = ICON_DEFS.map(([name]) => name);
 
+interface StepIconProps {
+    name?: string | null;
+    size?: number;
+    className?: string;
+    fallback?: React.ReactNode;
+}
+
 /** Render a Lucide icon by its name. Returns `fallback` for empty/unknown. */
-/** @param {{ name?: string|null, size?: number, className?: string, fallback?: import('react').ReactNode }} props */
-export function StepIcon({ name, size = 16, className = '', fallback = null }) {
+export function StepIcon({ name, size = 16, className = '', fallback = null }: StepIconProps) {
     const Cmp = name ? STEP_ICON_MAP[name] : null;
     if (!Cmp) return fallback;
     return <Cmp size={size} className={className} />;
 }
 
 /** True when `name` resolves to a known icon. */
-export function isStepIcon(name) {
+export function isStepIcon(name?: string | null): boolean {
     return !!(name && STEP_ICON_MAP[name]);
+}
+
+interface IconPickerProps {
+    value?: string;
+    onChange?: (name: string) => void;
+    size?: number;
+    title?: string;
+    /** Node shown on the trigger when no icon is set. */
+    placeholder?: React.ReactNode;
+    buttonClassName?: string;
+    align?: 'left' | 'right';
 }
 
 /**
@@ -81,14 +99,14 @@ export function IconPicker({
     onChange,
     size = 16,
     title = 'Choose a symbol',
-    placeholder = null,        // node shown on the trigger when no icon is set
+    placeholder = null,
     buttonClassName = '',
-    align = 'left',            // 'left' | 'right'
-}) {
+    align = 'left',
+}: IconPickerProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
     const close = useCallback(() => setOpen(false), []);
 
     const results = useMemo(() => {
@@ -97,7 +115,7 @@ export function IconPicker({
         return STEP_ICON_NAMES.filter((n) => n.toLowerCase().includes(q));
     }, [query]);
 
-    const pick = (name) => { onChange?.(name); setOpen(false); setQuery(''); };
+    const pick = (name: string) => { onChange?.(name); setOpen(false); setQuery(''); };
 
     return (
         <div className="relative inline-flex" ref={ref}>
@@ -123,7 +141,7 @@ export function IconPicker({
                         autoFocus
                         type="text"
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                         placeholder={t('automations.step_icons.search_symbols', 'Search symbols…')}
                         className={inputClass()}
                     />

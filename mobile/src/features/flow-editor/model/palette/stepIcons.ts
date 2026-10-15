@@ -1,6 +1,6 @@
 /**
  * The symbols a reusable Step (or a step's own `icon`) may carry — the names
- * of the web builder's flow/stepIcons.jsx ICON_DEFS, in picker order. A name
+ * of the web builder's flow/stepIcons.tsx ICON_DEFS, in picker order. A name
  * outside this list draws the generic Box. palette.lockstep.test.ts reads the
  * web file and compares the list.
  */
