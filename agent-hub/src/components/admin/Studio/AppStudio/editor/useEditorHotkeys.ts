@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { getClipboard, hasClipboard, pasteNodes, serializeNodes, setClipboard } from '../state/clipboard';
+import type { PasteTarget } from '../state/clipboard';
 import { useAppEditor } from '../state/AppEditorContext';
 import type { AppEditorValue } from '../state/appEditorState';
 import { duplicateNode, findNode, moveNode, removeNode } from '../state/definitionOps';
@@ -17,13 +18,6 @@ interface HotkeyHandlers {
 
 /** What the key handler reads: the handlers plus the editor state, refreshed every render. */
 type HotkeyContext = HotkeyHandlers & Pick<AppEditorValue, 'definition' | 'selectedNodeId' | 'selectedNodeIds' | 'screenId' | 'mode' | 'streamLock' | 'dispatch'>;
-
-/** Where a paste lands: the active screen, or right after the anchor in its section. */
-interface PasteTarget {
-    screenId?: string | null;
-    sectionId?: string;
-    index?: number;
-}
 
 /**
  * App Studio editor — window-level keyboard shortcuts.

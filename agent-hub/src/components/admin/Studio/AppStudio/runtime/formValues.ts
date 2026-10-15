@@ -32,6 +32,7 @@ function shallowEqual(a: FormValues | null | undefined, b: FormValues | null | u
  * Fold one form's values into the `forms` root.
  * Returns `prev` UNCHANGED when nothing actually moved, so React bails out.
  */
+export function mergeFormValues(prev: Record<string, FormValues>, formName: string | null | undefined, values: FormValues | null | undefined): Record<string, FormValues>;
 export function mergeFormValues(prev: Record<string, FormValues> | null | undefined, formName: string | null | undefined, values: FormValues | null | undefined) {
     if (!formName) return prev;
     const base = prev || {};
