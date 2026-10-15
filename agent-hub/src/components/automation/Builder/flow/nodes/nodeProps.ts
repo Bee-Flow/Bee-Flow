@@ -7,6 +7,7 @@
  * the rest of a step through untouched — the server owns the full schema.
  */
 import type { FlowStep } from '../types';
+import type { BindingInput } from '../../../../../utils/bindingHelpers.types';
 import type { SidecarEntry } from '../diagramPaneTypes';
 
 /** The translator every card reads from `useTranslation()`. */
@@ -136,8 +137,8 @@ export interface NodeStep extends FlowStep {
     expr?: string;
     tool?: string;
     sideEffect?: boolean;
-    method?: unknown;
-    url?: unknown;
+    method?: BindingInput;
+    url?: BindingInput;
     blockPrivateTargets?: boolean;
     channels?: string[];
     body?: unknown;

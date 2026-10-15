@@ -6,14 +6,13 @@ import { spliceStepIntoEdge } from './branchEdges';
 import { fromDisplayPosition, sameInlineScope } from './inlineFlowlets';
 import { seedPositions } from './layout';
 import { findNodeDropTarget, sameNodeDropTarget } from './nodeDropTarget';
+import type { NodeDropTarget } from './nodeDropTarget';
 import { isRouteStep, routePorts } from './routeModel';
 import { applyAutoMapToStep } from '../mapping/autoMapInputs';
 import type { DiagramDefinition, DiagramStep, Rf, Sidecar } from './diagramPaneTypes';
 
 /** What a dragged loose node would attach to (flow/nodeDropTarget.js). */
-export type NodeDropHit =
-    | { kind: 'edge'; edgeId: string; sourceId: string; targetId: string; label?: string | null; caseName?: string | null }
-    | { kind: 'node'; nodeId: string; from: string; to: string };
+export type NodeDropHit = NodeDropTarget;
 
 /** The latest values the delayed commit reads (kept in a ref by the pane). */
 export interface NodeOps {

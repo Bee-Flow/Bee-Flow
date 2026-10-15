@@ -40,7 +40,7 @@ export function pickSourcesSync(): PickSource[] {
 }
 
 /** One source by the id a field declares, or null. */
-export function pickSourceById(id: string): PickSource | null {
+export function pickSourceById(id?: string | null): PickSource | null {
     return pickSourcesSync().find((s: PickSource) => s.id === id) || null;
 }
 
