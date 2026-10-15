@@ -19,7 +19,7 @@ import type { Catalog, FlowDefinition, VariableGroup } from './types';
 import * as loops from './upstream/loops';
 
 const web = {
-    am: requireWeb(`${BUILDER}/mapping/autoMapInputs.js`),
+    am: requireWeb(`${BUILDER}/mapping/autoMapInputs.ts`),
     loops: requireWeb(`${BUILDER}/mapping/upstream/loops.js`),
 };
 

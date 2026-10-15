@@ -1,6 +1,8 @@
 import { Workflow, Zap, Repeat } from 'lucide-react';
 import React from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { fieldTailLabel, parseRefTokens, resolveChipLabel } from './refTokens';
+import type { LabelLookup, RefTextToken } from './refTokens';
 
 /**
  * Read-only render of a bound-field value with step/trigger/loop references
@@ -14,13 +16,20 @@ import { fieldTailLabel, parseRefTokens, resolveChipLabel } from './refTokens';
  * Colours use only project tokens (--accent / --bg-* / --text-* /
  * --border-default) — never purple/violet/indigo (project rule).
  */
-const SOURCE_ICON = { steps: Workflow, trigger: Zap, loop: Repeat };
+const SOURCE_ICON: Record<string, LucideIcon> = { steps: Workflow, trigger: Zap, loop: Repeat };
 
-export default function RefChips({ text, mode = 'expression', stepLabelById = null, className = '' }) {
+interface RefChipsProps {
+    text?: unknown;
+    mode?: string;
+    stepLabelById?: LabelLookup | null;
+    className?: string;
+}
+
+export default function RefChips({ text, mode = 'expression', stepLabelById = null, className = '' }: RefChipsProps) {
     const tokens = parseRefTokens(text, { mode });
     return (
         <div className={`whitespace-pre-wrap break-words leading-[1.5] ${className}`} aria-hidden="true">
-            {tokens.map((t, i) => {
+            {tokens.map((t: RefTextToken, i: number) => {
                 if (t.type === 'literal') {
                     return <span key={i} className="text-[var(--text-primary)]">{t.text}</span>;
                 }

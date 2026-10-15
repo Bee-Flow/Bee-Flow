@@ -19,14 +19,47 @@
  * 256 KB — the server's truncation cap); everything holds references.
  */
 
+
+import type { RunStepRow } from '../flow/types';
+
+/** A node of the graph, as far as the output map reads it. */
+interface OutputNode {
+    id?: string;
+    pinnedOutput?: unknown;
+}
+
+/** The graph's nodes: a trigger, secondary triggers and steps. */
+export interface RealOutputDefinition {
+    trigger?: OutputNode | null;
+    triggers?: OutputNode[];
+    steps?: OutputNode[];
+}
+
+type Rec = Record<string, unknown>;
+
+/** The upstream group fields buildSampleRoot reads. */
+export interface SampleRootGroup {
+    id?: string;
+    kind?: string;
+    basePath?: string;
+    sample?: unknown;
+    hasRealData?: boolean;
+}
+
+/** The root a preview resolves paths against. */
+export interface SampleRoot {
+    trigger: { output: unknown };
+    steps: Record<string, { output: unknown }>;
+    loop: Record<string, unknown>;
+}
 /**
  * The server replaces any step payload over its 256 KB cap with a sentinel
  * `{ __truncated__: true, originalBytes, headSample }` (see
  * server/automation/payloadTruncation.js). A sentinel is not data — it must
  * never become a sample, an auto-map source, or a pin.
  */
-export function isTruncatedOutput(v) {
-    return !!v && typeof v === 'object' && v.__truncated__ === true;
+export function isTruncatedOutput(v: unknown): boolean {
+    return !!v && typeof v === 'object' && (v as Rec).__truncated__ === true;
 }
 
 /**
@@ -39,11 +72,11 @@ export function isTruncatedOutput(v) {
  * (Moved verbatim from NodeDetailView so the whole builder shares one
  * definition of "real wins".)
  */
-export function deepOverlay(base, real) {
+export function deepOverlay(base: unknown, real: unknown): unknown {
     if (real === null || typeof real !== 'object' || Array.isArray(real)) return real;
     if (base === null || typeof base !== 'object' || Array.isArray(base)) return real;
-    const out = { ...base };
-    for (const k of Object.keys(real)) out[k] = (k in base) ? deepOverlay(base[k], real[k]) : real[k];
+    const out: Rec = { ...base };
+    for (const k of Object.keys(real)) out[k] = (k in base) ? deepOverlay((base as Rec)[k], (real as Rec)[k]) : (real as Rec)[k];
     return out;
 }
 
@@ -54,10 +87,10 @@ export function deepOverlay(base, real) {
  * server/automation/payloadTruncation.js), which keeps the deep fields of a
  * big output pickable. Undefined when there is nothing usable.
  */
-function usableOutput(v) {
+function usableOutput(v: unknown): unknown {
     if (v == null) return undefined;
     if (!isTruncatedOutput(v)) return v;
-    return v.preview != null ? v.preview : undefined;
+    return (v as Rec).preview != null ? (v as Rec).preview : undefined;
 }
 
 /**
@@ -73,25 +106,25 @@ function usableOutput(v) {
  *   - Pinned output (stored on the step in the definition) OVERRIDES a run
  *     row — a pin is the user saying "this is the data I'm building against".
  */
-export function buildRealOutputMap(definition, runSteps) {
-    const map = new Map();
+export function buildRealOutputMap(definition: RealOutputDefinition | null | undefined, runSteps: RunStepRow[] | null | undefined): Map<string, unknown> {
+    const map = new Map<string, unknown>();
     if (!definition) return map;
 
-    const nodes = [];
+    const nodes: OutputNode[] = [];
     if (definition.trigger?.id) nodes.push(definition.trigger);
     for (const t of (definition.triggers || [])) if (t?.id) nodes.push(t);
     for (const s of (definition.steps || [])) if (s?.id) nodes.push(s);
     const knownIds = new Set(nodes.map(n => n.id));
 
     for (const r of (runSteps || [])) {
-        if (!r || r.parentStepId || !knownIds.has(r.stepId)) continue;
+        if (!r || r.parentStepId || !knownIds.has(r.stepId as string)) continue;
         const out = usableOutput(r.output);
-        if (out !== undefined && !map.has(r.stepId)) map.set(r.stepId, out);
+        if (out !== undefined && !map.has(r.stepId as string)) map.set(r.stepId as string, out);
     }
 
     for (const node of nodes) {
         const out = usableOutput(node.pinnedOutput);
-        if (out !== undefined) map.set(node.id, out);
+        if (out !== undefined) map.set(node.id as string, out);
     }
 
     return map;
@@ -111,8 +144,8 @@ export function buildRealOutputMap(definition, runSteps) {
  *     overlay now happens upstream (inferLoopItemSample resolves against the
  *     real sample root), so whatever the group holds IS the truth.
  */
-export function buildSampleRoot(groups) {
-    const root = { trigger: { output: {} }, steps: {}, loop: {} };
+export function buildSampleRoot(groups: SampleRootGroup[] | null | undefined): SampleRoot {
+    const root: SampleRoot = { trigger: { output: {} }, steps: {}, loop: {} };
     let triggerLocked = false;
     for (const g of (groups || [])) {
         if (g.kind === 'trigger') {
@@ -132,7 +165,7 @@ export function buildSampleRoot(groups) {
             const tail = String(g.basePath).split('.').slice(1).join('.');
             if (tail) root.loop[tail] = g.sample || {};
         } else {
-            root.steps[g.id] = { output: g.sample || {} };
+            root.steps[g.id as string] = { output: g.sample || {} };
         }
     }
     return root;

@@ -19,7 +19,9 @@ import * as vp from './valueParts';
 import { pathLabelParts } from './walkPath';
 
 const web = requireWeb('utils/bindingHelpers.js');
-const m = (name: string) => requireWeb(`${BUILDER}/mapping/${name}.js`);
+// Modules converted to TypeScript load from their .ts file; the rest are still .js.
+const TS_MODULES = new Set(['bindingPreview', 'boundPaths', 'fieldKinds', 'filterFields', 'keyPath', 'listShape', 'mismatch', 'partitionInputs', 'realOutputs', 'refTokens']);
+const m = (name: string) => requireWeb(`${BUILDER}/mapping/${name}.${TS_MODULES.has(name) ? 'ts' : 'js'}`);
 const webPick = requireWeb(`${BUILDER}/mapping/proposePick.ts`);
 
 const lvl3 = '```json\n' + JSON.stringify({ verdict: { score: 0.93, 'reason code': 'R-7' } }) + '\n```';

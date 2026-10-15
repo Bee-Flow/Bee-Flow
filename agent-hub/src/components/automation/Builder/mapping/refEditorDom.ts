@@ -1,6 +1,7 @@
-import { fieldTailLabel, parseRefTokens, resolveChipLabel } from './refTokens';
+import { fieldTailLabel, parseRefTokens, resolveChipLabel, type RefToken } from './refTokens';
 import { stepFamily } from '../flow/nodeDefs';
 import { typeColorVar } from '../flow/nodeTypeColors';
+import type { TypeLookup, PillOptions, FragmentOptions, InsertOptions } from './refEditorDom.types';
 
 /**
  * The DOM half of the reference editor: turn a stored field value into editable
@@ -55,7 +56,7 @@ const PILL_OK = PILL_TINT_CLASS;
 const PILL_MISSING = 'border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]';
 
 /** The family colour for the step a token points at; ink-grey when unknown. */
-export function pillTint(token, stepTypeById = null) {
+export function pillTint(token: Pick<RefToken, 'source' | 'stepId'> | null | undefined, stepTypeById: TypeLookup | null = null): string {
     const family = token?.source === 'trigger' ? 'trigger'
         : token?.source === 'loop' ? 'loop'
         : stepFamily(stepTypeById?.get?.(token?.stepId));
@@ -69,7 +70,7 @@ export function pillTint(token, stepTypeById = null) {
  * included), which is what makes the round-trip byte-faithful — the pill is a
  * different presentation of that text, never a re-rendering of it.
  */
-export function buildPill(token, { stepLabelById = null, stepTypeById = null, doc = document } = {}) {
+export function buildPill(token: RefToken, { stepLabelById = null, stepTypeById = null, doc = document }: PillOptions = {}): HTMLSpanElement {
     const { name, suffix, missing } = resolveChipLabel(token, stepLabelById);
     const el = doc.createElement('span');
     el.setAttribute(PILL_ATTR, '');
@@ -103,7 +104,7 @@ export function buildPill(token, { stepLabelById = null, stepTypeById = null, do
  * A value → the editor's child nodes. Literal runs become text nodes with `<br>`
  * for newlines; every recognised reference becomes a pill.
  */
-export function buildFragment(value, { mode = 'fixed', stepLabelById = null, stepTypeById = null, doc = document } = {}) {
+export function buildFragment(value: unknown, { mode = 'fixed', stepLabelById = null, stepTypeById = null, doc = document }: FragmentOptions = {}): DocumentFragment {
     const frag = doc.createDocumentFragment();
     for (const token of parseRefTokens(value, { mode })) {
         if (token.type === 'ref') {
@@ -116,9 +117,9 @@ export function buildFragment(value, { mode = 'fixed', stepLabelById = null, ste
 }
 
 /** Text with newlines → text nodes separated by <br>. */
-export function appendText(parent, text, doc = document) {
+export function appendText(parent: Node, text: unknown, doc: Document = document): void {
     const parts = String(text ?? '').split('\n');
-    parts.forEach((part, i) => {
+    parts.forEach((part: string, i: number) => {
         if (i > 0) parent.appendChild(doc.createElement('br'));
         if (part) parent.appendChild(doc.createTextNode(part));
     });
@@ -132,13 +133,13 @@ export function appendText(parent, text, doc = document) {
  * change the author's text. Anything unrecognised is walked through, so an
  * unexpected wrapper costs its structure, never its content.
  */
-export function serializeHost(host) {
+export function serializeHost(host: Element | null | undefined): string {
     if (!host) return '';
     let out = '';
 
-    const walk = (node, topLevel) => {
+    const walk = (node: Element, topLevel: boolean): void => {
         for (let i = 0; i < node.childNodes.length; i += 1) {
-            const child = node.childNodes[i];
+            const child = node.childNodes[i] as HTMLElement;
             if (child.nodeType === 3) { out += child.nodeValue; continue; }
             if (child.nodeType !== 1) continue;
             if (child.hasAttribute?.(PILL_ATTR)) { out += child.dataset.raw ?? ''; continue; }
@@ -165,7 +166,7 @@ const BLOCK_TAGS = new Set(['DIV', 'P', 'LI', 'SECTION', 'ARTICLE', 'H1', 'H2', 
  * on blur — which is what turns a `{{…}}` someone typed or pasted by hand into
  * a pill.
  */
-export function renderInto(host, value, { mode, stepLabelById, stepTypeById = null, doc = document } = {}) {
+export function renderInto(host: HTMLElement | null | undefined, value: unknown, { mode, stepLabelById, stepTypeById = null, doc = document }: FragmentOptions = {}): void {
     if (!host) return;
     host.textContent = '';
     host.appendChild(buildFragment(value, { mode, stepLabelById, stepTypeById, doc }));
@@ -181,9 +182,9 @@ export function renderInto(host, value, { mode, stepLabelById, stepTypeById = nu
  * reference — which is most of the time, since the reference usually comes
  * last). Both get an invisible node that serialization skips.
  */
-export function ensureTrailingFiller(host, doc = document) {
+export function ensureTrailingFiller(host: Node | null | undefined, doc: Document = document): void {
     if (!host) return;
-    const last = host.lastChild;
+    const last = host.lastChild as Element | null;
     if (last && last.nodeType === 1 && last.tagName === 'BR' && !last.hasAttribute(FILLER_ATTR)) {
         const filler = doc.createElement('br');
         filler.setAttribute(FILLER_ATTR, '');
@@ -196,7 +197,7 @@ export function ensureTrailingFiller(host, doc = document) {
 }
 
 /** Put the caret at the very end of the host. */
-export function caretToEnd(host, win = window) {
+export function caretToEnd(host: Node | null | undefined, win: Window = window): void {
     const sel = win.getSelection?.();
     if (!sel || !host) return;
     const range = (win.document || document).createRange();
@@ -206,13 +207,12 @@ export function caretToEnd(host, win = window) {
     sel.addRange(range);
 }
 
-/** A pill reads as a word for spacing purposes. */
 const WORD = /[\p{L}\p{N}]/u;
 const SPACE_BEFORE = /[\p{L}\p{N},;:!?]/u;
 const PILL_CHAR = 'x';
 
 /** The character a node shows at its start (dir 1) or end (dir -1); a pill counts as a word character. */
-function edgeChar(node, dir) {
+function edgeChar(node: Element, dir: number): string | null {
     if (node.nodeType === 3) {
         const t = node.nodeValue || '';
         return t ? (dir < 0 ? t[t.length - 1] : t[0]) : null;
@@ -223,18 +223,18 @@ function edgeChar(node, dir) {
     if (node.nodeName === 'BR') return '\n';
     const kids = node.childNodes;
     for (let i = dir < 0 ? kids.length - 1 : 0; i >= 0 && i < kids.length; i += dir < 0 ? -1 : 1) {
-        const ch = edgeChar(kids[i], dir);
+        const ch = edgeChar(kids[i] as Element, dir);
         if (ch) return ch;
     }
     return null;
 }
 
 /** The visible character right before (dir -1) or after (dir 1) a collapsed range, or null at the edge of the host. */
-function neighbourChar(range, host, dir) {
+function neighbourChar(range: Range, host: Node, dir: number): string | null {
     const c = dir < 0 ? range.startContainer : range.endContainer;
     const o = dir < 0 ? range.startOffset : range.endOffset;
-    let node;
-    let parent;
+    let node: ChildNode | null;
+    let parent: Node | null;
     if (c.nodeType === 3) {
         const t = c.nodeValue || '';
         const part = dir < 0 ? t.slice(0, o) : t.slice(o);
@@ -247,13 +247,13 @@ function neighbourChar(range, host, dir) {
     }
     for (;;) {
         while (node) {
-            const ch = edgeChar(node, dir);
+            const ch = edgeChar(node as Element, dir);
             if (ch) return ch;
             node = dir < 0 ? node.previousSibling : node.nextSibling;
         }
         if (!parent || parent === host) return null;
-        node = dir < 0 ? parent.previousSibling : parent.nextSibling;
-        parent = parent.parentNode;
+        node = dir < 0 ? (parent as ChildNode).previousSibling : (parent as ChildNode).nextSibling;
+        parent = (parent as ChildNode).parentNode;
     }
 }
 
@@ -268,7 +268,7 @@ function neighbourChar(range, host, dir) {
  * ("/{{id}}", "({{x}})", "{{x}}."), and a data slot (a URL, a JSON body)
  * passes `spaced: false`.
  */
-export function insertAtCaret(host, nodes, opts = {}) {
+export function insertAtCaret(host: Element | null | undefined, nodes: Node[], opts: InsertOptions = {}): void {
     if (!host || !nodes.length) return;
     const { win = window, doc = document } = opts;
     const sel = win.getSelection?.();
@@ -302,16 +302,16 @@ export function insertAtCaret(host, nodes, opts = {}) {
 
     const frag = doc.createDocumentFragment();
     for (const n of nodes) frag.appendChild(n);
-    const lastInserted = frag.lastChild;
+    const lastInserted = frag.lastChild as ChildNode;
     range.insertNode(frag);
 
     const after = doc.createTextNode(padAfter ? ' ' : '');
-    lastInserted.parentNode.insertBefore(after, lastInserted.nextSibling);
+    (lastInserted.parentNode as ParentNode).insertBefore(after, lastInserted.nextSibling);
     ensureTrailingFiller(host, doc);
 
     if (sel) {
         const caret = doc.createRange();
-        caret.setStart(after, after.nodeValue.length);
+        caret.setStart(after, (after.nodeValue as string).length);
         caret.collapse(true);
         sel.removeAllRanges();
         sel.addRange(caret);
@@ -327,13 +327,13 @@ export function insertAtCaret(host, nodes, opts = {}) {
  * a raw path nobody can see. Handling Backspace ourselves makes it the same
  * everywhere: one press, the whole reference.
  */
-export function pillBeforeCaret(host, win = window) {
+export function pillBeforeCaret(host: Element | null | undefined, win: Window = window): HTMLElement | null {
     const sel = win.getSelection?.();
     if (!sel || !sel.isCollapsed || !sel.rangeCount || !host) return null;
-    const { anchorNode, anchorOffset } = sel;
+    const { anchorNode, anchorOffset } = sel as { anchorNode: Node; anchorOffset: number };
     if (!host.contains(anchorNode)) return null;
 
-    let prev = null;
+    let prev: ChildNode | null = null;
     if (anchorNode.nodeType === 3) {
         if (anchorOffset !== 0) return null;
         prev = anchorNode.previousSibling;
@@ -342,7 +342,7 @@ export function pillBeforeCaret(host, win = window) {
     }
     // Empty text nodes are our own caret parking spots — step over them.
     while (prev && prev.nodeType === 3 && prev.nodeValue === '') prev = prev.previousSibling;
-    return (prev && prev.nodeType === 1 && prev.hasAttribute?.(PILL_ATTR)) ? prev : null;
+    return (prev && prev.nodeType === 1 && (prev as Element).hasAttribute?.(PILL_ATTR)) ? (prev as HTMLElement) : null;
 }
 
 /**
@@ -351,10 +351,10 @@ export function pillBeforeCaret(host, win = window) {
  * pills contribute nothing, since a completed reference is never a prefix of
  * the next one.
  */
-export function textBeforeCaret(host, win = window) {
+export function textBeforeCaret(host: Element | null | undefined, win: Window = window): string {
     const sel = win.getSelection?.();
     if (!sel || !sel.isCollapsed || !sel.rangeCount || !host) return '';
-    const { anchorNode, anchorOffset } = sel;
+    const { anchorNode, anchorOffset } = sel as { anchorNode: Node; anchorOffset: number };
     if (!host.contains(anchorNode) && anchorNode !== host) return '';
     if (anchorNode.nodeType === 3) return String(anchorNode.nodeValue || '').slice(0, anchorOffset);
     return '';
@@ -365,7 +365,7 @@ export function textBeforeCaret(host, win = window) {
  * partial the author typed (`{{ste`) when they accept a suggestion, so the
  * pill replaces it rather than landing after it.
  */
-export function deleteBeforeCaret(host, length, { win = window, range: saved = null } = {}) {
+export function deleteBeforeCaret(host: Element | null | undefined, length: number, { win = window, range: saved = null }: { win?: Window; range?: Range | null } = {}): void {
     if (length <= 0) return;
     const sel = win.getSelection?.();
     const ambient = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
@@ -380,10 +380,10 @@ export function deleteBeforeCaret(host, length, { win = window, range: saved = n
         const before = node.childNodes[offset - 1];
         if (!before || before.nodeType !== 3) return;
         node = before;
-        offset = node.nodeValue.length;
+        offset = (node.nodeValue as string).length;
     }
     const start = Math.max(0, offset - length);
-    node.nodeValue = node.nodeValue.slice(0, start) + node.nodeValue.slice(offset);
+    node.nodeValue = (node.nodeValue as string).slice(0, start) + (node.nodeValue as string).slice(offset);
     const caret = (win.document || document).createRange();
     caret.setStart(node, start);
     caret.collapse(true);
@@ -397,7 +397,7 @@ export function deleteBeforeCaret(host, length, { win = window, range: saved = n
  * to say (jsdom). A point on a pill lands right after that pill: a pill is
  * atomic, nothing goes inside it.
  */
-export function rangeFromPoint(host, x, y, { doc = document } = {}) {
+export function rangeFromPoint(host: Element | null | undefined, x: number, y: number, { doc = document }: { doc?: Document } = {}): Range | null {
     if (!host || typeof x !== 'number' || typeof y !== 'number') return null;
     let range = null;
     if (typeof doc.caretRangeFromPoint === 'function') {
@@ -412,7 +412,7 @@ export function rangeFromPoint(host, x, y, { doc = document } = {}) {
     }
     if (!range || !host.contains(range.startContainer)) return null;
     const node = range.startContainer;
-    const el = node.nodeType === 1 ? node : node.parentElement;
+    const el = node.nodeType === 1 ? (node as Element) : node.parentElement;
     const pill = el?.closest?.(PILL_SELECTOR);
     if (pill && host.contains(pill)) {
         range = doc.createRange();
@@ -423,14 +423,14 @@ export function rangeFromPoint(host, x, y, { doc = document } = {}) {
 }
 
 /** Swap one pill for `nodes` (another reference), caret after it. */
-export function replacePill(host, pill, nodes, { win = window, doc = document } = {}) {
+export function replacePill(host: Element | null | undefined, pill: HTMLElement | null | undefined, nodes: Node[], { win = window, doc = document }: { win?: Window; doc?: Document } = {}): void {
     if (!host || !pill || !nodes.length) return;
-    let target = pill;
+    let target: HTMLElement | null = pill;
     if (!host.contains(target)) {
         // The host was re-rendered in between (a label changed, a blur turned
         // typed text into pills): the same reference, by its raw text.
         const raw = pill.dataset?.raw;
-        target = raw == null ? null : Array.from(host.querySelectorAll(PILL_SELECTOR)).find(el => el.dataset.raw === raw) || null;
+        target = raw == null ? null : (Array.from(host.querySelectorAll(PILL_SELECTOR)) as HTMLElement[]).find((el: HTMLElement) => el.dataset.raw === raw) || null;
         if (!target) return;
     }
     const range = doc.createRange();
@@ -439,6 +439,6 @@ export function replacePill(host, pill, nodes, { win = window, doc = document } 
 }
 
 /** The path a pill stands for — its raw text without the braces. */
-export function pathOfRaw(raw) {
+export function pathOfRaw(raw: unknown): string {
     return String(raw || '').replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '').trim();
 }

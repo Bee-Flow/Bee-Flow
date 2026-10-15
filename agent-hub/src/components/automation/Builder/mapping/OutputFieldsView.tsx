@@ -1,6 +1,7 @@
 import React from 'react';
 import { sampleToFields } from './upstream';
 import { fieldFor } from './upstream/fieldTree';
+import type { Field } from './upstream/fieldTree';
 import { FieldRow } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -22,7 +23,13 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *   basePath  — `steps.<id>.output`, so a row can still be dragged as a path
  *   onInsert  — optional (path) => void; absent, clicking a row does nothing
  */
-export default function OutputFieldsView({ value, basePath = '', onInsert = null }) {
+interface OutputFieldsViewProps {
+    value?: unknown;
+    basePath?: string;
+    onInsert?: ((path: string) => void) | null;
+}
+
+export default function OutputFieldsView({ value, basePath = '', onInsert = null }: OutputFieldsViewProps) {
     const { t } = useTranslation();
     // A record lists its own fields, every level of them; a list or a value is
     // one row that still opens into the list's columns (or the text's JSON).
@@ -34,7 +41,7 @@ export default function OutputFieldsView({ value, basePath = '', onInsert = null
     }
     return (
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-1" data-testid="output-fields">
-            {fields.map(f => (
+            {fields.map((f: Field) => (
                 <FieldRow key={f.path || f.key} field={f} onInsert={onInsert} depth={0} previewSample={null} />
             ))}
         </div>

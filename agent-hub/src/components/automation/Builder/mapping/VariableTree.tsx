@@ -9,12 +9,37 @@ import { fieldLabelText } from './upstream/routeFieldLabel';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
 import { humanizeFieldKey } from '../flow/displayHelpers';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { FieldDescription } from './fieldKinds';
+
+/** A picker row: a field, with the fields inside it. */
+export interface TreeField {
+    key: string;
+    path: string;
+    sample?: unknown;
+    children?: TreeField[];
+    label?: string;
+    labelKey?: string;
+    perIteration?: boolean;
+}
+
+/** One step's (or the trigger's) output, with its fields. */
+export interface TreeGroup {
+    id?: string;
+    label?: string;
+    kind?: string;
+    basePath?: string;
+    sample?: unknown;
+    fields?: TreeField[];
+}
+
+type InsertHandler = (path: string, opts?: { raw: boolean }) => void;
 
 // Resolve the value to SHOW for a path: prefer the real last-run / pinned
 // value (from previewSample) so the user sees actual data, falling back to the
 // typed sample placeholder when there's no run yet. walkPath reads the
 // runtime's grammar, so what a row shows is what the run will read.
-function shownValue(path, sample, previewSample) {
+function shownValue(path: string, sample: unknown, previewSample: unknown): unknown {
     if (previewSample) {
         const v = walkPath(path, previewSample);
         if (v !== undefined) return v;
@@ -49,7 +74,14 @@ export { startPathDrag };
  *   activeFieldLabel — optional string shown at the top so the user knows
  *                     which field the insert will target
  */
-export default function VariableTree({ groups = [], onInsert, activeFieldLabel = null, previewSample = null }) {
+interface VariableTreeProps {
+    groups?: TreeGroup[];
+    onInsert?: InsertHandler;
+    activeFieldLabel?: string | null;
+    previewSample?: unknown;
+}
+
+export default function VariableTree({ groups = [], onInsert, activeFieldLabel = null, previewSample = null }: VariableTreeProps) {
     const { t } = useTranslation();
     if (!groups || groups.length === 0) {
         return (
@@ -65,7 +97,7 @@ export default function VariableTree({ groups = [], onInsert, activeFieldLabel =
         <div className="h-full flex flex-col">
             <TreeHeader activeFieldLabel={activeFieldLabel} />
             <div className="flex-1 overflow-auto custom-scrollbar py-1">
-                {groups.map(group => (
+                {groups.map((group: TreeGroup) => (
                     <GroupNode key={group.id} group={group} onInsert={onInsert} previewSample={previewSample} />
                 ))}
             </div>
@@ -76,7 +108,7 @@ export default function VariableTree({ groups = [], onInsert, activeFieldLabel =
     );
 }
 
-function TreeHeader({ activeFieldLabel }) {
+function TreeHeader({ activeFieldLabel }: { activeFieldLabel: string | null }) {
     const { t } = useTranslation();
     return (
         <div className="px-3 py-2 border-b border-[var(--border-default)]">
@@ -92,7 +124,7 @@ function TreeHeader({ activeFieldLabel }) {
     );
 }
 
-const KIND_ICON = {
+const KIND_ICON: Record<string, (group: TreeGroup) => React.ReactElement> = {
     trigger:            () => <Zap size={12} />,
     integration_action: () => <Database size={12} />,
     ai_step:            () => <Sparkles size={12} />,
@@ -135,17 +167,17 @@ const KIND_ICON = {
  * a hint into a stutter. Nothing is lost by dropping it: the raw path is on the
  * row's `title` either way.
  */
-export function friendlyBasePath(basePath, label = '') {
+export function friendlyBasePath(basePath: unknown, label: unknown = ''): string {
     const withoutStep = String(basePath || '').replace(/^steps\.[^.]+\./, '');
     const words = humanizeFieldKey(withoutStep) || withoutStep;
     if (words.toLowerCase() === String(label || '').trim().toLowerCase()) return '';
     return words;
 }
 
-function GroupNode({ group, onInsert, previewSample }) {
+function GroupNode({ group, onInsert, previewSample }: { group: TreeGroup; onInsert?: InsertHandler; previewSample: unknown }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(true);
-    const Icon = KIND_ICON[group.kind] ? KIND_ICON[group.kind](group) : <Workflow size={12} />;
+    const Icon = KIND_ICON[group.kind as string] ? KIND_ICON[group.kind as string](group) : <Workflow size={12} />;
     const caption = friendlyBasePath(group.basePath, group.label);
     // Drag the whole node row to reference its ENTIRE output (e.g.
     // steps.<id>.output); click toggles the field list.
@@ -153,11 +185,11 @@ function GroupNode({ group, onInsert, previewSample }) {
         <div className="border-b border-[var(--border-default)] last:border-b-0 group/grp">
             <div
                 draggable
-                onDragStart={(e) => startPathDrag(e, group.basePath)}
-                onClick={() => setOpen(o => !o)}
+                onDragStart={(e: React.DragEvent<HTMLDivElement>) => startPathDrag(e, group.basePath as string)}
+                onClick={() => setOpen((o: boolean) => !o)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
+                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o: boolean) => !o); } }}
                 title={`Drag to use the whole output (${group.basePath})`}
                 className="w-full flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-[var(--bg-secondary)] cursor-grab active:cursor-grabbing select-none"
             >
@@ -173,7 +205,7 @@ function GroupNode({ group, onInsert, previewSample }) {
             </div>
             {open && (
                 <div className="pb-1">
-                    {(group.fields || []).map(f => (
+                    {(group.fields || []).map((f: TreeField) => (
                         <FieldRow key={f.path} field={f} onInsert={onInsert} depth={1} previewSample={previewSample} />
                     ))}
                     {(group.fields || []).length === 0 && (
@@ -185,15 +217,15 @@ function GroupNode({ group, onInsert, previewSample }) {
     );
 }
 
-function valueLabel(desc, value) {
+function valueLabel(desc: FieldDescription, value: unknown): string {
     switch (desc.kind) {
         // JSON text is described ("JSON with 3 fields"), not quoted raw.
         case 'text': return jsonTextValue(value) !== undefined ? '' : `“${previewValue(value, 40)}”`;
         case 'list': {
-            const scalars = Array.isArray(value) ? value.filter(v => v != null && typeof v !== 'object') : [];
+            const scalars = Array.isArray(value) ? value.filter((v: unknown) => v != null && typeof v !== 'object') : [];
             // JSON texts are described ("list of 2 · JSON"), not quoted raw.
-            if (!scalars.length || scalars.some(v => jsonTextValue(v) !== undefined)) return '';
-            return scalars.slice(0, 3).map(v => previewValue(v, 16)).join(' · ') + (scalars.length > 3 ? ' · …' : '');
+            if (!scalars.length || scalars.some((v: unknown) => jsonTextValue(v) !== undefined)) return '';
+            return scalars.slice(0, 3).map((v: unknown) => previewValue(v, 16)).join(' · ') + (scalars.length > 3 ? ' · …' : '');
         }
         case 'table': case 'group': case 'file': return '';
         default: return previewValue(value, 40);
@@ -205,7 +237,7 @@ function valueLabel(desc, value) {
  * column, “text” for text, nothing for a group): the tree's own wording, for
  * the {} picker to show the same thing.
  */
-export function fieldValueLabel(field, previewSample, t) {
+export function fieldValueLabel(field: TreeField, previewSample: unknown, t: TranslateFn | null): string {
     return valueLabel(describeField(field, previewSample, t), shownValue(field.path, field.sample, previewSample));
 }
 
@@ -215,18 +247,27 @@ export function fieldValueLabel(field, previewSample, t) {
  * path. Shared with the NDV's INPUT panel — the tree IS the input panel now
  * (BFSF-329), so this is the single row implementation for both.
  */
-export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, human = false }) {
+interface FieldRowProps {
+    field: TreeField;
+    onInsert?: InsertHandler | null;
+    depth: number;
+    previewSample: unknown;
+    inUse?: Set<string> | null;
+    human?: boolean;
+}
+
+export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, human = false }: FieldRowProps) {
     const [open, setOpen] = useState(false);
     const { t } = useTranslation();
     const indent = 12 + depth * 14;
     const hasChildren = Array.isArray(field.children) && field.children.length > 0;
 
-    const onClick = (e) => {
+    const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
         // For children-bearing rows clicking the chevron expands; clicking
         // the rest of the row inserts the parent path. Alt held = insert the
         // list as it is (skips the chooser downstream).
-        if (hasChildren && e.target.closest('[data-expand-btn]')) {
-            setOpen(o => !o);
+        if (hasChildren && (e.target as Element).closest('[data-expand-btn]')) {
+            setOpen((o: boolean) => !o);
             return;
         }
         onInsert?.(field.path, { raw: e.altKey });
@@ -246,7 +287,7 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
         <div>
             <div
                 draggable
-                onDragStart={(e) => startPathDrag(e, field.path)}
+                onDragStart={(e: React.DragEvent<HTMLDivElement>) => startPathDrag(e, field.path)}
                 onClick={onClick}
                 role="button"
                 tabIndex={0}
@@ -255,7 +296,7 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 // button read its whole row (kind, sample value, "used", grip).
                 // The kind and value stay on screen and in the title.
                 aria-label={name}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onInsert?.(field.path, { raw: e.altKey }); } }}
+                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onInsert?.(field.path, { raw: e.altKey }); } }}
                 className={`group flex items-center gap-2 py-[5px] text-[11px] cursor-grab active:cursor-grabbing select-none hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none${used && human ? ' bg-[color-mix(in_srgb,var(--type-trigger)_7%,transparent)]' : ''}`}
                 style={{ paddingLeft: indent, paddingRight: 8 }}
                 title={typeof value === 'string' ? `${field.path}\n${value}` : field.path}
@@ -264,7 +305,7 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                     <button
                         type="button"
                         data-expand-btn
-                        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); setOpen((o: boolean) => !o); }}
                         className="shrink-0 p-0.5 -m-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
@@ -295,7 +336,7 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 {hasChildren && desc.kind === 'group' && (
                     <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); onInsert?.(field.path); }}
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onInsert?.(field.path); }}
                         className="shrink-0 text-[10px] underline text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 focus:opacity-100"
                     >
                         {t('automations.mapping.use_whole_group', 'use the whole group')}
@@ -308,7 +349,7 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 </span>
                 <GripVertical size={11} className="shrink-0 text-[var(--text-tertiary)] opacity-40 group-hover:opacity-100" />
             </div>
-            {hasChildren && open && field.children.map(c => (
+            {hasChildren && open && (field.children as TreeField[]).map((c: TreeField) => (
                 <FieldRow key={c.path} field={c} onInsert={onInsert} depth={depth + 1} previewSample={previewSample} inUse={inUse} human={human} />
             ))}
         </div>

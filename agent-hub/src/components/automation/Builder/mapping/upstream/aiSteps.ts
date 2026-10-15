@@ -5,8 +5,17 @@
  * declaration exists — no run, no schema round-trip.
  */
 import { sampleToFields, samplePlaceholderFor, schemaToSample } from './sampleFields';
+import type { UpstreamGroup } from '../deepFields';
 
-export function describeAiStep(node) {
+/** The members of a step node these describers read. */
+interface AiNode {
+    id: string;
+    label?: string;
+    outputSchema?: Record<string, unknown> | null;
+    fields?: Array<{ name?: string; type?: string } | null>;
+}
+
+export function describeAiStep(node: AiNode): UpstreamGroup {
     // When the user (or AI builder) declared an outputSchema, surface its
     // fields so downstream steps can bind to them directly. We accept both
     // JSON Schema shape and the flat `{field:'type'}` shape — same tolerance
@@ -30,7 +39,7 @@ export function describeAiStep(node) {
     }
     // A nested declaration is a nested sample, so `customer.address.city` and
     // `items[*].sku` are pickable before the step has ever run.
-    const sample = Object.fromEntries(Object.entries(props).map(([k, t]) => [k, schemaToSample(t)]));
+    const sample = Object.fromEntries(Object.entries(props).map(([k, t]: [string, unknown]) => [k, schemaToSample(t)]));
     return {
         id: node.id,
         label: node.label || 'AI step',
@@ -50,13 +59,13 @@ export function describeAiStep(node) {
  * author has typed a name — no schema, no run needed. Typed placeholders so
  * the kind badges and the mismatch box know a date from an amount.
  */
-export function describeDataExtraction(node) {
+export function describeDataExtraction(node: AiNode): UpstreamGroup {
     const declared = (Array.isArray(node.fields) ? node.fields : [])
-        .filter(f => f && typeof f.name === 'string' && f.name.trim());
-    const sample = {};
+        .filter((f: { name?: string; type?: string } | null) => f && typeof f.name === 'string' && f.name.trim());
+    const sample: Record<string, unknown> = {};
     for (const f of declared) {
-        if (f.name in sample) continue;
-        sample[f.name] = extractionPlaceholderFor(f.type);
+        if ((f as { name: string }).name in sample) continue;
+        sample[(f as { name: string }).name] = extractionPlaceholderFor((f as { type?: string }).type);
     }
     return {
         id: node.id,
@@ -68,7 +77,7 @@ export function describeDataExtraction(node) {
     };
 }
 
-function extractionPlaceholderFor(type) {
+function extractionPlaceholderFor(type: string | undefined) {
     // `date` is an ISO YYYY-MM-DD string on the wire; a real-looking one lets
     // fieldKinds read it as a date rather than as free text.
     if (type === 'date') return '2026-01-15';
@@ -76,12 +85,12 @@ function extractionPlaceholderFor(type) {
 }
 
 /** The declared top-level properties, each as its own (sub)schema; null when none. */
-function aiStepOutputProps(schema) {
+function aiStepOutputProps(schema: Record<string, unknown> | null | undefined): Record<string, unknown> | null {
     if (!schema || typeof schema !== 'object') return null;
     const raw = schema.properties && typeof schema.properties === 'object'
         ? schema.properties
         : schema;
-    const out = {};
+    const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(raw || {})) {
         if (!k) continue;
         if (typeof v === 'string' || (v && typeof v === 'object')) out[k] = v;

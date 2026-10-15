@@ -6,6 +6,46 @@ import { bindingsForList, describeListPath, forEachPickFor, previewForEachPick }
 import { usePopoverPosition } from './VariablePicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { ListShape } from './listShape';
+import type { Binding } from './itemRefs';
+
+type ListMode = 'foreach' | 'first' | 'last' | 'join' | 'count' | 'each';
+type InnerPick = NonNullable<ReturnType<typeof innerForEachPick>>;
+
+/** What a chosen row hands back to the field. */
+export interface ListPickChoice {
+    mode: ListMode;
+    binding: Binding;
+    forEach?: InnerPick['forEach'];
+    itemVar?: string;
+    separator?: string;
+}
+
+interface ListPickChooserProps {
+    open: boolean;
+    anchorEl: HTMLElement | null;
+    path: string;
+    shape: ListShape | null;
+    sampleRoot?: unknown;
+    stepLabelById?: Map<string, string> | null;
+    expectShape?: string;
+    allowForEach?: boolean;
+    fieldLabel?: string | null;
+    onChoose?: (choice: ListPickChoice) => void;
+    onCancel?: () => void;
+}
+
+interface ChoiceRowProps {
+    icon: React.ReactNode;
+    label: string;
+    detail?: string | null;
+    preview?: string | null;
+    extra?: React.ReactNode;
+    onClick: () => void;
+    disabled?: boolean;
+    primary?: boolean;
+}
 
 /**
  * "You picked a list — how should this field use it?"
@@ -44,7 +84,7 @@ export default function ListPickChooser({
     fieldLabel = null,
     onChoose,                 // ({ mode, binding, forEach?, itemVar?, separator? }) => void
     onCancel,
-}) {
+}: ListPickChooserProps) {
     const { t } = useTranslation();
     const position = usePopoverPosition(anchorEl, open);
     const [separator, setSeparator] = useState(', ');
@@ -53,7 +93,7 @@ export default function ListPickChooser({
     // Escape → close this popover only (capture beats the NDV's own handler).
     useEffect(() => {
         if (!open) return undefined;
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key !== 'Escape') return;
             e.preventDefault();
             e.stopPropagation();
@@ -67,9 +107,9 @@ export default function ListPickChooser({
     useEffect(() => {
         if (!open) return undefined;
         let attached = false;
-        const handler = (e) => {
-            if (e.target.closest('[data-list-pick-chooser]')) return;
-            if (anchorEl && anchorEl.contains(e.target)) return;
+        const handler = (e: MouseEvent) => {
+            if ((e.target as Element).closest('[data-list-pick-chooser]')) return;
+            if (anchorEl && anchorEl.contains(e.target as Node)) return;
             onCancel?.();
         };
         const timer = setTimeout(() => { document.addEventListener('mousedown', handler); attached = true; }, 0);
@@ -92,7 +132,7 @@ export default function ListPickChooser({
     // per-item answer is one run per INNER item, the outer row kept bound.
     const inner = shape.rowScopedListTail ? innerForEachPick(path, sampleRoot) : null;
     const foreachBlocked = shape.rowScopedListTail && !inner;
-    const choose = (mode) => {
+    const choose = (mode: ListMode) => {
         if (mode === 'foreach') {
             const pick = inner || forEachPickFor(path, sampleRoot);
             onChoose?.({ mode, binding: pick.binding, forEach: pick.forEach, itemVar: pick.itemVar });
@@ -103,7 +143,7 @@ export default function ListPickChooser({
     };
 
     const joinPreview = list.length
-        ? previewValue(list.slice(0, 3).map(v => (typeof v === 'object' ? '…' : String(v))).join(effectiveSep), 40) + (list.length > 3 ? '…' : '')
+        ? previewValue(list.slice(0, 3).map((v: unknown) => (typeof v === 'object' ? '…' : String(v))).join(effectiveSep), 40) + (list.length > 3 ? '…' : '')
         : null;
     const firstPreview = list.length ? previewValue(list[0], 40) : null;
     const foreachPreview = previewValue(inner ? list[0] : previewForEachPick(path, sampleRoot), 40);
@@ -184,22 +224,22 @@ export default function ListPickChooser({
                         <span
                             className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]"
                             // The select must not trigger the row's pick.
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e: React.MouseEvent<HTMLSpanElement>) => e.stopPropagation()}
                         >
                             {t('automations.builder.separated_by', 'Separated by')}
                             <select
                                 aria-label={t('automations.builder.separated_by', 'Separated by')}
                                 value={separator}
-                                onChange={(e) => setSeparator(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSeparator(e.target.value)}
                                 className="px-1 py-0.5 rounded border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[10px] text-[var(--text-primary)]"
                             >
-                                {SEPARATORS.map(s => <option key={s.label} value={s.value}>{s.label}</option>)}
+                                {SEPARATORS.map((s: { value: string; label: string }) => <option key={s.label} value={s.value}>{s.label}</option>)}
                             </select>
                             {separator === CUSTOM_SEP && (
                                 <input
                                     type="text"
                                     value={customSep}
-                                    onChange={(e) => setCustomSep(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomSep(e.target.value)}
                                     aria-label={t('automations.builder.sep_custom', 'something else…')}
                                     className="w-14 px-1 py-0.5 rounded border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[10px] text-[var(--text-primary)]"
                                 />
@@ -231,21 +271,21 @@ export default function ListPickChooser({
     );
 }
 
-function foreachLabel(inner, isColumn, t) {
+function foreachLabel(inner: InnerPick | null, isColumn: boolean, t: TranslateFn): string {
     if (inner) return t('automations.builder.choice_foreach_inner', 'Run this step once for each {item}', { item: inner.itemVar.replace(/_/g, ' ') });
     return isColumn
         ? t('automations.builder.choice_foreach_row', 'Run this step once for each row')
         : t('automations.builder.choice_foreach_item', 'Run this step once for each item');
 }
 
-function foreachDetail({ inner, foreachBlocked, n, t }) {
+function foreachDetail({ inner, foreachBlocked, n, t }: { inner: InnerPick | null; foreachBlocked: boolean; n: number; t: TranslateFn }): string {
     if (inner) return t('automations.builder.choice_foreach_inner_detail', 'The step runs {n} times — once per {item}, across every row. This field gets that {item}’s value.', { n, item: inner.itemVar.replace(/_/g, ' ') });
     return foreachBlocked
         ? t('automations.builder.foreach_blocked_nested', 'Each row still holds a list here — pick a single value inside the row instead.')
         : t('automations.builder.choice_foreach_detail', 'The step runs {n} times — once per row. This field gets that row’s value.', { n });
 }
 
-function ChoiceRow({ icon, label, detail = null, preview = null, extra = null, onClick, disabled = false, primary = false }) {
+function ChoiceRow({ icon, label, detail = null, preview = null, extra = null, onClick, disabled = false, primary = false }: ChoiceRowProps) {
     return (
         <button
             type="button"

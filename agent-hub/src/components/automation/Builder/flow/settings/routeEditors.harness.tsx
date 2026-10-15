@@ -10,6 +10,7 @@ import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 import { writeRoute } from '../routeModel';
 import { RouteFields as RouteFieldsJs } from './routeEditors';
 import type { RouteFollow, WholeRun } from './SourceNotices';
+import type { UpstreamGroup } from '../../mapping/deepFields';
 
 // routeEditors.jsx is untyped: its `= null` defaults would type those props as `null`.
 const RouteFields = RouteFieldsJs as unknown as ComponentType<Record<string, unknown>>;
@@ -41,7 +42,7 @@ type Saved = Record<string, unknown>;
 interface HarnessProps {
     step: Step;
     onSave: (fields: Saved) => void;
-    groups: unknown[];
+    groups: UpstreamGroup[];
     previewSample: unknown;
     routeFollow?: RouteFollow | null;
     wholeRun?: WholeRun | null;

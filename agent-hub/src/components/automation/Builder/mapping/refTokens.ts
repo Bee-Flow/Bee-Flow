@@ -24,12 +24,48 @@
 import { formatPath, readPath, scanTemplate } from '@shared/expr/path.mjs';
 import { humanizeFieldTail } from './core';
 import { detectTemplate, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers';
+/** A token of a reference path: a key or index, a wildcard, or a match. */
+type RefTok = { type: string; key?: string | number };
+
+/** What a bare path says about its reference. */
+export interface RefInfo {
+    /** 'steps' | 'trigger' | 'loop' as classifyRef produces it; a chip falls back on any other. */
+    source: string;
+    stepId?: string;
+    itemVar?: string;
+    fieldPath: string;
+}
+
+export interface LiteralToken { type: 'literal'; text: string }
+export interface RefToken extends RefInfo {
+    type: 'ref';
+    raw: string;
+    path: string;
+    wrapped: boolean;
+}
+export type RefTextToken = LiteralToken | RefToken;
+
+/** One piece of a formula: plain text, or a path that starts at a reference root. */
+export interface ExprPart {
+    text?: string;
+    path?: string;
+}
+
+/** What a chip shows for a reference. */
+export interface ChipLabel {
+    name: string;
+    suffix: string;
+    missing: boolean;
+}
+
+/** id → human label; the chip reads it with `has` / `get`. */
+export type LabelLookup = { has?(id: string | undefined): boolean; get?(id: string | undefined): string | undefined };
 
 // The roots a pill can name.
 const REF_ROOTS = ['steps', 'trigger', 'loop'];
 
 /** A path's field part, after its head, in canonical spelling ('' for none). */
-function tailOf(tokens) {
+function tailOf(tokens: RefTok[]): string {
     return tokens.length ? formatPath(tokens) : '';
 }
 
@@ -37,12 +73,12 @@ function tailOf(tokens) {
  * Classify a bare path string (no `{{}}`) as a ref.
  * Returns `{ source, stepId?, itemVar?, fieldPath }` or null.
  */
-export function classifyRef(path) {
+export function classifyRef(path: unknown): RefInfo | null {
     if (typeof path !== 'string') return null;
-    const tokens = refPathTokens(path);
+    const tokens = refPathTokens(path) as RefTok[] | null;
     if (!tokens) return null;
     const [head, second, third] = tokens;
-    const named = (t) => t?.type === 'prop' && typeof t.key === 'string';
+    const named = (t: RefTok | undefined): t is RefTok & { key: string } => t?.type === 'prop' && typeof t.key === 'string';
     if (head.key === 'steps') {
         if (named(second) && named(third) && third.key === 'output') {
             return { source: 'steps', stepId: second.key, fieldPath: tailOf(tokens.slice(3)) };
@@ -65,7 +101,7 @@ export function classifyRef(path) {
  * `fields["Story Points"]` "Story points", `from.emailAddress.address`
  * "From ▸ Address", `items[0]` "Items ▸ 1st".
  */
-export function fieldTailLabel(fieldPath) {
+export function fieldTailLabel(fieldPath: string): string {
     return humanizeFieldTail(fieldPath);
 }
 
@@ -86,7 +122,7 @@ export function fieldTailLabel(fieldPath) {
  *   - 'fixed' mode without `{{…}}` is a plain literal — no refs.
  *   - 'expression' mode without `{{…}}` is scanned for bare refs.
  */
-export function parseRefTokens(text, { mode = 'expression' } = {}) {
+export function parseRefTokens(text: unknown, { mode = 'expression' }: { mode?: string } = {}): RefTextToken[] {
     const s = text == null ? '' : String(text);
     if (!s) return [];
     if (detectTemplate(s)) return tokenizeTemplate(s);
@@ -94,17 +130,17 @@ export function parseRefTokens(text, { mode = 'expression' } = {}) {
     return tokenizeExpression(s);
 }
 
-function tokenizeTemplate(s) {
+function tokenizeTemplate(s: string): RefTextToken[] {
     // The runtime's quote-aware placeholder scan: `{{ x["a}}b"] }}` is ONE
     // placeholder, exactly as bind.js interpolateTemplate reads it.
-    return scanTemplate(s).map((p) => {
+    return scanTemplate(s).map((p: { type: string; value: string; inner: string; raw: string }): RefTextToken => {
         if (p.type === 'text') return { type: 'literal', text: p.value };
         const ref = classifyRef(p.inner);
         return ref ? { type: 'ref', raw: p.raw, path: p.inner, wrapped: true, ...ref } : { type: 'literal', text: p.raw };
     });
 }
 
-function tokenizeExpression(s) {
+function tokenizeExpression(s: string): RefTextToken[] {
     // A value that IS one reference (a stored ref, which may spell a key the
     // way the runtime reads but a formula would not, `headers.content-type`)
     // is one pill, whatever surrounds it.
@@ -115,18 +151,18 @@ function tokenizeExpression(s) {
             const lead = s.slice(0, s.length - s.trimStart().length);
             const trail = s.slice(s.trimEnd().length);
             return [
-                ...(lead ? [{ type: 'literal', text: lead }] : []),
+                ...(lead ? [{ type: 'literal' as const, text: lead }] : []),
                 { type: 'ref', raw: trimmed, path: trimmed, wrapped: false, ...ref },
-                ...(trail ? [{ type: 'literal', text: trail }] : []),
+                ...(trail ? [{ type: 'literal' as const, text: trail }] : []),
             ];
         }
     }
-    const tokens = [];
+    const tokens: RefTextToken[] = [];
     for (const part of scanExprPaths(s, REF_ROOTS)) {
         const ref = part.path != null ? classifyRef(part.path) : null;
-        const text = part.path ?? part.text;
+        const text = (part.path ?? part.text) as string;
         if (ref) tokens.push({ type: 'ref', raw: text, path: text, wrapped: false, ...ref });
-        else if (tokens.length && tokens[tokens.length - 1].type === 'literal') tokens[tokens.length - 1].text += text;
+        else if (tokens.length && tokens[tokens.length - 1].type === 'literal') (tokens[tokens.length - 1] as LiteralToken).text += text;
         else tokens.push({ type: 'literal', text });
     }
     return tokens;
@@ -148,7 +184,7 @@ const GLUED = /[\p{L}\p{N}\p{M}_$.]/u;
 const INLINE_HEAD = /steps\.[A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]*)+\.output/y;
 const MARK = /\p{M}/u;
 
-function identEnd(s, i) {
+function identEnd(s: string, i: number): number {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- IDENT_START is one character class, tested on one character: linear
     if (!IDENT_START.test(s[i] || '')) return -1;
     let j = i + 1;
@@ -158,7 +194,7 @@ function identEnd(s, i) {
 }
 
 /** Just past the closing quote of the string starting at `i`, or -1 when it never closes. */
-function stringEnd(s, i) {
+function stringEnd(s: string, i: number): number {
     const q = s[i];
     for (let j = i + 1; j < s.length; j++) {
         if (s[j] === '\\') { j++; continue; }
@@ -173,7 +209,7 @@ function stringEnd(s, i) {
  * to it), or at a dot followed by a combining mark, which no engine name
  * starts with.
  */
-function engineCut(s, from, to) {
+function engineCut(s: string, from: number, to: number): number {
     let depth = 0;
     for (let j = from; j < to; j++) {
         const c = s[j];
@@ -188,7 +224,7 @@ function engineCut(s, from, to) {
 }
 
 /** Where the engine's reading of a path that starts with the name at `i` ends. */
-function exprPathEnd(s, i) {
+function exprPathEnd(s: string, i: number): number {
     INLINE_HEAD.lastIndex = i;
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- INLINE_HEAD is sticky (one start, at i) and each [\w$]* stops at the / or . that must follow it, so no two quantifiers compete for a character: linear
     if (INLINE_HEAD.test(s)) {
@@ -197,7 +233,7 @@ function exprPathEnd(s, i) {
         const head = INLINE_HEAD.lastIndex;
         if (s[head] !== '.' && s[head] !== '[') return head;
         const tail = `$${s.slice(head)}`;
-        const r = readPath(tail, 0);
+        const r = readPath(tail, 0) as { end: number };
         return head + engineCut(tail, 1, r.end) - 1;
     }
     const r = readPath(s, i);
@@ -209,10 +245,10 @@ function exprPathEnd(s, i) {
  * `[{ text }, { path }, …]`, in order, concatenating back to the input. Text
  * inside string literals is never a path.
  */
-export function scanExprPaths(text, roots = REF_ROOTS) {
+export function scanExprPaths(text: unknown, roots: string[] = REF_ROOTS): ExprPart[] {
     const s = String(text ?? '');
     const rootSet = new Set(roots);
-    const out = [];
+    const out: ExprPart[] = [];
     let last = 0;
     let i = 0;
     while (i < s.length) {
@@ -235,14 +271,14 @@ export function scanExprPaths(text, roots = REF_ROOTS) {
 }
 
 /** Concatenate tokens back into the original string (round-trip safe). */
-export function serializeRefTokens(tokens) {
+export function serializeRefTokens(tokens: Array<{ type: string; text?: string; raw?: string }> | null | undefined): string {
     if (!Array.isArray(tokens)) return '';
-    return tokens.map(t => (t.type === 'literal' ? t.text : t.raw)).join('');
+    return tokens.map((t: { type: string; text?: string; raw?: string }) => (t.type === 'literal' ? t.text : t.raw)).join('');
 }
 
 /** Cheap predicate: does this value contain at least one renderable ref? */
-export function hasRefTokens(text, mode) {
-    return parseRefTokens(text, { mode }).some(t => t.type === 'ref');
+export function hasRefTokens(text: unknown, mode?: string): boolean {
+    return parseRefTokens(text, { mode }).some((t: RefTextToken) => t.type === 'ref');
 }
 
 /**
@@ -253,11 +289,11 @@ export function hasRefTokens(text, mode) {
  * ref whose id is no longer in the definition (deleted step) — rendered as
  * a muted chip, never an error.
  */
-export function resolveChipLabel(token, stepLabelById = null) {
+export function resolveChipLabel(token: RefToken | null | undefined, stepLabelById: LabelLookup | null = null): ChipLabel {
     if (!token) return { name: '', suffix: '', missing: false };
     if (token.source === 'steps') {
         const known = !!stepLabelById?.has?.(token.stepId);
-        const name = stepLabelById?.get?.(token.stepId) || token.stepId;
+        const name = stepLabelById?.get?.(token.stepId) || token.stepId as string;
         return { name, suffix: token.fieldPath || '', missing: !known };
     }
     if (token.source === 'trigger') {

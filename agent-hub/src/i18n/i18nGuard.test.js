@@ -424,7 +424,7 @@ const KEY_TABLE_FILES = [
     // DATA — `line(tt, entry)` roept t() met een variabele aan — dus geen enkele
     // andere controle hier ziet ze.
     'components/chat/AnswerTracePanel.jsx',
-    'components/automation/Builder/mapping/fieldKinds.js',
+    'components/automation/Builder/mapping/fieldKinds.ts',
     // The automations launcher's tab labels (TABS).
     'components/admin/Studio/AutomationsStudio/AutomationsLauncher.jsx',
     'components/skills/SkillFormModal.jsx',
@@ -462,7 +462,7 @@ const TEXT_HELPERS = [
     { rel: 'components/shared/statusTokens.ts' },
     { rel: 'components/admin/Studio/KnowledgeStudio/freshness.js' },
     { rel: 'components/admin/Studio/KnowledgeStudio/plural.js' },
-    { rel: 'components/automation/Builder/mapping/mismatch.js' },
+    { rel: 'components/automation/Builder/mapping/mismatch.ts' },
     // The clock: ten modules, eight of them the very same ladder — "just now",
     // "{n}m ago", "{n}h ago" — pasted from each other and already drifting
     // (`Math.round` here, `Math.floor` there, "just now" vs "Just now"). The

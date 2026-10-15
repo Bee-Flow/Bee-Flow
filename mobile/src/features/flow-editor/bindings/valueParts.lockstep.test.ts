@@ -10,7 +10,7 @@ import * as vp from './valueParts';
 import * as vt from './valueTransforms';
 
 const webVp = requireWeb(`${BUILDER}/mapping/valueParts.js`);
-const webRt = requireWeb(`${BUILDER}/mapping/refTokens.js`);
+const webRt = requireWeb(`${BUILDER}/mapping/refTokens.ts`);
 
 const BINDINGS: unknown[] = [
     null, undefined, '', 'plain', 12, false,

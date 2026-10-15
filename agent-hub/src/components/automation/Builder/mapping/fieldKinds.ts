@@ -19,8 +19,12 @@ import { ISO_DATE_RE } from './core';
 import { pathListShape } from './listShape';
 import { jsonTextValue } from './upstream/fieldTree';
 import { walkPath } from '../../../../utils/bindingHelpers';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
+import type { SchemaProp } from './toolInput/toolInputHelpers';
 
-export const KINDS = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 'choice', 'list', 'group', 'table', 'file', 'unknown']);
+export type FieldKind = 'text' | 'email' | 'number' | 'yesno' | 'date' | 'choice' | 'list' | 'group' | 'table' | 'file' | 'unknown';
+
+export const KINDS: readonly FieldKind[] = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 'choice', 'list', 'group', 'table', 'file', 'unknown']);
 
 /**
  * `choice` is a scalar whose values are DECLARED, not free: a datatable's
@@ -35,7 +39,7 @@ export const KINDS = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 
  * `enum`, a column's `type: 'select'` — can say so, which is why the only
  * producers are `expectedKindFor` and datatableDisplay's `columnTypeKind`.
  */
-export const KIND_WORD = Object.freeze({
+export const KIND_WORD: Readonly<Record<string, { key: string; en: string }>> = Object.freeze({
     text: { key: 'automations.kind.text', en: 'text' },
     email: { key: 'automations.kind.email', en: 'email address' },
     number: { key: 'automations.kind.number', en: 'number' },
@@ -50,11 +54,29 @@ export const KIND_WORD = Object.freeze({
 });
 
 /** What the kind is underneath — for tooltips and for the schema bridge. */
-export const KIND_TECHNICAL = Object.freeze({
+export const KIND_TECHNICAL: Readonly<Record<string, string>> = Object.freeze({
     text: 'string', email: 'string (email)', number: 'number', yesno: 'boolean', date: 'datetime',
     choice: 'string (one of)',
     list: 'array', group: 'object', table: 'array of objects', file: 'file', unknown: '?',
 });
+
+type Rec = Record<string, unknown>;
+type Tr = (key: string, en: string, params?: TranslateParams) => string;
+
+/** The picker row `describeField` reads: only the sample and the path. */
+export interface DescribableField {
+    sample?: unknown;
+    path?: string;
+}
+
+export interface FieldDescription {
+    kind: FieldKind;
+    word: string;
+    detail: string | null;
+    value: unknown;
+    count: number | null;
+    of: string | null;
+}
 
 /** The ONE ISO-date regex (mapping/core.ts), re-exported for this module's importers. */
 export { ISO_DATE_RE };
@@ -66,21 +88,21 @@ export { ISO_DATE_RE };
 export const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[a-z]{2,}$/i;
 
 /** A design-time placeholder from upstream.samplePlaceholderFor — not data. */
-export function isPlaceholder(v) {
+export function isPlaceholder(v: unknown): boolean {
     return typeof v === 'string' && /^<[a-z_ ]+>$/i.test(v.trim());
 }
 
 /** Does this object have the shape upstream.samplePlaceholderFor('file') emits? */
-export function looksLikeFile(v) {
+export function looksLikeFile(v: unknown): boolean {
     if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
     const hasRef = 'url' in v || 'fileId' in v;
-    const hasName = typeof v.name === 'string' || typeof v.filename === 'string';
+    const hasName = typeof (v as Rec).name === 'string' || typeof (v as Rec).filename === 'string';
     const hasMeta = 'size' in v || 'mime' in v || 'mimeType' in v;
     return hasRef && hasName && hasMeta;
 }
 
 /** Is every element (that we sampled) an object? Then it reads as a table. */
-export function looksTabular(arr) {
+export function looksTabular(arr: unknown[]): boolean {
     const sample = arr.slice(0, 20).filter(v => v !== null && v !== undefined);
     if (!sample.length) return false;
     const objects = sample.filter(v => typeof v === 'object' && !Array.isArray(v));
@@ -88,7 +110,7 @@ export function looksTabular(arr) {
 }
 
 /** The kind of ONE value. */
-export function kindOfValue(v) {
+export function kindOfValue(v: unknown): FieldKind {
     if (v === null || v === undefined) return 'unknown';
     if (Array.isArray(v)) return v.length > 0 && looksTabular(v) ? 'table' : 'list';
     const t = typeof v;
@@ -96,15 +118,15 @@ export function kindOfValue(v) {
     if (t === 'boolean') return 'yesno';
     if (t === 'string') {
         if (isPlaceholder(v)) return 'unknown';
-        if (ISO_DATE_RE.test(v.trim())) return 'date';
-        return EMAIL_RE.test(v.trim()) ? 'email' : 'text';
+        if (ISO_DATE_RE.test((v as string).trim())) return 'date';
+        return EMAIL_RE.test((v as string).trim()) ? 'email' : 'text';
     }
     if (t === 'object') return looksLikeFile(v) ? 'file' : 'group';
     return 'unknown';
 }
 
 /** "12 KB" from a byte count; null when not a number. */
-export function formatBytes(n) {
+export function formatBytes(n: unknown): string | null {
     const b = Number(n);
     if (!Number.isFinite(b) || b < 0) return null;
     if (b < 1024) return `${Math.round(b)} B`;
@@ -116,8 +138,8 @@ export function formatBytes(n) {
  * How many columns a table has: every key its first rows carry, not only the
  * first row's (a key only row 2 has is still a column the picker offers).
  */
-function columnCount(rows) {
-    const keys = new Set();
+function columnCount(rows: unknown[]): number {
+    const keys = new Set<string>();
     for (const r of rows.slice(0, 50)) {
         if (r && typeof r === 'object' && !Array.isArray(r)) for (const k of Object.keys(r)) keys.add(k);
     }
@@ -125,7 +147,7 @@ function columnCount(rows) {
 }
 
 /** "· JSON with 3 fields", "· JSON with 1 field", "· JSON, a list of 2". */
-function jsonDetail(encoded, n, tr) {
+function jsonDetail(encoded: unknown, n: number, tr: Tr): string {
     if (Array.isArray(encoded)) return tr('automations.kind.json_list', '· JSON, a list of {n}', { n });
     return n === 1
         ? tr('automations.kind.json_record_one', '· JSON with 1 field')
@@ -141,8 +163,8 @@ function jsonDetail(encoded, n, tr) {
  *   detail — what follows it ("of 3 · text", "· 14 rows · 4 columns"), or null
  *   `t` is optional: `t(key, en, params)`.
  */
-export function describeField(field, sampleRoot = null, t = null) {
-    const tr = (key, en, params) => (t ? t(key, en, params) : interpolate(en, params));
+export function describeField(field: DescribableField | null | undefined, sampleRoot: unknown = null, t: TranslateFn | null = null): FieldDescription {
+    const tr: Tr = (key, en, params) => (t ? t(key, en, params) : interpolate(en, params));
     let value = field?.sample;
     if (sampleRoot && field?.path) {
         const live = walkPath(field.path, sampleRoot);
@@ -162,7 +184,7 @@ export function describeField(field, sampleRoot = null, t = null) {
             const colsText = cols === 1 ? tr('automations.kind.column', '{n} column', { n: 1 }) : tr('automations.kind.columns', '{n} columns', { n: cols ?? '?' });
             return { kind, word, value, count, of: 'records', detail: `· ${rowsText} · ${colsText}` };
         }
-        const first = Array.isArray(value) ? value.find(x => x !== null && x !== undefined) : undefined;
+        const first = Array.isArray(value) ? value.find((x: unknown) => x !== null && x !== undefined) : undefined;
         const elemKind = first === undefined ? null : kindOfValue(first);
         // A list of JSON texts reads "list of 2 · JSON", never as the raw text.
         const elemWord = jsonTextValue(first) !== undefined
@@ -179,27 +201,27 @@ export function describeField(field, sampleRoot = null, t = null) {
         };
     }
     if (kind === 'group') {
-        const n = Object.keys(value).length;
+        const n = Object.keys(value as Rec).length;
         const detail = n === 1 ? tr('automations.kind.group_field', '· 1 field') : tr('automations.kind.group_fields', '· {n} fields', { n });
         return { kind, word, value, count: n, of: null, detail };
     }
     if (kind === 'file') {
-        const name = value.name || value.filename || '';
-        const size = formatBytes(value.size);
+        const name = (value as Rec).name || (value as Rec).filename || '';
+        const size = formatBytes((value as Rec).size);
         return { kind, word, value, count: null, of: null, detail: [name, size].filter(Boolean).map(x => `· ${x}`).join(' ') || null };
     }
     const encoded = kind === 'text' ? jsonTextValue(value) : undefined;
     if (encoded !== undefined) {
         // JSON text (a body, an AI answer): say what it holds, never show the
         // raw text; its fields open under the row with plain paths.
-        const n = Array.isArray(encoded) ? encoded.length : Object.keys(encoded).length;
+        const n = Array.isArray(encoded) ? encoded.length : Object.keys(encoded as Rec).length;
         const detail = jsonDetail(encoded, n, tr);
         return { kind, word, value, count: null, of: null, detail };
     }
     if (kind === 'text' && typeof value === 'string' && value.length > 120) {
         // "text · 2 paragraphs" (design 1h) — a blob is not a value you read
         // in a row, so say its size instead of its first forty characters.
-        const paragraphs = value.split(/\n\s*\n/).filter(x => x.trim()).length;
+        const paragraphs = value.split(/\n\s*\n/).filter((x: string) => x.trim()).length;
         const words = value.trim().split(/\s+/).length;
         const detail = paragraphs > 1
             ? tr('automations.kind.paragraphs', '· {n} paragraphs', { n: paragraphs })
@@ -214,7 +236,7 @@ export function describeField(field, sampleRoot = null, t = null) {
  * listShape.expectedShapeFor, one level finer. 'unknown' means the chooser
  * and the empty-slot note stay silent.
  */
-export function expectedKindFor(schemaProp) {
+export function expectedKindFor(schemaProp: SchemaProp | null | undefined): FieldKind {
     if (!schemaProp || typeof schemaProp !== 'object') return 'unknown';
     let type = schemaProp.type;
     if (Array.isArray(type)) type = type.find(x => x !== 'null') || type[0];
@@ -239,7 +261,7 @@ export function expectedKindFor(schemaProp) {
 }
 
 /** Is this kind a single value (as opposed to a list, table or group)? */
-export function isScalarKind(kind) {
+export function isScalarKind(kind: unknown): boolean {
     return kind === 'text' || kind === 'email' || kind === 'number' || kind === 'yesno'
         || kind === 'date' || kind === 'choice';
 }
@@ -250,7 +272,7 @@ export function isScalarKind(kind) {
  * says. Text accepts every scalar (bind.js stringifies safely); a list slot
  * accepts a list or a table; anything unknown fits (a claim needs evidence).
  */
-export function kindFits(actual, expected) {
+export function kindFits(actual: string | null | undefined, expected: string | null | undefined): boolean {
     if (!expected || expected === 'unknown' || !actual || actual === 'unknown') return true;
     if (actual === expected) return true;
     if (expected === 'text') return isScalarKind(actual);
@@ -267,7 +289,7 @@ export function kindFits(actual, expected) {
     return false;
 }
 
-function interpolate(en, params) {
+function interpolate(en: string, params?: TranslateParams): string {
     if (!params) return en;
-    return String(en).replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
+    return String(en).replace(/\{(\w+)\}/g, (m: string, k: string) => (k in params ? String(params[k]) : m));
 }

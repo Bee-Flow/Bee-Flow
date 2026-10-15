@@ -22,7 +22,7 @@ import * as up from './index';
 
 const web = {
     up: requireWeb(`${BUILDER}/mapping/upstream/index.js`),
-    real: requireWeb(`${BUILDER}/mapping/realOutputs.js`),
+    real: requireWeb(`${BUILDER}/mapping/realOutputs.ts`),
 };
 
 const paths = (fields: VariableField[] | undefined): string[] => {

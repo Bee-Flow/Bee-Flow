@@ -2,6 +2,21 @@ import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { replaceTemplate } from '@shared/expr/path.mjs';
 import { isScalarList, templateText } from '@shared/expr/templateText.mjs';
 import { walkPath, previewValue } from '../../../../utils/bindingHelpers';
+import type { Binding } from './itemRefs';
+
+export interface PreviewOptions {
+    raw?: boolean;
+    listAs?: string;
+    maxLen?: number;
+}
+
+/** What previewBindingShape says about a bound value. */
+export interface BindingShape {
+    isList: boolean;
+    count: number | null;
+    empty: boolean;
+    first: unknown;
+}
 
 /**
  * Resolve the "example" line for a binding against a sample root tree
@@ -32,7 +47,7 @@ import { walkPath, previewValue } from '../../../../utils/bindingHelpers';
  * example too — the "list of 2" badge beside it says it is a list. `maxLen`
  * is how much text the line may hold (the visual editor wraps it).
  */
-export default function previewBinding(binding, sampleRoot, { raw = true, listAs = 'text', maxLen = 60 } = {}) {
+export default function previewBinding(binding: Binding | null | undefined, sampleRoot: unknown, { raw = true, listAs = 'text', maxLen = 60 }: PreviewOptions = {}) {
     if (!binding) return null;
     if (binding.kind === 'literal') {
         if (binding.value == null || binding.value === '') return null;
@@ -47,7 +62,7 @@ export default function previewBinding(binding, sampleRoot, { raw = true, listAs
         // The runtime's placeholder scan, walker and text rendering — the
         // three things interpolateTemplate does — so nothing here can show a
         // value, or a shape of a value, the run would not write.
-        const filled = replaceTemplate(String(binding.value), (inner, full) => {
+        const filled = replaceTemplate(String(binding.value), (inner: string, full: string) => {
             const v = walkPath(inner, sampleRoot);
             if (v === undefined) return raw ? full : '…';
             resolvedAny = true;
@@ -68,7 +83,7 @@ export default function previewBinding(binding, sampleRoot, { raw = true, listAs
 }
 
 /** A ref's sample; a list of plain values reads as its values ("a, b"). */
-function previewRef(path, sampleRoot, { raw, listAs, maxLen }) {
+function previewRef(path: string | undefined, sampleRoot: unknown, { raw, listAs, maxLen }: { raw: boolean; listAs: string; maxLen: number }) {
     if (!path) return null;
     if (!sampleRoot) return raw ? path : null;
     const v = walkPath(path, sampleRoot);
@@ -86,7 +101,7 @@ function previewRef(path, sampleRoot, { raw, listAs, maxLen }) {
  *
  * Returns { isList, count, empty, first } or null (unresolvable / no sample).
  */
-export function previewBindingShape(binding, sampleRoot) {
+export function previewBindingShape(binding: Binding | null | undefined, sampleRoot: unknown): BindingShape | null {
     if (!binding || !sampleRoot) return null;
     let v;
     if (binding.kind === 'ref') {

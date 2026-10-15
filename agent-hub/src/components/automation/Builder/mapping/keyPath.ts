@@ -22,7 +22,7 @@ export const IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
  * the root becomes `["content-type"]`, which is what the relative-path
  * dialect wants).
  */
-export function joinKeyPath(prefix, key) {
+export function joinKeyPath(prefix: string, key: unknown): string {
     return appendKey(prefix, String(key));
 }
 
@@ -36,7 +36,7 @@ const PROBE = {};
  * drift from them. With the current grammar the answer is yes for every key;
  * the probe stays as the guard should that ever change.
  */
-export function keyPickable(key) {
+export function keyPickable(key: unknown): boolean {
     const k = String(key);
     if (IDENT_RE.test(k)) return true;
     try { return getRelativePath({ [k]: PROBE }, joinKeyPath('', k)) === PROBE; }

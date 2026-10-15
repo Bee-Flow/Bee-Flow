@@ -19,7 +19,9 @@ import { BUILDER, requireWeb, webValue } from './testing/web';
 import type { VariableGroup } from './types';
 import { computeUpstreamGroups } from './upstream';
 
-const m = (name: string) => requireWeb(`${BUILDER}/mapping/${name}.js`);
+// Modules converted to TypeScript load from their .ts file; the rest are still .js.
+const TS_MODULES = new Set(['bindingPreview', 'boundPaths', 'fieldKinds', 'filterFields', 'keyPath', 'listShape', 'mismatch', 'partitionInputs', 'realOutputs', 'refTokens']);
+const m = (name: string) => requireWeb(`${BUILDER}/mapping/${name}.${TS_MODULES.has(name) ? 'ts' : 'js'}`);
 
 const ROOT = {
     trigger: { output: { subject: 'Hi', when: '2026-01-02', flag: true, n: 3, blob: 'x '.repeat(80), para: `${'a '.repeat(40)}\n\n${'b '.repeat(40)}` } },

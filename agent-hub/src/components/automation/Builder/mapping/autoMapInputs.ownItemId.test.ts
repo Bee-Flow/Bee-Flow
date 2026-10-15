@@ -20,7 +20,7 @@ const schema = (props: Record<string, string>, required: string[] = Object.keys(
 const MAILS = { results: [{ id: 'm1', subject: 'Invoice', from: 'a@b.nl', body: 'Hello' }] };
 
 /** A step below "search mail" that already runs once per mail, as `itemVar`, with these tools in the catalog. */
-function perItem(itemVar: string, tool: string, inputSchema: object, inputs: object = {}, output: object = MAILS) {
+function perItem(itemVar: string, tool: string, inputSchema: object, inputs: Record<string, unknown> = {}, output: object = MAILS) {
     const catalog = {
         apps: [{ actions: [{ name: 'search', outputSample: output }, { name: tool, inputSchema }] }],
         triggerOutputs: { __manual: { fields: [], sample: {} } },
@@ -41,7 +41,7 @@ describe('the item\'s own id, for a step that runs per item', () => {
         expect(patch.channelId).toBeUndefined();
         expect(patch.text).toEqual({ kind: 'ref', path: 'loop.result.body' });
         // Reconnecting does the same.
-        expect(autoMapStep(slack.step, slack.definition, slack.catalog).step.inputs.channelId).toBeUndefined();
+        expect(autoMapStep(slack.step, slack.definition, slack.catalog).step.inputs?.channelId).toBeUndefined();
 
         const jira = perItem('mail', 'jira_create', schema({ projectId: 'string', summary: 'string' }));
         expect(autoMapInputs(schema({ projectId: 'string', summary: 'string' }), {}, jira.groups).projectId).toBeUndefined();
@@ -51,7 +51,7 @@ describe('the item\'s own id, for a step that runs per item', () => {
         const s = schema({ messageId: 'string', labelId: 'string' });
         const label = perItem('mail', 'gmail_add_label', s, { messageId: { kind: 'ref', path: 'loop.mail.id' } });
         expect(autoMapInputs(s, label.step.inputs, label.groups)).toEqual({});
-        expect(autoMapStep(label.step, label.definition, label.catalog).step.inputs.labelId).toBeUndefined();
+        expect(autoMapStep(label.step, label.definition, label.catalog).step.inputs?.labelId).toBeUndefined();
         // The author typed the message id by hand: the label is still not the mail.
         const typed = perItem('mail', 'gmail_add_label', s, { messageId: { kind: 'literal', value: 'abc' } });
         expect(autoMapInputs(s, typed.step.inputs, typed.groups).labelId).toBeUndefined();

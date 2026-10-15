@@ -21,7 +21,7 @@ const SRC = fs.readFileSync(webPath(`${BUILDER}/mapping/ToolInputForm.jsx`), 'ut
 const ROW_SRC = fs.readFileSync(webPath(`${BUILDER}/mapping/toolInput/GenericRow.tsx`), 'utf8');
 const webHelpers = requireWeb('utils/bindingHelpers.js');
 const webToolInput = requireWeb(`${BUILDER}/mapping/toolInput/toolInputHelpers.ts`);
-const webPartition = requireWeb(`${BUILDER}/mapping/partitionInputs.js`);
+const webPartition = requireWeb(`${BUILDER}/mapping/partitionInputs.ts`);
 
 /** The source of the block that starts at `head`, through its matching brace. */
 function cut(head: string, src = SRC): string {

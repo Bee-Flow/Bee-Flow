@@ -1,5 +1,6 @@
 import { Type, Mail, Hash, ToggleRight, Calendar, CircleDot, List, Folder, Table, Paperclip, CircleHelp } from 'lucide-react';
 import React from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { KIND_WORD } from './fieldKinds';
 
 /**
@@ -17,13 +18,21 @@ import { KIND_WORD } from './fieldKinds';
  * `choice` is a radio dot: one of several DECLARED options, which is what
  * separates it from `list` (many values) and from `text` (no options at all).
  */
-const ICON = {
+const ICON: Record<string, LucideIcon> = {
     text: Type, email: Mail, number: Hash, yesno: ToggleRight, date: Calendar,
     choice: CircleDot,
     list: List, group: Folder, table: Table, file: Paperclip, unknown: CircleHelp,
 };
 
-export default function FieldKindIcon({ kind, size = 14, className = '', style = undefined, title = undefined }) {
+interface FieldKindIconProps {
+    kind: string;
+    size?: number;
+    className?: string;
+    style?: React.CSSProperties;
+    title?: string;
+}
+
+export default function FieldKindIcon({ kind, size = 14, className = '', style = undefined, title = undefined }: FieldKindIconProps) {
     const Icon = ICON[kind] || CircleHelp;
     return <Icon size={size} className={className} style={style} aria-label={title || KIND_WORD[kind]?.en || kind} data-kind={kind} />;
 }

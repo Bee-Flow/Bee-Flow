@@ -11,24 +11,26 @@
 
 export const WAIT_MIN_SECONDS = 1;
 export const WAIT_MAX_SECONDS = 86400; // 24h — see engine.js execWait
-export const WAIT_UNIT_FACTOR = { seconds: 1, minutes: 60, hours: 3600 };
+export type WaitUnit = 'seconds' | 'minutes' | 'hours';
 
-export const clampWaitSeconds = (n) => Math.max(WAIT_MIN_SECONDS, Math.min(WAIT_MAX_SECONDS, Math.round(n)));
+export const WAIT_UNIT_FACTOR: Record<WaitUnit, number> = { seconds: 1, minutes: 60, hours: 3600 };
+
+export const clampWaitSeconds = (n: number) => Math.max(WAIT_MIN_SECONDS, Math.min(WAIT_MAX_SECONDS, Math.round(n)));
 
 /** The largest unit that divides `seconds` exactly — how the editor opens. */
-export function waitUnitFor(seconds) {
+export function waitUnitFor(seconds: number): WaitUnit {
     if (seconds >= 3600 && seconds % 3600 === 0) return 'hours';
     if (seconds >= 60 && seconds % 60 === 0) return 'minutes';
     return 'seconds';
 }
 
-const PLURAL = { seconds: 'second', minutes: 'minute', hours: 'hour' };
+const PLURAL: Record<WaitUnit, string> = { seconds: 'second', minutes: 'minute', hours: 'hour' };
 
 /**
  * "2 hours", "90 seconds", "1 minute" — the phrase the canvas shows, in the
  * same unit the editor would open on, so the two never disagree.
  */
-export function formatWaitDuration(seconds) {
+export function formatWaitDuration(seconds: unknown): string | null {
     const s = Number(seconds);
     if (!Number.isFinite(s) || s <= 0) return null;
     const unit = waitUnitFor(s);

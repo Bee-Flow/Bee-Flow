@@ -7,17 +7,25 @@
  * the surviving subtree is a copy so the caller's data is untouched.
  */
 
+/** What the filter reads of a field; the caller's own field type rides through. */
+export interface FilterableField {
+    key?: string;
+    path?: string;
+    label?: unknown;
+    children?: unknown;
+}
+
 /** Filter a `[{key, path, sample, children?}]` tree against a lowercase query. */
-export function filterFields(fields, q) {
+export function filterFields<F extends FilterableField>(fields: F[] | null | undefined, q: unknown): F[] {
     const needle = String(q || '').toLowerCase();
     if (!needle) return fields || [];
-    const out = [];
+    const out: F[] = [];
     for (const f of fields || []) {
         // `label` is the name a person reads for an internal key (a Condition
         // output "Otherwise" for `matchesByCase.default`), so it is searchable.
         const matchesSelf = f.key?.toLowerCase().includes(needle) || f.path?.toLowerCase().includes(needle)
             || (typeof f.label === 'string' && f.label.toLowerCase().includes(needle));
-        let subs = [];
+        let subs: F[] = [];
         if (Array.isArray(f.children)) subs = filterFields(f.children, needle);
         if (matchesSelf) {
             out.push(subs.length > 0 ? { ...f, children: subs } : f);
@@ -33,10 +41,10 @@ export function filterFields(fields, q) {
  * how you ask for "everything from the Gmail step"); otherwise it is kept only
  * for the fields that matched.
  */
-export function filterGroups(groups, q) {
+export function filterGroups<G extends { label?: string; fields?: FilterableField[] }>(groups: G[] | null | undefined, q: unknown): G[] {
     const needle = String(q || '').trim().toLowerCase();
     if (!needle) return groups || [];
-    const out = [];
+    const out: G[] = [];
     for (const g of groups || []) {
         if (g?.label?.toLowerCase().includes(needle)) { out.push(g); continue; }
         const fields = filterFields(g?.fields || [], needle);

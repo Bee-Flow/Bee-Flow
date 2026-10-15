@@ -20,6 +20,9 @@ import { computeUpstreamGroups } from './upstream';
 import { getLayerContract } from '../flow/flowletScope';
 import { reconcileRouteEdges } from '../flow/routeEdges';
 import { isDiagnosticOutputKey } from '../flow/stepPayload';
+import type { GroupField, ListSource, UpstreamGroup } from './deepFields';
+import type { Binding } from './itemRefs';
+import type { InputSchema, AutoMapStep, AutoMapDefinition, AutoMapStepResult, AutoMapOptions, Candidate, ToolCatalogLike } from './autoMapInputs.types';
 
 export { sampleType };
 
@@ -30,20 +33,20 @@ export { sampleType };
  * accents do not count (`First-Name` = `first_name` = `firstName`,
  * `Prénom` = `prenom`). deepFields.foldKey.
  */
-export function normalizeKey(name) {
+export function normalizeKey(name: unknown): string {
     return foldKey(name);
 }
 
-export function isSecretLikeKey(key) {
+export function isSecretLikeKey(key: unknown): boolean {
     return /(password|passwd|secret|token|apikey|api[_-]?key|credential|client[_-]?secret|private[_-]?key)/i
         .test(String(key || ''));
 }
 
 /** Resolve a tool's inputSchema from the catalog. */
-export function findInputSchemaForTool(catalog, tool) {
+export function findInputSchemaForTool(catalog: ToolCatalogLike | null | undefined, tool: unknown): InputSchema | null {
     for (const app of (catalog?.apps || [])) {
         for (const action of (app.actions || [])) {
-            if (action?.name === tool) return action.inputSchema || null;
+            if (action?.name === tool) return ((action as { inputSchema?: object | null }).inputSchema as InputSchema | null) || null;
         }
     }
     return null;
@@ -59,8 +62,8 @@ export function findInputSchemaForTool(catalog, tool) {
  * reaches a LIST input through autoMapListInput.ts (`messageIds` ←
  * `results[*].id`), and the "run once per item" pass maps one per item.
  */
-function flattenCandidates(groups) {
-    const out = [];
+function flattenCandidates(groups: UpstreamGroup[] | null | undefined): Candidate[] {
+    const out: Candidate[] = [];
     (groups || []).forEach((g, gi) => {
         groupValueFields(g).forEach((f, fi) => {
             out.push({ key: f.key, path: f.path, type: sampleType(f.sample), sample: f.sample, groupLabel: g.label, groupIndex: gi, fieldIndex: fi, weight: f.weight });
@@ -73,21 +76,21 @@ function flattenCandidates(groups) {
  * Nearest = highest groupIndex (closest upstream node), then the field that
  * sits least deep (wrappers such as `data` do not count), then data order.
  */
-function chooseNearest(list, used) {
+function chooseNearest(list: Candidate[], used: Set<string>): Candidate | null {
     if (!list.length) return null;
-    const unused = list.filter(c => !used.has(c.path));
+    const unused = list.filter((c: Candidate) => !used.has(c.path));
     const pool = unused.length ? unused : list;
     return pool.slice().sort((a, b) => (b.groupIndex - a.groupIndex) || (a.weight - b.weight) || (a.fieldIndex - b.fieldIndex))[0];
 }
 
-function bestCandidate(key, propType, candidates, used) {
+function bestCandidate(key: string, propType: unknown, candidates: Candidate[], used: Set<string>): Candidate | null {
     const nkey = normalizeKey(key);
     // tier 1: exact key match
-    const tier1 = candidates.filter(c => c.key === key && typeCompatible(propType, c.type));
+    const tier1 = candidates.filter((c: Candidate) => c.key === key && typeCompatible(propType, c.type));
     const pick1 = chooseNearest(tier1, used);
     if (pick1) return pick1;
     // tier 2: normalized match (snake/camel/kebab/space, case, accents)
-    const tier2 = candidates.filter(c => normalizeKey(c.key) === nkey && typeCompatible(propType, c.type));
+    const tier2 = candidates.filter((c: Candidate) => normalizeKey(c.key) === nkey && typeCompatible(propType, c.type));
     return chooseNearest(tier2, used) || null;
 }
 
@@ -102,15 +105,15 @@ const ARRAY_NAME_RE = /items|results|rows|records|data|list|messages|emails|even
  * `httpCalls` are diagnostics, never a list source (a lone `logs` array used
  * to be picked), and a step's own item is not a source for itself.
  */
-export function nearestArrayRef(groups) {
+export function nearestArrayRef(groups: UpstreamGroup[] | null | undefined): string | null {
     for (let gi = (groups || []).length - 1; gi >= 0; gi--) {
-        const g = groups[gi];
+        const g = (groups as UpstreamGroup[])[gi];
         if (g.ownItem) continue;
-        const sources = groupListSources(g).filter(s => !firstKeyIsDiagnostic(g, s.path, isDiagnosticOutputKey));
+        const sources = groupListSources(g).filter((s: ListSource) => !firstKeyIsDiagnostic(g, s.path, isDiagnosticOutputKey));
         if (!sources.length) continue;
-        const rank = s => [s.chain.length, isRecord(s.element) ? 0 : 1, ARRAY_NAME_RE.test(s.key) ? 0 : 1, s.weight, s.depth];
-        const best = sources.map((s, i) => ({ s, r: [...rank(s), i] }))
-            .sort((a, b) => { for (let k = 0; k < a.r.length; k++) if (a.r[k] !== b.r[k]) return a.r[k] - b.r[k]; return 0; })[0];
+        const rank = (s: ListSource) => [s.chain.length, isRecord(s.element) ? 0 : 1, ARRAY_NAME_RE.test(s.key) ? 0 : 1, s.weight, s.depth];
+        const best = sources.map((s: ListSource, i: number) => ({ s, r: [...rank(s), i] }))
+            .sort((a: { r: number[] }, b: { r: number[] }) => { for (let k = 0; k < a.r.length; k++) if (a.r[k] !== b.r[k]) return a.r[k] - b.r[k]; return 0; })[0];
         return best.s.path;
     }
     return null;
@@ -136,16 +139,16 @@ const SCANNABLE_NAME_RES = [
  * output of the nearest step — an object is scanned as its JSON, so "check
  * everything that step produced" is a real answer rather than a guess.
  */
-export function nearestScannableRef(groups) {
+export function nearestScannableRef(groups: UpstreamGroup[] | null | undefined): string | null {
     for (const re of SCANNABLE_NAME_RES) {
         for (let gi = (groups || []).length - 1; gi >= 0; gi--) {
-            const fields = groups[gi].fields || [];
-            const named = fields.find(f => sampleType(f.sample) === 'string' && re.test(f.key));
+            const fields = (groups as UpstreamGroup[])[gi].fields || [];
+            const named = fields.find((f: GroupField) => sampleType(f.sample) === 'string' && re.test(f.key));
             if (named) return named.path;
         }
     }
     for (let gi = (groups || []).length - 1; gi >= 0; gi--) {
-        const anyText = (groups[gi].fields || []).find(f => sampleType(f.sample) === 'string');
+        const anyText = ((groups as UpstreamGroup[])[gi].fields || []).find((f: GroupField) => sampleType(f.sample) === 'string');
         if (anyText) return anyText.path;
     }
     const nearest = (groups || [])[(groups || []).length - 1];
@@ -158,12 +161,9 @@ export function nearestScannableRef(groups) {
  * @param {object|null} targetInputSchema  { properties, required } or null (generic)
  * @param {object} existingInputs          current inputs map (never overwritten)
  * @param {Array}  upstreamGroups          computeUpstreamGroups output (nearest last)
- * @param {object} opts                    { maxPerStep, listColumns } — listColumns: false
- *                                         leaves list inputs without a column (autoMapStep, while
- *                                         it decides whether the step runs once per item)
  * @returns {object}  partial inputs patch — only NEW {kind:'ref'} bindings
  */
-export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups, opts = {}) {
+export function autoMapInputs(targetInputSchema: InputSchema | null | undefined, existingInputs: Record<string, unknown> | null | undefined, upstreamGroups: UpstreamGroup[] | null | undefined, opts: AutoMapOptions = {}): Record<string, Binding> {
     const { maxPerStep = 12 } = opts;
     const properties = targetInputSchema?.properties || null;
     const required = new Set(targetInputSchema?.required || []);
@@ -173,10 +173,10 @@ export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups,
     // (never invent keys); schema mode: all declared properties.
     let keys = properties ? Object.keys(properties) : Object.keys(existingInputs || {});
     // Required first so the most important fields win the nearest candidate.
-    keys = keys.slice().sort((a, b) => (required.has(b) ? 1 : 0) - (required.has(a) ? 1 : 0));
+    keys = keys.slice().sort((a: string, b: string) => (required.has(b) ? 1 : 0) - (required.has(a) ? 1 : 0));
 
-    const patch = {};
-    const used = new Set();
+    const patch: Record<string, Binding> = {};
+    const used = new Set<string>();
     for (const key of keys) {
         if (Object.keys(patch).length >= maxPerStep) break;
         if (!isEmptyBinding((existingInputs || {})[key])) continue; // respect the user
@@ -192,9 +192,9 @@ export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups,
     // What names alone did not settle: schema matching (schemaMatch.ts) —
     // synonyms, the step's entity for a generic `id`, value kinds, allowed
     // values. Conservative threshold, one field per parameter.
-    const rest = keys.filter(k => !patch[k] && isEmptyBinding((existingInputs || {})[k]) && !isSecretLikeKey(k));
+    const rest = keys.filter((k: string) => !patch[k] && isEmptyBinding((existingInputs || {})[k] as Binding) && !isSecretLikeKey(k));
     if (rest.length && Object.keys(patch).length < maxPerStep) {
-        const params = rest.map(k => ({ key: k, ...(properties?.[k] || {}) }));
+        const params = rest.map((k: string) => ({ key: k, ...(properties?.[k] || {}) }));
         for (const r of matchSchema(params, candidates, used)) {
             if (Object.keys(patch).length >= maxPerStep) break;
             patch[r.key] = { kind: 'ref', path: r.path };
@@ -212,16 +212,16 @@ export function autoMapInputs(targetInputSchema, existingInputs, upstreamGroups,
  * a flowlet and a sibling call_layer is being mapped), fall back to the
  * step's existing input keys — generic mode, never inventing keys.
  */
-function layerParamSchema(step, definition) {
-    const { params } = getLayerContract(definition, step.layerKey);
+function layerParamSchema(step: AutoMapStep, definition: AutoMapDefinition): InputSchema {
+    const { params } = getLayerContract(definition, step.layerKey as string);
     if (params.length) {
         return {
-            properties: Object.fromEntries(params.map(p => [p.name, { type: p.type }])),
-            required: params.filter(p => p.required).map(p => p.name),
+            properties: Object.fromEntries(params.map((p: { name: string; type?: string; required?: boolean }) => [p.name, { type: p.type }])),
+            required: params.filter((p: { required?: boolean }) => p.required).map((p: { name: string }) => p.name),
         };
     }
     const keys = Object.keys(step.inputs || {});
-    return { properties: Object.fromEntries(keys.map(k => [k, {}])), required: [] };
+    return { properties: Object.fromEntries(keys.map((k: string) => [k, {}])), required: [] };
 }
 
 /**
@@ -230,7 +230,7 @@ function layerParamSchema(step, definition) {
  * used to carry — treating it as scaffold lets auto-map heal already-saved
  * nodes on re-connect. New nodes seed '' (C20).
  */
-function isScaffoldOverRef(ref) {
+function isScaffoldOverRef(ref: unknown): boolean {
     return !ref || ref === 'trigger.output.items';
 }
 
@@ -240,7 +240,7 @@ function isScaffoldOverRef(ref) {
  * the author has already said what the step decides, and auto-detection must
  * keep its hands off.
  */
-function isScaffoldExpr(expr) {
+function isScaffoldExpr(expr: unknown): boolean {
     const src = String(expr || '').trim();
     return src === '' || src === 'true';
 }
@@ -251,12 +251,12 @@ function isScaffoldExpr(expr) {
  * `definition` must already contain `step` and its incoming edge so
  * upstream resolves correctly.
  */
-export function autoMapStep(step, definition, catalog, opts = {}) {
-    if (!step || !definition) return { step, mappedKeys: [] };
+export function autoMapStep<S extends AutoMapStep>(step: S | null | undefined, definition: AutoMapDefinition | null | undefined, catalog: ToolCatalogLike | null | undefined, opts: AutoMapOptions = {}): AutoMapStepResult<S> {
+    if (!step || !definition) return { step: step as S, mappedKeys: [] };
     // opts.realOutputById (mapping/realOutputs.js) folds run/pinned outputs
     // into the groups — so a node added below a step that just produced 10
     // real records maps against those records, not against placeholders.
-    const groups = computeUpstreamGroups(definition, step.id, catalog, opts.realOutputById || null);
+    const groups = (computeUpstreamGroups as (definition: unknown, stepId: string | undefined, catalog: unknown, realOutputById: Map<string, unknown> | null) => UpstreamGroup[])(definition, step.id, catalog, opts.realOutputById || null);
     if (!groups.length) return { step, mappedKeys: [] };
 
     const type = step.type;
@@ -275,7 +275,7 @@ export function autoMapStep(step, definition, catalog, opts = {}) {
         const patch = iter ? single : autoMapInputs(schema, inputs, groups, opts);
         let nextInputs = { ...inputs, ...patch };
         let keys = Object.keys(patch);
-        let forEach = null;
+        let forEach: object | null = null;
         if (iter) {
             nextInputs = { ...nextInputs, ...iter.patch };
             keys = [...keys, ...Object.keys(iter.patch)];
@@ -376,8 +376,8 @@ export function autoMapStep(step, definition, catalog, opts = {}) {
         return { step: { ...step, arrayRef: ref }, mappedKeys: ['arrayRef'] };
     }
 
-    if (type === 'flatten') return autoMapFlatten(step, groups);
-    if (['filter', 'limit', 'dedupe', 'aggregate', 'summarize'].includes(type)) {
+    if (type === 'flatten') return autoMapFlatten(step, groups) as AutoMapStepResult<S>;
+    if (['filter', 'limit', 'dedupe', 'aggregate', 'summarize'].includes(type as string)) {
         // Scaffold-aware like the loop branch above: the old `if (step.arrayRef)`
         // guard bailed on ANY truthy value, and the palette always seeded the
         // 'trigger.output.items' literal — so auto-map NEVER bound a Lists
@@ -402,13 +402,13 @@ export function autoMapStep(step, definition, catalog, opts = {}) {
  * "auto" pill (overRef/arrayRef aren't inputs, so they're excluded from
  * the marker but still counted in mappedKeys for the toast).
  */
-export function applyAutoMapToStep(definition, stepId, catalog, opts = {}) {
+export function applyAutoMapToStep<D extends AutoMapDefinition>(definition: D, stepId: string, catalog: ToolCatalogLike | null | undefined, opts: AutoMapOptions = {}): { definition: D; mappedKeys: string[]; forEachEnabled: boolean } {
     const steps = definition?.steps || [];
-    const idx = steps.findIndex(s => s.id === stepId);
+    const idx = steps.findIndex((s: AutoMapStep) => s.id === stepId);
     if (idx === -1) return { definition, mappedKeys: [], forEachEnabled: false };
     const { step: mapped, mappedKeys, forEachEnabled } = autoMapStep(steps[idx], definition, catalog, opts);
     if (!mappedKeys.length && !forEachEnabled) return { definition, mappedKeys: [], forEachEnabled: false };
-    const inputKeys = mappedKeys.filter(k => k !== 'overRef' && k !== 'arrayRef');
+    const inputKeys = mappedKeys.filter((k: string) => k !== 'overRef' && k !== 'arrayRef');
     const withMarker = inputKeys.length
         ? { ...mapped, autoMapped: Array.from(new Set([...(mapped.autoMapped || []), ...inputKeys])) }
         : mapped;
@@ -420,7 +420,7 @@ export function applyAutoMapToStep(definition, stepId, catalog, opts = {}) {
     // the same commit — a step spliced onto an existing connection already has
     // an outgoing edge by the time auto-map runs.
     if (withMarker.type !== steps[idx].type) {
-        next = reconcileRouteEdges(next, stepId, steps[idx], withMarker);
+        next = reconcileRouteEdges(next, stepId, steps[idx], withMarker) as typeof next;
     }
     return { definition: next, mappedKeys, forEachEnabled: !!forEachEnabled };
 }

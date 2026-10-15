@@ -4,6 +4,20 @@ import FieldKindIcon from './FieldKindIcon';
 import { describeListPath } from './listShape';
 import { mismatchSentence, remediesFor } from './mismatch';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { Remedies, Remedy } from './mismatch.types';
+
+interface MismatchResolverProps {
+    path: string;
+    sampleRoot?: unknown;
+    stepLabelById?: Map<string, string> | null;
+    actualKind?: string;
+    expectedKind?: string;
+    selectedId?: string;
+    allowForEach?: boolean;
+    itemVar?: string;
+    onChoose?: (remedy: Remedy) => void;
+    onClose?: (() => void) | null;
+}
 
 /**
  * The inline "it doesn't fit" box (artboard 2a). Lives UNDER the field it is
@@ -32,7 +46,7 @@ export default function MismatchResolver({
     actualKind = 'list', expectedKind = 'text',
     selectedId = 'join', allowForEach = false, itemVar = undefined,
     onChoose, onClose = null,
-}) {
+}: MismatchResolverProps) {
     const { t } = useTranslation();
     // Progressive disclosure (BFSF-482): the box used to open with every
     // choice expanded, so linking a list turned one field into a wall of
@@ -52,12 +66,12 @@ export default function MismatchResolver({
     // The remedy the field currently holds — shown as the collapsed summary.
     // `selectedId` can name a "more" remedy (BindingField's "choose how to use
     // the list" enters on `each`), so look in both lists.
-    const selected = [...remedies.primary, ...remedies.more].find(r => r.id === selectedId) || null;
-    const optionsLabel = {
+    const selected = [...remedies.primary, ...remedies.more].find((r: Remedy) => r.id === selectedId) || null;
+    const optionsLabel = ({
         list: t('automations.mismatch.options_list', 'List options'),
         table: t('automations.mismatch.options_table', 'Table options'),
         group: t('automations.mismatch.options_group', 'Field options'),
-    }[actualKind] || t('automations.mismatch.options_generic', 'Options');
+    } as Record<string, string>)[actualKind] || t('automations.mismatch.options_generic', 'Options');
 
     return (
         <div
@@ -86,7 +100,7 @@ export default function MismatchResolver({
 }
 
 /** One remedy choice; the applied one is filled in the accent. */
-function RemedyButton({ remedy: r, selectedId, onChoose }) {
+function RemedyButton({ remedy: r, selectedId, onChoose }: { remedy: Remedy; selectedId: string; onChoose?: (remedy: Remedy) => void }) {
     const { t } = useTranslation();
     const on = r.id === selectedId;
     return (
@@ -112,7 +126,7 @@ function RemedyButton({ remedy: r, selectedId, onChoose }) {
  * choice as a chip, the disclosure beside it. The Alt-bypass tip only matters
  * while choosing, so it lives in the expanded panel.
  */
-function CollapsedSummary({ selected, optionsLabel, onExpand }) {
+function CollapsedSummary({ selected, optionsLabel, onExpand }: { selected: Remedy | null; optionsLabel: string; onExpand: () => void }) {
     const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -139,16 +153,16 @@ function CollapsedSummary({ selected, optionsLabel, onExpand }) {
 }
 
 /** The full choice list: primary remedies, "more" for the rest, the tip. */
-function OptionsPanel({ remedies, selectedId, onChoose, onCollapse }) {
+function OptionsPanel({ remedies, selectedId, onChoose, onCollapse }: { remedies: Remedies; selectedId: string; onChoose?: (remedy: Remedy) => void; onCollapse: () => void }) {
     const { t } = useTranslation();
     const [moreOpen, setMoreOpen] = useState(false);
     return (
         <>
             <div className="flex flex-wrap gap-1.5">
-                {remedies.primary.map(r => <RemedyButton key={r.id} remedy={r} selectedId={selectedId} onChoose={onChoose} />)}
+                {remedies.primary.map((r: Remedy) => <RemedyButton key={r.id} remedy={r} selectedId={selectedId} onChoose={onChoose} />)}
                 <button
                     type="button"
-                    onClick={() => setMoreOpen(o => !o)}
+                    onClick={() => setMoreOpen((o: boolean) => !o)}
                     aria-expanded={moreOpen}
                     className="inline-flex items-center gap-1 px-2 py-[5px] rounded-lg text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
@@ -167,7 +181,7 @@ function OptionsPanel({ remedies, selectedId, onChoose, onCollapse }) {
             </div>
             {moreOpen && (
                 <div className="flex flex-wrap gap-1.5" data-testid="mismatch-more">
-                    {remedies.more.map(r => <RemedyButton key={r.id} remedy={r} selectedId={selectedId} onChoose={onChoose} />)}
+                    {remedies.more.map((r: Remedy) => <RemedyButton key={r.id} remedy={r} selectedId={selectedId} onChoose={onChoose} />)}
                 </div>
             )}
             <div className="text-[10px] text-[var(--text-tertiary)]">

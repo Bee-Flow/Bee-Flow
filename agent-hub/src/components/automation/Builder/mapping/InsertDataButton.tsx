@@ -20,7 +20,14 @@ import { FOCUS_RING } from '../flow/settings/formStyles';
  * The aria-label stays "Insert variable" in both modes — tests and assistive
  * tech match on it, and unlike the glyph it already says what it does.
  */
-export default function InsertDataButton({ onClick, title = null, open = false, className = '' }) {
+interface InsertDataButtonProps {
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    title?: string | null;
+    open?: boolean;
+    className?: string;
+}
+
+export default function InsertDataButton({ onClick, title = null, open = false, className = '' }: InsertDataButtonProps) {
     const { t } = useTranslation();
     const simple = useFormMode() === 'simple';
     return (

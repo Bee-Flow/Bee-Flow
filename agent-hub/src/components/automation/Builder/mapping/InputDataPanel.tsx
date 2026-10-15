@@ -4,10 +4,24 @@ import { countFieldsInUse } from './fieldInUse';
 import { filterGroups } from './filterFields';
 import InputNodeSection from './InputNodeSection';
 import { FieldRow } from './VariableTree';
+import type { TreeField } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { walkPath } from '../../../../utils/bindingHelpers';
 import { typeGroupOf } from '../flow/nodeTypeColors';
 import OutputView from '../OutputView';
+import type { InputGroup } from './InputNodeSection';
+
+interface InputDataPanelProps {
+    groups?: InputGroup[];
+    previewSample?: unknown;
+    onPick: (path: string, opts?: { raw?: boolean }) => void;
+    stepTypeById?: Map<string, string> | null;
+    stepNumberById?: Map<string, number> | null;
+    usedPaths?: Set<string> | null;
+    loopIteration?: { index: number; total: number; truncated?: boolean; skipped?: number } | null;
+    manualStart?: boolean;
+    onAddStartQuestion?: (() => void) | null;
+}
 
 /**
  * The drawer's COMES IN column: the upstream data you map FROM (design
@@ -35,7 +49,7 @@ import OutputView from '../OutputView';
  *   manualStart    the automation starts by hand: say that little comes in, and
  *                  offer onAddStartQuestion (open the start step) when given
  */
-function familyOfGroup(group, stepTypeById) {
+function familyOfGroup(group: InputGroup | undefined, stepTypeById: Map<string, string> | null | undefined): string | null {
     if (!group) return null;
     if (group.kind === 'loop' || String(group.basePath || '').startsWith('loop.')) return 'loop';
     if (group.kind === 'trigger' || String(group.basePath || '').startsWith('trigger.')) return 'trigger';
@@ -47,11 +61,11 @@ export default function InputDataPanel({
     groups = [], previewSample = null, onPick,
     stepTypeById = null, stepNumberById = null, usedPaths = null,
     loopIteration = null, manualStart = false, onAddStartQuestion = null,
-}) {
+}: InputDataPanelProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [searchOpen, setSearchOpen] = useState(false);
-    const [tableFor, setTableFor] = useState(null); // group id whose table took over
+    const [tableFor, setTableFor] = useState<string | null>(null); // group id whose table took over
     const [view, setView] = useState('steps'); // 'steps' | 'all'
 
     // Nearest-first for display only; the current loop item first of all. The
@@ -60,37 +74,37 @@ export default function InputDataPanel({
     // on top of the step that actually feeds this one: it goes at the bottom.
     const ordered = useMemo(() => {
         const copy = [...groups].reverse();
-        const isItem = (g) => String(g?.basePath || '').startsWith('loop.');
-        const isMeta = (g) => g?.kind === 'trigger_meta';
+        const isItem = (g: InputGroup) => String(g?.basePath || '').startsWith('loop.');
+        const isMeta = (g: InputGroup) => g?.kind === 'trigger_meta';
         return [
             ...copy.filter(isItem),
-            ...copy.filter(g => !isItem(g) && !isMeta(g)),
-            ...copy.filter(g => !isItem(g) && isMeta(g)),
+            ...copy.filter((g: InputGroup) => !isItem(g) && !isMeta(g)),
+            ...copy.filter((g: InputGroup) => !isItem(g) && isMeta(g)),
         ];
     }, [groups]);
     // The step directly feeding this one: the nearest real source. It, the loop
     // item, and (only when the trigger itself is that source) "Trigger info"
     // start open.
     const nearestId = useMemo(
-        () => ordered.find(g => !String(g?.basePath || '').startsWith('loop.') && g.kind !== 'trigger_meta')?.id ?? null,
+        () => ordered.find((g: InputGroup) => !String(g?.basePath || '').startsWith('loop.') && g.kind !== 'trigger_meta')?.id ?? null,
         [ordered],
     );
     const nearestIsTrigger = useMemo(
-        () => ordered.find(g => g.id === nearestId)?.kind === 'trigger',
+        () => ordered.find((g: InputGroup) => g.id === nearestId)?.kind === 'trigger',
         [ordered, nearestId],
     );
     // When that step has nothing to offer yet (it never ran), the nearest step
     // that DOES have fields opens too: otherwise the column opens on an empty
     // block and every value to drag is folded away.
     const fallbackOpenId = useMemo(() => {
-        const nearest = ordered.find(g => g.id === nearestId);
+        const nearest = ordered.find((g: InputGroup) => g.id === nearestId);
         if (!nearest || (nearest.fields || []).length) return null;
-        return ordered.find(g => g.id !== nearestId && !String(g?.basePath || '').startsWith('loop.')
+        return ordered.find((g: InputGroup) => g.id !== nearestId && !String(g?.basePath || '').startsWith('loop.')
             && g.kind !== 'trigger_meta' && (g.fields || []).length)?.id ?? null;
     }, [ordered, nearestId]);
     const shown = useMemo(() => filterGroups(ordered, query), [ordered, query]);
 
-    const tableGroup = tableFor ? groups.find(g => g.id === tableFor) : null;
+    const tableGroup = tableFor ? groups.find((g: InputGroup) => g.id === tableFor) : null;
 
     if (!groups.length) {
         return (
@@ -128,7 +142,7 @@ export default function InputDataPanel({
         );
     }
 
-    const seg = (on) => `px-2 py-[3px] rounded-md text-[11px] font-medium transition ${on ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`;
+    const seg = (on: boolean) => `px-2 py-[3px] rounded-md text-[11px] font-medium transition ${on ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`;
     const closeSearch = () => { setQuery(''); setSearchOpen(false); };
 
     return (
@@ -143,8 +157,8 @@ export default function InputDataPanel({
                             type="text"
                             value={query}
                             autoFocus
-                            onChange={(e) => setQuery(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); closeSearch(); } }}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Escape') { e.stopPropagation(); closeSearch(); } }}
                             placeholder={view === 'all' ? t('automations.mapping.search_all', 'Search in all steps…') : t('automations.mapping.search', 'Search a field…')}
                             aria-label={t('automations.mapping.search_fields', 'Search input fields')}
                             className="flex-1 min-w-0 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
@@ -172,16 +186,16 @@ export default function InputDataPanel({
                     <div className="px-1 py-2 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.mapping.no_matches', 'No matches.')}</div>
                 ) : view === 'all' ? (
                     <div className="flex flex-col gap-0.5 shrink-0" data-testid="input-all-fields">
-                        {shown.map(g => (
+                        {shown.map((g: InputGroup) => (
                             <React.Fragment key={g.id}>
                                 <div className="px-2 pt-1 text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)] truncate">{g.label}</div>
-                                {(g.fields || []).map(f => (
+                                {(g.fields || []).map((f: TreeField) => (
                                     <FieldRow key={f.path} field={f} onInsert={onPick} depth={0} previewSample={previewSample} inUse={usedPaths} human />
                                 ))}
                             </React.Fragment>
                         ))}
                     </div>
-                ) : shown.map((g) => (
+                ) : shown.map((g: InputGroup) => (
                     <InputNodeSection
                         key={g.id}
                         group={g}
@@ -212,7 +226,7 @@ export default function InputDataPanel({
     );
 }
 
-function SearchToggle({ onOpen }) {
+function SearchToggle({ onOpen }: { onOpen: () => void }) {
     const { t } = useTranslation();
     return (
         <button
@@ -233,7 +247,7 @@ function SearchToggle({ onOpen }) {
  * with the way to ask for something at the start (open the start step,
  * where a question turns it into a form).
  */
-function ManualStartHint({ onAdd }) {
+function ManualStartHint({ onAdd }: { onAdd: (() => void) | null }) {
     const { t } = useTranslation();
     return (
         <div className="rounded-[10px] border border-dashed border-[var(--border-default)] px-3 py-2.5 text-[11px] leading-4 text-[var(--text-secondary)] flex flex-col gap-2 shrink-0" data-testid="input-manual-hint">
