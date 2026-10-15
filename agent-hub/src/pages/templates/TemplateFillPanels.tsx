@@ -1,7 +1,6 @@
 import { Bot } from 'lucide-react';
 import React from 'react';
-import type { RefObject } from 'react';
-import InputArea from '../../components/chat/InputArea';
+import type { ReactNode, RefObject } from 'react';
 import MessageItem from '../../components/chat/MessageItem';
 import KnowledgePanel from '../../components/knowledge/KnowledgePanel';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -10,22 +9,6 @@ import type { ModelTiers, TemplateChatMessage, TemplateRecord } from './template
 
 /** The assistant the template chat shows its answers as (MessageItem reads name and avatar). */
 const TEMPLATE_ASSISTANT = { name: 'Template Assistant', avatar: '📝' };
-
-/** The composer's props as this screen uses them; the rest of InputArea's props are optional at run time. */
-interface TemplateInputAreaProps {
-    onSendMessage: (text: string, attachments?: unknown[]) => void;
-    onStopGenerating: () => void;
-    isLoading: boolean;
-    directMode: boolean;
-    modelTiers: ModelTiers;
-    selectedTier: string;
-    onTierChange: (tier: string) => void;
-    input: string;
-    setInput: (value: string) => void;
-}
-
-// InputArea is JavaScript: its props are inferred from the destructuring, which makes every one required.
-const TemplateInputArea = InputArea as React.ComponentType<TemplateInputAreaProps>;
 
 export interface FillSettingsPanelProps {
     fillTemplate: TemplateRecord;
@@ -76,21 +59,17 @@ export interface FillChatPanelProps {
     selectedNoteIds: string[];
     chatContainerRef: RefObject<HTMLDivElement | null>;
     chatEndRef: RefObject<HTMLDivElement | null>;
-    chatInput: string;
     setChatInput: (value: string) => void;
-    chatLoading: boolean;
+    /** The composer, built by the page (InputArea is JavaScript). */
+    inputArea: ReactNode;
     modelTiers: ModelTiers;
-    selectedChatTier: string;
-    setSelectedChatTier: (tier: string) => void;
-    handleSendMessage: (text: string, attachments?: unknown[]) => void;
-    stopChatGenerating: () => void;
     retryChatMessage: (idx: number, tierKey?: string) => void;
     editAndRegenerateChat: (idx: number, text: string) => void;
 }
 
 export function FillChatPanel({
-    parameterizing, chatMessages, selectedNoteIds, chatContainerRef, chatEndRef, chatInput, setChatInput, chatLoading,
-    modelTiers, selectedChatTier, setSelectedChatTier, handleSendMessage, stopChatGenerating, retryChatMessage, editAndRegenerateChat,
+    parameterizing, chatMessages, selectedNoteIds, chatContainerRef, chatEndRef, setChatInput, inputArea,
+    modelTiers, retryChatMessage, editAndRegenerateChat,
 }: FillChatPanelProps) {
     const { t } = useTranslation();
     return (
@@ -151,17 +130,7 @@ export function FillChatPanel({
 
             {/* Input Area */}
             <div className="w-full flex flex-col shrink-0">
-                <TemplateInputArea
-                    onSendMessage={(text, attachments) => handleSendMessage(text, attachments)}
-                    onStopGenerating={stopChatGenerating}
-                    isLoading={chatLoading}
-                    directMode={true}
-                    modelTiers={modelTiers}
-                    selectedTier={selectedChatTier}
-                    onTierChange={setSelectedChatTier}
-                    input={chatInput}
-                    setInput={setChatInput}
-                />
+                {inputArea}
             </div>
         </>
     );

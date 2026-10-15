@@ -5,7 +5,7 @@ import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '../../utils/ag
 /** The agent the embed shows: the embed payload mapped to the shape WelcomeScreen and MessageItem expect. */
 export type EmbedAgent = {
     id: string;
-    name: string;
+    name?: string;
     description?: string;
     avatar?: string;
     starter_prompts: string[];

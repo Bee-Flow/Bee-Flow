@@ -1,5 +1,7 @@
 import { NAV_ITEMS, MOBILE_VISIBLE_TOP_TABS, MOBILE_EXTRA_TABS, SETTINGS_RESOURCE_TABS } from '../settingsNavItems';
+import { CONSUMER_NAV_ITEMS } from './SettingsNav';
 import type { NavRow } from './SettingsNav';
+import type { OrgSubItem } from './settingsShellTypes';
 
 /* On phones the settings surface is trimmed to user-only sections: Connections
  * (integrations), Learning Center (learning) and the whole Organisation section
@@ -49,4 +51,11 @@ export function splitNavRows(visibleNavItems: NavRow[]): { settingsNavRows: NavR
         settingsNavRows: visibleNavItems.filter(item => !SETTINGS_RESOURCE_TABS.includes(item.id)),
         resourceNavRows: visibleNavItems.filter(item => SETTINGS_RESOURCE_TABS.includes(item.id)),
     };
+}
+
+/** The row the phone title bar names: a top-level row, an org sub-tab or a consumer row. */
+export function findActiveNavItem(activeTab: string, orgItems: OrgSubItem[]): { labelKey: string } | undefined {
+    return NAV_ITEMS.find(i => i.id === activeTab)
+        || orgItems.find(s => s.id === activeTab)
+        || CONSUMER_NAV_ITEMS.find(i => i.id === activeTab);
 }

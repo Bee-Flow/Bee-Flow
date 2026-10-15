@@ -5,6 +5,7 @@ import { API_BASE, authFetch } from './mutate';
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export const templatesApi = {
+    chatModels: () => authFetch(`${API_BASE}/ai/config/chat-models`),
     list: () => authFetch(`${API_BASE}/api/templates`),
     get: (id: string) => authFetch(`${API_BASE}/api/templates/${id}`),
     upload: (body: FormData) => authFetch(`${API_BASE}/api/templates/upload`, { method: 'POST', body }),

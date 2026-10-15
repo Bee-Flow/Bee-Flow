@@ -12,20 +12,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * stubbed; HTTP goes through a mocked authFetch/mutate.
  */
 
-const api = vi.hoisted(() => ({ authFetch: vi.fn(), mutate: vi.fn() }));
+type FakeRes = { ok: boolean; json: () => Promise<unknown>; blob: () => Promise<Blob> };
+type Handler = (url: string, opts?: RequestInit) => FakeRes;
+type Msg = { id: string; role: string; content: string; parentId?: string; _downloadUrl?: string };
+type EngineArgs = { directMode: { enabled: boolean; modelTier: string; customEndpoint?: string; getExtraPayload: () => Record<string, unknown> } };
+type TplParam = string | { name: string; description?: string };
+type Tpl = { id: string; name: string; fileName: string; createdAt?: string; parameters: TplParam[]; description: string; instructions?: string; knowledgeBaseIds?: string[] };
+
+const api = vi.hoisted(() => ({
+    authFetch: vi.fn<(url: string, opts?: RequestInit) => Promise<unknown>>(),
+    mutate: vi.fn<(url: string, opts?: RequestInit) => Promise<unknown>>(),
+}));
 vi.mock('../api/mutate', () => ({ API_BASE: '', authFetch: api.authFetch, mutate: api.mutate }));
 
-const toastApi = vi.hoisted(() => ({ error: vi.fn() }));
+const toastApi = vi.hoisted(() => ({ error: vi.fn<(message: string) => void>() }));
 vi.mock('../components/shared/Toast', () => ({ toast: toastApi }));
 
 const engine = vi.hoisted(() => ({
-    state: { messages: [], isLoading: false },
-    setMessages: vi.fn(),
-    sendMessage: vi.fn(),
-    lastArgs: null,
+    state: { messages: [] as Msg[], isLoading: false },
+    setMessages: vi.fn<(update: unknown) => void>(),
+    sendMessage: vi.fn<(text: string, attachments?: unknown[]) => void>(),
+    lastArgs: null as EngineArgs | null,
 }));
 vi.mock('../hooks/useChatEngine', () => ({
-    default: (args) => {
+    default: (args: EngineArgs) => {
         engine.lastArgs = args;
         return {
             messages: engine.state.messages,
@@ -40,7 +50,7 @@ vi.mock('../hooks/useChatEngine', () => ({
 }));
 
 vi.mock('../components/chat/InputArea', () => ({
-    default: ({ onSendMessage, input, setInput, selectedTier }) => (
+    default: ({ onSendMessage, input, setInput, selectedTier }: { onSendMessage: (text: string, attachments: unknown[]) => void; input: string; setInput: (v: string) => void; selectedTier: string }) => (
         <div data-testid="input-area" data-tier={selectedTier}>
             <input aria-label="chat-input" value={input} onChange={e => setInput(e.target.value)} />
             <button onClick={() => onSendMessage('hello', [])}>send-stub</button>
@@ -48,17 +58,17 @@ vi.mock('../components/chat/InputArea', () => ({
     ),
 }));
 vi.mock('../components/chat/MessageItem', () => ({
-    default: ({ msg }) => <div data-testid="message-item">{msg.content}</div>,
+    default: ({ msg }: { msg: Msg }) => <div data-testid="message-item">{msg.content}</div>,
 }));
 vi.mock('../components/knowledge/KnowledgePanel', () => ({
-    default: ({ knowledgeBaseIds, onKnowledgeBaseIdsChange }) => (
+    default: ({ knowledgeBaseIds, onKnowledgeBaseIdsChange }: { knowledgeBaseIds: string[]; onKnowledgeBaseIdsChange: (ids: string[]) => void }) => (
         <div data-testid="knowledge-panel" data-ids={knowledgeBaseIds.join(',')}>
             <button onClick={() => onKnowledgeBaseIdsChange(['kb1'])}>kb-stub</button>
         </div>
     ),
 }));
 vi.mock('../components/meeting-picker/MeetingPicker', () => ({
-    default: ({ value, onChange }) => (
+    default: ({ value, onChange }: { value: string[]; onChange: (ids: string[]) => void }) => (
         <div data-testid="meeting-picker" data-value={value.join(',')}>
             <button onClick={() => onChange(['n1', 'n2'])}>pick-notes</button>
         </div>
@@ -67,13 +77,13 @@ vi.mock('../components/meeting-picker/MeetingPicker', () => ({
 
 import TemplatesPage from './TemplatesPage';
 
-const json = (body, ok = true) => ({ ok, json: async () => body, blob: async () => new Blob(['x']) });
+const json = (body: unknown, ok = true): FakeRes => ({ ok, json: async () => body, blob: async () => new Blob(['x']) });
 
-const T1 = { id: 't1', name: 'Contract', fileName: 'contract.docx', createdAt: '2026-01-01T00:00:00Z', parameters: ['client', { name: 'date', description: 'Start date' }], description: 'A contract', instructions: 'be formal', knowledgeBaseIds: [] };
-const T2 = { id: 't2', name: 'Invoice', fileName: 'invoice.docx', createdAt: '2026-01-02T00:00:00Z', parameters: [], description: 'An invoice', instructions: '' };
+const T1: Tpl = { id: 't1', name: 'Contract', fileName: 'contract.docx', createdAt: '2026-01-01T00:00:00Z', parameters: ['client', { name: 'date', description: 'Start date' }], description: 'A contract', instructions: 'be formal', knowledgeBaseIds: [] };
+const T2: Tpl = { id: 't2', name: 'Invoice', fileName: 'invoice.docx', createdAt: '2026-01-02T00:00:00Z', parameters: [], description: 'An invoice', instructions: '' };
 
-let routes;
-function setup(templates = [T1, T2]) {
+let routes: Record<string, Handler> = {};
+function setup(templates: Tpl[] = [T1, T2]) {
     routes = { 'GET /api/templates': () => json({ templates }), 'GET /ai/config/chat-models': () => json({}) };
     api.authFetch.mockImplementation(async (url, opts) => {
         const key = `${opts?.method || 'GET'} ${url}`;
@@ -85,6 +95,30 @@ function setup(templates = [T1, T2]) {
     const onBack = vi.fn();
     const utils = render(<TemplatesPage user={{ id: 'u' }} onBack={onBack} />);
     return { onBack, ...utils };
+}
+
+/** The recorded authFetch call to `url` (optionally with a method); fails the test when there is none. */
+function callTo(url: string, method?: string): [string, RequestInit | undefined] {
+    const call = api.authFetch.mock.calls.find(c => c[0] === url && (!method || c[1]?.method === method));
+    if (!call) throw new Error(`no call to ${url}`);
+    return [call[0], call[1]];
+}
+const calledUrl = (suffix: string) => api.authFetch.mock.calls.some(c => String(c[0]).endsWith(suffix));
+const bodyOf = (call: [string, RequestInit | undefined]) => JSON.parse(String(call[1]?.body));
+/** The direct-mode options the page last handed the chat engine. */
+function directMode() {
+    if (!engine.lastArgs) throw new Error('chat engine not rendered');
+    return engine.lastArgs.directMode;
+}
+type Updater = (prev: Msg[]) => Msg[];
+/** The functional updates the page sent to setMessages, in order. */
+function updaters(): Updater[] {
+    return engine.setMessages.mock.calls.map(c => c[0]).filter((u): u is Updater => typeof u === 'function');
+}
+function fileInput(container: HTMLElement): HTMLInputElement {
+    const el = container.querySelector('input[type="file"]');
+    if (!(el instanceof HTMLInputElement)) throw new Error('no file input');
+    return el;
 }
 
 beforeEach(() => {
@@ -138,9 +172,7 @@ describe('TemplatesPage list view', () => {
         await userEvent.clear(input);
         await userEvent.type(input, 'Deal{Enter}');
         await waitFor(() => {
-            const put = api.authFetch.mock.calls.find(c => c[1]?.method === 'PUT');
-            expect(put[0]).toBe('/api/templates/t1');
-            expect(JSON.parse(put[1].body)).toEqual({ name: 'Deal' });
+            expect(bodyOf(callTo('/api/templates/t1', 'PUT'))).toEqual({ name: 'Deal' });
         });
         await waitFor(() => expect(screen.queryByDisplayValue('Deal')).toBeNull());
     });
@@ -170,37 +202,37 @@ describe('TemplatesPage list view', () => {
     it('rejects a non-docx upload', async () => {
         const { container } = setup();
         await screen.findByText('Contract');
-        const input = container.querySelector('input[type="file"]');
         const bad = new File(['x'], 'a.pdf', { type: 'application/pdf' });
-        await userEvent.upload(input, bad, { applyAccept: false });
+        await userEvent.upload(fileInput(container), bad, { applyAccept: false });
         expect(toastApi.error).toHaveBeenCalledWith('Please select a .docx file');
     });
 
     it('uploads a docx, sends skipAutoParameterize when ticked and opens the new template', async () => {
         const { container } = setup();
         await screen.findByText('Contract');
-        const fresh = { id: 't3', name: 'New', fileName: 'new.docx', parameters: ['a'], description: 'd', instructions: 'i' };
+        const fresh: Tpl = { id: 't3', name: 'New', fileName: 'new.docx', parameters: ['a'], description: 'd', instructions: 'i' };
         routes['POST /api/templates/upload'] = () => json({ template: fresh });
         await userEvent.click(screen.getByLabelText('Skip AI detection'));
         const file = new File(['x'], 'New.docx');
-        await userEvent.upload(container.querySelector('input[type="file"]'), file);
+        await userEvent.upload(fileInput(container), file);
         expect(await screen.findByText('1 parameter · new.docx')).toBeTruthy();
-        const post = api.authFetch.mock.calls.find(c => c[0] === '/api/templates/upload');
-        expect(post[1].body.get('name')).toBe('New');
-        expect(post[1].body.get('skipAutoParameterize')).toBe('true');
+        const form = callTo('/api/templates/upload')[1]?.body;
+        if (!(form instanceof FormData)) throw new Error('upload body is not form data');
+        expect(form.get('name')).toBe('New');
+        expect(form.get('skipAutoParameterize')).toBe('true');
     });
 
     it('shows the server error of a failed upload', async () => {
         const { container } = setup();
         await screen.findByText('Contract');
         routes['POST /api/templates/upload'] = () => json({ error: 'too big' }, false);
-        await userEvent.upload(container.querySelector('input[type="file"]'), new File(['x'], 'a.docx'));
+        await userEvent.upload(fileInput(container), new File(['x'], 'a.docx'));
         await waitFor(() => expect(toastApi.error).toHaveBeenCalledWith('too big'));
     });
 });
 
 describe('TemplatesPage fill view', () => {
-    async function openFill(templates) {
+    async function openFill(templates?: Tpl[]) {
         setup(templates);
         await screen.findByText('Contract');
         await userEvent.click(screen.getAllByText('Fill with AI')[0]);
@@ -214,20 +246,20 @@ describe('TemplatesPage fill view', () => {
         expect(screen.getByText('A contract')).toBeTruthy();
         expect(screen.getByText('Fill this template with AI')).toBeTruthy();
         expect(screen.getByTestId('input-area').getAttribute('data-tier')).toBe('auto');
-        expect(engine.lastArgs.directMode).toMatchObject({ enabled: true, modelTier: 'auto', customEndpoint: '/ai/chat/template/stream' });
-        expect(engine.lastArgs.directMode.getExtraPayload()).toEqual({ templateId: 't1', meetingNoteIds: [] });
+        expect(directMode()).toMatchObject({ enabled: true, modelTier: 'auto', customEndpoint: '/ai/chat/template/stream' });
+        expect(directMode().getExtraPayload()).toEqual({ templateId: 't1', meetingNoteIds: [] });
         expect(engine.setMessages).toHaveBeenCalledWith([]);
-        expect(screen.getByText('Generate Document').closest('button').disabled).toBe(true);
+        expect(screen.getByText('Generate Document').closest('button')?.disabled).toBe(true);
     });
 
     it('fills the chat input from a suggestion and passes meeting notes to the payload', async () => {
         await openFill();
         await userEvent.click(screen.getByText('Help me fill this template'));
-        expect(screen.getByLabelText('chat-input').value).toBe('Help me fill this template');
+        expect(screen.getByLabelText<HTMLInputElement>('chat-input').value).toBe('Help me fill this template');
         await userEvent.click(screen.getByText('pick-notes'));
         expect(screen.getByText('2 selected')).toBeTruthy();
         expect(screen.getByText(/Meeting notes are loaded as context/)).toBeTruthy();
-        expect(engine.lastArgs.directMode.getExtraPayload()).toEqual({ templateId: 't1', meetingNoteIds: ['n1', 'n2'] });
+        expect(directMode().getExtraPayload()).toEqual({ templateId: 't1', meetingNoteIds: ['n1', 'n2'] });
     });
 
     it('forwards a sent message to the chat engine', async () => {
@@ -288,8 +320,7 @@ describe('TemplatesPage fill view', () => {
         const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
         await userEvent.click(screen.getByText('Generate Document'));
         await waitFor(() => expect(click).toHaveBeenCalled());
-        const post = api.authFetch.mock.calls.find(c => c[0] === '/api/templates/t1/fill');
-        expect(JSON.parse(post[1].body)).toEqual({ values: { client: 'Acme' } });
+        expect(bodyOf(callTo('/api/templates/t1/fill'))).toEqual({ values: { client: 'Acme' } });
     });
 
     it('toasts the server error when generating fails', async () => {
@@ -310,15 +341,13 @@ describe('TemplatesPage fill view', () => {
         engine.state = { messages: [{ id: 'a', role: 'assistant', content: block }], isLoading: false };
         // re-render by interacting
         await userEvent.click(screen.getByText('Settings & Knowledge'));
-        await waitFor(() => expect(api.authFetch.mock.calls.some(c => c[0] === '/api/templates/t1/fill-and-store')).toBe(true));
-        const post = api.authFetch.mock.calls.find(c => c[0] === '/api/templates/t1/fill-and-store');
-        expect(JSON.parse(post[1].body)).toEqual({ values: { client: 'Acme' } });
+        await waitFor(() => expect(calledUrl('/api/templates/t1/fill-and-store')).toBe(true));
+        expect(bodyOf(callTo('/api/templates/t1/fill-and-store'))).toEqual({ values: { client: 'Acme' } });
         // first setMessages call appends the placeholder, a later one patches it
-        const calls = engine.setMessages.mock.calls.map(c => c[0]).filter(f => typeof f === 'function');
-        const placeholder = calls[0]([]);
+        const placeholder = updaters()[0]([]);
         expect(placeholder[0]).toMatchObject({ role: 'assistant', isSystem: true, content: '⏳ Generating your document...' });
         await waitFor(() => expect(engine.setMessages.mock.calls.length).toBeGreaterThan(3));
-        const patched = engine.setMessages.mock.calls.map(c => c[0]).filter(f => typeof f === 'function').pop()(placeholder);
+        const patched = (updaters().pop() ?? ((prev: Msg[]) => prev))(placeholder);
         expect(patched[0].content).toContain('Download f.docx');
         expect(patched[0]._downloadUrl).toBe('/dl/f.docx');
     });
@@ -337,7 +366,7 @@ describe('TemplatesPage fill view', () => {
 describe('TemplatesPage processing poll', () => {
     it('polls a template without parameters and description until it is analysed', async () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
-        const raw = { id: 't9', name: 'Raw', fileName: 'raw.docx', createdAt: '2026-01-01T00:00:00Z', parameters: [], description: '' };
+        const raw: Tpl = { id: 't9', name: 'Raw', fileName: 'raw.docx', createdAt: '2026-01-01T00:00:00Z', parameters: [], description: '' };
         setup([raw]);
         await screen.findByText('Raw');
         await userEvent.click(screen.getByText('Fill with AI'));

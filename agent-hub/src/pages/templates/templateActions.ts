@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { toast } from '../../components/shared/Toast';
 import { API_BASE, mutate } from '../../api/mutate';
 import { templatesApi } from '../../api/templatesApi';
-import { errorMessage, messageOf } from '../../utils/caughtError';
+import { errorMessage } from '../../utils/caughtError';
 import { startUploadPoll } from './templatePolling';
 import type { PollDeps } from './templatePolling';
 import type { TemplateChatMessage, TemplateRecord } from './templateTypes';
@@ -10,14 +10,12 @@ import type { TemplateChatMessage, TemplateRecord } from './templateTypes';
 /** What the handlers read and write: the page's state and setters. */
 export interface TemplateActionsDeps extends PollDeps {
     fillTemplate: TemplateRecord | null;
-    editInstructions: string;
     renameValue: string;
     skipAiDetection: boolean;
     chatMessages: TemplateChatMessage[];
     setTemplates: Dispatch<SetStateAction<TemplateRecord[]>>;
     setUploading: (value: boolean) => void;
     setGenerating: (value: boolean) => void;
-    setSavingInstructions: (value: boolean) => void;
     setRenamingId: (id: string | null) => void;
     setDeletingId: (id: string | null) => void;
     sendChatMessage: (text: string) => void;
@@ -26,38 +24,10 @@ export interface TemplateActionsDeps extends PollDeps {
 /** The template screen's server actions (save, upload, rename, delete, download, generate). */
 export function createTemplateActions(deps: TemplateActionsDeps) {
     const {
-        fillTemplate, editInstructions, renameValue, skipAiDetection, chatMessages, pollersRef,
-        setTemplates, setUploading, setGenerating, setSavingInstructions, setRenamingId, setDeletingId,
+        fillTemplate, renameValue, skipAiDetection, chatMessages, pollersRef,
+        setTemplates, setUploading, setGenerating, setRenamingId, setDeletingId,
         setFillTemplate, setEditInstructions, setParameterizing, loadTemplates, sendChatMessage,
     } = deps;
-
-    // Save instructions
-    const saveInstructions = async () => {
-        if (!fillTemplate) return;
-        setSavingInstructions(true);
-        try {
-            await mutate(`${API_BASE}/api/templates/${fillTemplate.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ instructions: editInstructions }),
-            });
-            setFillTemplate(prev => (prev ? { ...prev, instructions: editInstructions } : prev));
-        } catch (err) { console.error('Save instructions failed:', err); toast.error(messageOf(err, 'Save failed')); }
-        finally { setSavingInstructions(false); }
-    };
-
-    // KB ID changes — persist to template
-    const handleKnowledgeBaseIdsChange = async (newIds: string[]) => {
-        if (!fillTemplate) return;
-        setFillTemplate(prev => (prev ? { ...prev, knowledgeBaseIds: newIds } : prev));
-        try {
-            await mutate(`${API_BASE}/api/templates/${fillTemplate.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ knowledgeBaseIds: newIds }),
-            });
-        } catch (err) { console.error('Save KB IDs failed:', err); toast.error(messageOf(err, 'Save failed')); }
-    };
 
     // Upload handler
     const handleUpload = async (file: File) => {
@@ -198,5 +168,5 @@ export function createTemplateActions(deps: TemplateActionsDeps) {
         }
     };
 
-    return { saveInstructions, handleKnowledgeBaseIdsChange, handleUpload, handleRename, handleDelete, handleDownload, handleGenerate };
+    return { handleUpload, handleRename, handleDelete, handleDownload, handleGenerate };
 }

@@ -1,6 +1,7 @@
+import { useEffect, useRef } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { templatesApi } from '../../api/templatesApi';
-import type { TemplateRecord } from './templateTypes';
+import type { ModelTiers, TemplateRecord } from './templateTypes';
 
 /** What a background poll needs from the page: its interval registry and the setters it feeds. */
 export interface PollDeps {
@@ -93,4 +94,27 @@ export async function fetchTemplateList(setTemplates: (templates: TemplateRecord
     } finally {
         setLoading(false);
     }
+}
+
+/**
+ * Active polling intervals, cleared on unmount so navigating away mid-upload
+ * or mid-template-detect doesn't leak repeating fetches.
+ */
+export function usePollersRef(): MutableRefObject<Set<ReturnType<typeof setInterval>>> {
+    const pollersRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set());
+    useEffect(() => () => {
+        pollersRef.current.forEach(clearInterval);
+        pollersRef.current.clear();
+    }, []);
+    return pollersRef;
+}
+
+/** Loads the chat model tiers once (a failed load leaves them empty). */
+export function useModelTiersLoader(setModelTiers: (tiers: ModelTiers) => void): void {
+    useEffect(() => {
+        templatesApi.chatModels()
+            .then(r => r.ok ? r.json() : {})
+            .then(data => setModelTiers(data))
+            .catch(e => console.warn('[TemplatesPage] load model tiers failed', e));
+    }, []);
 }

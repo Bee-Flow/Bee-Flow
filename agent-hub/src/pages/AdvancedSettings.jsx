@@ -1,19 +1,18 @@
 import { Users, Link2, BarChart2, Cloud, FolderGit2, GraduationCap, FileText, Scale, Plug, ShieldCheck } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { SETTINGS_ORG_ID_TO_URL, settingsTabFromPath } from '../authedApp/settingsRoutes';
-import { SECTIONS as ORG_SECTIONS } from '../components/admin/org/OrgInfoPanel';
+import ComplianceHub from '../components/admin/compliance';
 import useComplianceCounts from '../components/admin/compliance/data/useComplianceCounts';
+import { SECTIONS as ORG_SECTIONS } from '../components/admin/org/OrgInfoPanel';
 import MemoryPanel from '../components/knowledge/memory/MemoryPanel';
 import { useSubscriptionContext } from '../components/licensing/SubscriptionContext';
 import NavCountBadge from '../components/shared/NavCountBadge';
 import { useTranslation } from '../hooks/useTranslation';
 import { useViewport } from '../hooks/useViewport';
-import { NAV_ITEMS } from './settings/settingsNavItems';
 import { filterOrgSubItems, groupOrgNavItems } from './settings/shell/orgSubItems';
 import { renderSettingsContent } from './settings/shell/renderSettingsContent';
 import { SettingsContentPanel, SettingsTitleBar } from './settings/shell/SettingsFrame';
-import { CONSUMER_NAV_ITEMS } from './settings/shell/SettingsNav';
-import { getVisibleNavItems, splitNavRows } from './settings/shell/settingsShellData';
+import { findActiveNavItem, getVisibleNavItems, splitNavRows } from './settings/shell/settingsShellData';
 import { SettingsSidebar } from './settings/shell/SettingsSidebar';
 import { useComplianceNavigation } from './settings/shell/useComplianceNavigation';
 import { useDefaultAgentPreference } from './settings/shell/useDefaultAgentPreference';
@@ -104,12 +103,8 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose })
         canSeeOrg, canUseLearning, entitlementsLoading, inCeiling, entitlementsUnknown, projectsOn, canSeeCompliance,
         showComplianceNav, canManageUsers, isSelfHosted, isConsumerAccount, isNcConnectorUser, isNcOrg, showNcSync,
     } = useSettingsAccess(user);
-    // The badge on the Compliance row. ONE cheap call, no poll: the settings
-    // sidebar is not a dashboard, and the hub refetches its own numbers once
-    // it is open. `attention_open` is the only key asked for, and an unknown
-    // or zero count renders nothing at all (NavCountBadge) — a nav row with a
-    // "0" on it is noise, and a "0" invented while the endpoint has not
-    // answered is a lie.
+    // The badge on the Compliance row: ONE cheap call, no poll, `attention_open`
+    // only; an unknown or zero count renders nothing (NavCountBadge).
     const { counts: complianceCounts } = useComplianceCounts({
         enabled: !!showComplianceNav, poll: false, keys: ['attention_open'],
     });
@@ -173,9 +168,18 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose })
 
     const { handleComplianceNavigate } = useComplianceNavigation(canSeeOrg, onNavigate, setOrgDeepSegs, setActiveTabState);
 
+    // On a phone the hub owns the way back to the section list (its own top bar).
+    const complianceHub = (
+        <ComplianceHub
+            activeSection={orgDeepSegs.seg1 || 'overview'}
+            focusCheckId={orgDeepSegs.seg2 || null}
+            onNavigate={handleComplianceNavigate}
+            onBack={isMobile ? (() => setMobileDetail(false)) : null}
+        />
+    );
     const renderContent = () => renderSettingsContent({
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs, handleComplianceNavigate, setMobileDetail,
+        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs, complianceHub,
         defaultAgentMode, setDefaultAgentMode, defaultAgentId, setDefaultAgentId, agents, onLogout, onUpdateUser,
         memoryStats, memoryStatsStatus, fetchMemoryStats, statuses, handleIntegrationSaved,
         openMemoryPanel: (view) => { setMemoryPanelView(view === 'review' ? 'review' : 'active'); setShowMemoryPanel(true); },
@@ -209,16 +213,11 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose })
     // Phone title bar shows the section name while in detail view: a top-level
     // row, an org sub-tab (Compliance, the no-plan licence page) or a consumer
     // row (the Stripe return), else the screen title.
-    const activeNavItem = NAV_ITEMS.find(i => i.id === activeTab)
-        || [...BASE_ORG_SUB_ITEMS, AZURE_SUB_ITEM].find(s => s.id === activeTab)
-        || CONSUMER_NAV_ITEMS.find(i => i.id === activeTab);
+    const activeNavItem = findActiveNavItem(activeTab, [...BASE_ORG_SUB_ITEMS, AZURE_SUB_ITEM]);
     const mobileInDetail = isMobile && mobileDetail;
     const titleLabel = mobileInDetail && activeNavItem ? t(activeNavItem.labelKey) : t('settings.title');
-    // The Compliance Center draws its OWN 44px top bar on a phone (back
-    // chevron, kind tile, title, run-now) — stacking the settings bar above it
-    // costs 48px of an 844px screen and shows two back buttons that mean
-    // different things. Only in detail view: on the section LIST the bar is
-    // the way out of Settings.
+    // The Compliance Center draws its OWN top bar on a phone, so in detail view
+    // the settings bar is hidden (two back buttons would mean different things).
     const hideTitleBar = mobileInDetail && activeTab === 'org_compliance';
 
     // The top-level rows this person gets, split into the settings and the

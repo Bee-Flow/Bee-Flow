@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { queryWrapper } from '../test/queryWrapper';
-import EmbedChatJs from './EmbedChat';
+import EmbedChat from './EmbedChat';
+import { reply, streamResponseOf } from './EmbedChat.testkit';
 
 /**
  * Characterisation of the embed's turn: how each server-sent event of the
@@ -18,25 +18,11 @@ vi.mock('../components/chat/MessageItem', () => ({
     default: ({ msg }: { msg: { role: string } }) => <pre data-testid={`msg-${msg.role}`}>{JSON.stringify(msg)}</pre>,
 }));
 
-const EmbedChat = EmbedChatJs as unknown as React.ComponentType<{ agentId: string }>;
-
 let fetchSpy: MockInstance<typeof fetch>;
 let events: Array<[string, unknown]> = [];
 let streamOk = true;
 
 const sse = () => events.map(([e, d]) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`).join('');
-
-function streamResponse() {
-    const chunks = [new TextEncoder().encode(sse())];
-    let i = 0;
-    return {
-        ok: streamOk,
-        status: streamOk ? 200 : 500,
-        body: { getReader: () => ({ read: () => Promise.resolve(i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined }) }) },
-    } as unknown as Response;
-}
-
-const reply = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body, text: async () => '' }) as unknown as Response;
 
 let embedStatus = 200;
 beforeEach(() => {
@@ -47,7 +33,7 @@ beforeEach(() => {
     fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
         const url = String(input);
         if (url.endsWith('/agents/a1/embed')) return reply({ id: 'a1', name: 'Helper', description: 'Desc', avatar: '', starterPrompts: ['Hi there'], copyEnabled: false }, embedStatus);
-        if (url.endsWith('/agents/a1/chat/stream')) return streamResponse();
+        if (url.endsWith('/agents/a1/chat/stream')) return streamResponseOf(sse(), streamOk);
         return reply({});
     });
 });

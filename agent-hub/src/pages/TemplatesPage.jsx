@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { API_BASE, authFetch } from '../api/mutate';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { API_BASE, mutate } from '../api/mutate';
 import { createTemplateActions } from './templates/templateActions';
 import useConfirm from '../components/shared/useConfirm';
 import useChatEngine from '../hooks/useChatEngine';
 import TemplateFillView from './templates/TemplateFillView';
 import TemplateListView from './templates/TemplateListView';
-import { fetchTemplateList, startProcessingPoll } from './templates/templatePolling';
+import { fetchTemplateList, startProcessingPoll, useModelTiersLoader, usePollersRef } from './templates/templatePolling';
 import { useTemplateAutoGenerate } from './templates/useTemplateAutoGenerate';
+import { useTemplateChatOptions } from './templates/useTemplateChatOptions';
+import InputArea from '../components/chat/InputArea';
+import { toast } from '../components/shared/Toast';
 
 export default function TemplatesPage({ user, onBack }) {
     // Template list state
@@ -19,13 +22,8 @@ export default function TemplatesPage({ user, onBack }) {
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef(null);
 
-    // Active polling intervals — cleared on unmount so navigating away mid-
-    // upload or mid-template-detect doesn't leak repeating fetches.
-    const pollersRef = useRef(new Set());
-    useEffect(() => () => {
-        pollersRef.current.forEach(clearInterval);
-        pollersRef.current.clear();
-    }, []);
+    // Active polling intervals (cleared on unmount)
+    const pollersRef = usePollersRef();
 
     // Rename state
     const [renamingId, setRenamingId] = useState(null);
@@ -55,23 +53,7 @@ export default function TemplatesPage({ user, onBack }) {
     const chatContainerRef = useRef(null);
 
     // useChatEngine — routes through dedicated template chat endpoint
-    const { messages: chatMessages, setMessages: setChatMessages, isLoading: chatLoading, sendMessage: sendChatMessage, stopGenerating: stopChatGenerating, retryMessage: retryChatMessage, editAndRegenerate: editAndRegenerateChat } = useChatEngine({
-        selectedAgent: null,
-        currentConversation: null,
-        onConversationCreated: useCallback(() => {}, []),
-        getNotebookPayload: useCallback(() => ({}), []),
-        onNotebookUpdate: useCallback(() => {}, []),
-        directMode: useMemo(() => ({
-            enabled: true,
-            modelTier: selectedChatTier,
-            customEndpoint: fillTemplate ? '/ai/chat/template/stream' : undefined,
-            getExtraPayload: () => fillTemplate ? {
-                templateId: fillTemplate.id,
-                meetingNoteIds: selectedNoteIds,
-            } : {},
-        }), [selectedChatTier, fillTemplate?.id, selectedNoteIds]),
-        onDirectConversationCreated: useCallback(() => {}, []),
-    });
+    const { messages: chatMessages, setMessages: setChatMessages, isLoading: chatLoading, sendMessage: sendChatMessage, stopGenerating: stopChatGenerating, retryMessage: retryChatMessage, editAndRegenerate: editAndRegenerateChat } = useChatEngine(useTemplateChatOptions(selectedChatTier, fillTemplate, selectedNoteIds));
 
     // Load templates
     const loadTemplates = useCallback(() => fetchTemplateList(setTemplates, setLoading), []);
@@ -80,12 +62,7 @@ export default function TemplatesPage({ user, onBack }) {
     useEffect(() => { loadTemplates(); }, [loadTemplates]);
 
     // Load model tiers
-    useEffect(() => {
-        authFetch(`${API_BASE}/ai/config/chat-models`)
-            .then(r => r.ok ? r.json() : {})
-            .then(data => setModelTiers(data))
-            .catch(e => console.warn('[TemplatesPage] load model tiers failed', e));
-    }, []);
+    useModelTiersLoader(setModelTiers);
 
     // What the background polls feed (see templates/templatePolling)
     const pollDeps = { pollersRef, setParameterizing, setFillTemplate, setEditInstructions, loadTemplates };
@@ -113,13 +90,41 @@ export default function TemplatesPage({ user, onBack }) {
     // Auto-generate document when AI outputs a JSON block with parameter values
     useTemplateAutoGenerate(fillTemplate, chatMessages, chatLoading, setChatMessages);
 
-    const { saveInstructions, handleKnowledgeBaseIdsChange, handleUpload, handleRename, handleDelete, handleDownload, handleGenerate } = createTemplateActions({
-        fillTemplate, editInstructions, renameValue, skipAiDetection, chatMessages,
+    const { handleUpload, handleRename, handleDelete, handleDownload, handleGenerate } = createTemplateActions({
+        fillTemplate, renameValue, skipAiDetection, chatMessages,
         ...pollDeps,
-        setTemplates, setUploading, setGenerating, setSavingInstructions, setRenamingId, setDeletingId,
+        setTemplates, setUploading, setGenerating, setRenamingId, setDeletingId,
         sendChatMessage,
     });
 
+
+    // Save instructions
+    const saveInstructions = async () => {
+        if (!fillTemplate) return;
+        setSavingInstructions(true);
+        try {
+            await mutate(`${API_BASE}/api/templates/${fillTemplate.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instructions: editInstructions }),
+            });
+            setFillTemplate(prev => ({ ...prev, instructions: editInstructions }));
+        } catch (err) { console.error('Save instructions failed:', err); toast.error(err.message); }
+        finally { setSavingInstructions(false); }
+    };
+
+    // KB ID changes — persist to template
+    const handleKnowledgeBaseIdsChange = async (newIds) => {
+        if (!fillTemplate) return;
+        setFillTemplate(prev => ({ ...prev, knowledgeBaseIds: newIds }));
+        try {
+            await mutate(`${API_BASE}/api/templates/${fillTemplate.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ knowledgeBaseIds: newIds }),
+            });
+        } catch (err) { console.error('Save KB IDs failed:', err); toast.error(err.message); }
+    };
 
     // Auto-scroll chat
     useEffect(() => {
@@ -147,14 +152,21 @@ export default function TemplatesPage({ user, onBack }) {
                 chatMessages={chatMessages}
                 chatContainerRef={chatContainerRef}
                 chatEndRef={chatEndRef}
-                chatInput={chatInput}
                 setChatInput={setChatInput}
-                chatLoading={chatLoading}
+                inputArea={(
+                    <InputArea
+                        onSendMessage={(text, attachments) => sendChatMessage(text, attachments)}
+                        onStopGenerating={stopChatGenerating}
+                        isLoading={chatLoading}
+                        directMode={true}
+                        modelTiers={modelTiers}
+                        selectedTier={selectedChatTier}
+                        onTierChange={setSelectedChatTier}
+                        input={chatInput}
+                        setInput={setChatInput}
+                    />
+                )}
                 modelTiers={modelTiers}
-                selectedChatTier={selectedChatTier}
-                setSelectedChatTier={setSelectedChatTier}
-                handleSendMessage={sendChatMessage}
-                stopChatGenerating={stopChatGenerating}
                 retryChatMessage={retryChatMessage}
                 editAndRegenerateChat={editAndRegenerateChat}
             />

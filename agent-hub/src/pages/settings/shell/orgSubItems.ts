@@ -14,7 +14,7 @@ export interface OrgSubItemFacts {
     orgAuthLocked: boolean;
     entitlementsLoading: boolean;
     entitlementsUnknown: boolean;
-    inCeiling: (id: string) => boolean;
+    inCeiling?: (id: string) => boolean;
 }
 
 /** The org sub-menu rows this person gets, from the full list plus the self-hosted Azure row. */

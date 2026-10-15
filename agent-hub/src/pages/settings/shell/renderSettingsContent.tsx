@@ -1,5 +1,5 @@
 import React from 'react';
-import ComplianceHub from '../../../components/admin/compliance';
+import type { ReactNode } from 'react';
 import OrgAzureConfigPanel from '../../../components/integrations/azure/index';
 import { RequireTier } from '../../../components/licensing/LicenseContext';
 import AppearanceSection from '../AppearanceSection';
@@ -22,16 +22,6 @@ import { MOBILE_VISIBLE_TAB_SET } from './settingsShellData';
 import type { SettingsStatuses, SettingsUser } from './settingsShellTypes';
 import type { OrgDeepSegs } from './useComplianceNavigation';
 
-interface ComplianceHubProps {
-    activeSection?: string;
-    focusCheckId?: string | null;
-    onNavigate: (path: string, opts?: { replace?: boolean }) => void;
-    onBack?: (() => void) | null;
-}
-
-// ComplianceHub is JavaScript: its defaults (`= null`) make TypeScript infer `null` for these props.
-const ComplianceHubView = ComplianceHub as React.ComponentType<ComplianceHubProps>;
-
 /** Everything the section switch reads from the settings shell. */
 export interface SettingsContentContext {
     user?: SettingsUser | null;
@@ -48,8 +38,8 @@ export interface SettingsContentContext {
     projectsOn: boolean;
     entitlementsUnknown: boolean;
     orgDeepSegs: OrgDeepSegs;
-    handleComplianceNavigate: (path: string, opts?: { replace?: boolean }) => void;
-    setMobileDetail: (open: boolean) => void;
+    /** The Compliance Center, built by the shell (ComplianceHub is JavaScript). */
+    complianceHub: ReactNode;
     defaultAgentMode: string;
     setDefaultAgentMode: (mode: string) => void;
     defaultAgentId: string;
@@ -76,7 +66,7 @@ function orgActiveSectionFor(activeTab: string, isOrgSubTab: boolean): string {
 export function renderSettingsContent(ctx: SettingsContentContext): React.ReactNode {
     const {
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs, handleComplianceNavigate, setMobileDetail,
+        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs, complianceHub,
         defaultAgentMode, setDefaultAgentMode, defaultAgentId, setDefaultAgentId, agents, onLogout, onUpdateUser,
         memoryStats, memoryStatsStatus, fetchMemoryStats, openMemoryPanel, statuses, handleIntegrationSaved,
     } = ctx;
@@ -94,16 +84,7 @@ export function renderSettingsContent(ctx: SettingsContentContext): React.ReactN
             if (!canSeeCompliance) return null;
             return (
                 <RequireTier tier="enterprise" feature="compliance_hub_gdpr">
-                    <ComplianceHubView
-                        activeSection={orgDeepSegs.seg1 || 'overview'}
-                        focusCheckId={orgDeepSegs.seg2 || null}
-                        onNavigate={handleComplianceNavigate}
-                        // On a phone the hub draws its own top bar (with its own
-                        // back chevron) and the settings title bar is suppressed
-                        // below — so the hub, not the shell, owns the way back to
-                        // the section list.
-                        onBack={isMobile ? (() => setMobileDetail(false)) : null}
-                    />
+                    {complianceHub}
                 </RequireTier>
             );
         }
