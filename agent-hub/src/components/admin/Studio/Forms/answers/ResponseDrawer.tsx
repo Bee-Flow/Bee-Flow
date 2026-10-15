@@ -58,7 +58,7 @@ export default function ResponseDrawer({ datatableId, response, questions, mine,
                         <Table2 className="w-3 h-3" aria-hidden="true" />{t('forms.answers.drawer_open_row', 'Open in the table')}
                     </button>
                     {mine && response?.runId && automationId && (
-                        <button type="button" onClick={() => onNavigate && onNavigate(`studio/automations/${automationId}?run=${encodeURIComponent(response.runId)}`)} className={BTN} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="drawer-open-run">
+                        <button type="button" onClick={() => onNavigate && onNavigate(`studio/automations/${automationId}?run=${encodeURIComponent(response.runId as string)}`)} className={BTN} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="drawer-open-run">
                             <Workflow className="w-3 h-3" aria-hidden="true" />{t('forms.answers.drawer_open_run', 'Open the run')}
                         </button>
                     )}

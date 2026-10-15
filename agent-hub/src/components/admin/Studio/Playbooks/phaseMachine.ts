@@ -43,7 +43,7 @@ export interface DesignSpec {
 
 /** Everything the phases store on `phase.artifacts` (each phase fills its own part). */
 export interface PhaseArtifacts {
-    datatableId?: string | number;
+    datatableId?: string;
     datatableName?: string;
     datatableKey?: string;
     rowCount?: number;

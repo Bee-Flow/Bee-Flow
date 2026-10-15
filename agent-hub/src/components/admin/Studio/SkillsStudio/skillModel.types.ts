@@ -11,7 +11,11 @@ export interface Example {
     sourceConversationId: string;
 }
 
-/** A step ref as a row may carry it: anything, until `stepsOf` normalises it. */
+/**
+ * A step ref as a row may carry it: anything, until `stepsOf` normalises it.
+ * `kind` and `polarity` are required here only for `includes()`; the normalisers
+ * tolerate their absence.
+ */
 interface RawRef { kind: string; id?: string | number | null }
 interface RawStep { id?: unknown; text?: unknown; refs?: RawRef[] | null }
 interface RawRule { id?: unknown; polarity: string; text?: unknown }

@@ -43,7 +43,7 @@ export { isBlocking };
 interface ControlCompleteness {
     findings?: ControlFinding[];
     complete?: boolean;
-    unavailable?: unknown;
+    unavailable?: string[];
 }
 
 interface SolutionControlPanelProps {

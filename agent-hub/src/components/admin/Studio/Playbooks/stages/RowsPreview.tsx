@@ -17,7 +17,7 @@ interface PreviewRow {
 }
 
 interface RowsPreviewProps {
-    datatableId: string | number;
+    datatableId: string;
     fields?: ArtifactField[];
     rowCount?: number | null;
     refreshKey?: number | string;

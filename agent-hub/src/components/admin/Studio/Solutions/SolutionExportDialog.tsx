@@ -10,9 +10,9 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 interface RequirementItem {
     kind: string;
     externalId?: string;
-    stepId?: string;
-    automationTitle?: string;
-    datatableKey?: string;
+    stepId?: string | null;
+    automationTitle?: string | null;
+    datatableKey?: string | null;
 }
 
 interface Requires {

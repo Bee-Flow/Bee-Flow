@@ -26,7 +26,7 @@ export interface FormDetail {
     pages?: unknown[];
     answers?: FormAnswers | null;
     questions?: { collect?: boolean } | null;
-    /** Present only for the owner. */
+    /** Present only for someone who may edit the automation (mayEdit). */
     definition?: { trigger?: { form?: FormDraft } & Record<string, unknown> } & Record<string, unknown>;
 }
 
@@ -37,7 +37,7 @@ export interface FormDetail {
  * validation pipeline, one version history, and the answers table follows on
  * that same save).
  *
- * `definition` is present only for the owner; `dirty` compares the draft
+ * `definition` is sent only to anyone who may edit the automation (mayEdit); `dirty` compares the draft
  * with the saved trigger form by value.
  *
  * A form is an automation, so a Solution stage can manage it. `managed` is what the

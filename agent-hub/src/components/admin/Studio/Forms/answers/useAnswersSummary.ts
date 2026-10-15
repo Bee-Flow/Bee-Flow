@@ -36,9 +36,9 @@ export interface AnswersQuestion {
 /** One recent response, with a preview of its first answers. */
 export interface AnswersRecent {
     rowId: string;
-    runId: string;
+    runId?: string | null;
     submittedAt?: string | null;
-    by?: { id: string; name?: string } | null;
+    by?: { id: string; name?: string | null } | null;
     preview?: Record<string, unknown> | null;
 }
 
@@ -54,7 +54,7 @@ export interface AnswersTotals {
 
 /** The server's answer for a form's dashboard. */
 export interface AnswersSummary {
-    table?: { name?: string; rowCount?: number } | null;
+    table?: { name?: string; rowCount?: number | null } | null;
     range?: { bucket?: string } | null;
     totals?: AnswersTotals | null;
     timeline?: Array<{ bucket: string; n: number }>;
