@@ -25,7 +25,7 @@ const WEB_STUDIO = path.resolve(__dirname, '../../../../../agent-hub/src/compone
 const readStudio = (file: string) => fs.readFileSync(path.join(WEB_STUDIO, file), 'utf8');
 const src = readStudio('studioRegistry.tsx');
 const gatesSrc = readStudio('studioGates.ts');
-const barrel = readStudio('studioApps.jsx');
+const barrel = readStudio('studioApps.tsx');
 
 /** The body of `export const STUDIO_APPS = [ … ];`, split into one string per descriptor. */
 function webDescriptors(): string[] {
