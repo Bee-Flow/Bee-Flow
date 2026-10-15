@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import FlowletsPanel from './FlowletsPanel.jsx';
+import FlowletsPanel from './FlowletsPanel';
 
 const rootDef = {
     trigger: { id: 'trg', type: 'trigger', kind: 'manual' },

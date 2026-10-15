@@ -29,7 +29,7 @@ const WEB: Record<string, string[]> = {
         'flow/ScheduleBuilder.jsx',
         'webhooks/TriggerWebhookPanel.jsx',
         'webhooks/useWebhooks.js',
-        'WebhookPanel.jsx',
+        'WebhookPanel.tsx',
     ],
     params: ['flow/settings/fieldDesigner.jsx', 'flow/settings/triggerEditors.jsx'],
     form: ['flow/settings/FormBuilderFields.jsx', 'flow/settings/fieldDesigner.jsx', 'flow/settings/triggerEditors.jsx'],
