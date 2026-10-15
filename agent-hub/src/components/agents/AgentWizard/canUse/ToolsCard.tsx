@@ -1,5 +1,5 @@
 import { ArrowUpRight, ChevronDown, Workflow } from 'lucide-react';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, type ReactNode } from 'react';
 import CanUseCard, { EmptyRow, LinkButton, UnreadableNotice } from './CanUseCard';
 import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
@@ -10,12 +10,7 @@ import { actionLabelMap } from '../../../automation/Builder/flow/appLabels';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
 import SegmentedControl from '../../../shared/SegmentedControl';
 import { SECTION_LBL } from '../../../shell/sidebar/sidebarTokens';
-import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { ReadState } from '../agentEditor.types';
-import type { ToolApp } from './toolCatalogTypes';
-import type { automationRows } from './toolGrants';
-
+import type { AutomationCardRow, ToolApp, ToolCardRow, ToolRowProps, ToolsCardProps, TranslateFn } from './ToolsCard.types';
 /**
  * De Tools-kaart van de tab "Kan gebruiken" — wat de agent in ándere systemen
  * mag doen (Agents-artboard 1a, A2 stap 3).
@@ -64,35 +59,6 @@ import type { automationRows } from './toolGrants';
  * dit product, en een rij die een vermogen suggereert dat er niet is, is
  * erger dan een ontbrekende rij.
  */
-
-/** One app row, as `toolGrants.toolRows` builds it (that module is JavaScript, so the shape is stated here). */
-export interface ToolCardRow {
-    appId: string;
-    label: string;
-    granted: '*' | string[];
-    grantedNames: string[] | null;
-    grantedCount: number | null;
-    totalActions: number | null;
-    actionsKnown: boolean;
-    available: boolean | null;
-    availabilityKind: string | null;
-    availabilityKinds: string[];
-    sends: boolean | null;
-    narrowedBy: string[];
-    confirm: 'direct' | 'ask';
-    confirmLocked: boolean;
-    actAsKind: 'user' | 'platform' | 'unknown';
-    actAs: 'viewer' | 'owner';
-    canActAsOwner: boolean;
-    ownerRefused: boolean;
-    ownerLendsUncurated: boolean;
-    ownerLendingUnset: boolean;
-}
-/** One automation grant, as `toolGrants.automationRows` builds it. */
-export type AutomationCardRow = ReturnType<typeof automationRows>[number];
-type OpenChooser = (request: ReturnType<typeof chooserRequest>) => void;
-type ChangeConfirm = (appId: string, next: string) => void;
-type ChangeActAs = (appId: string, next: string) => void;
 
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */
 function RowWarning({ children, testId }: { children?: ReactNode; testId?: string }) {
@@ -257,10 +223,7 @@ function ActAsCapsule({ t, row, ro, onChange }: { t: TranslateFn; row: ToolCardR
 }
 
 /** Eén app-rij. Grid `1fr 1fr 220px 32px`, zoals het artboard hem tekent. */
-function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChooser }: {
-    t: TranslateFn; ro?: boolean; row: ToolCardRow; app: ToolApp | null;
-    onChangeConfirm?: ChangeConfirm; onChangeActAs?: ChangeActAs; onOpenChooser?: OpenChooser;
-}) {
+function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChooser }: ToolRowProps) {
     const verbs = useVerbs(row, app);
     const shownVerbs = verbs ? verbs.slice(0, MAX_VERBS) : null;
     const restVerbs = verbs ? verbs.length - (shownVerbs?.length || 0) : 0;
@@ -443,23 +406,6 @@ function AutomationRow({ t, row }: { t: TranslateFn; row: AutomationCardRow }) {
             </div>
         </div>
     );
-}
-
-export interface ToolsCardProps {
-    t: TranslateFn;
-    ro?: boolean;
-    rows?: ToolCardRow[];
-    apps?: ToolApp[] | null;
-    catalogState?: ReadState;
-    catalogDegraded?: boolean;
-    onRetryCatalog?: () => void;
-    lentState?: ReadState;
-    onRetryLent?: () => void;
-    automationRows?: AutomationCardRow[];
-    automationsState?: ReadState;
-    onChangeConfirm?: ChangeConfirm;
-    onChangeActAs?: ChangeActAs;
-    onOpenChooser?: OpenChooser;
 }
 
 export default function ToolsCard({

@@ -113,7 +113,7 @@
     "src/components/agents/AgentStudio/index.jsx": 494,
     "src/components/agents/AgentWizard/BuilderSplit.jsx": 753,
     "src/components/agents/AgentWizard/canUse/toolGrants.js": 805,
-    "src/components/agents/AgentWizard/canUse/ToolsCard.jsx": 516,
+    "src/components/agents/AgentWizard/canUse/ToolsCard.tsx": 516,
     "src/components/agents/AgentWizard/tests/TestSetCard.jsx": 565,
     "src/components/agents/AgentWizard/tests/testSetFacts.js": 420,
     "src/components/appearance/studio/icons/IconsEditor.tsx": 686,
