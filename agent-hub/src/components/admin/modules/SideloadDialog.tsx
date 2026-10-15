@@ -4,6 +4,7 @@ import PermissionConsentDialog from './PermissionConsentDialog';
 import { normalizePermissions } from './permissionCopy';
 import type { ModulePermission } from './permissionCopy';
 import { useActivateStaged, useOfflineGrant, useSideloadModule } from '../../../api/queries/modules';
+import type { SideloadResponse } from '../../../api/queries/modules';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
 import { errorBodyRecord, errorMessage, errorStatus } from '../../../utils/caughtError';
@@ -53,7 +54,7 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
         if (!file) return;
         setError(null);
         sideload.mutate({ file, acceptedPermissions: acceptedPermissions || undefined }, {
-            onSuccess: (res: { version: string; requiresRestart?: boolean } | null) => {
+            onSuccess: (res: SideloadResponse | null) => {
                 setResult({ version: res?.version || '', requiresRestart: !!res?.requiresRestart });
                 onDone?.(res);
             },

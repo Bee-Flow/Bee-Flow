@@ -1,15 +1,14 @@
 import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { ModulePermissionEntry } from '../../../api/queries/modules';
 
 // Canonical operator-facing copy for module permission ids (mv2 manifests).
 // Pure helpers shared by PermissionList / PermissionConsentDialog and unit-
 // tested directly. Copy lives in the i18n dict; this maps ids → keys.
 
+export type ModulePermission = ModulePermissionEntry;
+
 // Fixed ids → dict keys (variable lookup, not literal t() calls, so the i18n
 // guard's literal-call check skips the indirection; every value is in the dict).
-export interface ModulePermission {
-    id: string;
-    reason?: string | null;
-}
 
 const PERM_KEY: Record<string, string> = {
     'db': 'modules.permissions.db',

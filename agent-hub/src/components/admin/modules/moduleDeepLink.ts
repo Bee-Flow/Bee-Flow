@@ -3,8 +3,9 @@
 // the URL is a Stripe Checkout return (which owns — and strips — `module`),
 // NOT a drawer deep link.
 
-/** Module id to open the drawer for, or null. */
 type UrlLocation = Pick<Location, 'pathname' | 'search' | 'hash'>;
+
+/** Module id to open the drawer for, or null. */
 
 export function parseModuleDeepLink(search?: string | null) {
     const params = new URLSearchParams(search || '');

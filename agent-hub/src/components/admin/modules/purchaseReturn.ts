@@ -9,9 +9,7 @@
 /**
  * Build the Checkout return URLs for a module purchase from the current
  * location (no hardcoded route — works behind any base path).
- * @param {string} moduleId
  * @param {{ origin: string, pathname: string }} loc defaults to window.location
- * @returns {{ successUrl: string, cancelUrl: string }}
  */
 export function buildPurchaseReturnUrls(moduleId: string, loc: Pick<Location, 'origin' | 'pathname'> = window.location) {
     const mk = (result: string) => {
@@ -38,7 +36,6 @@ export function parsePurchaseReturn(search?: string | null) {
  * Relative URL with the `purchase` / `module` params removed (other params —
  * notably `tab` — are kept). Feed to history.replaceState after handling.
  * @param {{ pathname: string, search: string, hash?: string }} loc defaults to window.location
- * @returns {string}
  */
 export function stripPurchaseReturnParams(loc: Pick<Location, 'pathname' | 'search' | 'hash'> = window.location) {
     const params = new URLSearchParams(loc.search || '');

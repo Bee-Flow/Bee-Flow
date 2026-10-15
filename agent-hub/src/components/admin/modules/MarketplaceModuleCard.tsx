@@ -2,12 +2,13 @@ import React from 'react';
 import { AlertTriangle, ArrowUpCircle, Check, Download, Globe, Inbox, Loader2, Mic, Package, RefreshCw, ShoppingCart, Shield, Target } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import UpdatePolicySelector from './UpdatePolicySelector';
+import type { PolicyChange } from './UpdatePolicySelector';
 import type { LucideIcon } from 'lucide-react';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import type { InstallProgress, MarketplaceModuleDetail, MarketplacePricing, ModuleHealthRow } from '../../../api/queries/modules';
 
 /** Server-derived pricing, plus the legacy { model, amountCents } shape older rows still carry. */
-type CardPricing = MarketplacePricing & { model?: string; amountCents?: number | null };
+type CardPricing = Partial<MarketplacePricing> & { model?: string; amountCents?: number | null };
 
 interface MarketplaceModuleCardProps {
     module: MarketplaceModuleDetail;
@@ -21,7 +22,7 @@ interface MarketplaceModuleCardProps {
     onPaidRefresh: (module: MarketplaceModuleDetail) => void;
     onReactivate: (module: MarketplaceModuleDetail) => void;
     onOpenDetails?: (module: MarketplaceModuleDetail) => void;
-    onPolicyChange?: (module: MarketplaceModuleDetail, policy: { channel: string; pin: string }) => void;
+    onPolicyChange?: (module: MarketplaceModuleDetail, policy: PolicyChange) => void;
     policyBusy?: boolean;
 }
 
@@ -260,7 +261,7 @@ export default function MarketplaceModuleCard({
                         <UpdatePolicySelector
                             policy={module.updatePolicy}
                             busy={policyBusy}
-                            onChange={(policy: { channel: string; pin: string }) => onPolicyChange(module, policy)}
+                            onChange={(policy: PolicyChange) => onPolicyChange(module, policy)}
                         />
                     </div>
                 )}

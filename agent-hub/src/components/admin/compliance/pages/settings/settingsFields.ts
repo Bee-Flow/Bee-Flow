@@ -330,7 +330,7 @@ export function fieldSpec(name: string) {
 
 /* ── form state ──────────────────────────────────────────────────────────── */
 
-const asArray = <T = unknown>(v: unknown): T[] => (Array.isArray(v) ? v : []);
+const asArray = <T = unknown>(v: unknown): T[] => (Array.isArray(v) ? v : []); // Array.isArray yields any[]: the caller names T for what it reads.
 const asText = (v: unknown) => (v === null || v === undefined ? '' : String(v));
 /** A date column into the `YYYY-MM-DD` an <input type="date"> wants. */
 const asDate = (v: unknown) => (v ? String(v).slice(0, 10) : '');

@@ -2,10 +2,15 @@ import React from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { UpdatePolicy } from '../../../api/queries/modules';
 
+export interface PolicyChange {
+    channel: string;
+    pin: string;
+}
+
 interface UpdatePolicySelectorProps {
     policy?: Partial<UpdatePolicy> | null;
     busy?: boolean;
-    onChange: (policy: { channel: string; pin: string }) => void;
+    onChange: (policy: PolicyChange) => void;
 }
 
 // Compact channel/pin selector for an installed module's update policy.

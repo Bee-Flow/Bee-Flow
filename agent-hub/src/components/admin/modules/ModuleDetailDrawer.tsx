@@ -4,6 +4,7 @@ import { ModuleIcon, priceLabel } from './MarketplaceModuleCard';
 import MediaGallery from './MediaGallery';
 import PermissionList from './PermissionList';
 import UpdatePolicySelector from './UpdatePolicySelector';
+import type { PolicyChange } from './UpdatePolicySelector';
 import VersionHistory from './VersionHistory';
 import { useMarketplaceModuleDetail, useModuleVersions } from '../../../api/queries/modules';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -19,7 +20,7 @@ interface ModuleDetailActions {
     updateModule: (module: MarketplaceModuleDetail) => void;
     installModule: (module: MarketplaceModuleDetail) => void;
     paidRefresh: (module: MarketplaceModuleDetail) => void;
-    setPolicy: (module: MarketplaceModuleDetail, policy: { channel: string; pin: string }) => void;
+    setPolicy: (module: MarketplaceModuleDetail, policy: PolicyChange) => void;
     updatePolicy: { isPending: boolean };
     rollbackTo: (module: MarketplaceModuleDetail, version: string) => void;
     activateStagedVersion: (module: MarketplaceModuleDetail, version?: string) => void;
@@ -209,7 +210,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                                 <UpdatePolicySelector
                                     policy={detail?.updatePolicy}
                                     busy={actions.updatePolicy.isPending}
-                                    onChange={(policy: { channel: string; pin: string }) => actions.setPolicy(module, policy)}
+                                    onChange={(policy: PolicyChange) => actions.setPolicy(module, policy)}
                                 />
                             )}
                             <VersionHistory
