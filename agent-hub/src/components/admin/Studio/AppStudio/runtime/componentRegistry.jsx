@@ -507,7 +507,7 @@ export const PALETTE_CATEGORIES = ['Basics', 'Content', 'Layout', 'Data', 'Input
 export const PALETTE_STARTERS = ['heading', 'text', 'button', 'image', 'card', 'table', 'form', 'chart'];
 
 export function getComponentEntry(type) {
-    return APP_COMPONENT_TYPES[type] || null;
+    return (type == null ? undefined : APP_COMPONENT_TYPES[type]) || null;
 }
 
 export default APP_COMPONENT_TYPES;

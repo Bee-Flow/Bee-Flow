@@ -18,7 +18,7 @@ export const SPACE_STEP_PX = 4;
 
 /** calc() for N spacing steps honouring the theme density multiplier. */
 export function spaceSteps(n) {
-    const steps = Number.isFinite(n) ? n : 0;
+    const steps = Number.isFinite(n) ? Number(n) : 0;
     if (steps <= 0) return '0px';
     return `calc(${steps * SPACE_STEP_PX}px * var(--app-space, 1))`;
 }
@@ -47,7 +47,7 @@ export const ROLE_COLORS = {
  * what makes it legible in all eight rather than in four.
  */
 export const roleTextColor = (tone) => {
-    const color = ROLE_COLORS[tone] || ROLE_COLORS.primary;
+    const color = (tone == null ? undefined : ROLE_COLORS[tone]) || ROLE_COLORS.primary;
     if (tone === 'neutral' || tone === 'primary') return color;
     return `color-mix(in srgb, ${color} 55%, var(--text-primary))`;
 };
@@ -153,7 +153,7 @@ export function spanGridColumn(span) {
 
 /** The authored span, coerced into 1..12 (missing = full width). */
 export function clampSpan(span) {
-    return Number.isFinite(span) ? Math.max(1, Math.min(12, span)) : 12;
+    return Number.isFinite(span) ? Math.max(1, Math.min(12, Number(span))) : 12;
 }
 
 /**
@@ -183,7 +183,7 @@ export function resolveHeight(value) {
 // ---------------------------------------------------------------------------
 
 /** Whole-number knob value, or null (mirrors what canonicalize already stored). */
-const sizeNumber = (v) => (Number.isFinite(v) ? Math.round(v) : null);
+const sizeNumber = (v) => (Number.isFinite(v) ? Math.round(Number(v)) : null);
 
 /**
  * widthMode/widthValue → a CSS width, or null when the grid owns the width.
@@ -192,7 +192,7 @@ const sizeNumber = (v) => (Number.isFinite(v) ? Math.round(v) : null);
 export function resolveWidthCss(s) {
     const mode = s && s.widthMode;
     if (mode !== 'px' && mode !== 'pct') return null;
-    const n = sizeNumber(s.widthValue);
+    const n = sizeNumber(s?.widthValue);
     if (n === null) return null;
     return mode === 'px' ? `${n}px` : `${n}%`;
 }
@@ -207,7 +207,7 @@ export function resolveWidthCss(s) {
 export function resolveHeightCss(s) {
     const mode = s && s.heightMode;
     if (mode !== 'px' && mode !== 'pct' && mode !== 'vh') return null;
-    const n = sizeNumber(s.heightValue);
+    const n = sizeNumber(s?.heightValue);
     if (n === null) return null;
     if (mode === 'pct') return `${n}%`;
     return `${n}${mode}`;
@@ -366,9 +366,9 @@ export function resolveNodeStyle(node) {
     style.gridColumn = spanGridColumn(s.span);
     applyWidth(s, style);
 
-    if (s.align in ALIGN_VALUES) style.textAlign = ALIGN_VALUES[s.align];
-    if (s.weight in WEIGHT_VALUES) style.fontWeight = WEIGHT_VALUES[s.weight];
-    if (SIZE_FONT[s.size]) style.fontSize = SIZE_FONT[s.size];
+    if ((s.align ?? '') in ALIGN_VALUES) style.textAlign = ALIGN_VALUES[s.align ?? ''];
+    if ((s.weight ?? '') in WEIGHT_VALUES) style.fontWeight = WEIGHT_VALUES[s.weight ?? ''];
+    if (SIZE_FONT[s.size ?? '']) style.fontSize = SIZE_FONT[s.size ?? ''];
     applyNodeHeight(s, style);
 
     const color = resolveColor(s.color);
@@ -377,7 +377,7 @@ export function resolveNodeStyle(node) {
     const radius = resolveRadius(s.radius);
     if (radius !== undefined) style.borderRadius = radius;
 
-    if (Number.isFinite(s.padding) && s.padding > 0) style.padding = spaceSteps(s.padding);
+    if (Number.isFinite(s.padding) && Number(s.padding) > 0) style.padding = spaceSteps(s.padding);
 
     const background = applyBackground(s.background, style);
 

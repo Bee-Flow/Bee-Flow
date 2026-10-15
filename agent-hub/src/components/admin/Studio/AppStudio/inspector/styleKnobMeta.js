@@ -303,7 +303,7 @@ export const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 /** Knob list for a component type (empty array for unknown types). */
 export function getKnobsForType(type) {
-    return TYPE_STYLE_KNOBS[type] || [];
+    return (type == null ? undefined : TYPE_STYLE_KNOBS[type]) || [];
 }
 
 /**
@@ -327,14 +327,14 @@ export function effectiveSizeMode(style, knobName) {
     if (!spec || spec.type !== 'unitInt') return null;
     const modeSpec = STYLE_KNOBS[spec.modeKnob];
     const v = (style || {})[spec.modeKnob];
-    return modeSpec.values.includes(v) ? v : modeSpec.default;
+    return typeof v === 'string' && modeSpec.values.includes(v) ? v : modeSpec.default;
 }
 
 /** The min/max/step for a unitInt knob under `mode` — null when that mode carries no value. */
 export function unitRange(knobName, mode) {
     const spec = STYLE_KNOBS[knobName];
     if (!spec || spec.type !== 'unitInt') return null;
-    return spec.units[mode] || null;
+    return (mode == null ? undefined : spec.units[mode]) || null;
 }
 
 /**
