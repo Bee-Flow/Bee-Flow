@@ -64,7 +64,7 @@ describe('studioSectionLabel', () => {
 describe('studioSectionLabel — geen tweede kopie in de boom', () => {
     const HERE = path.dirname(fileURLToPath(import.meta.url));
     const SRC_DIR = path.resolve(HERE, '../../..');
-    const OWNER = 'components/admin/Studio/studioNav.js';
+    const OWNER = 'components/admin/Studio/studioNav.ts';
 
     // Alleen productiebron: een stub in een testbestand is geen tweede pad dat
     // een gebruiker ooit ziet.
@@ -73,7 +73,7 @@ describe('studioSectionLabel — geen tweede kopie in de boom', () => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) { out.push(...sourceFiles(full)); continue; }
-            if (!/\.jsx?$/.test(entry.name) || /\.test\.jsx?$/.test(entry.name)) continue;
+            if (!/\.[jt]sx?$/.test(entry.name) || /\.test\.[jt]sx?$/.test(entry.name)) continue;
             out.push(full);
         }
         return out;
@@ -156,7 +156,7 @@ describe('studioSectionLabel — geen tweede kopie in de boom', () => {
             "if (typeof app.label === 'function') unsupported.push(app.id);\n// een sectie herken je aan haar labelKey",
         ), 'commentaar is geen tweede tak').toBe(false);
         // En de echte boom bevat dat tweede geval, dus dit is geen bedacht risico.
-        const recent = FILES.find(([f]) => f.endsWith('recent/recentWork.js'));
+        const recent = FILES.find(([f]) => f.endsWith('recent/recentWork.ts'));
         expect(recent, 'recentWork.js hoort in de scan te zitten').toBeTruthy();
         expect(computesLabel(recent[1])).toBe(false);
     });

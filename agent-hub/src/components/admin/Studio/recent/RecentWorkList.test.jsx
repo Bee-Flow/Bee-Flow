@@ -39,7 +39,7 @@ vi.mock('../../../../hooks/useTranslation', () => {
     return { default: useTranslation, useTranslation };
 });
 
-import RecentWorkList from './RecentWorkList.jsx';
+import RecentWorkList from './RecentWorkList.tsx';
 import { RECENT_STATUS } from '../../../../utils/studioRecentSources';
 
 /* ── Fixtures ─────────────────────────────────────────────────────────────── */
