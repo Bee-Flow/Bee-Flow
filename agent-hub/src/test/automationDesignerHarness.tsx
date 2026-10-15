@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import type { Mock } from 'vitest';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 import type { Row } from './automationDesignerStubs';
 import { withQueryClient } from './render';
 import AITasksDesigner from '../components/automation/index';
@@ -52,6 +52,13 @@ export function installRouter(authFetch: AuthFetchMock) {
 
 export const sent = (authFetch: AuthFetchMock, method: string, url: string) =>
     authFetch.mock.calls.filter(([u, i]) => u === url && (i?.method || 'GET') === method);
+
+/** Routes every test's reads through `installRouter` and restores spies after it; returns `sent` for this file's mock. */
+export function useDesignerHarness(authFetch: AuthFetchMock) {
+    beforeEach(() => { installRouter(authFetch); });
+    afterEach(() => { vi.restoreAllMocks(); });
+    return (method: string, url: string) => sent(authFetch, method, url);
+}
 
 export function entitlements(allowed: boolean, loading = false): EntitlementsValue {
     const none = { core: [], beta: [], integration: [] };
