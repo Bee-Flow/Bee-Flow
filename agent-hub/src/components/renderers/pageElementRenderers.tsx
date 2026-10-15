@@ -39,7 +39,7 @@ export function renderPageElement(element: unknown, index: number, ctx: PageRend
     if (!element || !isPageElement(element)) return null;
 
     const key = element.id || `el-${index}`;
-    const renderer = element.type !== undefined && Object.hasOwn(RENDERERS, element.type) ? RENDERERS[element.type] : undefined;
+    const renderer = typeof element.type === 'string' && Object.hasOwn(RENDERERS, element.type) ? RENDERERS[element.type] : undefined;
     if (renderer) return renderer(element, key, ctx);
 
     if (element.text || element.content) {

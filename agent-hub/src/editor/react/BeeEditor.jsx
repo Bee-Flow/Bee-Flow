@@ -14,9 +14,10 @@
  * Everything drawn over the text (carets, find results, comment highlights)
  * lives OUTSIDE the host, in the positioned wrapper around it.
  */
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { buildEditorHandle } from './beeEditorHandle';
 import BeeEditorView from './BeeEditorView';
+import { mountEditorView } from './mountEditorView';
 import { peerInBlocks } from './peerLocks';
 import SectionDragLayer from './SectionDragLayer.jsx';
 import { TableControls } from './TableControls';
@@ -35,6 +36,20 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
   const s = useBeeEditorState(props);
   const sync = useEditorSync(s, props);
   const tableView = useEditorTableView(s, props.notebookId, sync.refreshChrome);
+
+  /* mount the view once */
+  useEffect(() => mountEditorView({
+    host: s.hostRef.current,
+    content: props.content,
+    editable: props.editable ?? true,
+    s,
+    sync,
+    // Declared below by the lifecycle hook; only called after mount.
+    uploadImage: (file) => uploadImage(file),
+  }),
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the ProseMirror view is created once per mount; later prop changes are applied by the effects below
+  []);
+
   const { uploadImage } = useEditorViewLifecycle(s, props, sync);
 
   /* imperative ref API (parity + setMarkdown fix) */

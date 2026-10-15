@@ -7,12 +7,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../hooks/useTranslation', () => ({
-    useTranslation: () => ({ t: (_key, fallback) => fallback ?? _key }),
+    useTranslation: () => ({ t: (key: string, fallback?: string) => fallback ?? key }),
 }));
 
 import PageRenderer from './PageRenderer';
 
-const PAGE = {
+const PAGE: Record<string, unknown> = {
     type: 'page',
     id: 'root',
     title: 'Dashboard',
@@ -40,19 +40,33 @@ const PAGE = {
     ],
 };
 
+function mount(def: unknown) {
+    return render(<PageRenderer code={def} onAction={undefined} />);
+}
+
+/** Render a definition the renderer cannot handle: it throws, and React logs the error. */
+function mountThrows(def: unknown) {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+        expect(() => mount(def)).toThrow();
+    } finally {
+        quiet.mockRestore();
+    }
+}
+
 describe('PageRenderer', () => {
     it('renders every element type (DOM pinned)', () => {
-        const { container } = render(<PageRenderer code={PAGE} />);
+        const { container } = render(<PageRenderer code={PAGE} onAction={undefined} />);
         expect(container.innerHTML).toMatchSnapshot();
     });
 
     it('accepts a JSON string', () => {
-        render(<PageRenderer code={JSON.stringify({ type: 'text', text: 'hello' })} />);
+        render(<PageRenderer code={JSON.stringify({ type: 'text', text: 'hello' })} onAction={undefined} />);
         expect(screen.getByText('hello')).toBeTruthy();
     });
 
     it('shows an error for invalid JSON', () => {
-        render(<PageRenderer code="{nope" />);
+        render(<PageRenderer code="{nope" onAction={undefined} />);
         expect(screen.getByText('Invalid page definition. Expected JSON format.')).toBeTruthy();
     });
 
@@ -66,5 +80,44 @@ describe('PageRenderer', () => {
         expect(screen.getByText('Open Link →').getAttribute('href')).toBe('https://example.test/x');
         await user.click(screen.getByText('Close'));
         expect(screen.queryByText('Overlay body')).toBeNull();
+    });
+
+    describe('malformed definitions behave as they always did', () => {
+        it('throws on chart data that is not an array, or holds null', () => {
+            mountThrows({ type: 'chart', data: { a: 1 } });
+            mountThrows({ type: 'chart', data: 'abc' });
+            mountThrows({ type: 'chart', data: [null, { label: 'x', value: 1 }] });
+        });
+
+        it('draws a chart row for a primitive bar', () => {
+            const { container } = mount({ type: 'chart', data: [5] });
+            expect(container.querySelectorAll('div[style*="flex: 1"]').length).toBe(1);
+        });
+
+        it('shows array titles and contents of an accordion item', () => {
+            mount({ type: 'accordion', items: [{ title: ['T', 'x'], content: ['a', 'b'] }] });
+            expect(screen.getByText('Tx')).toBeTruthy();
+            expect(screen.getByText('ab')).toBeTruthy();
+        });
+
+        it('does not show the children of an accordion item whose content is true', () => {
+            mount({ type: 'accordion', items: [{ title: 'Q', content: true, children: [{ type: 'text', text: 'hidden child' }] }] });
+            expect(screen.queryByText('hidden child')).toBeNull();
+        });
+
+        it('throws on an accordion item that is null or has an object title', () => {
+            mountThrows({ type: 'accordion', items: [null] });
+            mountThrows({ type: 'accordion', items: [{ title: { a: 1 } }] });
+        });
+
+        it('throws on table columns that are not an array', () => {
+            mountThrows({ type: 'table', columns: 3 });
+        });
+
+        it('treats a type that is an array as an unknown type', () => {
+            mount({ type: ['page'], title: 'not a page', text: 'fallback body' });
+            expect(screen.getByText('fallback body')).toBeTruthy();
+            expect(screen.queryByText('not a page')).toBeNull();
+        });
     });
 });

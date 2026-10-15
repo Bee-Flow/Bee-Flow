@@ -1,4 +1,4 @@
-import type { PageElementRenderer, ChartDatum } from './pageElementTypes';
+import type { ChartDatum, PageAccordionItem, PageElement, PageElementRenderer, PageTableColumn } from './pageElementTypes';
 
 // ============ INTERACTIVE ============
 
@@ -28,8 +28,8 @@ export const renderButton: PageElementRenderer = (element, key, ctx) => {
                 transition: 'all 0.2s ease',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            onMouseEnter={(e) => { (e.target as HTMLElement).style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={(e) => { (e.target as HTMLElement).style.transform = 'translateY(0)'; }}
         >
             {element.text || element.label}
         </button>
@@ -73,7 +73,7 @@ export const renderTabs: PageElementRenderer = (element, key, ctx) => {
 export const renderAccordion: PageElementRenderer = (element, key, ctx) => (
     <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {(element.items || []).map((rawItem, i) => {
-            const item: { title?: unknown; content?: unknown; children?: unknown[] } = typeof rawItem === 'object' && rawItem !== null ? rawItem : {};
+            const item = accordionItem(rawItem);
             return (
                 <details
                     key={i}
@@ -89,14 +89,14 @@ export const renderAccordion: PageElementRenderer = (element, key, ctx) => (
                         fontWeight: '500',
                         color: 'var(--text-primary)'
                     }}>
-                        {asNode(item.title)}
+                        {item.title}
                     </summary>
                     <div style={{
                         padding: '0 1rem 1rem',
                         fontSize: '0.9rem',
                         color: 'var(--text-secondary)'
                     }}>
-                        {asNode(item.content) || (item.children && item.children.map((c, j) => ctx.renderElement(c, j)))}
+                        {item.content || (item.children && item.children.map((c, j) => ctx.renderElement(c, j)))}
                     </div>
                 </details>
             );
@@ -104,12 +104,20 @@ export const renderAccordion: PageElementRenderer = (element, key, ctx) => (
     </div>
 );
 
-/** Text and numbers render, anything else (JSON objects) does not. */
-function asNode(value: unknown): string | number | null {
-    return typeof value === 'string' || typeof value === 'number' ? value : null;
+/** An accordion entry; like a property read on null, a missing entry throws. */
+function accordionItem(value: unknown): PageAccordionItem {
+    if (value == null) throw new TypeError(`Cannot read properties of ${value} (reading 'title')`);
+    return typeof value === 'object' ? value : {};
 }
 
 // ============ DATA ============
+
+/** The header cells of a table; a non-array `columns` throws, as calling `.map` on it would. */
+function tableColumns(columns: PageElement['columns']): PageTableColumn[] {
+    const cols = columns || [];
+    if (!Array.isArray(cols)) throw new TypeError('table columns is not an array');
+    return cols;
+}
 
 export const renderTable: PageElementRenderer = (element, key) => (
     <div key={key} style={{
@@ -121,7 +129,7 @@ export const renderTable: PageElementRenderer = (element, key) => (
         <table style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
             <thead className="bg-[var(--bg-tertiary)]">
                 <tr>
-                    {(Array.isArray(element.columns) ? element.columns : []).map((col, i) => (
+                    {tableColumns(element.columns).map((col, i) => (
                         <th key={i} style={{
                             padding: '0.875rem 1rem',
                             textAlign: 'left',
@@ -232,13 +240,17 @@ export const renderBadge: PageElementRenderer = (element, key) => {
     );
 };
 
-function isChartDatum(value: unknown): value is ChartDatum {
-    return typeof value === 'object' && value !== null;
+/** A chart bar; like a property read on null, a missing one throws. */
+function chartDatum(value: unknown): Partial<ChartDatum> {
+    if (value == null) throw new TypeError(`Cannot read properties of ${value} (reading 'value')`);
+    return typeof value === 'object' ? value : {};
 }
 
 export const renderChart: PageElementRenderer = (element, key) => {
-    const data: ChartDatum[] = Array.isArray(element.data) ? element.data.filter(isChartDatum) : [];
-    const maxValue = Math.max(...data.map(d => d.value));
+    const raw = element.data || [];
+    if (!Array.isArray(raw)) throw new TypeError('chart data is not an array');
+    const data = raw.map((v: unknown) => chartDatum(v));
+    const maxValue = Math.max(...data.map(d => Number(d.value)));
     return (
         <div key={key}>
             {element.title && (
@@ -275,7 +287,7 @@ export const renderChart: PageElementRenderer = (element, key) => {
                                 style={{
                                     height: '100%',
                                     borderRadius: '9999px',
-                                    width: `${(item.value / maxValue) * 100}%`,
+                                    width: `${(Number(item.value) / maxValue) * 100}%`,
                                     background: item.color || 'linear-gradient(90deg, #8b5cf6, #6366f1)',
                                     transition: 'width 0.5s ease'
                                 }}

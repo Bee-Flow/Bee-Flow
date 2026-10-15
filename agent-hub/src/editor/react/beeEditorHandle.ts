@@ -21,9 +21,17 @@ export function buildEditorHandle({ s, sync }: BeeEditorHandleDeps) {
   const { viewRef, saveTimer, lastHtmlRef, onSaveRef, facadeRef, setShortcutsOpen, setFindOpen, setFindFocus } = s;
   const { refreshChrome, collabRef, anchorsRef } = sync;
   return {
-    insertContent: (c: InsertableContent) => { const v = viewRef.current; if (v) chainOf(v).focus().insertContent(c).run(); refreshChrome(); },
+    insertContent: (c: InsertableContent) => {
+      const v = viewRef.current;
+      if (v) chainOf(v).focus().insertContent(c).run();
+      refreshChrome();
+    },
     setContent: (html: BeeEditorProps['content']) => { viewRef.current?.setDoc(contentToDoc(html), { emitUpdate: false }); refreshChrome(); },
-    insertMarkdown: (md: string) => { const v = viewRef.current; if (v) chainOf(v).focus().insertContent(md).run(); refreshChrome(); },
+    insertMarkdown: (md: string) => {
+      const v = viewRef.current;
+      if (v) chainOf(v).focus().insertContent(md).run();
+      refreshChrome();
+    },
     setMarkdownContent: (md: string) => { viewRef.current?.setDoc(markdownToDoc(md), { emitUpdate: false }); refreshChrome(); },
     setMarkdown: (md: string) => { viewRef.current?.setDoc(markdownToDoc(md), { emitUpdate: false }); refreshChrome(); },
     /**
