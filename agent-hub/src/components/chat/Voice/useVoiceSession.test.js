@@ -83,6 +83,20 @@ describe('useVoiceSession', () => {
         expect(lastTurnForm.get('audio')).toBeTruthy();
     });
 
+    // The hook drops hidden, streaming, non-string and null history entries.
+    it('filters hidden, streaming, non-string and null host history entries out of the turn', async () => {
+        const getHistory = () => [
+            { role: 'user', content: 'hi' },
+            { role: 'assistant', content: 'hidden', isHidden: true },
+            { role: 'assistant', content: 'streaming', isStreaming: true },
+            { role: 'assistant', content: 42 },
+            null,
+        ];
+        const { result } = renderHook(() => useVoiceSession({ getHistory }));
+        await speakOneTurn(result);
+        expect(JSON.parse(lastTurnForm.get('history'))).toEqual([{ role: 'user', content: 'hi' }]);
+    });
+
     it('hangup() clears the session so a later turn cannot resurrect it', async () => {
         const { result } = renderHook(() => useVoiceSession({ getHistory: () => [] }));
         await act(async () => { await result.current.connect({ agentId: 'agent-42' }); });
