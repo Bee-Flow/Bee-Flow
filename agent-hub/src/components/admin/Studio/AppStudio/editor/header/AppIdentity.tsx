@@ -5,7 +5,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import { kindTileStyle } from '../../../../../shared/kindColors';
 import toast from '../../../../../shared/Toast';
 import { studioAppsApi } from '../../studioAppsApi';
-import { AppIcon } from '../../typedJs';
+import AppIcon from '../../../../../icons/AppIcon';
 
 interface AppNameFieldProps {
     app: HeaderApp;

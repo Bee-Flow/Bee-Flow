@@ -1,6 +1,19 @@
 import React from 'react';
 import { useIconPack } from '../../hooks/useIconPack';
+import type { LucideIcon } from 'lucide-react';
 import { ICON_REGISTRY, FALLBACK_ICON } from './iconRegistry';
+
+export interface AppIconProps extends Omit<React.HTMLAttributes<Element>, 'style' | 'className'> {
+    name: string;
+    className?: string;
+    style?: React.CSSProperties;
+    fallback?: LucideIcon;
+    size?: number | string;
+    title?: string;
+    color?: string;
+    strokeWidth?: number | string;
+    absoluteStrokeWidth?: boolean;
+}
 
 /**
  * AppIcon
@@ -24,25 +37,22 @@ import { ICON_REGISTRY, FALLBACK_ICON } from './iconRegistry';
  *      the icon would get, so the late icon changes pixels, not layout.
  *      The chunk is cached after the first miss.
  *
- * Props:
- * - name (string): The standard icon name in PascalCase (e.g. 'Home', 'Settings', 'Bot')
- * - className (string): Tailwind or other classes
- * - style (object): Inline styles
- * - fallback (function|Component): Optional fallback if not found in Lucide.
+ * `name` is the standard icon name in PascalCase (e.g. 'Home', 'Settings', 'Bot');
+ * `fallback` is the component rendered if the name is not found in Lucide.
  */
 
 // Module-scope loader for the full Lucide barrel — shared by every AppIcon
 // instance so a page with ten unknown icons fetches the chunk once.
-let fullSet = null;
-let loadPromise = null;
-const subscribers = new Set();
+let fullSet: { get: (n: string) => LucideIcon | undefined } | null = null;
+let loadPromise: Promise<void> | null = null;
+const subscribers = new Set<() => void>();
 function loadFullSet() {
     if (!loadPromise) {
         // lucide-react 1.x dropped its brand icons (Github, Twitter, Slack...);
         // ./brandIcons keeps their glyphs, so names already stored in content
         // still resolve. Loaded with the barrel, never on the first-load path.
         loadPromise = Promise.all([import('lucide-react'), import('./brandIcons')]).then(([m, brands]) => {
-            fullSet = { get: (n) => m[n] || brands.BRAND_ICONS[n] };
+            fullSet = { get: (n: string) => (m[n as keyof typeof m] as LucideIcon | undefined) || brands.BRAND_ICONS[n] };
             subscribers.forEach((fn) => fn());
             subscribers.clear();
         }).catch(() => { /* stays null — fallback icon renders */ });
@@ -51,8 +61,8 @@ function loadFullSet() {
 }
 
 /** Resolve a non-registry icon, re-rendering once the barrel arrives. */
-function useLazyIcon(name, wanted) {
-    const [, bump] = React.useReducer((n) => n + 1, 0);
+function useLazyIcon(name: string, wanted: boolean): LucideIcon | null | undefined {
+    const [, bump] = React.useReducer((n: number) => n + 1, 0);
     React.useEffect(() => {
         if (!wanted || fullSet) return undefined;
         subscribers.add(bump);
@@ -63,7 +73,7 @@ function useLazyIcon(name, wanted) {
     return fullSet ? (fullSet.get(name) || null) : undefined; // undefined = loading
 }
 
-export const AppIcon = React.forwardRef(({ name, className = '', style = {}, fallback, ...rest }, ref) => {
+export const AppIcon = React.forwardRef<Element, AppIconProps>(({ name, className = '', style = {}, fallback, ...rest }, ref) => {
     const { getCustomIcon } = useIconPack();
 
     // Registry hit — the synchronous fast path virtually every render takes.
@@ -77,7 +87,7 @@ export const AppIcon = React.forwardRef(({ name, className = '', style = {}, fal
         if (custom.type === 'emoji') {
             return (
                 <span
-                    ref={ref}
+                    ref={ref as React.Ref<HTMLSpanElement>}
                     role="img"
                     aria-label={name}
                     className={`inline-flex items-center justify-center ${className}`}
@@ -91,7 +101,7 @@ export const AppIcon = React.forwardRef(({ name, className = '', style = {}, fal
         if (custom.type === 'image') {
             return (
                 <img
-                    ref={ref}
+                    ref={ref as React.Ref<HTMLImageElement>}
                     src={custom.value}
                     alt={name}
                     className={`object-contain ${className}`}
@@ -104,7 +114,7 @@ export const AppIcon = React.forwardRef(({ name, className = '', style = {}, fal
 
     const Comp = registered || (lazy === undefined ? null : lazy);
     if (Comp) {
-        return <Comp ref={ref} className={className} style={style} {...rest} />;
+        return <Comp ref={ref as React.Ref<SVGSVGElement>} className={className} style={style} {...rest} />;
     }
 
     // Barrel still loading: reserve the icon's box so its arrival shifts
@@ -114,7 +124,7 @@ export const AppIcon = React.forwardRef(({ name, className = '', style = {}, fal
         const size = rest.size || 24;
         return (
             <span
-                ref={ref}
+                ref={ref as React.Ref<HTMLSpanElement>}
                 aria-hidden="true"
                 className={`inline-block ${className}`}
                 style={{ width: size, height: size, ...style }}
@@ -125,12 +135,12 @@ export const AppIcon = React.forwardRef(({ name, className = '', style = {}, fal
     // Fallback if missing
     if (fallback) {
         const FallbackComp = fallback;
-        return <FallbackComp ref={ref} className={className} style={style} {...rest} />;
+        return <FallbackComp ref={ref as React.Ref<SVGSVGElement>} className={className} style={style} {...rest} />;
     }
 
     // Ultimate fallback if the supplied name is bad and no fallback component provided
     const Help = FALLBACK_ICON;
-    return <Help ref={ref} className={className} style={style} {...rest} />;
+    return <Help ref={ref as React.Ref<SVGSVGElement>} className={className} style={style} {...rest} />;
 });
 
 AppIcon.displayName = 'AppIcon';

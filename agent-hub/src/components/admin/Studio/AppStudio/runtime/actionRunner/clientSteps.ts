@@ -8,6 +8,7 @@ import toast from '../../../../../shared/Toast';
 import { closeAppModal, openAppModal } from '../components/AppModal';
 import { resetAppForm } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
+import type { ResolveResult } from '../resolveBinding.types';
 import { attachmentUrl, getAuthed } from './actionHttp';
 import { SEQ_ABORT, defaultConfirm, resolveNavParams, showToast } from './core';
 import type { RunStep } from './core';
@@ -24,12 +25,17 @@ export interface ClientStepEnv {
 
 type ClientStepHandler = (env: ClientStepEnv, step: RunStep, st: SeqState) => void | Promise<void>;
 
+interface FileRef {
+    fileId?: string;
+    name?: string;
+}
+
 // Client-side on purpose: the bytes go straight to the user's disk and never
 // through the action's result, so a generated CSV needs no file_preview
 // parked on the screen to be reachable. Same attachment route file_preview
 // fetches, so the viewer's access is checked identically.
 async function downloadFile({ ctx, liveBag }: ClientStepEnv, step: RunStep, st: SeqState): Promise<void> {
-    const { value: entry } = resolveBinding(step.file, liveBag(st));
+    const { value: entry } = resolveBinding(step.file, liveBag(st)) as ResolveResult<FileRef | null>;
     if (!entry || typeof entry !== 'object' || !entry.fileId) return;
     const { value: nameOverride } = step.fileName
         ? resolveBinding(step.fileName, liveBag(st))
