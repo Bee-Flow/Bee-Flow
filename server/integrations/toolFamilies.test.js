@@ -52,6 +52,7 @@ test('names on an overlap go to the family that used to win', () => {
     assert.equal(ownerOf('nextcloud_deck_list_boards'), 'nextcloud');
     assert.equal(ownerOf('nextcloud_list_files'), 'nextcloud');
     assert.equal(ownerOf('generate_image'), 'generate_image');
+    assert.equal(ownerOf('create_spreadsheet'), 'create_word_document');
     assert.equal(ownerOf('notebook_write'), 'notebook');
     assert.equal(ownerOf('workspace_read'), 'notebook');
     assert.equal(ownerOf('set_ai_task'), 'set_ai_task');
