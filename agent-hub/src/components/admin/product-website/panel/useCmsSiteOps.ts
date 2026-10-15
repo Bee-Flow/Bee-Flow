@@ -8,7 +8,7 @@ import type useCmsAutosave from './useCmsAutosave';
 import type useCmsPanelState from './useCmsPanelState';
 import { errorMessage, messageOf } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
-import type { AuthFetchOptions } from '../../../../utils/helpers';
+import type { AuthFetchOptions } from '../../../../utils/helpers.types';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { ACTIVE_SITE_LS_KEY } from './helpers';

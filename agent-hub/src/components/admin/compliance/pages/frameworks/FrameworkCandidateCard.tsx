@@ -3,8 +3,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { frameworkIcon } from './frameworkIcons';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { Tone } from '../../../../shared/statusTone';
-import { TONES } from '../../../../shared/statusTone';
+import { TONES, type Tone } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { daysUntil, formatCalDate, parseDay, SOON_DAYS } from '../../shared/calendarMath';
 

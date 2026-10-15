@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import type { AuthFetchOptions } from '../../../utils/helpers';
+import type { AuthFetchOptions } from '../../../utils/helpers.types';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
 

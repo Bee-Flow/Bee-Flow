@@ -1,6 +1,6 @@
 import type { RegexRule, RuleCollection } from '../patterns/patternTypes';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
-import type { AuthFetchOptions } from '../../../../../utils/helpers';
+import type { AuthFetchOptions } from '../../../../../utils/helpers.types';
 
 /**
  * Data access for the Guardrail Configs console.
