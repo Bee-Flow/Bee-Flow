@@ -10,7 +10,7 @@ import { useRef, useState } from 'react';
 import type { DefinitionRole } from './useCommandActions';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { isMac, modKeyLabel } from '../../../../../../utils/platform';
-import { AnchoredMenu } from '../../typedJs';
+import AnchoredMenu from '../../../../../shared/AnchoredMenu';
 
 interface MoreMenuItemProps {
     icon: LucideIcon;

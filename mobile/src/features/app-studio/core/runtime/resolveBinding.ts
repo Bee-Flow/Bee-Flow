@@ -1,6 +1,6 @@
 /**
  * App Studio runtime: binding resolution (v2). Port of agent-hub
- * AppStudio/runtime/resolveBinding.js, pinned by resolveBinding.lockstep.test.ts.
+ * AppStudio/runtime/resolveBinding.ts, pinned by resolveBinding.lockstep.test.ts.
  *
  * resolveBinding(binding, bag) -> { value, isLoading, error, errorCode }.
  * The bag is { actionState, dataState, scope }; a bare actionState map (the

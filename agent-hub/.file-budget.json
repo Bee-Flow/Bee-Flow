@@ -73,7 +73,7 @@
     "src/components/admin/Studio/AppStudio/runtime/components/AppList.jsx": 445,
     "src/components/admin/Studio/AppStudio/runtime/components/AppMessageThread.jsx": 434,
     "src/components/admin/Studio/AppStudio/runtime/components/cellValue.jsx": 485,
-    "src/components/admin/Studio/AppStudio/runtime/resolveBinding.js": 427,
+    "src/components/admin/Studio/AppStudio/runtime/resolveBinding.ts": 427,
     "src/components/admin/Studio/AppStudio/runtime/styleResolver.js": 457,
     "src/components/admin/Studio/AppStudio/state/definitionOps.js": 802,
     "src/components/admin/Studio/AppStudio/state/definitionOps.test.js": 1054,
