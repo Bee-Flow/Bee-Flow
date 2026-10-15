@@ -47,17 +47,21 @@
                 "autoMapIteration.ts",
                 "autoMapListInput.ts",
                 "autoMapOwnItem.ts",
+                "boundPaths.ts",
                 "deepFields.ts",
                 "deepPick.ts",
                 "deepenForEach.ts",
                 "innerList.ts",
                 "itemRefs.ts",
                 "listPathLabel.ts",
+                "listShape.ts",
                 "pathTokens.ts",
                 "schemaMatch.ts",
                 "upstream/fieldTree.ts",
                 "upstream/forEachShape.ts",
-                "upstream/routeFieldLabel.ts"
+                "upstream/realOverlay.ts",
+                "upstream/routeFieldLabel.ts",
+                "upstream/sampleFields.ts"
             ],
             "importRewrite": [
                 [
@@ -87,6 +91,42 @@
                 [
                     "./upstream/loops",
                     "@/features/flow-editor/bindings/upstream/loops"
+                ],
+                [
+                    "../../../../utils/bindingHelpers",
+                    "@/features/flow-editor/bindings/walkPath"
+                ],
+                [
+                    "../../../../../utils/bindingHelpers",
+                    "@/features/flow-editor/bindings/walkPath"
+                ],
+                [
+                    "./refTokens",
+                    "@/features/flow-editor/bindings/refTokens"
+                ],
+                [
+                    "./upstream.types",
+                    "@/features/flow-editor/bindings/webTypes"
+                ],
+                [
+                    "../../../../hooks/useTranslation",
+                    "@/features/flow-editor/bindings/webTypes"
+                ],
+                [
+                    "./core",
+                    "@/features/flow-editor/model/displayHelpers"
+                ],
+                [
+                    "./upstream",
+                    "@/features/flow-editor/bindings/upstream/loops"
+                ],
+                [
+                    "./valueParts",
+                    "@/features/flow-editor/bindings/valueParts"
+                ],
+                [
+                    "../flow/dataSummary",
+                    "@/features/flow-editor/bindings/flowDeps/dataSummary"
                 ]
             ],
             "why": "The phone's flow editor maps and deepens with the web's TypeScript mapping library (field tree, deep fields, forEach deepening, auto-map). The JavaScript modules it leans on (loops, listShape, partitionInputs, boundPaths) and humanizeFieldKey resolve to the phone's own ports; mobile bindings/*.ts re-export the mirror."
@@ -144,6 +184,68 @@
             "target": "agent-hub/src/utils/emojiCatalog.generated.mjs",
             "transform": "cjs-to-esm",
             "why": "Themable emoji catalogue: utils/emojiCatalog.js re-exports it (plus defaultEmojiFor / labelFor) as the synchronous fallback before /api/icons/catalog loads. emojiCatalog.lockstep.test.ts deep-equals it to the source."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/flow/settings/columnMatch.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/columnMatch.ts",
+            "transform": "none",
+            "why": "Matching a table's columns to a step's fields by normalised name: the web's modules and the phone's tablesRowMap share one implementation; formState/columnMatch.ts re-exports it."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/mapping/keyPath.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/keyPath.ts",
+            "transform": "none",
+            "importRewrite": [
+                [
+                    "@shared/expr/path.mjs",
+                    "@/shared/expr"
+                ]
+            ],
+            "why": "Dotted key paths (IDENT_RE, joinKeyPath, keyPickable) over the shared expression path grammar; bindings/keyPath.ts re-exports it."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/flow/waitDuration.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/waitDuration.ts",
+            "transform": "none",
+            "why": "The Wait step's limits and unit formatting (1 s to 24 h); model/waitDuration.ts re-exports it."
+        },
+        {
+            "source": "agent-hub/src/pages/meeting-notes/lib/upcomingWhen.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/meetingSources/upcomingWhen.ts",
+            "transform": "none",
+            "why": "When a meeting is (parse, length, time range, date block): the web's meeting-notes list and the phone's upcoming meetings read an invite the same way; meetingSources/model/when.ts re-exports it and keeps the When alias."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/flow/settings/formState/types.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/formState/types.ts",
+            "transform": "none",
+            "why": "The web form-state record types (FormRecord, JsonValue); the mirrored approvalStages imports it as ./types."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/flow/settings/formState/approvalStages.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/formState/approvalStages.ts",
+            "transform": "none",
+            "why": "The approval chain's caps and seat/stage sanitising (the server's rulebook): the web's settings and the phone's approval editor share one implementation; formState/approvalStages.ts re-exports it."
+        },
+        {
+            "source": "agent-hub/src/utils/bindingHelpers.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/utils/bindingHelpers.ts",
+            "transform": "none",
+            "importRewrite": [
+                [
+                    "@shared/expr/engine.mjs",
+                    "@/shared/expr"
+                ],
+                [
+                    "@shared/expr/path.mjs",
+                    "@/shared/expr"
+                ],
+                [
+                    "./bindingHelpers.types",
+                    "@/features/flow-editor/bindings/webTypes"
+                ]
+            ],
+            "why": "Which text is a reference path and how it is spelled, binding <-> input text, the formula/condition text, autocomplete tokens, path walking and previews: the web builder and the phone's flow editor read paths and bindings with the same functions. model/pathGrammar.ts, model/route/bindingText.ts, bindings/{walkPath,conditionText,bindingHelpers}.ts re-export it."
         }
     ]
 }

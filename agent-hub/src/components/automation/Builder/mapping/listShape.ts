@@ -251,7 +251,7 @@ export function previewForEachPick(path: unknown, sampleRoot: unknown): unknown 
  * row)" for a column, "gmail search ▸ Results" for a plain list. Internal
  * step ids never appear; the raw path belongs in a title attribute.
  */
-export function describeListPath(path: unknown, stepLabelById: Map<string, string> | null = null, t: TranslateFn | null = null): string {
+export function describeListPath(path: unknown, stepLabelById: Pick<Map<string, string>, 'get' | 'has'> | null = null, t: TranslateFn | null = null): string {
     const raw = String(path || '').trim();
     const { arrayPath, tail } = splitColumnPath(raw);
     const isColumn = raw.includes(WILDCARD);

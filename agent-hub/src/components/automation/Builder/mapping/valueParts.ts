@@ -335,7 +335,7 @@ export function buildValue(parts: ValuePart[] | null | undefined, transform: str
  *
  * `stepLabelById` is the inspector's id -> label map (VariablePickerContext).
  */
-export function describeDataPath(path: unknown, stepLabelById: Map<string, string> | null = null) {
+export function describeDataPath(path: unknown, stepLabelById: Pick<Map<string, string>, 'get' | 'has'> | null = null) {
     const raw = String(path || '').trim();
     if (!raw) return { name: '', suffix: '', missing: false, source: 'steps' };
 

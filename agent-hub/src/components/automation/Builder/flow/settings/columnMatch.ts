@@ -124,7 +124,7 @@ export interface TableColumn {
  * "Excl. btw" row of the editor rather than in the "not a column" group,
  * because at run time it does reach that column.
  */
-export function resolveKeyToColumn<C extends TableColumn>(key: unknown, columns: C[] | null | undefined): C | null {
+export function resolveKeyToColumn<C extends Partial<TableColumn>>(key: unknown, columns: C[] | null | undefined): C | null {
     const k = String(key ?? '');
     if (!k) return null;
     const lower = k.toLowerCase();
@@ -136,5 +136,5 @@ export function resolveKeyToColumn<C extends TableColumn>(key: unknown, columns:
     const norm = normaliseColumnKey(k);
     if (!norm) return null;
     const hits = list.filter(c => normaliseColumnKey(c?.title) === norm);
-    return hits.length === 1 ? hits[0] : null;
+    return hits.length === 1 ? (hits[0] as C) : null;
 }

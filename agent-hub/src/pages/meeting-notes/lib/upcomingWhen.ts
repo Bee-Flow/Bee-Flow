@@ -16,7 +16,7 @@
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** What a calendar payload carries for a moment: an ISO string, a Date, or nothing. */
-export type WhenInput = string | Date | null | undefined;
+export type WhenInput = unknown;
 
 export interface ParsedWhen {
     date: Date;
@@ -45,7 +45,7 @@ export function parseWhen(value: WhenInput): ParsedWhen | null {
     const s = String(value).trim();
     if (!s) return null;
     if (DATE_ONLY_RE.test(s)) {
-        const [y, m, d] = s.split('-').map(Number);
+        const [y, m, d] = s.split('-').map(Number) as [number, number, number];
         const date = new Date(y, m - 1, d);
         return Number.isNaN(date.getTime()) ? null : { date, dateOnly: true };
     }

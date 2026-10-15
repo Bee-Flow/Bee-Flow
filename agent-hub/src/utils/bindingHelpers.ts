@@ -53,7 +53,7 @@ function anyPathTokens(text: unknown): PathToken[] | null {
     const inline = INLINE_HEAD_RE.exec(t);
     if (inline) {
         const tail = tailTokens(t.slice(inline[0].length));
-        return tail ? [{ type: 'prop', key: 'steps' }, { type: 'prop', key: inline[1] }, ...tail] : null;
+        return tail ? [{ type: 'prop', key: 'steps' }, { type: 'prop', key: inline[1] as string }, ...tail] : null;
     }
     return parsePath(t);
 }
@@ -74,8 +74,8 @@ export function canonicalRefPath(text: unknown): string {
     const tokens = anyPathTokens(t);
     if (!tokens) return t;
     const inline = INLINE_HEAD_RE.exec(t);
-    if (inline) return `${inline[0]}${formatPath([{ type: 'prop', key: '$' }, ...tokens.slice(2)]).slice(1)}`;
-    return formatPath(tokens);
+    if (inline) return `${inline[0]}${formatPath([{ type: 'prop', key: '$' }, ...tokens.slice(2)] as never).slice(1)}`;
+    return formatPath(tokens as never);
 }
 
 /** A `-` outside quotes and brackets: the one name character that is also an operator. */
@@ -153,7 +153,7 @@ export function bindingFromInput(value: unknown, mode: string) {
         const v = String(value ?? '').trim();
         if (!v) return { kind: 'literal', value: '' };
         const tokens = isCleanPath(v) ? refPathTokens(v) : null;
-        if (tokens && VALID_REF_ROOTS.includes(tokens[0].key)) {
+        if (tokens && VALID_REF_ROOTS.includes((tokens[0] as { key?: string }).key as string)) {
             return { kind: 'ref', path: canonicalRefPath(v) };
         }
         return { kind: 'expr', value: v };
@@ -294,7 +294,7 @@ export function getAutocompleteTokenFromPrefix(before: unknown, mode: string, ro
     // instead of the automation builder's.
     const rooted = new RegExp(`(?:^|[^\\w$.])((?:${list.join('|')})\\.[\\w$.[\\]*]*)$`);
     const m = rooted.exec(text);
-    if (m) return { length: m[1].length, query: m[1] };
+    if (m) return { length: (m[1] as string).length, query: m[1] as string };
     // A bare partial that could still BECOME a root ("st", "trig", "steps").
     // Without this the picker only ever opened once a full root plus its dot
     // was already typed, so typing "st" suggested nothing and the feature read
@@ -303,7 +303,7 @@ export function getAutocompleteTokenFromPrefix(before: unknown, mode: string, ro
     // every keystroke.
     const bare = /(?:^|[^\w$.])([A-Za-z_$][\w$]*)$/.exec(text);
     if (!bare) return null;
-    const partial = bare[1];
+    const partial = bare[1] as string;
     if (partial.length < 2) return null;
     const lower = partial.toLowerCase();
     if (!list.some((root: string) => root.toLowerCase().startsWith(lower))) return null;
@@ -373,7 +373,7 @@ const GENERIC_VALUE_KEYS = new Set<string | undefined>(['value', 'Value', 'val',
 /** The name a token list ends in: the last real key, skipping `[*]` and indexes. */
 function leafOf(tokens: PathToken[]): string {
     for (let i = tokens.length - 1; i >= 0; i--) {
-        const t = tokens[i];
+        const t = tokens[i] as PathToken;
         if (t.type === 'wild') continue;
         if (t.type === 'match') return t.value === null ? 'null' : String(t.value);
         if (typeof t.key === 'number') continue;
@@ -423,9 +423,9 @@ export function pathLabelParts(pathOrTail: unknown) {
     const leaf = leafOf(tokens);
     // Where the leaf sits: the last key that is not an index or a wildcard.
     let at = tokens.length - 1;
-    while (at >= 0 && isIndexOrWild(tokens[at])) at--;
+    while (at >= 0 && isIndexOrWild(tokens[at] as PathToken)) at--;
     const after = tokens.slice(at + 1).find((x: PathToken) => x.type === 'prop' && typeof x.key === 'number');
-    return { leaf, parent: parentOf(tokens, at, leaf), index: after ? after.key : null };
+    return { leaf, parent: parentOf(tokens, at, leaf), index: after ? (after as { key: number }).key : null };
 }
 
 const isIndexOrWild = (tok: PathToken) => tok.type === 'wild' || (tok.type === 'prop' && typeof tok.key === 'number');
@@ -434,7 +434,7 @@ const isIndexOrWild = (tok: PathToken) => tok.type === 'wild' || (tok.type === '
 function parentOf(tokens: PathToken[], at: number, leaf: string): string {
     if (!GENERIC_LEAF_KEYS.has(squash(leaf))) return '';
     for (let i = at - 1; i >= 0; i--) {
-        const k = tokens[i];
+        const k = tokens[i] as PathToken;
         if (k.type !== 'prop' || typeof k.key !== 'string') continue;
         const s = squash(k.key);
         if (!s || GENERIC_LEAF_KEYS.has(s) || s.includes(squash(leaf))) continue;
@@ -501,8 +501,8 @@ function findOperator(text: string, op: string): number {
             from = idx + 1;
             continue;
         }
-        const before = idx > 0 ? text[idx - 1] : ' ';
-        const after = idx + op.length < text.length ? text[idx + op.length] : ' ';
+        const before = (idx > 0 ? text[idx - 1] : ' ') as string;
+        const after = (idx + op.length < text.length ? text[idx + op.length] : ' ') as string;
         // Reject if surrounded by other operator chars (avoids splitting `>=` on `>`).
         const opChars = new Set(['=', '!', '<', '>']);
         if (opChars.has(before) || opChars.has(after)) {
@@ -597,7 +597,7 @@ function templateToExprFragment(text: string): string {
         sawPath = true;
     }
     if (!sawPath) return JSON.stringify(text);
-    return parts.length === 1 ? parts[0] : `concat(${parts.join(', ')})`;
+    return parts.length === 1 ? (parts[0] as string) : `concat(${parts.join(', ')})`;
 }
 
 /**

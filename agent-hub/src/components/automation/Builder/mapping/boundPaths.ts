@@ -34,7 +34,7 @@ function referencesIn(text: string, out: Set<string>): void {
         return;
     }
     if (isCleanPath(text.trim())) { add(text); return; }
-    for (const part of scanExprPaths(text, USE_ROOTS)) if (part.path != null) add(part.path);
+    for (const part of scanExprPaths(text, USE_ROOTS)) if ((part as { path?: string }).path != null) add((part as { path: string }).path);
 }
 
 /** Every reference path written anywhere in `step` (excluding its id/position/label). */
