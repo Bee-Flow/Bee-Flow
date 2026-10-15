@@ -213,436 +213,341 @@ async function createDriveClient(session) {
     return createGoogleApiClient(session, { api: 'drive', version: 'v3', notConnectedError: 'Not connected to Google Drive — user must log in with Google' });
 }
 
-// ─── MIME inference ────────────────────────────────────────────
-
-const EXT_TO_MIME = {
-    pdf: 'application/pdf',
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    gif: 'image/gif',
-    webp: 'image/webp',
-    svg: 'image/svg+xml',
-    csv: 'text/csv',
-    txt: 'text/plain',
-    md: 'text/markdown',
-    html: 'text/html',
-    json: 'application/json',
-    xml: 'application/xml',
-    zip: 'application/zip',
-    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-};
-
-function inferMimeType({ mimeArg, handleMime, filename }) {
-    if (mimeArg) return mimeArg;
-    if (handleMime) return handleMime;
-    const ext = String(filename || '').toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
-    return (ext && EXT_TO_MIME[ext]) || 'application/octet-stream';
-}
-
-// ─── Format File ───────────────────────────────────────────────
-
-function formatFile(file) {
-    return {
-        id: file.id,
-        name: file.name,
-        mimeType: file.mimeType,
-        size: file.size ? `${(parseInt(file.size) / 1024).toFixed(1)} KB` : null,
-        modifiedTime: file.modifiedTime,
-        createdTime: file.createdTime,
-        webViewLink: file.webViewLink,
-        iconLink: file.iconLink,
-        parents: file.parents,
-        shared: file.shared,
-        owners: file.owners?.map(o => o.emailAddress),
-        sharingUser: file.sharingUser?.emailAddress,
-    };
-}
-
-// ─── Recent files ──────────────────────────────────────────────
-
-const RECENT_DEFAULT_DAYS = 30;
-const RECENT_MAX_RESULTS = 200;
-const RECENT_PAGE_SIZE = 100;
-const RECENT_MAX_PAGES = 4;
-
-/**
- * drive_list_recent: files (never folders, never content) modified since a
- * date, newest first, capped at 200. `modifiedByMe` comes from Drive's own
- * lastModifyingUser.me flag, so a caller can keep only the user's own edits
- * without any name or address passing through.
- *
- * @param {object} drive - a googleapis drive v3 client (injected in tests)
- * @param {object} args - { since?, maxResults? }
- */
-async function listRecentDriveFiles(drive, args, { now = Date.now() } = {}) {
-    let sinceIso;
-    if (args?.since === undefined || args?.since === null || args?.since === '') {
-        sinceIso = new Date(now - RECENT_DEFAULT_DAYS * 86400000).toISOString();
-    } else {
-        const ms = Date.parse(String(args.since));
-        if (!Number.isFinite(ms)) throw new Error('since must be an ISO date/time');
-        sinceIso = new Date(ms).toISOString();
-    }
-    const want = Math.min(Math.max(parseInt(args?.maxResults) || 50, 1), RECENT_MAX_RESULTS);
-
-    const files = [];
-    let pageToken;
-    let pages = 0;
-    do {
-        const res = await drive.files.list({
-            q: `modifiedTime >= '${sinceIso}' and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
-            pageSize: Math.min(want - files.length, RECENT_PAGE_SIZE),
-            pageToken,
-            fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, createdTime, parents, ownedByMe, lastModifyingUser(me))',
-            orderBy: 'modifiedTime desc',
-        });
-        pages++;
-        for (const f of (res.data.files || [])) files.push(f);
-        pageToken = res.data.nextPageToken;
-    } while (pageToken && files.length < want && pages < RECENT_MAX_PAGES);
-
-    return {
-        since: sinceIso,
-        resultCount: Math.min(files.length, want),
-        hasMore: !!pageToken || files.length > want,
-        results: files.slice(0, want).map(f => ({
-            id: f.id,
-            name: f.name,
-            mimeType: f.mimeType,
-            parentId: Array.isArray(f.parents) && f.parents.length ? f.parents[0] : null,
-            modifiedTime: f.modifiedTime,
-            createdTime: f.createdTime,
-            ownedByMe: f.ownedByMe === true,
-            modifiedByMe: f.lastModifyingUser?.me === true,
-        })),
-    };
-}
+const { inferMimeType, formatFile, listRecentDriveFiles } = require('./driveHelpers');
 
 // ─── Tool Execution ────────────────────────────────────────────
+
+async function search(args, { drive }) {
+    const maxResults = Math.min(Math.max(args.maxResults || 20, 1), 50);
+    // Sanitize: if query doesn't contain Drive operators, wrap as name search
+    let query = args.query;
+    const driveOps = /\b(contains|=|!=|<|>|in\b|not\b|and\b|or\b|has\b)/i;
+    if (!driveOps.test(query)) {
+        // Strip surrounding quotes if present
+        query = query.replace(/^["']|["']$/g, '').trim();
+        query = `name contains '${query.replace(/'/g, "\\'")}'`;
+    }
+    const res = await drive.files.list({
+        q: query,
+        pageSize: maxResults,
+        fields: 'files(id, name, mimeType, size, modifiedTime, createdTime, webViewLink, parents, shared, owners)',
+        orderBy: 'modifiedTime desc',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+    });
+    return {
+        query: args.query,
+        resultCount: res.data.files?.length || 0,
+        results: (res.data.files || []).map(formatFile),
+    };
+}
+
+async function listFiles(args, { drive }) {
+    const maxResults = Math.min(Math.max(args.maxResults || 20, 1), 50);
+    const q = args.folderId
+        ? `'${args.folderId}' in parents and trashed = false`
+        : 'trashed = false';
+    const res = await drive.files.list({
+        q,
+        pageSize: maxResults,
+        fields: 'files(id, name, mimeType, size, modifiedTime, createdTime, webViewLink, parents, shared)',
+        orderBy: 'modifiedTime desc',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+    });
+    return {
+        folderId: args.folderId || 'recent',
+        resultCount: res.data.files?.length || 0,
+        results: (res.data.files || []).map(formatFile),
+    };
+}
+
+async function listRecent(args, { drive }) {
+    return listRecentDriveFiles(drive, args);
+}
+
+async function getFile(args, { drive }) {
+    const res = await drive.files.get({
+        fileId: args.fileId,
+        fields: 'id, name, mimeType, size, modifiedTime, createdTime, webViewLink, parents, shared, owners, sharingUser, permissions, description',
+        supportsAllDrives: true,
+    });
+    const file = formatFile(res.data);
+    // Add permissions detail
+    if (res.data.permissions) {
+        file.permissions = res.data.permissions.map(p => ({
+            role: p.role,
+            type: p.type,
+            email: p.emailAddress,
+            displayName: p.displayName,
+        }));
+    }
+    file.description = res.data.description;
+    return file;
+}
+
+async function moveFile(args, { drive }) {
+    // Get current parents
+    const current = await drive.files.get({
+        fileId: args.fileId,
+        fields: 'parents',
+        supportsAllDrives: true,
+    });
+    const previousParents = (current.data.parents || []).join(',');
+
+    const res = await drive.files.update({
+        fileId: args.fileId,
+        addParents: args.destinationFolderId,
+        removeParents: previousParents,
+        fields: 'id, name, parents',
+        supportsAllDrives: true,
+    });
+    return {
+        success: true,
+        file: res.data.name,
+        movedTo: args.destinationFolderId,
+    };
+}
+
+async function createFolder(args, { drive }) {
+    const res = await drive.files.create({
+        requestBody: {
+            name: args.name,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: args.parentFolderId ? [args.parentFolderId] : undefined,
+        },
+        fields: 'id, name, webViewLink',
+        supportsAllDrives: true,
+    });
+    return {
+        success: true,
+        folderId: res.data.id,
+        name: res.data.name,
+        link: res.data.webViewLink,
+    };
+}
+
+async function uploadFile(args, { drive, session, extra }) {
+    if (!args.name) return { error: 'name is required' };
+    const hasHandle = args.sourceHandle && typeof args.sourceHandle === 'object';
+    const hasContent = typeof args.content === 'string';
+    if (hasHandle && hasContent) {
+        return { error: 'Pass either sourceHandle or content, not both.' };
+    }
+    if (!hasHandle && !hasContent) {
+        return { error: 'Either sourceHandle (preferred for binary) or content (for inline text) is required.' };
+    }
+
+    // Resolve bytes. Handles stay opaque to the AI; the only currently
+    // supported kind is gmail_attachment.
+    let buffer;
+    let handleMime;
+    if (hasHandle) {
+        const kind = args.sourceHandle.kind;
+        if (kind === 'gmail_attachment') {
+            const { fetchAttachmentBuffer } = require('./gmailTools');
+            const res = await fetchAttachmentBuffer(session, {
+                messageId: args.sourceHandle.messageId,
+                attachmentId: args.sourceHandle.attachmentId,
+            });
+            buffer = res.buffer;
+            handleMime = args.sourceHandle.mimeType;
+        } else if (kind === 'generated_file') {
+            // A file a document/presentation step kept for THIS run —
+            // resolved against the journey's run ids, never by id alone.
+            const { readGeneratedFile } = require('../core/automationRunner/generatedFileHandle');
+            let file;
+            try {
+                file = await readGeneratedFile(args.sourceHandle, (extra && extra.runScope) || null);
+            } catch (e) {
+                return { error: e.message };
+            }
+            if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another automation).' };
+            buffer = file.buffer;
+            handleMime = args.sourceHandle.mimeType || file.mimeType;
+        } else {
+            return { error: `Unsupported sourceHandle.kind: ${kind}` };
+        }
+    } else {
+        buffer = Buffer.from(args.content, args.isBase64 ? 'base64' : 'utf-8');
+    }
+
+    const mimeType = inferMimeType({ mimeArg: args.mimeType, handleMime, filename: args.name });
+
+    // Idempotent overwrite: look for an existing file with the same name
+    // in the target folder and update it in place rather than creating a
+    // duplicate. Off by default — duplicates are safer than surprise
+    // overwrites in invoice-archive flows.
+    let existingId = null;
+    if (args.overwriteIfExists && args.parentFolderId) {
+        const escapedName = String(args.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const listRes = await drive.files.list({
+            q: `name = '${escapedName}' and '${args.parentFolderId}' in parents and trashed = false`,
+            pageSize: 1,
+            fields: 'files(id, name)',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true,
+        });
+        existingId = listRes.data.files?.[0]?.id || null;
+    }
+
+    const media = { mimeType, body: Readable.from(buffer) };
+    let res;
+    if (existingId) {
+        res = await drive.files.update({
+            fileId: existingId,
+            media,
+            fields: 'id, name, webViewLink, parents',
+            supportsAllDrives: true,
+        });
+    } else {
+        res = await drive.files.create({
+            requestBody: {
+                name: args.name,
+                parents: args.parentFolderId ? [args.parentFolderId] : undefined,
+                mimeType,
+            },
+            media,
+            fields: 'id, name, webViewLink, parents',
+            supportsAllDrives: true,
+        });
+    }
+
+    return {
+        success: true,
+        fileId: res.data.id,
+        name: res.data.name,
+        webViewLink: res.data.webViewLink,
+        parents: res.data.parents,
+        mimeType,
+        bytesUploaded: buffer.length,
+        updated: !!existingId,
+    };
+}
+
+async function getContent(args, { drive }) {
+    if (!args.fileId) return { error: 'fileId is required' };
+
+    // Get file metadata first to determine how to read it
+    const fileMeta = await drive.files.get({
+        fileId: args.fileId,
+        fields: 'id, name, mimeType, size',
+        supportsAllDrives: true,
+    });
+    const mimeType = fileMeta.data.mimeType;
+    const fileName = fileMeta.data.name;
+    const MAX_CHARS = 80000;
+
+    let content = '';
+
+    // Google Docs → export as plain text
+    if (mimeType === 'application/vnd.google-apps.document') {
+        const exp = await drive.files.export({
+            fileId: args.fileId,
+            mimeType: 'text/plain',
+        });
+        content = typeof exp.data === 'string' ? exp.data : String(exp.data);
+    }
+    // Google Sheets → export as CSV
+    else if (mimeType === 'application/vnd.google-apps.spreadsheet') {
+        const exp = await drive.files.export({
+            fileId: args.fileId,
+            mimeType: 'text/csv',
+        });
+        content = typeof exp.data === 'string' ? exp.data : String(exp.data);
+    }
+    // Google Slides → export as plain text
+    else if (mimeType === 'application/vnd.google-apps.presentation') {
+        const exp = await drive.files.export({
+            fileId: args.fileId,
+            mimeType: 'text/plain',
+        });
+        content = typeof exp.data === 'string' ? exp.data : String(exp.data);
+    }
+    // PDF → download + extract text via the unified attachment pipeline
+    // (pdfjs → Azure DI → Mistral OCR, with the garbage-text fallback
+    // that catches CID-font junk). Keeps Drive in lockstep with
+    // Nextcloud and chat uploads — one place to fix PDF quirks.
+    else if (mimeType === 'application/pdf') {
+        try {
+            const dlRes = await drive.files.get({
+                fileId: args.fileId,
+                alt: 'media',
+                supportsAllDrives: true,
+            }, { responseType: 'arraybuffer' });
+            const pdfBuffer = Buffer.from(dlRes.data);
+
+            const { extractAttachment } = require('../core/documents/attachmentExtractor');
+            const result = await extractAttachment({
+                name: fileName,
+                type: 'application/pdf',
+                content: pdfBuffer.toString('base64'),
+            });
+            if (result.kind === 'text') {
+                content = result.text;
+            } else if (result.kind === 'images') {
+                return {
+                    error: `${fileName} appears to be an image-only PDF (${result.meta?.numPages || '?'} pages) with no extractable text. Configure Azure Document Intelligence or Mistral OCR to read scanned PDFs from Drive.`,
+                    fileName,
+                };
+            } else {
+                content = `[PDF: ${fileName} — could not extract text: ${result.reason || 'unknown reason'}]`;
+            }
+        } catch (dlErr) {
+            return { error: `Failed to download PDF: ${dlErr.message}`, fileName };
+        }
+    }
+    // Plain text / CSV / other downloadable formats
+    else if (
+        mimeType?.startsWith('text/') ||
+        mimeType === 'application/json' ||
+        mimeType === 'application/csv' ||
+        mimeType === 'application/xml'
+    ) {
+        const dlRes = await drive.files.get({
+            fileId: args.fileId,
+            alt: 'media',
+            supportsAllDrives: true,
+        }, { responseType: 'text' });
+        content = typeof dlRes.data === 'string' ? dlRes.data : String(dlRes.data);
+    }
+    // Unsupported format
+    else {
+        return {
+            error: `Cannot read content of ${mimeType} files. Supported: Google Docs, Sheets, Slides, PDF, and text files.`,
+            fileName, mimeType,
+        };
+    }
+
+    return {
+        fileId: args.fileId,
+        fileName,
+        mimeType,
+        content: content.length > MAX_CHARS
+            ? content.substring(0, MAX_CHARS) + '\n\n[... truncated, file too large ...]'
+            : content,
+        charCount: content.length,
+        truncated: content.length > MAX_CHARS,
+    };
+}
+
+const HANDLERS = {
+    drive_search: search,
+    drive_list_files: listFiles,
+    drive_list_recent: listRecent,
+    drive_get_file: getFile,
+    drive_move_file: moveFile,
+    drive_create_folder: createFolder,
+    drive_upload_file: uploadFile,
+    drive_get_content: getContent,
+};
 
 async function executeDriveTool(toolName, args, session, extra = {}) {
     const drive = await createDriveClient(session);
 
-    switch (toolName) {
-        case 'drive_search': {
-            const maxResults = Math.min(Math.max(args.maxResults || 20, 1), 50);
-            // Sanitize: if query doesn't contain Drive operators, wrap as name search
-            let query = args.query;
-            const driveOps = /\b(contains|=|!=|<|>|in\b|not\b|and\b|or\b|has\b)/i;
-            if (!driveOps.test(query)) {
-                // Strip surrounding quotes if present
-                query = query.replace(/^["']|["']$/g, '').trim();
-                query = `name contains '${query.replace(/'/g, "\\'")}'`;
-            }
-            const res = await drive.files.list({
-                q: query,
-                pageSize: maxResults,
-                fields: 'files(id, name, mimeType, size, modifiedTime, createdTime, webViewLink, parents, shared, owners)',
-                orderBy: 'modifiedTime desc',
-                supportsAllDrives: true,
-                includeItemsFromAllDrives: true,
-            });
-            return {
-                query: args.query,
-                resultCount: res.data.files?.length || 0,
-                results: (res.data.files || []).map(formatFile),
-            };
-        }
-
-        case 'drive_list_files': {
-            const maxResults = Math.min(Math.max(args.maxResults || 20, 1), 50);
-            const q = args.folderId
-                ? `'${args.folderId}' in parents and trashed = false`
-                : 'trashed = false';
-            const res = await drive.files.list({
-                q,
-                pageSize: maxResults,
-                fields: 'files(id, name, mimeType, size, modifiedTime, createdTime, webViewLink, parents, shared)',
-                orderBy: 'modifiedTime desc',
-                supportsAllDrives: true,
-                includeItemsFromAllDrives: true,
-            });
-            return {
-                folderId: args.folderId || 'recent',
-                resultCount: res.data.files?.length || 0,
-                results: (res.data.files || []).map(formatFile),
-            };
-        }
-
-        case 'drive_list_recent':
-            return listRecentDriveFiles(drive, args);
-
-        case 'drive_get_file': {
-            const res = await drive.files.get({
-                fileId: args.fileId,
-                fields: 'id, name, mimeType, size, modifiedTime, createdTime, webViewLink, parents, shared, owners, sharingUser, permissions, description',
-                supportsAllDrives: true,
-            });
-            const file = formatFile(res.data);
-            // Add permissions detail
-            if (res.data.permissions) {
-                file.permissions = res.data.permissions.map(p => ({
-                    role: p.role,
-                    type: p.type,
-                    email: p.emailAddress,
-                    displayName: p.displayName,
-                }));
-            }
-            file.description = res.data.description;
-            return file;
-        }
-
-        case 'drive_move_file': {
-            // Get current parents
-            const current = await drive.files.get({
-                fileId: args.fileId,
-                fields: 'parents',
-                supportsAllDrives: true,
-            });
-            const previousParents = (current.data.parents || []).join(',');
-
-            const res = await drive.files.update({
-                fileId: args.fileId,
-                addParents: args.destinationFolderId,
-                removeParents: previousParents,
-                fields: 'id, name, parents',
-                supportsAllDrives: true,
-            });
-            return {
-                success: true,
-                file: res.data.name,
-                movedTo: args.destinationFolderId,
-            };
-        }
-
-        case 'drive_create_folder': {
-            const res = await drive.files.create({
-                requestBody: {
-                    name: args.name,
-                    mimeType: 'application/vnd.google-apps.folder',
-                    parents: args.parentFolderId ? [args.parentFolderId] : undefined,
-                },
-                fields: 'id, name, webViewLink',
-                supportsAllDrives: true,
-            });
-            return {
-                success: true,
-                folderId: res.data.id,
-                name: res.data.name,
-                link: res.data.webViewLink,
-            };
-        }
-
-        case 'drive_upload_file': {
-            if (!args.name) return { error: 'name is required' };
-            const hasHandle = args.sourceHandle && typeof args.sourceHandle === 'object';
-            const hasContent = typeof args.content === 'string';
-            if (hasHandle && hasContent) {
-                return { error: 'Pass either sourceHandle or content, not both.' };
-            }
-            if (!hasHandle && !hasContent) {
-                return { error: 'Either sourceHandle (preferred for binary) or content (for inline text) is required.' };
-            }
-
-            // Resolve bytes. Handles stay opaque to the AI; the only currently
-            // supported kind is gmail_attachment.
-            let buffer;
-            let handleMime;
-            if (hasHandle) {
-                const kind = args.sourceHandle.kind;
-                if (kind === 'gmail_attachment') {
-                    const { fetchAttachmentBuffer } = require('./gmailTools');
-                    const res = await fetchAttachmentBuffer(session, {
-                        messageId: args.sourceHandle.messageId,
-                        attachmentId: args.sourceHandle.attachmentId,
-                    });
-                    buffer = res.buffer;
-                    handleMime = args.sourceHandle.mimeType;
-                } else if (kind === 'generated_file') {
-                    // A file a document/presentation step kept for THIS run —
-                    // resolved against the journey's run ids, never by id alone.
-                    const { readGeneratedFile } = require('../core/automationRunner/generatedFileHandle');
-                    let file;
-                    try {
-                        file = await readGeneratedFile(args.sourceHandle, (extra && extra.runScope) || null);
-                    } catch (e) {
-                        return { error: e.message };
-                    }
-                    if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another automation).' };
-                    buffer = file.buffer;
-                    handleMime = args.sourceHandle.mimeType || file.mimeType;
-                } else {
-                    return { error: `Unsupported sourceHandle.kind: ${kind}` };
-                }
-            } else {
-                buffer = Buffer.from(args.content, args.isBase64 ? 'base64' : 'utf-8');
-            }
-
-            const mimeType = inferMimeType({ mimeArg: args.mimeType, handleMime, filename: args.name });
-
-            // Idempotent overwrite: look for an existing file with the same name
-            // in the target folder and update it in place rather than creating a
-            // duplicate. Off by default — duplicates are safer than surprise
-            // overwrites in invoice-archive flows.
-            let existingId = null;
-            if (args.overwriteIfExists && args.parentFolderId) {
-                const escapedName = String(args.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const listRes = await drive.files.list({
-                    q: `name = '${escapedName}' and '${args.parentFolderId}' in parents and trashed = false`,
-                    pageSize: 1,
-                    fields: 'files(id, name)',
-                    supportsAllDrives: true,
-                    includeItemsFromAllDrives: true,
-                });
-                existingId = listRes.data.files?.[0]?.id || null;
-            }
-
-            const media = { mimeType, body: Readable.from(buffer) };
-            let res;
-            if (existingId) {
-                res = await drive.files.update({
-                    fileId: existingId,
-                    media,
-                    fields: 'id, name, webViewLink, parents',
-                    supportsAllDrives: true,
-                });
-            } else {
-                res = await drive.files.create({
-                    requestBody: {
-                        name: args.name,
-                        parents: args.parentFolderId ? [args.parentFolderId] : undefined,
-                        mimeType,
-                    },
-                    media,
-                    fields: 'id, name, webViewLink, parents',
-                    supportsAllDrives: true,
-                });
-            }
-
-            return {
-                success: true,
-                fileId: res.data.id,
-                name: res.data.name,
-                webViewLink: res.data.webViewLink,
-                parents: res.data.parents,
-                mimeType,
-                bytesUploaded: buffer.length,
-                updated: !!existingId,
-            };
-        }
-
-        case 'drive_get_content': {
-            if (!args.fileId) return { error: 'fileId is required' };
-
-            // Get file metadata first to determine how to read it
-            const fileMeta = await drive.files.get({
-                fileId: args.fileId,
-                fields: 'id, name, mimeType, size',
-                supportsAllDrives: true,
-            });
-            const mimeType = fileMeta.data.mimeType;
-            const fileName = fileMeta.data.name;
-            const MAX_CHARS = 80000;
-
-            let content = '';
-
-            // Google Docs → export as plain text
-            if (mimeType === 'application/vnd.google-apps.document') {
-                const exp = await drive.files.export({
-                    fileId: args.fileId,
-                    mimeType: 'text/plain',
-                });
-                content = typeof exp.data === 'string' ? exp.data : String(exp.data);
-            }
-            // Google Sheets → export as CSV
-            else if (mimeType === 'application/vnd.google-apps.spreadsheet') {
-                const exp = await drive.files.export({
-                    fileId: args.fileId,
-                    mimeType: 'text/csv',
-                });
-                content = typeof exp.data === 'string' ? exp.data : String(exp.data);
-            }
-            // Google Slides → export as plain text
-            else if (mimeType === 'application/vnd.google-apps.presentation') {
-                const exp = await drive.files.export({
-                    fileId: args.fileId,
-                    mimeType: 'text/plain',
-                });
-                content = typeof exp.data === 'string' ? exp.data : String(exp.data);
-            }
-            // PDF → download + extract text via the unified attachment pipeline
-            // (pdfjs → Azure DI → Mistral OCR, with the garbage-text fallback
-            // that catches CID-font junk). Keeps Drive in lockstep with
-            // Nextcloud and chat uploads — one place to fix PDF quirks.
-            else if (mimeType === 'application/pdf') {
-                try {
-                    const dlRes = await drive.files.get({
-                        fileId: args.fileId,
-                        alt: 'media',
-                        supportsAllDrives: true,
-                    }, { responseType: 'arraybuffer' });
-                    const pdfBuffer = Buffer.from(dlRes.data);
-
-                    const { extractAttachment } = require('../core/documents/attachmentExtractor');
-                    const result = await extractAttachment({
-                        name: fileName,
-                        type: 'application/pdf',
-                        content: pdfBuffer.toString('base64'),
-                    });
-                    if (result.kind === 'text') {
-                        content = result.text;
-                    } else if (result.kind === 'images') {
-                        return {
-                            error: `${fileName} appears to be an image-only PDF (${result.meta?.numPages || '?'} pages) with no extractable text. Configure Azure Document Intelligence or Mistral OCR to read scanned PDFs from Drive.`,
-                            fileName,
-                        };
-                    } else {
-                        content = `[PDF: ${fileName} — could not extract text: ${result.reason || 'unknown reason'}]`;
-                    }
-                } catch (dlErr) {
-                    return { error: `Failed to download PDF: ${dlErr.message}`, fileName };
-                }
-            }
-            // Plain text / CSV / other downloadable formats
-            else if (
-                mimeType?.startsWith('text/') ||
-                mimeType === 'application/json' ||
-                mimeType === 'application/csv' ||
-                mimeType === 'application/xml'
-            ) {
-                const dlRes = await drive.files.get({
-                    fileId: args.fileId,
-                    alt: 'media',
-                    supportsAllDrives: true,
-                }, { responseType: 'text' });
-                content = typeof dlRes.data === 'string' ? dlRes.data : String(dlRes.data);
-            }
-            // Unsupported format
-            else {
-                return {
-                    error: `Cannot read content of ${mimeType} files. Supported: Google Docs, Sheets, Slides, PDF, and text files.`,
-                    fileName, mimeType,
-                };
-            }
-
-            return {
-                fileId: args.fileId,
-                fileName,
-                mimeType,
-                content: content.length > MAX_CHARS
-                    ? content.substring(0, MAX_CHARS) + '\n\n[... truncated, file too large ...]'
-                    : content,
-                charCount: content.length,
-                truncated: content.length > MAX_CHARS,
-            };
-        }
-
-        default:
-            return { error: `Unknown drive tool: ${toolName}` };
-    }
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) return { error: `Unknown drive tool: ${toolName}` };
+    return handler(args, { drive, session, extra });
 }
 
 function isDriveTool(toolName) {
