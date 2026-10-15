@@ -44,7 +44,7 @@
     "src/components/admin/product-website/analytics/sections/BehaviorSection.jsx": 444,
     "src/components/admin/product-website/analytics/sections/HeatmapSection.jsx": 502,
     "src/components/admin/product-website/analytics/sections/SettingsSection.jsx": 511,
-    "src/components/admin/product-website/analytics/ui.jsx": 507,
+    "src/components/admin/product-website/analytics/ui.tsx": 507,
     "src/components/admin/product-website/blockEditors/ContentEditor.jsx": 479,
     "src/components/admin/product-website/blog/BlogInspector.tsx": 417,
     "src/components/admin/product-website/DesignEditor.jsx": 560,

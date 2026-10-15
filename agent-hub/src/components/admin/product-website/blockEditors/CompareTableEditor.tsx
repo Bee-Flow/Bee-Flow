@@ -1,7 +1,9 @@
 import React from 'react';
 import { TextField, RepeatableList } from '../fields';
 import { InlineHint } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Comparison table ──────────────────────────────────────────────────
@@ -10,7 +12,16 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // (leftLabel), so neither the renderer nor a translator has to guess
 // which column belongs to the product.
 
-export function CompareTableEditor({ data = {}, onChange }) {
+type CompareRow = { aspect?: string; left?: string; right?: string };
+type CompareTableData = SectionHeaderData & {
+    leftLabel?: string;
+    rightLabel?: string;
+    rows?: CompareRow[];
+    footnote?: string;
+};
+
+export function CompareTableEditor({ data = {}, onChange }: BlockEditorProps<CompareTableData>) {
+
     const { t } = useTranslation();
     return (
         <>

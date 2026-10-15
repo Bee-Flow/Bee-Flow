@@ -1,13 +1,25 @@
 import React from 'react';
 import { TextField, ImageField, RepeatableList } from '../fields';
 import { InlineHint, CollapsibleCard } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields, LogoTintControl } from './shared';
+import type { SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Social Proof ──────────────────────────────────────────────────────
 
-export function SocialProofEditor({ data = {}, onChange }) {
+type SocialProofStat = { number?: string; label?: string };
+type SocialProofLogo = { src?: string; alt?: string };
+type SocialProofData = SectionHeaderData & {
+    variant?: string;
+    stats?: SocialProofStat[];
+    logos?: SocialProofLogo[];
+    logoTint?: number;
+};
+
+export function SocialProofEditor({ data = {}, onChange }: BlockEditorProps<SocialProofData>) {
+
     const { t } = useTranslation();
     const variant = data.variant === 'numbers' ? 'numbers' : 'classic';
     // Eyebrow + Title (style controls + text fields) come from the
@@ -18,7 +30,7 @@ export function SocialProofEditor({ data = {}, onChange }) {
             <VariantPicker
                 type="socialProof"
                 value={data.variant}
-                onChange={v => onChange(set(data, 'variant', v))}
+                onChange={(v: string) => onChange(set(data, 'variant', v))}
             />
             <InlineHint>{t('cms_site.blocks.social_proof.click_the_eyebrow_and_title_text', 'Click the eyebrow and title text in the preview to edit them inline. Style each independently below.')}</InlineHint>
 

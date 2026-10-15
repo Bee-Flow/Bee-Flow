@@ -1,7 +1,9 @@
 import React from 'react';
 import { TextField } from '../fields';
 import { InlineHint } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── GitHub stats ──────────────────────────────────────────────────────
@@ -11,7 +13,10 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // can never advertise a stale count. When that endpoint has nothing, the
 // section renders a plain repo link instead of empty digits.
 
-export function GitHubStatsEditor({ data = {}, onChange }) {
+type GitHubStatsData = SectionHeaderData & { repoUrl?: string; linkLabel?: string };
+
+export function GitHubStatsEditor({ data = {}, onChange }: BlockEditorProps<GitHubStatsData>) {
+
     const { t } = useTranslation();
     return (
         <>

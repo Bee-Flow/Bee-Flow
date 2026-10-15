@@ -8,19 +8,41 @@ import {
     FieldSelect,
     mintId,
 } from '../primitives';
+import type { CmsLink } from '../fields';
+import type { StyleBlob } from '../primitives.types';
+import type { BlockEditorWithPagesProps } from './editorProps';
 import { set } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Footer ────────────────────────────────────────────────────────────
 
-export function FooterEditor({ data = {}, pages = [], onChange }) {
+type FooterLink = { id?: string; label?: string; link?: CmsLink };
+type FooterColumn = { id?: string; heading?: string; links?: FooterLink[] };
+type FooterSocial = { id?: string; platform?: string; link?: CmsLink };
+type FooterData = {
+    themeSwitcher?: { enabled?: boolean };
+    showLanguageSwitcher?: boolean;
+    showBrandDot?: boolean;
+    linkStyle?: StyleBlob;
+    columns?: FooterColumn[];
+    accountability?: {
+        address?: string;
+        registration?: string;
+        vat?: string;
+        links?: { label?: string; href?: string }[];
+    };
+    socials?: FooterSocial[];
+};
+
+export function FooterEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<FooterData>) {
     const { t } = useTranslation();
     const themeSwitcherEnabled = !!data.themeSwitcher?.enabled;
     // Master footer-link styling. Sibling to columns/socials so it
     // applies across all footer link labels (both inside columns and
     // socials when wired). Matches the *Style naming used elsewhere.
     const linkStyle = data.linkStyle || {};
-    const updateLinkStyle = (patch) => onChange(set(data, 'linkStyle', { ...linkStyle, ...patch }));
+    const updateLinkStyle = (patch: StyleBlob) =>
+ onChange(set(data, 'linkStyle', { ...linkStyle, ...patch }));
 
     return (
         <>
@@ -83,7 +105,7 @@ export function FooterEditor({ data = {}, pages = [], onChange }) {
                                     label={t('cms_site.blocks.footer.links', 'Links')}
                                     items={col.links || []}
                                     onChange={v => updateCol({ ...col, links: v })}
-                                    makeNew={() => ({ id: mintId('fl'), label: 'New link', link: { kind: 'external', url: '#' } })}
+                                    makeNew={(): FooterLink => ({ id: mintId('fl'), label: 'New link', link: { kind: 'external', url: '#' } })}
                                     itemLabel={(l) => l.label || t('cms_site.blocks.footer.no_label', '(no label)')}
                                     collapsible
                                     renderItem={(l, updL) => (
@@ -151,7 +173,8 @@ export function FooterEditor({ data = {}, pages = [], onChange }) {
                     <RepeatableList
                         items={data.socials || []}
                         onChange={v => onChange(set(data, 'socials', v))}
-                        makeNew={() => ({ id: mintId('soc'), platform: 'github', link: { kind: 'external', url: '' } })}
+                        makeNew={(): FooterSocial => ({ id: mintId('soc'), platform: 'github', link: { kind: 'external', url: '' } })}
+
                         itemLabel={(s) => s.platform || t('cms_site.blocks.footer.no_platform', '(no platform)')}
                         collapsible
                         renderItem={(s, updS) => (

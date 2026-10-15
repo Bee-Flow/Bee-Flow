@@ -2,6 +2,8 @@ import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Toggle, TextField } from '../fields';
 import { CollapsibleCard, SegmentedControl } from '../primitives';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { BlockEditorProps } from './editorProps';
 
 /**
  * Site-chrome editor for the announcement bar. Edits site.announcement:
@@ -25,13 +27,36 @@ const FALLBACK_LOCALES = [
     { code: 'nl', name: 'Nederlands' },
 ];
 
-const variantOptions = (t) => [
+type AnnouncementCopy = { message?: string; linkLabel?: string; linkUrl?: string };
+type AnnouncementData = {
+    enabled?: boolean;
+    dismissible?: boolean;
+    variant?: string;
+    /** Every locale's copy, keyed by locale code. */
+    text?: Record<string, AnnouncementCopy>;
+};
+
+interface AnnouncementEditorProps extends BlockEditorProps<AnnouncementData> {
+    /** The site's locale list; the fallback is English + Dutch. */
+    locales?: { code: string; name?: string }[] | null;
+    defaultLocale?: string;
+}
+
+const variantOptions = (t: TranslateFn) => [
     { value: 'accent',  label: t('cms_site.blocks.announcement.variant_accent', 'Accent'),  hint: t('cms_site.blocks.announcement.variant_accent_hint', 'Brand gradient strip with light label text') },
     { value: 'surface', label: t('cms_site.blocks.announcement.variant_surface', 'Surface'), hint: t('cms_site.blocks.announcement.variant_surface_hint', 'Quiet surface fill with a hairline under it') },
     { value: 'dark',    label: t('cms_site.blocks.announcement.variant_dark', 'Dark'),    hint: t('cms_site.blocks.announcement.variant_dark_hint', 'Dark strip with light text') },
 ];
 
-function LocaleCard({ code, label, text, defaultOpen, onField }) {
+interface LocaleCardProps {
+    code: string;
+    label: string;
+    text: Record<string, AnnouncementCopy>;
+    defaultOpen: boolean;
+    onField: (locale: string, key: string, value: string) => void;
+}
+
+function LocaleCard({ code, label, text, defaultOpen, onField }: LocaleCardProps) {
     const { t } = useTranslation();
     const copy = text[code] || {};
     return (
@@ -58,7 +83,7 @@ function LocaleCard({ code, label, text, defaultOpen, onField }) {
     );
 }
 
-export default function AnnouncementEditor({ data = {}, onChange, locales = null, defaultLocale = 'en' }) {
+export default function AnnouncementEditor({ data = {}, onChange, locales = null, defaultLocale = 'en' }: AnnouncementEditorProps) {
     const { t } = useTranslation();
     // Off by default — unlike the cookie banner, an announcement is opt-in
     // (a site that never configured one must not suddenly grow a strip).
@@ -77,7 +102,8 @@ export default function AnnouncementEditor({ data = {}, onChange, locales = null
 
     // Replace one copy field for one locale, leaving every other field and
     // locale intact.
-    const updateField = (locale, key, value) => {
+    const updateField = (locale: string, key: string, value: string) => {
+
         onChange({
             ...data,
             text: {

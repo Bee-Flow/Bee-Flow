@@ -1,6 +1,7 @@
 import React from 'react';
 import { TextField } from '../fields';
 import { InlineHint, CollapsibleCard, BackgroundVariantSelect } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -10,9 +11,18 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // (source: 'marketing'); the AI replies inline and a human takes over on
 // escalation.
 
-export function CustomerSupportEditor({ data = {}, onChange }) {
+type CustomerSupportData = Partial<Record<
+    | 'backgroundVariant' | 'title' | 'lead'
+    | 'nameLabel' | 'namePlaceholder' | 'emailLabel' | 'emailPlaceholder'
+    | 'subjectLabel' | 'subjectPlaceholder' | 'messageLabel' | 'messagePlaceholder'
+    | 'submitLabel' | 'successTitle' | 'successBody',
+    string
+>>;
+
+export function CustomerSupportEditor({ data = {}, onChange }: BlockEditorProps<CustomerSupportData>) {
     const { t } = useTranslation();
-    const setField = (key, value) => onChange(set(data, key, value));
+    const setField = (key: string, value: unknown) =>
+ onChange(set(data, key, value));
     return (
         <>
             <InlineHint>{t('cms_site.blocks.customer_support.click_the_title_and_intro_in', 'Click the title and intro in the preview to edit them inline.')}</InlineHint>

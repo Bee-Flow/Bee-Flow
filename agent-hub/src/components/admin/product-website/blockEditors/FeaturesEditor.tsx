@@ -1,13 +1,31 @@
 import React from 'react';
 import { TextField, IconField, ImageField, RepeatableList, FieldRow, Toggle } from '../fields';
 import { InlineHint, ColorSwatch, BackgroundCard, SegmentedControl } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields, CardActionFields } from './shared';
+import type { CardActionItem, SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Features ──────────────────────────────────────────────────────────
 
-export function FeaturesEditor({ data = {}, onChange }) {
+type FeatureCard = CardActionItem & {
+    icon?: string;
+    title?: string;
+    body?: string;
+    /** Legacy name of `body`. */
+    description?: string;
+    titleAlign?: string;
+    bodyAlign?: string;
+    titleColor?: string;
+    bodyColor?: string;
+    span?: number | string;
+    media?: { src?: string; srcDark?: string; alt?: string; frame?: string; kind?: string };
+};
+type FeaturesData = SectionHeaderData & { variant?: string; spotlight?: boolean; items?: FeatureCard[] };
+
+export function FeaturesEditor({ data = {}, onChange }: BlockEditorProps<FeaturesData>) {
+
     const { t } = useTranslation();
     const isBento = data.variant === 'bento';
     return (
@@ -15,7 +33,7 @@ export function FeaturesEditor({ data = {}, onChange }) {
             <VariantPicker
                 type="features"
                 value={data.variant}
-                onChange={v => onChange(set(data, 'variant', v))}
+                onChange={(v: string) => onChange(set(data, 'variant', v))}
             />
             {isBento ? (
                 <Toggle

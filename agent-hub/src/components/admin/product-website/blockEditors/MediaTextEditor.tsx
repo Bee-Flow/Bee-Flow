@@ -9,14 +9,47 @@ import {
     BackgroundCard,
 } from '../primitives';
 import { ClipFields } from './ClipFields';
+import type { CmsLink } from '../fields';
+import type { StyleBlob } from '../primitives.types';
+import type { BlockEditorWithPagesProps } from './editorProps';
 import { set } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Media + Text ─────────────────────────────────────────────────────
 
-export function MediaTextEditor({ data = {}, pages = [], onChange }) {
+type MediaSlot = {
+    kind?: string;
+    src?: string;
+    srcDark?: string;
+    alt?: string;
+    frame?: string;
+    poster?: string;
+    captionsSrc?: string;
+    captionsLang?: string;
+};
+type MediaTextCta = { label?: string; link?: CmsLink | null; style?: string };
+type MediaTextData = {
+    heading?: string;
+    headingAlign?: string;
+    /** `null` (or absent) while the subheading is switched off. */
+    subheading?: string | null;
+    subheadingAlign?: string;
+    body?: string;
+    bodyAlign?: string;
+    align?: string;
+    media?: MediaSlot;
+    mediaPosition?: string;
+    mediaSize?: string;
+    cta?: MediaTextCta | null;
+    headingStyle?: StyleBlob;
+    subheadingStyle?: StyleBlob;
+    bodyStyle?: StyleBlob;
+    ctaStyle?: StyleBlob;
+};
+
+export function MediaTextEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<MediaTextData>) {
     const { t } = useTranslation();
-    const setField = (key, value) => onChange(set(data, key, value));
+    const setField = (key: string, value: unknown) => onChange(set(data, key, value));
     const media    = data.media || { kind: 'image', src: '', alt: '' };
     const cta      = data.cta || {};
 
@@ -32,12 +65,13 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }) {
     const showSubheading = data.subheading !== null && data.subheading !== undefined;
     const showCta        = !!data.cta;
 
-    const toggleSubheading = (next) => setField('subheading', next ? '' : null);
-    const toggleCta        = (next) => setField('cta',
+    const toggleSubheading = (next: boolean) => setField('subheading', next ? '' : null);
+    const toggleCta        = (next: boolean) => setField('cta',
         next ? { label: 'Learn more', link: { kind: 'anchor', anchor: '' } } : null);
 
-    const updateMedia = (key, value) => setField('media', { ...media, [key]: value });
-    const updateCta   = (key, value) => setField('cta',   { ...cta, [key]: value });
+    const updateMedia = (key: string, value: unknown) => setField('media', { ...media, [key]: value });
+    const updateCta   = (key: string, value: unknown) =>
+ setField('cta',   { ...cta, [key]: value });
 
     return (
         <>

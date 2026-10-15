@@ -1,7 +1,9 @@
 import React from 'react';
 import { TextField, IconField, RepeatableList } from '../fields';
 import { InlineHint, BackgroundCard } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -12,7 +14,11 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // small card that shows them. A chip with a link renders as an external
 // link (new tab) — point it at something verifiable.
 
-export function TrustBandEditor({ data = {}, onChange }) {
+type TrustChip = { icon?: string; label?: string; sublabel?: string; href?: string };
+type TrustBandData = SectionHeaderData & { variant?: string; chips?: TrustChip[] };
+
+export function TrustBandEditor({ data = {}, onChange }: BlockEditorProps<TrustBandData>) {
+
     const { t } = useTranslation();
     const detailed = data.variant === 'detailed';
     return (
@@ -20,7 +26,7 @@ export function TrustBandEditor({ data = {}, onChange }) {
             <VariantPicker
                 type="trust-band"
                 value={data.variant}
-                onChange={v => onChange(set(data, 'variant', v))}
+                onChange={(v: string) => onChange(set(data, 'variant', v))}
             />
             <InlineHint>
                 {detailed

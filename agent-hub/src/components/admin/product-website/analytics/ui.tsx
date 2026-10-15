@@ -12,14 +12,15 @@
  * colour and nothing is allowed to fall back to the shared default.
  */
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import React, { type CSSProperties, type ReactNode } from 'react';
+import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { TrendChip } from '../../../../pages/settings/usage/kit';
 import { Card as BaseCard, Empty, SortableTable, fmt } from '../../monitoring/shared';
+import type { AsyncCardProps, BarListProps, BreakdownRow, BreakdownTableProps, CardProps, CompareKind, CompareResult, ErrorNoteProps, RenderStatTileArgs, ShareBarProps, SkeletonProps, SplitBarProps, StatField, StatTileProps, XYRow } from './ui.types';
 
 export const ACCENT = '#14b8a6';                                  // teal
 export const PALETTE = ['#3b82f6', '#14b8a6', '#10b981', '#f59e0b', '#f97316', '#06b6d4', '#f43f5e', '#0ea5e9'];
-export const paletteAt = (i) => PALETTE[i % PALETTE.length];
+export const paletteAt = (i: number) => PALETTE[i % PALETTE.length];
 
 /**
  * Categorical series colours, as a fixed set rather than by rank.
@@ -43,11 +44,11 @@ export { Empty, SortableTable, fmt };
  * here fixes every card on the dashboard without touching the monitoring
  * dashboard that legitimately uses the shared one.
  */
-export function Card({ title, icon: Icon, children, style, action, iconColor = ACCENT }) {
+export function Card({ title, icon: Icon, children, style, action, iconColor = ACCENT }: CardProps) {
     // Memoised: a component type created inline during render is a new type on
     // every render, which would remount the icon each time.
     const Tinted = React.useMemo(
-        () => (Icon ? (props) => <Icon {...props} style={{ ...props?.style, color: iconColor }} /> : undefined),
+        () => (Icon ? (props: { style?: CSSProperties }) => <Icon {...props} style={{ ...props?.style, color: iconColor }} /> : undefined),
         [Icon, iconColor],
     );
     return (
@@ -60,7 +61,7 @@ export function Card({ title, icon: Icon, children, style, action, iconColor = A
 /** Max of a numeric list without spreading it — `Math.max(...arr)` blows the
  *  argument limit (and throws RangeError) somewhere around 100k entries, which
  *  a busy heatmap page reaches easily. */
-export function maxOf(values, initial = 1) {
+export function maxOf(values: Iterable<number>, initial = 1): number {
     let m = initial;
     for (const v of values) if (Number.isFinite(v) && v > m) m = v;
     return m;
@@ -70,9 +71,9 @@ export function maxOf(values, initial = 1) {
 
 // Umami stat fields are either { value, prev } or a bare number depending on
 // version — normalise both.
-export const statVal = (s) => (s && typeof s === 'object' ? (s.value ?? 0) : (typeof s === 'number' ? s : 0));
+export const statVal = (s: StatField): number => (s && typeof s === 'object' ? (s.value ?? 0) : (typeof s === 'number' ? s : 0));
 
-export function fmtDurationSec(sec) {
+export function fmtDurationSec(sec?: number | null): string {
     const s = Math.max(0, Math.round(sec || 0));
     const m = Math.floor(s / 60);
     const r = s % 60;
@@ -81,7 +82,7 @@ export function fmtDurationSec(sec) {
 
 /** Umami reports replay/session durations in MILLISECONDS. Formatting them as
  *  seconds turned an 11.8-second recording into "196m 21s". */
-export function fmtDurationMs(ms) {
+export function fmtDurationMs(ms: unknown): string {
     const n = Number(ms);
     if (!Number.isFinite(n) || n < 0) return '—';
     return n < 1000 ? '<1s' : fmtDurationSec(n / 1000);
@@ -89,9 +90,9 @@ export function fmtDurationMs(ms) {
 
 // Pure helpers take an optional translator (`t` from useTranslation) so they
 // stay callable from tests and non-React code; without one they print English.
-const plainT = (_key, fallback, params) => String(fallback).replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? ''));
+const plainT: TranslateFn = (_key, fallback, params) => String(fallback).replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? ''));
 
-export function fmtAgo(ts, now = Date.now(), tr = plainT) {
+export function fmtAgo(ts: number | string, now = Date.now(), tr: TranslateFn = plainT): string {
     const at = typeof ts === 'number' ? ts : Date.parse(ts);
     if (!Number.isFinite(at)) return '';
     const s = Math.max(0, Math.round((now - at) / 1000));
@@ -105,7 +106,7 @@ export function fmtAgo(ts, now = Date.now(), tr = plainT) {
 
 /** `{ "/faq": 5, "/": 2 }` → `[{ x, y }]` sorted desc. Umami's realtime
  *  endpoint returns maps where every other endpoint returns rows. */
-export function mapToRows(map) {
+export function mapToRows(map: unknown): { x: string; y: number }[] {
     if (!map || typeof map !== 'object' || Array.isArray(map)) return [];
     return Object.entries(map)
         .map(([x, y]) => ({ x, y: Number(y) || 0 }))
@@ -113,9 +114,9 @@ export function mapToRows(map) {
 }
 
 /** Umami /pageviews → rows for SvgAreaChart (`period` x-label, `value` yKey). */
-export function toTimeseries(series) {
-    const arr = Array.isArray(series) ? series : [];
-    return arr.map(p => ({ period: String(p.x || '').slice(0, 16).replace('T', ' '), value: p.y || 0 }));
+export function toTimeseries(series: unknown): { period: string; value: number }[] {
+    const arr: XYRow[] = Array.isArray(series) ? series : [];
+    return arr.map((p: XYRow) => ({ period: String(p.x || '').slice(0, 16).replace('T', ' '), value: p.y || 0 }));
 }
 
 /**
@@ -126,8 +127,8 @@ export function toTimeseries(series) {
  * ("Direct" for a referrer, "Unknown" for a country), and — the actual bug —
  * a dimension whose real value happens to BE "(none)" stays drillable.
  */
-export function toRows(arr) {
-    return (Array.isArray(arr) ? arr : []).map((d, i) => ({
+export function toRows(arr: unknown) {
+    return (Array.isArray(arr) ? arr : []).map((d: XYRow, i: number) => ({
         label: d.x || null,
         isBlank: !d.x,
         count: d.y || 0,
@@ -135,17 +136,17 @@ export function toRows(arr) {
     }));
 }
 
-export function toDonut(arr) {
+export function toDonut(arr: unknown) {
     return (Array.isArray(arr) ? arr : [])
-        .filter(d => (d.y || 0) > 0)
-        .map((d, i) => ({ label: d.x || '(none)', value: d.y || 0, color: paletteAt(i) }));
+        .filter((d: XYRow) => (d.y || 0) > 0)
+        .map((d: XYRow, i: number) => ({ label: d.x || '(none)', value: d.y || 0, color: paletteAt(i) }));
 }
 
 /**
  * Percentage delta vs the previous period. Umami's `stats` returns a
  * `comparison` block that the old dashboard threw away.
  */
-export function deltaPct(current, previous) {
+export function deltaPct(current: unknown, previous: unknown): number | null {
     const c = Number(current) || 0;
     const p = Number(previous) || 0;
     if (!p) return null;
@@ -162,9 +163,8 @@ export function deltaPct(current, previous) {
  * interesting thing on the page — renders as blank space.
  *
  * @param kind 'count' | 'rate' (0-100 points) | 'duration' (seconds) | 'ratio' (0-1)
- * @returns { delta, display, state } — state ∈ up | down | flat | new | none
  */
-export function compare(current, previous, kind = 'count', tr = plainT) {
+export function compare(current: unknown, previous: unknown, kind: CompareKind = 'count', tr: TranslateFn = plainT): CompareResult {
     const c = Number(current);
     const p = Number(previous);
     if (!Number.isFinite(c)) return { delta: null, display: null, state: 'none' };
@@ -199,7 +199,7 @@ export function compare(current, previous, kind = 'count', tr = plainT) {
 
 /** Traffic-light for a rate where lower is better (bounce, exit). The value is
  *  always printed alongside — colour is never the only carrier. */
-export function rateColor(pct) {
+export function rateColor(pct: unknown): string {
     const n = Number(pct);
     if (!Number.isFinite(n)) return 'var(--text-muted, #888)';
     if (n <= 40) return '#10b981';
@@ -212,7 +212,7 @@ export function rateColor(pct) {
 export function StatTile({
     icon: Icon, label, value, color = ACCENT, delta, deltaLabel,
     goodWhenDown = false, subtitle, deltaDisplay, state,
-}) {
+}: StatTileProps) {
     const { t } = useTranslation();
     // `state: 'new'` has no percentage worth showing — TrendChip would render
     // "100%", implying a measured doubling rather than "there was nothing here
@@ -221,7 +221,7 @@ export function StatTile({
     return renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t });
 }
 
-function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t }) {
+function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t }: RenderStatTileArgs) {
     return (
         <div style={{
             background: 'var(--bg-secondary, #1a1a2e)',
@@ -252,7 +252,7 @@ function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLa
     );
 }
 
-export function StatGrid({ children, min = 170 }) {
+export function StatGrid({ children, min = 170 }: { children?: ReactNode; min?: number }) {
     return (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 }}>
             {children}
@@ -269,7 +269,7 @@ export function StatGrid({ children, min = 170 }) {
  * ordinary empty table — which is how a hard 400 on every "Top pages" request
  * went unnoticed. An empty state must mean "no data", never "we broke".
  */
-export function ErrorNote({ message, onRetry, compact = false }) {
+export function ErrorNote({ message, onRetry, compact = false }: ErrorNoteProps) {
     const { t } = useTranslation();
     return (
         <div style={{
@@ -293,7 +293,7 @@ export function ErrorNote({ message, onRetry, compact = false }) {
     );
 }
 
-export function Skeleton({ height = 80, style }) {
+export function Skeleton({ height = 80, style }: SkeletonProps) {
     return (
         <div style={{
             height, borderRadius: 10, background: 'var(--bg-secondary, rgba(255,255,255,0.04))',
@@ -303,10 +303,10 @@ export function Skeleton({ height = 80, style }) {
     );
 }
 
-export function SkeletonGrid({ count = 4, height = 80, min = 170 }) {
+export function SkeletonGrid({ count = 4, height = 80, min = 170 }: { count?: number; height?: number; min?: number }) {
     return (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 }}>
-            {Array.from({ length: count }, (_, i) => <Skeleton key={i} height={height} />)}
+            {Array.from({ length: count }, (_, i: number) => <Skeleton key={i} height={height} />)}
         </div>
     );
 }
@@ -324,7 +324,7 @@ export function AnalyticsStyles() {
  * Wraps a section body in the three states every panel needs. Keeps each
  * section from re-implementing loading/error/empty inconsistently.
  */
-export function AsyncCard({ title, icon, loading, error, onRetry, isEmpty, emptyText, children, right, height = 120 }) {
+export function AsyncCard({ title, icon, loading, error, onRetry, isEmpty, emptyText, children, right, height = 120 }: AsyncCardProps) {
     const { t } = useTranslation();
     let body;
     if (loading) body = <Skeleton height={height} />;
@@ -343,7 +343,7 @@ export function AsyncCard({ title, icon, loading, error, onRetry, isEmpty, empty
 export function BreakdownTable({
     rows, labelHeader, valueHeader, onDrill, maxRows = 10, emptyText,
     blankLabel,
-}) {
+}: BreakdownTableProps) {
     const { t } = useTranslation();
     const blank = blankLabel ?? t('cms_site.analytics.common.unknown', 'Unknown');
     const data = toRows(rows);
@@ -351,7 +351,7 @@ export function BreakdownTable({
     const columns = [
         {
             key: 'label', label: labelHeader, width: '1fr',
-            render: (r) => {
+            render: (r: BreakdownRow) => {
                 const text = r.isBlank ? blank : r.label;
                 const clickable = !!onDrill && !r.isBlank;
                 return (
@@ -371,7 +371,7 @@ export function BreakdownTable({
         },
         {
             key: 'count', label: valueHeader ?? t('cms_site.analytics.common.views', 'Views'), width: '120px', align: 'right',
-            render: (r) => (
+            render: (r: BreakdownRow) => (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
                     <ShareBar value={r.count} of={total} width={44} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, minWidth: 34, textAlign: 'right' }}>{fmt(r.count)}</span>
@@ -385,7 +385,7 @@ export function BreakdownTable({
             data={data}
             maxRows={maxRows}
             emptyText={emptyText || t('cms_site.analytics.common.no_data', 'No data')}
-            onRowClick={onDrill ? (r) => !r.isBlank && onDrill(r.label) : undefined}
+            onRowClick={onDrill ? (r: BreakdownRow) => !r.isBlank && onDrill(r.label) : undefined}
         />
     );
 }
@@ -394,7 +394,7 @@ export function BreakdownTable({
  * The "bar in a table cell" every section wanted its own table for. It is a
  * cell renderer, not a table — `SortableTable` stays the only table.
  */
-export function ShareBar({ value, of, color = ACCENT, height = 5, width, label }) {
+export function ShareBar({ value, of, color = ACCENT, height = 5, width, label }: ShareBarProps) {
     const pct = of > 0 ? Math.max(0, Math.min(100, (Number(value) / of) * 100)) : 0;
     return (
         <span
@@ -415,7 +415,7 @@ export function ShareBar({ value, of, color = ACCENT, height = 5, width, label }
  * `mode: 'diverging'` splits positive/negative around a centre line, for
  * period-over-period change.
  */
-export function SplitBar({ segments, mode = 'stacked', height = 10, legend = false, formatValue = fmt }) {
+export function SplitBar({ segments, mode = 'stacked', height = 10, legend = false, formatValue = fmt }: SplitBarProps) {
     const items = (Array.isArray(segments) ? segments : []).filter(s => (Number(s.value) || 0) !== 0);
     if (!items.length) return null;
     const total = items.reduce((a, s) => a + Math.abs(Number(s.value) || 0), 0) || 1;
@@ -468,7 +468,7 @@ export function SplitBar({ segments, mode = 'stacked', height = 10, legend = fal
 export function BarList({
     rows, onDrill, max = 8, formatValue = fmt, emptyText,
     color = ACCENT, peak: peakProp, blankLabel,
-}) {
+}: BarListProps) {
     const { t } = useTranslation();
     const items = (Array.isArray(rows) ? rows : []).slice(0, max);
     if (!items.length) return <Empty text={emptyText ?? t('cms_site.analytics.common.no_data', 'No data')} />;

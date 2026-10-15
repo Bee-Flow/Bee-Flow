@@ -1,7 +1,9 @@
 import React from 'react';
 import { TextField, RepeatableList } from '../fields';
 import { InlineHint, BackgroundCard } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── FAQ ───────────────────────────────────────────────────────────────
@@ -9,7 +11,11 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // Controlled accordion (one open at a time; the first item starts open in
 // the preview so editors always see an answer). Single layout, no variants.
 
-export function FaqEditor({ data = {}, onChange }) {
+type FaqItem = { question?: string; answer?: string };
+type FaqData = SectionHeaderData & { items?: FaqItem[] };
+
+export function FaqEditor({ data = {}, onChange }: BlockEditorProps<FaqData>) {
+
     const { t } = useTranslation();
     return (
         <>

@@ -1,13 +1,30 @@
 import React from 'react';
 import { TextField, ImageField, RepeatableList, FieldRow } from '../fields';
 import { InlineHint, ColorSwatch, BackgroundCard } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Steps ─────────────────────────────────────────────────────────────
 
-export function StepsEditor({ data = {}, onChange }) {
+type StepMedia = { src?: string; srcDark?: string; alt?: string; frame?: string; kind?: string };
+type Step = {
+    number?: string;
+    title?: string;
+    body?: string;
+    example?: string;
+    titleAlign?: string;
+    bodyAlign?: string;
+    exampleAlign?: string;
+    titleColor?: string;
+    media?: StepMedia;
+};
+type StepsData = SectionHeaderData & { variant?: string; items?: Step[] };
+
+export function StepsEditor({ data = {}, onChange }: BlockEditorProps<StepsData>) {
+
     const { t } = useTranslation();
     const chapters = data.variant === 'chapters';
     return (
@@ -15,7 +32,7 @@ export function StepsEditor({ data = {}, onChange }) {
             <VariantPicker
                 type="steps"
                 value={data.variant}
-                onChange={v => onChange(set(data, 'variant', v))}
+                onChange={(v: string) => onChange(set(data, 'variant', v))}
             />
             <InlineHint>{t('cms_site.blocks.steps.click_any_step_s_number_title', "Click any step's number, title, body, or example in the preview to edit.")}</InlineHint>
             <SectionHeaderFields data={data} onChange={onChange} persistScope="steps" />

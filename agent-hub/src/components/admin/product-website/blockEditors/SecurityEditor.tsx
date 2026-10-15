@@ -1,13 +1,27 @@
 import React from 'react';
 import { TextField, IconField, RepeatableList } from '../fields';
 import { InlineHint, BackgroundCard } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields, CardActionFields } from './shared';
+import type { CardActionItem, SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Security ──────────────────────────────────────────────────────────
 
-export function SecurityEditor({ data = {}, onChange }) {
+type SecurityCard = CardActionItem & {
+    icon?: string;
+    title?: string;
+    summary?: string;
+    titleAlign?: string;
+    summaryAlign?: string;
+    details?: string[];
+    link?: { label?: string; href?: string };
+};
+type SecurityData = SectionHeaderData & { variant?: string; cards?: SecurityCard[] };
+
+export function SecurityEditor({ data = {}, onChange }: BlockEditorProps<SecurityData>) {
+
     const { t } = useTranslation();
     const isLedger = data.variant === 'ledger';
     return (
@@ -15,7 +29,7 @@ export function SecurityEditor({ data = {}, onChange }) {
             <VariantPicker
                 type="security"
                 value={data.variant}
-                onChange={v => onChange(set(data, 'variant', v))}
+                onChange={(v: string) => onChange(set(data, 'variant', v))}
             />
             <InlineHint>{t('cms_site.blocks.security.click_any_card_s_title_summary', "Click any card's title, summary, or detail bullet to edit.")}</InlineHint>
             <SectionHeaderFields data={data} onChange={onChange} persistScope="security" />

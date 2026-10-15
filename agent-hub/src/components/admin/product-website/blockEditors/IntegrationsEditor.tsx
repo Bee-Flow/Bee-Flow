@@ -1,7 +1,9 @@
 import React from 'react';
 import { TextField, IconField, ImageField, RepeatableList } from '../fields';
 import { InlineHint, BackgroundCard } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Integrations ──────────────────────────────────────────────────────
@@ -13,7 +15,12 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // then label-only. Storage shape is unchanged apart from the additive
 // `logoSrc` key: categories[] of { heading, items: [{ icon, label }] }.
 
-export function IntegrationsEditor({ data = {}, onChange }) {
+type IntegrationItem = { icon?: string; label?: string; logoSrc?: string };
+type IntegrationCategory = { heading?: string; headingAlign?: string; items?: IntegrationItem[] };
+type IntegrationsData = SectionHeaderData & { categories?: IntegrationCategory[] };
+
+export function IntegrationsEditor({ data = {}, onChange }: BlockEditorProps<IntegrationsData>) {
+
     const { t } = useTranslation();
     return (
         <>

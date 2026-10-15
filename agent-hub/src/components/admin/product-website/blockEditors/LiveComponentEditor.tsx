@@ -8,6 +8,9 @@ import {
     CtaStyleSelect,
     MonoTextarea,
 } from '../primitives';
+import type { CmsLink } from '../fields';
+import type { StyleBlob } from '../primitives.types';
+import type { BlockEditorWithPagesProps } from './editorProps';
 import { set } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -18,13 +21,29 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // `srcDoc` iframe sandboxed to `allow-scripts` only, so untrusted code
 // can't reach back into the parent page.
 
-export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
+/** A text style blob plus the font weight this editor adds next to the triplet. */
+type LiveTextStyle = StyleBlob & { fontWeight?: number };
+type LiveCta = { enabled?: boolean; label?: string; link?: CmsLink | null; style?: string };
+type LiveComponentData = {
+    layout?: string;
+    code?: string;
+    codeRight?: string;
+    heading?: string;
+    headingAlign?: string;
+    body?: string;
+    bodyAlign?: string;
+    cta?: LiveCta;
+    headingStyle?: LiveTextStyle;
+    bodyStyle?: LiveTextStyle;
+};
+
+export function LiveComponentEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<LiveComponentData>) {
     const { t } = useTranslation();
-    const setField = (key, value) => onChange(set(data, key, value));
+    const setField = (key: string, value: unknown) => onChange(set(data, key, value));
     const layout   = data.layout || 'full';
     const cta      = data.cta || {};
     const ctaOn    = cta.enabled !== false;
-    const setCta   = (patch) => onChange(set(data, 'cta', { ...cta, ...patch }));
+    const setCta   = (patch: LiveCta) => onChange(set(data, 'cta', { ...cta, ...patch }));
 
     // Font-weight options for the Heading / Body typography cards. The
     // shared StyleTriplet only covers font / size / color, so weight is a
@@ -40,8 +59,8 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
         { value: '700', label: t('cms_site.blocks.live_component.weight_bold', 'Bold (700)') },
         { value: '800', label: t('cms_site.blocks.live_component.weight_extrabold', 'Extrabold (800)') },
     ];
-    const weightValue = (s) => (s && s.fontWeight ? String(s.fontWeight) : '');
-    const setWeight   = (key, s, v) => setField(key, { ...(s || {}), fontWeight: Number(v) || 0 });
+    const weightValue = (s?: LiveTextStyle) => (s && s.fontWeight ? String(s.fontWeight) : '');
+    const setWeight   = (key: string, s: LiveTextStyle | undefined, v: string) => setField(key, { ...(s || {}), fontWeight: Number(v) || 0 });
 
     return (
         <>
@@ -188,7 +207,8 @@ export function LiveComponentEditor({ data = {}, pages = [], onChange }) {
 // what that layout produces. Selected option gets an amber border + tint
 // so the user can see at a glance which mode is active. Click sets
 // `data.layout` via the parent's setField callback.
-function LayoutPicker({ value, onChange }) {
+function LayoutPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+
     const { t } = useTranslation();
     const OPTIONS = [
         { id: 'full',            label: t('cms_site.blocks.live_component.layout_full_width', 'Full width'),     diagram: <DiagramFull /> },

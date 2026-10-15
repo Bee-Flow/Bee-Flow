@@ -1,7 +1,9 @@
 import React from 'react';
 import { TextField } from '../fields';
 import { InlineHint, FieldSelect } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Release notes ─────────────────────────────────────────────────────
@@ -15,10 +17,20 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // `variant` is structural and stays on the translation denylist, so a locale
 // override can never flip the layout. `kindLabels` IS prose and translates.
 
-export function ReleaseNotesEditor({ data = {}, onChange }) {
+type ReleaseNotesData = SectionHeaderData & {
+    variant?: string;
+    limit?: number | string;
+    kindLabels?: { feature?: string; improvement?: string; fix?: string };
+    emptyText?: string;
+    linkLabel?: string;
+    linkUrl?: string;
+};
+
+export function ReleaseNotesEditor({ data = {}, onChange }: BlockEditorProps<ReleaseNotesData>) {
     const { t } = useTranslation();
     const kindLabels = data.kindLabels || {};
-    const setKind = (key, v) => onChange(set(data, 'kindLabels', { ...kindLabels, [key]: v }));
+    const setKind = (key: string, v: string) =>
+ onChange(set(data, 'kindLabels', { ...kindLabels, [key]: v }));
 
     return (
         <>

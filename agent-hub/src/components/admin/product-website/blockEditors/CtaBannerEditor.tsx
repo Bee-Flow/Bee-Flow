@@ -7,18 +7,37 @@ import {
     FieldSelect,
     BackgroundVariantSelect,
 } from '../primitives';
+import type { BlockEditorWithPagesProps } from './editorProps';
 import { set, CtaButtonField } from './shared';
+import type { CtaButtonValue } from './shared';
+import type { StyleBlob } from '../primitives.types';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── CTA Banner ───────────────────────────────────────────────────────
 
-export function CtaBannerEditor({ data = {}, pages = [], onChange }) {
+type CtaBannerData = {
+    heading?: string;
+    subheading?: string;
+    align?: string;
+    headingAlign?: string;
+    subheadingAlign?: string;
+    layout?: string;
+    backgroundVariant?: string;
+    primaryCta?: CtaButtonValue;
+    /** Present only while the secondary CTA is on. */
+    secondaryCta?: CtaButtonValue;
+    headingStyle?: StyleBlob;
+    subheadingStyle?: StyleBlob;
+};
+
+export function CtaBannerEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<CtaBannerData>) {
     const { t } = useTranslation();
-    const setField = (key, value) => onChange(set(data, key, value));
-    const primary  = data.primaryCta || { label: '', link: { kind: 'external', url: '' } };
+    const setField = (key: string, value: unknown) => onChange(set(data, key, value));
+    const primary: CtaButtonValue = data.primaryCta || { label: '', link: { kind: 'external', url: '' } };
     const showSecondary = !!data.secondaryCta;
 
-    const toggleSecondary = (next) => setField('secondaryCta',
+    const toggleSecondary = (next: boolean) =>
+ setField('secondaryCta',
         next ? { label: 'Learn more', link: { kind: 'anchor', anchor: '' } } : null);
 
     return (

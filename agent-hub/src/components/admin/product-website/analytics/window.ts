@@ -8,12 +8,34 @@
  * the window that was actually requested before it is charted.
  */
 
+export type BucketUnit = 'minute' | 'hour' | 'day';
+
+/** A requested time window; `unit` is the bucket size (day when absent). */
+export interface AnalyticsWindow {
+    startAt: number;
+    endAt: number;
+    unit?: BucketUnit;
+}
+
+/** The range selection a window is resolved from (`start`/`end` only for `custom`). */
+export interface WindowScope {
+    range?: string;
+    start?: number | string | null;
+    end?: number | string | null;
+}
+
+/** One point of a sparse `[{x,y}]` series. */
+export interface SeriesPoint {
+    x: unknown;
+    y?: unknown;
+}
+
 const MS_MIN = 60_000;
 const MS_HOUR = 3_600_000;
 const MS_DAY = 86_400_000;
 
 /** Mirrors the server's rangeToWindow so the client can label the same buckets. */
-export function resolveWindow(scope) {
+export function resolveWindow(scope?: WindowScope | null): AnalyticsWindow {
     const { range = '7d', start, end } = scope || {};
     if (range === 'custom') {
         const s = Number(start);
@@ -28,7 +50,7 @@ export function resolveWindow(scope) {
 }
 
 /** The window immediately before this one, same length — what `comparison` covers. */
-export function previousWindow(w) {
+export function previousWindow(w: AnalyticsWindow): AnalyticsWindow {
     const span = w.endAt - w.startAt;
     return { startAt: w.startAt - span, endAt: w.startAt, unit: w.unit };
 }
@@ -40,7 +62,7 @@ export function previousWindow(w) {
  * rebuild as UTC. Every bucket key in this module is therefore "wall clock,
  * treated as UTC", which is consistent and DST-stable.
  */
-export function parseBucket(x) {
+export function parseBucket(x: unknown): number {
     if (x instanceof Date) return x.getTime();
     if (typeof x === 'number') return x;
     const s = String(x || '');
@@ -52,10 +74,10 @@ export function parseBucket(x) {
     return Number.isFinite(d) ? d : NaN;
 }
 
-const stepMs = (unit) => (unit === 'hour' ? MS_HOUR : unit === 'minute' ? MS_MIN : MS_DAY);
+const stepMs = (unit: BucketUnit | undefined) => (unit === 'hour' ? MS_HOUR : unit === 'minute' ? MS_MIN : MS_DAY);
 
 /** Snap a timestamp down to the start of its bucket. */
-export function floorTo(ts, unit) {
+export function floorTo(ts: number, unit: BucketUnit | undefined): number {
     const d = new Date(ts);
     if (unit === 'minute') return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes());
     if (unit === 'hour') return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours());
@@ -68,9 +90,9 @@ export function floorTo(ts, unit) {
  * Days are walked as CALENDAR dates rather than by adding 86,400,000ms, so a
  * DST transition cannot skip or duplicate a day.
  */
-export function bucketKeys(w) {
+export function bucketKeys(w: AnalyticsWindow): number[] {
     const unit = w.unit || 'day';
-    const keys = [];
+    const keys: number[] = [];
     const last = floorTo(w.endAt, unit);
     let t = floorTo(w.startAt, unit);
     // Hard cap: a bad custom range must not spin here.
@@ -94,8 +116,8 @@ export function bucketKeys(w) {
  *             zero-filling it would recreate the "0 ms is perfect" lie this
  *             project is busy removing.
  */
-export function densify(points, w, { fill = 0 } = {}) {
-    const byBucket = new Map();
+export function densify(points: SeriesPoint[] | null | undefined, w: AnalyticsWindow, { fill = 0 }: { fill?: number | null } = {}) {
+    const byBucket = new Map<number, number>();
     for (const p of Array.isArray(points) ? points : []) {
         const t = parseBucket(p.x);
         if (!Number.isFinite(t)) continue;
@@ -112,14 +134,14 @@ export function densify(points, w, { fill = 0 } = {}) {
  * Line up a series with the equivalent one from the previous period, so a
  * chart can draw "this week vs last week" on one x-axis.
  */
-export function alignSeries(current, previous) {
+export function alignSeries<P extends object>(current: P[], previous: { value?: number | null }[]) {
     return current.map((p, i) => ({ ...p, previous: previous[i]?.value ?? null }));
 }
 
 /** Axis/tooltip label for a bucket, in the unit's own resolution. */
-export function bucketLabel(t, unit) {
+export function bucketLabel(t: number, unit: BucketUnit | undefined): string {
     const d = new Date(t);
-    const pad = (n) => String(n).padStart(2, '0');
+    const pad = (n: number) => String(n).padStart(2, '0');
     if (unit === 'minute') return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
     if (unit === 'hour') return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${pad(d.getUTCHours())}:00`;
     return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]}`;
@@ -134,7 +156,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
  * chart. Charts dash it rather than let someone read a drop that has not
  * happened.
  */
-export function lastBucketPartial(w) {
+export function lastBucketPartial(w: AnalyticsWindow): boolean {
     const unit = w.unit || 'day';
     return floorTo(w.endAt, unit) === floorTo(Date.now(), unit);
 }

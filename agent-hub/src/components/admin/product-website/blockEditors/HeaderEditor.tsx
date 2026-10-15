@@ -10,12 +10,17 @@ import {
     SegmentedControl,
     mintId,
 } from '../primitives';
+import type { CmsPageOption } from '../fields';
+import type { StyleBlob } from '../primitives.types';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { BlockEditorWithPagesProps } from './editorProps';
+import type { HeaderCta, HeaderData, HeaderLogo, NavChild, NavColumn, NavLink, MegaItem } from './HeaderEditor.types';
 import { set } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Header ────────────────────────────────────────────────────────────
 
-export function HeaderEditor({ data = {}, pages = [], onChange }) {
+export function HeaderEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<HeaderData>) {
     const { t } = useTranslation();
     const nav = data.nav || [];
     const logo = data.logo || {};
@@ -25,8 +30,8 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
     // the existing *Style naming used by Hero / SocialProof).
     const navStyle = data.navStyle || {};
 
-    const updateLogo     = (patch) => onChange(set(data, 'logo',     { ...logo,     ...patch }));
-    const updateNavStyle = (patch) => onChange(set(data, 'navStyle', { ...navStyle, ...patch }));
+    const updateLogo     = (patch: HeaderLogo) => onChange(set(data, 'logo',     { ...logo,     ...patch }));
+    const updateNavStyle = (patch: StyleBlob) => onChange(set(data, 'navStyle', { ...navStyle, ...patch }));
 
     return (
         <>
@@ -90,7 +95,7 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
                 <RepeatableList
                     items={ctas}
                     onChange={v => onChange(set(data, 'ctas', v))}
-                    makeNew={() => ({
+                    makeNew={(): HeaderCta => ({
                         id: mintId('cta'),
                         label: 'Get started',
                         link: { kind: 'app', path: '/app' },
@@ -179,7 +184,7 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
                     label={t('cms_site.blocks.header.nav_links', 'Nav links')}
                     items={nav}
                 onChange={v => onChange(set(data, 'nav', v))}
-                makeNew={() => ({ id: mintId('nav'), label: 'New link', link: { kind: 'external', url: '#' } })}
+                makeNew={(): NavLink => ({ id: mintId('nav'), label: 'New link', link: { kind: 'external', url: '#' } })}
                 itemLabel={(item) => item.label}
                 collapsible
                 renderItem={(item, update) => (
@@ -215,12 +220,12 @@ export function HeaderEditor({ data = {}, pages = [], onChange }) {
 // `children` so existing sites keep rendering unchanged. Columns mode
 // stores a separate `dropdown` blob — additive, no migration required.
 
-const newColumn = () => ({
+const newColumn = (): NavColumn => ({
     id: mintId('col'),
     heading: '',
     items: [],
 });
-const newMegaItem = () => ({
+const newMegaItem = (): MegaItem => ({
     id: mintId('mi'),
     label: 'New item',
     link: { kind: 'external', url: '#' },
@@ -229,12 +234,18 @@ const newMegaItem = () => ({
     openInNewTab: false,
 });
 
-const dropdownLayoutOptions = (t) => [
+const dropdownLayoutOptions = (t: TranslateFn) => [
     { value: 'list',    label: t('cms_site.blocks.header.layout_list', 'List') },
     { value: 'columns', label: t('cms_site.blocks.header.layout_columns', 'Columns') },
 ];
 
-function NavDropdownEditor({ item, update, pages }) {
+interface NavDropdownEditorProps {
+    item: NavLink;
+    update: (next: NavLink) => void;
+    pages: CmsPageOption[];
+}
+
+function NavDropdownEditor({ item, update, pages }: NavDropdownEditorProps) {
     const { t } = useTranslation();
     const layout = item.dropdown?.layout === 'columns' ? 'columns' : 'list';
     const columns = Array.isArray(item.dropdown?.columns) ? item.dropdown.columns : [];
@@ -244,7 +255,8 @@ function NavDropdownEditor({ item, update, pages }) {
         ? columns.reduce((sum, c) => sum + (Array.isArray(c.items) ? c.items.length : 0), 0)
         : children.length;
 
-    const setLayout = (next) => {
+    const setLayout = (next: string) => {
+
         if (next === layout) return;
         if (next === 'columns') {
             // Lazy-migrate: fold any existing flat children into a single
@@ -352,9 +364,10 @@ function NavDropdownEditor({ item, update, pages }) {
                     label={t('cms_site.blocks.header.dropdown_children_optional', 'Dropdown children (optional)')}
                     items={children}
                     onChange={v => update({ ...item, children: v })}
-                    makeNew={() => ({
+                    makeNew={(): NavChild => ({
                         id: mintId('nav'),
                         label: 'Child link',
+
                         link: { kind: 'external', url: '#' },
                     })}
                     itemLabel={(child) => child.label}

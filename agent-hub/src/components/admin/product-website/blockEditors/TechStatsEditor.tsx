@@ -1,12 +1,25 @@
 import React from 'react';
 import { TextField, RepeatableList } from '../fields';
 import { InlineHint, StyleTriplet, BackgroundCard } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
+import type { StyleBlob } from '../primitives.types';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Tech Stats ────────────────────────────────────────────────────────
 
-export function TechStatsEditor({ data = {}, onChange }) {
+type TechStat = {
+    number?: string;
+    label?: string;
+    numberAlign?: string;
+    labelAlign?: string;
+    numberStyle?: StyleBlob;
+};
+type TechStatsData = SectionHeaderData & { stats?: TechStat[] };
+
+export function TechStatsEditor({ data = {}, onChange }: BlockEditorProps<TechStatsData>) {
+
     const { t } = useTranslation();
     return (
         <>

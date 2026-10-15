@@ -13,23 +13,25 @@
 import { Zap, MousePointerClick, Layers, ExternalLink } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { blockLabel } from '../heatmap/model';
 import { foldEventData, ctaLeaderboard, blockLeaderboard } from '../model';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, ShareBar, StatGrid, StatTile,
     fmt, maxOf,
 } from '../ui';
+import type { SectionProps } from '../ui.types';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
-const EVENT_LABELS = {
+const EVENT_LABELS: Record<string, { key: string; en: string }> = {
     cta_click: { key: 'cms_site.analytics.events.label_cta_click', en: 'Button & link clicks' },
     form_submit: { key: 'cms_site.analytics.events.label_form_submit', en: 'Form submissions' },
     outbound_click: { key: 'cms_site.analytics.events.label_outbound_click', en: 'Clicks to other sites' },
     file_download: { key: 'cms_site.analytics.events.label_file_download', en: 'File downloads' },
 };
-const eventLabel = (name, t) => (EVENT_LABELS[name] ? t(EVENT_LABELS[name].key, EVENT_LABELS[name].en) : name);
+const eventLabel = (name: string, t: TranslateFn) => (EVENT_LABELS[name] ? t(EVENT_LABELS[name].key, EVENT_LABELS[name].en) : name);
 
-export default function EventsSection({ scope, onDrill }) {
+export default function EventsSection({ scope, onDrill }: SectionProps) {
     const { t } = useTranslation();
     const names = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'event', limit: 25 } });
     // pageSize is only forwardable because the proxy now allow-lists it —
@@ -117,8 +119,24 @@ export default function EventsSection({ scope, onDrill }) {
     );
 }
 
+/** One CTA label with its click count and the block types it was placed in. */
+interface CtaRow {
+    key: string;
+    label: string;
+    href?: string | null;
+    count: number;
+    placements: { type: string; count: number }[];
+}
+
+/** One block type with its click count and the CTA labels clicked in it. */
+interface BlockRow {
+    type: string;
+    count: number;
+    labels: string[];
+}
+
 /** One row per distinct label, with where it was placed. */
-function CtaTable({ rows }) {
+function CtaTable({ rows }: { rows: CtaRow[] }) {
     const { t } = useTranslation();
     const peak = maxOf(rows.map(r => r.count));
     return (
@@ -163,7 +181,7 @@ function CtaTable({ rows }) {
     );
 }
 
-function BlockTable({ rows }) {
+function BlockTable({ rows }: { rows: BlockRow[] }) {
     const { t } = useTranslation();
     const peak = maxOf(rows.map(r => r.count));
     return (
@@ -187,7 +205,7 @@ function BlockTable({ rows }) {
 }
 
 /** Trim an href to something readable in a chip. */
-function shortHref(href) {
+function shortHref(href: unknown): string {
     const s = String(href);
     try {
         const u = new URL(s.includes('://') ? s : `https://${s}`);

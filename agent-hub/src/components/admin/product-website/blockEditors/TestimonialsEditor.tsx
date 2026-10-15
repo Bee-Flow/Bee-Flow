@@ -1,7 +1,9 @@
 import React from 'react';
 import { TextField, ImageField, RepeatableList, FieldRow } from '../fields';
 import { InlineHint, BackgroundCard } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
+import type { SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -11,7 +13,19 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // per item ('case' layout leads with it), NEVER star ratings. 'spotlight'
 // renders only the first item — oversized photo (avatarSrc) + quote.
 
-export function TestimonialsEditor({ data = {}, onChange }) {
+type Testimonial = {
+    quote?: string;
+    name?: string;
+    role?: string;
+    company?: string;
+    avatarSrc?: string;
+    logoSrc?: string;
+    metric?: { number?: string; label?: string };
+};
+type TestimonialsData = SectionHeaderData & { variant?: string; items?: Testimonial[] };
+
+export function TestimonialsEditor({ data = {}, onChange }: BlockEditorProps<TestimonialsData>) {
+
     const { t } = useTranslation();
     const isCase = data.variant === 'case';
     const isSpotlight = data.variant === 'spotlight';
@@ -20,7 +34,7 @@ export function TestimonialsEditor({ data = {}, onChange }) {
             <VariantPicker
                 type="testimonials"
                 value={data.variant}
-                onChange={v => onChange(set(data, 'variant', v))}
+                onChange={(v: string) => onChange(set(data, 'variant', v))}
             />
             <InlineHint>
                 {t('cms_site.blocks.testimonials.quotes_names_roles_and_companies_are', 'Quotes, names, roles and companies are editable in the preview.')}

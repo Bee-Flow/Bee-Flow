@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * Tiny schematic previews for the Add-block picker — one abstract SVG
@@ -12,7 +13,7 @@ const ACCENT = 'var(--accent-primary)';
 const W = 120;
 const H = 64;
 
-function Frame({ children }) {
+function Frame({ children }: { children?: ReactNode }) {
     return (
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" aria-hidden="true">
             <rect x="1" y="1" width={W - 2} height={H - 2} rx="4" fill="none" stroke={MUTED} strokeOpacity="0.35" />
@@ -21,17 +22,17 @@ function Frame({ children }) {
     );
 }
 
-const Line = ({ x, y, w, h = 3, o = 0.5, fill = MUTED, rx = 1.5 }) => (
+const Line = ({ x, y, w, h = 3, o = 0.5, fill = MUTED, rx = 1.5 }: { x: number; y: number; w: number; h?: number; o?: number; fill?: string; rx?: number }) => (
     <rect x={x} y={y} width={w} height={h} rx={rx} fill={fill} fillOpacity={o} />
 );
-const Btn = ({ x, y, w = 24, h = 8 }) => (
+const Btn = ({ x, y, w = 24, h = 8 }: { x: number; y: number; w?: number; h?: number }) => (
     <rect x={x} y={y} width={w} height={h} rx="4" fill={ACCENT} fillOpacity="0.9" />
 );
-const Card = ({ x, y, w, h }) => (
+const Card = ({ x, y, w, h }: { x: number; y: number; w: number; h: number }) => (
     <rect x={x} y={y} width={w} height={h} rx="3" fill={MUTED} fillOpacity="0.12" stroke={MUTED} strokeOpacity="0.35" />
 );
 
-const THUMBS = {
+const THUMBS: Record<string, React.ReactElement> = {
     hero: (
         <Frame>
             <Line x={30} y={16} w={60} h={6} o={0.7} />
@@ -243,7 +244,7 @@ const THUMBS = {
     ),
 };
 
-export default function BlockThumb({ type }) {
+export default function BlockThumb({ type }: { type: string }) {
     return THUMBS[type] || (
         <Frame>
             <Line x={16} y={20} w={88} h={4} o={0.5} />

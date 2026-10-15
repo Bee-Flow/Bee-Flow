@@ -8,13 +8,39 @@ import {
     CtaStyleSelect,
     BackgroundCard,
 } from '../primitives';
+import type { CmsLink } from '../fields';
+import type { StyleBlob } from '../primitives.types';
+import type { BlockEditorWithPagesProps } from './editorProps';
 import { set } from './shared';
 import VariantPicker from './VariantPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Hero ──────────────────────────────────────────────────────────────
 
-export function HeroEditor({ data = {}, pages = [], onChange }) {
+type HeroCta = { enabled?: boolean; label?: string; link?: CmsLink | null; style?: string };
+type HeroBadge = { enabled?: boolean; text?: string; icon?: string };
+type HeroMedia = { src?: string; srcDark?: string; alt?: string; frame?: string };
+type HeroMockup = { enabled?: boolean; chatBubbles?: { role?: string; text?: string }[] };
+type HeroData = {
+    variant?: string;
+    align?: string;
+    badge?: HeroBadge;
+    badgeAlign?: string;
+    badgeStyle?: StyleBlob;
+    titleParts?: { text?: string; gradient?: boolean }[];
+    titleAlign?: string;
+    titleStyle?: StyleBlob;
+    leadEnabled?: boolean;
+    lead?: string;
+    leadAlign?: string;
+    leadStyle?: StyleBlob;
+    primaryCta?: HeroCta;
+    secondaryCta?: HeroCta;
+    mockup?: HeroMockup;
+    media?: HeroMedia;
+};
+
+export function HeroEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<HeroData>) {
     const { t } = useTranslation();
     const badge       = data.badge       || {};
     const badgeStyle  = data.badgeStyle  || {};
@@ -27,11 +53,12 @@ export function HeroEditor({ data = {}, pages = [], onChange }) {
 
     // Helpers — each one lets a card's contents read/write a sub-object
     // without re-implementing the spread on every onChange.
-    const setBadge        = (patch) => onChange(set(data, 'badge',        { ...badge,       ...patch }));
-    const setPrimary      = (patch) => onChange(set(data, 'primaryCta',   { ...primary,     ...patch }));
-    const setSecondary    = (patch) => onChange(set(data, 'secondaryCta', { ...secondary,   ...patch }));
-    const setMockup       = (patch) => onChange(set(data, 'mockup',       { ...mockup,      ...patch }));
-    const setMedia        = (patch) => onChange(set(data, 'media',        { ...media,       ...patch }));
+    const setBadge        = (patch: HeroBadge) => onChange(set(data, 'badge',        { ...badge,       ...patch }));
+    const setPrimary      = (patch: HeroCta) => onChange(set(data, 'primaryCta',   { ...primary,     ...patch }));
+    const setSecondary    = (patch: HeroCta) => onChange(set(data, 'secondaryCta', { ...secondary,   ...patch }));
+    const setMockup       = (patch: HeroMockup) => onChange(set(data, 'mockup',       { ...mockup,      ...patch }));
+    const setMedia        = (patch: HeroMedia) =>
+ onChange(set(data, 'media',        { ...media,       ...patch }));
 
     const hasMedia = typeof media.src === 'string' && media.src.trim() !== '';
 
@@ -48,7 +75,7 @@ export function HeroEditor({ data = {}, pages = [], onChange }) {
             <VariantPicker
                 type="hero"
                 value={data.variant}
-                onChange={v => onChange(set(data, 'variant', v))}
+                onChange={(v: string) => onChange(set(data, 'variant', v))}
             />
             <InlineHint>{t('cms_site.blocks.hero.click_the_badge_title_segments_lead', 'Click the badge, title segments, lead, CTA labels, and chat bubbles in the preview to edit them inline. Use the panels below for structure and styling.')}</InlineHint>
 

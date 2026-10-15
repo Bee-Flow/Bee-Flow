@@ -1,12 +1,27 @@
 import React from 'react';
 import { TextField, Toggle } from '../fields';
 import { InlineHint, CollapsibleCard, BackgroundCard } from '../primitives';
+import type { BlockEditorWithPagesProps } from './editorProps';
 import { set, CtaButtonField } from './shared';
+import type { CtaButtonValue } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── CTA ───────────────────────────────────────────────────────────────
 
-export function CTAEditor({ data = {}, pages = [], onChange }) {
+type CtaData = {
+    showMotif?: boolean;
+    title?: string;
+    lead?: string;
+    align?: string;
+    titleAlign?: string;
+    leadAlign?: string;
+    button?: CtaButtonValue;
+    /** Present only while the secondary button is on. */
+    secondaryCta?: CtaButtonValue;
+};
+
+export function CTAEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<CtaData>) {
+
     const { t } = useTranslation();
     const button = data.button || {};
     const hasSecondary = !!data.secondaryCta;
