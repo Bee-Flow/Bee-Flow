@@ -42,7 +42,7 @@ const describeIfWeb = webFileExists(`${DIR}/datatableDisplay.js`) ? describe : d
 /** The web module with its own three dependencies, each the web's implementation. */
 function loadDisplay(): Web {
     const helpers = webHelpers();
-    const forms = loadWebModule<Record<string, unknown>>(`${DIR}/formAnswers.js`);
+    const forms = loadWebModule<Record<string, unknown>>(`${DIR}/formAnswers.ts`);
     const mirrors = loadWebModule<Record<string, unknown>>(`${DIR}/sourceMirrors.js`);
     return loadWebModule<Web>(`${DIR}/datatableDisplay.js`, {
         humanizeFieldKey: helpers.humanizeFieldKey,

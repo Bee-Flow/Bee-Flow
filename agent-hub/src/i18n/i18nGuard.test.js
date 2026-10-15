@@ -85,7 +85,7 @@
  *    en/index.js (which throws on an unlisted file, on a key filed under the
  *    wrong namespace, and on a key defined twice).
  *  - Plural is a KEY choice, never a string choice: base key + `<key>_plural`,
- *    built by `pluralKey()`/`nOf()` (KnowledgeStudio/plural.js). Never
+ *    built by `pluralKey()`/`nOf()` (KnowledgeStudio/plural.ts). Never
  *    `problem${n === 1 ? '' : 's'}` — that is English grammar in JavaScript
  *    and no translation can undo it.
  *  - A namespace follows the SUBJECT, not the screen, and has one writer.
@@ -281,7 +281,7 @@ const ALIAS_CALL = `(?:^|[^\\w$.])(${T_ALIASES.join('|')})\\(|\\btRef\\.current\
 // the key sits 2nd in nOf(), 3rd in nameOf() and 5th in _isoMutate().
 const KEY_ARG_HELPERS = ['tx', 'nOf', 'pluralKey', 'nameOf', '_isoMutate'];
 // Of those, the two that DERIVE a second key at runtime: `<key>_plural`
-// (KnowledgeStudio/plural.js). That derived key exists nowhere as a literal,
+// (KnowledgeStudio/plural.ts). That derived key exists nowhere as a literal,
 // so it is the one key shape no regex over the tree can otherwise reach.
 const PLURAL_DERIVING = new Set(['nOf', 'pluralKey']);
 
@@ -385,10 +385,10 @@ function unknownTableKeys(rels, srcOf) {
 // holds React list keys, node ids and localStorage names (`new-chat`,
 // `my-organization`, `sample-a`).
 const KEY_TABLE_FILES = [
-    'components/admin/Studio/Executions/runLanguage.js',
+    'components/admin/Studio/Executions/runLanguage.ts',
     'components/admin/Studio/KnowledgeStudio/SourceDetail.jsx',
-    'components/admin/Studio/KnowledgeStudio/freshness.js',
-    'components/admin/Studio/KnowledgeStudio/sourceKinds.js',
+    'components/admin/Studio/KnowledgeStudio/freshness.ts',
+    'components/admin/Studio/KnowledgeStudio/sourceKinds.ts',
     // Seven event labels in EVENT_LABELS. Reported by P5's own adversarial
     // round: the file uses the { key, en } shape but was not on this list, so
     // those keys travelled unchecked — an `en` beside a key is exactly what
@@ -460,8 +460,8 @@ const KEY_TABLE_FILES = [
  */
 const TEXT_HELPERS = [
     { rel: 'components/shared/statusTokens.ts' },
-    { rel: 'components/admin/Studio/KnowledgeStudio/freshness.js' },
-    { rel: 'components/admin/Studio/KnowledgeStudio/plural.js' },
+    { rel: 'components/admin/Studio/KnowledgeStudio/freshness.ts' },
+    { rel: 'components/admin/Studio/KnowledgeStudio/plural.ts' },
     { rel: 'components/automation/Builder/mapping/mismatch.ts' },
     // The clock: ten modules, eight of them the very same ladder — "just now",
     // "{n}m ago", "{n}h ago" — pasted from each other and already drifting
