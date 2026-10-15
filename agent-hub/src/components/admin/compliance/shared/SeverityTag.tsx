@@ -29,21 +29,34 @@ import { TONES, toneOfSeverity } from '../../../shared/statusTone';
  *   vocabulary  'check' (default) | 'incident'
  *   tone        undefined (the severity's ink) | 'neutral'
  */
-const LABEL = Object.freeze({
+interface SeverityLabel {
+    key: string;
+    en: string;
+}
+
+interface SeverityTagProps {
+    severity: string;
+    vocabulary?: 'check' | 'incident';
+    tone?: 'neutral';
+    className?: string;
+    testId?: string;
+}
+
+const LABEL: Readonly<Record<string, Readonly<SeverityLabel>>> = Object.freeze({
     critical: Object.freeze({ key: 'compliance.sev_critical', en: 'Must fix' }),
     high: Object.freeze({ key: 'compliance.sev_high', en: 'Should fix' }),
     medium: Object.freeze({ key: 'compliance.sev_medium', en: 'Consider' }),
     low: Object.freeze({ key: 'compliance.sev_low', en: 'Low priority' }),
 });
 
-const INCIDENT_LABEL = Object.freeze({
+const INCIDENT_LABEL: Readonly<Record<string, Readonly<SeverityLabel>>> = Object.freeze({
     critical: Object.freeze({ key: 'compliance.inc_sev_critical', en: 'Critical' }),
     high: Object.freeze({ key: 'compliance.inc_sev_high', en: 'High' }),
     medium: Object.freeze({ key: 'compliance.inc_sev_medium', en: 'Medium' }),
     low: Object.freeze({ key: 'compliance.inc_sev_low', en: 'Low' }),
 });
 
-export default function SeverityTag({ severity, vocabulary = 'check', tone = undefined, className = '', testId = 'severity-tag' }) {
+export default function SeverityTag({ severity, vocabulary = 'check', tone = undefined, className = '', testId = 'severity-tag' }: SeverityTagProps) {
     const { t } = useTranslation();
     const entry = (vocabulary === 'incident' ? INCIDENT_LABEL : LABEL)[severity];
     if (!entry) return null;

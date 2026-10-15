@@ -1,4 +1,5 @@
 import React from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { PenLine, ScanSearch } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -27,7 +28,24 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *                 so the bordered chips that remain are the exceptions —
  *                 attestation and hybrid keep the full chip
  */
-const KIND = Object.freeze({
+interface VerificationKind {
+    glyphs: LucideIcon[];
+    labelKey: string;
+    labelEn: string;
+    hintKey: string;
+    hintEn: string;
+    border: string;
+}
+
+interface VerificationChipProps {
+    verification: string;
+    minimal?: boolean;
+    compact?: boolean;
+    className?: string;
+    testId?: string;
+}
+
+const KIND: Readonly<Record<string, Readonly<VerificationKind>>> = Object.freeze({
     automated: {
         glyphs: [ScanSearch],
         labelKey: 'compliance.verification_automated', labelEn: 'Verified automatically',
@@ -50,7 +68,7 @@ const KIND = Object.freeze({
 
 export const VERIFICATION_KINDS = Object.freeze(Object.keys(KIND));
 
-export default function VerificationChip({ verification, minimal = false, compact = false, className = '', testId = 'verification-chip' }) {
+export default function VerificationChip({ verification, minimal = false, compact = false, className = '', testId = 'verification-chip' }: VerificationChipProps) {
     const { t } = useTranslation();
     const kind = KIND[verification];
     if (!kind) return null;
