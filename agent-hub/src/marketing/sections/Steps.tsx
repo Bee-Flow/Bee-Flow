@@ -5,6 +5,23 @@ import FramedMedia from '../components/FramedMedia';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
+import type { MediaSlot, SectionDataBase } from './sectionData.types';
+
+interface StepItem {
+    number?: string;
+    title?: string;
+    body?: string;
+    example?: string | null;
+    titleAlign?: string;
+    bodyAlign?: string;
+    exampleAlign?: string;
+    media?: MediaSlot;
+}
+
+interface StepsData extends SectionDataBase {
+    items?: StepItem[];
+    variant?: string;
+}
 
 // True inside the CMS editor's preview iframe (?preview), where placeholders
 // are an affordance rather than a defect. Same one-liner the SocialProof /
@@ -16,7 +33,7 @@ const isEditable = () =>
 
 // One step's text stack — identical EditableText paths in both variants,
 // so switching layout never breaks inline editing or locale overrides.
-function StepCopy({ step, i, chapters }) {
+function StepCopy({ step, i, chapters }: { step: StepItem; i: number; chapters?: boolean }) {
     // The example is optional. Published site: an EMPTY example must not
     // render — the accent-ruled .step-example box with nothing in it reads
     // as a blank grey slab (three of them shipped on the homepage). The
@@ -62,7 +79,7 @@ function StepCopy({ step, i, chapters }) {
     );
 }
 
-export default function Steps({ data }) {
+export default function Steps({ data }: { data?: StepsData }) {
     if (!data?.enabled) return null;
     const items = data.items || [];
     // 'chapters' = numbered full-width chapters (mono "1.0" eyebrow,

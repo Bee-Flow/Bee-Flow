@@ -5,6 +5,7 @@ import PresetCard from '../../components/appearance/studio/shared/PresetCard';
 import WallpaperPresets from '../../components/appearance/WallpaperPresets';
 import { toast } from '../../components/shared/Toast';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { ThemeSettings } from '../../components/appearance/ThemeContext.types';
 
 /**
  * AppearanceSection — user-facing theme overrides. End users pick a theme
@@ -54,13 +55,13 @@ export default function AppearanceSection() {
 
     const isGlassPreset = theme.preset === 'glass' || theme.preset === 'glass-dark';
 
-    const apply = async (patch, message) => {
+    const apply = async (patch: Partial<ThemeSettings>, message?: string) => {
         setBusy(true);
         try {
             await theme.setUserOverride(patch);
             if (message) toast.success(message);
         } catch (e) {
-            toast.error(e?.message || 'Could not save');
+            toast.error((e as Error)?.message || 'Could not save');
         } finally {
             setBusy(false);
         }
@@ -115,11 +116,11 @@ export default function AppearanceSection() {
     );
 }
 
-function labelForPreset(id) {
+function labelForPreset(id: string) {
     return THEME_PRESETS.find((p) => p.id === id)?.label || id;
 }
 
-function SectionLabel({ children }) {
+function SectionLabel({ children }: { children?: React.ReactNode }) {
     return (
         <h3
             className="text-xs font-semibold uppercase tracking-wider mb-3 text-[var(--text-muted)]"

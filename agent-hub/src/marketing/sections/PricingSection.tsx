@@ -3,6 +3,45 @@ import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
 import { featureLabel } from '../../shared/featureCatalog';
+import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
+
+type PricingInterval = 'monthly' | 'yearly';
+
+type PricingTextStyle = TextStyleBlob & { fontWeight?: number };
+
+/** A plan as `GET /api/billing/public-plans` sends it (server toPublicPlan). */
+interface PublicPlan {
+    id: string;
+    name: string;
+    planType: string;
+    tagline: string | null;
+    description: string;
+    price: number | string | null;
+    currency: string;
+    billingInterval: string;
+    trialDays: number;
+    allowedFeatures: string[];
+}
+
+interface PricingData extends Pick<SectionDataBase, 'enabled' | 'backgroundVariant'> {
+    planType?: string;
+    defaultInterval?: string;
+    enableToggle?: boolean;
+    heading?: string;
+    subheading?: string;
+    ctaLabel?: string;
+    emptyText?: string;
+    toggleLabelMonthly?: string;
+    toggleLabelYearly?: string;
+    featuredPlanId?: string;
+    featuredStyle?: string;
+    customPriceText?: string;
+    trialText?: string;
+    suffixMonthly?: string;
+    suffixYearly?: string;
+    headingStyle?: PricingTextStyle;
+    subheadingStyle?: PricingTextStyle;
+}
 
 /**
  * Pricing block — dynamic. Fetches published subscription plans from
@@ -25,9 +64,9 @@ import { featureLabel } from '../../shared/featureCatalog';
 // inlineTextStyle resolves font-family / size / color / text-align. Font
 // weight isn't part of that shared helper, so it's merged on here from
 // the same {field}Style blob the editor writes.
-function fieldTextStyle(style, align) {
+function fieldTextStyle(style: PricingTextStyle | null | undefined, align: string) {
     const out = { ...(inlineTextStyle(style, align) || {}) };
-    if (style && Number.isFinite(style.fontWeight) && style.fontWeight > 0) {
+    if (style && Number.isFinite(style.fontWeight) && (style.fontWeight as number) > 0) {
         out.fontWeight = style.fontWeight;
     }
     return out;
@@ -36,7 +75,7 @@ function fieldTextStyle(style, align) {
 // Intl-based currency formatter, falls back to a plain "€X" rendering
 // when the currency code is unknown to the runtime (rare). Whole-euro
 // amounts render without trailing ",00" so cards stay scannable.
-function formatPrice(amount, currency) {
+function formatPrice(amount: number | string | null | undefined, currency: string | undefined) {
     if (amount === null || amount === undefined || amount === '') return '';
     const num = Number(amount);
     if (!Number.isFinite(num)) return '';
@@ -58,7 +97,7 @@ function formatPrice(amount, currency) {
 // Suffix shown after the formatted price. Editor-configurable via
 // `suffixMonthly` / `suffixYearly`; the old Dutch literals stay as the
 // absent-field fallback so existing sites render byte-identically.
-function intervalSuffix(interval, data) {
+function intervalSuffix(interval: string | undefined, data: PricingData | undefined) {
     if (interval === 'yearly')  return data?.suffixYearly  || '/jaar';
     if (interval === 'monthly') return data?.suffixMonthly || '/maand';
     return '';
@@ -66,7 +105,12 @@ function intervalSuffix(interval, data) {
 
 // Pill-style segmented control above the cards — token-driven classes
 // in marketing.css (.pricing-toggle).
-function MonthlyYearlyToggle({ monthlyLabel, yearlyLabel, value, onChange }) {
+function MonthlyYearlyToggle({ monthlyLabel, yearlyLabel, value, onChange }: {
+    monthlyLabel: string;
+    yearlyLabel: string;
+    value: PricingInterval;
+    onChange: (value: PricingInterval) => void;
+}) {
     const isYearly = value === 'yearly';
     return (
         <div className="pricing-toggle-row">
@@ -88,7 +132,13 @@ function MonthlyYearlyToggle({ monthlyLabel, yearlyLabel, value, onChange }) {
 // `featuredStyle` drive the emphasis treatment; `ctaFilled` is true for
 // the featured tier, or for every card while no featured tier is chosen
 // (the legacy look).
-function PlanCard({ plan, data, ctaLabel, featured, ctaFilled }) {
+function PlanCard({ plan, data, ctaLabel, featured, ctaFilled }: {
+    plan: PublicPlan;
+    data: PricingData | undefined;
+    ctaLabel: string;
+    featured: boolean;
+    ctaFilled: boolean;
+}) {
     const price = formatPrice(plan.price, plan.currency);
     const suffix = price ? intervalSuffix(plan.billingInterval, data) : '';
     const tagline = plan.tagline || plan.description || '';
@@ -158,7 +208,7 @@ function SkeletonCards() {
     );
 }
 
-export default function Pricing({ data }) {
+export default function Pricing({ data }: { data?: PricingData }) {
     // The block is mounted by ProductWebsite's SECTION_REGISTRY only when
     // its type matches, so we always want to render *something*. The
     // `enabled` check is the visibility toggle the editor exposes — applied
@@ -179,14 +229,14 @@ export default function Pricing({ data }) {
 
     // Avoid shadowing window.setInterval — the visitor-facing toggle is
     // billing-interval, not a timer.
-    const [activeInterval, setActiveInterval] = useState(defaultInterval);
+    const [activeInterval, setActiveInterval] = useState<PricingInterval>(defaultInterval);
     // Honour an editor change to the default — but only while the visitor
     // hasn't flipped it themselves; once they interact, their choice
     // sticks. Tracking "user-touched" is overkill for a marketing block,
     // so we just reset on data change like the legacy block did.
     useEffect(() => { setActiveInterval(defaultInterval); }, [defaultInterval]);
 
-    const [state, setState] = useState({ loading: true, error: null, plans: [] });
+    const [state, setState] = useState<{ loading: boolean; error: string | null; plans: PublicPlan[] }>({ loading: true, error: null, plans: [] });
 
     useEffect(() => {
         let cancelled = false;
@@ -222,7 +272,7 @@ export default function Pricing({ data }) {
     // plans (Free / Custom) surface on the monthly side, mirroring the
     // visibility filter below.
     const availableIntervals = useMemo(() => {
-        const set = new Set();
+        const set = new Set<PricingInterval>();
         for (const p of audiencePlans) {
             set.add(p?.billingInterval === 'yearly' ? 'yearly' : 'monthly');
         }

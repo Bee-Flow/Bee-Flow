@@ -3,14 +3,19 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
+import type { SectionDataBase } from './sectionData.types';
+
+interface FaqData extends SectionDataBase {
+    items?: { question?: string; answer?: string }[];
+}
 
 // True when the event originated inside an inline-editable text node —
 // clicking to edit a question/answer must never toggle the accordion.
-function onEditable(e) {
-    return !!(e.target.closest && e.target.closest('.cms-editable'));
+function onEditable(e: React.SyntheticEvent) {
+    return !!((e.target as Element).closest && (e.target as Element).closest('.cms-editable'));
 }
 
-export default function Faq({ data }) {
+export default function Faq({ data }: { data?: FaqData }) {
     // Controlled accordion (NOT <details>): EditableText needs real,
     // always-mounted DOM for both question and answer, and <details>
     // would swallow the click-to-edit interaction. One item open at a
@@ -21,7 +26,7 @@ export default function Faq({ data }) {
 
     if (!data?.enabled) return null;
     const items = data.items || [];
-    const toggle = (i) => setOpenIdx(prev => (prev === i ? -1 : i));
+    const toggle = (i: number) => setOpenIdx(prev => (prev === i ? -1 : i));
 
     return (
         <SectionFrame id="faq" name="FAQ" enabled={data.enabled}>

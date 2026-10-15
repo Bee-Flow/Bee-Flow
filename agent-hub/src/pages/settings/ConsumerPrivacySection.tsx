@@ -8,6 +8,25 @@ import { piiCategoriesLocalized } from '../../config/piiCategories';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 
+/** The user's own Privacy Shield config (GET /api/org-privacy-shield/user/me). */
+interface ConsumerShieldConfig {
+    enabled: boolean;
+    euModeEnabled: boolean;
+    disableSearchOnUpload: boolean;
+    piiDetectionEnabled: boolean;
+    piiDetectionCategories: string[];
+    piiDetectionConfidenceThreshold: number;
+    piiDetectionAction: string;
+    piiFailureMode: string;
+    showRawPayload: boolean;
+}
+
+/** GET /api/org-privacy-shield/user/guard-status. */
+interface GuardStatus {
+    configured?: boolean;
+    reachable?: boolean;
+}
+
 /**
  * Consumer Privacy Shield section.
  * User-level privacy controls for consumer accounts (no org). Mirrors the
@@ -39,8 +58,8 @@ const ConsumerPrivacySection = () => {
     // null = still probing. Tells the user whether PII detection can actually
     // run; without it "shield on, guard not installed" looked identical to
     // "shield on and working" while detection silently failed open.
-    const [guardStatus, setGuardStatus] = useState(null);
-    const [config, setConfig] = useState({
+    const [guardStatus, setGuardStatus] = useState<GuardStatus | null>(null);
+    const [config, setConfig] = useState<ConsumerShieldConfig>({
         // Secure by default — mirrors server/core/userShieldDefaults.js.
         enabled: true,
         euModeEnabled: false,
@@ -107,7 +126,7 @@ const ConsumerPrivacySection = () => {
         }
     };
 
-    const update = (key, value) => {
+    const update = <K extends keyof ConsumerShieldConfig>(key: K, value: ConsumerShieldConfig[K]) => {
         setConfig(prev => ({ ...prev, [key]: value }));
     };
 

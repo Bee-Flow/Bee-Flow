@@ -2,12 +2,27 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import type { SectionDataBase } from './sectionData.types';
+
+interface Logo {
+    src?: string;
+    alt?: string;
+}
+
+interface SocialProofData extends SectionDataBase {
+    logos?: Logo[];
+    stats?: { number?: string; label?: string }[];
+    logoTint?: number;
+    variant?: string;
+    eyebrowAlign?: 'left' | 'center' | 'right';
+    align?: 'left' | 'center' | 'right';
+}
 
 const isEditable = () =>
     typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).has('preview');
 
-export default function SocialProof({ data }) {
+export default function SocialProof({ data }: { data?: SocialProofData }) {
     if (!data?.enabled) return null;
     const logos        = data.logos || [];
     const eyebrowStyle = inlineTextStyle(data.eyebrowStyle);
@@ -19,7 +34,7 @@ export default function SocialProof({ data }) {
     const showEyebrow  = !!(data.eyebrow || isEditable());
     // Grayscale + sepia tint amount (0–80). Used as a CSS variable on
     // the strip so the filter rule reads it without rebuilding styles.
-    const tint = Number.isFinite(data.logoTint) ? data.logoTint : 0;
+    const tint = Number.isFinite(data.logoTint) ? data.logoTint as number : 0;
 
     // 'numbers' variant: a hard-numbers row (stars, users, uptime — the
     // OSS trust stack) renders above the logo wall. Absent/unknown ⇒
@@ -99,9 +114,9 @@ export default function SocialProof({ data }) {
 // originals exceeds the viewport width — and is aria-hidden. When the
 // duplicate is present the strip animates the -50% translate for a
 // seamless loop; otherwise the logos sit centered with no animation.
-function SocialProofLogos({ logos, tint }) {
-    const viewportRef  = useRef(null);
-    const originalsRef = useRef(null);
+function SocialProofLogos({ logos, tint }: { logos: Logo[]; tint: number }) {
+    const viewportRef  = useRef<HTMLDivElement>(null);
+    const originalsRef = useRef<HTMLDivElement>(null);
     const [isScrolling, setIsScrolling] = useState(false);
 
     // Measure on layout, then keep checking on resize. We compare the
@@ -129,7 +144,7 @@ function SocialProofLogos({ logos, tint }) {
         return () => ro.disconnect();
     }, [logos]);
 
-    const renderLogo = (logo, i, fromDuplicate = false) => {
+    const renderLogo = (logo: Logo, i: number, fromDuplicate = false) => {
         const keyPrefix = fromDuplicate ? `dup-${i}` : `orig-${i}`;
         if (logo.src) {
             return (
@@ -165,7 +180,7 @@ function SocialProofLogos({ logos, tint }) {
 
     // The CSS variable drives the sepia() component of the filter chain
     // declared in marketing.css. Renderer never builds the filter string.
-    const viewportStyle = { '--logo-tint': `${Math.max(0, Math.min(80, tint))}%` };
+    const viewportStyle = { '--logo-tint': `${Math.max(0, Math.min(80, tint))}%` } as React.CSSProperties;
 
     return (
         <div

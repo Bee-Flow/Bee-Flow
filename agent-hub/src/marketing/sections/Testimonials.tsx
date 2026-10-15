@@ -5,10 +5,26 @@ import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { resolveAssetUrl } from '../assetUrl';
 import { sectionBgClass } from './sectionBg';
+import type { SectionDataBase } from './sectionData.types';
+
+interface TestimonialItem {
+    name?: string;
+    role?: string;
+    company?: string;
+    quote?: string;
+    avatarSrc?: string;
+    logoSrc?: string;
+    metric?: { number?: string; label?: string };
+}
+
+interface TestimonialsData extends SectionDataBase {
+    items?: TestimonialItem[];
+    variant?: string;
+}
 
 // 28px round avatar — photo when avatarSrc is set, otherwise the person's
 // initial in an accent-tinted chip so the attribution row never collapses.
-function Avatar({ item }) {
+function Avatar({ item }: { item: TestimonialItem }) {
     const src = typeof item.avatarSrc === 'string' ? item.avatarSrc.trim() : '';
     if (src) {
         return <img className="testimonial-avatar" src={resolveAssetUrl(src)} alt="" loading="lazy" />;
@@ -24,7 +40,7 @@ function Avatar({ item }) {
 // Name / role / company attribution — quantified-proof register (never star
 // ratings). Shared by all three variants so EditableText paths stay
 // byte-identical when the layout switches.
-function Attribution({ item, i, withAvatar = true }) {
+function Attribution({ item, i, withAvatar = true }: { item: TestimonialItem; i: number; withAvatar?: boolean }) {
     const logoSrc = typeof item.logoSrc === 'string' ? item.logoSrc.trim() : '';
     return (
         <div className="testimonial-attrib">
@@ -55,13 +71,13 @@ function Attribution({ item, i, withAvatar = true }) {
     );
 }
 
-export default function Testimonials({ data }) {
+export default function Testimonials({ data }: { data?: TestimonialsData }) {
     if (!data?.enabled) return null;
     const items = data.items || [];
     // 'quotes' is the default/fallback (this type has no legacy layout):
     // 3-up hairline cards. 'case' leads each card with an oversized metric;
     // 'spotlight' renders ONE oversized 5/7 photo + quote split (first item).
-    const variant = ['case', 'spotlight'].includes(data.variant) ? data.variant : 'quotes';
+    const variant = (['case', 'spotlight'] as readonly (string | undefined)[]).includes(data.variant) ? data.variant : 'quotes';
     const spotlightItem = variant === 'spotlight' ? items[0] : null;
 
     return (

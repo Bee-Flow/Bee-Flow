@@ -12,6 +12,17 @@
 import { LEARNING_PATHS } from '../../../components/onboarding/learningPaths';
 import { defaultLayoutForSteps, LAYOUTS } from '../../../components/onboarding/player/playerLayout';
 import { stepType, STEP_TYPES } from '../../../components/onboarding/stepTypes';
+import type { LessonStep, StepState } from '../../../components/onboarding/lessons.types';
+
+interface HasId {
+    id: string;
+}
+
+interface LessonLike {
+    steps?: LessonStep[];
+}
+
+type CompletionMap = Record<string, boolean> | null | undefined;
 
 export const CAPSTONE_COURSE_ID = 'course-hive-master';
 export const CAPSTONE_CHECK_ID = 'hive-master';
@@ -38,10 +49,10 @@ export const SEGMENT = Object.freeze({
  * `splitCapstone`), and a course no path claims lands in a trailing column
  * with pathId `null`.
  */
-export function buildCurriculumColumns(courses, activePathId = null) {
-    const claimed = new Set();
-    const columns = LEARNING_PATHS.map((p) => {
-        const list = [];
+export function buildCurriculumColumns<C extends HasId>(courses: C[] | null | undefined, activePathId: string | null = null) {
+    const claimed = new Set<string>();
+    const columns: { pathId: string | null; courses: C[] }[] = LEARNING_PATHS.map((p) => {
+        const list: C[] = [];
         for (const id of p.courseOrder) {
             if (claimed.has(id) || id === CAPSTONE_COURSE_ID) continue;
             const course = (courses || []).find((c) => c.id === id);
@@ -61,7 +72,7 @@ export function buildCurriculumColumns(courses, activePathId = null) {
 }
 
 /** { capstone, rest } — the capstone course pulled out of a course list. */
-export function splitCapstone(courses) {
+export function splitCapstone<C extends HasId>(courses: C[] | null | undefined) {
     const capstone = (courses || []).find((c) => c.id === CAPSTONE_COURSE_ID) || null;
     const rest = (courses || []).filter((c) => c.id !== CAPSTONE_COURSE_ID);
     return { capstone, rest };
@@ -72,7 +83,7 @@ export function splitCapstone(courses) {
  * open, dashed when the course itself is locked. Mastery only paints on a
  * lesson that is also complete — the same rule as the XP math.
  */
-export function courseSegments(lessons, completedMap, masteredMap = {}, locked = false) {
+export function courseSegments(lessons: HasId[] | null | undefined, completedMap: CompletionMap, masteredMap: CompletionMap = {}, locked = false) {
     return (lessons || []).map((l) => {
         if (locked) return SEGMENT.LOCKED;
         if (!completedMap?.[l.id]) return SEGMENT.OPEN;
@@ -81,7 +92,12 @@ export function courseSegments(lessons, completedMap, masteredMap = {}, locked =
 }
 
 /** 'locked' | 'complete' | 'in_progress' | 'not_started' — the card's right-hand affordance. */
-export function courseState({ lessons, completedMap, locked, complete }) {
+export function courseState({ lessons, completedMap, locked, complete }: {
+    lessons?: HasId[] | null;
+    completedMap?: CompletionMap;
+    locked?: boolean;
+    complete?: boolean;
+}) {
     if (locked) return 'locked';
     if (complete) return 'complete';
     const done = (lessons || []).filter((l) => !!completedMap?.[l.id]).length;
@@ -89,13 +105,13 @@ export function courseState({ lessons, completedMap, locked, complete }) {
 }
 
 /** Ordered step-kind list of a lesson (the "Stappen" column draws one icon each). */
-export function lessonStepKinds(lesson) {
+export function lessonStepKinds(lesson: LessonLike | null | undefined) {
     return (lesson?.steps || []).map(stepType);
 }
 
 /** { slide, quiz, exercise, sim, action, tour } counts for a lesson or a whole course. */
-export function stepMix(lessons) {
-    const mix = { slide: 0, quiz: 0, exercise: 0, sim: 0, action: 0, tour: 0 };
+export function stepMix(lessons: LessonLike | LessonLike[]) {
+    const mix: Record<string, number> = { slide: 0, quiz: 0, exercise: 0, sim: 0, action: 0, tour: 0 };
     for (const lesson of Array.isArray(lessons) ? lessons : [lessons]) {
         for (const kind of lessonStepKinds(lesson)) if (kind in mix) mix[kind] += 1;
     }
@@ -103,12 +119,12 @@ export function stepMix(lessons) {
 }
 
 /** Where the lesson opens by default: 'docked' (beside the app) or 'modal' (in a window). */
-export function lessonPlays(lesson) {
+export function lessonPlays(lesson: LessonLike | null | undefined) {
     return defaultLayoutForSteps(lesson?.steps || []) === LAYOUTS.DOCKED ? 'docked' : 'modal';
 }
 
 /** True when a lesson has a do-it-for-real step (action or tour). */
-export function lessonIsLearnAlong(lesson) {
+export function lessonIsLearnAlong(lesson: LessonLike | null | undefined) {
     return (lesson?.steps || []).some((s) => {
         const k = stepType(s);
         return k === STEP_TYPES.ACTION || k === STEP_TYPES.TOUR;
@@ -116,13 +132,13 @@ export function lessonIsLearnAlong(lesson) {
 }
 
 /** The first not-complete lesson of a course, with its 1-based position. */
-export function nextLessonIn(lessons, completedMap) {
+export function nextLessonIn<L extends HasId>(lessons: L[] | null | undefined, completedMap: CompletionMap) {
     const idx = (lessons || []).findIndex((l) => !completedMap?.[l.id]);
-    return idx === -1 ? null : { lesson: lessons[idx], index: idx + 1 };
+    return idx === -1 ? null : { lesson: (lessons as L[])[idx], index: idx + 1 };
 }
 
 /** "Mastery still reachable": no step of the lesson has been failed or revealed yet. */
-export function masteryStillReachable(lessonSteps, stepState) {
+export function masteryStillReachable(lessonSteps: HasId[] | null | undefined, stepState: Record<string, StepState> | null | undefined) {
     for (const step of lessonSteps || []) {
         const saved = stepState?.[step.id];
         if (!saved) continue;
@@ -133,7 +149,7 @@ export function masteryStillReachable(lessonSteps, stepState) {
 }
 
 /** Sum of estMinutes over lessons (rounded, ≥ 1 when any lesson exists). */
-export function lessonsMinutes(lessons) {
+export function lessonsMinutes(lessons: { estMinutes?: number }[] | null | undefined) {
     const total = (lessons || []).reduce((n, l) => n + (Number(l?.estMinutes) || 0), 0);
     return lessons?.length ? Math.max(1, Math.round(total)) : 0;
 }

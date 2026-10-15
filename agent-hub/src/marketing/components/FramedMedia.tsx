@@ -1,6 +1,16 @@
 import React from 'react';
 import { resolveAssetUrl } from '../assetUrl';
 import ClipVideo from './ClipVideo';
+import type { MediaSlot } from '../sections/sectionData.types';
+
+interface FramedMediaProps {
+    media?: MediaSlot | null;
+    glow?: boolean;
+    fadeMask?: boolean;
+    className?: string;
+    priority?: boolean;
+}
+
 
 /**
  * FramedMedia — the one way media renders on the marketing site.
@@ -18,9 +28,9 @@ import ClipVideo from './ClipVideo';
  * - Empty src renders an intentional skeleton panel (never a broken image;
  *   also what the AI builder produces, since it must not invent asset keys).
  */
-export default function FramedMedia({ media, glow = true, fadeMask = false, className = '', priority = false }) {
-    const m = media || {};
-    const frame = ['hairline', 'browser', 'none'].includes(m.frame) ? m.frame : 'hairline';
+export default function FramedMedia({ media, glow = true, fadeMask = false, className = '', priority = false }: FramedMediaProps) {
+    const m: MediaSlot = media || {};
+    const frame = (['hairline', 'browser', 'none'] as readonly (string | undefined)[]).includes(m.frame) ? m.frame : 'hairline';
     const kind = m.kind === 'video' || m.kind === 'clip' ? m.kind : 'image';
     const src = typeof m.src === 'string' ? m.src.trim() : '';
     const srcDark = typeof m.srcDark === 'string' ? m.srcDark.trim() : '';
@@ -30,15 +40,15 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
     // aspect ratio to reserve before a single image byte arrives — CSS keeps
     // the rendered size responsive (width:100%; height:auto), so these never
     // fix the display size, only the shape of the reserved box.
-    const dims = m.width > 0 && m.height > 0
-        ? { width: Math.round(m.width), height: Math.round(m.height) }
+    const dims = (m.width as number) > 0 && (m.height as number) > 0
+        ? { width: Math.round(m.width as number), height: Math.round(m.height as number) }
         : {};
 
     // `priority` marks the LCP candidate (the hero's visual). Everything
     // else stays lazy: an unconditional loading="lazy" meant even the hero
     // image was not queued until layout settled, which is backwards for the
     // one image the page is scored on.
-    const loadingProps = priority
+    const loadingProps: { loading: 'eager' | 'lazy'; fetchPriority?: 'high' } = priority
         ? { loading: 'eager', fetchPriority: 'high' }
         : { loading: 'lazy' };
 

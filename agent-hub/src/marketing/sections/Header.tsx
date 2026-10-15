@@ -8,20 +8,21 @@ import MobileNav from './MobileNav';
 import { readDropdown, navHandler } from './navShared';
 import { inlineTextStyle } from './textStyle';
 import { resolveAssetUrl } from '../assetUrl';
+import type { HeaderData } from './Header.types';
 
 // `showLanguageSwitcher` deliberately mirrors the FOOTER's chrome flag (one
 // switch controls both switchers): offering seven languages while zero pages
 // are translated is a dead control, so the site hides both until the
 // translation round actually lands.
-export default function Header({ data, showLanguageSwitcher = true }) {
+export default function Header({ data, showLanguageSwitcher = true }: { data?: HeaderData; showLanguageSwitcher?: boolean }) {
     const [scrolled, setScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     // Which top-level nav item currently has its dropdown open (desktop).
     // null = none. The 150ms close-delay lets the cursor traverse the gap
     // between the parent link and the mega panel without flicker.
-    const [openNavIdx, setOpenNavIdx] = useState(null);
-    const closeTimerRef = useRef(null);
-    const navRef = useRef(null);
+    const [openNavIdx, setOpenNavIdx] = useState<number | null>(null);
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const navRef = useRef<HTMLElement>(null);
     // Whether the panel was open at POINTERDOWN time. The wrapper's
     // onFocus={open} fires between pointerdown and click (mousedown focuses
     // the anchor), so by click time `isOpen` is already true and a naive
@@ -29,7 +30,7 @@ export default function Header({ data, showLanguageSwitcher = true }) {
     // unreachable on touch. Captured before focus can interfere; null when
     // the click came from the keyboard (no pointerdown), where the live
     // state IS accurate.
-    const triggerDownOpenRef = useRef(null);
+    const triggerDownOpenRef = useRef<boolean | null>(null);
     const cancelClose = () => {
         if (closeTimerRef.current) {
             clearTimeout(closeTimerRef.current);
@@ -52,7 +53,7 @@ export default function Header({ data, showLanguageSwitcher = true }) {
     // Escape closes whatever is open. Without it, a keyboard user who opens
     // a mega menu has to tab through every item in it to get back out.
     useEffect(() => {
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key !== 'Escape') return;
             cancelClose();
             setOpenNavIdx(null);
@@ -67,8 +68,8 @@ export default function Header({ data, showLanguageSwitcher = true }) {
     // without this a tapped-open panel would stay open indefinitely.
     useEffect(() => {
         if (openNavIdx === null) return undefined;
-        const onDown = (e) => {
-            if (navRef.current && !navRef.current.contains(e.target)) {
+        const onDown = (e: PointerEvent) => {
+            if (navRef.current && !navRef.current.contains(e.target as Node)) {
                 cancelClose();
                 setOpenNavIdx(null);
             }
@@ -93,10 +94,10 @@ export default function Header({ data, showLanguageSwitcher = true }) {
     const legacySizePx = logo.fontSize === 'small'  ? 14
                        : logo.fontSize === 'large'  ? 24
                        : logo.fontSize === 'medium' ? 18 : 0;
-    const effectiveSize = Number.isFinite(logo.titleSize) && logo.titleSize > 0
+    const effectiveSize = Number.isFinite(logo.titleSize) && (logo.titleSize as number) > 0
         ? logo.titleSize
         : legacySizePx;
-    const brandTextStyle = {};
+    const brandTextStyle: React.CSSProperties = {};
     if (logo.textColor) brandTextStyle.color = logo.textColor;
     if (effectiveSize)  brandTextStyle.fontSize = `${effectiveSize}px`;
     // New: font family from the chrome editor's "Title font" picker.
@@ -124,7 +125,7 @@ export default function Header({ data, showLanguageSwitcher = true }) {
     // (resolvePreviewHref keeps pathname '/' so the app router doesn't
     // intercept) — match both forms. The homepage resolves to `/` with an
     // empty activeSlug in both resolvers.
-    const isActive = (href) => {
+    const isActive = (href: string | undefined) => {
         if (!href) return false;
         if (!activeSlug) return href === '/';
         const enc = encodeURIComponent(activeSlug);
@@ -215,7 +216,7 @@ export default function Header({ data, showLanguageSwitcher = true }) {
                             const onTriggerPointerDown = () => {
                                 triggerDownOpenRef.current = isOpen;
                             };
-                            const onTriggerClick = (e) => {
+                            const onTriggerClick = (e: React.MouseEvent) => {
                                 if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
                                 e.preventDefault();
                                 // Pointer interactions decide on the state
@@ -230,7 +231,7 @@ export default function Header({ data, showLanguageSwitcher = true }) {
                             // Enter fires a native click on the anchor; Space
                             // only scrolls unless handled explicitly. Escape
                             // is handled by the window-level listener above.
-                            const onTriggerKeyDown = (e) => {
+                            const onTriggerKeyDown = (e: React.KeyboardEvent) => {
                                 if (e.key !== ' ') return;
                                 e.preventDefault();
                                 if (isOpen) closeNow(); else open();
