@@ -105,7 +105,7 @@ export default function useSignupSettings() {
                 if (alive) setLoading(false);
             }
             try {
-                const list = await apiJson('/auth/admin/waitlist');
+                const list = await apiJson<WaitlistUser[]>('/auth/admin/waitlist');
                 if (alive) setWaitlistUsers(list);
             } catch (e) { /* ignore */ }
         })();

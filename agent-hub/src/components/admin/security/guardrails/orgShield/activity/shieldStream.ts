@@ -8,7 +8,7 @@
  * them into one log, and the outcome filter takes over the switch's job
  * ("only what left with a tool", "only what the shield stopped").
  *
- * Built on the normalisers in shieldRows.js, so the map, the destination
+ * Built on the normalisers in shieldRows.ts, so the map, the destination
  * list and the log keep reading the same location fields; this module only
  * adds what the merged view needs on top:
  *
@@ -65,7 +65,7 @@ export interface StreamRow {
     model: string | null;
     /** Where a call went; null for a shield event (the ledger has no place for it). */
     region: Region | null;
-    // A call's location, as shieldRows.js reads it (absent on shield events).
+    // A call's location, as shieldRows.ts reads it (absent on shield events).
     state?: string;
     basis?: string | null;
     city?: string | null;
@@ -102,7 +102,7 @@ interface Options {
     placeLabel?: (row: RawRow) => string;
 }
 
-/** What the normalisers in shieldRows.js return, as far as this module reads it. */
+/** What the normalisers in shieldRows.ts return, as far as this module reads it. */
 type Normalised = Record<string, unknown> & { id: string; ts: string; kinds: string[]; action?: string; state?: string; raw: RawRow };
 
 /** The markers leave; a row whose type cannot carry kinds found none. */

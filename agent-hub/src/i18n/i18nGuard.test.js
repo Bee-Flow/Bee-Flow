@@ -484,7 +484,7 @@ const TEXT_HELPERS = [
     // what the rest of this list is working towards. It is on the register
     // because the SHAPE keeps getting copy-pasted, not because it owes
     // anything.
-    { rel: 'components/admin/security/guardrails/orgShield/activity/activityLabels.js' },
+    { rel: 'components/admin/security/guardrails/orgShield/activity/activityLabels.ts' },
     // Label tables: value → English, no key anywhere. Same shape as the two in
     // runLanguage.js that this register was built around.
     { rel: 'components/automation/Builder/flow/triggerLabels.js', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },

@@ -1,8 +1,8 @@
 import type { CustomDataType } from '../ownData/ownDataModel';
 
 /**
- * The shapes the Overview reads. `orgShieldPosture.js` is still plain
- * JavaScript and the panes take `useOrgShield` as a whole, so their outputs
+ * The shapes the Overview reads. `orgShieldPosture.ts` derives them and the
+ * panes take `useOrgShield` as a whole, so their outputs
  * are named here once rather than re-guessed in every component.
  */
 

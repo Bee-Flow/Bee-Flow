@@ -58,7 +58,7 @@ export interface ShieldEvidence {
     topToolKinds: string[];
 }
 
-interface Overview {
+export interface Overview {
     summary?: Record<string, unknown>;
     by_action?: ByActionRow[];
     pii_categories?: Array<{ category?: string; pii_category?: string; count?: number | string }>;

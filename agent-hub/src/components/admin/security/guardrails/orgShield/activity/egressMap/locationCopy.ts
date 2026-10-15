@@ -2,7 +2,7 @@
  * The words for a destination's location, shared by the map tooltip, the
  * destination list, the "No known location" list and the egress table.
  *
- * `t` is injected rather than imported, like activityLabels.js does, so the
+ * `t` is injected rather than imported, like activityLabels.ts does, so the
  * wording can be tested on data. Every string goes through a key: this is the
  * one screen whose subject is where data went, and "how we know" is the line
  * an auditor reads first.
