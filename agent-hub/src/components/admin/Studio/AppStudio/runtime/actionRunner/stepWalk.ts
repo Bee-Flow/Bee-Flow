@@ -5,6 +5,7 @@
  * (mobile …/runtime/stepIndex.lockstep.test.ts) loads this module as is.
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
+import type { BindingInput } from '../resolveBinding.types';
 
 /**
  * One step of a sequence, as it arrives from the definition. Every member is
@@ -23,10 +24,10 @@ export interface RunStep {
     newTab?: boolean;
     modalId?: string;
     form?: unknown;
-    file?: unknown;
-    fileName?: unknown;
+    file?: BindingInput;
+    fileName?: BindingInput;
     name?: unknown;
-    value?: unknown;
+    value?: BindingInput;
     tableId?: string | null;
     datasetId?: string | null;
     expr?: string;
@@ -34,7 +35,7 @@ export interface RunStep {
     else?: unknown;
     cases?: unknown;
     default?: unknown;
-    source?: unknown;
+    source?: BindingInput;
     maxIterations?: unknown;
     itemVar?: unknown;
     indexVar?: unknown;

@@ -1,6 +1,6 @@
 /**
  * Path walking and stable hashing for bindings. Part of the port of agent-hub
- * AppStudio/runtime/resolveBinding.js (resolveBinding.lockstep.test.ts).
+ * AppStudio/runtime/resolveBinding.ts (resolveBinding.lockstep.test.ts).
  */
 
 import { getRelativePath, parsePath } from '@/shared/expr';

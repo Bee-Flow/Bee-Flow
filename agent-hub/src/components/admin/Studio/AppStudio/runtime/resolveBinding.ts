@@ -45,15 +45,15 @@
  * actions, dead paths and bad formulas resolve to `{ value: undefined }` —
  * they never throw, because a half-configured binding is a normal editor state.
  */
-
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { getRelativePath, parsePath } from '@shared/expr/path.mjs';
+import type { ActionMap, Bag, BagArg, Binding, BindingInput, DataBinding, DataMap, DataEntry, FilterValue, PickSpec, ResolveResult, Scope } from './resolveBinding.types';
 
 /**
  * Does `path` read as a path RELATIVE to a value under the shared grammar?
  * The same normalisation getRelativePath applies (`$.a`, `[0].x`, `a.b`).
  */
-function isRelativePath(path) {
+function isRelativePath(path: string): boolean {
     let p = path.trim();
     if (p === '' || p === '$') return true;
     if (p.startsWith('$.')) p = p.slice(2);
@@ -72,22 +72,22 @@ function isRelativePath(path) {
  * Signature is (value, path) — kept stable because AppList/AppKeyValue import
  * and call it that way.
  */
-export function walkPath(value, path) {
+export function walkPath(value: unknown, path?: unknown): unknown {
     if (path == null || path === '') return value;
     if (typeof path !== 'string') return undefined;
     if (isRelativePath(path)) return getRelativePath(value, path);
     return value != null && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, path)
-        ? value[path]
+        ? (value as Record<string, unknown>)[path]
         : undefined;
 }
 
 /** Deterministic JSON with sorted keys — the hash half of a data cache key. */
-function stableStringify(value) {
+function stableStringify(value: unknown): string {
     if (value == null) return 'null';
     if (typeof value !== 'object') return JSON.stringify(value);
     if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
     const keys = Object.keys(value).sort();
-    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify((value as Record<string, unknown>)[k])}`).join(',')}}`;
 }
 
 /**
@@ -96,7 +96,7 @@ function stableStringify(value) {
  * table + a hash of {filter,sort,limit}; dataset keys on its id.
  * Returns null for non-data bindings.
  */
-export function dataCacheKey(binding) {
+export function dataCacheKey(binding: Binding | null | undefined): string | null {
     if (!binding || typeof binding !== 'object') return null;
     if (binding.kind === 'dataset') {
         return `dataset:${binding.datasetId ?? ''}`;
@@ -178,7 +178,7 @@ const NO_VALUE_FILTER_OPS = new Set(['isNull', 'isNotNull']);
 // `tableId` stays LITERAL on purpose: it is what anchors the validator's
 // field-reference checks and the server's table-access gate to something an
 // author declared. The QUESTION is dynamic; the table it is asked of is not.
-const AGGREGATE_SHAPE_FIELDS = ['groupBy', 'aggregates', 'sort', 'limit'];
+const AGGREGATE_SHAPE_FIELDS: Array<'groupBy' | 'aggregates' | 'sort' | 'limit'> = ['groupBy', 'aggregates', 'sort', 'limit'];
 
 /**
  * Resolve an aggregate binding's descriptor fields against the live scope.
@@ -187,10 +187,10 @@ const AGGREGATE_SHAPE_FIELDS = ['groupBy', 'aggregates', 'sort', 'limit'];
  * field ABSENT rather than sending a null the compiler would reject — a
  * half-configured report is a normal state, not an error.
  */
-export function resolveBindingShape(binding, scope) {
+export function resolveBindingShape(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
     if (!binding || typeof binding !== 'object' || binding.kind !== 'aggregate') return binding;
     let changed = false;
-    const out = { ...binding };
+    const out: DataBinding = { ...binding };
     for (const field of AGGREGATE_SHAPE_FIELDS) {
         const raw = binding[field];
         if (!raw || typeof raw !== 'object' || raw.kind !== 'formula') continue;
@@ -202,13 +202,13 @@ export function resolveBindingShape(binding, scope) {
     return changed ? out : binding;
 }
 
-export function resolveBindingFilters(binding, scope) {
+export function resolveBindingFilters(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
     if (!binding || typeof binding !== 'object') return binding;
     if (binding.kind !== 'record' && binding.kind !== 'records' && binding.kind !== 'aggregate') return binding;
     if (!Array.isArray(binding.filter) || binding.filter.length === 0) return binding;
 
     let changed = false;
-    const filter = [];
+    const filter: unknown[] = [];
     for (const entry of binding.filter) {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { filter.push(entry); continue; }
         if (NO_VALUE_FILTER_OPS.has(entry.op)) { filter.push(entry); continue; }
@@ -239,7 +239,7 @@ export function resolveBindingFilters(binding, scope) {
 }
 
 /** One filter value: {kind:'formula'} → evaluated against the scope; literal → itself. */
-function resolveFilterValue(value, scope) {
+function resolveFilterValue(value: FilterValue, scope: Scope): FilterValue {
     if (!value || typeof value !== 'object' || value.kind !== 'formula') return value;
     const expr = value.expr;
     if (typeof expr !== 'string' || !expr.trim()) return undefined;
@@ -256,13 +256,13 @@ function resolveFilterValue(value, scope) {
  * Fast path: an unchanged binding is returned AS-IS (memo-friendly). Non-
  * connector kinds and non-object params pass through. Never throws.
  */
-export function resolveBindingParams(binding, scope) {
+export function resolveBindingParams(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
     if (!binding || typeof binding !== 'object' || binding.kind !== 'connector') return binding;
     const params = binding.params;
     if (!params || typeof params !== 'object' || Array.isArray(params)) return binding;
 
     let changed = false;
-    const out = {};
+    const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(params)) {
         const value = resolveFilterValue(v, scope);
         if (value === undefined) { changed = true; continue; } // omit unresolved
@@ -273,20 +273,20 @@ export function resolveBindingParams(binding, scope) {
     return { ...binding, params: out };
 }
 
-const EMPTY = Object.freeze({ actionState: {}, dataState: {}, scope: undefined });
+const EMPTY: Bag = Object.freeze({ actionState: {}, dataState: {}, scope: undefined });
 
 /** Normalize the second argument into a bag, honouring the v1 bare-actionState form. */
-function normalizeBag(arg) {
+function normalizeBag(arg: unknown): Bag {
     if (arg == null || typeof arg !== 'object') return EMPTY;
     if ('actionState' in arg || 'dataState' in arg || 'scope' in arg) {
         return {
-            actionState: arg.actionState || {},
-            dataState: arg.dataState || {},
-            scope: arg.scope,
+            actionState: (arg as BagArg).actionState || {},
+            dataState: (arg as BagArg).dataState || {},
+            scope: (arg as BagArg).scope,
         };
     }
     // A bare actionState map (v1 call sites) — never carries a dataState/scope.
-    return { actionState: arg, dataState: {}, scope: undefined };
+    return { actionState: arg as ActionMap, dataState: {}, scope: undefined };
 }
 
 /**
@@ -296,7 +296,7 @@ function normalizeBag(arg) {
  * frame before that must render the skeleton — reporting isLoading:false there
  * flashes "No results" on every list, grid and board.
  */
-function fromDataEntry(entry) {
+function fromDataEntry(entry: DataEntry | undefined): ResolveResult {
     if (!entry) return { value: undefined, isLoading: true, error: null, errorCode: null };
     const status = entry.status;
     const isLoading = status === 'loading' || status === 'running';
@@ -314,7 +314,7 @@ function fromDataEntry(entry) {
  * empty state) — never throws, because a half-configured pick is a normal
  * editor state. No `pick` returns the value untouched.
  */
-function applyPick(value, pick) {
+function applyPick(value: unknown, pick: PickSpec | null | undefined): unknown {
     if (!pick || typeof pick !== 'object' || Array.isArray(pick)) return value;
     let row = value;
     if (Array.isArray(row)) {
@@ -324,7 +324,7 @@ function applyPick(value, pick) {
     const column = pick.column;
     if (column == null || column === '') return row;
     if (row == null || typeof row !== 'object') return undefined;
-    return Object.prototype.hasOwnProperty.call(row, column) ? row[column] : undefined;
+    return Object.prototype.hasOwnProperty.call(row, column) ? (row as Record<string, unknown>)[column] : undefined;
 }
 
 /**
@@ -340,7 +340,7 @@ function applyPick(value, pick) {
  * than leaving it off: a caller destructuring one result shape and not another
  * is how the connection message got lost the first time.
  */
-export function resolveBinding(binding, arg) {
+export function resolveBinding(binding: BindingInput, arg?: unknown): ResolveResult {
     if (binding == null) {
         return { value: undefined, isLoading: false, error: null, errorCode: null };
     }

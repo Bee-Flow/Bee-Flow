@@ -1,6 +1,6 @@
 /**
  * Differential lockstep: core/runtime/resolveBinding (+ paths, dataKeys)
- * against the web's runtime/resolveBinding.js, on a matrix of bindings, bags
+ * against the web's runtime/resolveBinding.ts, on a matrix of bindings, bags
  * and scopes. Both evaluate formulas with the same shared engine.
  */
 
@@ -8,7 +8,7 @@ import * as port from './resolveBinding';
 import { loadWeb } from '../testing/loadWeb';
 
 type AnyFn = (...args: unknown[]) => unknown;
-const web = loadWeb<Record<string, unknown>>('runtime/resolveBinding.js');
+const web = loadWeb<Record<string, unknown>>('runtime/resolveBinding.ts');
 
 function both(name: string, ...args: unknown[]): unknown {
     const w = (web[name] as AnyFn)(...args);

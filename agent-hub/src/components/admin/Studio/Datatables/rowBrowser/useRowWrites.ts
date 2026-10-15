@@ -6,7 +6,8 @@
  * irreversible decision on).
  */
 import { useState } from 'react';
-import { BULK_DELETE_MAX, messageOf, rowsApi } from './rowBrowserModel';
+import { messageOf } from '../../../../../utils/caughtError';
+import { BULK_DELETE_MAX, rowsApi } from './rowBrowserModel';
 import type { ApiError, DtRow, DtTable } from './rowBrowserModel';
 import { sourceErrorMessage } from './typedViews';
 import type { RowPages } from './useRowPages';

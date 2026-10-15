@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
  * App Studio runtime — the data-source state provider.
  *
  * Holds `dataState`, a map keyed by a binding's stable cache-key (see
- * dataCacheKey in resolveBinding.js) of `{ status, result, error, tableId?,
+ * dataCacheKey in resolveBinding.ts) of `{ status, result, error, tableId?,
  * datasetId? }` entries — mirroring actionState's status vocabulary so
  * resolveBinding treats action- and data-bindings identically.
  *

@@ -16,7 +16,13 @@ import Info from '../../../admin/security/guardrails/Info';
  * caller-declared side was exactly what left a hint on a bottom-edge field
  * opening downwards into the clipped void. No call site ever passed it.
  */
-export default function FieldHint({ children, title = null, className = '' }) {
+interface FieldHintProps {
+    children?: React.ReactNode;
+    title?: string | null;
+    className?: string;
+}
+
+export default function FieldHint({ children, title = null, className = '' }: FieldHintProps) {
     if (children == null || children === '') return null;
     return (
         <Info title={title} className={className}>

@@ -7,6 +7,83 @@ import IconPicker from '../../../../product-website/controls/IconPicker';
 import useAppTables, { fieldsForTable } from '../../bi/useAppTables';
 import { useEditorChrome } from '../../editor/EditorChromeContext';
 import { updateNodeProps } from '../../state/definitionOps';
+import type { AppDefinition, AppNode } from '../appDefinition';
+
+interface FieldBaseProps {
+    label?: React.ReactNode;
+    hint?: React.ReactNode;
+    disabled?: boolean;
+}
+
+type FieldValue = string | number | null | undefined;
+
+interface TextFieldProps extends FieldBaseProps {
+    value?: FieldValue;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    type?: string;
+}
+
+interface SelectOption {
+    value: string | number;
+    label: React.ReactNode;
+    disabled?: boolean;
+}
+
+interface SelectFieldProps extends FieldBaseProps {
+    value?: FieldValue;
+    onChange: (value: string) => void;
+    options: SelectOption[];
+    ariaLabel?: string;
+}
+
+interface TextAreaFieldProps extends FieldBaseProps {
+    value?: FieldValue;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    rows?: number;
+}
+
+interface NumberFieldProps extends FieldBaseProps {
+    value?: FieldValue;
+    onChange: (value: number | null) => void;
+    placeholder?: string;
+    step?: number | string;
+}
+
+interface IconFieldProps extends FieldBaseProps {
+    value?: string | null;
+    onChange: (value: string | null) => void;
+}
+
+interface FieldKeyInputProps extends FieldBaseProps {
+    value?: string | null;
+    onChange: (value: string) => void;
+    keys: string[];
+    placeholder?: string;
+    ariaLabel?: string;
+}
+
+interface TableFieldKeyInputProps extends Omit<FieldKeyInputProps, 'keys'> {
+    appId: string;
+    tableId: string;
+    fallbackKeys: string[];
+}
+
+/** A component's source binding, as the field picker reads it. */
+interface FieldKeySource {
+    kind?: string;
+    value?: unknown;
+    tableId?: string | null;
+}
+
+export interface FieldKeyFieldProps extends FieldBaseProps {
+    value?: string | null;
+    onChange: (value: string) => void;
+    source?: FieldKeySource | null;
+    placeholder?: string;
+    ariaLabel?: string | null;
+}
 
 /**
  * App Studio inspector — tiny shared field kit for the per-type Content
@@ -22,8 +99,8 @@ import { updateNodeProps } from '../../state/definitionOps';
  * `onCommit`, skipping no-op patches (updateNodeProps returns the same
  * reference when nothing changed). Shared by every inspector panel.
  */
-export function usePatch(node, definition, onCommit) {
-    return (p) => {
+export function usePatch(node: AppNode, definition: AppDefinition, onCommit: (next: AppDefinition) => void): (p: Record<string, unknown>) => void {
+    return (p: Record<string, unknown>) => {
         const next = updateNodeProps(definition, node.id, p);
         if (next !== definition) onCommit(next);
     };
@@ -48,7 +125,7 @@ export const INPUT_CLS = controlSurfaceClass(
     { strongBorder: true },
 );
 
-export function TextField({ label, value, onChange, placeholder, hint, disabled = false, type = 'text' }) {
+export function TextField({ label, value, onChange, placeholder, hint, disabled = false, type = 'text' }: TextFieldProps) {
     return (
         <FormField label={label} hint={hint}>
             <input
@@ -71,7 +148,7 @@ export function TextField({ label, value, onChange, placeholder, hint, disabled 
  * Options are a closed set, so an unknown stored value falls back to ''
  * (the browser shows the first option) rather than inventing an entry.
  */
-export function SelectField({ label, value, onChange, options, hint, disabled = false, ariaLabel }) {
+export function SelectField({ label, value, onChange, options, hint, disabled = false, ariaLabel }: SelectFieldProps) {
     return (
         <FormField label={label} hint={hint}>
             <select
@@ -89,7 +166,7 @@ export function SelectField({ label, value, onChange, options, hint, disabled = 
     );
 }
 
-export function TextAreaField({ label, value, onChange, placeholder, hint, rows = 3, disabled = false }) {
+export function TextAreaField({ label, value, onChange, placeholder, hint, rows = 3, disabled = false }: TextAreaFieldProps) {
     return (
         <FormField label={label} hint={hint}>
             <textarea
@@ -105,7 +182,7 @@ export function TextAreaField({ label, value, onChange, placeholder, hint, rows 
 }
 
 /** Numeric field; an empty input commits null (the "unset" prop value). */
-export function NumberField({ label, value, onChange, placeholder, hint, disabled = false, step }) {
+export function NumberField({ label, value, onChange, placeholder, hint, disabled = false, step }: NumberFieldProps) {
     return (
         <FormField label={label} hint={hint}>
             <input
@@ -132,7 +209,7 @@ export function NumberField({ label, value, onChange, placeholder, hint, disable
  * the value is discoverable; the text input stays as the power-user path.
  * Both store the same PascalCase name. Empty commits null.
  */
-export function IconField({ label = null, value, onChange, hint, disabled = false }) {
+export function IconField({ label = null, value, onChange, hint, disabled = false }: IconFieldProps) {
     const { t } = useTranslation();
     const [picking, setPicking] = useState(false);
     const shownLabel = label ?? t('studio_apps_panels.common.icon', 'Icon');
@@ -163,7 +240,7 @@ export function IconField({ label = null, value, onChange, hint, disabled = fals
             {picking ? (
                 <IconPicker
                     value={value || ''}
-                    onSelect={(picked) => { onChange(picked); setPicking(false); }}
+                    onSelect={(picked: string) => { onChange(picked); setPicking(false); }}
                     onClose={() => setPicking(false)}
                 />
             ) : null}
@@ -176,10 +253,10 @@ export function IconField({ label = null, value, onChange, hint, disabled = fals
 const TYPE_MY_OWN = '__own';
 
 /** Field names visible in a static source value (the first rows decide). */
-function staticSourceKeys(source) {
+function staticSourceKeys(source: FieldKeySource | null | undefined): string[] {
     const rows = source && source.kind === 'static' ? source.value : source;
     if (!Array.isArray(rows)) return [];
-    const out = [];
+    const out: string[] = [];
     for (const row of rows.slice(0, 5)) {
         if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
         for (const k of Object.keys(row)) if (!out.includes(k)) out.push(k);
@@ -187,7 +264,7 @@ function staticSourceKeys(source) {
     return out;
 }
 
-function FieldKeyInput({ label, value, onChange, keys, placeholder, hint, ariaLabel, disabled }) {
+function FieldKeyInput({ label, value, onChange, keys, placeholder, hint, ariaLabel, disabled }: FieldKeyInputProps) {
     const { t } = useTranslation();
     const [typing, setTyping] = useState(false);
     // A value the source doesn't know about is already a typed-in name.
@@ -229,9 +306,9 @@ function FieldKeyInput({ label, value, onChange, keys, placeholder, hint, ariaLa
     );
 }
 
-function TableFieldKeyInput({ appId, tableId, fallbackKeys, ...rest }) {
+function TableFieldKeyInput({ appId, tableId, fallbackKeys, ...rest }: TableFieldKeyInputProps) {
     const { tables } = useAppTables(appId);
-    const keys = fieldsForTable(tables, tableId).map((f) => f.key).filter(Boolean);
+    const keys = fieldsForTable(tables, tableId).map((f: { key: string }) => f.key).filter(Boolean);
     return <FieldKeyInput {...rest} keys={keys.length ? keys : fallbackKeys} />;
 }
 
@@ -245,12 +322,12 @@ function TableFieldKeyInput({ appId, tableId, fallbackKeys, ...rest }) {
 export function FieldKeyField({
     label = null, value, onChange, source = null,
     placeholder, hint, ariaLabel = null, disabled = false,
-}) {
+}: FieldKeyFieldProps) {
     const { t } = useTranslation();
-    const chrome = useEditorChrome();
+    const chrome = useEditorChrome() as { appId?: string | null } | null;
     const appId = chrome?.appId ?? null;
     const kind = source?.kind;
-    const tableId = kind === 'record' || kind === 'records' ? (source.tableId || null) : null;
+    const tableId = kind === 'record' || kind === 'records' ? ((source as FieldKeySource).tableId || null) : null;
     const localKeys = staticSourceKeys(source);
     const shared = { label, value, onChange, placeholder, hint, ariaLabel: ariaLabel ?? t('studio_apps_panels.kit.field', 'Field'), disabled };
     // useAppTables is a network hook: only mount it inside the editor shell,
