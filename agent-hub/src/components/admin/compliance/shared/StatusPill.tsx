@@ -1,11 +1,11 @@
 import React from 'react';
 import type { ComponentType, CSSProperties, ReactElement, ReactNode } from 'react';
-import { TONES } from '../../../shared/statusTone';
+import { TONES, type Tone } from '../../../shared/statusTone';
 
 type PillIcon = ComponentType<{ style?: CSSProperties; 'aria-hidden'?: 'true' }> | ReactElement;
 
 interface StatusPillProps {
-    tone?: keyof typeof TONES;
+    tone?: Tone;
     icon?: PillIcon | null;
     children?: ReactNode;
     className?: string;

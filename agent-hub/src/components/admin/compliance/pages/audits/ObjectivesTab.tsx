@@ -4,15 +4,40 @@ import {
     OBJ_STATUS, labelOf, toneOf, userName, isOverdue,
     Field, TextInput, DateInput, UserSelect, ActionButton, Intro, RegisterLayout,
 } from './auditForms';
+import type { Objective, ObjectiveStatus } from './ObjectiveDrawer';
 import ObjectiveDrawer from './ObjectiveDrawer';
+import type { SetHeaderActions } from './useHeaderPrimary';
 import useHeaderPrimary from './useHeaderPrimary';
+import type { OrgUser } from '../accessAuditLabels';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { DataTableContext } from '../../../../shared/DataTable';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
 import DeadlineClock from '../../../../shared/DeadlineClock';
 import EmptyState from '../../../../shared/EmptyState';
 import SideDrawer from '../../../../shared/SideDrawer';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import useDrawerMode from '../../shared/useDrawerMode';
+
+interface ObjectiveDraft {
+    title: string;
+    measure: string;
+    target: string;
+    review_due_at: string;
+    owner_user_id: string;
+}
+
+interface ObjectivesTabProps {
+    audit: {
+        objectives?: Objective[] | null;
+        busy?: boolean;
+        createObjective: (body: Partial<Omit<ObjectiveDraft, 'title'>> & { title: string }) => unknown;
+        updateObjective: (id: Objective['id'], patch: { status: ObjectiveStatus }) => unknown;
+    };
+    orgUsers?: OrgUser[] | null;
+    isMobile?: boolean;
+    focusId?: string | number | null;
+    setHeaderActions?: SetHeaderActions;
+}
 
 /**
  * ObjectivesTab — security objectives (clause 6.2): measurable, owned,
@@ -22,18 +47,18 @@ import useDrawerMode from '../../shared/useDrawerMode';
  * reads on one line. The phone card keeps its buttons: there is no table
  * beside it to make room for.
  */
-const EMPTY_DRAFT = Object.freeze({ title: '', measure: '', target: '', review_due_at: '', owner_user_id: '' });
+const EMPTY_DRAFT: Readonly<ObjectiveDraft> = Object.freeze({ title: '', measure: '', target: '', review_due_at: '', owner_user_id: '' });
 
-export default function ObjectivesTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }) {
+export default function ObjectivesTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }: ObjectivesTabProps) {
     const { t } = useTranslation();
     const { objectives, busy, createObjective, updateObjective } = audit;
     const loading = objectives === null || objectives === undefined;
-    const list = useMemo(() => (Array.isArray(objectives) ? objectives : []), [objectives]);
+    const list = useMemo((): Objective[] => (Array.isArray(objectives) ? objectives : []), [objectives]);
     const [frameRef, drawerMode] = useDrawerMode({ isMobile });
 
     const [creating, setCreating] = useState(false);
-    const [draft, setDraft] = useState(EMPTY_DRAFT);
-    const [selectedId, setSelectedId] = useState(focusId || null);
+    const [draft, setDraft] = useState<ObjectiveDraft>(EMPTY_DRAFT);
+    const [selectedId, setSelectedId] = useState<string | number | null>(focusId || null);
     const [seenFocusId, setSeenFocusId] = useState(focusId);
     if (seenFocusId !== focusId) {
         setSeenFocusId(focusId);
@@ -60,7 +85,7 @@ export default function ObjectivesTab({ audit, orgUsers, isMobile = false, focus
     };
 
     /** "Phishing click rate → below 5%", or whichever half is known. */
-    const measureTarget = (o) => {
+    const measureTarget = (o: Objective) => {
         if (o.measure && o.target) return t('compliance.obj_measure_target', '{measure} → {target}', { measure: o.measure, target: o.target });
         return o.measure || o.target || '';
     };
@@ -107,7 +132,7 @@ export default function ObjectivesTab({ audit, orgUsers, isMobile = false, focus
         );
     }
 
-    const toggle = (o) => { setCreating(false); setSelectedId(prev => (String(prev) === String(o.id) ? null : o.id)); };
+    const toggle = (o: Objective) => { setCreating(false); setSelectedId(prev => (String(prev) === String(o.id) ? null : o.id)); };
 
     return (
         <RegisterLayout isMobile={isMobile} drawerMode={drawerMode} frameRef={frameRef} testId="objectives-tab" drawer={drawer}
@@ -126,7 +151,7 @@ export default function ObjectivesTab({ audit, orgUsers, isMobile = false, focus
                 ariaLabel={t('compliance.obj_tab', 'Objectives')}
                 testId="objectives-table"
                 empty={<EmptyState title={t('compliance.obj_empty_title', 'No security objectives yet')} description={t('compliance.obj_empty', 'No security objectives yet. Clause 6.2 asks for measurable objectives with owners and review dates.')} />}
-                renderCard={(o) => {
+                renderCard={(o: Objective) => {
                     const active = o.status === 'active';
                     return (
                         <div className={`w-full min-w-0 flex flex-col gap-1.5 ${o.status === 'dropped' ? 'opacity-60' : ''}`.trim()} data-testid={`objective-card-${o.id}`}>
@@ -154,7 +179,7 @@ export default function ObjectivesTab({ audit, orgUsers, isMobile = false, focus
                         </div>
                     );
                 }}
-                renderRow={(o, ctx) => {
+                renderRow={(o: Objective, ctx: DataTableContext) => {
                     const active = o.status === 'active';
                     const overdue = isOverdue(o.review_due_at, { closed: !active });
                     const mt = measureTarget(o);

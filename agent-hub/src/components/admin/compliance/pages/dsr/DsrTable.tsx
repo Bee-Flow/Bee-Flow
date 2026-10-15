@@ -7,24 +7,49 @@
  * sent, `maskEmail` runs over it before it reaches the DOM.
  */
 import { FileText, Globe, Mail, MessageSquare, Phone } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import React, { useMemo } from 'react';
 import {
     articleOf, channelOf, clockPropsOf, identityOf, isClosed, receivedAtOf, stateOf, typeKeyOf,
 } from './dsrArticles';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { DataTableContext, TableColumn } from '../../../../shared/DataTable';
 import DataTable, { TableCell, TableRow } from '../../../../shared/DataTable';
 import DeadlineClock, { useNow } from '../../../../shared/DeadlineClock';
 import { clockState } from '../../../../shared/deadlineMath';
+import type { Tone } from '../../../../shared/statusTone';
 import { formatCalDate, intlLocale } from '../../shared/calendarMath';
 import { maskEmail } from '../../shared/maskEmail';
 import RegisterStatePill from '../../shared/RegisterStatePill';
+import type { DsrRow } from './dsr.types';
+
+interface DsrColumn {
+    id: string;
+    width: string;
+    labelKey: string;
+    en: string;
+    ariaSort?: 'ascending' | 'descending';
+}
+
+interface ChannelEntry {
+    icon: LucideIcon;
+    key: string;
+    en: string;
+}
+
+interface WordEntry {
+    key: string;
+    en: string;
+}
 
 /**
  * The register is always sorted by deadline (sortByDeadline): the Deadline
  * header says so with a ↓ and aria-sort, instead of a separate "By deadline"
  * note in the toolbar.
  */
-export const DSR_COLUMNS = Object.freeze([
+export const DSR_COLUMNS: readonly DsrColumn[] = Object.freeze([
     { id: 'deadline', width: '118px', labelKey: 'compliance.dsr_col_deadline', en: 'Deadline', ariaSort: 'ascending' },
     { id: 'request', width: '1fr', labelKey: 'compliance.dsr_col_request', en: 'Request' },
     { id: 'received', width: '104px', labelKey: 'compliance.dsr_col_received', en: 'Received' },
@@ -32,7 +57,7 @@ export const DSR_COLUMNS = Object.freeze([
     { id: 'status', width: '96px', labelKey: 'compliance.dsr_col_status', en: 'Status' },
 ]);
 
-const CHANNEL = Object.freeze({
+const CHANNEL: Readonly<Record<string, ChannelEntry>> & { other: ChannelEntry } = Object.freeze({
     form: { icon: Globe, key: 'compliance.dsr_channel_form', en: 'Form /dsr' },
     email: { icon: Mail, key: 'compliance.dsr_channel_email', en: 'E-mail to DPO' },
     phone: { icon: Phone, key: 'compliance.dsr_channel_phone', en: 'Phone' },
@@ -40,7 +65,7 @@ const CHANNEL = Object.freeze({
     other: { icon: MessageSquare, key: 'compliance.dsr_channel_other', en: 'Other' },
 });
 
-const IDENTITY = Object.freeze({
+const IDENTITY: Readonly<Record<string, WordEntry>> & { unknown: WordEntry } = Object.freeze({
     verified_link: { key: 'compliance.dsr_identity_verified', en: 'identity confirmed' },
     verified_manual: { key: 'compliance.dsr_identity_verified', en: 'identity confirmed' },
     pending: { key: 'compliance.dsr_identity_pending', en: 'identity not yet confirmed' },
@@ -48,30 +73,30 @@ const IDENTITY = Object.freeze({
     unknown: { key: 'compliance.dsr_identity_unknown', en: 'identity unknown' },
 });
 
-const STATE = Object.freeze({
+const STATE: Readonly<Record<string, WordEntry>> & { pending: WordEntry } = Object.freeze({
     pending: { key: 'compliance.dsr_state_pending', en: 'Open' },
     in_progress: { key: 'compliance.dsr_state_in_progress', en: 'In progress' },
     fulfilled: { key: 'compliance.dsr_state_fulfilled', en: 'Completed' },
     rejected: { key: 'compliance.dsr_state_rejected', en: 'Rejected' },
 });
 
-export function channelLabel(t, channel) {
+export function channelLabel(t: TranslateFn, channel: string) {
     const c = CHANNEL[channel] || CHANNEL.other;
     return t(c.key, c.en);
 }
 
-export function identityLabel(t, identity) {
+export function identityLabel(t: TranslateFn, identity: string) {
     const i = IDENTITY[identity] || IDENTITY.unknown;
     return t(i.key, i.en);
 }
 
-export function stateLabel(t, state) {
+export function stateLabel(t: TranslateFn, state: string) {
     const s = STATE[state] || STATE.pending;
     return t(s.key, s.en);
 }
 
 /** English fallbacks for the existing `compliance.dsr_type_*` keys (en-defaults.js). */
-const TYPE_EN = Object.freeze({
+const TYPE_EN: Readonly<Record<string, string>> = Object.freeze({
     'compliance.dsr_type_access': 'Access request',
     'compliance.dsr_type_rectification': 'Rectification request',
     'compliance.dsr_type_deletion': 'Deletion request',
@@ -80,44 +105,44 @@ const TYPE_EN = Object.freeze({
     'compliance.dsr_type_objection': 'Objection',
 });
 
-export function typeLabel(t, requestType) {
+export function typeLabel(t: TranslateFn, requestType: string | null | undefined) {
     const key = typeKeyOf(requestType);
     return key ? t(key, TYPE_EN[key]) : String(requestType || '');
 }
 
 /** The masked address for a row — the ONLY way an e-mail reaches the list. */
-export function shownEmailOf(row) {
+export function shownEmailOf(row: DsrRow | null | undefined) {
     return maskEmail(row?.subject_email_masked ?? row?.subject_email);
 }
 
-function sameDay(a, b) {
+function sameDay(a: number, b: number) {
     const x = new Date(a), y = new Date(b);
     return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
 }
 
-function formatTime(ms, locale) {
+function formatTime(ms: number, locale: string | undefined) {
     return new Intl.DateTimeFormat(intlLocale(locale), { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
 }
 
 /** "12 Aug" · "today 08:51" · "12 Jan '27" — the artboard's received column. */
-export function formatReceived(t, ms, now, locale) {
+export function formatReceived(t: TranslateFn, ms: number | null | undefined, now: number, locale: string | undefined) {
     if (ms === null || ms === undefined) return '';
     if (sameDay(ms, now)) return t('compliance.dsr_received_today', 'today {time}', { time: formatTime(ms, locale) });
     return formatCalDate(ms, { locale, now, year: 'auto' });
 }
 
 /** "12 Aug 14:02" for the drawer's timeline and clock meta. */
-export function formatDateTime(ms, locale) {
+export function formatDateTime(ms: number | null | undefined, locale?: string) {
     if (ms === null || ms === undefined) return '';
     return `${formatCalDate(ms, { locale, year: 'auto' })} ${formatTime(ms, locale)}`;
 }
 
-export function formatDate(ms, locale) {
+export function formatDate(ms: number | null | undefined, locale?: string) {
     if (ms === null || ms === undefined) return '';
     return formatCalDate(ms, { locale, year: 'auto' });
 }
 
-export function ChannelLabel({ channel, className = '' }) {
+export function ChannelLabel({ channel, className = '' }: { channel: string; className?: string }) {
     const { t } = useTranslation();
     const c = CHANNEL[channel] || CHANNEL.other;
     const Icon = c.icon;
@@ -130,18 +155,18 @@ export function ChannelLabel({ channel, className = '' }) {
 }
 
 /** The lifecycle state, drawn like every register's (RegisterStatePill): urgency stays with the clock. */
-export function DsrStatePill({ state, testId = 'dsr-state' }) {
+export function DsrStatePill({ state, testId = 'dsr-state' }: { state: string; testId?: string }) {
     const { t } = useTranslation();
     return <RegisterStatePill state={state} testId={testId}>{stateLabel(t, state)}</RegisterStatePill>;
 }
 
 /** The row's stripe follows the clock's urgency only: red when overdue, amber when urgent, none otherwise. */
-export function accentOf(row, now) {
+export function accentOf(row: DsrRow, now: number): Tone | null {
     const { state } = clockState({ ...clockPropsOf(row), now });
     return state === 'overdue' ? 'error' : state === 'urgent' ? 'warning' : null;
 }
 
-function RequestLines({ row, closed, t }) {
+function RequestLines({ row, closed, t }: { row: DsrRow; closed: boolean; t: TranslateFn }) {
     const article = articleOf(row.request_type);
     const email = shownEmailOf(row);
     const identity = identityLabel(t, identityOf(row));
@@ -158,6 +183,16 @@ function RequestLines({ row, closed, t }) {
     );
 }
 
+interface DsrTableProps {
+    rows?: DsrRow[] | null;
+    loading?: boolean;
+    failed?: boolean;
+    selectedId?: DsrRow['id'] | null;
+    onSelect?: (row: DsrRow) => void;
+    isMobile?: boolean;
+    testId?: string;
+}
+
 export default function DsrTable({
     rows,
     loading = false,
@@ -166,18 +201,18 @@ export default function DsrTable({
     onSelect,
     isMobile = false,
     testId = 'dsr-table',
-}) {
+}: DsrTableProps) {
     const { t, resolvedLocale, locale } = useTranslation();
     const lang = resolvedLocale || locale;
     const now = useNow();
-    const columns = useMemo(() => DSR_COLUMNS.map(c => ({
+    const columns = useMemo((): TableColumn[] => DSR_COLUMNS.map(c => ({
         id: c.id,
         width: c.width,
         ariaSort: c.ariaSort,
         label: c.ariaSort ? <>{t(c.labelKey, c.en)} <span aria-hidden="true">↓</span></> : t(c.labelKey, c.en),
     })), [t]);
 
-    const renderRow = (row, ctx) => {
+    const renderRow = (row: DsrRow, ctx: DataTableContext): ReactNode => {
         const closed = isClosed(row);
         const state = stateOf(row);
         const selected = selectedId !== null && String(selectedId) === String(row.id);
@@ -206,7 +241,7 @@ export default function DsrTable({
         );
     };
 
-    const renderCard = (row) => {
+    const renderCard = (row: DsrRow): ReactNode => {
         const closed = isClosed(row);
         const selected = selectedId !== null && String(selectedId) === String(row.id);
         return (
