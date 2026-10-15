@@ -21,10 +21,8 @@ export const LANGS = [
 /**
  * On/off switch. Pass the row title as `ariaLabel`: the switch has no visible
  * text of its own.
- *
- * @param {{ on?: boolean, onClick?: () => void, disabled?: boolean, ariaLabel?: string }} props
  */
-export const Toggle = ({ on, onClick, disabled, ariaLabel }) => (
+export const Toggle = ({ on, onClick, disabled, ariaLabel }: { on?: boolean; onClick?: () => void; disabled?: boolean; ariaLabel?: string }) => (
     <button
         type="button" onClick={onClick} disabled={disabled} aria-pressed={!!on} aria-label={ariaLabel}
         className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-60 ${on ? 'bg-[var(--accent-primary)]' : 'bg-[var(--border-default)]'}`}
@@ -36,7 +34,7 @@ export const Toggle = ({ on, onClick, disabled, ariaLabel }) => (
 );
 
 /** A settings row: title and description, the control beside them (below them on a phone). */
-export const Row = ({ title, desc, children }) => (
+export const Row = ({ title, desc, children }: { title?: React.ReactNode; desc?: React.ReactNode; children?: React.ReactNode }) => (
     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 bg-[var(--bg-secondary)]">
         <div className="flex-1 min-w-0">
             <p className="text-[13px] font-medium text-[var(--text-primary)]">{title}</p>
@@ -46,11 +44,13 @@ export const Row = ({ title, desc, children }) => (
     </div>
 );
 
-/**
- * @param {{ value?: string, onChange?: (e: any) => void, disabled?: boolean,
- *           options: Array<{ value: string, label: string }>, ariaLabel?: string }} props
- */
-export const Select = ({ value, onChange, disabled, options, ariaLabel }) => (
+export const Select = ({ value, onChange, disabled, options, ariaLabel }: {
+    value?: string;
+    onChange?: React.ChangeEventHandler<HTMLSelectElement>;
+    disabled?: boolean;
+    options: Array<{ value: string; label: string }>;
+    ariaLabel?: string;
+}) => (
     <select
         value={value} onChange={onChange} disabled={disabled} aria-label={ariaLabel}
         className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"

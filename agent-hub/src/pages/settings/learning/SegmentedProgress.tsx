@@ -17,14 +17,24 @@ import { SEGMENT } from './curriculum';
  * column header, 30 in the course header chip) — omit it to let the bar
  * fill its container.
  */
-const FILL = {
+const FILL: Record<string, React.CSSProperties> = {
     [SEGMENT.MASTERED]: { background: 'var(--learn-mastered)' },
     [SEGMENT.COMPLETE]: { background: 'var(--learn-complete)' },
     [SEGMENT.OPEN]: { background: 'var(--bg-tertiary)' },
     [SEGMENT.LOCKED]: { border: '1px dashed var(--text-tertiary)', boxSizing: 'border-box' },
 };
 
-export default function SegmentedProgress({ segments, width, height = 4, gap = 2, radius = 1, className = '', title }) {
+export interface SegmentedProgressProps {
+    segments?: string[] | null;
+    width?: number | string;
+    height?: number;
+    gap?: number;
+    radius?: number;
+    className?: string;
+    title?: string;
+}
+
+export default function SegmentedProgress({ segments, width, height = 4, gap = 2, radius = 1, className = '', title }: SegmentedProgressProps) {
     const list = Array.isArray(segments) ? segments : [];
     if (!list.length) return null;
     return (
@@ -44,12 +54,12 @@ export default function SegmentedProgress({ segments, width, height = 4, gap = 2
 }
 
 /** n segments of one state — for "lessons still locked" bars where nothing is known yet. */
-export function repeatSegments(n, state = SEGMENT.OPEN) {
+export function repeatSegments(n: number, state: string = SEGMENT.OPEN): string[] {
     return Array.from({ length: Math.max(0, n | 0) }, () => state);
 }
 
 /** done-of-total as a simple complete/open bar (certificates, capstone course count). */
-export function countSegments(done, total, doneState = SEGMENT.COMPLETE) {
+export function countSegments(done: number, total: number, doneState: string = SEGMENT.COMPLETE): string[] {
     const t = Math.max(0, total | 0);
     const d = Math.max(0, Math.min(t, done | 0));
     return Array.from({ length: t }, (_, i) => (i < d ? doneState : SEGMENT.OPEN));

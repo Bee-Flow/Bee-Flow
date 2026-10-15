@@ -6,6 +6,13 @@
 import { Calendar } from 'lucide-react';
 import React from 'react';
 import { toLocalInput } from './format';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+
+export interface UsageRange {
+    preset: string;
+    customStart: string;
+    customEnd: string;
+}
 
 const PRESETS = [
     { id: 'today', key: 'usage.range_today', label: 'Today' },
@@ -19,7 +26,7 @@ const PRESETS = [
 
 // Initial range object. Custom start/end seed the pickers (last 30 days) but are
 // only used once the user selects the Custom preset.
-export function defaultRange(preset = '30d') {
+export function defaultRange(preset = '30d'): UsageRange {
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 30);
@@ -33,10 +40,15 @@ const DATE_INPUT = {
     color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit',
 };
 
-export default function RangeControl({ range, onChange, t, presets }) {
-    const tr = (k, fb) => (t ? t(k, fb) : fb);
-    const setPreset = (preset) => onChange({ ...range, preset });
-    const setCustom = (patch) => onChange({ ...range, ...patch, preset: 'custom' });
+export default function RangeControl({ range, onChange, t, presets }: {
+    range: UsageRange;
+    onChange: (next: UsageRange) => void;
+    t?: TranslateFn;
+    presets?: string[];
+}) {
+    const tr = (k: string, fb: string) => (t ? t(k, fb) : fb);
+    const setPreset = (preset: string) => onChange({ ...range, preset });
+    const setCustom = (patch: Partial<UsageRange>) => onChange({ ...range, ...patch, preset: 'custom' });
     // Optional subset (array of preset ids) for compact hosts — the Privacy
     // Shield Activity tab shows 7d/30d/90d only. Default: all presets.
     const shown = Array.isArray(presets) ? PRESETS.filter(p => presets.includes(p.id)) : PRESETS;

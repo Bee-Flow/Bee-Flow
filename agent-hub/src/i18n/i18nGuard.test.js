@@ -437,7 +437,7 @@ const KEY_TABLE_FILES = [
     // is naar `{ id, key, en }` gebracht zodat `key` weer een sleutel is.
     'editor/react/ChartConfigModal.jsx',
     'pages/settings/usage/OverviewTab.jsx',
-    'pages/settings/usage/RangeControl.jsx',
+    'pages/settings/usage/RangeControl.tsx',
 ];
 
 /**
@@ -476,7 +476,7 @@ const TEXT_HELPERS = [
     { rel: 'pages/meeting-notes/lib/format.js', pending: 'MTG — the same ladder again' },
     { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
     { rel: 'utils/dateFormatters.ts', pending: 'shared — durations and byte sizes; the unit suffix is copy too' },
-    { rel: 'pages/settings/usage/format.js', pending: 'USE — billing-period ranges, browser locale' },
+    { rel: 'pages/settings/usage/format.ts', pending: 'USE — billing-period ranges, browser locale' },
     { rel: 'components/cowork/coworkSchedule.js', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
     // Registered CLEAN, with no pending: every English string in its two
     // tables is a fallback beside a key (`admin.shield_activity_action_*`,

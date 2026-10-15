@@ -14,6 +14,11 @@
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type {
+    AlertBannerProps, CardProps, CollapsibleSectionProps, DrillChipProps, EmptyInlineProps, FilterChipBarProps,
+    ListRowProps, MetricCardProps, MetricGridProps, MonitorHeroProps, SectionTitleProps, ShowMoreProps, SparklineProps,
+    StatusPillProps, TabHeaderProps, TrendChipProps, ChipValue,
+} from './kit.types';
 
 // ── Spacing tokens ───────────────────────────────────────────────────────────
 // One value per role, applied everywhere, to resolve the old 14-vs-16 outer-gap
@@ -30,10 +35,10 @@ export const TOKENS = {
 };
 
 // ── Sparkline ────────────────────────────────────────────────────────────────
-export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }) => {
+export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }: SparklineProps) => {
     if (!Array.isArray(values) || values.length < 2) return null;
     const max = Math.max(...values, 1);
-    const points = values.map((v, i) => {
+    const points = values.map((v: number, i: number) => {
         const x = (i / (values.length - 1)) * (width - 2) + 1;
         const y = height - 1 - ((v / max) * (height - 2));
         return `${x.toFixed(1)},${y.toFixed(1)}`;
@@ -48,7 +53,7 @@ export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }
 // ── StatusPill ───────────────────────────────────────────────────────────────
 // The uppercase status chip (Excellent / Watch / Critical / active …). `color`
 // must be a hex so the `${color}15` tint is valid.
-export const StatusPill = ({ label, color, dot = false }) => (
+export const StatusPill = ({ label, color, dot = false }: StatusPillProps) => (
     <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 6,
         background: `${color}15`, color, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -62,7 +67,7 @@ export const StatusPill = ({ label, color, dot = false }) => (
 // Half-period delta arrow. `goodWhenDown` for higher-is-bad metrics (cost, PII);
 // false for higher-is-good (sovereignty score). `display` is the formatted
 // magnitude (e.g. "$3.20" or "5").
-export const TrendChip = ({ delta, display, title, goodWhenDown = false }) => {
+export const TrendChip = ({ delta, display, title, goodWhenDown = false }: TrendChipProps) => {
     if (delta == null) return null;
     const isGood = goodWhenDown ? delta < 0 : delta > 0;
     const color = delta === 0 ? '#94a3b8' : isGood ? '#10b981' : '#ef4444';
@@ -80,7 +85,7 @@ export const TrendChip = ({ delta, display, title, goodWhenDown = false }) => {
 // ── Card ─────────────────────────────────────────────────────────────────────
 // Default: an edge-to-edge container (ListRows fill it). When `title`/`right` is
 // given it pads itself and renders a header row (the old Terminations Card).
-export const Card = ({ children, style, title, icon: Icon, right, pad }) => {
+export const Card = ({ children, style, title, icon: Icon, right, pad }: CardProps) => {
     const padded = pad ?? (!!title || !!right);
     return (
         <div style={{
@@ -107,7 +112,7 @@ export const Card = ({ children, style, title, icon: Icon, right, pad }) => {
 //   size 'sm' → horizontal, 18px, optional sparkline (old MiniStat; hero asides)
 //   size 'md' → vertical,   22px, optional subtitle  (old Kpi / StatCard)
 //   size 'lg' → vertical,   24px, optional subtitle  (old KpiCard)
-export const MetricCard = ({ icon: Icon, label, value, color = '#0ea5e9', subtitle, spark, size = 'md', onClick }) => {
+export const MetricCard = ({ icon: Icon, label, value, color = '#0ea5e9', subtitle, spark, size = 'md', onClick }: MetricCardProps) => {
     if (size === 'sm') {
         return (
             <div onClick={onClick} style={{
@@ -146,7 +151,7 @@ export const MetricCard = ({ icon: Icon, label, value, color = '#0ea5e9', subtit
 
 // ── MetricGrid ───────────────────────────────────────────────────────────────
 // `cols` for a fixed N-column grid; `min` for an auto-fit minmax grid.
-export const MetricGrid = ({ children, cols = 2, min, gap = TOKENS.gridGap }) => (
+export const MetricGrid = ({ children, cols = 2, min, gap = TOKENS.gridGap }: MetricGridProps) => (
     <div style={{
         display: 'grid',
         gridTemplateColumns: min ? `repeat(auto-fit, minmax(${min}px, 1fr))` : `repeat(${cols}, minmax(0, 1fr))`,
@@ -164,7 +169,7 @@ export const MetricGrid = ({ children, cols = 2, min, gap = TOKENS.gridGap }) =>
 export const MonitorHero = ({
     accent = '#10b981', eyebrow, infoTip, value, valueColor, valueSize = 54,
     status, trend, subline, leftRatio = 1.2, children, aside,
-}) => (
+}: MonitorHeroProps) => (
     <div style={{
         borderRadius: TOKENS.heroRadius, padding: TOKENS.heroPad, background: 'var(--bg-secondary)',
         border: '1px solid var(--border-subtle)', overflow: 'hidden', position: 'relative',
@@ -195,7 +200,7 @@ export const MonitorHero = ({
 // Uniform per-tab header (icon + title + description + status pill + actions).
 // `iconColor` must be a hex (drives the chip tint). `actions` holds the range
 // control / refresh on the panels.
-export const TabHeader = ({ icon: Icon, iconColor = '#0ea5e9', title, description, status, actions }) => (
+export const TabHeader = ({ icon: Icon, iconColor = '#0ea5e9', title, description, status, actions }: TabHeaderProps) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
             {Icon && (
@@ -218,7 +223,7 @@ export const TabHeader = ({ icon: Icon, iconColor = '#0ea5e9', title, descriptio
 // ── AlertBanner ──────────────────────────────────────────────────────────────
 // One action-required banner for all tabs (Feedback/Terminations no longer
 // re-implement it). Spacing comes from the parent column gap (no marginBottom).
-export const AlertBanner = ({ severity = 'amber', title = 'Action required', message, ctaLabel, onCta, icon: Icon = AlertTriangle }) => {
+export const AlertBanner = ({ severity = 'amber', title = 'Action required', message, ctaLabel, onCta, icon: Icon = AlertTriangle }: AlertBannerProps) => {
     const c = severity === 'red' ? '#ef4444' : '#f59e0b';
     return (
         <div style={{
@@ -246,7 +251,7 @@ export const AlertBanner = ({ severity = 'amber', title = 'Action required', mes
 };
 
 // ── SectionTitle ─────────────────────────────────────────────────────────────
-export const SectionTitle = ({ children, icon: Icon, right }) => (
+export const SectionTitle = ({ children, icon: Icon, right }: SectionTitleProps) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {Icon && <Icon style={{ width: 14, height: 14, color: 'var(--accent-primary)', opacity: 0.7 }} />}
@@ -257,7 +262,7 @@ export const SectionTitle = ({ children, icon: Icon, right }) => (
 );
 
 // ── ListRow ──────────────────────────────────────────────────────────────────
-export const ListRow = ({ children, onClick, style: s }) => (
+export const ListRow = ({ children, onClick, style: s }: ListRowProps) => (
     <div
         onClick={onClick}
         style={{
@@ -277,7 +282,7 @@ export const ListRow = ({ children, onClick, style: s }) => (
 // One chip group. Options: { value, label, icon?, color?, count? }. A `color`
 // adds the colored-dot + tinted-active affordance (Safety); without it the chip
 // is a flat accent toggle (Feedback). `size='sm'` for the compact egress/EU row.
-export const FilterChipBar = ({ value, onChange, options, size = 'md' }) => {
+export const FilterChipBar = ({ value, onChange, options, size = 'md' }: FilterChipBarProps) => {
     const pad = size === 'sm' ? '4px 10px' : '5px 12px';
     const fs = size === 'sm' ? 10 : 11;
     return (
@@ -313,7 +318,7 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }) => {
 
 // ── DrillChip ────────────────────────────────────────────────────────────────
 // The removable "axis: label ✕" filter chip used by Safety + Integrations.
-export const DrillChip = ({ axis, label, onClear }) => {
+export const DrillChip = ({ axis, label, onClear }: DrillChipProps) => {
     const { t } = useTranslation();
     return (
     <div style={{ marginBottom: 8 }}>
@@ -334,7 +339,7 @@ export const DrillChip = ({ axis, label, onClear }) => {
 };
 
 // ── ShowMore ─────────────────────────────────────────────────────────────────
-export const ShowMore = ({ remaining, onMore, label = 'Show more' }) => (
+export const ShowMore = ({ remaining, onMore, label = 'Show more' }: ShowMoreProps) => (
     <button onClick={onMore} style={{
         width: '100%', padding: '10px 0', border: 'none', cursor: 'pointer',
         background: 'var(--bg-tertiary)', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600,
@@ -350,7 +355,7 @@ export const ShowMore = ({ remaining, onMore, label = 'Show more' }) => (
 // ── CollapsibleSection ───────────────────────────────────────────────────────
 // Wraps a dense block under a click-to-expand header with a count badge, so the
 // data is preserved but doesn't crowd the page by default.
-export const CollapsibleSection = ({ title, icon: Icon, count, defaultOpen = false, right, children }) => {
+export const CollapsibleSection = ({ title, icon: Icon, count, defaultOpen = false, right, children }: CollapsibleSectionProps) => {
     const [open, setOpen] = useState(defaultOpen);
     return (
         <div>
@@ -373,7 +378,7 @@ export const CollapsibleSection = ({ title, icon: Icon, count, defaultOpen = fal
 // ── EmptyInline ──────────────────────────────────────────────────────────────
 // Small "no data" line. `boxed` adds the bg-tertiary placard (Feedback/
 // Terminations); default plain (inside an existing Card).
-export const EmptyInline = ({ text, icon: Icon, boxed = false }) => (
+export const EmptyInline = ({ text, icon: Icon, boxed = false }: EmptyInlineProps) => (
     <div style={{
         padding: '22px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,

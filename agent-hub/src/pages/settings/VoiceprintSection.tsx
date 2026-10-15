@@ -5,6 +5,22 @@ import VoiceprintEnrollModal from './VoiceprintEnrollModal';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 
+interface Voiceprint {
+    status?: string;
+    createdAt?: string;
+    lastMatchedAt?: string | null;
+    errorCode?: string | null;
+}
+
+/** The /api/voiceprints/availability payload. */
+interface VoiceprintAvailability {
+    available?: boolean;
+    enrolled?: boolean;
+    voiceprint?: Voiceprint | null;
+    coverage?: { enrolled?: number; members?: number };
+    limits?: { minSeconds?: number; targetSeconds?: number; maxSeconds?: number };
+}
+
 /**
  * Personal voice profile — lets pyannoteAI put your real name on your turns in
  * meeting transcripts instead of the LLM guessing from the text.
@@ -20,7 +36,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 export default function VoiceprintSection() {
     const { t, locale } = useTranslation();
     const [loading, setLoading] = useState(true);
-    const [state, setState] = useState(null); // the /availability payload
+    const [state, setState] = useState<VoiceprintAvailability | null>(null); // the /availability payload
     const [enrollOpen, setEnrollOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);

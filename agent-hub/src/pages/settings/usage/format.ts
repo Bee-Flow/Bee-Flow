@@ -5,7 +5,7 @@
 // tab formats numbers, durations, models and dates identically.
 
 // Compact number: 1.2M / 3.4K / 999. Null/undefined → '0'.
-export const fNum = (n) => {
+export const fNum = (n?: number | null): string => {
     if (n == null) return '0';
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
     if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
@@ -13,39 +13,39 @@ export const fNum = (n) => {
 };
 
 // USD currency, two decimals.
-export const fCur = (c) => `$${(c || 0).toFixed(2)}`;
+export const fCur = (c?: number | null): string => `$${(c || 0).toFixed(2)}`;
 
 // Symbol for an ISO currency code.
-export const currencySym = (c) =>
-    ({ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR').toUpperCase()] || (c || '€'));
+export const currencySym = (c?: string | null): string =>
+    (({ EUR: '€', USD: '$', GBP: '£' } as Partial<Record<string, string>>)[String(c || 'EUR').toUpperCase()] || (c || '€'));
 
 // "5 Jun – 5 Jul 2026" style range from two ISO timestamps.
-export const formatDateRange = (startIso, endIso) => {
+export const formatDateRange = (startIso?: string | null, endIso?: string | null): string => {
     try {
         const a = startIso ? new Date(startIso) : null;
         const b = endIso ? new Date(endIso) : null;
         if (!a || !b) return '';
-        const yearOpts = { day: 'numeric', month: 'short', year: 'numeric' };
+        const yearOpts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
         return `${a.toLocaleDateString(undefined, yearOpts)} – ${b.toLocaleDateString(undefined, yearOpts)}`;
     } catch { return ''; }
 };
 
 // Strip provider prefix + trailing dated snapshot from a model id.
-export const shortModel = (m) => {
+export const shortModel = (m?: string | null): string => {
     if (!m) return 'Unknown';
     return m.replace(/^(openai\/|anthropic\/|google\/|azure\/|mistral\/)/, '')
             .replace(/-\d{4}-\d{2}-\d{2}$/, '');
 };
 
 // Date → value for an <input type="datetime-local"> (local time, no seconds).
-export const toLocalInput = (date) => {
+export const toLocalInput = (date: Date | string | number): string => {
     const d = new Date(date);
-    const pad = n => String(n).padStart(2, '0');
+    const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 // Relative "just now / 5m / 3h" within a day, else a locale date.
-export const fmtTime = (ts) => {
+export const fmtTime = (ts?: string | number | Date | null): string => {
     if (!ts) return '—';
     const d = new Date(ts);
     const diff = Date.now() - d.getTime();
@@ -56,7 +56,7 @@ export const fmtTime = (ts) => {
 };
 
 // Human bytes. 0/empty → '0 B'.
-export const fmtBytes = (n) => {
+export const fmtBytes = (n?: number | null): string => {
     if (!n || n <= 0) return '0 B';
     if (n < 1024) return `${n} B`;
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -66,7 +66,7 @@ export const fmtBytes = (n) => {
 
 // Duration in ms → "420 ms" / "1.4 s". `invalid` is returned for missing/zero
 // values — pass `{ invalid: null }` when the caller hides the badge on falsy.
-export const fmtDuration = (ms, { invalid = '—' } = {}) => {
+export const fmtDuration = (ms: number | string | null | undefined, { invalid = '—' }: { invalid?: string | null } = {}): string | null => {
     if (ms == null || ms === '') return invalid;
     const n = Number(ms);
     if (!Number.isFinite(n) || n <= 0) return invalid;

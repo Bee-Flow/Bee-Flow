@@ -3,9 +3,9 @@ import { Download, History } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import SaveStatus from './SaveStatus';
 
-const LANG_LABELS = { html: 'HTML', css: 'CSS', js: 'JavaScript' };
+const LANG_LABELS: Record<string, string> = { html: 'HTML', css: 'CSS', js: 'JavaScript' };
 
-const EXT_LANG_LABEL = {
+const EXT_LANG_LABEL: Record<string, string> = {
     html: 'HTML', htm: 'HTML',
     css: 'CSS',
     js: 'JavaScript', mjs: 'JavaScript',
@@ -16,7 +16,7 @@ const EXT_LANG_LABEL = {
     yml: 'YAML', yaml: 'YAML',
 };
 
-function labelForActiveFile(activeFile) {
+function labelForActiveFile(activeFile: StatusBarProps['activeFile']): string | null {
     if (!activeFile) return null;
     if (typeof activeFile === 'string') return LANG_LABELS[activeFile] ?? 'Text';
     if (activeFile.kind === 'extra' && activeFile.path) {
@@ -26,10 +26,21 @@ function labelForActiveFile(activeFile) {
     return 'Text';
 }
 
-function fmtSize(bytes) {
+function fmtSize(bytes: number): string {
     if (bytes === 0) return '0 B';
     if (bytes < 1024) return `${bytes} B`;
     return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+export interface StatusBarProps {
+    activeFile?: string | { kind: string; path?: string } | null;
+    cursor?: { line: number; col: number };
+    fileSize?: number;
+    saveState?: string;
+    lastSavedAt?: unknown;
+    onDownload?: () => unknown;
+    onVersions?: () => void;
+    onRetrySave?: () => unknown;
 }
 
 export default function StatusBar({
@@ -41,7 +52,7 @@ export default function StatusBar({
     onDownload,
     onVersions,
     onRetrySave,
-}) {
+}: StatusBarProps) {
     const { t } = useTranslation();
     return (
         <div

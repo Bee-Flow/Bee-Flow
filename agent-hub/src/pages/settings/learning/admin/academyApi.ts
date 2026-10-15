@@ -16,24 +16,24 @@ import { API_BASE } from '../../../../utils/helpers';
 
 const root = `${API_BASE}/ai/learning/admin`;
 
-const resource = createJsonResource('', { contentType: 'body', errorText: (status) => `HTTP ${status}` });
-const request = (url, { method = 'GET', body } = {}) => resource(url, { method, body });
+const resource = createJsonResource('', { contentType: 'body', errorText: (status: number) => `HTTP ${status}` });
+const request = (url: string, { method = 'GET', body }: { method?: string; body?: unknown } = {}) => resource(url, { method, body });
 
 export const academyApi = {
     // → { courses: [{ courseId, title, status, updatedAt }] }
     listCourses: () => request(`${root}/courses`),
     // → { course: CourseDoc, lessons: LessonDoc[] } (drafts)
-    getCourse: (courseId) => request(`${root}/courses/${encodeURIComponent(courseId)}`),
+    getCourse: (courseId: string) => request(`${root}/courses/${encodeURIComponent(courseId)}`),
     // → { course } — id always minted server-side
-    createCourse: (course) => request(`${root}/courses`, { method: 'POST', body: course }),
+    createCourse: (course: unknown) => request(`${root}/courses`, { method: 'POST', body: course }),
     // → { course }
-    saveCourse: (courseId, course) => request(`${root}/courses/${encodeURIComponent(courseId)}`, { method: 'PUT', body: course }),
+    saveCourse: (courseId: string, course: unknown) => request(`${root}/courses/${encodeURIComponent(courseId)}`, { method: 'PUT', body: course }),
     // → { success: true } — also deletes all the course's lessons
-    deleteCourse: (courseId) => request(`${root}/courses/${encodeURIComponent(courseId)}`, { method: 'DELETE' }),
+    deleteCourse: (courseId: string) => request(`${root}/courses/${encodeURIComponent(courseId)}`, { method: 'DELETE' }),
     // → { lesson } — pass 'new' as lessonId to create (id minted server-side)
-    saveLesson: (lessonId, lesson) => request(`${root}/lessons/${encodeURIComponent(lessonId)}`, { method: 'PUT', body: lesson }),
+    saveLesson: (lessonId: string, lesson: unknown) => request(`${root}/lessons/${encodeURIComponent(lessonId)}`, { method: 'PUT', body: lesson }),
     // → { success: true, course }
-    publishCourse: (courseId) => request(`${root}/courses/${encodeURIComponent(courseId)}/publish`, { method: 'POST' }),
+    publishCourse: (courseId: string) => request(`${root}/courses/${encodeURIComponent(courseId)}/publish`, { method: 'POST' }),
     // → { success: true }
-    unpublishCourse: (courseId) => request(`${root}/courses/${encodeURIComponent(courseId)}/unpublish`, { method: 'POST' }),
+    unpublishCourse: (courseId: string) => request(`${root}/courses/${encodeURIComponent(courseId)}/unpublish`, { method: 'POST' }),
 };
