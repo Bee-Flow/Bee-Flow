@@ -9,6 +9,19 @@ import { fieldShape, singularKey } from '@shared/expr/rules.mjs';
 import { humanizeFieldKey, humanizeFieldTail, PROPER_CASE } from '../mapping/core';
 import { parseRefTokens, resolveChipLabel } from '../mapping/refTokens';
 import { inferType, isUnaryOp, labelFor, parseExprToRows } from '../utils/conditionModel';
+import type { FlowDefinition } from './types';
+import type { ConditionRow, Translate } from '../utils/conditionModel.types';
+
+/** Anything that looks up a step's label by id (a `Map<string, string>` does). */
+type StepLabels = Pick<Map<string, string>, 'get'>;
+
+/** The tool catalog as far as `actionDisplayLabel` reads it. */
+interface ActionCatalog {
+    apps?: {
+        label?: string;
+        actions?: { name?: string; label?: string; integrationLabel?: string }[];
+    }[];
+}
 
 // The field-name humanisers live in mapping/core.ts (the leaf of the mapping
 // library); their names stay importable from here.
@@ -17,7 +30,7 @@ export { humanizeFieldKey, humanizeFieldTail } from '../mapping/core';
 // Step labels by id live in runStepLabels.ts; their names stay importable from here.
 export { buildRunStepLabelMap, buildRunStepMap, buildStepLabelMap, runStepLabel } from './runStepLabels';
 
-function pretty(token) {
+function pretty(token: string): string {
     if (!token) return '';
     const lower = token.toLowerCase();
     if (PROPER_CASE[lower]) return PROPER_CASE[lower];
@@ -34,7 +47,7 @@ function pretty(token) {
  *   generate_image              → 'Generate Image'
  *   elevenlabs_tts              → 'ElevenLabs TTS'
  */
-export function humanizeToolName(toolName) {
+export function humanizeToolName(toolName?: string | null): string {
     if (!toolName || typeof toolName !== 'string') return '';
     return toolName.split('_').filter(Boolean).map(pretty).join(' ');
 }
@@ -45,7 +58,7 @@ export function humanizeToolName(toolName) {
  * (`gmail_search`) is never the right thing to put in front of someone — it
  * was what the node-config header showed for any unnamed action (BFSF-333).
  */
-export function actionDisplayLabel(tool, catalog = null) {
+export function actionDisplayLabel(tool?: string | null, catalog: ActionCatalog | null = null): string {
     const name = String(tool || '');
     if (!name) return '';
     for (const app of (catalog?.apps || [])) {
@@ -70,26 +83,26 @@ export function actionDisplayLabel(tool, catalog = null) {
  * If `stepLabelById` is missing or has no entry for an id, the original
  * id is preserved so the user can still trace it.
  */
-export function humanizeExpression(expr, stepLabelById = null) {
+export function humanizeExpression(expr?: string | null, stepLabelById: StepLabels | null = null): string {
     if (!expr || typeof expr !== 'string') return '';
     return expr
         .replace(
             /steps\.([A-Za-z0-9_]+)\.output(?:\.([A-Za-z0-9_.[\]]+))?/g,
-            (_, stepId, path) => {
+            (_: string, stepId: string, path: string | undefined) => {
                 const label = stepLabelById?.get?.(stepId) || stepId;
                 return path ? `‹${label}›.${path}` : `‹${label}›`;
             },
         )
         .replace(
             /\bloop\.([A-Za-z0-9_]+)(?:\.([A-Za-z0-9_.[\]]+))?/g,
-            (_, itemVar, path) => {
+            (_: string, itemVar: string, path: string | undefined) => {
                 const head = itemVar ? `‹Each ${itemVar}›` : '‹Each item›';
                 return path ? `${head}.${path}` : head;
             },
         )
         .replace(
             /\btrigger(?:\.([A-Za-z0-9_.[\]]+))?/g,
-            (_, path) => (path ? `‹Trigger›.${path}` : '‹Trigger›'),
+            (_: string, path: string | undefined) => (path ? `‹Trigger›.${path}` : '‹Trigger›'),
         );
 }
 
@@ -102,12 +115,8 @@ export function humanizeExpression(expr, stepLabelById = null) {
  * a template it left `{{‹Code›.result.text}}{{‹Code›.result.number}}` behind.
  *
  * Display-only; the stored string is never touched.
- *
- * @param {string|null|undefined} text
- * @param {Map<string, string>|null} [stepLabelById]
- * @returns {string}
  */
-export function humanizeTemplate(text, stepLabelById = null) {
+export function humanizeTemplate(text?: string | null, stepLabelById: StepLabels | null = null): string {
     if (!text || typeof text !== 'string') return '';
     const tokens = parseRefTokens(text, { mode: 'fixed' });
     if (!tokens.some(t => t.type === 'ref')) return text;
@@ -141,14 +150,14 @@ const TRIVIAL_RULES = new Set(['', 'true', 'false']);
 // Where the field's own part of a path starts, after the root that says whose it is.
 const ROOT_SKIP = new Map([['item', 1], ['loop', 2], ['vars', 1]]);
 
-const say = (t, key, en, vars = {}) => (t ? t(key, en, vars) : en.replace(/\{(\w+)\}/g, (_, v) => String(vars[v] ?? '')));
+const say = (t: Translate | null | undefined, key: string, en: string, vars: Record<string, unknown> = {}): string => (t ? t(key, en, vars) : en.replace(/\{(\w+)\}/g, (_: string, v: string) => String(vars[v] ?? '')));
 
 /**
  * A rule's field the way the pills name it (humanizeFieldTail): the part
  * after `item` ("From ▸ Email"), and for a whole-run rule the step's label in
  * front ("Classify ▸ Urgency") when the map knows it.
  */
-function fieldName(path, stepLabelById) {
+function fieldName(path: string, stepLabelById: StepLabels | null | undefined): string {
     const tokens = parsePath(path);
     if (!tokens?.length) return humanizeFieldTail(path);
     const root = String(tokens[0].key);
@@ -158,21 +167,21 @@ function fieldName(path, stepLabelById) {
     return step ? `${step} ▸ ${tail}` : tail;
 }
 
-function fieldStart(root, tokens) {
+function fieldStart(root: string, tokens: ReturnType<typeof parsePath>): number {
     if (root === 'steps') return tokens[2]?.key === 'output' ? 3 : 2;
     if (root === 'trigger') return tokens[1]?.key === 'output' ? 2 : 1;
     return ROOT_SKIP.get(root) ?? 0;
 }
 
 /** One entry of the list a quantified row checks, in words: "attachment". */
-function entryName(list) {
+function entryName(list: string): string {
     const tokens = parsePath(list);
     const key = tokens?.length ? tokens[tokens.length - 1].key : null;
     return humanizeFieldKey(singularKey(typeof key === 'string' ? key : 'items')).toLowerCase();
 }
 
 /** `{ name, list, file }` for a row's left side, or null when it is no field (a formula). */
-function ruleField(path, stepLabelById, t) {
+function ruleField(path: string, stepLabelById: StepLabels | null | undefined, t: Translate | null | undefined): { name: string; list: string | null; file: boolean } | null {
     const shape = path ? fieldShape(path) : null;
     // A path the shapes do not cover (a whole list, `results[*]`) still has a name.
     if (!shape) return path && parsePath(path) ? { name: fieldName(path, stepLabelById), list: null, file: false } : null;
@@ -184,7 +193,7 @@ function ruleField(path, stepLabelById, t) {
 }
 
 /** The value of a row: a file type's name, “quoted” text, a number bare, a field by its name. */
-function ruleValue(row, field, stepLabelById, t) {
+function ruleValue(row: ConditionRow, field: { file: boolean }, stepLabelById: StepLabels | null | undefined, t: Translate | null | undefined): string {
     const v = row.value;
     if (v?.kind === 'ref' && v.path) return fieldName(v.path, stepLabelById);
     const raw = v?.kind === 'literal' ? v.value : v?.value;
@@ -195,7 +204,7 @@ function ruleValue(row, field, stepLabelById, t) {
 
 // An emptiness test on a plural field (`attachments`) reads like the editor's list of
 // records ("has at least one"); a card has no sample, so the name is the evidence.
-function readsAsRecords(row, path) {
+function readsAsRecords(row: ConditionRow, path: string): boolean {
     if (row.op !== 'isEmpty' && row.op !== 'isNotEmpty') return false;
     const tokens = fieldShape(path)?.kind === 'plain' ? parsePath(path) : null;
     const key = tokens?.length > 1 ? tokens[tokens.length - 1].key : null;
@@ -203,13 +212,13 @@ function readsAsRecords(row, path) {
 }
 
 /** The type that picks the operator's words (dates read "is after"); the value is a sentence's only evidence of it. */
-function sentenceType(row, field, path) {
+function sentenceType(row: ConditionRow, field: { file: boolean }, path: string): string {
     if (field.file) return 'fileType';
     if (readsAsRecords(row, path)) return 'records';
     return row.value?.kind === 'literal' ? inferType(row.value.value) : 'unknown';
 }
 
-function rowSentence(row, stepLabelById, t) {
+function rowSentence(row: ConditionRow | null | undefined, stepLabelById: StepLabels | null | undefined, t: Translate | null | undefined): string | null {
     const path = row?.field?.kind === 'ref' ? row.field.path : '';
     const field = ruleField(path, stepLabelById, t);
     if (!field) return null;
@@ -231,13 +240,8 @@ function rowSentence(row, stepLabelById, t) {
  *
  * A rule that is not there yet (empty, `true`, `false`) is ''. Never a path,
  * a function name or a step id.
- *
- * @param {string|null|undefined} expr
- * @param {Pick<Map<string, string>, 'get'>|null} [stepLabelById]
- * @param {((key: string, en: string, vars?: Record<string, unknown>) => string)|null} [t]
- * @returns {string|null}
  */
-export function ruleSentence(expr, stepLabelById = null, t = null) {
+export function ruleSentence(expr?: string | null, stepLabelById: StepLabels | null = null, t: Translate | null = null): string | null {
     const src = String(expr ?? '').trim();
     if (TRIVIAL_RULES.has(src)) return '';
     const parsed = parseExprToRows(src);
@@ -251,12 +255,8 @@ export function ruleSentence(expr, stepLabelById = null, t = null) {
 /**
  * The rule for a card or a preview line: its sentence, and "Custom rule" for
  * a formula the rows cannot show (the formula itself lives in Advanced).
- * @param {string|null|undefined} expr
- * @param {Pick<Map<string, string>, 'get'>|null} [stepLabelById]
- * @param {((key: string, en: string, vars?: Record<string, unknown>) => string)|null} [t]
- * @returns {string}
  */
-export function describeRuleExpr(expr, stepLabelById = null, t = null) {
+export function describeRuleExpr(expr?: string | null, stepLabelById: StepLabels | null = null, t: Translate | null = null): string {
     return ruleSentence(expr, stepLabelById, t) ?? say(t, 'condition_node.custom.title', 'Custom rule');
 }
 
@@ -267,11 +267,11 @@ export function describeRuleExpr(expr, stepLabelById = null, t = null) {
  * Prefers the LONGEST matching id so a short id can't shadow a longer one
  * that happens to contain it as a substring.
  */
-export function resolveOwningStepId(record, def) {
+export function resolveOwningStepId(record?: { path?: unknown } | null, def?: FlowDefinition | null): string | null {
     const path = record?.path;
     if (typeof path !== 'string' || !def) return null;
-    const allIds = [def.trigger?.id, ...(def.steps || []).map(s => s.id)].filter(Boolean);
-    let best = null;
+    const allIds = [def.trigger?.id, ...(def.steps || []).map(s => s.id)].filter(Boolean) as string[];
+    let best: string | null = null;
     for (const id of allIds) {
         if (path.includes(id) && (!best || id.length > best.length)) best = id;
     }
@@ -286,7 +286,7 @@ export function resolveOwningStepId(record, def) {
  * deleted step) are left as-is — there's no real name to substitute, and
  * that's itself part of what the message is reporting.
  */
-export function humanizeIssueText(text, labelById) {
+export function humanizeIssueText(text: string | null | undefined, labelById?: Map<string, string> | null): string | null | undefined {
     if (!text || typeof text !== 'string' || !labelById?.size) return text;
     const ids = [...labelById.keys()].filter(Boolean).sort((a, b) => b.length - a.length);
     if (!ids.length) return text;
