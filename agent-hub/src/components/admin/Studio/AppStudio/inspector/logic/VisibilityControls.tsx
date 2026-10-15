@@ -4,6 +4,22 @@ import FormulaField from './FormulaField';
 import StudioScopeProvider from './StudioScopeProvider';
 import Toggle from '../../../../../shared/Toggle';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { AppDefinition, AppNode, BoolOrFormula, FormulaRef, ValidationRule } from '../appDefinition';
+
+/** A partial change to a node's logic; null clears the key. */
+export interface LogicPatch {
+    visible?: boolean;
+    visibleWhen?: FormulaRef | null;
+    enabledWhen?: FormulaRef | null;
+    validations?: ValidationRule[];
+}
+
+export interface VisibilityControlsProps {
+    node: AppNode | null | undefined;
+    definition?: AppDefinition | null;
+    onChange?: (patch: LogicPatch) => void;
+    disabled?: boolean;
+}
 
 /**
  * VisibilityControls — the "Logic" inspector block for a node's visibility and
@@ -23,21 +39,21 @@ import useTranslation from '../../../../../../hooks/useTranslation';
  */
 
 /** The expression behind a boolean|formula flag (legacy bare strings included). */
-function exprOf(flag) {
+function exprOf(flag: BoolOrFormula): string {
     if (typeof flag === 'string') return flag;
     if (flag && typeof flag === 'object') return flag.expr || '';
     return '';
 }
 
 /** Blank clears the key upstream (definitionOps.updateNodeLogic drops null). */
-function formulaOrNull(expr) {
+function formulaOrNull(expr: string): FormulaRef | null {
     return expr.trim() ? { kind: 'formula', expr } : null;
 }
 
-export default function VisibilityControls({ node, definition = null, onChange, disabled = false }) {
+export default function VisibilityControls({ node, definition = null, onChange, disabled = false }: VisibilityControlsProps) {
     const { t } = useTranslation();
     const visible = node?.visible !== false;
-    const emit = (patch) => onChange?.(patch);
+    const emit = (patch: LogicPatch): void => onChange?.(patch);
 
     return (
         <StudioScopeProvider definition={definition} node={node}>
@@ -59,7 +75,7 @@ export default function VisibilityControls({ node, definition = null, onChange, 
                     <FormulaField
                         label={t('studio_apps_insp.logic.only_show_when', 'Only show when')}
                         value={exprOf(node?.visibleWhen)}
-                        onChange={(expr) => emit({ visibleWhen: formulaOrNull(expr) })}
+                        onChange={(expr: string) => emit({ visibleWhen: formulaOrNull(expr) })}
                         definition={definition}
                         node={node}
                         placeholder={t('studio_apps_insp.logic.only_show_placeholder', "e.g. form.priority == 'high'")}
@@ -73,7 +89,7 @@ export default function VisibilityControls({ node, definition = null, onChange, 
                     <FormulaField
                         label={t('studio_apps_insp.logic.enabled_when', 'Enabled when')}
                         value={exprOf(node?.enabledWhen)}
-                        onChange={(expr) => emit({ enabledWhen: formulaOrNull(expr) })}
+                        onChange={(expr: string) => emit({ enabledWhen: formulaOrNull(expr) })}
                         definition={definition}
                         node={node}
                         placeholder={t('studio_apps_insp.logic.enabled_placeholder', 'e.g. form.agree == true')}

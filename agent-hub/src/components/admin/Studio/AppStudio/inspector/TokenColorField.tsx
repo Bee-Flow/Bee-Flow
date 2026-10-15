@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { COLOR_ROLES, HEX_RE } from './styleKnobMeta';
 import ColorPicker from '../../../../shared/ColorPicker';
 import SegmentedControl from '../../../../shared/SegmentedControl';
@@ -20,26 +21,28 @@ import { APP_COLOR_PRESETS } from '../runtime/themeVars';
  * "Custom" only commit once a swatch/color is actually picked.
  */
 
-function modeForValue(value) {
+type ColorMode = 'theme' | 'role' | 'custom';
+
+function modeForValue(value: string | null | undefined): ColorMode {
     if (value == null) return 'theme';
     if (COLOR_ROLES.includes(value)) return 'role';
     return 'custom';
 }
 
 /** Display color for a role swatch. `primary` follows the app theme. */
-function roleSwatchColor(role, themePrimary) {
+function roleSwatchColor(role: string, themePrimary: string | null): string {
     if (role === 'primary') return themePrimary || APP_COLOR_PRESETS[0];
     if (role === 'neutral') return 'var(--text-secondary)';
-    return ROLE_COLORS[role];
+    return (ROLE_COLORS as Record<string, string>)[role];
 }
 
-const modeOptions = (t) => [
+const modeOptions = (t: TranslateFn): Array<{ value: ColorMode; label: string }> => [
     { value: 'theme', label: t('studio_apps_insp.color.mode_theme', 'Theme') },
     { value: 'role', label: t('studio_apps_insp.color.mode_role', 'Role') },
     { value: 'custom', label: t('studio_apps_insp.color.mode_custom', 'Custom') },
 ];
 
-const roleLabel = (t, role) => ({
+const roleLabel = (t: TranslateFn, role: string): string => ({
     primary: t('studio_apps_insp.color.role_primary', 'primary'),
     neutral: t('studio_apps_insp.color.role_neutral', 'neutral'),
     success: t('studio_apps_insp.color.role_success', 'success'),
@@ -48,16 +51,24 @@ const roleLabel = (t, role) => ({
     info: t('studio_apps_insp.color.role_info', 'info'),
 }[role] || role);
 
-export default function TokenColorField({ value = null, onChange, themePrimary = null, disabled = false }) {
+export interface TokenColorFieldProps {
+    /** null inherits the theme; a role name; or a `#rrggbb` literal. */
+    value?: string | null;
+    onChange: (value: string | null) => void;
+    themePrimary?: string | null;
+    disabled?: boolean;
+}
+
+export default function TokenColorField({ value = null, onChange, themePrimary = null, disabled = false }: TokenColorFieldProps) {
     const { t } = useTranslation();
-    const [mode, setMode] = useState(() => modeForValue(value));
+    const [mode, setMode] = useState<ColorMode>(() => modeForValue(value));
 
     // Follow external value changes (e.g. selecting a different node).
     useEffect(() => {
         setMode(modeForValue(value));
     }, [value]);
 
-    const pickMode = (next) => {
+    const pickMode = (next: ColorMode): void => {
         setMode(next);
         // Theme = "inherit" is itself the value; Role/Custom wait for a pick.
         if (next === 'theme' && value !== null) onChange(null);

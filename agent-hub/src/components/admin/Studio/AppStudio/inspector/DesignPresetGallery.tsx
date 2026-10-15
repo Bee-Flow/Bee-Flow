@@ -16,15 +16,15 @@ import { FONT_STACKS } from '../runtime/appDesign';
  * preset's actual typeface, and a glyph for tabs vs sidebar.
  */
 
-const RADIUS_PX = { none: '0px', sm: '4px', md: '8px', lg: '12px', xl: '16px' };
-const SURFACE_SHADOW = {
+const RADIUS_PX: Record<string, string> = { none: '0px', sm: '4px', md: '8px', lg: '12px', xl: '16px' };
+const SURFACE_SHADOW: Record<string, string> = {
     hairline: 'none',
     flat: 'none',
     soft: '0 1px 2px rgba(15,20,30,0.10), 0 2px 6px rgba(15,20,30,0.08)',
     elevated: '0 2px 6px rgba(15,20,30,0.12), 0 8px 20px rgba(15,20,30,0.10)',
 };
 
-function NavGlyph({ style }) {
+function NavGlyph({ style }: { style: string | undefined }) {
     // Tabs: a bar across the top. Sidebar: a rail down the left.
     return (
         <span
@@ -41,7 +41,15 @@ function NavGlyph({ style }) {
     );
 }
 
-export default function DesignPresetGallery({ activePreset, onApply, disabled = false }) {
+export type DesignPreset = (typeof APP_DESIGN_PRESETS)[number];
+
+export interface DesignPresetGalleryProps {
+    activePreset: string | null | undefined;
+    onApply: (preset: DesignPreset) => void;
+    disabled?: boolean;
+}
+
+export default function DesignPresetGallery({ activePreset, onApply, disabled = false }: DesignPresetGalleryProps) {
     return (
         <div className="grid grid-cols-2 gap-2" data-testid="design-preset-gallery">
             {APP_DESIGN_PRESETS.map((preset) => {
@@ -79,7 +87,7 @@ export default function DesignPresetGallery({ activePreset, onApply, disabled = 
                             />
                             <span
                                 className="text-xs shrink-0"
-                                style={{ fontFamily: FONT_STACKS[preset.design.font] || undefined, color: 'var(--text-secondary)' }}
+                                style={{ fontFamily: (FONT_STACKS as Record<string, string | null>)[preset.design.font] || undefined, color: 'var(--text-secondary)' }}
                                 aria-hidden="true"
                             >
                                 Aa

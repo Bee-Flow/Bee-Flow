@@ -6,6 +6,8 @@ import VisibilityControls from './VisibilityControls';
 import { getComponentEntry } from '../../runtime/componentRegistry';
 import { setNodeComputed, updateNodeLogic } from '../../state/definitionOps';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { AppDefinition, AppNode, FormulaValue } from '../appDefinition';
+import type { LogicPatch } from './VisibilityControls';
 
 /**
  * LogicSection — the inspector's "Logic" accordion body for a component node.
@@ -21,16 +23,23 @@ import useTranslation from '../../../../../../hooks/useTranslation';
  * StudioScopeProvider wraps all three so their formula fields share the Studio
  * variable scope (currentUser / form / screen.params / actions / datasets).
  */
-export default function LogicSection({ node, definition, onCommit, disabled = false }) {
+export interface LogicSectionProps {
+    node: AppNode | null | undefined;
+    definition: AppDefinition;
+    onCommit: (definition: AppDefinition) => void;
+    disabled?: boolean;
+}
+
+export default function LogicSection({ node, definition, onCommit, disabled = false }: LogicSectionProps) {
     const { t } = useTranslation();
     if (!node) return null;
     const isInput = !!getComponentEntry(node.type)?.isInput;
 
-    const commitLogic = (patch) => {
+    const commitLogic = (patch: LogicPatch): void => {
         const next = updateNodeLogic(definition, node.id, patch);
         if (next !== definition) onCommit(next);
     };
-    const commitComputed = (computed) => {
+    const commitComputed = (computed: Record<string, FormulaValue>): void => {
         const next = setNodeComputed(definition, node.id, computed);
         if (next !== definition) onCommit(next);
     };

@@ -9,15 +9,38 @@
  * Keep the two honest about each other.
  */
 
+/** A column of a data table, as the AI editors read it. */
+export interface TableColumn {
+    key: string;
+    name?: string;
+    type: string;
+    options?: Array<string | { value?: string } | null>;
+    required?: boolean;
+}
+
+/** One output field of an ai_extract schema. */
+export interface SchemaField {
+    name?: string;
+    type?: string;
+    description?: string;
+    required?: boolean;
+}
+
+/** A binding that reads a form field by name. */
+export interface FormulaBinding {
+    kind: 'formula';
+    expr: string;
+}
+
 const FORM_FIELD_RE = /^form\.([A-Za-z_$][\w$]*)$/;
 
 /**
  * `formula` is the only binding kind that both passes validation (BINDING_KINDS
  * has no `field`) and resolves a raw form value server-side.
  */
-export const bindingForField = (name) => (name ? { kind: 'formula', expr: `form.${name}` } : null);
+export const bindingForField = (name: string | null | undefined): FormulaBinding | null => (name ? { kind: 'formula', expr: `form.${name}` } : null);
 
-export const fieldNameFromBinding = (b) => {
+export const fieldNameFromBinding = (b: { kind?: string; expr?: unknown } | null | undefined): string => {
     if (b && b.kind === 'formula' && typeof b.expr === 'string') {
         const m = b.expr.match(FORM_FIELD_RE);
         return m ? m[1] : '';
@@ -25,7 +48,7 @@ export const fieldNameFromBinding = (b) => {
     return '';
 };
 
-export const sanitizeVarName = (v) => v.replace(/[^A-Za-z0-9_]/g, '').slice(0, 60);
+export const sanitizeVarName = (v: string): string => v.replace(/[^A-Za-z0-9_]/g, '').slice(0, 60);
 
 /**
  * Data-table column type (dataModel.FIELD_TYPES) → AI schema field type.
@@ -33,19 +56,19 @@ export const sanitizeVarName = (v) => v.replace(/[^A-Za-z0-9_]/g, '').slice(0, 6
  * `relation` needs a record id, `file` needs an upload, `computed` is
  * server-managed — so they are never derived into a schema.
  */
-const COLUMN_SCHEMA_TYPE = {
+const COLUMN_SCHEMA_TYPE: Record<string, string> = {
     text: 'string', richtext: 'string', select: 'string',
     number: 'number', date: 'date', datetime: 'date',
     bool: 'boolean', multiselect: 'array',
 };
 
 /** Columns a write may target: everything except the server-managed computed ones. */
-export const writableColumns = (columns) => (Array.isArray(columns) ? columns : []).filter((c) => c && c.key && c.type !== 'computed');
+export const writableColumns = (columns: TableColumn[] | null | undefined): TableColumn[] => (Array.isArray(columns) ? columns : []).filter((c) => c && c.key && c.type !== 'computed');
 
-export const extractableColumns = (columns) => (Array.isArray(columns) ? columns : []).filter((c) => c && c.key && COLUMN_SCHEMA_TYPE[c.type]);
+export const extractableColumns = (columns: TableColumn[] | null | undefined): TableColumn[] => (Array.isArray(columns) ? columns : []).filter((c) => c && c.key && COLUMN_SCHEMA_TYPE[c.type]);
 
 /** "Invoice Number" / "invoiceNumber" / "invoice_number" all normalize alike. */
-const normalizeName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const normalizeName = (s: unknown): string => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /**
  * One output field per extractable column of the table — the column's own name
@@ -53,9 +76,9 @@ const normalizeName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g,
  * is what steers the AI at extraction time. Schema names allow 60 chars where
  * table keys allow 63, hence the slice.
  */
-export function schemaFromColumns(columns) {
-    const out = [];
-    const seen = new Set();
+export function schemaFromColumns(columns: TableColumn[] | null | undefined): SchemaField[] {
+    const out: SchemaField[] = [];
+    const seen = new Set<string>();
     for (const c of extractableColumns(columns)) {
         const name = String(c.key).slice(0, 60);
         if (seen.has(name)) continue;
@@ -77,18 +100,18 @@ export function schemaFromColumns(columns) {
  * name. Fields with no matching column (and columns with no field) are simply
  * left out, so a partial match still writes the columns it did match.
  */
-export function autoMapping(schemaFields, columns) {
+export function autoMapping(schemaFields: SchemaField[] | null | undefined, columns: TableColumn[] | null | undefined): Record<string, string> {
     const cols = writableColumns(columns);
     const byKey = new Map(cols.map((c) => [c.key, c]));
-    const byNorm = new Map();
+    const byNorm = new Map<string, TableColumn>();
     for (const c of cols) {
         for (const alias of [c.key, c.name]) {
             const n = normalizeName(alias);
             if (n && !byNorm.has(n)) byNorm.set(n, c);
         }
     }
-    const mapping = {};
-    const taken = new Set();
+    const mapping: Record<string, string> = {};
+    const taken = new Set<string>();
     for (const f of (Array.isArray(schemaFields) ? schemaFields : [])) {
         if (!f?.name) continue;
         const hit = byKey.get(f.name) || byNorm.get(normalizeName(f.name));
@@ -103,5 +126,5 @@ export function autoMapping(schemaFields, columns) {
  * A schema still carrying only placeholder names ("field1") that nobody has
  * described yet — worth replacing outright with the table's real columns.
  */
-export const isUntouchedSchema = (fields) => (Array.isArray(fields) ? fields : [])
+export const isUntouchedSchema = (fields: SchemaField[] | null | undefined): boolean => (Array.isArray(fields) ? fields : [])
     .every((f) => /^field\d*$/.test(f?.name || '') && !String(f?.description || '').trim());

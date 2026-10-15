@@ -6,6 +6,7 @@ import IconButton from '../../../../../shared/IconButton';
 import { INPUT_CLS } from '../panels/kit';
 import { getComponentEntry } from '../../runtime/componentRegistry';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { AppDefinition, AppNode, FormulaValue } from '../appDefinition';
 
 /**
  * ComputedPropsEditor — the "Computed values" block of the Logic section. Each
@@ -21,23 +22,32 @@ import useTranslation from '../../../../../../hooks/useTranslation';
  */
 
 /** The expression behind a computed entry (legacy bare strings included). */
-function exprOf(entry) {
+function exprOf(entry: FormulaValue): string {
     if (typeof entry === 'string') return entry;
     if (entry && typeof entry === 'object') return entry.expr || '';
     return '';
 }
 
-export default function ComputedPropsEditor({ node, value, onChange, definition = null, disabled = false }) {
+export interface ComputedPropsEditorProps {
+    node: AppNode;
+    /** node.computed. */
+    value: Record<string, FormulaValue> | null | undefined;
+    onChange: (computed: Record<string, FormulaValue>) => void;
+    definition?: AppDefinition | null;
+    disabled?: boolean;
+}
+
+export default function ComputedPropsEditor({ node, value, onChange, definition = null, disabled = false }: ComputedPropsEditorProps) {
     const { t } = useTranslation();
-    const computed = value && typeof value === 'object' ? value : {};
+    const computed: Record<string, FormulaValue> = value && typeof value === 'object' ? value : {};
     const catalog = useCatalogComponents();
     // Rows whose formula is still blank stay here: an empty expression is a
     // hard validation error server-side, so it must never reach node.computed.
-    const [blankKeys, setBlankKeys] = useState([]);
+    const [blankKeys, setBlankKeys] = useState<string[]>([]);
 
     // Props eligible to compute: everything the type declares MINUS binding
     // props (those have their own richer editor) and props already computed.
-    const specProps = catalog?.[node?.type]?.props
+    const specProps: Record<string, { type?: string }> = catalog?.[node?.type]?.props
         || inferProps(getComponentEntry(node?.type)?.defaultProps);
     const entries = [
         ...Object.entries(computed).map(([k, v]) => [k, exprOf(v)]),
@@ -48,7 +58,7 @@ export default function ComputedPropsEditor({ node, value, onChange, definition 
         .filter(([k, fs]) => fs?.type !== 'binding' && !bound.has(k))
         .map(([k]) => k);
 
-    const setKey = (key, expr) => {
+    const setKey = (key: string, expr: string): void => {
         if (expr.trim()) {
             setBlankKeys((ks) => ks.filter((k) => k !== key));
             onChange({ ...computed, [key]: { kind: 'formula', expr } });
@@ -61,22 +71,22 @@ export default function ComputedPropsEditor({ node, value, onChange, definition 
             onChange(next);
         }
     };
-    const renameKey = (oldKey, newKey) => {
+    const renameKey = (oldKey: string, newKey: string): void => {
         if (!newKey || newKey === oldKey) return;
         setBlankKeys((ks) => ks.map((k) => (k === oldKey ? newKey : k)));
         if (!(oldKey in computed)) return;
-        const next = {};
+        const next: Record<string, FormulaValue> = {};
         for (const [k, v] of Object.entries(computed)) next[k === oldKey ? newKey : k] = v;
         onChange(next);
     };
-    const removeKey = (key) => {
+    const removeKey = (key: string): void => {
         setBlankKeys((ks) => ks.filter((k) => k !== key));
         if (!(key in computed)) return;
         const next = { ...computed };
         delete next[key];
         onChange(next);
     };
-    const addRow = () => {
+    const addRow = (): void => {
         const key = available[0];
         if (!key) return;
         setBlankKeys((ks) => [...ks, key]);
@@ -103,7 +113,7 @@ export default function ComputedPropsEditor({ node, value, onChange, definition 
                     </div>
                     <FormulaField
                         value={expr}
-                        onChange={(next) => setKey(key, next)}
+                        onChange={(next: string) => setKey(key, next)}
                         definition={definition}
                         node={node}
                         placeholder={t('studio_apps_insp.logic.computed_placeholder', "e.g. item.status == 'done' ? 'Done' : 'Open'")}
@@ -128,8 +138,8 @@ export default function ComputedPropsEditor({ node, value, onChange, definition 
     );
 }
 
-function inferProps(defaultProps) {
-    const out = {};
+function inferProps(defaultProps: Record<string, unknown> | undefined): Record<string, { type: string }> {
+    const out: Record<string, { type: string }> = {};
     for (const [key, v] of Object.entries(defaultProps || {})) {
         const isBinding = v && typeof v === 'object' && !Array.isArray(v) && 'kind' in v;
         out[key] = { type: isBinding ? 'binding' : 'string' };
@@ -137,7 +147,7 @@ function inferProps(defaultProps) {
     return out;
 }
 
-function humanize(key) {
+function humanize(key: string): string {
     const words = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
     return words.charAt(0).toUpperCase() + words.slice(1);
 }

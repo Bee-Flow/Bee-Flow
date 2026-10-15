@@ -1,4 +1,5 @@
 import { bindingForField } from './aiFieldMatching';
+import type { AppDefinition, AppNode, FormFieldRef } from './appDefinition';
 
 /**
  * What an action can BE, in one table.
@@ -20,10 +21,15 @@ import { bindingForField } from './aiFieldMatching';
  * kind the editor does not offer is a kind only the AI builder can write.
  */
 
+/** A list of kinds that can be asked about any value: `includes` answers false for a non-kind. */
+export interface KindList extends Array<string> {
+    includes(kind: string | null | undefined, fromIndex?: number): boolean;
+}
+
 // ── The four the redesign puts on cards ─────────────────────────────────────
 // Order is the artboard's, not the schema's: it reads as a sentence about what
 // buttons usually do, most common first.
-export const PRIMARY_KINDS = ['run_automation', 'navigate', 'create_record', 'toast'];
+export const PRIMARY_KINDS: KindList = ['run_automation', 'navigate', 'create_record', 'toast'];
 
 /**
  * Which editor renders a kind's fields.
@@ -37,7 +43,7 @@ export const PRIMARY_KINDS = ['run_automation', 'navigate', 'create_record', 'to
  * kind with no editor is a kind that renders as an empty box, and the author
  * cannot tell that apart from "this one has no settings".
  */
-export const EDITOR_BY_KIND = {
+export const EDITOR_BY_KIND: Record<string, string> = {
     run_automation: 'builtin',
     navigate: 'builtin',
     toast: 'builtin',
@@ -55,6 +61,12 @@ export const EDITOR_BY_KIND = {
     sequence: 'flow',
 };
 
+export interface KindOption {
+    value: string;
+    labelKey: string;
+    labelEn: string;
+}
+
 /**
  * Every kind, in the order the "All options" select lists them.
  *
@@ -62,7 +74,7 @@ export const EDITOR_BY_KIND = {
  * returns its string fallback, so a key that has not landed yet reads correctly
  * rather than showing a raw `app_studio.…` id.
  */
-export const KIND_OPTIONS = [
+export const KIND_OPTIONS: KindOption[] = [
     { value: 'run_automation', labelKey: 'app_studio.inspector.kind_run_automation', labelEn: 'Run automation' },
     { value: 'ai_extract', labelKey: 'app_studio.inspector.kind_ai_extract', labelEn: 'AI · extract from document' },
     { value: 'ai_generate', labelKey: 'app_studio.inspector.kind_ai_generate', labelEn: 'AI · generate / summarize' },
@@ -85,10 +97,17 @@ export const KIND_OPTIONS = [
  * select is missing a kind" and "the select deliberately omits a kind" look
  * identical to every test.
  */
-export const NOT_OFFERED_HERE = {};
+export const NOT_OFFERED_HERE: Record<string, string> = {};
+
+export interface CardCopy {
+    labelKey: string;
+    labelEn: string;
+    blurbKey: string;
+    blurbEn: string;
+}
 
 /** The card copy for the four primary kinds — label plus its consequence. */
-export const CARD_COPY = {
+export const CARD_COPY: Record<string, CardCopy> = {
     run_automation: {
         labelKey: 'app_studio.inspector.kind_run_automation',
         labelEn: 'Run automation',
@@ -116,14 +135,14 @@ export const CARD_COPY = {
 };
 
 /** The label entry for one kind, or null for a kind this build does not know. */
-export function kindLabel(kind) {
+export function kindLabel(kind: string | null | undefined): KindOption | null {
     return KIND_OPTIONS.find((o) => o.value === kind) || null;
 }
 
 /** The first `modal` node in the app — a new open/close_modal has to aim somewhere. */
-export function firstModalId(definition) {
+export function firstModalId(definition: AppDefinition | null | undefined): string {
     let found = '';
-    const walk = (nodes) => {
+    const walk = (nodes: AppNode[] | undefined): void => {
         for (const n of nodes || []) {
             if (found) return;
             if (n?.type === 'modal' && typeof n.id === 'string') { found = n.id; return; }
@@ -147,7 +166,7 @@ export function firstModalId(definition) {
  * required field opens the editor on a validation error the author did not
  * cause; a default that invents a field is silently dropped on the first save.
  */
-export function defaultActionForKind(kind, definition, formFields = []) {
+export function defaultActionForKind(kind: string, definition: AppDefinition | null | undefined, formFields: FormFieldRef[] = []) {
     switch (kind) {
         case 'navigate': return { kind, screenId: definition?.screens?.[0]?.id || '' };
         case 'toast': return { kind, message: '', tone: 'info' };

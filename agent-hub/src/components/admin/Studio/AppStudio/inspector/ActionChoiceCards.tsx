@@ -1,9 +1,18 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import { CARD_COPY, KIND_OPTIONS, PRIMARY_KINDS, kindLabel } from './actionKindCatalog';
 import { INPUT_CLS } from './panels/kit';
 import useTranslation from '../../../../../hooks/useTranslation';
 import ChoiceCards from '../../../../shared/ChoiceCards';
 import Disclosure from '../../../../shared/Disclosure';
+
+export interface ActionChoiceCardsProps {
+    /** The action's own kind; any string, since a newer build may write one this one lacks. */
+    kind: string | null | undefined;
+    onPickKind: (kind: string) => void;
+    disabled?: boolean;
+    children?: ReactNode;
+}
 
 /**
  * "When clicked" — the four things a button usually does, as cards.
@@ -31,7 +40,7 @@ import Disclosure from '../../../../shared/Disclosure';
 
 export default function ActionChoiceCards({
     kind, onPickKind, disabled = false, children,
-}) {
+}: ActionChoiceCardsProps) {
     const { t } = useTranslation();
     const isPrimary = PRIMARY_KINDS.includes(kind);
     const current = kindLabel(kind);

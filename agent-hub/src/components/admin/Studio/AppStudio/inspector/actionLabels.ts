@@ -1,3 +1,6 @@
+import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import type { AppAction, AppDefinition, AppNode } from './appDefinition';
+
 /**
  * What an action is CALLED, in the author's language.
  *
@@ -15,11 +18,17 @@
 
 // `t` is the translate function of the caller; callers that have none get the
 // English text, with `{name}` placeholders filled in.
-const plainEnglish = (_key, en, params) => (
+const plainEnglish = (_key: string | undefined, en: string, params?: TranslateParams): string => (
     params ? en.replace(/\{(\w+)\}/g, (m, name) => (name in params ? String(params[name]) : m)) : en
 );
 
-export function describeAction(id, action, definition, titleFor = null, t = plainEnglish) {
+export function describeAction(
+    id: string,
+    action: AppAction | null | undefined,
+    definition: AppDefinition | null | undefined,
+    titleFor: ((automationId?: string) => string | null) | null = null,
+    t: TranslateFn = plainEnglish,
+): string {
     switch (action?.kind) {
         case 'run_automation': {
             const title = typeof titleFor === 'function' ? titleFor(action.automationId) : null;
@@ -84,10 +93,10 @@ export function describeAction(id, action, definition, titleFor = null, t = plai
 }
 
 /** The title of the modal node with this id, anywhere in the app. */
-function findModal(definition, modalId) {
+function findModal(definition: AppDefinition | null | undefined, modalId: string | undefined): string | null {
     if (!modalId) return null;
-    let found = null;
-    const walk = (nodes) => {
+    let found: string | null = null;
+    const walk = (nodes: AppNode[] | undefined): void => {
         for (const n of nodes || []) {
             if (found) return;
             if (n?.id === modalId && n.type === 'modal') { found = n.props?.title || null; return; }
@@ -101,7 +110,11 @@ function findModal(definition, modalId) {
 }
 
 /** `[{ id, label }]` for every action in the app — the shape a <select> wants. */
-export function actionOptions(definition, titleFor = null, t = undefined) {
+export function actionOptions(
+    definition: AppDefinition | null | undefined,
+    titleFor: ((automationId?: string) => string | null) | null = null,
+    t: TranslateFn | undefined = undefined,
+): Array<{ id: string; label: string }> {
     const actions = definition?.actions && typeof definition.actions === 'object' ? definition.actions : {};
     return Object.entries(actions).map(([id, action]) => ({
         id,

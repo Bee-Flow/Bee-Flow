@@ -1,6 +1,30 @@
 import { AlertTriangle, User } from 'lucide-react';
 import React from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { FormFieldRef, InputMapping, ParamMetaByName } from './appDefinition';
+
+/** What an input is bound to, as the table shows it. */
+type SentSource = { kind: 'field'; name: string } | { kind: 'static'; value: string };
+
+/** One line of the table. */
+export interface SentRow {
+    key: string;
+    name: string;
+    type: string | null;
+    required?: boolean;
+    source?: SentSource | null;
+    /** Declared, required, and bound to nothing. */
+    missing?: boolean;
+    /** A form field no parameter uses. */
+    unused?: boolean;
+}
+
+interface BuildRowsArgs {
+    paramMetaByName: ParamMetaByName | null | undefined;
+    inputMapping: Record<string, InputMapping> | null | undefined;
+    formFields: FormFieldRef[] | null | undefined;
+}
 
 /**
  * "What gets sent" — the run_automation input mapping, read FIRST.
@@ -28,8 +52,8 @@ import useTranslation from '../../../../../hooks/useTranslation';
  */
 
 /** One row per DECLARED parameter, plus the form fields nothing is using. */
-export function buildRows({ paramMetaByName, inputMapping, formFields }) {
-    const mapping = inputMapping && typeof inputMapping === 'object' ? inputMapping : {};
+export function buildRows({ paramMetaByName, inputMapping, formFields }: BuildRowsArgs): SentRow[] {
+    const mapping: Record<string, InputMapping> = inputMapping && typeof inputMapping === 'object' ? inputMapping : {};
     const fields = Array.isArray(formFields) ? formFields : [];
 
     // A declared contract is authoritative about WHAT the automation wants. With
@@ -39,7 +63,7 @@ export function buildRows({ paramMetaByName, inputMapping, formFields }) {
     const rows = names.map((name) => {
         const bound = mapping[name];
         const meta = paramMetaByName?.[name] || null;
-        let source = null;
+        let source: SentSource | null = null;
         if (bound?.kind === 'field') source = { kind: 'field', name: bound.name || '' };
         else if (bound?.kind === 'static') source = { kind: 'static', value: bound.value ?? '' };
         return {
@@ -68,7 +92,7 @@ export function buildRows({ paramMetaByName, inputMapping, formFields }) {
     return [...rows, ...unused];
 }
 
-function SourceCell({ row, t }) {
+function SourceCell({ row, t }: { row: SentRow; t: TranslateFn }) {
     if (row.unused) {
         return (
             <span className="text-[var(--text-muted)]">
@@ -112,7 +136,11 @@ function SourceCell({ row, t }) {
     );
 }
 
-export default function SentInputsTable({ paramMetaByName, inputMapping, formFields, showViewerRow = false }) {
+export interface SentInputsTableProps extends BuildRowsArgs {
+    showViewerRow?: boolean;
+}
+
+export default function SentInputsTable({ paramMetaByName, inputMapping, formFields, showViewerRow = false }: SentInputsTableProps) {
     const { t } = useTranslation();
     const rows = buildRows({ paramMetaByName, inputMapping, formFields });
 
