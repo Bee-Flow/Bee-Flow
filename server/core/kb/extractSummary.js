@@ -87,7 +87,7 @@ async function summarise({ text, title = '', language = 'English', deps = {} } =
     try {
         const llmClient = deps.llmClient || require('../llm/llmClient');
         const resolveAgentModel = deps.resolveAgentModel
-            || require('../agentRuntime').resolveAgentModel;
+            || require('../agentRuntime/modelResolver').resolveAgentModel;
         const getAIConfig = deps.getAIConfig || require('../aiAgent').getAIConfig;
 
         const prefix = body.slice(0, PREFIX_CHARS);
