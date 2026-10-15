@@ -13,6 +13,7 @@
  *                                  (all five -> core/automationRunner/featurePorts.js)
  *   integrations/integrationClients.js  the provider clients meeting notes and datatable
  *                                  sources use -> core/integrations/integrationClients.js
+ *   projects/erasurePorts.js       account erasure's notebooks + projects -> stores/user/erasurePorts.js
  *
  * Loaded by index.js, early. A test that drives the real code path through
  * one of these loads the registering module itself.
@@ -27,3 +28,4 @@ require('../integrations/runnerPorts');
 require('../services/runnerPorts');
 require('../core/meetingNotes/runnerPorts');
 require('../integrations/integrationClients');
+require('../projects/erasurePorts');

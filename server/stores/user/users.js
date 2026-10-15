@@ -470,11 +470,11 @@ async function deleteUser(userId) {
     //
     // Runs through the cascade (not a bare DELETE) because the bytes live
     // outside Postgres — object storage and the vector index — and only the
-    // cascade knows where. Best-effort: a storage failure must not stop the
-    // rest of the account teardown.
+    // cascade knows where. Best-effort (a storage failure must not stop the
+    // teardown), but the port lookup is outside the try: unregistered refuses.
+    const notebookPort = require('./erasurePorts').erasurePort('notebooks');
     try {
-        const { deleteAllNotebooksForUser } = require('../../core/kb/notebookCascade');
-        const { notebooks } = await deleteAllNotebooksForUser(userId);
+        const { notebooks } = await notebookPort.deleteAllForUser(userId);
         if (notebooks) log.info(`[UserStore] Erased ${notebooks} notebook(s) for '${userId}'`);
     } catch (e) { log.error('[UserStore] Notebook erasure failed:', e.message); }
     try { await run('DELETE FROM notebook_conversations WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
