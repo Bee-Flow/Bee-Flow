@@ -14,6 +14,29 @@
   integrator, turn the mobile port into a mirror entry. Fixed upstream at 95b13ce7 (merged, see above): 15375 ≤ 15419.
 - ts-ratchet agent-hub: 2438 .js/.jsx (budget 2443).
 
+## Summary (final)
+| Batch | Converted | Still JS | Review |
+|---|---|---|---|
+| 13 compliance pages | 7 / 36 | 29 (23 blocked by b2 DataTable/SideDrawer) | reviews/S2-compliance.md |
+| 14 compliance shared, modules, monitoring | 28 / 54 | 26 | reviews/S2-compliance.md |
+| 17 product-website builder, admin/security | 44 / 60 | 16 | reviews/S2-product-website.md |
+| 16 analytics, block editors | 30 / 46 | 16 | reviews/S2-product-website.md (+ S2-org-website.md for retried sections) |
+| 15 org, product-website panels, analytics charts | 27 / 43 | 16 | reviews/S2-org-website.md |
+| **Total** | **136 / 239 (57%)** | 103 | three Opus reviews, all fixes applied |
+
+Ratchets measured on the final tree (no --update run): ts-ratchet agent-hub 2095 (budget 2230); file-budget ok (1 ceiling can
+come down); duplication and the count ratchets: see the push-3 gate line below; every `check:fast --list --slack` ratchet at
+slack 0 except where noted by the integrator's budgets.
+
+Retry list once b2-A lands (DataTable, SideDrawer, DeadlineClock, auditForms → TS): b13 DsrTable, CustomChecksTable,
+CheckRow, CheckExpansion, ChecksTable, EvidenceTab, PerAutomationTab, IncidentsTable, MachineryPage, PoliciesPage,
+PortabilityPage, RopaPage, SoaPage, TrainingPage, AuditsTab, NcsTab, ObjectivesTab, ReviewsTab, DsrDrawer, ConnectorDrawer,
+AttestDrawer, FrameworkEditorDrawer, IncidentDrawer, RisksPage; b14 DeadlinesCard, RiskDrawer, SoaDrawer, RisksTable, SoaTable,
+SettingsGroup, PolicyDrawer.
+
+Latent JS bugs seen (not fixed, types-only scope): analytics HeatmapSection reads `scrollReach.pageW` that `toScrollReach`
+never returns; RoadmapEditor passes `checked=` to the fields Toggle whose prop is `value`.
+
 ## Batches
 
 ### 13 + 14 (admin/compliance, admin/modules), branch `s2/compliance`, merged
@@ -79,3 +102,37 @@
   GuardStatus ×4.
 - History note: the b17 types commit was unsigned (drafter worktree); the unpushed chain was re-created signed with
   identical trees before push 2 (ccdba2f7 → c5cd3a5f… ; batch-16 tip f627c205).
+
+### 15 (admin/org, product-website panels, analytics charts/heatmap; monitoring), branch `s2/batch-15` (on `s2/batch-16`), merged
+- Converted: 27/43 of batch 15, plus batch-16 sections RealtimeSection and OverviewSection retried (Pages, Sources, Replays
+  retried then reverted per review: their types needed casts on JS-inferred `pivot()` / `sessionSignals` results).
+  New type home: org/access/accessTypes.ts. Existing TS edited types-only (transpile identical): userManagement GroupModal,
+  OrganizationModal, OrganizationsSection (`isFullAdmin: boolean | undefined`), primitives (generic SegmentedControl),
+  SiteVersionMenu, cmsPanelTypes (`CmsBlock.type` required — server drops typeless blocks), analyticsApi (AnalyticsSite, url).
+- Gate: types `22 identical, 0 different of 22`; catch commit 8 different (token substitutions, Opus-approved);
+  after fixes vs s2/batch-16 `21 identical, 8 different of 29`.
+- Kept JS: runtime: monitoring/shared.jsx and monitoring/index.jsx (Date arithmetic `now - d`), OrgInfoSection (`ncOrg.baseUrl`
+  behind a flag, parent passes ncOrg|null), OrgAuthSection (updater spreads possibly-null state), useUserDirectory.js
+  (`Map.get(k).push`), DesignEditor (unguarded `d.colors.x` on Record<string, unknown>), analytics/model.js (`Map.get(k) + 1`,
+  find() deref), heatmap/model.js (`TYPE_LABELS[nullable]`), heatmap/PageStage (`?.length > 0`), usePreviewBackdrop
+  (`clearTimeout(null)`), b16 PerformanceSection (`b.value / b.bands[0]` nullable), AudienceSection (find() deref). Blocked:
+  UsageExplorerPage + b14 monitoring ActivityPage/OverviewPage/TerminationsPage (monitoring/shared.jsx), CloudCeilingEditor
+  (subscriptions/plans/PlanEditor.jsx `onDelete` required), ProductWebsitePanel (useCmsPreviewBridge.js, CmsAssistantPane.jsx,
+  useCmsBlockEditing.js), TranslationPanel (translatable.js), AnalyticsPanel (sections/SettingsSection.jsx `sites = []` →
+  never[]), b16 PagesSection/SourcesSection/ReplaysSection (analytics/model.js). Duplication: CookieBannerEditor (typing it
+  raises production duplication over budget; kept JS).
+- Review: reviews/S2-org-website.md (CHANGES REQUIRED, small; applied). Org access/ceiling code: no logic change, no fail-open;
+  wire types match featureAccessRoutes.js, orgAiContext.js, orgIntegrationCache.js, releaseNotesStore.js, cmsAnalytics.js.
+- Integration: merged origin/ccr-28820270-xkvwp8 @ e738f454 first (clean), then s2/batch-15 (one conflict in
+  i18nGuard.test.js: adjacent renames modelMeta.ts / filters.ts, both kept; i18nGuard 16/16).
+
+## What the integrator must watch at merge
+- `agent-hub/src/i18n/i18nGuard.test.js`: S2 renamed entries (filters.ts; earlier batches' paths); other sessions edit the
+  same list — keep both sides.
+- `agent-hub/.file-budget.json`: key renames only (settingsFields, ui.tsx, …).
+- Mobile `src/features/compliance/model/lockstep.test.ts` reads `settingsFields.ts`.
+- Out-of-scope types-only edits: `export` on PublicPlan (marketing/sections/PricingSection.tsx) and CmsSeo (marketing/useCmsHead.ts);
+  tightened existing TS in admin/org/userManagement/*, product-website cmsPanelTypes.ts, panelView.ts.
+- New JS file blockEditors/GroupedItemsField.jsx (pure move out of shared.jsx, Opus-approved; net ts-ratchet 0).
+- Commit signatures: every S2 commit on the branch is signed; the batch branches `s2/*` are local scratch, not pushed.
+- No mirror candidates found in S2 scope.
