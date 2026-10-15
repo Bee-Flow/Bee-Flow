@@ -1,7 +1,10 @@
 import React from 'react';
 import { TextField, Toggle } from '../fields';
 import { InlineHint, CollapsibleCard, FieldSelect } from '../primitives';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { BlockEditorProps } from './editorProps';
 import { set } from './shared';
+import { messageOf } from '../../../../utils/caughtError';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Pricing ───────────────────────────────────────────────────────────
@@ -16,19 +19,54 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // toggle controls + CTA / empty-state copy. Plan content itself is
 // managed at /app/admin/subscriptions and is NOT editable here.
 
-const pricingPlanTypes = (t) => [
+type PricingData = {
+    heading?: string;
+    subheading?: string;
+    planType?: string;
+    enableToggle?: boolean;
+    defaultInterval?: string;
+    toggleLabelMonthly?: string;
+    toggleLabelYearly?: string;
+    featuredPlanId?: string;
+    featuredStyle?: string;
+    suffixMonthly?: string;
+    suffixYearly?: string;
+    customPriceText?: string;
+    trialText?: string;
+    ctaLabel?: string;
+    emptyText?: string;
+};
+
+/** The fields of a `GET /api/billing/public-plans` plan (server toPublicPlan) that the preview list reads. */
+interface PreviewPlan {
+    id: string;
+    name: string;
+    planType: string;
+    price: number | null;
+    currency: string;
+    billingInterval: string;
+    trialDays: number;
+}
+
+interface PricingPreview {
+    loading: boolean;
+    error: string | null;
+    plans: PreviewPlan[];
+}
+
+const pricingPlanTypes = (t: TranslateFn) => [
     { value: 'organization', label: t('cms_site.blocks.pricing.plan_type_organizations', 'Organisations') },
     { value: 'consumer',     label: t('cms_site.blocks.pricing.plan_type_consumers', 'Consumers') },
 ];
 
-const pricingIntervalOptions = (t) => [
+const pricingIntervalOptions = (t: TranslateFn) => [
     { value: 'monthly', label: t('cms_site.blocks.pricing.interval_monthly', 'Monthly') },
     { value: 'yearly',  label: t('cms_site.blocks.pricing.interval_yearly', 'Yearly') },
 ];
 
-export function PricingEditor({ data = {}, onChange }) {
+export function PricingEditor({ data = {}, onChange }: BlockEditorProps<PricingData>) {
     const { t } = useTranslation();
-    const setField = (key, value) => onChange(set(data, key, value));
+    const setField = (key: string, value: unknown) => onChange(set(data, key, value));
 
     const planType        = data.planType === 'consumer' ? 'consumer' : 'organization';
     const enableToggle    = data.enableToggle !== false;
@@ -38,7 +76,7 @@ export function PricingEditor({ data = {}, onChange }) {
     // currently-selected planType. Refetched on Refresh — admins can
     // change plans in /app/admin/subscriptions and confirm here without
     // reopening the editor.
-    const [preview, setPreview] = React.useState({ loading: true, error: null, plans: [] });
+    const [preview, setPreview] = React.useState<PricingPreview>({ loading: true, error: null, plans: [] });
     const reloadPreview = React.useCallback(() => {
         setPreview(p => ({ ...p, loading: true, error: null }));
         fetch('/api/billing/public-plans', { credentials: 'include' })
@@ -47,7 +85,8 @@ export function PricingEditor({ data = {}, onChange }) {
                 const plans = Array.isArray(payload?.plans) ? payload.plans : [];
                 setPreview({ loading: false, error: null, plans });
             })
-            .catch(err => setPreview({ loading: false, error: err.message || 'Failed', plans: [] }));
+            .catch(err => setPreview({ loading: false, error: messageOf(err, 'Failed')
+, plans: [] }));
     }, []);
     React.useEffect(() => { reloadPreview(); }, [reloadPreview]);
     const matchingPlans = preview.plans.filter(p => p?.planType === planType);
