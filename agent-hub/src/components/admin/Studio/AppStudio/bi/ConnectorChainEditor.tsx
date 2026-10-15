@@ -90,7 +90,7 @@ const OWN_TABLE = '$own';
 // replace the parent's, and the parent is reachable under `parent_`; both are
 // offered so a later step can reach either.
 function bindableFields(availableFields: AvailableField[] | null | undefined, chain: ChainStep[], upToIndex: number): string[] {
-    const base = (availableFields || []).map((f) => f.sourcePath || f.key).filter((f): f is string => Boolean(f));
+    const base = (availableFields || []).map((f) => f.sourcePath || f.key).filter(Boolean) as string[];
     const expanded = (chain || []).slice(0, upToIndex).some((s) => s?.expand);
     if (!expanded) return base;
     return [...new Set([...base, ...base.map((f) => `parent_${f}`)])];

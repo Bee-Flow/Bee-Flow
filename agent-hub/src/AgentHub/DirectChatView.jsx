@@ -1,8 +1,5 @@
 import { Menu, X } from 'lucide-react';
 import React from 'react';
-import type { Dispatch, ElementType, ReactNode, RefObject, SetStateAction } from 'react';
-import type { ProjectContextPillProject } from '../components/chat/ProjectContextPill';
-import type { FeedbackAgent } from '../components/chat/MessageItem/useMessageActions';
 import DocumentsHeaderButton from './DocumentsHeaderButton';
 import EmptyChatState from './EmptyChatState';
 import DirectChatWelcome from '../components/chat/DirectChatWelcome';
@@ -14,78 +11,8 @@ import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import CoworkWelcome from '../components/cowork/CoworkWelcome';
 import { lazy } from '../utils/lazyWithReload';
 import { useTranslation } from '../hooks/useTranslation';
-import type { ChatMessage } from '../hooks/useChatEngine/types';
-import type { WebpageSelection } from './useSidePanelState';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
-
-// InputArea is untyped JavaScript: its inferred props all look required, and the
-// composer below passes a subset, so it is rendered through an untyped element type.
-const ComposerInput: ElementType = InputArea;
-
-/** The conversation the direct pane is showing, as far as this view reads it. */
-interface DirectConversationRef {
-    id?: string;
-    readOnly?: boolean;
-    access?: { canPost?: boolean } | null;
-}
-
-export interface DirectChatViewProps {
-    isMobile: boolean;
-    setSidebarOpen: (open: boolean) => void;
-    user: Record<string, unknown> | null;
-    notebooksEnabled: boolean;
-    conversationStarted: boolean;
-    coworkMode: string;
-    setCoworkMode: (mode: string) => void;
-    inCoworkMode: boolean;
-    sidePanelDocumentId: string | null;
-    openDocumentInSidePanel: (id: string) => void;
-    closeDocumentPanel: () => void;
-    canUseWebpagesSide: boolean;
-    webpageButtonRefDirect: RefObject<HTMLButtonElement | null>;
-    sidePanelWebpageId: string | null;
-    closeWebpagePanel: () => void;
-    webpagePickerOpen: boolean;
-    setWebpagePickerOpen: Dispatch<SetStateAction<boolean>>;
-    openWebpageInSidePanel: (id: string) => void;
-    messagesContainerRef: RefObject<HTMLDivElement | null>;
-    messagesEndRef: RefObject<HTMLDivElement | null>;
-    shouldForceScrollRef: RefObject<boolean>;
-    messages: ChatMessage[];
-    chatInput: string;
-    setChatInput: (text: string) => void;
-    sendMessage: (text: string, attachments: unknown[]) => void;
-    stopGenerating: () => void;
-    isLoading: boolean;
-    modelTiers: Record<string, unknown>[];
-    selectedTier: string;
-    setSelectedTier: (tier: string) => void;
-    activeSkillIds: string[];
-    handleToggleSkill: (skillId: string) => void;
-    handleVoiceTurnComplete: (...args: never[]) => void;
-    coworkComposer: unknown;
-    directSessionSkills: unknown[];
-    directActivatedSessionSkillIds: string[];
-    directCompletedSessionSkillIds: string[];
-    currentDirectConversation: DirectConversationRef | null;
-    directChatKbs: Record<string, unknown>[];
-    directChatKBIds: string[];
-    setDirectChatKBIds: (ids: string[]) => void;
-    attachedWebpageSelection: WebpageSelection | null;
-    clearWebpageSelection: () => void;
-    setAttachedWebpageSelection: (selection: WebpageSelection | null) => void;
-    retryMessage: (idx: number, text: string) => void;
-    editAndRegenerate: (idx: number, text: string) => void;
-    renderSidePanels: (mode: string) => ReactNode;
-    activeProject?: ProjectContextPillProject | null;
-    onOpenActiveProject?: (project: ProjectContextPillProject) => void;
-    onLeaveActiveProject?: () => void;
-    // useChatSignals() from useAgentHubData: the chat-signals notice for the
-    // endpoint this chat posts to, and the person's own switch. Both composers
-    // below get it, so the empty state and the conversation say the same.
-    chatSignals?: { notice: unknown; setCounted: (...args: never[]) => void } | null;
-}
 
 // The direct-chat pane: minimal toolbar (Cowork switch, documents / webpage
 // buttons), the mode-dependent welcome state, the chat pane, the webpage
@@ -113,7 +40,7 @@ const DirectChatView = ({
     // endpoint this chat posts to, and the person's own switch. Both composers
     // below get it, so the empty state and the conversation say the same.
     chatSignals = null,
-}: DirectChatViewProps) => {
+}) => {
     const { t } = useTranslation();
     // The empty state and the conversation render the same composer; only how
     // a send ends (the conversation also drops a picked webpage selection) and
@@ -145,14 +72,6 @@ const DirectChatView = ({
         selectedKBIds: directChatKBIds,
         onChangeKBIds: setDirectChatKBIds,
     };
-    // The composer shown while the conversation is empty; both welcome branches hold it.
-    const emptyStateComposer = (
-        <ComposerInput
-            {...composerProps}
-            onSendMessage={(text: string, attachments: unknown[]) => { shouldForceScrollRef.current = true; sendMessage(text, attachments); }}
-            shieldApplies
-        />
-    );
     return (
                     /* Direct Chat Mode */
                     <>
@@ -237,22 +156,24 @@ const DirectChatView = ({
                                                 that schedules work promises the wrong
                                                 thing, so the empty state follows the
                                                 mode. */}
-                                            {coworkMode === 'cowork' ? (
-                                                <CoworkWelcome
-                                                    isMobile={isMobile}
-                                                    onStarterClick={(text: string) => setChatInput(text)}
-                                                >
-                                                    {emptyStateComposer}
-                                                </CoworkWelcome>
-                                            ) : (
-                                                <DirectChatWelcome
-                                                    tiers={modelTiers}
-                                                    selectedTier={selectedTier}
-                                                    onTierChange={setSelectedTier}
-                                                    onPromptClick={(text: string) => setChatInput(text)}
-                                                >
-                                                    {emptyStateComposer}
-                                                </DirectChatWelcome>
+                                            {React.createElement(
+                                                coworkMode === 'cowork' ? CoworkWelcome : DirectChatWelcome,
+                                                coworkMode === 'cowork'
+                                                    ? {
+                                                        isMobile,
+                                                        onStarterClick: (text) => setChatInput(text),
+                                                    }
+                                                    : {
+                                                        tiers: modelTiers,
+                                                        selectedTier,
+                                                        onTierChange: setSelectedTier,
+                                                        onPromptClick: (text) => setChatInput(text),
+                                                    },
+                                                <InputArea
+                                                    {...composerProps}
+                                                    onSendMessage={(text, attachments) => { shouldForceScrollRef.current = true; sendMessage(text, attachments); }}
+                                                    shieldApplies
+                                                />,
                                             )}
                                         </EmptyChatState>
                                     ) : (
@@ -262,8 +183,8 @@ const DirectChatView = ({
                                                     key={msg.id || idx}
                                                     idx={idx}
                                                     msg={msg}
-                                                    selectedAgent={{ name: 'AI', avatar: '💬' } as FeedbackAgent}
-                                                    onCopy={(txt: unknown) => navigator.clipboard.writeText(txt as string)}
+                                                    selectedAgent={{ name: 'AI', avatar: '💬' }}
+                                                    onCopy={(txt) => navigator.clipboard.writeText(txt)}
                                                     allMessages={messages}
                                                     conversationId={currentDirectConversation?.id}
                                                     sessionSkills={directSessionSkills}
@@ -304,8 +225,8 @@ const DirectChatView = ({
                                                 </button>
                                             </div>
                                         )}
-                                        <ComposerInput
-                                            onSendMessage={(text: string, attachments: unknown[]) => {
+                                        <InputArea
+                                            onSendMessage={(text, attachments) => {
                                                 shouldForceScrollRef.current = true;
                                                 sendMessage(text, attachments);
                                                 // Single-shot — the user implicitly cleared their pick

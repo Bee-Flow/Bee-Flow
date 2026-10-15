@@ -2,10 +2,6 @@ import { API_BASE, authFetch } from '../utils/helpers';
 import { normalizeLoadedMessages } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
 import { loadWorkspaceNotebook } from '../utils/workspaceNotebook';
-import type { AgentRecord } from './AgentChatView';
-import type { AgentHubActionsDeps, DirectConversationPayload, HubConversation, SearchResult, Setter } from './useAgentHubActions.types';
-export type { HubConversation } from './useAgentHubActions.types';
-
 
 // Navigation-level handlers of the hub: selecting agents and conversations,
 // entering direct chat, new chat / delete, search-result routing, favourites,
@@ -33,10 +29,10 @@ const useAgentHubActions = ({
     confirm,
     openAtLatest,
     clearActiveProject,
-}: AgentHubActionsDeps) => {
+}) => {
     // --- Actions ---
 
-    const handleSelectAgent = (agent: AgentRecord) => {
+    const handleSelectAgent = (agent) => {
         closeAllOverlays();
         setSelectedAgent(agent);
         setDesignMode(false);
@@ -98,11 +94,11 @@ const useAgentHubActions = ({
         updateDirectChatUrl(null);
     };
 
-    const handleSelectDirectConversation = async (conv: { id: string }) => {
+    const handleSelectDirectConversation = async (conv) => {
         try {
             const res = await authFetch(`${API_BASE}/ai/direct/conversations/${conv.id}`);
             if (res.ok) {
-                const data: DirectConversationPayload = await res.json();
+                const data = await res.json();
                 setCurrentDirectConversation(data);
                 setDirectSessionSkills(Array.isArray(data.sessionSkills) ? data.sessionSkills : []);
                 setDirectActivatedSessionSkillIds(Array.isArray(data.activatedSessionSkillIds) ? data.activatedSessionSkillIds : []);
@@ -131,7 +127,7 @@ const useAgentHubActions = ({
         } catch (e) { console.error('Failed to load direct conversation:', e); }
     };
 
-    const handleDeleteDirectConversation = async (convId: string) => {
+    const handleDeleteDirectConversation = async (convId) => {
         try {
             const res = await authFetch(`${API_BASE}/ai/direct/conversations/${convId}`, { method: 'DELETE' });
             if (res && res.ok === false) return false;
@@ -193,7 +189,7 @@ const useAgentHubActions = ({
         setNotebookLinkedId(null);
         updateAgentUrl(selectedAgent.id, null);
     };
-    const handleDeleteConversation = async (convId: string, agentId?: string | null) => {
+    const handleDeleteConversation = async (convId, agentId) => {
         try {
             agentId = agentId || selectedAgent?.id;
             if (!agentId) {
@@ -217,7 +213,7 @@ const useAgentHubActions = ({
         }
     };
 
-    const handleSearchResultSelect = (result: SearchResult) => {
+    const handleSearchResultSelect = (result) => {
         setShowSearch(false);
         if (result.kind === 'direct') {
             setDirectChatMode(true);
@@ -232,20 +228,20 @@ const useAgentHubActions = ({
             }
         }
         // Open conversation
-        selectConversation(result.agent_id as string, result.id);
+        selectConversation(result.agent_id, result.id);
     };
 
-    const getGroupedConversations = (): [string, HubConversation[]][] => {
-        const groups: Record<string, HubConversation[]> = { Today: [], Yesterday: [], 'Last 30 Days': [], Older: [] };
+    const getGroupedConversations = () => {
+        const groups = { Today: [], Yesterday: [], 'Last 30 Days': [], Older: [] };
 
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         conversations.forEach(c => {
-            const date = new Date(c.updated_at as string);
+            const date = new Date(c.updated_at);
             const msgStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-            const diffDays = Math.floor((todayStart.getTime() - msgStart.getTime()) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.floor((todayStart - msgStart) / (1000 * 60 * 60 * 24));
 
             if (diffDays <= 0) groups.Today.push(c);
             else if (diffDays === 1) groups.Yesterday.push(c);
@@ -255,7 +251,7 @@ const useAgentHubActions = ({
         return Object.entries(groups).filter(([_, list]) => list.length > 0);
     };
 
-    const handleToggleFavorite = async (id: string) => {
+    const handleToggleFavorite = async (id) => {
         const wasFav = favorites.includes(id);
         const newFavs = wasFav ? favorites.filter(f => f !== id) : [...favorites, id];
         setFavorites(newFavs);
@@ -270,7 +266,7 @@ const useAgentHubActions = ({
         }
     };
 
-    const handleUnpublishAgent = async (agentId: string) => {
+    const handleUnpublishAgent = async (agentId) => {
         if (!(await confirm({ title: 'Unpublish this agent?', description: 'It will no longer be visible in the Agent Store, but its configuration will be preserved.', confirmLabel: 'Unpublish', destructive: true }))) return;
         try {
             const res = await authFetch(`${API_BASE}/agents/${agentId}/publish`, {
@@ -290,7 +286,7 @@ const useAgentHubActions = ({
         }
     };
 
-    const saveNotebook = async (content: string, nbId?: string | null) => {
+    const saveNotebook = async (content, nbId) => {
         setNotebookContent(content); // Optimistic update
 
         // If a new notebook ID was provided, persist it
@@ -317,7 +313,7 @@ const useAgentHubActions = ({
         }
     };
 
-    const handleOpenInNotebook = async (markdownContent: string, existingNotebookId?: string | null) => {
+    const handleOpenInNotebook = async (markdownContent, existingNotebookId) => {
         try {
             let nbId = existingNotebookId;
 
@@ -329,7 +325,7 @@ const useAgentHubActions = ({
                     body: JSON.stringify({ name: `Chat Notebook – ${new Date().toLocaleDateString()}` }),
                 });
                 if (!createRes.ok) throw new Error('Failed to create notebook');
-                const { notebook }: { notebook: { id: string } } = await createRes.json();
+                const { notebook } = await createRes.json();
                 nbId = notebook.id;
             }
 

@@ -51,7 +51,7 @@ export function imageFilesFrom(dataTransfer: DataTransfer | null | undefined): F
     const fromItems = indexed(dataTransfer.items)
         .filter((item) => item && item.kind === 'file' && isImageFile(item))
         .map((item) => item.getAsFile?.())
-        .filter((f): f is File => Boolean(f));
+        .filter(Boolean) as File[];
     if (fromItems.length) return fromItems;
     return indexed(dataTransfer.files).filter(isImageFile);
 }

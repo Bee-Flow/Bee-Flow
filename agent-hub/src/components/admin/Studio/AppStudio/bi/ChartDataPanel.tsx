@@ -52,8 +52,8 @@ function isNumericColumn(rows: Record<string, unknown>[] | null | undefined, key
  * name key; the remaining numeric columns become series, each coloured from the
  * palette by index. A pie/donut keeps a single value series.
  */
-export function deriveChartMapping(columns: unknown[] | null | undefined, rows: Record<string, unknown>[] = [], chartType = 'bar'): ChartMapping {
-    const cols = (Array.isArray(columns) ? columns : []).filter((c): c is string => typeof c === 'string' && !!c);
+export function deriveChartMapping(columns: unknown[] | null | undefined, rows: Record<string, unknown>[] | null = [], chartType = 'bar'): ChartMapping {
+    const cols = (Array.isArray(columns) ? columns : []).filter((c) => typeof c === 'string' && c) as string[];
     if (cols.length === 0) return { chartType, xKey: '', series: [] };
     const xKey = cols[0];
     const rest = cols.slice(1);
@@ -74,8 +74,8 @@ export interface ChartDataPanelProps {
 
 export default function ChartDataPanel({ columns = [], rows = [], value, onChange, disabled = false }: ChartDataPanelProps) {
     const { t } = useTranslation();
-    const mapping: ChartMapping = value || deriveChartMapping(columns, rows || []);
-    const cols = (Array.isArray(columns) ? columns : []).filter((c): c is string => typeof c === 'string' && !!c);
+    const mapping: ChartMapping = value || deriveChartMapping(columns, rows);
+    const cols = (Array.isArray(columns) ? columns : []).filter((c) => typeof c === 'string' && c) as string[];
     const isPie = isPieType(mapping.chartType);
     const seriesKeys = new Set((mapping.series || []).map((s) => s.key));
 

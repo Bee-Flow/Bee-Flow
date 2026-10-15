@@ -1,6 +1,4 @@
 import { EyeOff, Menu, MoreVertical, Pencil, PenLine } from 'lucide-react';
-import type { Dispatch, ElementType, ReactNode, RefObject, SetStateAction } from 'react';
-import type { ProjectContextPillProject } from '../components/chat/ProjectContextPill';
 import DocumentsHeaderButton from './DocumentsHeaderButton';
 import EmptyChatState from './EmptyChatState';
 import InputArea from '../components/chat/InputArea';
@@ -12,99 +10,15 @@ import WelcomeScreen from '../components/shell/WelcomeScreen';
 import { isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '../utils/agentAvatar';
 import { lazy } from '../utils/lazyWithReload';
 import { useTranslation } from '../hooks/useTranslation';
-import type { ChatMessage } from '../hooks/useChatEngine/types';
-import type { WebpageSelection } from './useSidePanelState';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
-
-// InputArea is untyped JavaScript: its inferred props all look required, and the
-// composer below passes a subset, so it is rendered through an untyped element type.
-const ComposerInput: ElementType = InputArea;
-
-/** The agent this pane chats with, as far as the header and composer read it. */
-export interface AgentRecord {
-    id: string;
-    name?: string;
-    owner_id?: string;
-    config?: { enabledIntegrations?: unknown; attachedSkillIds?: unknown; allowCopy?: boolean } | null;
-    [key: string]: unknown;
-}
-
-/** The signed-in person, as far as the agent menu reads it. */
-interface AgentViewUser {
-    id?: string;
-    isAdmin?: boolean;
-    permissions?: string[];
-}
-
-/** The conversation the agent pane is showing, as far as this view reads it. */
-interface AgentConversationRef {
-    id?: string;
-    readOnly?: boolean;
-    access?: { canPost?: boolean } | null;
-}
-
-export interface AgentChatViewProps {
-    isMobile: boolean;
-    setSidebarOpen: (open: boolean) => void;
-    selectedAgent: AgentRecord | null;
-    user: AgentViewUser | null;
-    onNavigate: (page: string) => void;
-    favorites: string[];
-    showAgentMenu: boolean;
-    setShowAgentMenu: Dispatch<SetStateAction<boolean>>;
-    handleNewChat: () => void;
-    handleToggleFavorite: (agentId: string) => void;
-    handleUnpublishAgent: (agentId: string) => void;
-    coworkMode: string;
-    setCoworkModeForAgent: (mode: string, agentId?: string) => void;
-    conversationStarted: boolean;
-    notebooksEnabled: boolean;
-    inCoworkMode: boolean;
-    sidePanelDocumentId: string | null;
-    openDocumentInSidePanel: (id: string) => void;
-    closeDocumentPanel: () => void;
-    canUseWebpagesSide: boolean;
-    webpageButtonRef: RefObject<HTMLButtonElement | null>;
-    sidePanelWebpageId: string | null;
-    closeWebpagePanel: () => void;
-    webpagePickerOpen: boolean;
-    setWebpagePickerOpen: Dispatch<SetStateAction<boolean>>;
-    openWebpageInSidePanel: (id: string) => void;
-    messagesContainerRef: RefObject<HTMLDivElement | null>;
-    messagesEndRef: RefObject<HTMLDivElement | null>;
-    shouldForceScrollRef: RefObject<boolean>;
-    messages: ChatMessage[];
-    chatInput: string;
-    setChatInput: (text: string) => void;
-    sendMessage: (text: string, attachments: unknown[], parentId: string | null | undefined, regenerate: boolean) => void;
-    stopGenerating: () => void;
-    isLoading: boolean;
-    activeSkillIds: string[];
-    agentAttachedSkillIds: unknown;
-    handleToggleSkill: (skillId: string) => void;
-    handleVoiceTurnComplete: (...args: never[]) => void;
-    coworkComposer: unknown;
-    currentConversation: AgentConversationRef | null;
-    retryMessage: (idx: number, text: string) => void;
-    editAndRegenerate: (idx: number, text: string) => void;
-    modelTiers: Record<string, unknown>[];
-    renderSidePanels: (mode: string) => ReactNode;
-    activeProject?: ProjectContextPillProject | null;
-    onOpenActiveProject?: (project: ProjectContextPillProject) => void;
-    onLeaveActiveProject?: () => void;
-    // useChatSignals() from useAgentHubData: the chat-signals notice for the
-    // endpoint this chat posts to, and the person's own switch. Both composers
-    // below get it, so the empty state and the conversation say the same.
-    chatSignals?: { notice: unknown; setCounted: (...args: never[]) => void } | null;
-}
 
 // The agent-chat pane: header (avatar, agent menu, Cowork switch, documents /
 // webpage buttons) plus the chat pane and side panels. Moved verbatim from
 // the `selectedAgent` branch of AgentHub.jsx's main ternary; all state stays
 // in AgentHub and arrives via props.
 const AgentChatView = ({
-    isMobile, setSidebarOpen, selectedAgent: selectedAgentProp, user, onNavigate, favorites,
+    isMobile, setSidebarOpen, selectedAgent, user, onNavigate, favorites,
     showAgentMenu, setShowAgentMenu,
     handleNewChat, handleToggleFavorite, handleUnpublishAgent,
     coworkMode, setCoworkModeForAgent, conversationStarted,
@@ -123,12 +37,11 @@ const AgentChatView = ({
     // endpoint this chat posts to, and the person's own switch. Both composers
     // below get it, so the empty state and the conversation say the same.
     chatSignals = null,
-}: AgentChatViewProps) => {
+}) => {
     const { t } = useTranslation();
-    const selectedAgent = selectedAgentProp as AgentRecord;
     // The empty state and the conversation render the same composer.
     const composerProps = {
-        onSendMessage: (text: string, attachments: unknown[], parentId: string | null | undefined) => {
+        onSendMessage: (text, attachments, parentId) => {
             shouldForceScrollRef.current = true;
             sendMessage(text, attachments, parentId, false);
         },
@@ -149,7 +62,7 @@ const AgentChatView = ({
         onChatSignalsCounted: chatSignals?.setCounted ?? null,
         cowork: coworkComposer,
         coworkMode,
-        onCoworkModeChange: (mode: string) => setCoworkModeForAgent(mode, selectedAgent?.id),
+        onCoworkModeChange: (mode) => setCoworkModeForAgent(mode, selectedAgent?.id),
     };
     return (
                     <>
@@ -251,7 +164,7 @@ const AgentChatView = ({
                                 <CoworkModeToggle
                                     enabled
                                     value={coworkMode}
-                                    onChange={(mode: string) => setCoworkModeForAgent(mode, selectedAgent?.id)}
+                                    onChange={(mode) => setCoworkModeForAgent(mode, selectedAgent?.id)}
                                     locked={conversationStarted}
                                 />
                             </div>
@@ -295,9 +208,13 @@ const AgentChatView = ({
                                     {messages.length === 0 ? (
                                         <EmptyChatState>
                                             <WelcomeScreen
-                                                {...{ agent: selectedAgent, onSendMessage: (text: string) => { setChatInput(text); }, user, shieldApplies: true, onNavigate }}
+                                                agent={selectedAgent}
+                                                onSendMessage={(text) => { setChatInput(text); }}
+                                                user={user}
+                                                shieldApplies
+                                                onNavigate={onNavigate}
                                             >
-                                                <ComposerInput {...composerProps} />
+                                                <InputArea {...composerProps} />
                                             </WelcomeScreen>
                                         </EmptyChatState>
                                     ) : (
@@ -308,7 +225,7 @@ const AgentChatView = ({
                                                     idx={idx}
                                                     msg={msg}
                                                     selectedAgent={selectedAgent}
-                                                    onCopy={(txt: unknown) => navigator.clipboard.writeText(txt as string)}
+                                                    onCopy={(txt) => navigator.clipboard.writeText(txt)}
                                                     allMessages={messages}
                                                     conversationId={currentConversation?.id}
                                                     agentId={selectedAgent?.id}
@@ -328,7 +245,7 @@ const AgentChatView = ({
                                 {messages.length > 0 && isReadOnlySharedChat(currentConversation) && <SharedChatReadOnly />}
                                 {messages.length > 0 && !isReadOnlySharedChat(currentConversation) && (
                                     <div className="w-full flex flex-col shrink-0">
-                                        <ComposerInput {...composerProps} />
+                                        <InputArea {...composerProps} />
                                     </div>
                                 )}
                             </div>

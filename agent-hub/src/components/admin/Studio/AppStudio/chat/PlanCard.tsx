@@ -31,13 +31,11 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import type { ListField, PlanCardProps, PlanDraft, PlanObject, PlanRow } from './PlanCard.types';
 
 // ---- shape-tolerant accessors -------------------------------------------------
+type Rec = Record<string, unknown>;
 const labelOf = (row: unknown, ...keys: string[]): string => {
     if (typeof row === 'string') return row;
     if (row && typeof row === 'object') {
-        for (const k of keys) {
-            const v = (row as Record<string, unknown>)[k];
-            if (typeof v === 'string' && v) return v;
-        }
+        for (const k of keys) if (typeof (row as Rec)[k] === 'string' && (row as Rec)[k]) return (row as Rec)[k] as string;
     }
     return '';
 };
@@ -143,7 +141,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
     const addRow = (field: ListField, row: PlanRow) => updateList(field, [...draft[field], tagRow(row)]);
 
     // Fields live inside a table row; edit them in place, preserving shape.
-    const tableFields = (t: PlanRow | undefined): PlanRow[] => (t && typeof t === 'object' && Array.isArray(t.fields) ? t.fields : []);
+    const tableFields = (t: PlanRow | undefined): PlanRow[] => (Array.isArray((t as PlanObject | undefined)?.fields) ? (t as PlanObject).fields as PlanRow[] : []);
     const setTableFields = (ti: number, fields: PlanRow[]) => updateList('tables', draft.tables.map((t, j) => {
         if (j !== ti) return t;
         return typeof t === 'string' ? { name: t, fields } : { ...t, fields };
@@ -214,7 +212,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                             value={labelOf(tbl, 'name', 'key')}
                             placeholder={t('studio_apps_edit.plan_card.table_name', 'Table name')}
                             ariaLabel={t('studio_apps_edit.plan_card.table_name', 'Table name')}
-                            subtitle={tbl && typeof tbl === 'object' && typeof tbl.seedCount === 'number' ? t('studio_apps_edit.plan_card.sample_rows', '{n} sample rows', { n: tbl.seedCount }) : ''}
+                            subtitle={typeof (tbl as PlanObject)?.seedCount === 'number' ? t('studio_apps_edit.plan_card.sample_rows', '{n} sample rows', { n: (tbl as PlanObject).seedCount }) : ''}
                             disabled={disabled}
                             onChange={(v) => renameTable(ti, v)}
                             onRemove={() => removeAt('tables', ti)}

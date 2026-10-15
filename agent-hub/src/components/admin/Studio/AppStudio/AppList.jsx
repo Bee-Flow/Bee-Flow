@@ -12,7 +12,6 @@ import NewAppModal from './list/NewAppModal';
 import OwnerMenu from './list/OwnerMenu';
 import { studioAppsApi } from './studioAppsApi';
 import useTranslation from '../../../../hooks/useTranslation';
-import type { StudioApp, OpenOptions } from './list/types';
 import ConfirmDialog from '../../../shared/ConfirmDialog';
 import EmptyState from '../../../shared/EmptyState';
 import Modal from '../../../shared/Modal';
@@ -40,23 +39,19 @@ import toast from '../../../shared/Toast';
 
 // ── The gallery ─────────────────────────────────────────────────────
 
-export interface AppListProps {
-    onOpen?: (app: StudioApp, openOptions?: OpenOptions) => void;
-}
-
-export default function AppList({ onOpen }: AppListProps) {
+export default function AppList({ onOpen }) {
     const { t } = useTranslation();
-    const [apps, setApps] = useState<StudioApp[]>([]);
-    const [ownedIds, setOwnedIds] = useState<Set<string>>(() => new Set());
+    const [apps, setApps] = useState([]);
+    const [ownedIds, setOwnedIds] = useState(() => new Set());
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState(null);
 
     const [showCreate, setShowCreate] = useState(false);
-    const [renameTarget, setRenameTarget] = useState<StudioApp | null>(null);
+    const [renameTarget, setRenameTarget] = useState(null);
     const [renameValue, setRenameValue] = useState('');
     const [renameBusy, setRenameBusy] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<StudioApp | null>(null);
-    const [upgradeTarget, setUpgradeTarget] = useState<StudioApp | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [upgradeTarget, setUpgradeTarget] = useState(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -66,14 +61,14 @@ export default function AppList({ onOpen }: AppListProps) {
                 studioAppsApi.listAccessible(),
                 studioAppsApi.listMine(),
             ]);
-            const mineApps: StudioApp[] = mine?.apps || [];
-            const owned = new Set<string>(mineApps.map((a) => a.id));
-            const byUpdated = (a: StudioApp, b: StudioApp) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
-            const shared: StudioApp[] = (accessible?.apps || []).filter((a: StudioApp) => !owned.has(a.id));
+            const mineApps = mine?.apps || [];
+            const owned = new Set(mineApps.map((a) => a.id));
+            const byUpdated = (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+            const shared = (accessible?.apps || []).filter((a) => !owned.has(a.id));
             setApps([...[...mineApps].sort(byUpdated), ...shared.sort(byUpdated)]);
             setOwnedIds(owned);
         } catch (err) {
-            setError((err as Error | undefined)?.message || t('studio_apps_bi.list.load_failed', 'Could not load your apps.'));
+            setError(err?.message || t('studio_apps_bi.list.load_failed', 'Could not load your apps.'));
         } finally {
             setLoading(false);
         }
@@ -81,12 +76,12 @@ export default function AppList({ onOpen }: AppListProps) {
 
     useEffect(() => { load(); }, [load]);
 
-    const startRename = (app: StudioApp) => {
+    const startRename = (app) => {
         setRenameTarget(app);
         setRenameValue(app.name || '');
     };
 
-    const submitRename = async (e?: { preventDefault?: () => void }) => {
+    const submitRename = async (e) => {
         e?.preventDefault?.();
         if (!renameTarget || renameBusy) return;
         const trimmed = renameValue.trim();
@@ -99,7 +94,7 @@ export default function AppList({ onOpen }: AppListProps) {
             setRenameTarget(null);
             toast.success(t('studio_apps_bi.list.renamed', 'App renamed.'));
         } catch (err) {
-            toast.error((err as Error | undefined)?.message || t('studio_apps_bi.list.rename_failed', 'Could not rename the app.'));
+            toast.error(err?.message || t('studio_apps_bi.list.rename_failed', 'Could not rename the app.'));
         } finally {
             setRenameBusy(false);
         }
@@ -114,7 +109,7 @@ export default function AppList({ onOpen }: AppListProps) {
             toast.success(t('studio_apps_bi.list.upgraded', 'App updated to the latest template version.'));
             load();
         } catch (err) {
-            toast.error((err as Error | undefined)?.message || t('studio_apps_bi.list.upgrade_failed', 'Could not update the app.'));
+            toast.error(err?.message || t('studio_apps_bi.list.upgrade_failed', 'Could not update the app.'));
         } finally {
             setUpgradeTarget(null);
         }
@@ -127,7 +122,7 @@ export default function AppList({ onOpen }: AppListProps) {
             setApps((prev) => prev.filter((a) => a.id !== deleteTarget.id));
             toast.success(t('studio_apps_bi.list.deleted', 'App deleted.'));
         } catch (err) {
-            toast.error((err as Error | undefined)?.message || t('studio_apps_bi.list.delete_failed', 'Could not delete the app.'));
+            toast.error(err?.message || t('studio_apps_bi.list.delete_failed', 'Could not delete the app.'));
         } finally {
             setDeleteTarget(null);
         }
@@ -136,7 +131,7 @@ export default function AppList({ onOpen }: AppListProps) {
     // openOptions (e.g. { remix, templateId, prompt }) is forwarded to the
     // opener so a remix can focus the AI builder with a prefilled prompt. Plain
     // opens keep the single-arg onOpen(app) signature.
-    const handleCreated = (app: StudioApp, openOptions?: OpenOptions) => {
+    const handleCreated = (app, openOptions) => {
         setShowCreate(false);
         if (openOptions) onOpen?.(app, openOptions);
         else onOpen?.(app);

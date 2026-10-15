@@ -71,7 +71,7 @@ export function paramsOfAction(action: CatalogAction | null | undefined): ParamE
     const schema = action?.inputSchema;
     const props = (schema && typeof schema.properties === 'object' && schema.properties) ? schema.properties as Record<string, unknown> : null;
     if (!props) return [];
-    const required = new Set(Array.isArray(schema?.required) ? schema.required : []);
+    const required = new Set(Array.isArray((schema as NonNullable<typeof schema>).required) ? (schema as NonNullable<typeof schema>).required : []);
     return Object.entries(props)
         .map(([key, spec]) => ({ key, spec: (spec && typeof spec === 'object' ? spec : {}) as ParamSpec, required: required.has(key) }))
         .sort((a, b) => Number(b.required) - Number(a.required) || a.key.localeCompare(b.key));
@@ -127,7 +127,7 @@ function ValueControl({ spec, value, onChange, disabled, id }: {
             <select id={id} className={INPUT} value={(value ?? '') as string} disabled={disabled}
                 onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}>
                 <option value="">{t('studio_apps_bi.params.not_set', 'Not set')}</option>
-                {(spec.enum ?? []).map((opt) => <option key={String(opt)} value={String(opt)}>{String(opt)}</option>)}
+                {(spec.enum as unknown[]).map((opt) => <option key={String(opt)} value={String(opt)}>{String(opt)}</option>)}
             </select>
         );
     }

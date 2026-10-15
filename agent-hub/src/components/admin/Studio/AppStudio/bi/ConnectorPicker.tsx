@@ -28,7 +28,6 @@ interface ActionPickerProps {
     footer: ReactNode;
 }
 
-const ActionPicker = AppActionPicker as ComponentType<ActionPickerProps>;
 
 export interface ConnectorPickerProps {
     connectors?: Connector[] | null;
@@ -130,7 +129,7 @@ export default function ConnectorPicker({ connectors = [], onApply, onClose }: C
     }
 
     return (
-        <ActionPicker
+        <AppActionPicker
             apps={apps}
             selected={selected}
             onToggle={toggle}

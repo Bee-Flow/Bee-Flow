@@ -3,50 +3,6 @@ import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
 import { API_BASE, authFetch, generateMessageId } from '../utils/helpers';
 import scopedStorage from '../utils/scopedStorage';
 
-/** A conversation row as the two list endpoints return it, tagged with its source. */
-interface ConversationListItem {
-    updated_at: string;
-    created_at: string;
-    _source?: string;
-    [key: string]: unknown;
-}
-
-/** A chat message as the hub builds it. */
-type HubMessage = Record<string, unknown>;
-
-/** The detail of an `openDirectChatWithContext` event. */
-interface OpenContextDetail {
-    title?: string;
-    content?: string;
-    agentId?: string;
-    conversationId?: string;
-    surface?: string;
-}
-
-/** The agent a conversation belongs to, as far as this hook reads it. */
-type HubAgent = Record<string, unknown>;
-
-export interface DirectChatEventsDeps {
-    chatHistoryMode: string;
-    setChatHistoryMode: (mode: string) => void;
-    setAllAgentConversations: (conversations: ConversationListItem[]) => void;
-    isMobile: boolean;
-    setSidebarOpen: (open: boolean) => void;
-    setDirectChatMode: (value: boolean) => void;
-    setSelectedAgent: (agent: HubAgent | null) => void;
-    setCurrentConversation: (conversation: ConversationListItem | null) => void;
-    setCurrentDirectConversation: (conversation: ConversationListItem | null) => void;
-    setMessages: (messages: HubMessage[]) => void;
-    setNotebookContent: (content: string) => void;
-    setNotebookSelection: (selection: string) => void;
-    setShowNotebook: (show: boolean) => void;
-    setNotebookLinkedId: (id: string | null) => void;
-    updateDirectChatUrl: (conversationId: string | null) => void;
-    loadDirectConversations: () => void | Promise<void>;
-    loadModelTiers: () => void | Promise<void>;
-    selectConversation: (agentId: string, conversationId: string) => Promise<unknown>;
-}
-
 // The "All Chats" aggregation and the window-event listeners that steer the
 // hub from outside (Settings' chat-history-mode switch, NotificationCenter's
 // "Open in Direct Chat"). Moved verbatim from AgentHub.jsx and called from
@@ -58,7 +14,7 @@ const useDirectChatEvents = ({
     setCurrentConversation, setCurrentDirectConversation, setMessages,
     setNotebookContent, setNotebookSelection, setShowNotebook, setNotebookLinkedId,
     updateDirectChatUrl, loadDirectConversations, loadModelTiers, selectConversation,
-}: DirectChatEventsDeps) => {
+}) => {
     // Load ALL conversations across all agents (for "All Chats" mode)
     const loadAllConversations = useCallback(async () => {
         try {
@@ -66,16 +22,16 @@ const useDirectChatEvents = ({
                 authFetch(`${API_BASE}/agents/conversations/all`),
                 authFetch(`${API_BASE}/ai/direct/conversations`),
             ]);
-            let all: ConversationListItem[] = [];
+            let all = [];
             if (agentRes.ok) {
-                const agentConvs: ConversationListItem[] = await agentRes.json();
+                const agentConvs = await agentRes.json();
                 all = [...agentConvs.map(c => ({ ...c, _source: 'agent' }))];
             }
             if (directRes.ok) {
-                const directConvs: ConversationListItem[] = await directRes.json();
+                const directConvs = await directRes.json();
                 all = [...all, ...directConvs.map(c => ({ ...c, _source: 'direct' }))];
             }
-            all.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
+            all.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
             setAllAgentConversations(all);
         } catch (e) { console.error('Failed to load all conversations:', e); }
     }, [setAllAgentConversations]);
@@ -87,8 +43,8 @@ const useDirectChatEvents = ({
 
     // Listen for mode changes from Settings panel
     useEffect(() => {
-        const handler = (e: Event) => {
-            setChatHistoryMode((e as CustomEvent<string>).detail);
+        const handler = (e) => {
+            setChatHistoryMode(e.detail);
         };
         window.addEventListener('chatHistoryModeChanged', handler);
         return () => window.removeEventListener('chatHistoryModeChanged', handler);
@@ -96,8 +52,8 @@ const useDirectChatEvents = ({
 
     // Listen for "Open in Direct Chat" events from NotificationCenter (AI Task results).
     // An Effect Event: selectConversation and the load helpers are new each render.
-    const openWithContext = useEffectEvent(async (detail: OpenContextDetail | undefined) => {
-            const { title, content, agentId, conversationId, surface }: OpenContextDetail = detail || {};
+    const openWithContext = useEffectEvent(async (detail) => {
+            const { title, content, agentId, conversationId, surface } = detail || {};
             if (!content) return;
             // What the seeded first message calls the thing — a cowork result
             // announcing itself as "my automation" is the wrong feature's name.
@@ -110,7 +66,7 @@ const useDirectChatEvents = ({
                 try {
                     const agentRes = await authFetch(`${API_BASE}/agents/${agentId}`);
                     if (agentRes.ok) {
-                        const agent: HubAgent = await agentRes.json();
+                        const agent = await agentRes.json();
                         setDirectChatMode(false);
                         setSelectedAgent(agent);
                         scopedStorage.setItem('lastUsedMode', 'agent');
@@ -167,7 +123,7 @@ const useDirectChatEvents = ({
             }, 100);
     });
     useEffect(() => {
-        const handler = (e: Event) => { openWithContext((e as CustomEvent<OpenContextDetail | undefined>).detail); };
+        const handler = (e) => { openWithContext(e.detail); };
         window.addEventListener('openDirectChatWithContext', handler);
         return () => window.removeEventListener('openDirectChatWithContext', handler);
     }, []);

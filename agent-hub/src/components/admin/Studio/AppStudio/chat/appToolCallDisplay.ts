@@ -85,7 +85,7 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : nul
 const tr = (t: TranslateFn | null, { key, en }: KeyedText, params?: Record<string, unknown>): string => (t ? t(key, en, params) : (params ? en.replace(/\{(\w+)\}/g, (_: string, k: string) => (params[k] !== undefined ? String(params[k]) : `{${k}}`)) : en));
 
 /** A readable name for a landed thing: the component type's label, "Screen", "Table", "Action". */
-export function landedTypeLabel(type: unknown, t: TranslateFn | null = null): string {
+export function landedTypeLabel(type: unknown, t: TranslateFn | null): string {
     const ty = str(type);
     if (!ty) return '';
     if (ty === 'screen') return tr(t, { key: 'app_studio.builder.act.kind_screen', en: 'Screen' });
@@ -107,8 +107,8 @@ export function landedIcon(type: unknown) {
 export function describeAppToolCall(tc: AppToolCall | null | undefined, t: TranslateFn | null = null) {
     const name = str(tc && tc.name) || '';
     const failed = tc && tc.ok === false;
-    const added = (Array.isArray(tc?.added) ? (tc?.added as unknown[]) : [])
-        .filter((a): a is Record<string, unknown> => !!a && typeof a === 'object')
+    const added = (Array.isArray(tc && tc.added) ? ((tc as AppToolCall).added as unknown[]) : [])
+        .filter((a) => a && typeof a === 'object') as Record<string, unknown>[]
         .map((a) => ({ id: a.id ?? null, type: str(a.type), label: str(a.label), title: str(a.label) || landedTypeLabel(a.type, t) }));
     let title;
     if (failed) {
@@ -123,7 +123,7 @@ export function describeAppToolCall(tc: AppToolCall | null | undefined, t: Trans
     // The detail line: what landed, by name; a refusal's error; else the
     // server's one-line summary (the legacy field).
     let detail = null;
-    if (failed) detail = str(tc?.error) || str(tc?.summary);
+    if (failed) detail = str((tc as AppToolCall).error) || str((tc as AppToolCall).summary);
     else if (added.length === 1 && name !== 'app_add_components') detail = added[0].title;
     else if (added.length > 1) detail = added.map((a) => a.title).filter(Boolean).join(' · ');
     else detail = str(tc && tc.summary);
@@ -132,7 +132,7 @@ export function describeAppToolCall(tc: AppToolCall | null | undefined, t: Trans
         title,
         detail,
         added,
-        error: failed ? (str(tc?.error) || null) : null,
+        error: failed ? str((tc as AppToolCall).error) || null : null,
         hint: failed ? (str(tc.hint) || null) : null,
         verbLabel: VERBS[name] ? tr(t, VERBS[name], { n: added.length }) : null,
     };
