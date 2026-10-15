@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 import { askTutor } from '../exerciseCoach';
+import type { LessonStep } from '../lessons.types';
 
 /**
  * TutorPanel — the "Ask AI" surface available on EVERY step of the lesson
@@ -20,7 +21,7 @@ import { askTutor } from '../exerciseCoach';
  *   modelTier      — tier for the tutor call
  *   onClose        — collapse the panel
  */
-const QUICK_PROMPTS = [
+const QUICK_PROMPTS: { id: string; labelKey: string; labelFallback: string }[] = [
     { id: 'explain', labelKey: 'learn.tutor.quick_explain', labelFallback: 'Explain this differently' },
     { id: 'example', labelKey: 'learn.tutor.quick_example', labelFallback: 'Give me a real example' },
     { id: 'why', labelKey: 'learn.tutor.quick_why', labelFallback: 'Why does this matter?' },
@@ -28,7 +29,7 @@ const QUICK_PROMPTS = [
 
 // The step's learner-visible text, so the tutor knows what "this" refers to.
 // Kept compact — the server caps context length anyway.
-function stepContextOf(step) {
+function stepContextOf(step: LessonStep | null | undefined): string {
     if (!step) return '';
     const bits = [
         step.titleFallback,
@@ -40,19 +41,31 @@ function stepContextOf(step) {
     return bits.join('\n').slice(0, 1500);
 }
 
-export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose }) {
+interface TutorPanelProps {
+    lessonId: string;
+    step: LessonStep | null;
+    modelTier?: string;
+    onClose: () => void;
+}
+
+interface TutorMessage {
+    role: 'user' | 'tutor';
+    text: string;
+}
+
+export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose }: TutorPanelProps) {
     const { t, locale } = useTranslation();
-    const [thread, setThread] = useState([]); // { role: 'user'|'tutor', text }
+    const [thread, setThread] = useState<TutorMessage[]>([]); // { role: 'user'|'tutor', text }
     const [input, setInput] = useState('');
     const [busy, setBusy] = useState(false);
-    const scrollRef = useRef(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const el = scrollRef.current;
         if (el) el.scrollTop = el.scrollHeight;
     }, [thread, busy]);
 
-    const ask = async (question) => {
+    const ask = async (question: string) => {
         const q = String(question || '').trim();
         if (!q || busy) return;
         setInput('');
@@ -111,10 +124,10 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
             )}
 
             <form className="flex items-center gap-2 rounded-lg" style={{ padding: '7px 10px', border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}
-                onSubmit={(e) => { e.preventDefault(); ask(input); }}>
+                onSubmit={(e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); ask(input); }}>
                 <input
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
                     placeholder={t('learn.tutor.placeholder_step', 'Ask a question about this step…')}
                     aria-label={t('learn.tutor.title', 'Ask the AI coach')}
                     className="flex-1 min-w-0 bg-transparent outline-none text-[12px]"

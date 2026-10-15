@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { createPortal } from 'react-dom';
-import mermaid from 'mermaid';
+import mermaid, { type MermaidConfig } from 'mermaid';
 import { Maximize2, X, Download } from 'lucide-react';
 
 let instanceCounter = 0;
 
 /** Detect errors caused by stale Vite chunks after redeployment */
-const isStaleChunkError = (err) => {
+const isStaleChunkError = (err?: Error | null) => {
     const msg = (err?.message || err || '').toString();
     return (
         msg.includes('Failed to fetch dynamically imported module') ||
@@ -55,7 +55,7 @@ const MERMAID_THEME = {
     todayLineColor: '#f472b6',
 };
 
-const MERMAID_CONFIG = {
+const MERMAID_CONFIG: MermaidConfig & { gantt?: { sidePadding?: number } } = {
     startOnLoad: false,
     theme: 'dark',
     themeVariables: MERMAID_THEME,
@@ -75,10 +75,10 @@ const MERMAID_CONFIG = {
 /**
  * Fullscreen overlay for Mermaid diagrams
  */
-const MermaidOverlay = ({ code, onClose }) => {
+const MermaidOverlay = ({ code, onClose }: { code: string; onClose: () => void }) => {
     const { t } = useTranslation();
-    const overlayRef = useRef(null);
-    const containerRef = useRef(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const idRef = useRef(`mermaid-overlay-${Date.now()}-${instanceCounter++}`);
 
     useEffect(() => {
@@ -118,7 +118,7 @@ const MermaidOverlay = ({ code, onClose }) => {
             } catch (err) {
                 console.error('Mermaid overlay render error:', err);
                 if (containerRef.current) {
-                    if (isStaleChunkError(err)) {
+                    if (isStaleChunkError(err as Error)) {
                         containerRef.current.innerHTML = `
                             <div style="color: #94a3b8; padding: 20px; text-align: center;">
                                 <div style="font-weight: 600; margin-bottom: 8px;">🔄 New version available</div>
@@ -139,7 +139,7 @@ const MermaidOverlay = ({ code, onClose }) => {
 
     // Close on ESC
     useEffect(() => {
-        const handler = (e) => { if (e.key === 'Escape') onClose(); };
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
     }, [onClose]);
@@ -160,7 +160,7 @@ const MermaidOverlay = ({ code, onClose }) => {
     return createPortal(
         <div
             ref={overlayRef}
-            onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+            onClick={(e: React.MouseEvent<HTMLDivElement>) => { if (e.target === overlayRef.current) onClose(); }}
             style={{
                 position: 'fixed', inset: 0, zIndex: 9999,
                 background: 'rgba(0, 0, 0, 0.85)',
@@ -197,8 +197,8 @@ const MermaidOverlay = ({ code, onClose }) => {
                             fontSize: '12px', fontWeight: 500,
                             transition: 'all 0.15s',
                         }}
-                        onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.2)'; }}
-                        onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; }}
+                        onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.2)'; }}
+                        onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
                     >
                         <Download size={14} /> {t('chat.renderers.mermaid_download_svg', 'Download SVG')}
                     </button>
@@ -213,8 +213,8 @@ const MermaidOverlay = ({ code, onClose }) => {
                             color: 'rgba(255,255,255,0.8)', cursor: 'pointer',
                             transition: 'all 0.15s',
                         }}
-                        onMouseEnter={e => { e.target.style.background = 'rgba(239,68,68,0.4)'; }}
-                        onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; }}
+                        onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(239,68,68,0.4)'; }}
+                        onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
                     >
                         <X size={18} />
                     </button>
@@ -248,13 +248,13 @@ const MermaidOverlay = ({ code, onClose }) => {
  * MermaidRenderer — renders Mermaid syntax (flowcharts, Gantt charts, sequence diagrams, etc.)
  * as an interactive SVG with dark theme styling consistent with the app.
  */
-const MermaidRenderer = ({ code }) => {
+const MermaidRenderer = ({ code }: { code: string }) => {
     const { t } = useTranslation();
-    const containerRef = useRef(null);
-    const [error, setError] = useState(null);
-    const [ready, setReady] = useState(false);
-    const [showOverlay, setShowOverlay] = useState(false);
-    const [hovered, setHovered] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [ready, setReady] = useState<boolean>(false);
+    const [showOverlay, setShowOverlay] = useState<boolean>(false);
+    const [hovered, setHovered] = useState<boolean>(false);
     const idRef = useRef(`mermaid-${Date.now()}-${instanceCounter++}`);
 
     const initMermaid = useCallback(() => {
@@ -285,10 +285,10 @@ const MermaidRenderer = ({ code }) => {
                 }
             } catch (err) {
                 console.error('Mermaid render error:', err);
-                if (isStaleChunkError(err)) {
+                if (isStaleChunkError(err as Error)) {
                     setError('__STALE_CHUNK__');
                 } else {
-                    setError(err.message || 'Failed to render diagram');
+                    setError((err as Error).message || 'Failed to render diagram');
                 }
                 // Clean up any error elements mermaid may have injected
                 const errorEl = document.getElementById('d' + id);
@@ -381,7 +381,7 @@ const MermaidRenderer = ({ code }) => {
             >
                 {/* Expand button */}
                 <button
-                    onClick={(e) => { e.stopPropagation(); setShowOverlay(true); }}
+                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); setShowOverlay(true); }}
                     title={t('chat.renderers.mermaid_open_full', 'Open full view')}
                     style={{
                         position: 'absolute', top: '10px', right: '10px',

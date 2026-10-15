@@ -32,6 +32,7 @@ import {
 } from './tourSteps';
 import { stepType, STEP_TYPES } from './stepTypes';
 import { GENERATED_LESSONS } from './generated/lessons';
+import type { HasFeature, LessonDoc, LessonStep, LessonUser, ServerLessonDoc, SimItem } from './lessons.types';
 
 export const DEFAULT_LESSON_ID = 'getting-started';
 
@@ -49,7 +50,7 @@ export const LESSON_PLAYER_OPEN_EVENT = 'beeflow:open-lesson';
 export { TOUR_START_EVENT, TOUR_ENSURE_SIDEBAR_EVENT, TOUR_SEEN_KEY };
 
 /* ── Lesson 2: Writing effective prompts ─────────────────────────────────── */
-const PROMPTS_STEPS = [
+const PROMPTS_STEPS: LessonStep[] = [
     {
         id: 'prompts-intro', placement: 'center', icon: '💬',
         titleKey: 'learn.effective-prompts.intro.title', titleFallback: 'Writing effective prompts',
@@ -90,7 +91,7 @@ const PROMPTS_STEPS = [
 ];
 
 /* ── Lesson 3: Creating an agent (rich: slides + live build + quiz) ───────── */
-const CREATE_AGENT_STEPS = [
+const CREATE_AGENT_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'ca-what', icon: '🤖',
         titleKey: 'learn.creating-agents.what.title', titleFallback: 'What is an agent?',
@@ -142,7 +143,7 @@ const CREATE_AGENT_STEPS = [
 ];
 
 /* ── Lesson 4: Refining an agent (rich: slides + reliable designer tour + exercise) ── */
-const REFINE_PROMPT_STEPS = [
+const REFINE_PROMPT_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'rp-what', icon: '🛠️',
         titleKey: 'learn.refining-prompt.what.title', titleFallback: 'The three dials of an agent',
@@ -194,7 +195,7 @@ const REFINE_PROMPT_STEPS = [
 ];
 
 /* ── Lesson 5: Creating a skill (rich) ───────────────────────────────────── */
-const SKILLS_STEPS = [
+const SKILLS_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'sk-intro', icon: '🧩',
         titleKey: 'learn.creating-skills.intro.title', titleFallback: 'Package a reusable skill',
@@ -227,7 +228,7 @@ const SKILLS_STEPS = [
 ];
 
 /* ── Lesson 6: Adding a knowledge base (rich: slides + live create + quiz) ── */
-const KNOWLEDGE_STEPS = [
+const KNOWLEDGE_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'kb-what', icon: '📚',
         titleKey: 'learn.knowledge-bases.what.title', titleFallback: 'Give agents your knowledge',
@@ -269,7 +270,7 @@ const KNOWLEDGE_STEPS = [
 ];
 
 /* ── Lesson 7: Connecting integrations (rich) ────────────────────────────── */
-const INTEGRATIONS_STEPS = [
+const INTEGRATIONS_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'int-intro', icon: '🔌',
         titleKey: 'learn.connecting-integrations.intro.title', titleFallback: 'Connect your tools',
@@ -296,7 +297,7 @@ const INTEGRATIONS_STEPS = [
 ];
 
 /* ── Lesson 8: Using memory (rich) ───────────────────────────────────────── */
-const MEMORY_STEPS = [
+const MEMORY_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'mem-intro', icon: '🧠',
         titleKey: 'learn.using-memory.intro.title', titleFallback: 'Let Bee Flow remember',
@@ -323,7 +324,7 @@ const MEMORY_STEPS = [
 ];
 
 /* ── Lesson 9: Automations & automations (rich) ─────────────────────────────── */
-const AUTOMATIONS_STEPS = [
+const AUTOMATIONS_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'auto-intro', icon: '⏱️',
         titleKey: 'learn.automations.intro.title', titleFallback: 'Work that runs without you',
@@ -350,7 +351,7 @@ const AUTOMATIONS_STEPS = [
 ];
 
 /* ── Lesson 10: Usage & monitoring (admin, rich) ─────────────────────────── */
-const ORG_USAGE_STEPS = [
+const ORG_USAGE_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'usage-intro', icon: '📊',
         titleKey: 'learn.org-usage.intro.title', titleFallback: 'Keep an eye on usage',
@@ -386,7 +387,7 @@ const ORG_USAGE_STEPS = [
  * ══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Lesson: Anatomy of a great prompt ───────────────────────────────────── */
-const PROMPT_BASICS_STEPS = [
+const PROMPT_BASICS_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'pb-anatomy', icon: '🧬',
         titleKey: 'learn.prompt-basics.anatomy.title', titleFallback: 'The anatomy of a great prompt',
@@ -435,7 +436,7 @@ const PROMPT_BASICS_STEPS = [
 ];
 
 /* ── Lesson: Give context ────────────────────────────────────────────────── */
-const PROMPT_CONTEXT_STEPS = [
+const PROMPT_CONTEXT_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'pc-why', icon: '🧭',
         titleKey: 'learn.prompt-context.why.title', titleFallback: 'Context steers everything',
@@ -469,7 +470,7 @@ const PROMPT_CONTEXT_STEPS = [
 ];
 
 /* ── Lesson: Structure & format ──────────────────────────────────────────── */
-const PROMPT_STRUCTURE_STEPS = [
+const PROMPT_STRUCTURE_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'pst-format', icon: '📐',
         titleKey: 'learn.prompt-structure.format.title', titleFallback: 'Ask for the shape you want',
@@ -531,7 +532,7 @@ const PROMPT_STRUCTURE_STEPS = [
 ];
 
 /* ── Lesson: Iterate to perfection ───────────────────────────────────────── */
-const PROMPT_ITERATING_STEPS = [
+const PROMPT_ITERATING_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'pit-mindset', icon: '🔁',
         titleKey: 'learn.prompt-iterating.mindset.title', titleFallback: 'The first answer is a draft',
@@ -565,7 +566,7 @@ const PROMPT_ITERATING_STEPS = [
 ];
 
 /* ── Lesson: Advanced techniques ─────────────────────────────────────────── */
-const PROMPT_ADVANCED_STEPS = [
+const PROMPT_ADVANCED_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'pad-fewshot', icon: '🧪',
         titleKey: 'learn.prompt-advanced.fewshot.title', titleFallback: 'Show, don’t just tell (few-shot)',
@@ -599,7 +600,7 @@ const PROMPT_ADVANCED_STEPS = [
 ];
 
 /* ── Lesson: Anatomy of an automation (task-first: quiz → slides → sim) ───── */
-const AUTOMATION_ANATOMY_STEPS = [
+const AUTOMATION_ANATOMY_STEPS: LessonStep[] = [
     {
         // Task-first: commit to a prediction before anything is explained.
         type: STEP_TYPES.QUIZ, id: 'aa-predict', icon: '🤔',
@@ -677,7 +678,7 @@ const AUTOMATION_ANATOMY_STEPS = [
 ];
 
 /* ── Lesson: Meet the builder (tour of the real Automations studio) ────────── */
-const AUTOMATION_BUILDER_TOUR_STEPS = [
+const AUTOMATION_BUILDER_TOUR_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'abt-intro', icon: '🗺️',
         titleKey: 'learn.automation-builder-tour.intro.title', titleFallback: 'Let’s walk the real thing',
@@ -720,7 +721,7 @@ const AUTOMATION_BUILDER_TOUR_STEPS = [
 /* ── Lesson: Assemble the flow (interactive canvas sim, ramped tasks) ──────── */
 
 // Shared trigger options so every scenario shows the same real palette.
-const SIM_TRIGGER_OPTIONS = [
+const SIM_TRIGGER_OPTIONS: SimItem[] = [
     { id: 'manual', label: 'Trigger manually', desc: 'Run from a button click' },
     { id: 'form', label: 'On form submission', desc: 'Publish a form; every submission runs this' },
     { id: 'schedule', label: 'On a schedule', desc: 'Run at a fixed time, over and over' },
@@ -728,7 +729,7 @@ const SIM_TRIGGER_OPTIONS = [
     { id: 'app_event', label: 'On app event', desc: 'Run when something happens in a connected app' },
 ];
 
-const AUTOMATION_BUILD_SIM_STEPS = [
+const AUTOMATION_BUILD_SIM_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'abs-intro', icon: '🏗️',
         titleKey: 'learn.automation-build-sim.intro.title', titleFallback: 'You build the flows now',
@@ -842,7 +843,7 @@ const AUTOMATION_BUILD_SIM_STEPS = [
 ];
 
 /* ── Lesson: Build one for real (verified hands-on challenge) ──────────────── */
-const AUTOMATION_HANDS_ON_STEPS = [
+const AUTOMATION_HANDS_ON_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'aho-brief', icon: '🎓',
         titleKey: 'learn.automation-hands-on.brief.title', titleFallback: 'Your mission: a real automation',
@@ -877,7 +878,7 @@ const AUTOMATION_HANDS_ON_STEPS = [
 ];
 
 /* ── Lesson: Design your own automation (rich: slide + AI-coached exercise) ── */
-const AUTOMATION_PRACTICE_STEPS = [
+const AUTOMATION_PRACTICE_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'ap-brief', icon: '📝',
         titleKey: 'learn.automation-practice.brief.title', titleFallback: 'A good brief beats a good diagram',
@@ -930,7 +931,7 @@ const AUTOMATION_PRACTICE_STEPS = [
  * ══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Lesson: Meet Cowork ──────────────────────────────────────────────────── */
-const COWORK_BASICS_STEPS = [
+const COWORK_BASICS_STEPS: LessonStep[] = [
     {
         // Task-first: pick the right tool before Cowork is explained.
         type: STEP_TYPES.QUIZ, id: 'cwb-predict', icon: '🤔',
@@ -990,7 +991,7 @@ const COWORK_BASICS_STEPS = [
 ];
 
 /* ── Lesson: Briefs that schedule themselves (AI-graded) ──────────────────── */
-const COWORK_BRIEFS_STEPS = [
+const COWORK_BRIEFS_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'cwr-compose', icon: '🪄',
         titleKey: 'learn.cowork-briefs.compose.title', titleFallback: 'Your words become the schedule',
@@ -1040,7 +1041,7 @@ const COWORK_BRIEFS_STEPS = [
 ];
 
 /* ── Lesson: Your first cowork (verified hands-on) ────────────────────────── */
-const COWORK_HANDS_ON_STEPS = [
+const COWORK_HANDS_ON_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'cwh-brief', icon: '🎓',
         titleKey: 'learn.cowork-hands-on.brief.title', titleFallback: 'Hand something over for real',
@@ -1075,7 +1076,7 @@ const COWORK_HANDS_ON_STEPS = [
 ];
 
 /* ── Lesson: Users, groups & access (admin, rich: slides + quiz) ──────────── */
-const ADMIN_ACCESS_STEPS = [
+const ADMIN_ACCESS_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'ac-roles', icon: '🛡️',
         titleKey: 'learn.admin-access.roles.title', titleFallback: 'Who can do what',
@@ -1101,7 +1102,7 @@ const ADMIN_ACCESS_STEPS = [
 ];
 
 /* ── Lesson: Running a healthy hive (admin, rich: slides + quiz + exercise) ── */
-const ADMIN_GOVERNANCE_STEPS = [
+const ADMIN_GOVERNANCE_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'ag-watch', icon: '📊',
         titleKey: 'learn.admin-governance.watch.title', titleFallback: 'Watch usage before it surprises you',
@@ -1140,7 +1141,7 @@ const ADMIN_GOVERNANCE_STEPS = [
  * 'hive-master' check; criteria the learner can't satisfy (permissions/plan)
  * are gated out per-criterion in actionChecks.js.
  * ──────────────────────────────────────────────────────────────────────────── */
-const HIVE_MASTER_STEPS = [
+const HIVE_MASTER_STEPS: LessonStep[] = [
     {
         type: STEP_TYPES.SLIDE, id: 'hm-brief', icon: '👑',
         titleKey: 'learn.hive-master.brief.title', titleFallback: 'The requirements — the how is yours',
@@ -1169,7 +1170,7 @@ const HIVE_MASTER_STEPS = [
  * compute completion against the lessons a user can actually see. Keep both in
  * lockstep when adding or re-gating a lesson.
  * ──────────────────────────────────────────────────────────────────────────── */
-const HAND_WRITTEN_LESSONS = [
+const HAND_WRITTEN_LESSONS: LessonDoc[] = [
     {
         id: DEFAULT_LESSON_ID, group: 'basics', icon: '👋', estMinutes: 1,
         titleKey: 'learn.getting-started.title', titleFallback: 'Getting started',
@@ -1388,13 +1389,12 @@ const HAND_WRITTEN_LESSONS = [
 // not re-author that id — today that is the intro tour (getting-started) and its
 // legacy sibling (effective-prompts). Without this filter the two copies would
 // both sit in the array and getLesson() would return the older, shallower one.
-const GENERATED_LESSON_IDS = new Set(GENERATED_LESSONS.map((l) => l.id));
+const GENERATED_LESSON_IDS = new Set<string>(GENERATED_LESSONS.map((l: LessonDoc) => l.id));
 
-export const LESSONS = [
-    ...HAND_WRITTEN_LESSONS.filter((l) => !GENERATED_LESSON_IDS.has(l.id)),
+export const LESSONS: LessonDoc[] = [
+    ...HAND_WRITTEN_LESSONS.filter((l: LessonDoc) => !GENERATED_LESSON_IDS.has(l.id)),
     ...GENERATED_LESSONS,
 ];
-
 
 /* ── Server-provided lessons (org-authored, Phase 3) ─────────────────────────
  * Published org courses arrive with their lesson docs inline via
@@ -1403,10 +1403,10 @@ export const LESSONS = [
  * getLesson()/the player resolve them exactly like built-ins. Org ids are
  * 'orgl-…' so they can never shadow a bundled lesson.
  * ──────────────────────────────────────────────────────────────────────────── */
-const serverLessons = new Map();
+const serverLessons = new Map<string | null | undefined, LessonDoc>();
 
-export function registerServerLessons(lessonDocs) {
-    (lessonDocs || []).forEach((doc) => {
+export function registerServerLessons(lessonDocs: ServerLessonDoc[] | null | undefined): void {
+    (lessonDocs || []).forEach((doc: ServerLessonDoc) => {
         if (!doc || !doc.id) return;
         serverLessons.set(doc.id, {
             id: doc.id,
@@ -1424,8 +1424,8 @@ export function registerServerLessons(lessonDocs) {
 
 /* ── Lookups & resolvers ─────────────────────────────────────────────────── */
 
-export function getLesson(lessonId) {
-    return LESSONS.find((l) => l.id === lessonId)
+export function getLesson(lessonId: string | null | undefined): LessonDoc | undefined {
+    return LESSONS.find((l: LessonDoc) => l.id === lessonId)
         || serverLessons.get(lessonId)
         || ephemeralLessons.get(lessonId);
 }
@@ -1449,31 +1449,31 @@ export function getLesson(lessonId) {
 //     licenses one of them teaches a screen they cannot open. So a gate may
 //     name a list, and every entry must be present.
 // Mirrored server-side in server/learning/courseCatalog.js (gatePasses).
-export function lessonVisible(lesson, user, hasFeature) {
+export function lessonVisible(lesson: LessonDoc | null | undefined, user: LessonUser | null | undefined, hasFeature?: HasFeature): boolean {
     const gate = lesson?.gate || {};
     if (gate.permission && !checkPermission(user, gate.permission)) return false;
-    if (gate.permissionsAll && !gate.permissionsAll.every((p) => checkPermission(user, p))) return false;
+    if (gate.permissionsAll && !gate.permissionsAll.every((p: string) => checkPermission(user, p))) return false;
     if (gate.feature && typeof hasFeature === 'function') {
         const required = Array.isArray(gate.feature) ? gate.feature : [gate.feature];
-        if (!required.every((f) => hasFeature(f))) return false;
+        if (!required.every((f: string) => hasFeature(f))) return false;
     }
     return true;
 }
 
 // The lessons to show on the Learning Center page, filtered by permission + plan.
-export function resolveLessons(user, { hasFeature } = {}) {
-    return LESSONS.filter((l) => lessonVisible(l, user, hasFeature));
+export function resolveLessons(user: LessonUser | null | undefined, { hasFeature }: { hasFeature?: HasFeature } = {}): LessonDoc[] {
+    return LESSONS.filter((l: LessonDoc) => lessonVisible(l, user, hasFeature));
 }
 
 // True when every step of a lesson is a live-app tour step. Such lessons skip the
 // LessonPlayer entirely and dispatch TOUR_START_EVENT straight to the engine, so
 // the legacy 10 lessons behave exactly as before.
-export function lessonIsPureTour(lesson) {
+export function lessonIsPureTour(lesson: LessonDoc | null | undefined): boolean {
     const steps = lesson?.steps || [];
-    return steps.length > 0 && steps.every((s) => stepType(s) === STEP_TYPES.TOUR);
+    return steps.length > 0 && steps.every((s: LessonStep) => stepType(s) === STEP_TYPES.TOUR);
 }
 
-export function lessonIdIsPureTour(lessonId) {
+export function lessonIdIsPureTour(lessonId: string): boolean {
     return lessonIsPureTour(getLesson(lessonId));
 }
 
@@ -1488,20 +1488,20 @@ export function lessonIdIsPureTour(lessonId) {
  * markLessonComplete() can skip persisting it as a real lesson.
  * ──────────────────────────────────────────────────────────────────────────── */
 export const EPHEMERAL_PREFIX = '__eph_';
-const ephemeralTours = new Map();
+const ephemeralTours = new Map<string, LessonStep[]>();
 let ephemeralCounterSeed = 0;
 
-export function isEphemeralLessonId(id) {
+export function isEphemeralLessonId(id: unknown): boolean {
     return typeof id === 'string' && id.startsWith(EPHEMERAL_PREFIX);
 }
 
-export function registerEphemeralTour(steps) {
+export function registerEphemeralTour(steps: LessonStep[] | null | undefined): string {
     const id = `${EPHEMERAL_PREFIX}${++ephemeralCounterSeed}`;
     ephemeralTours.set(id, Array.isArray(steps) ? steps : []);
     return id;
 }
 
-export function clearEphemeralTour(id) {
+export function clearEphemeralTour(id: string | null | undefined): void {
     if (id) ephemeralTours.delete(id);
 }
 
@@ -1514,9 +1514,9 @@ export function clearEphemeralTour(id) {
  * instead (learningProgress.recordReviewOutcome). `kind: 'review'` lets the
  * player show the review completion screen and run mastery stamping.
  * ──────────────────────────────────────────────────────────────────────────── */
-const ephemeralLessons = new Map();
+const ephemeralLessons = new Map<string | null | undefined, LessonDoc>();
 
-export function registerEphemeralLesson({ titleFallback, icon = '🔁', kind = 'review', steps }) {
+export function registerEphemeralLesson({ titleFallback, icon = '🔁', kind = 'review', steps }: { titleFallback?: string; icon?: string; kind?: string; steps?: LessonStep[] }): string {
     const id = `${EPHEMERAL_PREFIX}lesson_${++ephemeralCounterSeed}`;
     ephemeralLessons.set(id, {
         id,
@@ -1533,7 +1533,7 @@ export function registerEphemeralLesson({ titleFallback, icon = '🔁', kind = '
     return id;
 }
 
-export function clearEphemeralLesson(id) {
+export function clearEphemeralLesson(id: string | null | undefined): void {
     if (id) ephemeralLessons.delete(id);
 }
 
@@ -1541,7 +1541,7 @@ export function clearEphemeralLesson(id) {
 // filter the intro tour applies. Ephemeral ids resolve from the registry first;
 // otherwise falls back to the getting-started lesson for an unknown id so a stale
 // event can never run an empty tour.
-export function resolveLessonSteps(lessonId, user) {
+export function resolveLessonSteps(lessonId: string, user: LessonUser | null | undefined): LessonStep[] {
     if (isEphemeralLessonId(lessonId)) {
         return filterStepsForUser(ephemeralTours.get(lessonId) || [], user);
     }
@@ -1552,7 +1552,7 @@ export function resolveLessonSteps(lessonId, user) {
 // The full ordered step list for a rich lesson, as the LessonPlayer should render
 // it (inline steps + tour steps interleaved). Same requiresStudio filtering as the
 // engine so a member never sees a Studio-only step they can't action.
-export function resolveLessonPlayerSteps(lessonId, user) {
+export function resolveLessonPlayerSteps(lessonId: string, user: LessonUser | null | undefined): LessonStep[] {
     const lesson = getLesson(lessonId) || getLesson(DEFAULT_LESSON_ID);
     return filterStepsForUser(lesson?.steps || [], user);
 }

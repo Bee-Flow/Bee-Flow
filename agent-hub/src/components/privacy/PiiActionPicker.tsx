@@ -2,6 +2,16 @@ import { Ban, Repeat } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 
+interface PiiActionPickerProps {
+    value?: string | null;
+    onChange: (value: string) => void;
+    tokenizeLabel?: string;
+    tokenizeHelp?: string;
+    blockLabel?: string;
+    blockHelp?: string;
+    footnote?: React.ReactNode;
+}
+
 /**
  * Two-card picker for the action taken when PII is detected. "Tokenize &
  * round-trip" replaces sensitive values with placeholders before the AI
@@ -11,7 +21,7 @@ import { useTranslation } from '../../hooks/useTranslation';
  * Shared between the admin GuardrailsPanel and the personal
  * ConsumerPrivacySection so both stay visually aligned.
  */
-export function PiiActionPicker({ value, onChange, tokenizeLabel, tokenizeHelp, blockLabel, blockHelp, footnote }) {
+export function PiiActionPicker({ value, onChange, tokenizeLabel, tokenizeHelp, blockLabel, blockHelp, footnote }: PiiActionPickerProps) {
     const { t } = useTranslation();
     const options = [
         {

@@ -7,10 +7,11 @@
 // bundled catalog without ever blocking the UI.
 
 import { API_BASE, authFetch } from '../../utils/helpers';
+import type { ServerCatalog } from './lessons.types';
 
-let catalogPromise = null;
+let catalogPromise: Promise<ServerCatalog | null> | null = null;
 
-export function fetchCatalog() {
+export function fetchCatalog(): Promise<ServerCatalog | null> {
     if (!catalogPromise) {
         catalogPromise = (async () => {
             try {
@@ -27,6 +28,6 @@ export function fetchCatalog() {
 }
 
 // Test/logout hook — drop the cached promise so the next call refetches.
-export function resetCatalogCache() {
+export function resetCatalogCache(): void {
     catalogPromise = null;
 }

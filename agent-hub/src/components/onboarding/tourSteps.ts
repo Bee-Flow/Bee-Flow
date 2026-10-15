@@ -27,7 +27,9 @@
 //
 // Copy avoids the internal term "Direct chat" — to users this is just "chat".
 
-export const TOUR_STEPS = [
+import type { LessonStep, LessonUser } from './lessons.types';
+
+export const TOUR_STEPS: LessonStep[] = [
     {
         id: 'welcome',
         placement: 'center',
@@ -185,7 +187,7 @@ export const TOUR_STEPS = [
 // registry. These steps walk through building agents and skills, so a member
 // who has Studio only for a section their role opens (Meeting Notes, say)
 // must not be sent there, nor asked to create an agent they cannot create.
-export function canUseStudio(user) {
+export function canUseStudio(user: LessonUser | null | undefined): boolean {
     const perms = user?.permissions || [];
     return (
         !!user?.isAdmin ||
@@ -200,12 +202,12 @@ export function canUseStudio(user) {
 // Drops Studio-gated steps (e.g. the create-an-agent sequence) for members who
 // can't reach Studio. Shared by the intro tour and every Learning Center lesson
 // (see lessons.js) so step-level gating stays in one place.
-export function filterStepsForUser(steps, user) {
-    return (steps || []).filter((s) => !(s.requiresStudio && !canUseStudio(user)));
+export function filterStepsForUser<T extends { requiresStudio?: boolean }>(steps: T[] | null | undefined, user: LessonUser | null | undefined): T[] {
+    return (steps || []).filter((s: T) => !(s.requiresStudio && !canUseStudio(user)));
 }
 
 // Steps actually shown to this user for the intro tour.
-export function resolveTourSteps(user) {
+export function resolveTourSteps(user: LessonUser | null | undefined): LessonStep[] {
     return filterStepsForUser(TOUR_STEPS, user);
 }
 

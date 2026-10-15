@@ -39,7 +39,7 @@ import DocumentLinkCard from '../documents/DocumentLinkCard';
  * streaming or its JSON is incomplete. Extracted from the ~13 identical copies
  * that differed only by their label text.
  */
-const BlockLoading = ({ label }) => (
+const BlockLoading = ({ label }: { label: string }) => (
     <div className="my-2 flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-tertiary)]">
         <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
         <span className="text-sm text-[var(--text-muted)]">{label}</span>
@@ -86,20 +86,20 @@ hljs.registerLanguage('md', markdown);
 const PreContext = React.createContext(false);
 
 const COLLAPSE_HEIGHT = 200; // px
-const CollapsibleCodeBlock = ({ className, children, ...props }) => {
+const CollapsibleCodeBlock = ({ className, children, ...props }: import('./MarkdownRenderer.types').CodeProps) => {
     const { t } = useTranslation();
-    const [expanded, setExpanded] = useState(false);
-    const [needsCollapse, setNeedsCollapse] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const codeRef = useRef(null);
-    const measuredRef = useRef(false);
+    const [expanded, setExpanded] = useState<boolean>(false);
+    const [needsCollapse, setNeedsCollapse] = useState<boolean>(false);
+    const [copied, setCopied] = useState<boolean>(false);
+    const codeRef = useRef<HTMLPreElement>(null);
+    const measuredRef = useRef<boolean>(false);
 
     // Extract language from className
     const langMatch = /language-([\w-]+)/.exec(className || '');
     const language = langMatch ? langMatch[1] : '';
 
     // Pretty language labels
-    const langLabels = {
+    const langLabels: Record<string, string> = {
         python: 'Python', py: 'Python', javascript: 'JavaScript', js: 'JavaScript',
         typescript: 'TypeScript', ts: 'TypeScript', jsx: 'JSX', tsx: 'TSX',
         html: 'HTML', css: 'CSS', json: 'JSON', bash: 'Bash', sh: 'Shell',
@@ -143,8 +143,8 @@ const CollapsibleCodeBlock = ({ className, children, ...props }) => {
     }, [codeText]);
 
     // Use a local state for highlighting to allow debouncing during streaming
-    const [highlightedHtml, setHighlightedHtml] = useState(null);
-    const lastHighlightText = useRef('');
+    const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
+    const lastHighlightText = useRef<string>('');
 
     useEffect(() => {
         // Skip highlighting if text hasn't changed
@@ -217,8 +217,8 @@ const CollapsibleCodeBlock = ({ className, children, ...props }) => {
                         padding: '2px 6px', borderRadius: '4px',
                         transition: 'all 0.15s',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = 'none'}
                 >
                     {copied ? (
                         <>
@@ -269,7 +269,7 @@ const CollapsibleCodeBlock = ({ className, children, ...props }) => {
                 )}
             </div>
             {needsCollapse && (
-                <button onClick={() => setExpanded(e => !e)}
+                <button onClick={() => setExpanded((e: boolean) => !e)}
                     style={{
                         display: 'flex', alignItems: 'center', gap: '4px',
                         width: '100%', padding: '3px 0',
@@ -299,7 +299,7 @@ const CollapsibleCodeBlock = ({ className, children, ...props }) => {
  * `isLoading` is threaded in as a prop: while a message is still streaming, a
  * half-written JSON block must show a placeholder rather than fail to parse.
  */
-const CodeRenderer = ({ node, className, children, isLoading = false, ...props }) => {
+const CodeRenderer = ({ node, className, children, isLoading = false, ...props }: import('./MarkdownRenderer.types').CodeRendererProps) => {
     // `pre` wraps fenced/indented code in a PreContext provider, so an absent
     // context means this span is inline.
     const inline = !React.useContext(PreContext);
@@ -344,7 +344,7 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
                         code={codeString}
                         // Stub handler: page actions have no chat-side behavior yet;
                         // trace them in dev so authors can see the action payload.
-                        onAction={(action) => logger.debug('Page action:', action)}
+                        onAction={(action: { type: string; action?: string }) => logger.debug('Page action:', action)}
                     />
                 </div>
             );
@@ -525,12 +525,12 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
 // growing a block of its own inside a card.
 const INLINE_ELEMENTS = ['strong', 'em', 'del', 'code', 'a', 'br'];
 
-const MarkdownRenderer = ({ content, className = '', isLoading = false, inline = false, ...props }) => {
+const MarkdownRenderer = ({ content, className = '', isLoading = false, inline = false, ...props }: import('./MarkdownRenderer.types').MarkdownRendererProps) => {
     // Throttle content updates to prevent flickering during streaming
     const THROTTLE_MS = 150;
-    const [renderContent, setRenderContent] = useState(content);
+    const [renderContent, setRenderContent] = useState<import('./MarkdownRenderer.types').MarkdownContent | null | undefined>(content);
     const lastUpdateRef = useRef(Date.now());
-    const timerRef = useRef(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         const now = Date.now();
@@ -558,7 +558,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
     if (typeof renderContent !== 'string') {
         if (Array.isArray(renderContent)) {
             // Multimodal array format - extract text
-            const textBlock = renderContent.find(b => b.type === 'text');
+            const textBlock = renderContent.find((b: import('./MarkdownRenderer.types').MarkdownContentPart) => b.type === 'text');
             textContent = textBlock?.text || '';
         } else if (typeof renderContent === 'object') {
             // Object format - try to stringify or extract text
@@ -571,7 +571,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
     if (!textContent) return null;
 
     // Detect unclosed code blocks for specific languages and extract partial code
-    const detectUnclosedCodeBlock = (text) => {
+    const detectUnclosedCodeBlock = (text: string): null => {
         // Guard: ensure text is a string
         if (typeof text !== 'string') return null;
 
@@ -580,7 +580,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
     };
 
     // Detect and strip wrapping code blocks (to handle streaming/partial content)
-    const stripWrappingCodeBlock = (text) => {
+    const stripWrappingCodeBlock = (text: string): string => {
         if (typeof text !== 'string') return text;
 
         let cleaned = text;
@@ -603,7 +603,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
     };
 
     // Strip :::directive blocks (e.g. :::writing Title) emitted by newer GPT models
-    const stripDirectiveBlocks = (text) => {
+    const stripDirectiveBlocks = (text: string): string => {
         if (typeof text !== 'string') return text;
         // Convert :::writing Title  →  ## Title
         // Convert :::note Title, :::tip Title, etc. the same way
@@ -613,7 +613,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
         return cleaned;
     };
 
-    const cleanContent = stripDirectiveBlocks(stripWrappingCodeBlock(textContent));
+    const cleanContent = stripDirectiveBlocks(stripWrappingCodeBlock(textContent as string));
 
     const unclosedBlock = detectUnclosedCodeBlock(cleanContent);
 
@@ -656,7 +656,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
                             return (
                                 <a
                                     href={href}
-                                    onClick={(e) => {
+                                    onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                                         e.preventDefault();
                                         const fragment = href.slice(1).toLowerCase().replace(/[^a-z0-9]/g, '');
                                         const container = e.currentTarget.closest('.markdown-content');
@@ -694,12 +694,12 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
                         );
                     },
                     // Headings with auto-generated IDs for anchor links (table of contents)
-                    ...(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].reduce((acc, tag) => {
-                        acc[tag] = ({ node, children, ...hProps }) => {
-                            const extractText = (child) => {
+                    ...(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].reduce((acc: Record<string, React.ComponentType<import('./MarkdownRenderer.types').HeadingProps>>, tag: string) => {
+                        acc[tag] = ({ node, children, ...hProps }: import('./MarkdownRenderer.types').HeadingProps) => {
+                            const extractText = (child: React.ReactNode): string => {
                                 if (typeof child === 'string') return child;
-                                if (child?.props?.children) {
-                                    return React.Children.toArray(child.props.children).map(extractText).join('');
+                                if ((child as React.ReactElement<{ children?: React.ReactNode }>)?.props?.children) {
+                                    return React.Children.toArray((child as React.ReactElement<{ children?: React.ReactNode }>).props.children).map(extractText).join('');
                                 }
                                 return '';
                             };
@@ -725,13 +725,13 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
                     // Paragraphs - render as div to prevent hydration errors from nested block elements
                     p({ node, children, ...props }) {
                         // Check if children contain block-level elements
-                        const hasBlockChild = React.Children.toArray(children).some(child => {
+                        const hasBlockChild = React.Children.toArray(children).some((child: React.ReactNode) => {
                             if (React.isValidElement(child)) {
                                 const type = child.type;
                                 // Check for common block elements
                                 return type === 'pre' || type === 'div' || type === 'table' ||
                                     type === 'ul' || type === 'ol' || type === 'blockquote' ||
-                                    (typeof type === 'function' && child.props?.className?.includes('code-block'));
+                                    (typeof type === 'function' && (child.props as { className?: string })?.className?.includes('code-block'));
                             }
                             return false;
                         });

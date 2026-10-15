@@ -22,15 +22,15 @@
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { checkPermission } from '../../hooks/usePermissionCheck';
 import { GENERATED_ACTION_CHECKS } from './generated/actionChecks';
-
-async function getJson(path) {
+import type { ActionCheck, ActionCheckResult, AgentRow, AutomationRow, CheckContext, CheckCriterion, CheckData, CheckVerdict, CoworkRow, CriterionExpect, CriterionSpec, KbRow } from './actionChecks.types';
+async function getJson(path: string) {
     const res = await authFetch(`${API_BASE}${path}`);
     if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
     return res.json();
 }
 
 // allSettled helper: a failed leg contributes its fallback instead of throwing.
-async function settle(promise, fallback) {
+async function settle<T, F>(promise: Promise<T>, fallback: F): Promise<T | F> {
     try { return await promise; } catch (_) { return fallback; }
 }
 
@@ -40,22 +40,22 @@ async function settle(promise, fallback) {
 // GET /api/automation/_runs/recent. Rows per rowToAutomation: id, title,
 // definition, isActive, isDraft, triggerType, lastRunAt, …; runs carry
 // { mode: 'dry_run'|…, status, … }.
-export function evaluateAutomationFirst(data) {
+export function evaluateAutomationFirst(data: CheckData | null | undefined): CheckVerdict {
     const automations = Array.isArray(data?.automations) ? data.automations : [];
     const runs = Array.isArray(data?.runs) ? data.runs : [];
-    const hasTrigger = (a) => !!(a?.triggerType || a?.definition?.trigger);
+    const hasTrigger = (a: AutomationRow): boolean => !!(a?.triggerType || a?.definition?.trigger);
     return {
         created: automations.length > 0,
         trigger: automations.some(hasTrigger),
-        ran: runs.length > 0 || automations.some((a) => !!a?.lastRunAt),
+        ran: runs.length > 0 || automations.some((a: AutomationRow) => !!a?.lastRunAt),
     };
 }
 
 // data: { schedules: [...] } — from GET /api/cowork. Each schedule carries
 // title, prompt, nextRunAt, lastRunAt, repeatInterval, isActive, runCount.
-export function evaluateCoworkFirst(data) {
+export function evaluateCoworkFirst(data: CheckData | null | undefined): CheckVerdict {
     const items = Array.isArray(data?.schedules) ? data.schedules : [];
-    const ran = (s) => !!(s?.lastRunAt || s?.last_run_at || (s?.runCount || s?.run_count || 0) > 0);
+    const ran = (s: CoworkRow): boolean => !!(s?.lastRunAt || s?.last_run_at || (s?.runCount || s?.run_count || 0) > 0);
     return {
         created: items.length > 0,
         ran: items.some(ran),
@@ -64,45 +64,45 @@ export function evaluateCoworkFirst(data) {
 
 // data: { agents: [...], userId } — from GET /agents (bare array; own agents
 // PLUS the seeded system agents, so the system/swarm rows must not count).
-export function evaluateAgentCreated(data) {
+export function evaluateAgentCreated(data: CheckData | null | undefined): CheckVerdict {
     const agents = Array.isArray(data?.agents) ? data.agents : [];
-    const own = agents.filter((a) => {
+    const own = agents.filter((a: AgentRow) => {
         const owner = a?.owner_id ?? a?.ownerId;
         if (owner === 'system' || owner === 'swarm') return false;
         return data?.userId ? owner === data.userId : true;
     });
     return {
         created: own.length > 0,
-        published: own.some((a) => !!(a?.is_published ?? a?.isPublished)),
+        published: own.some((a: AgentRow) => !!(a?.is_published ?? a?.isPublished)),
     };
 }
 
 // data: { kbs: [...], userId } — from GET /api/kb (bare array; personal KBs
 // plus published org KBs; rows carry tenant_id (owner) and a computed
 // document_count, with system-managed KBs marked by source_kind).
-export function evaluateKbWithDoc(data) {
-    const kbs = (Array.isArray(data?.kbs) ? data.kbs : []).filter((k) => {
+export function evaluateKbWithDoc(data: CheckData | null | undefined): CheckVerdict {
+    const kbs = (Array.isArray(data?.kbs) ? data.kbs : []).filter((k: KbRow) => {
         if ((k?.source_kind ?? k?.sourceKind) === 'system_managed') return false;
         const owner = k?.tenant_id ?? k?.tenantId;
         return data?.userId ? owner === data.userId : true;
     });
-    const docs = (k) => Number(k?.document_count ?? k?.documentCount ?? 0);
+    const docs = (k: KbRow): number => Number(k?.document_count ?? k?.documentCount ?? 0);
     return {
         created: kbs.length > 0,
-        doc: kbs.some((k) => docs(k) > 0),
+        doc: kbs.some((k: KbRow) => docs(k) > 0),
     };
 }
 
 // The capstone: real artifacts across features, no step-by-step. data merges
 // the sub-fetches (each may be a fallback after a 403/failure):
 //   { automations, runs, schedules, agents, kbs, userId }
-export function evaluateHiveMaster(data) {
+export function evaluateHiveMaster(data: CheckData | null | undefined): CheckVerdict {
     const automations = Array.isArray(data?.automations) ? data.automations : [];
-    const scheduled = automations.filter((a) => (a?.triggerType || a?.definition?.trigger?.type) === 'schedule');
+    const scheduled = automations.filter((a: AutomationRow) => (a?.triggerType || a?.definition?.trigger?.type) === 'schedule');
     const agentVerdict = evaluateAgentCreated(data);
     const kbVerdict = evaluateKbWithDoc(data);
     return {
-        automation: scheduled.some((a) => !!a?.lastRunAt)
+        automation: scheduled.some((a: AutomationRow) => !!a?.lastRunAt)
             || (scheduled.length > 0 && (Array.isArray(data?.runs) ? data.runs : []).length > 0),
         cowork: evaluateCoworkFirst(data).created,
         builder: agentVerdict.created || kbVerdict.doc,
@@ -118,7 +118,7 @@ export function evaluateHiveMaster(data) {
  * fetchState — gathers the data the evaluator needs (network); receives ctx
  * evaluate   — pure verdict: { [criterionId]: boolean }
  * ──────────────────────────────────────────────────────────────────────────── */
-export const ACTION_CHECKS = {
+export const ACTION_CHECKS: Record<string, ActionCheck> = {
     'automation-first': {
         criteria: [
             {
@@ -180,7 +180,7 @@ export const ACTION_CHECKS = {
                 optional: true,
             },
         ],
-        async fetchState(ctx) {
+        async fetchState(ctx: CheckContext) {
             const agents = await getJson('/agents');
             return { agents: Array.isArray(agents) ? agents : [], userId: ctx?.user?.id || null };
         },
@@ -200,7 +200,7 @@ export const ACTION_CHECKS = {
                 hintFallback: 'Any PDF, doc or spreadsheet works — Bee Flow indexes it so agents can search inside.',
             },
         ],
-        async fetchState(ctx) {
+        async fetchState(ctx: CheckContext) {
             const kbs = await getJson('/api/kb');
             return { kbs: Array.isArray(kbs) ? kbs : [], userId: ctx?.user?.id || null };
         },
@@ -231,7 +231,7 @@ export const ACTION_CHECKS = {
                 gate: { permission: ['manage_agents', 'manage_knowledge'] },
             },
         ],
-        async fetchState(ctx) {
+        async fetchState(ctx: CheckContext) {
             const [list, recent, cowork, agents, kbs] = await Promise.all([
                 settle(getJson('/api/automation/'), null),
                 settle(getJson('/api/automation/_runs/recent'), null),
@@ -274,12 +274,12 @@ export const ACTION_CHECKS = {
 
 // The array a list endpoint answers with: the body itself, or the first
 // array-valued property (common names first, then any array property).
-export function rowsOf(body) {
+export function rowsOf(body: unknown): Record<string, unknown>[] {
     if (Array.isArray(body)) return body;
     if (!body || typeof body !== 'object') return [];
-    for (const k of ['items', 'rows', 'data', 'results', 'list']) if (Array.isArray(body[k])) return body[k];
-    const first = Object.values(body).find((v) => Array.isArray(v));
-    return first || [];
+    for (const k of ['items', 'rows', 'data', 'results', 'list']) if (Array.isArray((body as Record<string, unknown>)[k])) return (body as Record<string, Record<string, unknown>[]>)[k];
+    const first = Object.values(body).find((v: unknown) => Array.isArray(v));
+    return (first as Record<string, unknown>[] | undefined) || [];
 }
 
 const OWNER_FIELDS = ['ownerId', 'owner_id', 'userId', 'user_id', 'createdBy', 'created_by', 'authorId'];
@@ -291,9 +291,9 @@ const OWNER_FIELDS = ['ownerId', 'owner_id', 'userId', 'user_id', 'createdBy', '
 // populated, and org-wide lists (/agents, /api/webpages) would otherwise credit
 // the learner with a colleague's work. An unknown owner never satisfies an
 // ownership test.
-export function rowOwnedBy(row, userId) {
+export function rowOwnedBy(row: Record<string, unknown> | null | undefined, userId: string | null | undefined): boolean {
     if (!row || typeof row !== 'object') return false;
-    const field = OWNER_FIELDS.find((f) => row[f] !== undefined && row[f] !== null);
+    const field = OWNER_FIELDS.find((f: string) => row[f] !== undefined && row[f] !== null);
     if (!field) return true;
     if (!userId) return false;
     return String(row[field]) === String(userId);
@@ -302,7 +302,7 @@ export function rowOwnedBy(row, userId) {
 // A criterion's endpoint may carry :orgId / :org / :orgid / :id — the learner's
 // own organisation. The first version of this factory fetched the path VERBATIM,
 // so every placeholder 404'd or 403'd and the criterion could never pass.
-export function resolveEndpoint(endpoint, ctx) {
+export function resolveEndpoint(endpoint: string | undefined, ctx: CheckContext | null | undefined): string | null | undefined {
     const orgId = ctx?.user?.organizationId ?? ctx?.user?.orgId ?? null;
     if (!endpoint) return endpoint;
     if (!/:(orgId|orgid|org|id)\b/i.test(endpoint)) return endpoint;
@@ -311,9 +311,9 @@ export function resolveEndpoint(endpoint, ctx) {
 }
 
 /** Read a dotted path out of a response body ('shield.enabled'). */
-export function fieldAt(body, path) {
+export function fieldAt(body: unknown, path: string | undefined): unknown {
     if (!path) return undefined;
-    return String(path).split('.').reduce((v, k) => (v == null ? undefined : v[k]), body);
+    return String(path).split('.').reduce((v: unknown, k: string) => (v == null ? undefined : (v as Record<string, unknown>)[k]), body);
 }
 
 /**
@@ -337,15 +337,15 @@ export function fieldAt(body, path) {
 const VERIFIABLE_EXPECT_KINDS = new Set(['rows', 'truthy', 'nonEmpty', 'equals']);
 
 /** Does this criterion declare something this runtime can actually verify? */
-export function isVerifiable(criterion) {
+export function isVerifiable(criterion: CriterionSpec | null | undefined): boolean {
     const kind = criterion?.expect?.kind;
     return typeof kind === 'string' && VERIFIABLE_EXPECT_KINDS.has(kind);
 }
 
-export function evaluateCriterion(criterion, body, userId) {
+export function evaluateCriterion(criterion: CriterionSpec, body: unknown, userId: string | null | undefined): boolean {
     if (!isVerifiable(criterion)) return false;
     if (body == null) return false;
-    const expect = criterion.expect;
+    const expect = criterion.expect as CriterionExpect;
     const v = expect.field ? fieldAt(body, expect.field) : body;
     switch (expect.kind) {
         case 'truthy':
@@ -363,29 +363,29 @@ export function evaluateCriterion(criterion, body, userId) {
     }
 }
 
-function listCheckFromSpec(spec) {
+function listCheckFromSpec(spec: { criteria?: CriterionSpec[] }): ActionCheck {
     const specCriteria = spec.criteria || [];
-    const criteria = specCriteria.map((c) => ({
+    const criteria = specCriteria.map((c: CriterionSpec) => ({
         id: c.id, labelFallback: c.labelFallback, labelKey: c.labelKey,
         hintFallback: c.hintFallback, hintKey: c.hintKey, gate: c.gate,
         unverifiable: !isVerifiable(c),
     }));
     return {
         criteria,
-        async fetchState(ctx) {
+        async fetchState(ctx: CheckContext) {
             // Only criteria that declare a checkable expectation are worth a
             // request; the rest cannot be judged from any response.
             const checkable = specCriteria.filter(isVerifiable);
             if (!checkable.length) throw new Error('unverifiable');
-            const paths = checkable.map((c) => resolveEndpoint(c.endpoint, ctx));
-            const legs = await Promise.all(paths.map((p) => (p ? settle(getJson(p), null) : Promise.resolve(null))));
+            const paths = checkable.map((c: CriterionSpec) => resolveEndpoint(c.endpoint, ctx));
+            const legs = await Promise.all(paths.map((p: string | null | undefined) => (p ? settle(getJson(p), null) : Promise.resolve(null))));
             if (legs.every((l) => l === null)) throw new Error('fetch_failed');
-            const data = { __bodies: {}, userId: ctx?.user?.id || null };
-            checkable.forEach((c, i) => { data.__bodies[c.id] = legs[i]; });
+            const data: CheckData = { __bodies: {}, userId: ctx?.user?.id || null };
+            checkable.forEach((c: CriterionSpec, i: number) => { (data.__bodies as Record<string, unknown>)[c.id] = legs[i]; });
             return data;
         },
-        evaluate(data) {
-            const out = {};
+        evaluate(data: CheckData) {
+            const out: CheckVerdict = {};
             for (const c of specCriteria) out[c.id] = evaluateCriterion(c, data?.__bodies?.[c.id], data?.userId);
             return out;
         },
@@ -393,15 +393,15 @@ function listCheckFromSpec(spec) {
 }
 
 /** Criterion ids of a check this runtime cannot verify (they never auto-pass). */
-export function unverifiableCriteria(check) {
-    return (check?.criteria || []).filter((c) => c.unverifiable).map((c) => c.id);
+export function unverifiableCriteria(check: ActionCheck | null | undefined): string[] {
+    return (check?.criteria || []).filter((c: CheckCriterion) => c.unverifiable).map((c: CheckCriterion) => c.id);
 }
 
 for (const [id, spec] of Object.entries(GENERATED_ACTION_CHECKS)) {
     if (!ACTION_CHECKS[id]) ACTION_CHECKS[id] = listCheckFromSpec(spec);
 }
 
-export function getActionCheck(checkId) {
+export function getActionCheck(checkId: string): ActionCheck | null {
     return ACTION_CHECKS[checkId] || null;
 }
 
@@ -413,15 +413,15 @@ export function getActionCheck(checkId) {
 // feature list is only half-granted would otherwise be demanded of a learner
 // who cannot reach the screen that satisfies it, and an unsatisfiable
 // criterion blocks the course badge behind it forever.
-export function applicableCriteria(check, ctx = {}) {
-    return (check?.criteria || []).filter((c) => {
+export function applicableCriteria(check: ActionCheck | null | undefined, ctx: CheckContext = {}): CheckCriterion[] {
+    return (check?.criteria || []).filter((c: CheckCriterion) => {
         const gate = c.gate;
         if (!gate) return true;
         if (gate.permission && !checkPermission(ctx.user, gate.permission)) return false;
-        if (gate.permissionsAll && !gate.permissionsAll.every((p) => checkPermission(ctx.user, p))) return false;
+        if (gate.permissionsAll && !gate.permissionsAll.every((p: string) => checkPermission(ctx.user, p))) return false;
         if (gate.feature && typeof ctx.hasFeature === 'function') {
             const required = Array.isArray(gate.feature) ? gate.feature : [gate.feature];
-            if (!required.every((f) => ctx.hasFeature(f))) return false;
+            if (!required.every((f: string) => (ctx.hasFeature as (feature: string) => boolean)(f))) return false;
         }
         return true;
     });
@@ -433,19 +433,19 @@ export function applicableCriteria(check, ctx = {}) {
 // the caller decides whether to offer the honor-system fallback. `allPassed`
 // is computed over the criteria APPLICABLE to this learner (minus `optional`
 // ones), so a gated-away criterion never blocks.
-export async function runActionCheck(checkId, ctx = {}) {
+export async function runActionCheck(checkId: string, ctx: CheckContext = {}): Promise<ActionCheckResult> {
     const check = getActionCheck(checkId);
     if (!check) return { passes: {}, allPassed: false, error: 'unknown_check', unverifiable: [] };
     const unverifiable = unverifiableCriteria(check);
     try {
         const data = await check.fetchState(ctx);
         const passes = check.evaluate(data);
-        const required = applicableCriteria(check, ctx).filter((c) => !c.optional);
+        const required = applicableCriteria(check, ctx).filter((c: CheckCriterion) => !c.optional);
         // A criterion this runtime cannot check is never a pass, so 'passed'
         // ("Verified — you built the real thing") stays honest.
-        const allPassed = required.every((c) => !c.unverifiable && !!passes[c.id]);
+        const allPassed = required.every((c: CheckCriterion) => !c.unverifiable && !!passes[c.id]);
         return { passes, allPassed, error: null, unverifiable };
     } catch (e) {
-        return { passes: {}, allPassed: false, error: e?.message || 'fetch_failed', unverifiable };
+        return { passes: {}, allPassed: false, error: (e as Error)?.message || 'fetch_failed', unverifiable };
     }
 }

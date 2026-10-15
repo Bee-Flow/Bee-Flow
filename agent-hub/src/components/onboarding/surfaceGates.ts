@@ -37,7 +37,9 @@
  */
 
 /** navigateTo target → the gate the product puts on that screen. */
-export const NAV_SURFACE_GATES = {
+import type { SurfaceGate } from './lessons.types';
+
+export const NAV_SURFACE_GATES: Record<string, SurfaceGate> = {
     'agentWizard':                             { feat: [], permView: [], permWrite: ['manage_agents'] },
     'agents':                                  { feat: [], permView: [], permWrite: [] },
     'apps':                                    { feat: ['app_studio'], permView: [], permWrite: [] },
@@ -76,7 +78,7 @@ export const NAV_SURFACE_GATES = {
 };
 
 /** API path prefix → the gate the product puts on that route (longest prefix wins). */
-export const ENDPOINT_SURFACE_GATES = {
+export const ENDPOINT_SURFACE_GATES: Record<string, SurfaceGate> = {
     '/agents':                                 { feat: [], permView: [], permWrite: [] },
     '/ai/config/chat-models':                  { feat: [], permView: [], permWrite: [] },
     '/ai/direct/conversations':                { feat: [], permView: [], permWrite: [] },
@@ -118,15 +120,15 @@ export const ENDPOINT_SURFACE_GATES = {
  * server/config/orgRoles.json that grants the key also grants each value, so a
  * gate demanding the stronger one is not missing the weaker one.
  */
-export const PERMISSION_IMPLIES = {
+export const PERMISSION_IMPLIES: Record<string, string[]> = {
     org_admin: ['manage_users', 'manage_agents', 'manage_skills', 'manage_knowledge', 'manage_apps',
         'manage_automations', 'manage_datatables', 'use_datatables', 'use_notebooks', 'admin_compliance'],
     manage_datatables: ['use_datatables'],
 };
 
 /** Longest-prefix lookup for an API path. */
-export function endpointGate(path) {
-    let best = null, bestLen = -1;
+export function endpointGate(path: string | null | undefined): SurfaceGate | null {
+    let best: SurfaceGate | null = null, bestLen = -1;
     const p = String(path || '').replace(/\/$/, '');
     for (const [prefix, gate] of Object.entries(ENDPOINT_SURFACE_GATES)) {
         const k = prefix.replace(/\/$/, '');

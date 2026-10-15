@@ -7,12 +7,49 @@
 
 import { API_BASE, authFetch } from '../../utils/helpers';
 
+export interface ExerciseGrade {
+    score: number | null;
+    passed: boolean;
+    feedback: string;
+    strengths: string[];
+    improvements: string[];
+    error: string | null;
+}
+
+export interface GradeExerciseArgs {
+    exerciseId: string | undefined;
+    submission: string;
+    modelTier?: string;
+    locale?: string;
+}
+
+export interface AskTutorArgs {
+    question: string;
+    lessonId: string;
+    stepId: string | undefined;
+    stepContext?: string;
+    modelTier?: string;
+    locale?: string;
+}
+
+export interface TutorAnswer {
+    answer: string;
+    error: string | null;
+}
+
+export interface GetHintArgs {
+    exerciseId: string | undefined;
+    submission?: string;
+    modelTier?: string;
+    locale?: string;
+}
+
 const ENDPOINT = `${API_BASE}/ai/learning/coach`;
 
 // Grade an attempt. Resolves to:
 //   { score: number|null, passed: bool, feedback, strengths[], improvements[], error? }
 // `locale` makes the coach reply in the learner's UI language (defaults to English).
-export async function gradeExercise({ exerciseId, submission, modelTier = 'fast', locale = 'en' }) {
+export async function gradeExercise({ exerciseId, submission, modelTier = 'fast', locale = 'en' }: GradeExerciseArgs): Promise<ExerciseGrade> {
     try {
         const res = await authFetch(ENDPOINT, {
             method: 'POST',
@@ -45,8 +82,8 @@ export async function gradeExercise({ exerciseId, submission, modelTier = 'fast'
 // sheet plus the step context the client sends. Resolves to
 // { answer: string, error?: string } — a failure degrades to a friendly line,
 // never a throw into the player.
-export async function askTutor({ question, lessonId, stepId, stepContext = '', modelTier = 'fast', locale = 'en' }) {
-    const fallback = t => ({ answer: t, error: 'tutor_unavailable' });
+export async function askTutor({ question, lessonId, stepId, stepContext = '', modelTier = 'fast', locale = 'en' }: AskTutorArgs): Promise<TutorAnswer> {
+    const fallback = (t: string): TutorAnswer => ({ answer: t, error: 'tutor_unavailable' });
     try {
         const res = await authFetch(`${API_BASE}/ai/learning/tutor`, {
             method: 'POST',
@@ -67,7 +104,7 @@ export async function askTutor({ question, lessonId, stepId, stepContext = '', m
 }
 
 // Ask for a single hint. Resolves to { hint: string }.
-export async function getHint({ exerciseId, submission = '', modelTier = 'fast', locale = 'en' }) {
+export async function getHint({ exerciseId, submission = '', modelTier = 'fast', locale = 'en' }: GetHintArgs): Promise<{ hint: string }> {
     try {
         const res = await authFetch(ENDPOINT, {
             method: 'POST',

@@ -9,6 +9,12 @@
 // (`detail.returnTo`): a starter that names a return page gets the learner
 // back there, and the home-jump stays reserved for runs without one.
 
+export interface TourCompletionArgs {
+    isIntro?: boolean;
+    navigated?: boolean;
+    returnTo?: string | null;
+}
+
 /**
  * resolveTourCompletionNavigation — the page key to navigate to on finish, or
  * null to leave the learner where the tour ended.
@@ -17,9 +23,8 @@
  *   intro + navigated   → 'agents' (first-time onboarding lands back on chat)
  *   anything else       → null
  *
- * @param {{ isIntro: boolean, navigated: boolean, returnTo?: string|null }} args
  */
-export function resolveTourCompletionNavigation({ isIntro, navigated, returnTo } = {}) {
+export function resolveTourCompletionNavigation({ isIntro, navigated, returnTo }: TourCompletionArgs = {}): string | null {
     if (typeof returnTo === 'string' && returnTo) return returnTo;
     if (isIntro && navigated) return 'agents';
     return null;
