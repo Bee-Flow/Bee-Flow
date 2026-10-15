@@ -136,7 +136,10 @@ export function shieldDoc() {
 
 /* ── State + routes ─────────────────────────────────────────────────── */
 
-export function createState() {
+type State = { shield: ReturnType<typeof shieldDoc> };
+type Ctx = { state: State; body: Record<string, unknown> | null; query: URLSearchParams };
+
+export function createState(): State {
     return { shield: shieldDoc() };
 }
 
@@ -160,7 +163,7 @@ export const ROUTES = {
      */
     'GET /api/org-privacy-shield/user/guard-status': () => ({ configured: true, reachable: true }),
 
-    'GET /api/org-privacy-shield/:orgId': ({ state }) => state.shield,
+    'GET /api/org-privacy-shield/:orgId': ({ state }: Ctx) => state.shield,
 
     // The "Your own data" test bench, answered in the browser.
     ...OWN_DATA_ROUTES,
@@ -172,7 +175,7 @@ export const ROUTES = {
      * `termErrors` are empty because the demo grants the capabilities the
      * document uses; returning them absent would render as "saved with notes".
      */
-    'PUT /api/org-privacy-shield/:orgId': ({ state, body }) => {
+    'PUT /api/org-privacy-shield/:orgId': ({ state, body }: Ctx) => {
         state.shield = {
             ...state.shield,
             ...(body || {}),
@@ -210,13 +213,13 @@ export const ROUTES = {
     // `query` is a URLSearchParams, not a plain object — `query.eu` reads
     // undefined and every filter below would silently pass everything, which
     // shows as a drill labelled "Outside Europe" listing EU rows.
-    'GET /api/usage/guardrails/recent': ({ query }) => {
+    'GET /api/usage/guardrails/recent': ({ query }: Ctx) => {
         const user = query.get('user');
         const rows = GUARD_ROWS().filter(r => !user || r.user_id === user);
         return rows.slice(0, Number(query.get('limit')) || 50);
     },
-    'GET /api/usage/integrations/egress': ({ query }) => {
-        const [eu, user, integration] = ['eu', 'user', 'integration'].map(k => query.get(k));
+    'GET /api/usage/integrations/egress': ({ query }: Ctx) => {
+        const [eu, user, integration] = ['eu', 'user', 'integration'].map((k: string) => query.get(k));
         const rows = EGRESS_ROWS().filter(r =>
             (eu !== 'false' || !r.is_eu)
             && (!user || r.user_id === user)

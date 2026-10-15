@@ -15,7 +15,7 @@ const NOTEBOOK_ID = 'nb_demo_tender';
 
 // The page reads `name`, `type`, `status`, `wordCount` and `hasContent` —
 // `title` is carried too because the citation components use that one.
-const source = (id, name, type, wordCount) => ({
+const source = (id: string, name: string, type: string, wordCount: number) => ({
     id, name, title: name, type, status: 'ready',
     wordCount, hasContent: true, error: null, stage: 'ready',
     storageKey: null, metadata: {}, addedAt: daysAgo(12),
@@ -61,7 +61,10 @@ knock-outcriterium, niet als wens.</p>
 elf dagen vóór de inschrijfdatum, terwijl twee van de drie open punten de scope raken.</p>
 `.trim();
 
-const CHAT = () => ([
+interface Citation { index: number; sourceId: string; title: string; page: number }
+interface ChatMessage { id: string; role: string; content: string; createdAt: string; citations?: Citation[] }
+
+const CHAT = (): ChatMessage[] => ([
     {
         id: 'msg_1',
         role: 'user',
@@ -92,7 +95,27 @@ const CHAT = () => ([
     },
 ]);
 
-function notebook() {
+type NotebookSource = ReturnType<typeof source>;
+
+interface Notebook {
+    id: string;
+    name: string;
+    title: string;
+    description: string;
+    documentContent: string;
+    content: string;
+    html: string;
+    sources: NotebookSource[];
+    messages: ChatMessage[];
+    ownerId: string;
+    isOwner: boolean;
+    version: number;
+    pinnedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+function notebook(): Notebook {
     return {
         id: NOTEBOOK_ID,
         // NotebooksPage filters on `nb.name` and renders `selected.name`;
@@ -119,7 +142,7 @@ function notebook() {
     };
 }
 
-function siblings() {
+function siblings(): Notebook[] {
     const base = notebook();
     return [
         // Exactly one sibling is pinned so the pin affordance is visible on
@@ -131,18 +154,18 @@ function siblings() {
 
 // Fixtures are trusted, compile-time content, so a regex strip is enough here
 // (the product derives preview/word counts server-side; see the API contract).
-const stripTags = (html) => String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+const stripTags = (html: string | null | undefined) => String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
 // The full card shape the overview grid consumes — exported so the parity
 // test can catch this fixture drifting behind the real list endpoint.
-export const toListItem = (n) => {
+export const toListItem = (n: Notebook) => {
     const docText = stripTags(n.documentContent);
     return {
         id: n.id, name: n.name, title: n.title, description: n.description,
         type: 'notebook', version: n.version || 1,
         sourceCount: (n.sources || []).length,
         processingCount: 0, failedCount: 0,
-        sourceWordCount: (n.sources || []).reduce((sum, s) => sum + (s.wordCount || 0), 0),
+        sourceWordCount: (n.sources || []).reduce((sum: number, s: NotebookSource) => sum + (s.wordCount || 0), 0),
         docWordCount: docText ? docText.split(/\s+/).length : 0,
         messageCount: (n.messages || []).length,
         preview: docText.slice(0, 300),
@@ -154,11 +177,15 @@ export const toListItem = (n) => {
     };
 };
 
-export function createState() {
+type State = { notebooks: Notebook[] };
+type Body = { name?: string; pinned?: boolean; expectedVersion?: number } & Record<string, unknown>;
+type Ctx = { state: State; params: Record<string, string>; body: Body | null; query: URLSearchParams };
+
+export function createState(): State {
     return { notebooks: [notebook(), ...siblings()] };
 }
 
-const find = (state, id) => state.notebooks.find(n => n.id === id) || null;
+const find = (state: State, id: string) => state.notebooks.find((n: Notebook) => n.id === id) || null;
 const notFound = () => new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
 export const ROUTES = {
@@ -169,8 +196,8 @@ export const ROUTES = {
     // and who is signed in, also while the notebook is open.
     'GET /auth/user': () => ({ user: DEMO_USER }),
     'GET /api/studio-documents/folders': () => ({ folders: [] }),
-    'GET /api/studio-documents': ({ state }) => ({
-        documents: state.notebooks.map((n) => ({
+    'GET /api/studio-documents': ({ state }: Ctx) => ({
+        documents: state.notebooks.map((n: Notebook) => ({
             id: n.id, userId: DEMO_USER.id, name: n.name, docType: 'notebook', kind: 'document', visibility: 'private',
             folderId: null, categories: [], sourceCount: (n.sources || []).length, updatedAt: n.updatedAt, createdAt: n.createdAt,
         })),
@@ -181,12 +208,12 @@ export const ROUTES = {
 
     // Honours `search` and `sort=name` minimally; pinned floats first, same
     // as the real endpoint's `pinned_at DESC NULLS LAST`.
-    'GET /api/notebooks': ({ state, query }) => {
+    'GET /api/notebooks': ({ state, query }: Ctx) => {
         let items = state.notebooks.map(toListItem);
         const search = (query?.get('search') || '').trim().toLowerCase();
-        if (search) items = items.filter(n => (n.name || '').toLowerCase().includes(search));
-        if (query?.get('sort') === 'name') items.sort((a, b) => a.name.localeCompare(b.name));
-        items.sort((a, b) => Number(b.pinned) - Number(a.pinned));
+        if (search) items = items.filter((n: ReturnType<typeof toListItem>) => (n.name || '').toLowerCase().includes(search));
+        if (query?.get('sort') === 'name') items.sort((a: ReturnType<typeof toListItem>, b: ReturnType<typeof toListItem>) => a.name.localeCompare(b.name));
+        items.sort((a: ReturnType<typeof toListItem>, b: ReturnType<typeof toListItem>) => Number(b.pinned) - Number(a.pinned));
         return { notebooks: items, hasMore: false };
     },
     // Envelope, not the bare record: the page reads `data.notebook.…`.
@@ -197,11 +224,11 @@ export const ROUTES = {
      * documents deep" onto "0 sources · 0 words / Add your first source" —
      * the sources route below existed and was simply never called.
      */
-    'GET /api/notebooks/:id': ({ state, params }) => {
+    'GET /api/notebooks/:id': ({ state, params }: Ctx) => {
         const n = find(state, params.id);
         return n ? { notebook: n, sources: n.sources || [] } : notFound();
     },
-    'PUT /api/notebooks/:id': ({ state, params, body }) => {
+    'PUT /api/notebooks/:id': ({ state, params, body }: Ctx) => {
         const n = find(state, params.id);
         if (!n) return notFound();
         // `pinned` maps to pinnedAt and — like the server — bumps neither
@@ -215,18 +242,18 @@ export const ROUTES = {
         }
         return { success: true, version: n.version || 1, notebook: n };
     },
-    'POST /api/notebooks': ({ state, body }) => {
+    'POST /api/notebooks': ({ state, body }: Ctx) => {
         const created = { ...notebook(), id: `nb_demo_new_${state.notebooks.length + 1}`, name: body?.name || 'Untitled notebook', title: body?.name || 'Untitled notebook', documentContent: '', content: '', html: '', sources: [], messages: [] };
         state.notebooks.unshift(created);
         return { success: true, notebook: created };
     },
-    'DELETE /api/notebooks/:id': ({ state, params }) => {
-        state.notebooks = state.notebooks.filter(n => n.id !== params.id);
+    'DELETE /api/notebooks/:id': ({ state, params }: Ctx) => {
+        state.notebooks = state.notebooks.filter((n: Notebook) => n.id !== params.id);
         return { success: true };
     },
-    'GET /api/notebooks/:id/sources': ({ state, params }) => ({ sources: find(state, params.id)?.sources || [] }),
-    'GET /api/notebooks/:id/messages': ({ state, params }) => ({ messages: find(state, params.id)?.messages || [] }),
-    'GET /api/notebooks/:id/conversation': ({ state, params }) => ({ messages: find(state, params.id)?.messages || [] }),
+    'GET /api/notebooks/:id/sources': ({ state, params }: Ctx) => ({ sources: find(state, params.id)?.sources || [] }),
+    'GET /api/notebooks/:id/messages': ({ state, params }: Ctx) => ({ messages: find(state, params.id)?.messages || [] }),
+    'GET /api/notebooks/:id/conversation': ({ state, params }: Ctx) => ({ messages: find(state, params.id)?.messages || [] }),
 
     // Generation is scripted and says so — the demo calls no model.
     'POST /api/notebooks/:id/generate': () => ({
