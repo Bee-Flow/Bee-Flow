@@ -1,7 +1,7 @@
 /**
  * Differential: the phone's Insights port and the web's own files
  * (agent-hub/src/pages/meeting-notes/lib/insightsMetrics.js, insightsData.js,
- * playerData.js, timelineMarkers.ts, format.js) build the SAME model from the
+ * playerData.js, timelineMarkers.ts, format.ts) build the SAME model from the
  * same meetings — hand-written ones that hit the edges, and a few hundred
  * seeded random ones. When this fails the web side changed: update the port.
  */
@@ -15,7 +15,7 @@ import { mergeTurns, normalizeChapters, toSeconds } from './turns';
 /* eslint-disable @typescript-eslint/no-explicit-any -- the web modules are untyped JS */
 const LIB = 'pages/meeting-notes/lib';
 const markers: any = loadWebModule(`${LIB}/timelineMarkers.ts`);
-const format: any = loadWebModule(`${LIB}/format.js`);
+const format: any = loadWebModule(`${LIB}/format.ts`);
 const player: any = loadWebModule(`${LIB}/playerData.js`, {
     toSeconds: markers.toSeconds,
     SPEAKER_COLORS: ['#111111', '#222222'],

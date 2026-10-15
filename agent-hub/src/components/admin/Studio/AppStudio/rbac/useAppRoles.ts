@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { AuthFetchOptions } from '../../../../../utils/helpers';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import type { AccessPerm, RuleTable } from './rowRuleModel.types';
 
@@ -111,7 +112,7 @@ interface ApiError extends Error {
 const enc = encodeURIComponent as (value: string | number | boolean | null | undefined) => string;
 const base = `${API_BASE}/api/studio-apps`;
 
-async function request(url: string, options: RequestInit = {}): Promise<ApiBody | null> {
+async function request(url: string, options: AuthFetchOptions = {}): Promise<ApiBody | null> {
     const res = await authFetch(url, {
         headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
         ...options,

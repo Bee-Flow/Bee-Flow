@@ -102,6 +102,10 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
         setState('loading');
         try {
             const href = entryHref(entry, appId);
+            // behaviour: entryHref answers null only without an appId; the effect never runs
+            // then, and where it could, this ends in the same failed placeholder instead of an
+            // authFetch(null) request to the relative URL "null".
+            if (href === null) throw new Error('no attachment address');
             // A .step has no picture of its own, so the server draws one.
             const res = await authFetch(kind === 'cad' ? `${href}/preview` : href);
             if (!res.ok) throw new Error(String(res.status));

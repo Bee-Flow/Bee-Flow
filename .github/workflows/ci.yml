@@ -344,7 +344,7 @@ jobs:
               - 'agent-hub/src/components/forms/{PublicFormRenderer.tsx,PublicFormRenderer.types.ts,resultFile.ts}'
               - 'agent-hub/src/components/shared/{AnchoredMenu.tsx,illustrations.tsx}'
               - 'agent-hub/src/hooks/{useAutomationApi.ts,useTranslation.tsx}'
-              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,copyText.ts,helpers.js,sseStream.js,storageMigrations.ts}'
+              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,copyText.ts,helpers.ts,helpers.types.ts,sseStream.js,storageMigrations.ts}'
             python:
               - 'guard-service/**'
               - 'classify-service/**'
