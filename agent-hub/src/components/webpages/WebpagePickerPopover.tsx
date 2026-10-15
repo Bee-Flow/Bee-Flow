@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Globe, Search, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { WebpageRow } from '../../pages/webpages/webpageEditorTypes';
+import type { WebpageRow } from './webpageRow.types';
 
 interface PickerState {
     loading: boolean;
