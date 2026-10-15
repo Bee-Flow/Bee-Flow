@@ -22,7 +22,7 @@ test('internal tools resolve to null (never logged as egress)', () => {
 
 test('document builders: local in Bee Flow storage, external (the Nextcloud URL) with nextcloudPath', () => {
     const ctx = { nextcloudUrl: 'https://cloud.example' };
-    for (const tool of ['create_word_document', 'create_presentation']) {
+    for (const tool of ['create_word_document', 'create_spreadsheet', 'create_presentation']) {
         const kept = resolveIntegration(tool, { title: 'x' }, ctx);
         assert.strictEqual(kept.isLocal, true, tool);
         assert.strictEqual(kept.server, null, tool);
@@ -35,6 +35,12 @@ test('document builders: local in Bee Flow storage, external (the Nextcloud URL)
 
         assert.strictEqual(resolveIntegration(tool, { nextcloudPath: '  ' }, ctx).isLocal, true, 'a blank path is no destination');
         assert.strictEqual(resolveIntegration(tool, { nextcloudPath: true }, ctx).isLocal, true, 'only a string is a path');
+    }
+    for (const tool of ['create_word_document', 'create_spreadsheet', 'create_presentation']) {
+        const od = resolveIntegration(tool, { title: 'x', oneDrivePath: '/Documents' }, ctx);
+        assert.strictEqual(od.isLocal, false, `${tool} into OneDrive is egress to Microsoft Graph`);
+        assert.strictEqual(od.server, 'graph.microsoft.com (OneDrive)', tool);
+        assert.strictEqual(od.direction, 'sent', tool);
     }
 });
 

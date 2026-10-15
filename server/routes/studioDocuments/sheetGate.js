@@ -3,11 +3,12 @@
  * May this person have spreadsheets in Documents?
  *
  * A spreadsheet keeps its cells in a datatable (core/documents/sheet), so it
- * is offered to exactly the people who may use datatables: the gates in front
- * of /api/datatables (server/index.js and routes/datatables/index.js) — the
- * automation module, the `automations` licence feature and the `automations`
- * beta switch — run here in the same order, so the two can never disagree
- * about who has them.
+ * is offered to the people who may use datatables: the first two gates in
+ * front of /api/datatables (server/index.js and routes/datatables/index.js) —
+ * the automation module and the `automations` licence feature — run here in
+ * the same order. The `automations` BETA switch is deliberately NOT applied:
+ * spreadsheets are generally available, so a person without the beta still
+ * gets them (the datatables themselves stay behind it).
  *
  * Not repeated: the datatables training gate. It guards designing tables
  * (creating one, changing its columns) and a spreadsheet designs nothing; its
@@ -16,7 +17,7 @@
  * Built like routes/projects/notebookGate.js, whose runner it uses:
  * `makeSheetGate({ gates })` takes the gates so a test runs it with fakes.
  *
- *   403 sheets_unavailable   module off, not in the plan, or the beta is off
+ *   403 sheets_unavailable   module off, or not in the plan
  *   503 sheets_unknown       whether it is available could not be told
  */
 
@@ -27,12 +28,11 @@ const { runGate } = require('../projects/notebookGate');
 
 /** @typedef {(req: any, res: any, next: (err?: unknown) => void) => unknown} Middleware */
 
-/** The real gates, in the order /api/datatables applies them. */
+/** The real gates, in the order /api/datatables applies them (minus its beta switch). */
 function realGates() {
     const { requireModule } = require('../../modules');
     const { requireFeature } = require('../../license/middleware');
-    const { requireBetaFeature } = require('../../core/entitlements/betaFeatures');
-    return [requireModule('automation'), requireFeature('automations'), requireBetaFeature('automations')];
+    return [requireModule('automation'), requireFeature('automations')];
 }
 
 /**
@@ -80,4 +80,19 @@ async function sheetsVisible(gate, req) {
     }
 }
 
-module.exports = { makeSheetGate, sheetsVisible, realGates };
+/** @type {Middleware | null} */
+let sharedGate = null;
+
+/**
+ * May the person behind this request have spreadsheets? For callers outside
+ * the sheet routes (the chat's attachment intake) that hold only the request.
+ * Never throws.
+ *
+ * @param {any} req
+ */
+async function sheetsAllowedFor(req) {
+    if (!sharedGate) sharedGate = makeSheetGate();
+    return sheetsVisible(sharedGate, req);
+}
+
+module.exports = { makeSheetGate, sheetsVisible, sheetsAllowedFor, realGates };

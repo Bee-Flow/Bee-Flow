@@ -89,7 +89,7 @@ const expectedTabs = [{ id: 't1', name: 'Budget', datatableId: 'dt1' }];
 test('the owner reads the cells; a project viewer reads them read-only', async () => {
     const mine = await as('owner', 'GET', '/s1/sheet');
     assert.strictEqual(mine.status, 200, mine.text);
-    assert.deepStrictEqual(mine.body, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, rows: 3, columns: 26, tabs: expectedTabs, activeTab: 't1', readOnly: false });
+    assert.deepStrictEqual(mine.body, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, rows: 3, columns: 26, refTabs: {}, tabs: expectedTabs, activeTab: 't1', readOnly: false });
     const theirs = await as('viewer', 'GET', '/s1/sheet');
     assert.strictEqual(theirs.body.readOnly, true);
     assert.deepStrictEqual(theirs.body.tabs, expectedTabs);
@@ -126,6 +126,18 @@ test('the CSV holds what the sheet shows, formulas computed', async () => {
     assert.match(String(res.headers.get('content-type')), /text\/csv/);
     assert.match(String(res.headers.get('content-disposition')), /filename="Budget\.csv"/);
     assert.strictEqual(res.text.replace(/^﻿/, ''), '2\r\n3\r\n6\r\n');
+});
+
+test('the Excel download is an attachment of the whole workbook, for a viewer too', async () => {
+    for (const user of ['owner', 'viewer']) {
+        const res = await as(user, 'GET', '/s1/sheet.xlsx');
+        assert.strictEqual(res.status, 200, res.text);
+        assert.match(String(res.headers.get('content-type')), /spreadsheetml\.sheet/);
+        assert.match(String(res.headers.get('content-disposition')), /^attachment; filename="Budget\.xlsx"$/);
+        assert.strictEqual(res.text.slice(0, 2), 'PK');
+    }
+    assert.strictEqual((await as('stranger', 'GET', '/s1/sheet.xlsx')).status, 404);
+    assert.strictEqual((await as('owner', 'GET', '/p1/sheet.xlsx')).status, 404);
 });
 
 test('sheetCsv quotes what needs quoting and fills the gaps', () => {

@@ -32,6 +32,33 @@ describe('useSheet', () => {
         expect(api.patchSheet).not.toHaveBeenCalled();
     });
 
+    it('computes a formula over another tab from the refTabs the server sends', async () => {
+        api.getSheet.mockResolvedValue({
+            ...sheet({ A1: 'ZZP', B1: '=COUNTIF(Klanten!$L$2:$L$4,A1)', B2: '=Missing!A1' }),
+            tabs: [{ id: 't1', name: 'Klanten' }, { id: 't2', name: 'Draaitabel' }], activeTab: 't2',
+            refTabs: { Klanten: { L2: 'ZZP', L3: 'MKB', L4: 'ZZP' } },
+        });
+        const { result } = renderHook(() => useSheet('doc-1'), { wrapper: queryWrapper() });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.computed.B1.display).toBe('2');
+        expect(result.current.computed.B2.error).toBeTruthy();
+    });
+
+    it('reads the sheet again once a typed formula names a tab the server did not send', async () => {
+        const first = {
+            ...sheet({ A1: '1' }), tabs: [{ id: 't1', name: 'Klanten' }, { id: 't2', name: 'Test' }], activeTab: 't2', refTabs: {},
+        };
+        api.getSheet.mockResolvedValueOnce(first).mockResolvedValue({ ...first, cells: { A1: '1', B1: '=Klanten!A2' }, refTabs: { Klanten: { A2: 'KL-1' } } });
+        const { result } = renderHook(() => useSheet('doc-1'), { wrapper: queryWrapper() });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        act(() => result.current.setCells({ B1: '=Klanten!A2' }));
+        await act(async () => { await result.current.flush(); });
+        await waitFor(() => expect(result.current.computed.B1.display).toBe('KL-1'));
+        const reads = api.getSheet.mock.calls.length;
+        await new Promise((r) => setTimeout(r, 50));
+        expect(api.getSheet.mock.calls.length).toBe(reads);
+    });
+
     it('sends the edits of one burst in a single PATCH after the pause', async () => {
         const { result } = await mount();
         act(() => { result.current.setCells({ A1: '1' }); result.current.setCells({ B1: '2' }); result.current.setCells({ A1: '3' }); });

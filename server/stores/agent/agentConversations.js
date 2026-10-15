@@ -396,10 +396,9 @@ async function getConversationById(conversationId, encryptionKey = null, options
     // is reserved for the LLM history loader (so Claude keeps seeing tokens).
     const restore = options.restore !== false;
     if (restore && row.pii_token_map) {
-        const { _restoreTokensInMessages } = require('./directConversations');
-        if (typeof _restoreTokensInMessages === 'function') {
-            messages = _restoreTokensInMessages(messages, row.pii_token_map);
-        }
+        // Decrypted first: the stored column may be an encryption envelope.
+        const { _restoreTokensInMessages, _displayTokenMap } = require('./tokenDisplay');
+        messages = _restoreTokensInMessages(messages, await _displayTokenMap(row));
     }
 
     const meta = _parseMeta(row.meta_json, row.id, await _rowCrypto(row, encryptionKey));

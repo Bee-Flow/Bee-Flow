@@ -96,11 +96,20 @@ const CTX = { userId: 'u1', documentScope: OPEN_SCOPE };
 
 // ── Tool surface ─────────────────────────────────────────────────────
 
-test('the tool surface is exactly the four document tools', () => {
+test('the tool surface is exactly the document tools', () => {
     const names = DOCUMENT_TOOLS.map(t => t.function.name).sort();
-    assert.deepStrictEqual(names, ['create_document', 'document_edit', 'document_read', 'document_write']);
+    assert.deepStrictEqual(names, ['create_document', 'document_download', 'document_edit', 'document_read', 'document_write']);
     for (const name of names) assert.ok(isDocumentTool(name), `${name} dispatches here`);
     assert.ok(!isDocumentTool('create_webpage'), 'webpage tools are somebody else\'s');
+});
+
+test('document_download: scope first, unknown ids, and spreadsheets only', async () => {
+    const { documentId } = await executeDocumentTool('create_document', { name: 'Letter', docType: 'letter' }, CTX);
+    const closed = { has: (id) => id === documentId };
+    assert.match((await executeDocumentTool('document_download', { documentId: 'other' }, { userId: 'u1', documentScope: closed })).error, /not been shared/);
+    assert.match((await executeDocumentTool('document_download', { documentId: 'other' }, { userId: 'u1' })).error, /not been shared/);
+    assert.match((await executeDocumentTool('document_download', { documentId }, { userId: 'u1', documentScope: closed })).error, /for spreadsheets/);
+    assert.strictEqual((await executeDocumentTool('document_download', { documentId: 'doc_999' }, CTX)).error, 'Document not found.');
 });
 
 test('no tool offers a script slot — a document does not run', () => {

@@ -65,7 +65,7 @@ function markCacheBreakpoint(contentParts) {
  * the per-file scan summaries, or `{ blocked: true }` after the Privacy
  * Shield blocked one (the SSE stream is then already ended).
  */
-async function intakeAttachments({ req, res, send, userId, convId, conversationId, message, attachments, adapter, modelId, config, persistedAttachments }) {
+async function intakeAttachments({ req, res, send, userId, convId, conversationId, message, attachments, adapter, modelId, config, persistedAttachments, documentScope }) {
     const contentParts = [];
     if (message) contentParts.push({ type: 'text', text: message });
     const { persistExtractedText } = require('../../../core/documents/extractedTextStore');
@@ -89,7 +89,7 @@ async function intakeAttachments({ req, res, send, userId, convId, conversationI
         });
     };
 
-    const ctx = { userId, adapter, modelId, config, shield, contentParts, persistedAttachments, pushAttachment, scan, summaries };
+    const ctx = { req, send, documentScope, userId, adapter, modelId, config, shield, contentParts, persistedAttachments, pushAttachment, scan, summaries };
     const auditCtx = { userOrgId, userId, conversationId, config, modelId };
     try {
         for (const att of attachments) await processAttachment(att, ctx);
@@ -108,7 +108,7 @@ async function intakeAttachments({ req, res, send, userId, convId, conversationI
     return { contentParts, summaries };
 }
 
-async function processAttachmentsAndUserMessage({ req, res, send, userId, convId, conversationId, modelTier, message, attachments, adapter, modelId, config, messages }) {
+async function processAttachmentsAndUserMessage({ req, res, send, userId, convId, conversationId, modelTier, message, attachments, adapter, modelId, config, messages, documentScope }) {
     convId = await ensureConversation({ convId, userId, modelTier, send });
 
     const persistedAttachments = []; // Track attachments for conversation persistence
@@ -129,7 +129,7 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
     }
     const _attT = hasAttachments ? Date.now() : null;
     if (hasAttachments) {
-        const intake = await intakeAttachments({ req, res, send, userId, convId, conversationId, message, attachments, adapter, modelId, config, persistedAttachments });
+        const intake = await intakeAttachments({ req, res, send, userId, convId, conversationId, message, attachments, adapter, modelId, config, persistedAttachments, documentScope });
         if (intake.blocked) return undefined;
         if (intake.summaries.length > 0) _turnAttachmentSummaries = intake.summaries;
         messages.push({ role: 'user', content: intake.contentParts });

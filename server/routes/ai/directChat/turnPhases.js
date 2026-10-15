@@ -70,7 +70,7 @@ async function runSetupPhases(turn, body) {
     await turn.swapModelForActiveStage();
     const attachmentIntake = await processAttachmentsAndUserMessage({
         req, res: turn.res, send, userId, convId: turn.convId, conversationId, modelTier, message, attachments,
-        adapter: turn.adapter, modelId: turn.modelId, config: turn.config, messages: turn.messages,
+        adapter: turn.adapter, modelId: turn.modelId, config: turn.config, messages: turn.messages, documentScope: turn.documentScope,
     });
     if (!attachmentIntake) return false;
     Object.assign(turn, attachmentIntake);

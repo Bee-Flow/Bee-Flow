@@ -38,11 +38,9 @@ const readOnlyFor = (doc) => !!doc.projectRole && !canEditAs(doc.projectRole);
 const READ_ONLY = { error: 'Document is read-only.' };
 // A spreadsheet's cells are in a datatable, not in the body slots.
 const sheetTools = () => require('./sheetDocumentTools');
-
-// A page edited live has no stored revision that says what the model read: the
-// live state moves with every keystroke. document_read hands out a versionId
-// that also names the live update it read (`<versionId>@live:<seq>`), and a
-// full write is applied only while that is still the newest.
+// A page edited live has no stored revision that says what the model read: the live state
+// moves with every keystroke. document_read hands out a versionId that also names the live
+// update it read (`<versionId>@live:<seq>`); a full write is applied only while that is newest.
 const LIVE_MARK = '@live:';
 const liveToken = (versionId, seq) => `${versionId || ''}${LIVE_MARK}${seq}`;
 function parseExpected(value) {
@@ -131,7 +129,6 @@ async function suggestBody({ doc, userId, ctx, currentHtml, proposedHtml, baseTo
 }
 
 const APP_PATH = 'app/studio/documents';
-
 function documentUrl(id) {
     return `/${APP_PATH}/${id}`;
 }
@@ -177,7 +174,7 @@ const DOCUMENT_TOOLS = [
             parameters: {
                 type: 'object',
                 properties: {
-                    documentId: { type: 'string', description: 'The document to read.' },
+                    documentId: { type: 'string', description: 'The document to read.' }, tab: { type: 'string', description: 'SPREADSHEETS ONLY: the tab to read, by id or name (any case). Default: the first tab. The answer lists all tabs.' }, mode: { type: 'string', enum: ['outline'], description: 'SPREADSHEETS ONLY: "outline" answers with every tab\'s columns (header, type, fill, min/max, category values) and no rows. Start here for a dashboard, pivot or summary.' }, range: { type: 'string', description: 'SPREADSHEETS ONLY: read just this part of the tab, e.g. "A1:F30". A large tab without a range answers with its first rows.' },
                 },
                 required: ['documentId'],
             },
@@ -191,11 +188,11 @@ const DOCUMENT_TOOLS = [
             parameters: {
                 type: 'object',
                 properties: {
-                    documentId: { type: 'string', description: 'The document to write to.' },
+                    documentId: { type: 'string', description: 'The document to write to.' }, tab: { type: 'string', description: 'SPREADSHEETS ONLY: the tab to write cells to, by id or name (any case). Default: the first tab.' }, createTab: { type: 'boolean', description: 'SPREADSHEETS ONLY: true adds `tab` as a NEW tab when the sheet has none by that name (e.g. a summary or pivot table next to the data), then writes the cells there.' }, charts: { type: 'array', description: 'SPREADSHEETS ONLY: charts to place IN the sheet, on `tab`, drawn from ITS cells (all ranges on that tab): [{ type: "bar"|"hbar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"stacked"|"kpi", dataRange: "B2:C10" (numbers; each column a series; kpi = one cell), categoriesRange: "A2:A10" (labels; numeric x for scatter), anchor: "E2", size: { cols: 6, rows: 14 }, title, format: "number"|"currency"|"percent", label + compareRange (kpi) }]. An item with an existing chart `id` updates it. `cells` may be left out.', items: { type: 'object' } }, removeCharts: { type: 'array', description: 'SPREADSHEETS ONLY: ids of charts on `tab` to delete (document_read lists them).', items: { type: 'string' } },
                     bodyHtml: { type: 'string', description: 'The document body markup. Omit to leave the current body untouched.' },
                     css: { type: 'string', description: 'The document stylesheet. Omit to leave the current stylesheet untouched.' },
                     summary: { type: 'string', description: 'A short note for the version history, e.g. "Added VAT row".' },
-                    cells: { type: 'object', additionalProperties: { type: 'string' }, description: 'SPREADSHEETS ONLY (docType "spreadsheet", which has no bodyHtml or css): the cells to set, e.g. { "A1": "Rent", "B1": "1200", "B3": "=SUM(B1:B2)" }. Columns A–Z, rows from 1; "" clears a cell. At most 500 cells per call.' },
+                    cells: { type: 'object', additionalProperties: { type: 'string' }, description: 'SPREADSHEETS ONLY (docType "spreadsheet", which has no bodyHtml or css): the cells to set, e.g. { "A1": "Rent", "B1": "1200", "B3": "=SUM(B1:B2)" }. Columns A–Z, rows from 1; "" clears a cell. At most 5000 cells per call.' },
                 },
                 required: ['documentId'],
             },
@@ -236,6 +233,7 @@ for (const tool of DOCUMENT_TOOLS) {
     if (tool.function.name === 'document_write') props.settings = {type:'object',description:'Settings including the typed document contract. Preserve unrelated settings from document_read.'};
 }
 
+DOCUMENT_TOOLS.push(require('./sheetDownloadTool').DOCUMENT_DOWNLOAD_TOOL);
 const DOCUMENT_TOOL_NAMES = new Set(DOCUMENT_TOOLS.map(t => t.function.name));
 
 function isDocumentTool(toolName) {
@@ -251,12 +249,10 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
     const userId = ctx.userId;
     if (!userId) return { error: 'No user context for document tools.' };
 
-    // The AI touches only documents the person pointed at (side panel, made in
-    // this chat, linked in their own message): core/documents/aiDocumentScope.js.
-    // Checked BEFORE any lookup, so the answer never says whether an id exists,
-    // and no scope at all (another caller) means no access.
+    // The AI touches only documents the person pointed at (core/documents/aiDocumentScope.js),
+    // checked BEFORE any lookup: the answer never says whether an id exists; no scope, no access.
     const scope = ctx.documentScope;
-    if (toolName !== 'create_document' && ['document_read', 'document_write', 'document_edit'].includes(toolName)
+    if (toolName !== 'create_document' && ['document_read', 'document_write', 'document_edit', 'document_download'].includes(toolName)
         && !(scope && typeof scope.has === 'function' && scope.has(String(args.documentId || '')))) {
         return { error: NOT_SHARED };
     }
@@ -320,10 +316,14 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         };
     }
 
+    if (toolName === 'document_download') {
+        const doc = await documentStore.getDocument(String(args.documentId || ''), userId);
+        return doc ? require('./sheetDownloadTool').downloadSheetDocument(doc, args, { userId }) : { error: 'Document not found.' };
+    }
     if (toolName === 'document_read') {
         const doc = await documentStore.getDocument(String(args.documentId || ''), userId);
         if (!doc) return { error: 'Document not found.' };
-        if (doc.docType === 'spreadsheet') return sheetTools().readSheetDocument(doc);
+        if (doc.docType === 'spreadsheet') return sheetTools().readSheetDocument(doc, {}, args);
         // A page edited live: what people see now is the live state, and the
         // versionId names the live update it was read at.
         const live = await documentFeed.liveCollabFor(doc);
@@ -366,7 +366,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         const existing = await documentStore.getDocument(documentId, userId);
         if (!existing) return { error: 'Document not found.' };
         if (readOnlyFor(existing)) return READ_ONLY;
-        if (existing.docType === 'spreadsheet') return sheetTools().writeSheetDocument(existing, args);
+        if (existing.docType === 'spreadsheet') return sheetTools().writeSheetDocument(existing, args, { actorUserId: userId });
         if (existing.versionId && (existing.bodyHtml || existing.css) && !args.expectedVersionId) return { error: 'Read document_read first and pass its versionId as expectedVersionId.' };
         const expected = parseExpected(args.expectedVersionId);
 

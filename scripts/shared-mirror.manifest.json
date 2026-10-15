@@ -14,6 +14,7 @@
             "exclude": [
                 "corpus.mjs",
                 "sheet.mjs",
+                "sheetDates.mjs",
                 "sheetFill.mjs"
             ],
             "keep": [

@@ -67,6 +67,16 @@ export const notebookHandlers: SseHandlerMap = {
         } catch (_) {}
     },
 
+    // An uploaded Excel was imported as a spreadsheet document: open it in the
+    // right side panel (useSidePanelState listens; it skips phones itself).
+    document_open(_ctx, data) {
+        if (typeof data?.documentId !== 'string' || !data.documentId) return;
+        window.dispatchEvent(new CustomEvent('beeflow:open-document-side', {
+            detail: { id: data.documentId, href: `/app/studio/documents/${data.documentId}` },
+            cancelable: true,
+        }));
+    },
+
     // The AI proposed changes to a page instead of writing them: tell the
     // open editor's suggestions list (api/queries/suggestions.ts).
     document_suggestions(_ctx, data) {

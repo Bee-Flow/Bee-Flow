@@ -64,14 +64,10 @@ function startRetentionAndComplianceJobs() {
     } catch (err) {
         log.warn('[Server] Document version retention job load failed:', err.message);
     }
+    require('./ports').wirePorts({ compliance: isModuleAvailable('compliance') });
     if (isModuleAvailable('compliance')) {
         require('../compliance/checks');
         require('../compliance/scheduler').start();
-        // Art. 50(2): hand the document runner its marking resolver. core/
-        // owns the port, compliance owns the policy — without this line a
-        // generated document simply renders unmarked.
-        require('../core/automationRunner/documentMarking')
-            .setMarkingResolver((orgId, info) => require('../compliance/marking').resolveMarking(orgId, info));
         require('../jobs/complianceDeadlineNotifier').start();
         // ISO evidence connectors — periodic external-system sweeps (advisory-locked).
         require('../jobs/isoEvidenceCollector').start();

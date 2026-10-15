@@ -21,6 +21,8 @@ export interface SheetData {
     tabs?: SheetTab[];
     /** The id of the tab these cells belong to. */
     activeTab?: string;
+    /** The typed cells of the other tabs this tab's formulas refer to (`Klanten!A1`), by tab name. */
+    refTabs?: Record<string, Record<string, string>>;
 }
 
 /** The server may take this many cells in one PATCH. */
@@ -61,6 +63,7 @@ export async function getSheet(id: string, tabId?: string): Promise<SheetData> {
         readOnly: body.readOnly === true,
         tabs: Array.isArray(body.tabs) ? body.tabs : undefined,
         activeTab: typeof body.activeTab === 'string' ? body.activeTab : undefined,
+        refTabs: body.refTabs && typeof body.refTabs === 'object' ? body.refTabs : undefined,
     };
 }
 
@@ -102,17 +105,29 @@ export function sheetCsvUrl(id: string, tabId?: string): string {
     return sheetUrl(id, '.csv') + tabQuery(tabId);
 }
 
-/** The computed values as a .csv file, through the signed-in session. */
-export async function downloadSheetCsv(id: string, name?: string, tabId?: string): Promise<void> {
-    const res = await authFetch(sheetCsvUrl(id, tabId));
-    if (!res.ok) await asJson(res, 'Failed to download the CSV');
+/** Save a response body as a file named after the sheet. */
+async function saveAs(res: Response, name: string | undefined, ext: string): Promise<void> {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(name || 'spreadsheet').replace(/[\\/:*?"<>|]+/g, '_').trim() || 'spreadsheet'}.csv`;
+    a.download = `${(name || 'spreadsheet').replace(/[\\/:*?"<>|]+/g, '_').trim() || 'spreadsheet'}.${ext}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** The computed values as a .csv file, through the signed-in session. */
+export async function downloadSheetCsv(id: string, name?: string, tabId?: string): Promise<void> {
+    const res = await authFetch(sheetCsvUrl(id, tabId));
+    if (!res.ok) await asJson(res, 'Failed to download the CSV');
+    await saveAs(res, name, 'csv');
+}
+
+/** The whole workbook (every tab, formulas kept) as an Excel .xlsx file. */
+export async function downloadSheetXlsx(id: string, name?: string): Promise<void> {
+    const res = await authFetch(sheetUrl(id, '.xlsx'));
+    if (!res.ok) await asJson(res, 'Failed to download the Excel file');
+    await saveAs(res, name, 'xlsx');
 }

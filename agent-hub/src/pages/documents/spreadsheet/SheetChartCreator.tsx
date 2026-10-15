@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { BarChart3, LineChart, PieChart } from 'lucide-react';
+import { ChartArea, ChartBar, ChartColumn, ChartColumnStacked, ChartLine, ChartPie, ChartScatter, Donut, Gauge } from 'lucide-react';
 import useTranslation from '../../../hooks/useTranslation';
 import { cellName, parseCellRef } from './sheetEngine';
-import { parseA1Range, type ChartType, type SheetChartConfig, validateChart } from './sheetCharts';
+import { COL_PX, ROW_PX, parseA1Range, type ChartFormat, type ChartType, type SheetChartConfig, validateChart } from './sheetCharts';
 import type { SelectionKind } from './sheetModel';
 
 export interface SheetChartCreatorProps {
@@ -15,10 +15,23 @@ export interface SheetChartCreatorProps {
     columns: number;
 }
 
-const TYPES: { type: ChartType; icon: typeof BarChart3; labelKey: string; defaultLabel: string }[] = [
-    { type: 'bar', icon: BarChart3, labelKey: 'spreadsheet.chart.bar', defaultLabel: 'Bar' },
-    { type: 'line', icon: LineChart, labelKey: 'spreadsheet.chart.line', defaultLabel: 'Line' },
-    { type: 'pie', icon: PieChart, labelKey: 'spreadsheet.chart.pie', defaultLabel: 'Pie' },
+const TYPES: { type: ChartType; icon: typeof ChartColumn; labelKey: string; defaultLabel: string }[] = [
+    { type: 'bar', icon: ChartColumn, labelKey: 'spreadsheet.chart.bar', defaultLabel: 'Column' },
+    { type: 'hbar', icon: ChartBar, labelKey: 'spreadsheet.chart.hbar', defaultLabel: 'Bar' },
+    { type: 'stacked', icon: ChartColumnStacked, labelKey: 'spreadsheet.chart.stacked', defaultLabel: 'Stacked' },
+    { type: 'line', icon: ChartLine, labelKey: 'spreadsheet.chart.line', defaultLabel: 'Line' },
+    { type: 'area', icon: ChartArea, labelKey: 'spreadsheet.chart.area', defaultLabel: 'Area' },
+    { type: 'pie', icon: ChartPie, labelKey: 'spreadsheet.chart.pie', defaultLabel: 'Pie' },
+    { type: 'doughnut', icon: Donut, labelKey: 'spreadsheet.chart.doughnut', defaultLabel: 'Doughnut' },
+    { type: 'scatter', icon: ChartScatter, labelKey: 'spreadsheet.chart.scatter', defaultLabel: 'Scatter' },
+    { type: 'kpi', icon: Gauge, labelKey: 'spreadsheet.chart.kpi', defaultLabel: 'KPI' },
+];
+
+const FORMATS: { value: ChartFormat | ''; labelKey: string; defaultLabel: string }[] = [
+    { value: '', labelKey: 'spreadsheet.chart.format_auto', defaultLabel: 'Automatic' },
+    { value: 'number', labelKey: 'spreadsheet.chart.format_number', defaultLabel: 'Number' },
+    { value: 'currency', labelKey: 'spreadsheet.chart.format_currency', defaultLabel: 'Currency' },
+    { value: 'percent', labelKey: 'spreadsheet.chart.format_percent', defaultLabel: 'Percentage' },
 ];
 
 function suggestRanges(selection: string | null, selectionKind: SelectionKind | null, activeCell: string, columns: number) {
@@ -41,6 +54,22 @@ function suggestRanges(selection: string | null, selectionKind: SelectionKind | 
     };
 }
 
+function TypePicker({ type, onPick }: { type: ChartType; onPick: (t: ChartType) => void }) {
+    const { t } = useTranslation();
+    return (
+        <div className="grid grid-cols-3 gap-1">
+            {TYPES.map(({ type: tt, icon: Icon, labelKey, defaultLabel }) => (
+                <button
+                    key={tt} type="button" onClick={() => onPick(tt)}
+                    className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md text-[11px] border ${type === tt ? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,transparent)] text-[var(--accent-primary)]' : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
+                >
+                    <Icon size={16} />{t(labelKey, defaultLabel)}
+                </button>
+            ))}
+        </div>
+    );
+}
+
 export default function SheetChartCreator({ open, onClose, onCreate, selection, selectionKind, activeCell, columns }: SheetChartCreatorProps) {
     const { t } = useTranslation();
     const defaults = useMemo(() => suggestRanges(selection, selectionKind, activeCell, columns), [selection, selectionKind, activeCell, columns]);
@@ -49,6 +78,7 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
     const [dataRange, setDataRange] = useState(defaults.dataRange);
     const [categoriesRange, setCategoriesRange] = useState(defaults.categoriesRange);
     const [anchor, setAnchor] = useState(defaults.anchor);
+    const [format, setFormat] = useState<ChartFormat | ''>('');
     const [error, setError] = useState<string | null>(null);
 
     if (!open) return null;
@@ -62,8 +92,10 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
             dataRange: dataRange.trim(),
             categoriesRange: categoriesRange.trim() || undefined,
             anchor: anchor.trim() || activeCell,
-            width: 320,
-            height: 220,
+            ...(format ? { format } : {}),
+            // the default size of a chart is 6 x 14 cells, a KPI tile 3 x 4
+            width: (type === 'kpi' ? 3 : 6) * COL_PX,
+            height: (type === 'kpi' ? 4 : 14) * ROW_PX,
         };
         const err = validateChart(config);
         if (err) { setError(err); return; }
@@ -75,16 +107,7 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
     return (
         <div className="absolute top-12 right-4 z-50 w-72 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg shadow-lg p-3 flex flex-col gap-3">
             <div className="text-[13px] font-medium text-[var(--text-primary)]">{t('spreadsheet.chart.create', 'Add chart')}</div>
-            <div className="flex gap-1">
-                {TYPES.map(({ type: tt, icon: Icon, labelKey, defaultLabel }) => (
-                    <button
-                        key={tt} type="button" onClick={() => setType(tt)}
-                        className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md text-[11px] border ${type === tt ? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,transparent)] text-[var(--accent-primary)]' : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
-                    >
-                        <Icon size={16} />{t(labelKey, defaultLabel)}
-                    </button>
-                ))}
-            </div>
+            <TypePicker type={type} onPick={setType} />
             <input
                 value={title} onChange={(e) => setTitle(e.target.value)}
                 placeholder={t('spreadsheet.chart.title_placeholder', 'Chart title (optional)')}
@@ -103,6 +126,15 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
                     value={categoriesRange} onChange={(e) => setCategoriesRange(e.target.value)}
                     className="px-2 py-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
                 />
+            </label>
+            <label className="text-[11px] text-[var(--text-secondary)] flex flex-col gap-0.5">
+                {t('spreadsheet.chart.format', 'Number format')}
+                <select
+                    value={format} onChange={(e) => setFormat(e.target.value as ChartFormat | '')}
+                    className="px-2 py-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
+                >
+                    {FORMATS.map((f) => <option key={f.value} value={f.value}>{t(f.labelKey, f.defaultLabel)}</option>)}
+                </select>
             </label>
             <label className="text-[11px] text-[var(--text-secondary)] flex flex-col gap-0.5">
                 {t('spreadsheet.chart.anchor', 'Anchor cell')}

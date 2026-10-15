@@ -290,6 +290,7 @@ module.exports = {
     'chat.model.search': 'Search models...',
     // Chat — message item
     'chat.msg.attachment': 'Attachment',
+    'chat.attachments.openSpreadsheet': 'Open',
     'chat.msg.auto_picked': 'Auto → {tier}',
     'chat.msg.browse_done': 'done',
     'chat.msg.browse_opening': 'Opening the browser…',

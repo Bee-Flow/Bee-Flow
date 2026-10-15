@@ -4,9 +4,10 @@
  * routes/studioDocuments.js under /api/studio-documents.
  *
  *   POST  /sheets             { name?, folderId? }  → 201 { document }   start one
- *   GET   /:id/sheet          → { columns, rows, cells: { A1: raw }, readOnly }
+ *   GET   /:id/sheet          → { columns, rows, cells: { A1: raw }, refTabs: { Tab: cells }, readOnly }
  *   PATCH /:id/sheet          { cells: { B3: '12', C3: '=SUM(B1:B3)', D4: '' } } → { ok, cells }
  *   GET   /:id/sheet.csv      the computed values, as a CSV download
+ *   GET   /:id/sheet.xlsx     every tab as one Excel workbook, formulas kept (core/documents/sheetExport)
  *   POST  /:id/sheet/assistant  { message, selection?, selectionKind?, history?, modelTier? }
  *                             → { reply, changes: { B2: { before, after } }, tier }
  *                             the spreadsheet assistant (core/documents/sheetAssist):
@@ -36,6 +37,7 @@ const { validate } = require('../../core/http/validate');
 const { HttpError, notFound, forbidden } = require('../../core/http/errors');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
 const { sheetTabsOf, newTabId } = require('../../stores/lib/sheetDocument');
+const { sheetCsv, buildSheetWorkbook } = require('../../core/documents/sheetExport');
 
 const NAME_TEXT = 'name is the spreadsheet\'s name, at most 200 characters.';
 const CreateBody = bodyOf({
@@ -82,38 +84,6 @@ function asHttp(e) {
 const handle = (/** @type {Function} */ fn) => async (/** @type {any} */ req, /** @type {any} */ res) => {
     try { await fn(req, res); } catch (e) { throw asHttp(e); }
 };
-
-/** One CSV field: quoted when it has to be, quotes doubled. */
-function csvField(text) {
-    const s = String(text ?? '');
-    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-/**
- * The computed sheet as CSV: rows 1 … the last used row, columns A … the last
- * used column. Values as they show (formulas evaluated, errors as their code).
- *
- * @param {Record<string, string>} cells
- * @param {(cells: Record<string, string>) => Record<string, { display: string }>} evaluate
- */
-function sheetCsv(cells, evaluate) {
-    const shown = evaluate(cells);
-    let lastRow = 0;
-    let lastCol = -1;
-    for (const name of Object.keys(cells)) {
-        const m = /^([A-Z])(\d+)$/.exec(name);
-        if (!m) continue;
-        lastRow = Math.max(lastRow, Number(m[2]));
-        lastCol = Math.max(lastCol, m[1].charCodeAt(0) - 65);
-    }
-    const lines = [];
-    for (let r = 1; r <= lastRow; r++) {
-        const fields = [];
-        for (let c = 0; c <= lastCol; c++) fields.push(csvField(shown[`${String.fromCharCode(65 + c)}${r}`]?.display ?? ''));
-        lines.push(fields.join(','));
-    }
-    return lines.join('\r\n') + (lines.length ? '\r\n' : '');
-}
 
 /** A safe download name. */
 function fileNameOf(name) {
@@ -198,7 +168,9 @@ function makeSheetRouter(deps = {}) {
         const { doc, tabs } = await sheetFor(req);
         const tab = resolveTab(tabs, req.query.tab);
         const sheet = await cells().readSheet(doc.userId, tab.datatableId);
-        res.json({ ...sheet, tabs, activeTab: tab.id, readOnly: (doc.projectRole === 'viewer' || doc.sharingRole === 'viewer') });
+        // The tabs its formulas point at, so the editor computes `Klanten!A1` instead of #REF!.
+        const refTabs = await require('../../core/documents/sheetWorkbook').readReferencedTabs(doc, tabs, tab.id, sheet.cells, cells());
+        res.json({ ...sheet, refTabs, tabs, activeTab: tab.id, readOnly: (doc.projectRole === 'viewer' || doc.sharingRole === 'viewer') });
     }));
 
     router.patch('/:id/sheet', requireAuth, validate({ body: WriteBody }), handle(async (req, res) => {
@@ -218,6 +190,15 @@ function makeSheetRouter(deps = {}) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         // A BOM so spreadsheet apps read the file as UTF-8.
         res.send('\uFEFF' + sheetCsv(raw, evaluate));
+    }));
+
+    router.get('/:id/sheet.xlsx', requireAuth, handle(async (req, res) => {
+        const { doc } = await sheetFor(req);
+        const file = await buildSheetWorkbook(doc, { cells: cells() });
+        res.setHeader('Content-Type', file.contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.send(file.buffer);
     }));
 
     router.post('/:id/sheet/tabs', requireAuth, validate({ body: TabCreateBody }), handle(async (req, res) => {

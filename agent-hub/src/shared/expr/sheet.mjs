@@ -40,6 +40,7 @@
  *
  * @module sheet
  */
+import { EXCEL_EPOCH, isoDateSerial, makeSerial, serialParts } from './sheetDates.mjs';
 
 /** Longest formula body we parse (characters, without the leading '='). */
 const MAX_FORMULA_LENGTH = 2000;
@@ -63,8 +64,6 @@ const E_CIRC = '#CIRC!';
 const E_NUM = '#NUM!';
 const E_NA = '#N/A';
 
-/** Excel's 1900 date-system epoch (serial 0 = 1899-12-30) in UTC milliseconds. */
-const EXCEL_EPOCH = Date.UTC(1899, 11, 30);
 
 /** A spreadsheet error travelling up the evaluator (plain class: no stack capture, they are automation). */
 class SheetError {
@@ -178,6 +177,9 @@ function numericText(s) {
     return Number.isFinite(n) ? n : null;
 }
 
+/** A number for a comparison criterion: numeric text, or an ISO date's serial (sheetDates.mjs). */
+const numberOrDate = (s) => numericText(s) ?? isoDateSerial(s);
+
 /**
  * Interpret raw non-formula input.
  * @param {string} raw
@@ -228,6 +230,9 @@ function toNumber(v) {
     if (n === null) throw fail(E_VALUE);
     return n;
 }
+
+/** A date argument: a serial number, or a date typed as ISO text ("1957-09-17"). */
+const dateNumber = (v) => isoDateSerial(v) ?? toNumber(v);
 
 function toText(v) {
     if (v === null) return '';
@@ -473,7 +478,7 @@ function parseFormula(src) {
  */
 export const SHEET_FUNCTIONS = Object.freeze([
     'SUM', 'AVERAGE', 'MIN', 'MAX', 'COUNT', 'COUNTA', 'IF', 'AND', 'OR', 'NOT',
-    'ROUND', 'ROUNDUP', 'ROUNDDOWN', 'ABS', 'CONCAT', 'CONCATENATE', 'LEN', 'UPPER', 'LOWER', 'TRIM', 'TEXTJOIN',
+    'ROUND', 'ROUNDUP', 'ROUNDDOWN', 'ABS', 'CONCAT', 'CONCATENATE', 'LEN', 'UPPER', 'LOWER', 'TRIM', 'TEXTJOIN', 'LEFT', 'RIGHT', 'MID',
     'SUMIF', 'SUMIFS', 'AVERAGEIF', 'AVERAGEIFS', 'COUNTIF', 'COUNTIFS',
     'IFERROR', 'VLOOKUP',
     'TODAY', 'NOW', 'DATE', 'YEAR', 'MONTH', 'DAY',
@@ -710,9 +715,9 @@ function run(cells, targets, options = {}) {
         const opMatch = /^(>=|<=|<>|>|<)(.*)$/.exec(s);
         if (opMatch) {
             const rhsText = opMatch[2].trim();
-            const rhs = numericText(rhsText);
+            const rhs = numberOrDate(rhsText);
             if (rhs === null) return false;
-            const numValue = typeof value === 'number' ? value : numericText(value === null ? '' : toText(value));
+            const numValue = typeof value === 'number' ? value : numberOrDate(value === null ? '' : toText(value));
             if (numValue === null) return false;
             const cmp = clean(numValue) - clean(rhs);
             const op = opMatch[1];
@@ -749,15 +754,6 @@ function run(cells, targets, options = {}) {
             rows.push(row);
         }
         return rows;
-    }
-
-    // --- date helpers ----------------------------------------------------------
-    function makeSerial(year, month, day) {
-        return (Date.UTC(year, month - 1, day) - EXCEL_EPOCH) / 86400000;
-    }
-    function serialParts(serial) {
-        const d = new Date(EXCEL_EPOCH + Math.trunc(serial) * 86400000);
-        return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, day: d.getUTCDate() };
     }
 
     // --- directional rounding --------------------------------------------------
@@ -827,6 +823,8 @@ function run(cells, targets, options = {}) {
                 return out;
             }
             case 'LEN': return scalarText(args).length;
+            case 'LEFT': case 'RIGHT': { arity(args, 1, 2); const t = toText(evalNode(args[0])), n = args[1] ? Math.trunc(toNumber(evalNode(args[1]))) : 1; if (n < 0) throw fail(E_VALUE); return name === 'LEFT' ? t.slice(0, n) : t.slice(Math.max(0, t.length - n)); }
+            case 'MID': { arity(args, 3, 3); const t = toText(evalNode(args[0])), at = Math.trunc(toNumber(evalNode(args[1]))), n = Math.trunc(toNumber(evalNode(args[2]))); if (at < 1 || n < 0) throw fail(E_VALUE); return t.slice(at - 1, at - 1 + n); }
             case 'UPPER': return scalarText(args).toUpperCase();
             case 'LOWER': return scalarText(args).toLowerCase();
             case 'TRIM': return scalarText(args).replace(/^ +| +$/g, '').replace(/ {2,}/g, ' ');
@@ -1022,9 +1020,9 @@ function run(cells, targets, options = {}) {
                 const d = Math.trunc(toNumber(evalNode(args[2])));
                 return finite(makeSerial(y, m, d));
             }
-            case 'YEAR': { arity(args, 1, 1); return serialParts(toNumber(evalNode(args[0]))).y; }
-            case 'MONTH': { arity(args, 1, 1); return serialParts(toNumber(evalNode(args[0]))).m; }
-            case 'DAY': { arity(args, 1, 1); return serialParts(toNumber(evalNode(args[0]))).day; }
+            case 'YEAR': { arity(args, 1, 1); return serialParts(dateNumber(evalNode(args[0]))).y; }
+            case 'MONTH': { arity(args, 1, 1); return serialParts(dateNumber(evalNode(args[0]))).m; }
+            case 'DAY': { arity(args, 1, 1); return serialParts(dateNumber(evalNode(args[0]))).day; }
             default: throw fail(E_NAME);
         }
     }
