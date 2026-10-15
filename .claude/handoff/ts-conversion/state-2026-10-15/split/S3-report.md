@@ -1,7 +1,7 @@
 # S3 report: subscriptions/security (batch 18) + structural (LF-S7, pages, editor)
 
 Branch `claude/batch-18-lf-s7-server-me5ppc`. BASE `b36ec171` (= a3afd896 + `--no-ff` merge of ts-local/prep2).
-At the integrator's request, `origin/ccr-28820270-xkvwp8` @ 95b13ce7 (wave1 + serverClosure fix) was merged in as 699753be before the first push.
+At the integrator's request, `origin/ccr-28820270-xkvwp8` was merged in twice before the first push: @95b13ce7 (wave1 + serverClosure fix) as 699753be, and @e738f454 (lowered budgets, node_modules symlink ignore, batches 07-12, b2) as eaa8f751. No node_modules symlink is in any S3 commit (checked with `git log -p <BASE>..HEAD --name-only`).
 Final commit: see `git log -1` of the branch (this file is updated with every push).
 
 ## Status per package
@@ -21,6 +21,7 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 - Measured: `long-function server` 109 → 104 (budget 109 untouched, no `--update`).
 
 ## Integrator: watch at merge
+- Lowered budgets (e738f454): the LF-S7 characterisation tests pushed test duplication to 26240 (> 26228) and server module-mock to 812 (> 810); fixed in 6c4e7012 by switching catalog.sections.test.js and transcriptions/reprocess.test.js to `testUtils/stubRequire.js` `preloadStubs` (no assertion lost). Both now sit exactly AT budget (no slack).
 - Duplication: BASE (prep2 alone) measured 15423 > 15419 (resolveBinding.ts ↔ mobile runtime ports); fixed upstream in 95b13ce7, merged here.
 - Ratchet budgets NOT lowered here (rule): server long-function 109 → measured 104; `.file-budget.json` ceilings for auth/connectorJwt.js (717 → 403 lines), automation/formQueue.js (507), routes/automation/catalog.js (499), routes/transcriptions/upload.js (585) can come down in §5.
 - Comments outside S3 scope name the old writer: mobile/src/features/notifications/model/routeOrg.ts:69, route.test.ts:33, agent-hub/src/authedApp/appRoutes.test.js:194 say `auth/connectorJwt.js` (pending-user notification now lives in auth/connectorJwtProvision.js). Cosmetic.
