@@ -113,6 +113,9 @@ and `npm run lint:secrets`.
   generated copy is one entry there, never a hand copy. A transformed copy starts with a
   `GENERATED from … do not edit` header, and `--check` names the entry of any stale or
   hand-edited target.
+  `generatedRoots` lists directories that hold only generated targets; `--check` fails on any
+  other non-test file there (stale or hand-written). Only wrapper files in `bindings/`, `model/`
+  and `formState/` may import `bindings/mirror/**` (mobile eslint).
 - Count ratchets (`scripts/count-ratchet.mjs`, budget in `agent-hub/.<metric>-ratchet.json`,
   `--update` only lowers, `--list` shows where they are): `lint:style-ratchet` (`style={{…}}`
   objects; use a Tailwind class on the theme variable, `text-[var(--x)]`),

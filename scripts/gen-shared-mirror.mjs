@@ -29,6 +29,12 @@
  *   keep             hand-written files in target (e.g. a .d.mts): never
  *                    written, never reported as extra, never removed.
  *
+ * Top level `generatedRoots: [dir, ...]` (repo-relative) names directories that
+ * hold only generated targets. --check fails on any non-test file under one
+ * that no entry targets (and no entry `keep`s): a stale copy of a removed
+ * entry, or a hand-written file. Write mode does not delete these; the
+ * message says which file to remove.
+ *
  * Whenever a transform or importRewrite changes the text, each written file
  * starts with `// GENERATED from <source file> by scripts/gen-shared-mirror.mjs
  * — do not edit`. --check compares against the generated text, so a stale or
@@ -131,6 +137,31 @@ export function normaliseManifest(manifest) {
             keep: new Set(raw.keep ?? []),
         };
     });
+}
+
+/** The validated `generatedRoots` of the manifest (repo-relative, no trailing slash). */
+export function generatedRootsOf(manifest) {
+    const roots = manifest?.generatedRoots ?? [];
+    if (!strings(roots)) throw new Error('generatedRoots must be a list of directory paths');
+    return roots.map((r) => r.replace(/\/+$/, ''));
+}
+
+/**
+ * Non-test files under a generated root that no entry produces or keeps, as
+ * repo-relative paths. A directory entry owns its target's files; a single
+ * entry owns exactly its target file.
+ */
+export function strayFiles(entries, roots, root = ROOT) {
+    const owned = new Set();
+    for (const entry of entries) {
+        const p = entryPaths(entry, root);
+        if (p.single) owned.add(entry.target);
+        else {
+            for (const f of entryFiles(entry, p.sourceDir)) owned.add(`${entry.target}/${f}`);
+            for (const k of entry.keep) owned.add(`${entry.target}/${k}`);
+        }
+    }
+    return roots.flatMap((r) => listMirrorFiles(path.join(root, r)).map((f) => `${r}/${f}`)).filter((f) => !owned.has(f));
 }
 
 /** The file list of one entry: the source's non-test files, narrowed by include/exclude. */
@@ -242,13 +273,18 @@ export function compareTrees(sourceDir, targetDir) {
 }
 
 function readManifest(file) {
+    const parsed = readManifestJson(file);
+    return { entries: normaliseManifest(parsed), generatedRoots: generatedRootsOf(parsed) };
+}
+
+function readManifestJson(file) {
     let parsed;
     try {
         parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
     } catch (e) {
         throw new Error(`cannot read the manifest ${path.relative(ROOT, file) || file}: ${e.message}`);
     }
-    return normaliseManifest(parsed);
+    return parsed;
 }
 
 function report(entry, result, check) {
@@ -294,7 +330,7 @@ function main(argv = process.argv.slice(2)) {
     const check = argv.includes('--check');
     const at = argv.indexOf('--manifest');
     const manifestFile = at >= 0 ? path.resolve(argv[at + 1] ?? '') : DEFAULT_MANIFEST;
-    const entries = readManifest(manifestFile);
+    const { entries, generatedRoots } = readManifest(manifestFile);
     // Compute every entry before writing any, so a bad entry (no source
     // files, a transform that refuses a file) fails the run with nothing written.
     const results = entries.map((entry) => {
@@ -304,6 +340,15 @@ function main(argv = process.argv.slice(2)) {
     });
     let code = 0;
     entries.forEach((entry, i) => { code = Math.max(code, report(entry, results[i], check)); });
+    if (check) {
+        const stray = strayFiles(entries, generatedRoots);
+        if (stray.length) {
+            console.error(`gen-shared-mirror: ${stray.length} file${stray.length === 1 ? '' : 's'} under a generated root that no manifest entry targets:`);
+            for (const f of stray) console.error(`  stray:   ${f}`);
+            console.error('A generated root holds generated targets only. Delete the file, or add the manifest entry that produces it.');
+            code = 1;
+        }
+    }
     return code;
 }
 

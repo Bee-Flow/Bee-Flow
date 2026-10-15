@@ -288,3 +288,53 @@ test('the repo manifest mirrors the expr engine byte for byte to agent-hub and m
         assert.deepStrictEqual(e.importRewrite, []);
     }
 });
+
+const ROOTED = [
+    { source: 'server/shared/expr/engine.mjs', target: 'gen/root/engine.mjs', transform: 'none' },
+    { source: 'server/shared/expr/index.mjs', target: 'gen/root/index.mjs', transform: 'none' },
+];
+
+function rootedSandbox(t, entries = ROOTED) {
+    const dir = sandbox(t, { entries });
+    fs.writeFileSync(path.join(dir, 'scripts', 'shared-mirror.manifest.json'), JSON.stringify({ generatedRoots: ['gen/root'], entries }, null, 4));
+    assert.strictEqual(run(dir).code, 0);
+    return dir;
+}
+
+test('generatedRoots: a tree whose files are all targeted passes --check', (t) => {
+    const dir = rootedSandbox(t);
+    writeTree(dir, 'gen/root', { 'engine.test.mjs': 'a test is never stray\n' });
+    assert.strictEqual(run(dir, ['--check']).code, 0);
+});
+
+test('generatedRoots: a stray hand-written file fails --check and is named', (t) => {
+    const dir = rootedSandbox(t);
+    writeTree(dir, 'gen/root/sub', { 'mine.ts': 'export {};\n' });
+    const r = run(dir, ['--check']);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /stray: +gen\/root\/sub\/mine\.ts/);
+});
+
+test('generatedRoots: the leftover of a removed single entry fails --check', (t) => {
+    const dir = rootedSandbox(t);
+    fs.writeFileSync(path.join(dir, 'scripts', 'shared-mirror.manifest.json'), JSON.stringify({ generatedRoots: ['gen/root'], entries: ROOTED.slice(0, 1) }));
+    const r = run(dir, ['--check']);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /stray: +gen\/root\/index\.mjs/);
+    assert.doesNotMatch(r.stderr, /stray: +gen\/root\/engine\.mjs/);
+});
+
+test('generatedRoots: a directory entry\'s kept file is not stray', (t) => {
+    const entry = { source: 'server/shared/expr', target: 'gen/root', transform: 'none', keep: ['index.d.mts'] };
+    const dir = rootedSandbox(t, [entry]);
+    writeTree(dir, 'gen/root', { 'index.d.mts': 'export {};\n' });
+    assert.strictEqual(run(dir, ['--check']).code, 0);
+});
+
+test('the repo tree has no stray file under its generated roots', async () => {
+    const { normaliseManifest, generatedRootsOf, strayFiles } = await import('./gen-shared-mirror.mjs');
+    const manifest = JSON.parse(fs.readFileSync(path.join(HERE, 'shared-mirror.manifest.json'), 'utf8'));
+    const roots = generatedRootsOf(manifest);
+    assert.ok(roots.includes('mobile/src/features/flow-editor/bindings/mirror'));
+    assert.deepStrictEqual(strayFiles(normaliseManifest(manifest), roots, path.resolve(HERE, '..')), []);
+});

@@ -1,5 +1,8 @@
 {
-    "$comment": "Generated copies of server/shared code, written by scripts/gen-shared-mirror.mjs (npm run gen:shared) and checked by npm run lint:shared-mirror. Each entry copies the non-test files of `source` into `target`. transform \"none\" (the default) is a byte-for-byte copy without a header; \"cjs-to-esm\" and importRewrite change the text, and then every written file starts with a GENERATED header. include / exclude narrow the file list (paths relative to source); keep lists hand-written files in target that are neither generated nor reported as extra.",
+    "$comment": "Generated copies of server/shared code, written by scripts/gen-shared-mirror.mjs (npm run gen:shared) and checked by npm run lint:shared-mirror. Each entry copies the non-test files of `source` into `target`. transform \"none\" (the default) is a byte-for-byte copy without a header; \"cjs-to-esm\" and importRewrite change the text, and then every written file starts with a GENERATED header. include / exclude narrow the file list (paths relative to source); keep lists hand-written files in target that are neither generated nor reported as extra. generatedRoots lists directories that hold only generated targets: --check fails on any non-test file under one that no entry targets.",
+    "generatedRoots": [
+        "mobile/src/features/flow-editor/bindings/mirror"
+    ],
     "entries": [
         {
             "source": "server/shared/expr",
@@ -129,7 +132,7 @@
                     "@/features/flow-editor/bindings/flowDeps/dataSummary"
                 ]
             ],
-            "why": "The phone's flow editor maps and deepens with the web's TypeScript mapping library (field tree, deep fields, forEach deepening, auto-map). The JavaScript modules it leans on (loops, listShape, partitionInputs, boundPaths) and humanizeFieldKey resolve to the phone's own ports; mobile bindings/*.ts re-export the mirror."
+            "why": "The phone's flow editor maps and deepens with the web's TypeScript mapping library (field tree, deep fields, forEach deepening, auto-map). The JavaScript modules it leans on (loops, listShape, partitionInputs, boundPaths, valueParts, dataSummary, refTokens) and humanizeFieldKey/humanizeFieldTail resolve to the phone's own ports; mobile bindings/*.ts re-export the mirror."
         },
         {
             "source": "agent-hub/src/components/automation/Builder/flow/stepPayload.ts",

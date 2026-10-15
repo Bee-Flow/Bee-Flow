@@ -55,6 +55,10 @@ const FEATURE_NAMES = fs
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
 const OTHER_FEATURES_INTERNALS = (name) => ({ ...FEATURE_INTERNALS, group: ['@/features/*/**', `!@/features/${name}/**`] });
+const MIRROR_IMPORTS = {
+    group: ['**/mirror/**'],
+    message: 'The generated bindings/mirror is imported only by the wrapper files in bindings/, model/ and formState/.',
+};
 const CORE_LAYER = { group: ['@/shared/**', '@/features/**'], message: 'core never imports shared or features.' };
 const SHARED_LAYER = { group: ['@/features/**'], message: 'shared never imports features.' };
 
@@ -98,8 +102,21 @@ const layerRules = [
     ...FEATURE_NAMES.map((name) => ({
         files: [`src/features/${name}/**/*.{ts,tsx}`],
         ignores: TESTS,
-        rules: restrictImports({ groups: [OTHER_FEATURES_INTERNALS(name)] }),
+        rules: restrictImports({ groups: [OTHER_FEATURES_INTERNALS(name), ...(name === 'flow-editor' ? [MIRROR_IMPORTS] : [])] }),
     })),
+    {
+        // The generated web mapping library exports DOM-flavoured helpers
+        // (insertAtCursor, getAutocompleteToken(el), replaceRange(el)) that
+        // clash with the phone's own. Only the thin wrapper files re-export
+        // what the phone wants of it (bindings/, model/, formState/).
+        files: [
+            'src/features/flow-editor/bindings/**/*.{ts,tsx}',
+            'src/features/flow-editor/model/**/*.{ts,tsx}',
+            'src/features/flow-editor/formState/*.{ts,tsx}',
+        ],
+        ignores: TESTS,
+        rules: restrictImports({ groups: [OTHER_FEATURES_INTERNALS('flow-editor')] }),
+    },
     {
         // A file at a feature's root is one `../` from its neighbours, which
         // would walk into another feature past both bans above.
