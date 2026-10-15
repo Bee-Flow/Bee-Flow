@@ -329,8 +329,7 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
         });
     } catch (err) {
         log.error('[Projects] Summary error:', err.message);
-        res.status(500).json({
-            error: 'Request failed',
+        throw new HttpError(500, 'summary_failed', 'Request failed', {
             projects: [], operatedStages: [], unavailable: ['all'], hasMore: false,
         });
     }

@@ -27,6 +27,7 @@ const { requireCapability } = require('../../core/entitlements/entitlements');
 const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { HttpError } = require('../../core/http/errors');
 const { worded } = require('../../core/http/schemaParts');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_machinery')];
@@ -70,7 +71,7 @@ function _detector() {
 router.get('/machinery/detections', ...guard, async (req, res) => {
     const orgId = await resolveOrgId(req);
     const detector = _detector();
-    if (!detector) return res.status(503).json({ error: 'not_provisioned', message: 'Industrial-integration detector is not available on this deployment.' });
+    if (!detector) throw new HttpError(503, 'not_provisioned', 'Industrial-integration detector is not available on this deployment.');
     const result = await detector.detect(orgId);
     const settings = await complianceStore.getSettings(orgId).catch(() => null);
     const manual = Array.isArray(settings?.machinery_manual_subjects) ? settings.machinery_manual_subjects : [];

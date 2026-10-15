@@ -79,6 +79,7 @@ const app = express();
 app.use(express.json());
 app.use((req, _res, next) => { req.session = currentSession; next(); });
 app.use('/api/compliance', router);
+app.use(require('../../core/http/terminalErrorHandler').terminalErrorHandler);
 let server; let base;
 test.before(async () => {
     await new Promise((resolve) => { server = app.listen(0, resolve); });
@@ -138,7 +139,7 @@ test('GET /machinery/detections → 503 not_provisioned when the detector module
     state.detectorAvailable = false;
     const res = await call('GET', '/machinery/detections', ADMIN_A);
     assert.equal(res.status, 503);
-    assert.equal(res.body.error, 'not_provisioned');
+    assert.equal(res.body.code, 'not_provisioned');
 });
 
 test('POST /machinery/subjects/:id/attest writes the Art-18 attestation with the classification marker, 12-month expiry, evidence row and rerun', async () => {
