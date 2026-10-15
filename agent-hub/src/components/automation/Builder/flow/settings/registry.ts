@@ -32,13 +32,17 @@
  * existing builds while the per-type PRs land.
  */
 
-const REGISTRY = {};
+import type { ComponentType } from 'react';
 
-export function registerSettings(type, component) {
+type SettingsComponent = ComponentType<Record<string, unknown>>;
+
+const REGISTRY: Record<string, SettingsComponent> = {};
+
+export function registerSettings(type: string, component: SettingsComponent) {
     REGISTRY[type] = component;
 }
 
-export function getSettingsForType(type) {
+export function getSettingsForType(type: string): SettingsComponent | null {
     return REGISTRY[type] || null;
 }
 

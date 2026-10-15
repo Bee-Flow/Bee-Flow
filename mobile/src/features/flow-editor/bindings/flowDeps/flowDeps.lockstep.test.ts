@@ -28,7 +28,8 @@ import { paramsToSchema, schemaToParams } from './triggerSchemaUtils';
 import { BUILDER, requireWeb, webValue } from '../testing/web';
 import type { FlowDefinition, FlowEdge, FlowNode } from '../types';
 
-const flow = (name: string) => requireWeb(`${BUILDER}/flow/${name}.js`);
+const TS_MODULES = ['stepDisplayName', 'triggerSchemaUtils', 'terminalSteps', 'triggerLabels'];
+const flow = (name: string) => requireWeb(`${BUILDER}/flow/${name}.${TS_MODULES.includes(name) ? 'ts' : 'js'}`);
 
 describe('displayHelpers', () => {
     const web = flow('displayHelpers');

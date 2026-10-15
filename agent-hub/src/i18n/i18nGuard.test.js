@@ -487,7 +487,7 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/security/guardrails/orgShield/activity/activityLabels.js' },
     // Label tables: value → English, no key anywhere. Same shape as the two in
     // runLanguage.js that this register was built around.
-    { rel: 'components/automation/Builder/flow/triggerLabels.js', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
+    { rel: 'components/automation/Builder/flow/triggerLabels.ts', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
     { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js' },
     { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
@@ -504,7 +504,7 @@ const TEXT_HELPERS = [
     // node cards it sits among. Registered as one entry rather than reworded
     // around the regex, because rewording is the escape this register's own
     // header calls out.
-    { rel: 'components/automation/Builder/flow/settings/routeRulesRequest.js', pending: 'BLD — the AI-fallback refusals; the rest of the Suggest-outputs box is English too' },
+    { rel: 'components/automation/Builder/flow/settings/routeRulesRequest.ts', pending: 'BLD — the AI-fallback refusals; the rest of the Suggest-outputs box is English too' },
 ];
 
 /**

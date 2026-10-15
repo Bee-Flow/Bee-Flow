@@ -44,6 +44,9 @@ import {
     filesListKey, fileTarget, isPlainOption, itemIsFile, listTarget, mentionsFiles,
 } from './routeIntentsFiles';
 import { pickTopicField, readTopics } from './routeTopicIntent';
+import type {
+    DateClause, IntentContext, IntentField, IntentResult, IntentResultArgs, IntentRule, MatchCountOptions, NumberClause, SuggestOptions,
+} from './routeIntents.types';
 
 // More outputs than this is not a routing decision any more, it is a lookup
 // table — and every extra output is a port on the canvas that someone has to
@@ -54,25 +57,25 @@ const ISO_DATE = '\\d{4}-\\d{2}-\\d{2}';
 const ISO_DATE_RE = new RegExp(`^${ISO_DATE}$`);
 
 // ── Small helpers ───────────────────────────────────────────────────────
-function lastSegment(path) {
+function lastSegment(path?: string) {
     const cleaned = String(path || '').replace(/\[(?:\*|\d+)\]/g, '');
     return cleaned.split('.').filter(Boolean).pop() || '';
 }
 
-function fieldKey(field) {
+function fieldKey(field?: IntentField | null) {
     return lastSegment(field?.path).toLowerCase();
 }
 
 /** A port name: lowercase, word characters only — it labels an edge on the canvas. */
-export function slugName(text) {
+export function slugName(text?: unknown) {
     const s = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
     return s || 'output';
 }
 
 /** Port names must be unique — two cases with one name is an unwireable node. */
-function withUniqueNames(rules) {
-    const seen = new Set();
-    return rules.map((r) => {
+function withUniqueNames(rules: IntentRule[]) {
+    const seen = new Set<string>();
+    return rules.map((r: IntentRule) => {
         let name = r.name;
         let i = 1;
         while (seen.has(name)) name = `${r.name}_${++i}`;
@@ -84,14 +87,14 @@ function withUniqueNames(rules) {
 function result({
     kind = null, understood = '', field = null, rules = [], problem = null, problemCode = null,
     truncated = false, filesInside = null,
-}) {
+}: IntentResultArgs): IntentResult {
     return {
         kind, understood, field, rules: withUniqueNames(rules).slice(0, MAX_RULES),
         problem, problemCode, truncated, filesInside,
     };
 }
 
-function quote(value) {
+function quote(value: unknown) {
     return JSON.stringify(String(value));
 }
 
@@ -101,7 +104,7 @@ function quote(value) {
  * `1.000` as one thousand here would silently disagree with what the very
  * same characters mean in the generated expression.
  */
-function parseNumber(raw) {
+function parseNumber(raw: unknown) {
     const cleaned = String(raw || '').replace(/,/g, '').trim();
     if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return null;
     return Number(cleaned);
@@ -118,7 +121,7 @@ function parseNumber(raw) {
  * ranges are built that way and the rule NAME keeps the date the author
  * actually typed.
  */
-function nextDay(iso) {
+function nextDay(iso: string) {
     const d = new Date(`${iso}T00:00:00Z`);
     if (Number.isNaN(d.getTime())) return null;
     d.setUTCDate(d.getUTCDate() + 1);
@@ -131,8 +134,8 @@ const TEXT_KEYS = /^(subject|title|name|body|text|message|content|description|su
 const NUMBER_KEYS = /(amount|total|price|count|quantity|qty|score|size|bytes|number|age|days)$/;
 const DATE_KEYS = /(date|created|updated|modified|due|sent|received|timestamp|time|at)$/;
 
-function bestField(fields, score, minimum = 2) {
-    let best = null;
+function bestField(fields: IntentField[] | null | undefined, score: (f: IntentField) => number, minimum = 2) {
+    let best: IntentField | null = null;
     let bestScore = 0;
     for (const f of (fields || [])) {
         if (!f?.path) continue;
@@ -142,8 +145,8 @@ function bestField(fields, score, minimum = 2) {
     return bestScore >= minimum ? best : null;
 }
 
-function pickFileField(fields) {
-    return bestField(fields, (f) => {
+function pickFileField(fields?: IntentField[]) {
+    return bestField(fields, (f: IntentField) => {
         if (Array.isArray(f.sample)) return 0;
         let s = 0;
         // A sample that names a known file type is the strongest signal there
@@ -157,8 +160,8 @@ function pickFileField(fields) {
     });
 }
 
-function pickTextField(fields) {
-    return bestField(fields, (f) => {
+function pickTextField(fields?: IntentField[]) {
+    return bestField(fields, (f: IntentField) => {
         let s = 0;
         if (typeof f.sample === 'string') s += 1;
         if (TEXT_KEYS.test(fieldKey(f))) s += 2;
@@ -166,8 +169,8 @@ function pickTextField(fields) {
     });
 }
 
-function pickNumberField(fields) {
-    return bestField(fields, (f) => {
+function pickNumberField(fields?: IntentField[]) {
+    return bestField(fields, (f: IntentField) => {
         let s = 0;
         if (typeof f.sample === 'number') s += 3;
         if (NUMBER_KEYS.test(fieldKey(f))) s += 2;
@@ -175,8 +178,8 @@ function pickNumberField(fields) {
     });
 }
 
-function pickDateField(fields) {
-    return bestField(fields, (f) => {
+function pickDateField(fields?: IntentField[]) {
+    return bestField(fields, (f: IntentField) => {
         let s = 0;
         if (typeof f.sample === 'string' && /^\d{4}-\d{2}-\d{2}/.test(f.sample.trim())) s += 3;
         if (DATE_KEYS.test(fieldKey(f))) s += 2;
@@ -190,14 +193,14 @@ function pickDateField(fields) {
  * field list, the heuristics only see samples. Longest match wins so
  * "from email" is not shadowed by "from".
  */
-function namedField(lower, fields) {
-    let best = null;
+function namedField(lower: string, fields?: IntentField[] | null) {
+    let best: IntentField | null = null;
     let bestLen = 0;
     for (const f of (fields || [])) {
         if (!f?.path) continue;
         const candidates = [f.label, fieldKey(f).replace(/_/g, ' '), fieldKey(f)]
             .filter(Boolean)
-            .map(s => String(s).toLowerCase());
+            .map((s: unknown) => String(s).toLowerCase());
         for (const c of candidates) {
             if (c.length < 3 || c.length <= bestLen) continue;
             const re = new RegExp(`(?:^|[^a-z0-9])${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:[^a-z0-9]|$)`);
@@ -214,9 +217,9 @@ const QUOTED_RE = /"([^"]+)"|'([^']+)'|“([^”]+)”/g;
 // confident rule is worse than one that says it did not understand.
 const CONTAINS_LEAD = /\b(?:contains?|containing|mentions?|mentioning|includes?|including|with the words?)\s+(.+)$/i;
 
-function findPhrases(src) {
-    const quoted = [];
-    let m;
+function findPhrases(src: string) {
+    const quoted: string[] = [];
+    let m: RegExpExecArray | null;
     QUOTED_RE.lastIndex = 0;
     while ((m = QUOTED_RE.exec(src))) {
         const phrase = (m[1] || m[2] || m[3] || '').trim();
@@ -227,8 +230,8 @@ function findPhrases(src) {
     if (!lead) return [];
     return lead[1]
         .split(/\s*,\s*|\s+\band\b\s+|\s+\bor\b\s+|\s*\/\s*/i)
-        .map(s => s.trim().replace(/[.!?]+$/, '').replace(/\bin (?:it|them|the (?:subject|body|text|title))\b/i, '').trim())
-        .filter(s => s && s.length > 1);
+        .map((s: string) => s.trim().replace(/[.!?]+$/, '').replace(/\bin (?:it|them|the (?:subject|body|text|title))\b/i, '').trim())
+        .filter((s: string) => s && s.length > 1);
 }
 
 // ── Intent: dates ───────────────────────────────────────────────────────
@@ -244,30 +247,30 @@ const DATE_CLAUSES = [
     { re: new RegExp(`\\bon\\s+(${ISO_DATE})`, 'g'), kind: 'on' },
 ];
 
-function findDateClauses(lower) {
-    const out = [];
+function findDateClauses(lower: string) {
+    const out: DateClause[] = [];
     for (const { re, kind } of DATE_CLAUSES) {
         re.lastIndex = 0;
-        let m;
+        let m: RegExpExecArray | null;
         while ((m = re.exec(lower))) out.push({ kind, at: m.index, end: m.index + m[0].length, a: m[1], b: m[2] || null });
     }
     // The patterns overlap on purpose — "between A and B" contains something
     // the `on` pattern would match again, and one phrase must not become two
     // outputs. Earliest (and therefore longest-leading) clause wins its span;
     // anything starting inside an accepted span is the same phrase read twice.
-    const kept = [];
-    for (const c of out.sort((a, b) => (a.at - b.at) || (b.end - a.end))) {
-        if (kept.some(k => c.at < k.end && c.end > k.at)) continue;
+    const kept: DateClause[] = [];
+    for (const c of out.sort((a: DateClause, b: DateClause) => (a.at - b.at) || (b.end - a.end))) {
+        if (kept.some((k: DateClause) => c.at < k.end && c.end > k.at)) continue;
         kept.push(c);
     }
     return kept;
 }
 
-function dateRules(clauses, path) {
-    const rules = [];
+function dateRules(clauses: DateClause[], path: string) {
+    const rules: IntentRule[] = [];
     for (const c of clauses) {
         if (c.kind === 'between') {
-            const end = nextDay(c.b);
+            const end = nextDay(c.b as string);
             if (!end) continue;
             rules.push({ name: slugName(`between ${c.a} and ${c.b}`), expr: `${path} >= ${quote(c.a)} && ${path} < ${quote(end)}` });
         } else if (c.kind === 'before') {
@@ -300,11 +303,11 @@ const NUMBER_CLAUSES = [
     { re: new RegExp(`\\b(?:at most|no more than|maximum of|maximum|up to)\\s+${NUM}`, 'g'), kind: 'lte' },
 ];
 
-function findNumberClauses(lower) {
-    const out = [];
+function findNumberClauses(lower: string) {
+    const out: NumberClause[] = [];
     for (const { re, kind } of NUMBER_CLAUSES) {
         re.lastIndex = 0;
-        let m;
+        let m: RegExpExecArray | null;
         while ((m = re.exec(lower))) {
             const a = parseNumber(m[1]);
             const b = m[2] == null ? null : parseNumber(m[2]);
@@ -316,19 +319,19 @@ function findNumberClauses(lower) {
     // tidy: "no more than 100" contains "more than 100", so without it the one
     // phrase becomes an at-most output AND an over output that says the
     // opposite. Earliest start, longest span wins.
-    const kept = [];
-    for (const c of out.sort((x, y) => (x.at - y.at) || (y.end - x.end))) {
-        if (kept.some(k => c.at < k.end && c.end > k.at)) continue;
+    const kept: NumberClause[] = [];
+    for (const c of out.sort((x: NumberClause, y: NumberClause) => (x.at - y.at) || (y.end - x.end))) {
+        if (kept.some((k: NumberClause) => c.at < k.end && c.end > k.at)) continue;
         kept.push(c);
     }
     return kept;
 }
 
-const NUMBER_SYMBOL = { gt: '>', lt: '<', gte: '>=', lte: '<=' };
-const NUMBER_WORD = { gt: 'over', lt: 'under', gte: 'at least', lte: 'at most' };
+const NUMBER_SYMBOL: Record<string, string> = { gt: '>', lt: '<', gte: '>=', lte: '<=' };
+const NUMBER_WORD: Record<string, string> = { gt: 'over', lt: 'under', gte: 'at least', lte: 'at most' };
 
-function numberRules(clauses, path) {
-    return clauses.map((c) => (c.kind === 'between'
+function numberRules(clauses: NumberClause[], path: string) {
+    return clauses.map((c: NumberClause) => (c.kind === 'between'
         ? { name: slugName(`between ${c.a} and ${c.b}`), expr: `${path} >= ${c.a} && ${path} <= ${c.b}` }
         : { name: slugName(`${NUMBER_WORD[c.kind]} ${c.a}`), expr: `${path} ${NUMBER_SYMBOL[c.kind]} ${c.a}` }));
 }
@@ -349,14 +352,11 @@ function numberRules(clauses, path) {
  * `topics` says a topic classifier is installed, which lets a sentence about
  * MEANING become "is about" outputs (tryTopics, last in line).
  *
- * @param {string} text
  * `element` is one item's sample: it says whether each item is a file, or
  * holds a list of files (an e-mail's attachments), which decides what a
  * file-type rule reads (S1) and whether the answer carries `filesInside`.
- *
- * @param {{ fields?: Array<{ path: string, label?: string, sample?: unknown, type?: string, quantified?: boolean, kind?: string }>, topics?: boolean, element?: unknown }} [opts]
  */
-export function suggestOutputs(text, { fields = [], topics = false, element = undefined } = {}) {
+export function suggestOutputs(text: unknown, { fields = [], topics = false, element = undefined }: SuggestOptions = {}): IntentResult {
     const src = String(text || '').trim();
     if (!src) return result({});
     if (!(fields || []).length) {
@@ -368,7 +368,7 @@ export function suggestOutputs(text, { fields = [], topics = false, element = un
     // Only plain fields are compared directly; list columns and lists of
     // records need a quantifier, which only the file-type reader writes.
     const plain = fields.filter(isPlainOption);
-    const ctx = {
+    const ctx: IntentContext = {
         src, lower, fields: plain, named: namedField(lower, plain), topics,
         element, allFields: fields, namedAny: namedField(lower, fields),
     };
@@ -380,7 +380,7 @@ export function suggestOutputs(text, { fields = [], topics = false, element = un
 }
 
 /** The sentence for a description no intent answered. */
-function unrecognised({ lower, element, allFields }) {
+function unrecognised({ lower, element, allFields }: IntentContext) {
     if (mentionsFiles(lower) && (itemIsFile(element, allFields) || filesListKey(element, allFields))) {
         // About files, but no type named: say which words work, and (S4)
         // still offer to work through the files inside each item.
@@ -405,9 +405,9 @@ function unrecognised({ lower, element, allFields }) {
 // The intents, in the order they are tried. Most specific first: "between
 // 2026-01-01 and 2026-01-31" must be read as dates before the number reader
 // sees a "between … and …" it would half-understand.
-const INTENTS = [tryFileTypes, tryDates, tryNumbers, tryPhrases, tryTopics];
+const INTENTS: Array<(ctx: IntentContext) => IntentResult | null> = [tryFileTypes, tryDates, tryNumbers, tryPhrases, tryTopics];
 
-function tryFileTypes({ lower, allFields, namedAny, element }) {
+function tryFileTypes({ lower, allFields, namedAny, element }: IntentContext) {
     const types = fileTypesNamedIn(lower);
     if (!types.length) return null;
     const target = fileTarget({ named: namedAny, element, fields: allFields, pickField: pickFileField });
@@ -420,13 +420,13 @@ function tryFileTypes({ lower, allFields, namedAny, element }) {
         field: target.field,
         // Each output is named with the word the author used ("csv" stays
         // csv, although it is the excel type), so it reads back as asked.
-        rules: types.map(t => ({ name: slugName(t.word), expr: target.expr(t.key) })),
+        rules: types.map((t: { word: string; key: string }) => ({ name: slugName(t.word), expr: target.expr(t.key) })),
         truncated: types.length > MAX_RULES,
         filesInside: target.filesInside,
     });
 }
 
-function tryDates({ lower, fields, named }) {
+function tryDates({ lower, fields, named }: IntentContext) {
     const clauses = findDateClauses(lower);
     if (!clauses.length) return null;
     const field = named || pickDateField(fields);
@@ -438,7 +438,7 @@ function tryDates({ lower, fields, named }) {
     return result({ kind: 'date', understood: 'Compare dates', field, rules, truncated: rules.length > MAX_RULES });
 }
 
-function tryNumbers({ lower, fields, named }) {
+function tryNumbers({ lower, fields, named }: IntentContext) {
     const clauses = findNumberClauses(lower);
     if (!clauses.length) return null;
     const field = named || pickNumberField(fields);
@@ -454,7 +454,7 @@ function tryNumbers({ lower, fields, named }) {
     });
 }
 
-function tryPhrases({ src, fields, named }) {
+function tryPhrases({ src, fields, named }: IntentContext) {
     const phrases = findPhrases(src);
     if (!phrases.length) return null;
     const field = named || pickTextField(fields);
@@ -465,7 +465,7 @@ function tryPhrases({ src, fields, named }) {
         kind: 'contains',
         understood: 'Look for words',
         field,
-        rules: phrases.map(p => ({ name: slugName(p), expr: `contains(${field.path}, ${quote(p)})` })),
+        rules: phrases.map((p: string) => ({ name: slugName(p), expr: `contains(${field.path}, ${quote(p)})` })),
         truncated: phrases.length > MAX_RULES,
     });
 }
@@ -473,10 +473,10 @@ function tryPhrases({ src, fields, named }) {
 // Routing by meaning ("split complaints from invoices"), answered by the topic
 // classifier. Last, and only when one is installed: every intent above is an
 // exact rule, and an exact rule the author asked for beats a judgement call.
-function tryTopics({ src, fields, named, topics }) {
+function tryTopics({ src, fields, named, topics }: IntentContext) {
     if (!topics) return null;
     // A field the author named says where to read, so it is not a topic.
-    const found = readTopics(src, named ? [named.label, named.path.split('.').pop()] : []);
+    const found = readTopics(src, named ? ([named.label, named.path.split('.').pop()] as string[]) : []);
     if (!found.length) return null;
     const field = named || pickTopicField(fields);
     if (!field) {
@@ -486,7 +486,7 @@ function tryTopics({ src, fields, named, topics }) {
         kind: 'topic',
         understood: 'Sort by what the text is about',
         field,
-        rules: found.map(t => ({ name: slugName(t), expr: `isAbout(${field.path}, ${quote(t)})` })),
+        rules: found.map((t: string) => ({ name: slugName(t), expr: `isAbout(${field.path}, ${quote(t)})` })),
         truncated: found.length > MAX_RULES,
     });
 }
@@ -504,21 +504,16 @@ function tryTopics({ src, fields, named, topics }) {
  * with one made-up row a preview reads "1 of 1 matched", which is the most
  * reassuring and least informative thing it could possibly say.
  */
-/**
- * @param {Array<{ name?: string, expr?: string }>} rules
- * @param {unknown[] | null} rows
- * @param {{ root?: unknown, itemVar?: string, host?: object | null }} [opts]
- */
-export function matchCounts(rules, rows, { root = null, itemVar = 'item', host = null } = {}) {
+export function matchCounts(rules: Array<{ name?: string; expr?: string }>, rows: unknown[] | null, { root = null, itemVar = 'item', host = null }: MatchCountOptions = {}) {
     if (!Array.isArray(rows) || !Array.isArray(rules) || !rules.length) return null;
     const base = (root && typeof root === 'object' && !Array.isArray(root)) ? root : null;
-    const perRule = rules.map(r => ({ name: r.name, matched: 0, failed: 0 }));
+    const perRule = rules.map((r: { name?: string }) => ({ name: r.name, matched: 0, failed: 0 }));
     let unmatched = 0;
-    rows.forEach((row, index) => {
+    rows.forEach((row: unknown, index: number) => {
         // The run's scope for a list rule: the item and its position.
         const scope = { ...base, [itemVar]: row, _index: index };
         let any = false;
-        rules.forEach((r, i) => {
+        rules.forEach((r: { expr?: string }, i: number) => {
             // `host` answers "is about" rules from the classifier's scores
             // for these rows (topicPreview.ts); without it they cannot be
             // counted and report as failed, which the caller says in words.

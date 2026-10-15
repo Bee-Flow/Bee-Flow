@@ -28,15 +28,40 @@
  * goes. Same rule the server applies again on arrival, and the same rule
  * CLAUDE.md states for every outbound payload in this product.
  */
-export async function askModelForRules(api, { description, fields, itemVar, perItem }) {
+export interface RuleField {
+    path?: string;
+    label?: string;
+    type?: string;
+    sample?: unknown;
+    kind?: string;
+    quantified?: boolean;
+}
+
+export interface AskModelArgs {
+    description?: string;
+    fields?: RuleField[];
+    itemVar?: string;
+    perItem?: boolean;
+}
+
+export interface RulesApi {
+    suggestRouteRules: (payload: {
+        description: string;
+        fields: { key: string | undefined; name: string | undefined; type: string }[];
+        itemVar: string | undefined;
+        perItem: boolean | undefined;
+    }) => Promise<{ rules?: unknown[]; problem?: unknown } | null | undefined>;
+}
+
+export async function askModelForRules(api: RulesApi, { description, fields, itemVar, perItem }: AskModelArgs) {
     const res = await api.suggestRouteRules({
         description: String(description || '').trim(),
         // "File type" entries of the rule menu are not fields but a function
         // over one (`fileType(item)`); the model learns fileType() from the
         // server's rule hint and declares only real paths.
         fields: (fields || [])
-            .filter(f => !String(f?.path || '').startsWith('fileType('))
-            .map(f => ({ key: f.path, name: f.label, type: f.type || '' })),
+            .filter((f: RuleField) => !String(f?.path || '').startsWith('fileType('))
+            .map((f: RuleField) => ({ key: f.path, name: f.label, type: f.type || '' })),
         itemVar,
         perItem,
     });
@@ -53,7 +78,7 @@ export async function askModelForRules(api, { description, fields, itemVar, perI
  * — so the refusal is plain rather than hidden, and it says that the offline
  * half still works, because it does.
  */
-export function askFailureMessage(e) {
+export function askFailureMessage(e?: { status?: number } | null) {
     return e?.status === 403
         ? 'The AI builder is not switched on for your organisation, so this box can only answer what it knows offline.'
         : 'Could not reach the AI just now. The offline suggestions above still work.';

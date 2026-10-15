@@ -19,6 +19,36 @@ import { getJSON, setJSON } from '../../../../utils/scopedStorage';
  *   automationsStepTransitions { [fromKind]: { [usageKey]: count } }
  */
 
+/** A palette payload as far as the usage key reads it. */
+export interface UsagePayload {
+    kind?: string;
+    triggerKind?: string;
+    tool?: string;
+    layerKey?: string;
+    blockId?: string | number | null;
+    [key: string]: unknown;
+}
+
+/** The step a new step was added after. */
+export interface UsageSourceStep {
+    kind?: string;
+    type?: string;
+}
+
+export type UsageMap = Record<string, { n: number; t: number }>;
+export type TransitionMap = Record<string, Record<string, number>>;
+
+export interface TransitionRule {
+    key: string;
+    w: number;
+}
+
+export interface Suggestion {
+    key: string;
+    score: number;
+    reason: string;
+}
+
 const USAGE_KEY = 'automationsStepUsage';
 const TRANSITIONS_KEY = 'automationsStepTransitions';
 
@@ -30,7 +60,7 @@ const HALF_LIFE_DAYS = 14;
  * surface it came from (ribbon, edge-drop, search), so usage aggregates cleanly.
  * Returns null for an empty/kind-less payload (nothing worth recording).
  */
-export function getUsageKey(payload) {
+export function getUsageKey(payload?: UsagePayload | null): string | null {
     if (!payload || !payload.kind) return null;
     switch (payload.kind) {
         case 'trigger':
@@ -49,18 +79,18 @@ export function getUsageKey(payload) {
 }
 
 /** Read the stored usage map (or {} on miss / storage failure). */
-export function readUsage() {
+export function readUsage(): UsageMap {
     try {
-        return getJSON(USAGE_KEY, {}) || {};
+        return getJSON<UsageMap>(USAGE_KEY, {}) || {};
     } catch {
         return {};
     }
 }
 
 /** Read the stored transition map (or {} on miss / storage failure). */
-export function readTransitions() {
+export function readTransitions(): TransitionMap {
     try {
-        return getJSON(TRANSITIONS_KEY, {}) || {};
+        return getJSON<TransitionMap>(TRANSITIONS_KEY, {}) || {};
     } catch {
         return {};
     }
@@ -71,12 +101,8 @@ export function readTransitions() {
  * has no usage key. Bumps both the overall frequency count and the
  * sourceStep→step transition count. Storage failures are swallowed so a
  * telemetry hiccup never breaks the add-step flow.
- *
- * @param {object} payload     palette payload that was added
- * @param {object} [sourceStep] the step it was added after ({kind|type})
- * @param {number} [now]        timestamp override (defaults to Date.now())
  */
-export function recordStep(payload, sourceStep, now = Date.now()) {
+export function recordStep(payload?: UsagePayload | null, sourceStep?: UsageSourceStep | null, now = Date.now()) {
     const key = getUsageKey(payload);
     if (!key) return;
 
@@ -107,15 +133,15 @@ export function recordStep(payload, sourceStep, now = Date.now()) {
  * 14-day-old item is worth half its raw count and a recently-used low-count
  * item can outrank a stale high-count one. Tiebreak: raw count, then key.
  */
-export function topFrequentKeys(usage, n = 6, now = Date.now()) {
-    const entries = Object.entries(usage || {}).map(([key, v]) => {
+export function topFrequentKeys(usage?: Record<string, unknown> | null, n = 6, now = Date.now()): string[] {
+    const entries = Object.entries((usage || {}) as UsageMap).map(([key, v]) => {
         const count = (v && v.n) || 0;
         const t = (v && v.t) || 0;
         const ageDays = Math.max(0, (now - t) / DAY_MS);
         const decay = Math.pow(0.5, ageDays / HALF_LIFE_DAYS);
         return { key, count, score: count * decay };
     });
-    entries.sort((a, b) =>
+    entries.sort((a: { key: string; count: number; score: number }, b: { key: string; count: number; score: number }) =>
         b.score - a.score ||
         b.count - a.count ||
         a.key.localeCompare(b.key),
@@ -131,7 +157,7 @@ export function topFrequentKeys(usage, n = 6, now = Date.now()) {
  *   __default  fallback when the source kind has no specific rule
  * Concrete kinds (ai_step, loop, …) are matched against the immediate source.
  */
-export const TRANSITION_RULES = {
+export const TRANSITION_RULES: Record<string, TransitionRule[]> = {
     __trigger: [
         { key: 'step:ai_step', w: 1.0 },
         { key: 'step:set', w: 0.5 },
@@ -241,10 +267,17 @@ export function scoreSuggestions({
     transitions = {},
     now = Date.now(),
     limit = 5,
-} = {}) {
-    const scores = new Map(); // key -> { score, reason }
+}: {
+    sourceKind?: string | null;
+    sourceOutputIsArray?: boolean;
+    usage?: UsageMap;
+    transitions?: TransitionMap;
+    now?: number;
+    limit?: number;
+} = {}): Suggestion[] {
+    const scores = new Map<string, { score: number; reason: string; _top: number }>(); // key -> { score, reason }
 
-    const bump = (key, amount, reason) => {
+    const bump = (key: string | null | undefined, amount: number, reason: string) => {
         // Never suggest a trigger as "what comes NEXT" — nothing follows a
         // step with a trigger. (Triggers ARE offered in search and in
         // "Frequently used"; that gate lives in stepPalette.itemForKey.)
@@ -263,7 +296,7 @@ export function scoreSuggestions({
     // 1) Static rules. __array (list source) folds in the array overlay at a
     //    higher weight so list-fitting steps lead; otherwise the kind's own
     //    rules or the default ruleset apply at the normal static weight.
-    const ruleSets = [];
+    const ruleSets: { rules: TransitionRule[]; reason: string; weight: number }[] = [];
     if (sourceOutputIsArray) {
         ruleSets.push({ rules: TRANSITION_RULES.__array, reason: REASON.list, weight: W_ARRAY_OVERLAY });
     }
@@ -288,7 +321,7 @@ export function scoreSuggestions({
     // 3) Personal frequency: the user's recency-weighted favourites, decayed by
     //    rank so the #1 favourite contributes most.
     const freq = topFrequentKeys(usage, 6, now);
-    freq.forEach((key, i) => {
+    freq.forEach((key: string, i: number) => {
         const decay = Math.pow(0.6, i); // 1, .6, .36, …
         bump(key, W_FREQUENCY * decay, REASON.frequent);
     });

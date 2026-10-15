@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import type { Connection, Edge, FinalConnectionState, XYPosition } from '@xyflow/react';
 
 import { TOOL_HANDLE_ID, isToolNodeId } from './aiToolNodes';
 import { branchFromHandle, edgeKey, matchesEdgeIdentity } from './branchEdges';
@@ -8,6 +9,46 @@ import { createsCycle } from '../applyAddNode';
 import { applyAutoMapToStep } from '../mapping/autoMapInputs';
 import { toast } from '../../../shared/Toast';
 import { isTerminalStep } from './terminalSteps';
+import type { DiagramDefinition, DiagramEdge, DiagramStep, FlowNode, Rf } from './diagramPaneTypes';
+
+/** The edge a canvas button was clicked on (edges.jsx threads its identity). */
+export interface EdgeClick {
+    source: string;
+    target: string;
+    sourceHandle?: string | null;
+    label?: string | null;
+    caseName?: string | null;
+}
+
+interface EdgeEditCallbacksArgs {
+    definition: DiagramDefinition;
+    editable?: boolean;
+    structuralEditsBlocked?: boolean;
+    onDefinitionChange?: ((next: DiagramDefinition) => void) | null;
+    autoMapEnabled?: boolean;
+    catalog?: unknown;
+    realOutputById?: unknown;
+    onAutoMapped?: ((stepId: string, mappedCount: number, forEachEnabled: boolean) => void) | null;
+    inLoopBody: (id: string) => boolean;
+    onRequestAddNode?: ((req: { sourceId: string; position: XYPosition; sourceHandle: string | null }) => void) | null;
+    onRequestInsertOnEdge?: ((req: {
+        sourceId: string;
+        targetId: string;
+        position: XYPosition | null;
+        sourceHandle: string | null;
+        label: string | null;
+        caseName: string | null;
+    }) => void) | null;
+    rf: Rf;
+    absPositionOf: (node: FlowNode | null | undefined) => XYPosition | null;
+}
+
+/** The pointer event a connection drag ends with: a mouse event or a touch event. */
+interface ConnectEndEvent {
+    clientX?: number;
+    clientY?: number;
+    changedTouches?: ArrayLike<{ clientX: number; clientY: number }>;
+}
 
 // Connect / edge-edit callbacks for the diagram canvas. Extracted from
 // DiagramPaneInner verbatim: called from the same position, so hook order is
@@ -16,8 +57,8 @@ export function useEdgeEditCallbacks({
     definition, editable, structuralEditsBlocked, onDefinitionChange,
     autoMapEnabled, catalog, realOutputById, onAutoMapped, inLoopBody,
     onRequestAddNode, onRequestInsertOnEdge, rf, absPositionOf,
-}) {
-    const onConnect = useCallback(({ source, target, sourceHandle }) => {
+}: EdgeEditCallbacksArgs) {
+    const onConnect = useCallback(({ source, target, sourceHandle }: Connection) => {
         if (!editable || structuralEditsBlocked) return;
         if (!source || !target || source === target) return;
         // The AI step's tools port carries configuration, not flow. An edge
@@ -52,7 +93,7 @@ export function useEdgeEditCallbacks({
         // definition (B9) — nothing ever runs after a Stop-and-Error.
         const sourceStep = source === definition.trigger?.id
             ? definition.trigger
-            : (definition.steps || []).find(s => s.id === source);
+            : (definition.steps || []).find((s: DiagramStep) => s.id === source);
         if (sourceStep && (sourceStep.type === 'condition' || sourceStep.type === 'switch') && !branch.label) return;
         if (isTerminalStep(sourceStep)) return;
         // Cycle guard: rebuild adjacency including the proposed edge and
@@ -61,7 +102,7 @@ export function useEdgeEditCallbacks({
         const existing = definition.edges || [];
         // Dedupe by source+target+branch so two different branch ports can
         // legitimately route to the same downstream step.
-        if (existing.some(e => e.from === source && e.to === target && (e.label || null) === (branch.label || null))) return;
+        if (existing.some((e: DiagramEdge) => e.from === source && e.to === target && (e.label || null) === (branch.label || null))) return;
         if (createsCycle(definition, source, target)) return;
         const nextEdges = [...existing, { from: source, to: target, ...branch }];
         // Compute against the def WITH the new edge so the target sees its
@@ -82,7 +123,7 @@ export function useEdgeEditCallbacks({
      * BOTH the node AND the source→new edge in one definition update so
      * undo treats it as a single action.
      */
-    const onConnectEnd = useCallback((event, connectionState) => {
+    const onConnectEnd = useCallback((event: ConnectEndEvent, connectionState: FinalConnectionState) => {
         if (!editable || structuralEditsBlocked) return;
         if (!onRequestAddNode) return;
         // React Flow v12 connectionState has isValid + fromNode. We only
@@ -108,7 +149,7 @@ export function useEdgeEditCallbacks({
     // (layout.js: defLabel/defCaseName). Matching on the full edgeKey removes
     // exactly the selected rows — the bare (source,target) pair used to take
     // every parallel branch edge between the same two nodes with it (B4).
-    const onEdgesDelete = useCallback((deleted) => {
+    const onEdgesDelete = useCallback((deleted: Edge[]) => {
         if (!editable || structuralEditsBlocked) return;
         if (!deleted || deleted.length === 0) return;
         const all = definition.edges || [];
@@ -119,48 +160,48 @@ export function useEdgeEditCallbacks({
             } else {
                 // Stale render without identity data: only pair-match when it
                 // is unambiguous — refuse to over-delete parallel branches.
-                const pairRows = all.filter(e => e.from === d.source && e.to === d.target);
+                const pairRows = all.filter((e: DiagramEdge) => e.from === d.source && e.to === d.target);
                 if (pairRows.length === 1) remove.add(edgeKey(pairRows[0]));
             }
         }
         if (remove.size === 0) return;
-        const nextEdges = all.filter(e => !remove.has(edgeKey(e)));
+        const nextEdges = all.filter((e: DiagramEdge) => !remove.has(edgeKey(e)));
         onDefinitionChange?.(seedPositions({ ...definition, edges: nextEdges }));
     }, [definition, editable, structuralEditsBlocked, onDefinitionChange]);
 
     // "×" button on an edge — remove just that connection. Identity comes
     // from the edge's own data (label/caseName, threaded via edges.jsx); the
     // handle-derived branch remains as fallback for stale renders.
-    const onEdgeDeleteClick = useCallback(({ source, target, sourceHandle, label, caseName }) => {
+    const onEdgeDeleteClick = useCallback(({ source, target, sourceHandle, label, caseName }: EdgeClick) => {
         if (!editable || structuralEditsBlocked || !source || !target) return;
         const identity = (label != null || caseName != null)
             ? { label, caseName }
             : branchFromHandle(sourceHandle || null); // {} | {label} | {label,caseName}
         const hasIdentity = identity.label != null || identity.caseName != null;
-        const matchesClicked = (e) => {
+        const matchesClicked = (e: DiagramEdge) => {
             if (e.from !== source || e.to !== target) return false;
             if (!hasIdentity && sourceHandle == null) return true; // plain edge — pair match is enough
             return matchesEdgeIdentity(e, identity);
         };
-        const nextEdges = (definition.edges || []).filter(e => !matchesClicked(e));
+        const nextEdges = (definition.edges || []).filter((e: DiagramEdge) => !matchesClicked(e));
         onDefinitionChange?.(seedPositions({ ...definition, edges: nextEdges }));
     }, [definition, editable, structuralEditsBlocked, onDefinitionChange]);
 
     // Palette button on an edge — persist (or clear) the connection's colour.
     // Cosmetic definition data: identity-matched exactly like delete, but no
     // re-layout and no seedPositions (topology is untouched).
-    const onEdgeSetColor = useCallback(({ source, target, sourceHandle, label, caseName, color }) => {
+    const onEdgeSetColor = useCallback(({ source, target, sourceHandle, label, caseName, color }: EdgeClick & { color?: string | null }) => {
         if (!editable || structuralEditsBlocked || !source || !target) return;
         const identity = (label != null || caseName != null)
             ? { label, caseName }
             : branchFromHandle(sourceHandle || null);
         const hasIdentity = identity.label != null || identity.caseName != null;
-        const matchesClicked = (e) => {
+        const matchesClicked = (e: DiagramEdge) => {
             if (e.from !== source || e.to !== target) return false;
             if (!hasIdentity && sourceHandle == null) return true;
             return matchesEdgeIdentity(e, identity);
         };
-        const nextEdges = (definition.edges || []).map((e) => {
+        const nextEdges = (definition.edges || []).map((e: DiagramEdge) => {
             if (!matchesClicked(e)) return e;
             if (!color) {
                 // "auto" — remove the key entirely rather than persisting null.
@@ -176,7 +217,7 @@ export function useEdgeEditCallbacks({
     // hand the parent both ends + a midpoint position so it can open the
     // palette; on pick it splices the new node in (source→new→target) and
     // drops ONLY the clicked edge (identity-matched — B3).
-    const onEdgeInsertClick = useCallback(({ source, target, sourceHandle, label, caseName }) => {
+    const onEdgeInsertClick = useCallback(({ source, target, sourceHandle, label, caseName }: EdgeClick) => {
         if (!editable || structuralEditsBlocked || !source || !target || !onRequestInsertOnEdge) return;
         // Absolute, not the raw node positions: inside an expanded flowlet
         // those are relative to the container, and the midpoint would land

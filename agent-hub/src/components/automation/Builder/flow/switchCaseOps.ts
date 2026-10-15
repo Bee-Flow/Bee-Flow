@@ -15,6 +15,14 @@
 
 import { followRouteEdit, isListRoute, relabelSwitchEdges } from '@shared/expr/routeFollow.mjs';
 import { reconcileRouteEdges } from './routeEdges';
+import type { DiagramDefinition, DiagramStep } from './diagramPaneTypes';
+
+/** One case of a switch step. */
+export interface SwitchCase {
+    name?: string;
+    value?: unknown;
+    [key: string]: unknown;
+}
 
 /**
  * Mint a case name that doesn't collide with any existing case.
@@ -26,8 +34,8 @@ import { reconcileRouteEdges } from './routeEdges';
  * `switch.case_name_duplicate` + two React Flow ports with the same handle
  * id, of which only the first is reachable).
  */
-export function uniqueCaseName(cases, base) {
-    const names = new Set((Array.isArray(cases) ? cases : []).map(c => c?.name).filter(Boolean));
+export function uniqueCaseName(cases?: Array<SwitchCase | null | undefined> | null, base?: string) {
+    const names = new Set((Array.isArray(cases) ? cases : []).map((c: SwitchCase | null | undefined) => c?.name).filter(Boolean));
     const stem = base || 'case';
     if (!names.has(stem)) return stem;
     let i = 1;
@@ -51,13 +59,10 @@ export function uniqueCaseName(cases, base) {
  *   the canonical both-fields form when renamed.
  * - `defaultBranch` follows a rename and is cleared when its case is removed.
  *
- * @param {object} definition  whole (scoped) graph
- * @param {string} stepId      the switch step id
- * @param {Array}  prevCases   cases BEFORE the edit ([{name, value}])
- * @param {Array}  nextCases   cases AFTER the edit
- * @returns {object} next definition (same object when nothing had to change)
+ * Returns the next definition (the same object when nothing had to change).
+ * `prevCases` / `nextCases` are the cases BEFORE and AFTER the edit.
  */
-export function reconcileSwitchEdges(definition, stepId, prevCases, nextCases) {
+export function reconcileSwitchEdges(definition: DiagramDefinition, stepId: string, prevCases: SwitchCase[], nextCases: SwitchCase[]) {
     return relabelSwitchEdges(definition, stepId, prevCases, nextCases);
 }
 
@@ -72,17 +77,18 @@ export function reconcileSwitchEdges(definition, stepId, prevCases, nextCases) {
  * restores the rename and the healed edges together. The same goes for the
  * steps that read a list Condition's outputs (W3-W5).
  */
-export function mergeStepPatchIntoDefinition(definition, step, patch) {
+export function mergeStepPatchIntoDefinition<D extends DiagramDefinition>(definition: D, step: DiagramStep, patch?: Partial<DiagramStep> | null): D;
+export function mergeStepPatchIntoDefinition(definition: DiagramDefinition, step: DiagramStep, patch?: Partial<DiagramStep> | null): DiagramDefinition {
     const merged = { ...step, ...patch, id: step.id };
     let next = { ...definition };
     if (definition.trigger?.id === step.id) next.trigger = merged;
     // Secondary triggers (definition.triggers[]) must patch back into THAT
     // array, not steps[] — a trigger-shaped object has no `type` the step
     // validator accepts.
-    else if ((definition.triggers || []).some(t => t.id === step.id)) {
-        next.triggers = definition.triggers.map(t => (t.id === step.id ? merged : t));
+    else if ((definition.triggers || []).some((t: DiagramStep) => t.id === step.id)) {
+        next.triggers = (definition.triggers as DiagramStep[]).map((t: DiagramStep) => (t.id === step.id ? merged : t));
     } else {
-        next.steps = (definition.steps || []).map(s => (s.id === step.id ? merged : s));
+        next.steps = (definition.steps || []).map((s: DiagramStep) => (s.id === step.id ? merged : s));
     }
 
     // The unified Condition editor can change the step's TYPE (adding a
@@ -91,16 +97,16 @@ export function mergeStepPatchIntoDefinition(definition, step, patch) {
     // the SAME commit — otherwise the very next save would 400 on
     // `switch.case_edge_unknown`, exactly like the case-rename bug did (C1).
     if (patch && patch.type && patch.type !== step.type) {
-        next = reconcileRouteEdges(next, step.id, step, merged);
+        next = reconcileRouteEdges(next, step.id, step, merged) as DiagramDefinition;
     } else if (step.type === 'switch' && patch && Array.isArray(patch.cases)) {
-        next = reconcileSwitchEdges(next, step.id, step.cases || [], patch.cases);
+        next = reconcileSwitchEdges(next, step.id, (step.cases || []) as SwitchCase[], patch.cases);
     }
     // A Condition that works through a list hands its OUTPUTS on: when one
     // output becomes several, an output is renamed or the list goes one level
     // deeper, the steps reading an output follow it in this same commit
     // (shared/expr/routeFollow.mjs), so undo takes back both.
     if (isListRoute(step) || isListRoute(merged)) {
-        next = followRouteEdit(next, step.id, step).definition;
+        next = followRouteEdit(next, step.id, step).definition as DiagramDefinition;
     }
     return next;
 }

@@ -65,6 +65,52 @@
 import { slugifyFieldName } from './FormBuilderFields';
 import { uniqueRuleName } from '../routeModel';
 import { slugName } from './routeIntents';
+import type { DiagramDefinition, DiagramEdge, DiagramStep } from '../diagramPaneTypes';
+
+/** One output rule of the Condition: a name and the expression behind it. */
+export interface HandoffRule {
+    name: string;
+    expr: string;
+}
+
+/** A step as the handoff builds it and as insertStepBefore places it. */
+export interface PlacedStep extends DiagramStep {
+    type?: string;
+    position?: { x?: number; y?: number };
+    inputs?: Record<string, unknown>;
+}
+
+interface HandoffProblemArgs {
+    sentence: string;
+    names: string[];
+    perItem: boolean;
+    list: string;
+}
+
+interface ClassifierArgs {
+    id: string;
+    sentence: string;
+    names: string[];
+    field: string;
+    perItem: boolean;
+    itemVar: string;
+    list: string;
+}
+
+interface PlanRouteHandoffArgs {
+    /** The author's own question. */
+    description?: string;
+    /** The list the Condition works through (per-item only). */
+    sourceRef?: string;
+    /** The answers they named, in their order. */
+    categories?: unknown[];
+    /** What the per-row scope is called. */
+    itemVar?: string;
+    /** Does the Condition work through a list. */
+    perItem?: boolean;
+    /** Override the minted id (tests, retries). */
+    stepId?: string | null;
+}
 
 /** Same ceiling the offline catalogue uses: more ports than this is a lookup
  *  table rather than a routing decision, and each one is an edge to wire. */
@@ -83,9 +129,9 @@ const MAX_LABEL_CHARS = 48;
  * "something else" into two outputs, and an author who writes three words for
  * one answer means one answer.
  */
-export function parseCategories(text) {
-    const seen = new Set();
-    const out = [];
+export function parseCategories(text?: unknown) {
+    const seen = new Set<string>();
+    const out: string[] = [];
     for (const raw of String(text || '').split(/[,/]/)) {
         const name = raw.trim().replace(/[.!?;:]+$/, '').trim();
         if (!name) continue;
@@ -112,7 +158,7 @@ export function newHandoffStepId() {
 }
 
 /** A refusal, in the same shape as a plan so the caller has one thing to read. */
-function refuse(problem) {
+function refuse(problem: string) {
     return { step: null, rules: [], fieldPath: '', field: '', source: null, problem };
 }
 
@@ -124,7 +170,7 @@ function refuse(problem) {
  * gets a step added to their automation and their outputs rewritten, so
  * "roughly right" is not a state this module may return.
  */
-function handoffProblem({ sentence, names, perItem, list }) {
+function handoffProblem({ sentence, names, perItem, list }: HandoffProblemArgs) {
     if (!sentence) {
         return 'Write the question first — the step that answers it is built from your own sentence.';
     }
@@ -157,21 +203,21 @@ function handoffProblem({ sentence, names, perItem, list }) {
  * prompt names it rather than interpolating it — a `{{…}}` pointing at data
  * this module cannot see would render as literal braces in the request.
  */
-function classificationPrompt(sentence, names) {
+function classificationPrompt(sentence: string, names: string[]) {
     return [
         'Read the record in the inputs below and answer one question about it.',
         '',
         `Question: ${sentence}`,
         '',
         'Answer with exactly one of these words, and nothing else:',
-        ...names.map(n => `- ${n}`),
+        ...names.map((n: string) => `- ${n}`),
         '',
         'Pick the one that fits best. Do not explain, do not add punctuation, and never answer with a word that is not on the list.',
     ].join('\n');
 }
 
 /** The canvas label: the question, short enough to read on a card. */
-function stepLabel(sentence) {
+function stepLabel(sentence: string) {
     const one = sentence.replace(/\s+/g, ' ').trim();
     const short = one.length > MAX_LABEL_CHARS ? `${one.slice(0, MAX_LABEL_CHARS - 1).trimEnd()}…` : one;
     return `Classify: ${short}`;
@@ -192,7 +238,7 @@ function stepLabel(sentence) {
  * (insertStepBefore below), and leaving it empty rather than guessing a path
  * keeps a wrong binding off the canvas.
  */
-function classifierStep({ id, sentence, names, field, perItem, itemVar, list }) {
+function classifierStep({ id, sentence, names, field, perItem, itemVar, list }: ClassifierArgs) {
     return {
         id,
         type: 'ai_step',
@@ -222,14 +268,6 @@ function classifierStep({ id, sentence, names, field, perItem, itemVar, list }) 
  * a null `step`, never as a plan with a guess in it: an author who accepts a
  * plan gets a step added to their automation, so "roughly right" is not a state
  * this may return.
- *
- * @param {object}   args
- * @param {string}   args.description  the author's own question
- * @param {string[]} args.categories   the answers they named, in their order
- * @param {string}   args.itemVar      what the per-row scope is called
- * @param {boolean}  args.perItem      does the Condition work through a list
- * @param {string}   args.sourceRef    the list it works through (per-item only)
- * @param {string}   args.stepId       override the minted id (tests, retries)
  */
 export function planRouteHandoff({
     // `description` and `sourceRef` are normalised on the first two lines
@@ -241,10 +279,10 @@ export function planRouteHandoff({
     itemVar = 'item',
     perItem = false,
     stepId = null,
-} = {}) {
+}: PlanRouteHandoffArgs = {}) {
     const sentence = String(description || '').replace(/\s+/g, ' ').trim();
     const names = (Array.isArray(categories) ? categories : [])
-        .map(c => String(c || '').trim())
+        .map((c: unknown) => String(c || '').trim())
         .filter(Boolean)
         .slice(0, MAX_CATEGORIES);
     const list = String(sourceRef || '').trim();
@@ -261,7 +299,7 @@ export function planRouteHandoff({
 
     const step = classifierStep({ id, sentence, names, field, perItem, itemVar, list });
 
-    const rules = [];
+    const rules: HandoffRule[] = [];
     for (const name of names) {
         rules.push({
             name: uniqueRuleName(rules, slugName(name)),
@@ -291,9 +329,9 @@ export function planRouteHandoff({
  * MERGE two, and ids are opaque keys everywhere downstream, so nothing else
  * would notice.
  */
-function canInsert(definition, steps, idx, newStep) {
+function canInsert(definition: DiagramDefinition | null | undefined, steps: PlacedStep[], idx: number, newStep?: PlacedStep | null) {
     if (!definition || idx === -1 || !newStep?.id || !newStep?.type) return false;
-    return definition.trigger?.id !== newStep.id && !steps.some(s => s?.id === newStep.id);
+    return definition.trigger?.id !== newStep.id && !steps.some((s: PlacedStep) => s?.id === newStep.id);
 }
 
 /**
@@ -324,12 +362,12 @@ function canInsert(definition, steps, idx, newStep) {
  * Refuses (`ok: false`, graph untouched) rather than producing something
  * half-wired — see `canInsert` for what it will not do.
  */
-export function insertStepBefore(definition, targetId, newStep) {
-    const steps = Array.isArray(definition?.steps) ? definition.steps : [];
-    const idx = steps.findIndex(s => s?.id === targetId);
+export function insertStepBefore(definition: DiagramDefinition | null | undefined, targetId: string, newStep: PlacedStep) {
+    const steps: PlacedStep[] = Array.isArray(definition?.steps) ? (definition.steps as PlacedStep[]) : [];
+    const idx = steps.findIndex((s: PlacedStep) => s?.id === targetId);
     if (!canInsert(definition, steps, idx, newStep)) return { definition, ok: false };
     const target = steps[idx];
-    const edges = Array.isArray(definition.edges) ? definition.edges : [];
+    const edges: DiagramEdge[] = Array.isArray((definition as DiagramDefinition).edges) ? ((definition as DiagramDefinition).edges as DiagramEdge[]) : [];
     const rewired = edges.map(e => (e?.to === targetId ? { ...e, to: newStep.id } : e));
     // Plain and unlabelled: the inserted step has one continuation, like every
     // other non-branching step on this canvas.
@@ -337,7 +375,7 @@ export function insertStepBefore(definition, targetId, newStep) {
 
     const feeders = [...new Set(edges.filter(e => e?.to === targetId).map(e => e.from))];
     const recordRef = feeders.length === 1
-        ? (definition.trigger?.id === feeders[0] ? 'trigger.output' : `steps.${feeders[0]}.output`)
+        ? ((definition as DiagramDefinition).trigger?.id === feeders[0] ? 'trigger.output' : `steps.${feeders[0]}.output`)
         : null;
     const placed = {
         ...newStep,
@@ -348,5 +386,5 @@ export function insertStepBefore(definition, targetId, newStep) {
     };
     const nextSteps = steps.slice();
     nextSteps.splice(idx, 0, placed);
-    return { definition: { ...definition, steps: nextSteps, edges: rewired }, ok: true };
+    return { definition: { ...(definition as DiagramDefinition), steps: nextSteps, edges: rewired }, ok: true };
 }

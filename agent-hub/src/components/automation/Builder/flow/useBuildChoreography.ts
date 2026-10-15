@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-
 import { edgeKey } from './branchEdges';
 import {
     diffDefinitions, revealSchedule, orderAdded, nextSlotFor, shotFor, isRectInView, planCameraMove,
@@ -7,6 +6,7 @@ import {
 } from './buildChoreography';
 import { flowOrder } from './flowOrder';
 import { projectGhostDraft } from './ghostDraft';
+import type { ApplyDiffOptions, DiagramDefinition, Node, RefObject, BuildChoreographyArgs, BuildCue, CameraPlan, ChoreographyDiff, FxEntry, FxEvent, FxState, LatestChoreography, PendingCard, PlanCameraMoveFn, ProjectGhostDraftFn, Rect, ShotForFn, ShotKind } from './useBuildChoreography.types';
 
 /**
  * The build as a film — the stateful half (the pure half is
@@ -86,7 +86,7 @@ const NO_NODES = Object.freeze([]);
  * (useRibbonFlight) when each ghost departs. `head` is the burst's first card
  * with its departure instant (it is not in `pending`); `burst` its size.
  */
-const EMPTY = Object.freeze({
+const EMPTY: FxState = Object.freeze({
     byId: new Map(),
     edgeKeys: new Map(),
     frontierId: null,
@@ -101,11 +101,11 @@ const EMPTY = Object.freeze({
 // Pure helpers
 // ---------------------------------------------------------------------------
 
-function expiryOf(entry) {
+function expiryOf(entry: { touchedAt?: number; at: number; delayMs?: number }) {
     return (entry.touchedAt ?? entry.at) + FLAG_TTL_MS + (entry.delayMs || 0);
 }
 
-function nextExpiry(fx) {
+function nextExpiry(fx: FxState) {
     let min = Infinity;
     for (const entry of fx.byId.values()) min = Math.min(min, expiryOf(entry));
     for (const at of fx.edgeKeys.values()) min = Math.min(min, at);
@@ -113,21 +113,21 @@ function nextExpiry(fx) {
 }
 
 /** When the next queued card's turn begins, or null with an empty queue. */
-function nextDue(pending) {
+function nextDue(pending: readonly PendingCard[]) {
     let min = Infinity;
     for (const p of pending) if (Number.isFinite(p?.at)) min = Math.min(min, p.at);
     return Number.isFinite(min) ? min : null;
 }
 
 /** Drop every flag whose time is up; the same object back when nothing expired. */
-function prune(fx, now) {
+function prune(fx: FxState, now: number): FxState {
     let changed = false;
-    const byId = new Map();
+    const byId = new Map<string, FxEntry>();
     for (const [id, entry] of fx.byId) {
         if (expiryOf(entry) <= now) changed = true;
         else byId.set(id, entry);
     }
-    const edgeKeys = new Map();
+    const edgeKeys = new Map<string, number>();
     for (const [key, at] of fx.edgeKeys) {
         if (at <= now) changed = true;
         else edgeKeys.set(key, at);
@@ -136,9 +136,9 @@ function prune(fx, now) {
 }
 
 /** A node's absolute layout rect (parents added back on), or null. */
-function rectOf(nodes, id) {
+function rectOf(nodes: Node[] | null | undefined, id?: string | null): Rect | null {
     if (!id || !Array.isArray(nodes)) return null;
-    const byId = new Map();
+    const byId = new Map<string, Node>();
     for (const n of nodes) if (n?.id != null) byId.set(n.id, n);
     const node = byId.get(id);
     if (!node?.position) return null;
@@ -160,8 +160,8 @@ function rectOf(nodes, id) {
 }
 
 /** Every placed card as one rect — what a wide shot frames when we frame it ourselves. */
-function unionOfNodes(nodes) {
-    let out = null;
+function unionOfNodes(nodes: Node[]): Rect | null {
+    let out: Rect | null = null;
     for (const n of Array.isArray(nodes) ? nodes : []) {
         const r = rectOf(nodes, n?.id);
         if (!r) continue;
@@ -175,9 +175,9 @@ function unionOfNodes(nodes) {
     return out && out.width > 0 && out.height > 0 ? out : null;
 }
 
-const rowOf = (rect) => (rect ? Math.round(rect.y / ROW_PITCH) : null);
+const rowOf = (rect: Rect | null) => (rect ? Math.round(rect.y / ROW_PITCH) : null);
 
-function predecessorOf(definition, id) {
+function predecessorOf(definition: DiagramDefinition | null | undefined, id?: string | null) {
     if (!id) return null;
     for (const e of Array.isArray(definition?.edges) ? definition.edges : []) {
         if (e && e.to === id && e.from) return e.from;
@@ -185,18 +185,18 @@ function predecessorOf(definition, id) {
     return null;
 }
 
-function lastInFlow(definition) {
+function lastInFlow(definition: DiagramDefinition | null | undefined) {
     const order = flowOrder(definition);
     return order.length ? order[order.length - 1] : (definition?.trigger?.id ?? null);
 }
 
 /** The ghost's caption: the narrated thought, else the first open todo, else null (the node renders its own default). */
-function captionFor(cue) {
+function captionFor(cue?: { narration?: string | null; todos?: BuildCue['todos'] } | null) {
     const narration = typeof cue?.narration === 'string' ? cue.narration.trim() : '';
     if (narration) return narration;
     const todos = Array.isArray(cue?.todos) ? cue.todos : [];
-    const todo = todos.find(t => t && !t.done && typeof t.text === 'string' && t.text.trim());
-    return todo ? todo.text.trim() : null;
+    const todo = todos.find((t: { text?: string; done?: boolean }) => t && !t.done && typeof t.text === 'string' && t.text.trim());
+    return todo ? (todo.text as string).trim() : null;
 }
 
 /**
@@ -205,7 +205,7 @@ function captionFor(cue) {
  * break; an update moves nothing unless the card is off-screen, which the
  * effect checks with the live viewport.
  */
-function reasonFor(diff) {
+function reasonFor(diff: ChoreographyDiff) {
     const { added, removed, touched } = diff;
     if (added.length) return removed.length ? 'replace' : 'arrival';
     if (removed.length) return 'remove';
@@ -224,14 +224,14 @@ function reasonFor(diff) {
  * reveal delay is its DEPARTURE (the schedule) plus the flight, so the card
  * materialises the moment the ghost lands on it, never before.
  */
-function applyDiff(fx, diff, { definition, nodes, now, orderHint = null, flightMs = 0 }) {
+function applyDiff(fx: FxState, diff: ChoreographyDiff, { definition, nodes, now, orderHint = null, flightMs = 0 }: ApplyDiffOptions): FxState {
     const { added, removed, touched, addedEdgeKeys } = diff;
     if (!added.length && !removed.length && !touched.length && !addedEdgeKeys.length) return fx;
 
     const ids = orderAdded(added, orderHint);
     const schedule = revealSchedule(ids);
     const flight = Math.max(0, Number(flightMs) || 0);
-    const delayOf = (id) => (schedule.has(id) ? schedule.get(id).delayMs + flight : 0);
+    const delayOf = (id: string) => (schedule.has(id) ? schedule.get(id).delayMs + flight : 0);
 
     const byId = new Map(fx.byId);
     for (const id of ids) byId.set(id, { kind: 'fresh', delayMs: delayOf(id), at: now });
@@ -262,7 +262,7 @@ function applyDiff(fx, diff, { definition, nodes, now, orderHint = null, flightM
     // when the next diff lands is kept: its cards are already flagged with
     // their delays and still owe the film their landings.
     const removedSet = new Set(removed);
-    const carried = fx.pending.filter(p => !removedSet.has(p.id));
+    const carried = fx.pending.filter((p: PendingCard) => !removedSet.has(p.id));
     const pending = ids.length
         ? [...carried, ...ids.slice(1).map(id => ({ id, at: now + schedule.get(id).delayMs }))]
         : carried;
@@ -317,10 +317,10 @@ function applyDiff(fx, diff, { definition, nodes, now, orderHint = null, flightM
  * already spaces it MIN_MOVE_GAP_MS from the last push). The same object back
  * when nothing was due, so a stray timer re-renders nothing.
  */
-function advance(fx, now, nodes) {
-    const due = fx.pending.filter(p => p.at <= now);
+function advance(fx: FxState, now: number, nodes: Node[]): FxState {
+    const due = fx.pending.filter((p: PendingCard) => p.at <= now);
     if (!due.length) return fx;
-    const pending = fx.pending.filter(p => p.at > now);
+    const pending = fx.pending.filter((p: PendingCard) => p.at > now);
     const frontierId = due[due.length - 1].id;
     const prevRect = rectOf(nodes, fx.frontierId);
     const newRect = rectOf(nodes, frontierId);
@@ -342,7 +342,7 @@ function advance(fx, now, nodes) {
 }
 
 /** Two camera plans due at the same instant collapse into the wider one. */
-function mergeMoves(a, b) {
+function mergeMoves(a: ShotKind[] | null, b: ShotKind[]): ShotKind[] {
     if (!a) return b;
     if (!b) return a;
     if (a.length > 1 || b.length > 1) return ['wide', 'push'];
@@ -358,7 +358,7 @@ function mergeMoves(a, b) {
  * in — a narrow canvas is better off framing behind the panel than not at all.
  */
 const MIN_FRAMEABLE_PX = 360;
-function sizeOf(wrapperRef, insetLeft = 0) {
+function sizeOf(wrapperRef: RefObject<HTMLElement | null> | undefined, insetLeft = 0) {
     const box = wrapperRef?.current?.getBoundingClientRect?.();
     const width = Number(box?.width) || 0;
     const height = Number(box?.height) || 0;
@@ -396,7 +396,7 @@ export function useBuildChoreography({
     // the tool catalog names the app, `t` the kind and the captions.
     catalog = null,
     t = null,
-}) {
+}: BuildChoreographyArgs) {
     const blocked = !!structuralEditsBlocked;
     const phase = buildCue?.phase || 'building';
     // Flags, ghost and camera exist only while the AI is BUILDING. A dry run
@@ -404,7 +404,7 @@ export function useBuildChoreography({
     // dash); summarise and finalize are chapter ends, not more cards.
     const active = blocked && !reducedMotion && phase === 'building' && !runInFlight;
 
-    const [fx, setFx] = useState(EMPTY);
+    const [fx, setFx] = useState<FxState>(EMPTY);
     const [prevDef, setPrevDef] = useState(definition);
     const [following, setFollowing] = useState(true);
 
@@ -419,7 +419,7 @@ export function useBuildChoreography({
                 // shows the empty state until then): React Flow fits on its own
                 // that frame, so the film opens on a wide, not a push.
                 setFx(!prevDef?.trigger && definition?.trigger
-                    ? { ...next, event: { ...next.event, reason: 'mount' } }
+                    ? { ...next, event: { ...next.event, reason: 'mount' } as FxEvent }
                     : next);
             }
         }
@@ -427,7 +427,7 @@ export function useBuildChoreography({
     if (!active && fx !== EMPTY) setFx(EMPTY);
 
     // ── Everything the timers read, one commit behind at most ───────────
-    const latestRef = useRef({});
+    const latestRef = useRef({} as LatestChoreography);
     useEffect(() => {
         latestRef.current = { rf, wrapperRef, computedNodes, definition, fx, blocked, active, reducedMotion, orderHint, cameraInsetLeft };
     });
@@ -435,13 +435,13 @@ export function useBuildChoreography({
     // ── Camera plumbing ─────────────────────────────────────────────────
     const followingRef = useRef(true);
     const cameraOwnedRef = useRef(false);
-    const ownTimerRef = useRef(null);
+    const ownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const ownUntilRef = useRef(0);
-    const lastMoveAtRef = useRef(null);
-    const timersRef = useRef(new Set());
-    const pendingRef = useRef(null);
+    const lastMoveAtRef = useRef<number | null>(null);
+    const timersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+    const pendingRef = useRef<CameraPlan | null>(null);
 
-    const setFollow = useCallback((value) => {
+    const setFollow = useCallback((value: boolean) => {
         followingRef.current = value;
         setFollowing(value);
     }, []);
@@ -452,7 +452,7 @@ export function useBuildChoreography({
         pendingRef.current = null;
     }, []);
 
-    const later = useCallback((fn, ms) => {
+    const later = useCallback((fn: () => void, ms: number) => {
         const id = setTimeout(() => {
             timersRef.current.delete(id);
             fn();
@@ -464,7 +464,7 @@ export function useBuildChoreography({
     // Ownership only ever EXTENDS: a short push scheduled inside the mount
     // grace must not release the camera before React Flow's own fit-on-mount
     // has fired its onMoveStart.
-    const ownCamera = useCallback((ms) => {
+    const ownCamera = useCallback((ms: number) => {
         const until = Date.now() + ms;
         cameraOwnedRef.current = true;
         if (until <= ownUntilRef.current) return;
@@ -482,7 +482,7 @@ export function useBuildChoreography({
      * moved. Every React Flow call is guarded: the canvas may have unmounted
      * between the plan and the timer.
      */
-    const runShot = useCallback((kind) => {
+    const runShot = useCallback((kind: ShotKind) => {
         const { rf: flow, wrapperRef: wrap, computedNodes: nodes, definition: def, fx: state, cameraInsetLeft: inset } = latestRef.current;
         if (!followingRef.current || !flow || typeof flow.getViewport !== 'function') return false;
         try {
@@ -501,8 +501,8 @@ export function useBuildChoreography({
                 // is left. Without one, nothing changes — fitView as before.
                 const wideRect = size?.offsetX ? unionOfNodes(nodes) : null;
                 if (wideRect && current) {
-                    const framed = shotFor({ kind: 'wide', rects: [wideRect], viewport: size, current });
-                    if (framed) flow.setViewport({ x: framed.x + size.offsetX, y: framed.y, zoom: framed.zoom }, { duration: shot.duration, interpolate: framed.interpolate });
+                    const framed = (shotFor as ShotForFn)({ kind: 'wide', rects: [wideRect], viewport: size, current });
+                    if (framed) flow.setViewport({ x: framed.x + (size as NonNullable<typeof size>).offsetX, y: framed.y, zoom: framed.zoom }, { duration: shot.duration, interpolate: framed.interpolate });
                     else flow.fitView(shot);
                 } else {
                     flow.fitView(shot);
@@ -517,7 +517,7 @@ export function useBuildChoreography({
                 if (!newRect || isRectInView(newRect, current, size)) return false;
                 const predRect = rectOf(nodes, predecessorOf(def, state.frontierId));
                 const ghostRect = { ...nextSlotFor(newRect), width: CARD_W, height: CARD_H };
-                const shot = shotFor({ kind: 'push', rects: predRect ? [predRect, newRect] : [newRect], ghostRect, viewport: size, current });
+                const shot = (shotFor as ShotForFn)({ kind: 'push', rects: predRect ? [predRect, newRect] : [newRect], ghostRect, viewport: size, current });
                 if (!shot) return false;
                 ownCamera(shot.duration + OWN_SLACK_MS);
                 flow.setViewport({ x: shot.x + size.offsetX, y: shot.y, zoom: shot.zoom }, { duration: shot.duration, interpolate: shot.interpolate });
@@ -552,10 +552,10 @@ export function useBuildChoreography({
      * this one (the wider shot wins) — three arrivals inside one hold become
      * one move, framed at fire time so it shows the NEWEST card.
      */
-    const schedule = useCallback((moves, deferMs, holdMs) => {
+    const schedule = useCallback((moves: ShotKind[], deferMs: number, holdMs: number) => {
         const merged = mergeMoves(pendingRef.current?.moves ?? null, moves);
         cancelPending();
-        const plan = { moves: merged, holdMs };
+        const plan: CameraPlan = { moves: merged, holdMs };
         pendingRef.current = plan;
         later(() => {
             if (pendingRef.current === plan) pendingRef.current = null;
@@ -566,7 +566,7 @@ export function useBuildChoreography({
                 // waits, so an arrival in the hold merges into it instead of
                 // cancelling it. It skips the hold when the wide was a no-op —
                 // there is nothing to let settle.
-                const rest = { moves: [second], holdMs };
+                const rest: CameraPlan = { moves: [second], holdMs };
                 pendingRef.current = rest;
                 later(() => {
                     if (pendingRef.current === rest) pendingRef.current = null;
@@ -602,7 +602,7 @@ export function useBuildChoreography({
             schedule(['center'], since < MIN_MOVE_GAP_MS ? MIN_MOVE_GAP_MS - since : 0, 0);
             return;
         }
-        const plan = planCameraMove({
+        const plan = (planCameraMove as PlanCameraMoveFn)({
             reason: ev.reason,
             following: followingRef.current,
             lastMoveAt: lastMoveAtRef.current,
@@ -623,7 +623,7 @@ export function useBuildChoreography({
         // the canvas then, and its own banner says where the run is.
         const reason = phase === 'reviewing' ? 'summarise' : phase === 'finishing' ? 'finalize' : null;
         if (!reason) return;
-        const plan = planCameraMove({ reason, following: followingRef.current, lastMoveAt: lastMoveAtRef.current, now: Date.now() });
+        const plan = (planCameraMove as PlanCameraMoveFn)({ reason, following: followingRef.current, lastMoveAt: lastMoveAtRef.current, now: Date.now() });
         if (plan) schedule(plan.moves, plan.deferMs, plan.holdMs);
     }, [phase, blocked, reducedMotion, schedule]);
 
@@ -687,7 +687,7 @@ export function useBuildChoreography({
     useEffect(() => {
         const at = nextExpiry(fx);
         if (at == null) return undefined;
-        const id = setTimeout(() => setFx(cur => prune(cur, Date.now())), Math.max(0, at - Date.now()));
+        const id = setTimeout(() => setFx((cur: FxState) => prune(cur, Date.now())), Math.max(0, at - Date.now()));
         return () => clearTimeout(id);
     }, [fx]);
 
@@ -707,7 +707,7 @@ export function useBuildChoreography({
             // due must not depend on that.
             const now = Date.now();
             const nodes = latestRef.current.computedNodes;
-            setFx(cur => advance(cur, now, nodes));
+            setFx((cur: FxState) => advance(cur, now, nodes));
         }, Math.max(0, at - Date.now()));
         return () => clearTimeout(id);
     }, [fx]);
@@ -725,9 +725,9 @@ export function useBuildChoreography({
     useEffect(() => {
         const el = wrapperRef?.current;
         if (!active || !el || typeof ResizeObserver === 'undefined') return undefined;
-        let timer = null;
-        let last = null;
-        const observer = new ResizeObserver((entries) => {
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        let last: { width: number; height: number } | null = null;
+        const observer = new ResizeObserver((entries: ResizeObserverEntry[]) => {
             const box = entries[0]?.contentRect;
             if (!box) return;
             // Sub-pixel reflows and the first measurement are not resizes.
@@ -787,7 +787,7 @@ export function useBuildChoreography({
     // projected once per streamed chunk (null between calls and outside a
     // build, so nothing downstream keys on it then).
     const toolDraft = active ? (buildCue?.toolDraft ?? null) : null;
-    const draft = useMemo(() => projectGhostDraft(toolDraft, { catalog, t }), [toolDraft, catalog, t]);
+    const draft = useMemo(() => (projectGhostDraft as ProjectGhostDraftFn)(toolDraft, { catalog, t }), [toolDraft, catalog, t]);
     const ghost = useMemo(() => {
         if (!active) return null;
         // After a removal the slot's promise is void until the AI adds again

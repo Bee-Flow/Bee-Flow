@@ -18,7 +18,7 @@ const REPO = path.resolve(__dirname, '../../../../..');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webOrder = require(`${FLOW}/flowOrder.js`);
 const webLoop = require(`${FLOW}/loopBodyEdges.js`);
-const webTerminal = require(`${FLOW}/terminalSteps.js`);
+const webTerminal = require(`${FLOW}/terminalSteps.ts`);
 const serverConstants = require(path.join(REPO, 'server/automation/validate/constants.js'));
 const TEMPLATES_JS = path.join(REPO, 'server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);

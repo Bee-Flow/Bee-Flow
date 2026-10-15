@@ -1,4 +1,6 @@
 import { useCallback, useState } from 'react';
+import type { DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react';
+import type { Edge, Node as FlowNode, XYPosition } from '@xyflow/react';
 
 import { attachTool, allCatalogToolNames, isToolNodeId, parseToolNodeId } from './aiToolNodes';
 import { isInlineId, parseInlineId } from './inlineFlowlets';
@@ -6,6 +8,37 @@ import { seedPositions } from './layout';
 import { readStepPayload, dropTargetFromPoint, sameDropTarget } from './stepDrag';
 import { applyAddNode } from '../applyAddNode';
 import { isTerminalStep } from './terminalSteps';
+import type { DropTarget, StepDragPayload } from './stepDrag';
+import type { DiagramDefinition, DiagramStep, Rf, Sidecar } from './diagramPaneTypes';
+
+/** Where a dropped step is wired: after `sourceId`, or into the edge sourceId→targetId. */
+interface DropWiring {
+    sourceId: string;
+    targetId: string | null;
+    label: string | null;
+    caseName: string | null;
+}
+
+/** A rendered edge as layout.js builds it: the definition row's identity rides in `data`. */
+type RenderedEdge = Edge<{ defLabel?: string; defCaseName?: string | null }>;
+
+interface StepDropArgs {
+    editable?: boolean;
+    structuralEditsBlocked?: boolean;
+    definition: DiagramDefinition;
+    edges: RenderedEdge[];
+    onDropStep?: ((payload: StepDragPayload, opts: { position: XYPosition; scopePrefix: string } & Partial<DropWiring>) => void) | null;
+    onDefinitionChange?: ((next: DiagramDefinition) => void) | null;
+    onStepAdded?: ((payload: StepDragPayload, sourceStep: null) => void) | null;
+    rf: Rf;
+    scopeAtPoint: (point: XYPosition) => string;
+    catalog?: unknown;
+    wrapperRef: RefObject<HTMLElement | null>;
+    onNodeExpand?: ((id: string) => void) | null;
+    onOpenLayer?: ((layerKey: string) => void) | null;
+    hasInline?: boolean;
+    sidecar: Sidecar;
+}
 
 // ── Drag a step in from the ribbon / add-step menu ───────────────────
 //
@@ -20,21 +53,21 @@ export function useStepDrop({
     editable, structuralEditsBlocked, definition, edges,
     onDropStep, onDefinitionChange, onStepAdded, rf, scopeAtPoint, catalog,
     wrapperRef, onNodeExpand, onOpenLayer, hasInline, sidecar,
-}) {
-    const [dropTarget, setDropTarget] = useState(null); // {kind:'edge'|'node'|'pane', id?}
+}: StepDropArgs) {
+    const [dropTarget, setDropTarget] = useState<DropTarget | null>(null); // {kind:'edge'|'node'|'pane', id?}
 
-    const onDragOver = useCallback((event) => {
+    const onDragOver = useCallback((event: ReactDragEvent) => {
         if (!editable || structuralEditsBlocked) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'copy';
         const hit = dropTargetFromPoint(event.clientX, event.clientY);
-        setDropTarget(prev => (sameDropTarget(prev, hit) ? prev : hit));
+        setDropTarget((prev: DropTarget | null) => (sameDropTarget(prev, hit) ? prev : hit));
     }, [editable, structuralEditsBlocked]);
 
     // Leaving the canvas entirely clears the highlight; moving between the
     // canvas's own children fires dragleave too, so ignore those.
-    const onDragLeave = useCallback((event) => {
-        if (event.currentTarget.contains(event.relatedTarget)) return;
+    const onDragLeave = useCallback((event: ReactDragEvent) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
         setDropTarget(null);
     }, []);
 
@@ -45,7 +78,7 @@ export function useStepDrop({
      * (zoomOnDoubleClick is disabled on the editable canvas below so the
      * gesture doesn't also zoom.)
      */
-    const onNodeDoubleClick = useCallback((_evt, node) => {
+    const onNodeDoubleClick = useCallback((_evt: ReactMouseEvent, node: FlowNode) => {
         if (!node?.id) return;
         // The row labels and the build's ghost slot are canvas furniture with
         // no step behind them; React Flow still wraps them in a clickable
@@ -53,8 +86,8 @@ export function useStepDrop({
         // with "editing is paused" for a card that never existed.
         if (node.data?.synthetic) return;
         // A tool chip has no editor of its own; open the AI step that owns it.
-        if (isToolNodeId(node.id)) { onNodeExpand?.(parseToolNodeId(node.id).stepId); return; }
-        const step = (definition?.steps || []).find(s => s.id === node.id);
+        if (isToolNodeId(node.id)) { onNodeExpand?.((parseToolNodeId(node.id) as { stepId: string }).stepId); return; }
+        const step = (definition?.steps || []).find((s: DiagramStep) => s.id === node.id);
         // A note (BFSF-411) has no settings panel — double-click edits its
         // text INLINE on the card itself (NoteNode's own handler, which
         // stops propagation before this ever fires in the normal case; this
@@ -65,12 +98,12 @@ export function useStepDrop({
         // "take me to this flowlet" — the same gesture, one level down.
         if (hasInline && isInlineId(node.id) && onOpenLayer) {
             const owner = sidecar.get(parseInlineId(node.id).prefix);
-            if (owner?.layerKey) { onOpenLayer(owner.layerKey); return; }
+            if (owner?.layerKey) { onOpenLayer(owner.layerKey as string); return; }
         }
         onNodeExpand?.(node.id);
     }, [definition, onOpenLayer, onNodeExpand, hasInline, sidecar]);
 
-    const onDrop = useCallback((event) => {
+    const onDrop = useCallback((event: ReactDragEvent) => {
         setDropTarget(null);
         if (!editable || structuralEditsBlocked) return;
         event.preventDefault();
@@ -84,14 +117,14 @@ export function useStepDrop({
 
         // Where did it land? Re-hit-test on drop rather than trusting the last
         // dragover — a fast release can outrun the final dragover tick.
-        let hit = dropTargetFromPoint(event.clientX, event.clientY);
+        let hit: DropTarget = dropTargetFromPoint(event.clientX, event.clientY);
 
         // An app released on an AI step's tools port — or on one of the tool
         // chips already hanging there — becomes a TOOL of that step rather than
         // a step of its own.
         const toolTargetId = hit.kind === 'toolPort'
             ? hit.id
-            : (hit.kind === 'node' && isToolNodeId(hit.id) ? parseToolNodeId(hit.id).stepId : null);
+            : (hit.kind === 'node' && isToolNodeId(hit.id) ? (parseToolNodeId(hit.id) as { stepId: string }).stepId : null);
         if (toolTargetId) {
             if (payload.kind === 'integration_action' && payload.tool) {
                 const next = attachTool(definition, toolTargetId, payload.tool, {
@@ -114,18 +147,18 @@ export function useStepDrop({
         // step to that flowlet; wiring is only offered to nodes/edges of the
         // same graph, since a connection can't cross the boundary.
         const scopePrefix = scopeAtPoint(point);
-        const inScope = (id) => parseInlineId(id || '').prefix === scopePrefix;
+        const inScope = (id?: string | null) => parseInlineId(id || '').prefix === scopePrefix;
         // "Wiring from here would draw a line that never fires" — two
         // different reasons under one name: a brancher routes ONLY on labelled
         // edges, and a TERMINAL step ends the run. The terminal half comes from
         // the shared list so a new end-step cannot be half-known here.
-        const isBrancher = (id) => {
-            const s = (definition.steps || []).find(x => x.id === id);
+        const isBrancher = (id: string) => {
+            const s = (definition.steps || []).find((x: DiagramStep) => x.id === id);
             return s?.type === 'condition' || s?.type === 'switch' || isTerminalStep(s);
         };
-        let wiring = null;
+        let wiring: DropWiring | null = null;
         if (hit.kind === 'edge') {
-            const hovered = edges.find(e => e.id === hit.id);
+            const hovered = edges.find((e: RenderedEdge) => e.id === hit.id);
             if (hovered && inScope(hovered.source)) {
                 wiring = {
                     sourceId: hovered.source,
@@ -140,7 +173,7 @@ export function useStepDrop({
             // the run: wiring from either would draw a connection that never
             // fires (B5/B9), so those drops add the step unconnected and the
             // user drags from the branch port they mean.
-            if (!isBrancher(hit.id)) wiring = { sourceId: hit.id, targetId: null, label: null, caseName: null };
+            if (!isBrancher(hit.id as string)) wiring = { sourceId: hit.id as string, targetId: null, label: null, caseName: null };
         }
 
         // Preferred path: hand the payload + wiring to the parent, which owns

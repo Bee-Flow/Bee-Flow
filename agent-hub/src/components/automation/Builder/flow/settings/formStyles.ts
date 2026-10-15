@@ -131,7 +131,13 @@ export const CONTROL_BORDER_STRONG = 'border-[color-mix(in_srgb,var(--text-secon
  * unchanged; `quietBorder` opts back into the hairline for surfaces where the
  * control sits in an already-outlined row.
  */
-export function controlSurfaceClass(extra = '', { invalid = false, quietBorder = false, strongBorder = false } = {}) {
+export interface ControlSurfaceOptions {
+    invalid?: boolean;
+    quietBorder?: boolean;
+    strongBorder?: boolean;
+}
+
+export function controlSurfaceClass(extra = '', { invalid = false, quietBorder = false, strongBorder = false }: ControlSurfaceOptions = {}) {
     void strongBorder; // now the default — accepted for back-compat
     const border = invalid
         ? 'border-[var(--error)]'
@@ -140,12 +146,12 @@ export function controlSurfaceClass(extra = '', { invalid = false, quietBorder =
 }
 
 // The 12px control used by the mapping editors — the common field density.
-export function denseInputClass(extra = '', opts) {
+export function denseInputClass(extra = '', opts?: ControlSurfaceOptions) {
     return controlSurfaceClass(`px-2 py-1.5 text-xs ${extra}`.trim(), opts);
 }
 
 // The tighter 12px control used inside repeatable rows and table editors.
-export function rowInputClass(extra = '', opts) {
+export function rowInputClass(extra = '', opts?: ControlSurfaceOptions) {
     return controlSurfaceClass(`px-2 py-1 text-xs ${extra}`.trim(), opts);
 }
 
