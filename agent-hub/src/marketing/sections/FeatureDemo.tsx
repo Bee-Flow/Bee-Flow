@@ -4,6 +4,15 @@ import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
 import { DEMO_FEATURE_IDS } from '../../demo/registry';
+import type { SectionDataBase } from './sectionData.types';
+
+interface FeatureDemoData extends SectionDataBase {
+    feature?: string;
+    height?: number;
+    theme?: string;
+    note?: string;
+    cta?: { label?: string; href?: string; link?: { href?: string; path?: string } };
+}
 
 /**
  * Live feature demo — the real product UI, framed inside a marketing page.
@@ -62,7 +71,7 @@ const MIN_PREVIEW_HEIGHT = 240;
 // flips at 767, which is why it is not used here.)
 const PHONE_QUERY = '(max-width: 768px)';
 
-export default function FeatureDemo({ data }) {
+export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
     const feature = typeof data?.feature === 'string' ? data.feature : '';
     const known = DEMO_FEATURE_IDS.includes(feature);
     const editing = isPreviewMode();
@@ -70,13 +79,13 @@ export default function FeatureDemo({ data }) {
     // The editor's poster outranks the phone branch, so the CMS builder's
     // mobile preview preset never boots a second copy of the app.
     const scaledPreview = isPhone && known && !editing;
-    const clipRef = useRef(null);
+    const clipRef = useRef<HTMLDivElement>(null);
     const clipW = useMeasuredWidth(clipRef, scaledPreview);
 
     if (!data?.enabled) return null;
 
     const height = Number.isFinite(data.height)
-        ? Math.min(Math.max(data.height, 320), 1200)
+        ? Math.min(Math.max(data.height as number, 320), 1200)
         : 720;
     const theme = data.theme === 'dark' ? 'dark' : 'light';
 
@@ -234,7 +243,7 @@ function useIsPhone() {
 // deliberate differences: useLayoutEffect so the first paint already has the
 // right scale — on a public page a one-frame 1280px flash is visible layout
 // shift — and an `active` flag so the desktop branch observes nothing.
-function useMeasuredWidth(ref, active) {
+function useMeasuredWidth(ref: React.RefObject<HTMLDivElement | null>, active: boolean) {
     const [w, setW] = useState(0);
     useLayoutEffect(() => {
         if (!active) return undefined;

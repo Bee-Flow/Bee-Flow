@@ -25,6 +25,13 @@
 
 import React from 'react';
 
+interface CardActionWrapperProps extends React.HTMLAttributes<HTMLElement> {
+    card: { cardAction?: string; cardUrl?: string; popupEmbed?: string };
+    className?: string;
+    onOpenPopup?: () => void;
+    children?: React.ReactNode;
+}
+
 /* A card link used to be assumed external, so the wrapper hard-coded
    target="_blank". Cards now also point at our own pages — the /compare hub
    routes to every comparison page this way — and sending a visitor to another
@@ -33,13 +40,13 @@ import React from 'react';
 
    Internal means a root-relative path. `//evil.com` is protocol-relative and
    therefore external, which is why the second character is checked. */
-function isInternalPath(url) {
+function isInternalPath(url: unknown) {
     return typeof url === 'string'
         && url.startsWith('/')
         && !url.startsWith('//');
 }
 
-export default function CardActionWrapper({ card, className, onOpenPopup, children, ...rest }) {
+export default function CardActionWrapper({ card, className, onOpenPopup, children, ...rest }: CardActionWrapperProps) {
     const cardAction = card.cardAction || 'none';
     const hasLink = cardAction === 'link'
         && typeof card.cardUrl === 'string'
@@ -53,7 +60,7 @@ export default function CardActionWrapper({ card, className, onOpenPopup, childr
         // Anchor wrap — clicks anywhere on the card navigate. The
         // onClick guard cancels the default link activation when the
         // click landed on a contentEditable.
-        const internal = isInternalPath(card.cardUrl.trim());
+        const internal = isInternalPath((card.cardUrl as string).trim());
         return (
             <a
                 {...rest}
@@ -63,7 +70,7 @@ export default function CardActionWrapper({ card, className, onOpenPopup, childr
                 className={className}
                 style={linkStyle}
                 onClick={(e) => {
-                    if (e.target.closest && e.target.closest('.cms-editable')) {
+                    if ((e.target as Element).closest && (e.target as Element).closest('.cms-editable')) {
                         e.preventDefault();
                     }
                 }}
@@ -78,7 +85,7 @@ export default function CardActionWrapper({ card, className, onOpenPopup, childr
             {...rest}
             className={className}
             onClick={hasPopup ? (e) => {
-                if (e.target.closest && e.target.closest('.cms-editable')) return;
+                if ((e.target as Element).closest && (e.target as Element).closest('.cms-editable')) return;
                 onOpenPopup();
             } : undefined}
             style={hasPopup ? { cursor: 'pointer' } : undefined}
@@ -86,7 +93,7 @@ export default function CardActionWrapper({ card, className, onOpenPopup, childr
             tabIndex={hasPopup ? 0 : undefined}
             onKeyDown={hasPopup ? (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                    if (e.target.closest && e.target.closest('.cms-editable')) return;
+                    if ((e.target as Element).closest && (e.target as Element).closest('.cms-editable')) return;
                     e.preventDefault();
                     onOpenPopup();
                 }

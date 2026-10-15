@@ -4,6 +4,20 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
+import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
+
+interface StatItem {
+    number?: string;
+    label?: string;
+    numberStyle?: TextStyleBlob;
+    numberAlign?: string;
+    labelAlign?: string;
+}
+
+interface TechStatsData extends SectionDataBase {
+    countUp?: boolean;
+    stats?: StatItem[];
+}
 
 const isPreview = () =>
     typeof window !== 'undefined' &&
@@ -14,8 +28,8 @@ const isPreview = () =>
 // and eases it in when the stat scrolls into view. Never used in preview
 // (contentEditable must show the real text) and skipped under
 // prefers-reduced-motion — both fall back to the static string.
-function CountUpNumber({ text, className, style }) {
-    const ref = useRef(null);
+function CountUpNumber({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+    const ref = useRef<HTMLDivElement>(null);
     const [display, setDisplay] = useState(text);
     useEffect(() => {
         setDisplay(text);
@@ -28,13 +42,13 @@ function CountUpNumber({ text, className, style }) {
         if (!el) return undefined;
         const decimals = (m[2].split('.')[1] || '').length;
         const grouped = m[2].includes(',');
-        let raf;
+        let raf: number | undefined;
         const obs = new IntersectionObserver((entries) => {
             if (!entries.some(e => e.isIntersecting)) return;
             obs.disconnect();
             const t0 = performance.now();
             const dur = 700;
-            const step = (t) => {
+            const step = (t: number) => {
                 const p = Math.min(1, (t - t0) / dur);
                 const eased = 1 - Math.pow(1 - p, 3);
                 let v = (target * eased).toFixed(decimals);
@@ -50,7 +64,7 @@ function CountUpNumber({ text, className, style }) {
     return <div ref={ref} className={className} style={style}>{display}</div>;
 }
 
-export default function TechStats({ data }) {
+export default function TechStats({ data }: { data?: TechStatsData }) {
     if (!data?.enabled) return null;
     const countUp = data.countUp !== false && !isPreview();
     return (

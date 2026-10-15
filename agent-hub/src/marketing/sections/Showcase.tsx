@@ -4,13 +4,21 @@ import FramedMedia from '../components/FramedMedia';
 import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
+import type { MediaSlot, SectionDataBase } from './sectionData.types';
 
-export default function Showcase({ data }) {
+interface ShowcaseData extends SectionDataBase {
+    variant?: string;
+    media?: MediaSlot;
+    mediaSecondary?: MediaSlot;
+    code?: { language?: string; snippet?: string };
+}
+
+export default function Showcase({ data }: { data?: ShowcaseData }) {
     if (!data?.enabled) return null;
     // 'single' is the default/fallback (no legacy layout): one full-container
     // framed shot with glow + fade-mask. 'pair' = two frames side by side;
     // 'code-ui' = mono code panel (no syntax highlighting) + frame, 5/7.
-    const variant = ['pair', 'code-ui'].includes(data.variant) ? data.variant : 'single';
+    const variant = (['pair', 'code-ui'] as readonly (string | undefined)[]).includes(data.variant) ? data.variant : 'single';
     const code = data.code || {};
 
     return (

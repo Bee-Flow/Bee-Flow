@@ -5,6 +5,7 @@
  */
 
 import type { TextStyleInput } from './textStyle';
+import type { ClipMedia } from '../components/ClipVideo';
 
 /** `{ fontFamily?, fontSize?, color? }` from the editor's StyleTriplet. */
 export type TextStyleBlob = TextStyleInput;
@@ -32,4 +33,13 @@ export interface SectionDataBase extends SectionHeaderFields {
 /** A link target as the CMS stores it. */
 export interface CmsHref {
     href?: string;
+}
+
+/** The media slot shape FramedMedia renders (image, silent video, or clip with sound). */
+export interface MediaSlot extends ClipMedia {
+    srcDark?: string;
+    frame?: string;
+    kind?: string;
+    width?: number;
+    height?: number;
 }

@@ -5,6 +5,31 @@ import FramedMedia from '../components/FramedMedia';
 import ClipVideo from '../components/ClipVideo';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import type { MediaSlot, SectionDataBase, TextStyleBlob } from './sectionData.types';
+
+interface MediaTextCta {
+    label?: string;
+    href?: string;
+    style?: string;
+    link?: { href?: string };
+}
+
+interface MediaTextData extends SectionDataBase {
+    heading?: string;
+    subheading?: string | null;
+    body?: string;
+    cta?: MediaTextCta | null;
+    media?: MediaSlot;
+    mediaPosition?: string;
+    mediaSize?: string;
+    headingStyle?: TextStyleBlob;
+    subheadingStyle?: TextStyleBlob;
+    bodyStyle?: TextStyleBlob;
+    ctaStyle?: TextStyleBlob;
+    headingAlign?: string;
+    subheadingAlign?: string;
+    bodyAlign?: string;
+}
 
 /**
  * Media + Text section. Side-by-side layout pairing an image OR video
@@ -25,7 +50,7 @@ import { inlineTextStyle } from './textStyle';
  *   media-text.body
  *   media-text.cta.label
  */
-export default function MediaText({ data }) {
+export default function MediaText({ data }: { data?: MediaTextData }) {
     if (!data?.enabled) return null;
 
     const heading           = data.heading || '';
@@ -153,7 +178,7 @@ export default function MediaText({ data }) {
 // without controls. `kind: 'video'` still routes to an iframe embed for
 // YouTube/Vimeo URLs. Falls back to <img> for legacy data with no kind
 // or unknown values.
-function renderMedia(media, heading) {
+function renderMedia(media: MediaSlot, heading: string) {
     const src = media?.src || '';
     const alt = media?.alt || '';
     const kind = media?.kind || 'image';
@@ -233,8 +258,8 @@ function renderMedia(media, heading) {
     // Unframed legacy path: same dimension attributes as FramedMedia, plus
     // lazy loading it never had — this element sits mid-page, never above
     // the fold.
-    const dims = media?.width > 0 && media?.height > 0
-        ? { width: Math.round(media.width), height: Math.round(media.height) }
+    const dims = (media?.width as number) > 0 && (media?.height as number) > 0
+        ? { width: Math.round(media.width as number), height: Math.round(media.height as number) }
         : {};
     return <img src={src} alt={alt} {...dims} loading="lazy" />;
 }
