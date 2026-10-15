@@ -19,7 +19,7 @@ import type { JsonSchemaProp } from '../bindings/types';
 const SRC = fs.readFileSync(webPath(`${BUILDER}/mapping/ToolInputForm.jsx`), 'utf8');
 // One user-named row (the field-name input, its reserved names and path test).
 const ROW_SRC = fs.readFileSync(webPath(`${BUILDER}/mapping/toolInput/GenericRow.tsx`), 'utf8');
-const webHelpers = requireWeb('utils/bindingHelpers.js');
+const webHelpers = requireWeb('utils/bindingHelpers.ts');
 const webToolInput = requireWeb(`${BUILDER}/mapping/toolInput/toolInputHelpers.ts`);
 const webPartition = requireWeb(`${BUILDER}/mapping/partitionInputs.ts`);
 

@@ -43,7 +43,7 @@ export const TOUR_ANCHORS = {
 
     // Cowork page (the composer renders on /app/cowork with nothing selected).
     'cowork-composer': { selector: '[data-tour="cowork-composer"]', owner: 'cowork/CoworkComposer.jsx', reveal: {} },
-    'cowork-options': { selector: '[data-tour="cowork-options"]', owner: 'cowork/CoworkOptionsBar.jsx', reveal: {} },
+    'cowork-options': { selector: '[data-tour="cowork-options"]', owner: 'cowork/CoworkOptionsBar.tsx', reveal: {} },
 };
 
 // All registered selectors (for the validator test).

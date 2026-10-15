@@ -58,6 +58,7 @@ export const STEP_ICON_MAP = Object.fromEntries(ICON_DEFS);
 export const STEP_ICON_NAMES = ICON_DEFS.map(([name]) => name);
 
 /** Render a Lucide icon by its name. Returns `fallback` for empty/unknown. */
+/** @param {{ name?: string|null, size?: number, className?: string, fallback?: import('react').ReactNode }} props */
 export function StepIcon({ name, size = 16, className = '', fallback = null }) {
     const Cmp = name ? STEP_ICON_MAP[name] : null;
     if (!Cmp) return fallback;

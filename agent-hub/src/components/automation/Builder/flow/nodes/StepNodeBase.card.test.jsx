@@ -219,11 +219,11 @@ describe('node files — no private colour vocabularies remain', () => {
     // the whole vocabulary into flow/nodeTypeColors.js; a node file naming a
     // Tailwind colour class or a hex again is the drift this catches.
     const dir = HERE;
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.jsx') && !f.includes('.test.'));
+    const files = fs.readdirSync(dir).filter(f => (f.endsWith('.jsx') || f.endsWith('.tsx')) && !f.includes('.test.'));
     const BANNED = /\b(?:border|bg|text|ring)-(?:emerald|red|amber|cyan|sky|blue|green|rose)-\d{3}\b/;
 
     for (const f of files) {
-        if (f === 'NoteNode.jsx' || f === 'AiToolNode.jsx' || f === 'LoopItemNode.jsx' || f === 'GroupNode.jsx' || f === 'IntegrationLogo.jsx') continue;
+        if (f === 'NoteNode.jsx' || f === 'AiToolNode.tsx' || f === 'LoopItemNode.tsx' || f === 'GroupNode.tsx' || f === 'IntegrationLogo.tsx') continue;
         it(`${f} paints with tokens only`, () => {
             const src = fs.readFileSync(path.join(dir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
             expect(src).not.toMatch(BANNED);

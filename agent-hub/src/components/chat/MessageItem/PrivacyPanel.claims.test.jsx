@@ -122,7 +122,7 @@ describe('PrivacyPanel — geen verzonnen plaatsvervanger (C7)', () => {
     });
 
     it('schildert geen enkele kleur buiten de thematokens om', () => {
-        const src = fs.readFileSync(path.join(HERE, 'PrivacyPanel.jsx'), 'utf8')
+        const src = fs.readFileSync(path.join(HERE, 'PrivacyPanel.tsx'), 'utf8')
             .replace(/\/\*[\s\S]*?\*\//g, '')
             .replace(/^[ \t]*\/\/.*$/gm, '');
         expect(src).not.toMatch(/rgba?\(/);

@@ -16,7 +16,7 @@ const web = require(path.join(WEB, 'hooks/useChatEngine/phaseTrail.ts')) as {
     appendPhase: (t: unknown, d: unknown, now?: number) => unknown;
     MAX_TRAIL_STEPS: number;
 };
-const webTrace = require(path.join(WEB, 'components/chat/answerTrace.js')) as { traceSpanMs: (t: unknown) => unknown };
+const webTrace = require(path.join(WEB, 'components/chat/answerTrace.ts')) as { traceSpanMs: (t: unknown) => unknown };
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const start = (stage: string, detail?: string): PhaseEvent => ({ stage, status: 'start', detail });

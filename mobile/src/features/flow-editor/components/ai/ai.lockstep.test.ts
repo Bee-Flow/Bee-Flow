@@ -28,7 +28,7 @@ jest.mock('../../../../../../agent-hub/src/utils/integrationIcons', () => ({
 
 const CHAT = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder/chat');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require(`${CHAT}/toolCallDisplay.js`);
+const web = require(`${CHAT}/toolCallDisplay.ts`);
 
 const t = (_key: string, fallback: string, params?: Record<string, string | number>) =>
     fallback.replace(/\{(\w+)\}/g, (_, k: string) => String(params?.[k] ?? ''));

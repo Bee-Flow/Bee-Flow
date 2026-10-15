@@ -60,7 +60,7 @@ export interface DiagramOverlaysProps {
     hasPiiData: boolean;
     legendOpen: boolean;
     toggleLegend: () => void;
-    typeGroupById: Map<StepId, unknown>;
+    typeGroupById: Map<StepId, string | null>;
 }
 
 /**

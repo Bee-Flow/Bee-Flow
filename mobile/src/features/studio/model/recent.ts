@@ -1,7 +1,7 @@
 /**
  * "Recently edited" on the Studio hub — the MODEL, ported from the web's
  * components/admin/Studio/recent/recentWork.js and the status vocabulary of
- * utils/studioRecentSources.js. The per-section endpoints and their readers
+ * utils/studioRecentSources.ts. The per-section endpoints and their readers
  * are in api/recentSources.ts; this file is pure.
  *
  * The rule it keeps is the web's: THREE answers, not two. Found rows, found

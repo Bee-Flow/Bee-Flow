@@ -30,7 +30,7 @@ const webDagre = require(`${FLOW}/dagreLayout.js`);
 const webArrange = require(`${FLOW}/arrange.js`);
 const webLayout = require(`${FLOW}/layout.js`);
 const webTools = require(`${FLOW}/aiToolNodes.js`);
-const webColors = require(`${FLOW}/nodeTypeColors.js`);
+const webColors = require(`${FLOW}/nodeTypeColors.ts`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);
 /* eslint-enable @typescript-eslint/no-require-imports */

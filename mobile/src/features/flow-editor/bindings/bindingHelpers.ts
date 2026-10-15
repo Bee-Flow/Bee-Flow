@@ -1,6 +1,6 @@
 /**
  * Helpers for the mapping/binding UX, ported from agent-hub
- * `utils/bindingHelpers.js`. The runtime accepts four binding kinds — literal,
+ * `utils/bindingHelpers.ts`. The runtime accepts four binding kinds — literal,
  * ref, template, expr — but the editor hides the kind behind a simpler
  * "fixed vs expression" toggle and detects the right kind from what was typed.
  *

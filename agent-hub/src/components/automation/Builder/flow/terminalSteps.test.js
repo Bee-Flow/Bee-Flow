@@ -65,19 +65,19 @@ const END_NOT_TERMINAL = {
  * has to make. All five used to know this as `type === \'stop_error\'`.
  */
 const CLIENT_SITES = [
-    { file: '../mapping/upstream/describeNode.js', call: /isTerminalStepType\(node\.type\)/, what: 'geeft geen variabelengroep — niets kan aan de uitvoer binden' },
-    { file: 'useStepDrop.js', call: /isTerminalStep\(s\)/, what: 'weigert een stap erachter te droppen' },
-    { file: 'nodeDropTarget.js', call: /isTerminalStep\(stepById\.get\(from\)\)/, what: 'ketent er niet aan bij het slepen' },
-    { file: 'useEdgeEditCallbacks.js', call: /isTerminalStep\(sourceStep\)/, what: 'weigert een handmatig getekende rand' },
+    { file: '../mapping/upstream/describeNode.ts', call: /isTerminalStepType\(node\.type\)/, what: 'geeft geen variabelengroep — niets kan aan de uitvoer binden' },
+    { file: 'useStepDrop.ts', call: /isTerminalStep\(s\)/, what: 'weigert een stap erachter te droppen' },
+    { file: 'nodeDropTarget.ts', call: /isTerminalStep\(stepById\.get\(from\)\)/, what: 'ketent er niet aan bij het slepen' },
+    { file: 'useEdgeEditCallbacks.ts', call: /isTerminalStep\(sourceStep\)/, what: 'weigert een handmatig getekende rand' },
 ];
 
 /** type → the node component file the canvas registers for it. */
 function nodeComponentFor(type) {
-    const src = readHere('nodeTypes.js');
+    const src = readHere('nodeTypes.ts');
     const m = new RegExp(`^\\s*${type}:\\s*(\\w+),`, 'm').exec(src);
     if (!m) return null;
     const imp = new RegExp(`import ${m[1]} from '\\./nodes/([\\w.]+)'`).exec(src);
-    return imp ? `nodes/${imp[1]}.jsx` : null;
+    return imp ? `nodes/${imp[1]}.tsx` : null;
 }
 
 describe('terminalSteps — the browser copy agrees with the server', () => {
@@ -135,7 +135,7 @@ describe('terminalSteps — a new `end` family cannot inherit terminality by acc
         // familie twee dingen zijn. Verdwijnt hij, dan verdwijnt het bewijs.
         expect(stepFamily('layer_output')).toBe('end');
         expect(isTerminalStepType('layer_output')).toBe(false);
-        expect(codeOf('nodes/FlowletOutputNode.jsx')).toMatch(/onAddAfter/);
+        expect(codeOf('nodes/FlowletOutputNode.tsx')).toMatch(/onAddAfter/);
     });
 });
 

@@ -6,8 +6,8 @@ import {
     CONTAINER_HEADER,
     CONTAINER_PAD,
 } from './inlineFlowlets.js';
-import { LOOP_ENTRY_ID } from './loopBodyEdges.js';
-import { applyDeleteNodes } from './nodeOps.js';
+import { LOOP_ENTRY_ID } from './loopBodyEdges';
+import { applyDeleteNodes } from './nodeOps';
 
 /**
  * The loop half of inlineFlowlets (the flowlet half lives in

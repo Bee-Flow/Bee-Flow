@@ -1,6 +1,6 @@
 /**
  * Cowork scheduling maths — ported from the web's
- * `agent-hub/src/components/cowork/coworkSchedule.js`.
+ * `agent-hub/src/components/cowork/coworkSchedule.ts`.
  *
  * Ported rather than reinvented because both clients and the SERVER have to
  * agree on what "every week" means: `advanceByRepeat` mirrors

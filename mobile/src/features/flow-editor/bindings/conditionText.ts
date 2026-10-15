@@ -1,5 +1,5 @@
 /**
- * The condition-builder half of agent-hub `utils/bindingHelpers.js`: split a
+ * The condition-builder half of agent-hub `utils/bindingHelpers.ts`: split a
  * simple `<path> <op> <value>` expression into slots, and serialise slots and
  * bindings back into the restricted expression grammar. Pinned by
  * bindingHelpers.lockstep.test.ts.

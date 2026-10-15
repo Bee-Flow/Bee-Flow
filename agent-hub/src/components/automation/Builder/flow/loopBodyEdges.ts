@@ -1,0 +1,115 @@
+import type { FlowEdge, FlowStep } from './types';
+
+/**
+ * The edges a loop body ACTUALLY runs along — the canvas mirror of the
+ * runtime's `buildLinearEdges` (server/core/automationRunner/engine.js).
+ *
+ * A loop body is persisted as a bare step ARRAY with no edges. `execLoop`
+ * synthesizes a sub-DAG per iteration, chaining the body linearly, and it does
+ * so BRANCHER-AWARE: runDag routes a condition/switch by the label its executor
+ * returns, so an unlabelled edge after one would never match and every step
+ * after an If silently dead-ended (node-audit C3). Its semantics, which this
+ * file reproduces exactly:
+ *
+ *   - condition → GUARD: `then` continues the body; `else` ends this iteration.
+ *   - switch    → pass-through: a linear body can't branch, so every declared
+ *                 case plus the default port continues to the next step.
+ *   - anything else → one plain edge.
+ *
+ * This lives in its own module rather than inside inlineFlowlets because it is
+ * a CONTRACT WITH THE SERVER: if the runtime's chaining rule changes and this
+ * doesn't, the canvas draws a flow that isn't the one that runs. The colocated
+ * loopBodyEdges.test.js pins both halves — the pure behaviour here, and a
+ * source scan of engine.js's own function.
+ *
+ * The entry id is the caller's to choose: composeInlineGraph feeds it the
+ * synthetic "Each item" node's local id, where the runtime uses
+ * `__loop_root__`. Neither id is ever persisted.
+ */
+
+/** The synthetic entry node's local id inside a loop container. */
+export const LOOP_ENTRY_ID = '__item__';
+
+export function loopBodyEdges(body: FlowStep[] | null | undefined, entryId: string = LOOP_ENTRY_ID): FlowEdge[] {
+    const steps = (Array.isArray(body) ? body : []).filter((s: FlowStep) => s && s.id);
+    if (steps.length === 0) return [];
+    const edges: FlowEdge[] = [{ from: entryId, to: steps[0].id }];
+    for (let i = 1; i < steps.length; i++) {
+        const prev = steps[i - 1];
+        const to = steps[i].id;
+        if (prev.type === 'condition') {
+            edges.push({ from: prev.id, to, label: 'then' });
+        } else if (prev.type === 'switch') {
+            // caseName as well as label: the canvas identifies a branch edge by
+            // its definition-row identity (flow/branchEdges.js), and an edge
+            // carrying only `label` would not match its own port.
+            for (const c of (Array.isArray(prev.cases) ? prev.cases : [])) {
+                if (c?.name) edges.push({ from: prev.id, to, label: `case:${c.name}`, caseName: c.name });
+            }
+            edges.push({ from: prev.id, to, label: 'case:default', caseName: 'default' });
+        } else {
+            edges.push({ from: prev.id, to });
+        }
+    }
+    return edges;
+}
+
+/**
+ * Put a loop container's children back in body order after the canvas has
+ * rewired them — the inverse of `loopBodyEdges`.
+ *
+ * Kahn's algorithm, but STABLE: candidates are always taken in their previous
+ * relative order, so a node that lost its edges (detached, or a body the user
+ * has not touched) stays where it was instead of jumping to the front. That
+ * matters because a run reads the array, not the drawing: an unstable sort
+ * would silently reorder a working automation on an unrelated edit.
+ *
+ * Cycles cannot be authored inside a container (DiagramPane refuses free-hand
+ * connections there), but a hand-edited or AI-written definition could still
+ * produce one; anything left over is appended in its previous order rather than
+ * dropped, because losing a user's step is worse than running it late.
+ */
+export function orderLoopBody(steps: FlowStep[] | null | undefined, edges: FlowEdge[] | null | undefined): FlowStep[] {
+    const list = (Array.isArray(steps) ? steps : []).filter((s: FlowStep) => s && s.id);
+    if (list.length < 2) return list;
+    const { indegree, out } = adjacency(list, edges);
+
+    const ordered = [];
+    const placed = new Set();
+    const remaining = [...list];
+    while (remaining.length) {
+        const idx = remaining.findIndex((s: FlowStep) => indegree.get(s.id) === 0);
+        if (idx === -1) break;                       // cycle — bail to the tail
+        const [step] = remaining.splice(idx, 1);
+        ordered.push(step);
+        placed.add(step.id);
+        for (const next of out.get(step.id)) indegree.set(next, indegree.get(next) - 1);
+    }
+    for (const step of list) if (!placed.has(step.id)) ordered.push(step);
+    return ordered;
+}
+
+/**
+ * Successor lists + indegrees over `list`, counting only edges whose both ends
+ * are in it.
+ *
+ * A switch's parallel case edges are counted ONCE: three edges between the same
+ * pair would leave the target's indegree permanently above zero, so the sort
+ * would place nothing and the whole body would fall through to the leftover
+ * append.
+ */
+interface TotalMap<K, V> extends Map<K, V> { get(key: K): V }
+
+function adjacency(list: FlowStep[], edges: FlowEdge[] | null | undefined) {
+    const ids = new Set(list.map((s: FlowStep) => s.id));
+    const indegree = new Map<string, number>(list.map((s: FlowStep) => [s.id, 0])) as TotalMap<string, number>;
+    const out = new Map<string, string[]>(list.map((s: FlowStep) => [s.id, []])) as TotalMap<string, string[]>;
+    for (const e of (edges || [])) {
+        if (!e?.from || !e?.to) continue;
+        if (!ids.has(e.from) || !ids.has(e.to) || e.from === e.to) continue;
+        if (out.get(e.from).includes(e.to)) continue;
+        out.get(e.from).push(e.to);
+        indegree.set(e.to, indegree.get(e.to) + 1);
+    }
+    return { indegree, out };
+}

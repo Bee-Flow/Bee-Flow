@@ -68,7 +68,7 @@ function* walk(dir) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, entry.name);
         if (entry.isDirectory()) yield* walk(p);
-        else if (/\.jsx?$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name)) yield p;
+        else if (/\.[jt]sx?$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name)) yield p;
     }
 }
 

@@ -418,7 +418,7 @@ const KEY_TABLE_FILES = [
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
     'components/admin/compliance/pages/settings/settingsFields.js',
-    'components/automation/Builder/flow/nodeTypeColors.js',
+    'components/automation/Builder/flow/nodeTypeColors.ts',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
     // DATA — `line(tt, entry)` roept t() met een variabele aan — dus geen enkele
@@ -431,7 +431,7 @@ const KEY_TABLE_FILES = [
     // De vier filterkoppen van de skills-grid (`{ id, key, en }`, gerenderd als
     // `{t(f.key, f.en)}`). Precies de bewaakte vorm, en tot nu toe niet op deze
     // lijst: een verzonnen sleutel in die tabel liet de guard groen.
-    'components/skills/SkillsGrid.jsx',
+    'components/skills/SkillsGrid.tsx',
     // De vier grafiektypen van de notitieblok-editor. Hier heette `key` eerst
     // het CHARTTYPE ('bar'|'line'|…) en stond het label er kaal naast; de tabel
     // is naar `{ id, key, en }` gebracht zodat `key` weer een sleutel is.
@@ -472,12 +472,12 @@ const TEXT_HELPERS = [
     { rel: 'components/cowork/coworkFormat.js', pending: 'CW — relativeTime/formatDuration/fullTimestamp, plus the browser locale' },
     { rel: 'components/projects/relativeTime.js', pending: 'PRJ — the same five sentences, copied' },
     { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.js', pending: 'RUN — times, durations, expiry and the day buckets' },
-    { rel: 'components/automation/taskFormatters.js', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
+    { rel: 'components/automation/taskFormatters.ts', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
     { rel: 'pages/meeting-notes/lib/format.js', pending: 'MTG — the same ladder again' },
     { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
     { rel: 'utils/dateFormatters.ts', pending: 'shared — durations and byte sizes; the unit suffix is copy too' },
     { rel: 'pages/settings/usage/format.js', pending: 'USE — billing-period ranges, browser locale' },
-    { rel: 'components/cowork/coworkSchedule.js', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
+    { rel: 'components/cowork/coworkSchedule.ts', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
     // Registered CLEAN, with no pending: every English string in its two
     // tables is a fallback beside a key (`admin.shield_activity_action_*`,
     // `admin.shield_activity_marker_*`, both in the dictionaries), which is
@@ -487,7 +487,7 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/security/guardrails/orgShield/activity/activityLabels.js' },
     // Label tables: value → English, no key anywhere. Same shape as the two in
     // runLanguage.js that this register was built around.
-    { rel: 'components/automation/Builder/flow/triggerLabels.js', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
+    { rel: 'components/automation/Builder/flow/triggerLabels.ts', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
     { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js' },
     { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
@@ -504,7 +504,7 @@ const TEXT_HELPERS = [
     // node cards it sits among. Registered as one entry rather than reworded
     // around the regex, because rewording is the escape this register's own
     // header calls out.
-    { rel: 'components/automation/Builder/flow/settings/routeRulesRequest.js', pending: 'BLD — the AI-fallback refusals; the rest of the Suggest-outputs box is English too' },
+    { rel: 'components/automation/Builder/flow/settings/routeRulesRequest.ts', pending: 'BLD — the AI-fallback refusals; the rest of the Suggest-outputs box is English too' },
 ];
 
 /**

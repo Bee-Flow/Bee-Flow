@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { buildComposerTools } from './composerTools';
+import { buildComposerTools, type ComposerTool } from './composerTools';
 
 const t = (_key: string, en: string) => en;
 
@@ -10,9 +10,10 @@ function webRow(over: Record<string, unknown> = {}) {
         canWebSearch: true, webSearchEnabled: true, webSearchBlocked: false, setWebSearchEnabled,
         simpleMode: true, showTierSlider: true, memoryWriteEnabled: true, toggleMemoryWrite: () => {},
         voiceReady: false, voiceMode: false, setVoiceMode: () => {},
+        memoryMode: 'on', changeMemoryMode: () => {},
         ...over,
     } as Parameters<typeof buildComposerTools>[0]);
-    return { row: rows.find((r: { id: string }) => r.id === 'web-search'), setWebSearchEnabled };
+    return { row: (rows as ComposerTool[]).find((r) => r.id === 'web-search') as ComposerTool, setWebSearchEnabled };
 }
 
 describe('the Web search row', () => {
@@ -32,7 +33,7 @@ describe('the Web search row', () => {
 
     it('flips the choice the next turn sends', () => {
         const { row, setWebSearchEnabled } = webRow();
-        row.onSelect();
+        (row.onSelect as () => void)();
         expect(setWebSearchEnabled).toHaveBeenCalledWith(false);
     });
 });

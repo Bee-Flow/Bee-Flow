@@ -1,6 +1,6 @@
 /**
  * TEXTUAL lockstep: the composer's shield claims against the web's
- * SHIELD_LINES (composerClaims.js), and the choice between them run over the
+ * SHIELD_LINES (composerClaims.ts), and the choice between them run over the
  * statuses the server can send.
  */
 
@@ -11,7 +11,7 @@ import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
 import { SHIELD_LINES, shieldLine } from './shieldLine';
 import type { ShieldStatus } from '../api/composerStatus';
 
-const SRC = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/composerClaims.js`, 'utf8');
+const SRC = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/composerClaims.ts`, 'utf8');
 const HOOK = fs.readFileSync(`${AGENT_HUB_SRC}/hooks/useShieldStatus.ts`, 'utf8');
 
 const status = (over: Partial<ShieldStatus>): ShieldStatus => ({

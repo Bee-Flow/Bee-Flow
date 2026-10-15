@@ -36,7 +36,7 @@ describe('chat overlays, once they are dialogs', () => {
     beforeEach(() => cleanup());
 
     const PENDING = {
-        kind: 'chat_text',
+        kind: 'chat_text' as const,
         decisionId: 'd1',
         provider: { displayName: 'OpenAI', isExternal: true },
         reviewText: 'hello Alice',

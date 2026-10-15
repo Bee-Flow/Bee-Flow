@@ -3,7 +3,7 @@
  * the runtime resolves (shared/expr path.mjs), plus the two things only the
  * builder holds (a flowlet sub-step id `steps.<call>/<sub>`, and the rule
  * that a dashed name the engine reads as a subtraction is a formula). The
- * web's utils/bindingHelpers.js holds the same functions.
+ * web's utils/bindingHelpers.ts holds the same functions.
  *
  * Also what a path is NAMED after (pathLabelParts: the leaf key, whose it
  * is, which one), so a pill and every other label read a path alike.

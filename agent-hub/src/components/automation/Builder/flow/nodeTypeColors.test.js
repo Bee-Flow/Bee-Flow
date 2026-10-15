@@ -23,7 +23,7 @@ import { STATUS_TOKENS, tokenFor } from '../../../shared/statusTokens';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const INDEX_CSS = fs.readFileSync(path.resolve(HERE, '../../../../index.css'), 'utf8');
-const SELF = fs.readFileSync(path.join(HERE, 'nodeTypeColors.js'), 'utf8');
+const SELF = fs.readFileSync(path.join(HERE, 'nodeTypeColors.ts'), 'utf8');
 
 const declared = new Set([...INDEX_CSS.matchAll(/(--[a-z0-9-]+)\s*:/g)].map(m => m[1]));
 
