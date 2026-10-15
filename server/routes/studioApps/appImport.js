@@ -15,7 +15,7 @@ const { installAppContent } = require('../../appStudio/appContentInstall');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { requireAuth } = require('../../auth/permissions');
 const { requireManageApps, resolveOwnerOrgId } = require('./access');
-const { rethrowClientError, sanitizeAppRow } = require('./appHelpers');
+const { sanitizeAppRow } = require('./appHelpers');
 
 const router = express.Router();
 
@@ -129,9 +129,7 @@ router.post('/import', requireAuth, requireManageApps, appImportLimiter, async (
         if (/limit reached|exceeds|quota/i.test(message)) {
             return res.status(409).json({ error: message, code: 'app_limit' });
         }
-        rethrowClientError(err);
-        log.error('[StudioApps] App import failed:', err);
-        res.status(500).json({ error: 'Failed to import app' });
+        throw err;
     }
 });
 
