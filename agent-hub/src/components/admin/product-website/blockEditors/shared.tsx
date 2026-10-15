@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { TextField, LinkField, FieldRow } from '../fields';
+import type { CmsLink, CmsPageOption } from '../fields';
 import {
     CollapsibleCard,
     ColorSwatch,
@@ -10,6 +11,7 @@ import {
     CtaStyleSelect,
     MonoTextarea,
 } from '../primitives';
+import type { StyleBlob } from '../primitives.types';
 
 export { GroupedItemsField } from './GroupedItemsField';
 
@@ -19,7 +21,9 @@ export { GroupedItemsField } from './GroupedItemsField';
  */
 
 // Immutable single-key write on a block's content blob.
-export const set = (data, key, value) => ({ ...(data || {}), [key]: value });
+export type BlockData = Record<string, unknown>;
+
+export const set = (data: object | null | undefined, key: string, value: unknown): BlockData => ({ ...(data || {}), [key]: value });
 
 // SectionHeaderFields — the eyebrow / title / lead group shared by
 // every "list-section" block (Features, Steps, Security, Integrations,
@@ -37,15 +41,37 @@ export const set = (data, key, value) => ({ ...(data || {}), [key]: value });
 // disclosure: the Title card opens by default, the others stay closed,
 // and each card persists its open state under `blk.<type>.sh-<slug>`.
 // Default null = no persistence, all cards closed (previous behavior).
-export function SectionHeaderFields({ data = {}, onChange, showLead = true, persistScope = null }) {
+/** The fields SectionHeaderFields reads from a block's content blob. */
+export type SectionHeaderData = {
+    eyebrow?: string;
+    title?: string;
+    lead?: string;
+    align?: string;
+    eyebrowAlign?: string;
+    titleAlign?: string;
+    leadAlign?: string;
+    eyebrowStyle?: StyleBlob;
+    titleStyle?: StyleBlob;
+    leadStyle?: StyleBlob;
+};
+
+export interface SectionHeaderFieldsProps {
+    data?: SectionHeaderData;
+    onChange: (next: BlockData) => void;
+    showLead?: boolean;
+    /** The block type; turns on progressive disclosure and persisted open state. */
+    persistScope?: string | null;
+}
+
+export function SectionHeaderFields({ data = {}, onChange, showLead = true, persistScope = null }: SectionHeaderFieldsProps) {
     const { t } = useTranslation();
     const eyebrowStyle = data.eyebrowStyle || {};
     const titleStyle   = data.titleStyle   || {};
     const leadStyle    = data.leadStyle    || {};
-    const setEyebrowStyle = (patch) => onChange(set(data, 'eyebrowStyle', { ...eyebrowStyle, ...patch }));
-    const setTitleStyle   = (patch) => onChange(set(data, 'titleStyle',   { ...titleStyle,   ...patch }));
-    const setLeadStyle    = (patch) => onChange(set(data, 'leadStyle',    { ...leadStyle,    ...patch }));
-    const persistKeyFor = (slug) => (persistScope ? `blk.${persistScope}.sh-${slug}` : null);
+    const setEyebrowStyle = (patch: StyleBlob) => onChange(set(data, 'eyebrowStyle', { ...eyebrowStyle, ...patch }));
+    const setTitleStyle   = (patch: StyleBlob) => onChange(set(data, 'titleStyle',   { ...titleStyle,   ...patch }));
+    const setLeadStyle    = (patch: StyleBlob) => onChange(set(data, 'leadStyle',    { ...leadStyle,    ...patch }));
+    const persistKeyFor = (slug: string) => (persistScope ? `blk.${persistScope}.sh-${slug}` : null);
 
     return (
         <>
@@ -162,9 +188,24 @@ export function SectionHeaderFields({ data = {}, onChange, showLead = true, pers
 // in a CollapsibleCard. Hero CTAs intentionally keep their own
 // enabled-toggle structure; Header chrome CTAs have per-label F/S/C
 // fields that aren't covered here.
-export function CtaButtonField({ value = {}, onChange, pages = [] /* label kept for callers; not rendered */, label: _label = 'CTA' }) {
+/** A `{label, link, style}` button stored on whatever object the caller passes. */
+export type CtaButtonValue = {
+    label?: string;
+    link?: CmsLink | null;
+    style?: string;
+};
+
+export interface CtaButtonFieldProps {
+    value?: CtaButtonValue;
+    onChange: (next: CtaButtonValue) => void;
+    /** The public page list for the link picker. */
+    pages?: CmsPageOption[];
+    label?: string;
+}
+
+export function CtaButtonField({ value = {}, onChange, pages = [] /* label kept for callers; not rendered */, label: _label = 'CTA' }: CtaButtonFieldProps) {
     const { t } = useTranslation();
-    const setField = (key, v) => onChange({ ...value, [key]: v });
+    const setField = (key: string, v: unknown) => onChange({ ...value, [key]: v });
     return (
         <>
             <TextField
@@ -188,7 +229,14 @@ export function CtaButtonField({ value = {}, onChange, pages = [] /* label kept 
 
 // Card action fields (none / link / popup) — shared by the two card-style
 // editor blocks (Features / Security), which had byte-identical copies.
-export function CardActionFields({ item, update }) {
+/** The card-action fields of a Features / Security card. */
+export type CardActionItem = {
+    cardAction?: string;
+    cardUrl?: string;
+    popupEmbed?: string;
+};
+
+export function CardActionFields<T extends CardActionItem>({ item, update }: { item: T; update: (next: T) => void }) {
     const { t } = useTranslation();
     return (
         <>
@@ -231,7 +279,7 @@ export function CardActionFields({ item, update }) {
 // Maps a 0–80 slider value to the `--logo-tint` CSS variable read by the
 // renderer's filter rule: `filter: grayscale(1) sepia(<value>%)`. The
 // three reference swatches below the slider are pure visual hints.
-export function LogoTintControl({ value, onChange }) {
+export function LogoTintControl({ value, onChange }: { value?: unknown; onChange: (tint: number) => void }) {
     const { t } = useTranslation();
     const v = Math.max(0, Math.min(80, Number(value) || 0));
     const SWATCHES = [

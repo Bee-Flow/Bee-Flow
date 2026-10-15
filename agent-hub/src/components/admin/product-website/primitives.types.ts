@@ -40,11 +40,11 @@ export interface FontRowProps {
     weight?: number | string;
 }
 
-export interface StyleBlob {
+export type StyleBlob = {
     fontFamily?: string;
     fontSize?: number;
     color?: string;
-}
+};
 
 export interface StyleTripletProps {
     label?: string;
