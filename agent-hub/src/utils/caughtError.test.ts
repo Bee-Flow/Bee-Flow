@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../api/client';
-import { describeError, errorBody, errorCode, errorMessage, errorStatus, isAbortError, messageOf } from './caughtError';
+import { describeError, errorBody, errorBodyRecord, errorCode, errorMessage, errorName, errorStatus, isAbortError, messageOf } from './caughtError';
 
 const abort = new DOMException('The operation was aborted.', 'AbortError');
 const apiError = new ApiError('Not found', { status: 404, body: { error: 'Not found', code: 'nope' } });
@@ -111,5 +111,38 @@ describe('isAbortError', () => {
         expect(isAbortError('AbortError')).toBe(false);
         expect(isAbortError(null)).toBe(false);
         expect(isAbortError(undefined)).toBe(false);
+    });
+});
+
+describe('errorName', () => {
+    it('reads a string name', () => {
+        expect(errorName(new Error('x'))).toBe('Error');
+        expect(errorName(abort)).toBe('AbortError');
+        expect(errorName(apiError)).toBe('ApiError');
+        expect(errorName({ name: 5 })).toBeUndefined();
+        expect(errorName(null)).toBeUndefined();
+        expect(errorName(undefined)).toBeUndefined();
+        expect(errorName('s')).toBeUndefined();
+    });
+});
+
+describe('errorBodyRecord', () => {
+    it('returns the same object for an object or array body', () => {
+        const body = { playbook: 'p' };
+        expect(errorBodyRecord(new ApiError('x', { body }))).toBe(body);
+        const list: unknown[] = [1];
+        expect(errorBodyRecord({ body: list })).toBe(list);
+    });
+    it('is undefined for string, number, null, missing body and null/undefined e', () => {
+        expect(errorBodyRecord({ body: 'abc' })).toBeUndefined();
+        expect(errorBodyRecord({ body: 3 })).toBeUndefined();
+        expect(errorBodyRecord({ body: null })).toBeUndefined();
+        expect(errorBodyRecord(new Error('x'))).toBeUndefined();
+        expect(errorBodyRecord(null)).toBeUndefined();
+        expect(errorBodyRecord(undefined)).toBeUndefined();
+    });
+    it('supports the spread idiom', () => {
+        expect({ ok: false, ...(errorBodyRecord({ body: { a: 1 } }) ?? {}) }).toEqual({ ok: false, a: 1 });
+        expect({ ok: false, ...(errorBodyRecord(null) ?? {}) }).toEqual({ ok: false });
     });
 });
