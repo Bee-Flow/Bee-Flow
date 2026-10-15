@@ -1,3 +1,19 @@
+/** The members of a Date & time step this module reads. */
+interface DateTimeStep {
+    target?: unknown;
+    op?: string;
+    part?: unknown;
+    arrayRef?: unknown;
+    input?: unknown;
+    input2?: unknown;
+}
+
+/** A list-mode column split: the list it walks and the field it reads per row. */
+interface WildcardSplit {
+    arrayRef: string;
+    itemPath: string;
+}
+
 /**
  * The column a list-mode Date & time step writes into.
  *
@@ -6,7 +22,7 @@
  * `items[*].day` before the step has ever run. If the two drift, a downstream
  * binding points at a column the run never produces.
  */
-export function datetimeTargetColumn(step) {
+export function datetimeTargetColumn(step?: DateTimeStep | null): string {
     if (typeof step?.target === 'string' && step.target.trim()) return step.target.trim();
     if (step?.op === 'extract' && step.part) return String(step.part);
     if (step?.op === 'diff') return 'diff';
@@ -15,7 +31,7 @@ export function datetimeTargetColumn(step) {
 }
 
 /** True when this step works through a list rather than a single date. */
-export function isDateTimeListMode(step) {
+export function isDateTimeListMode(step?: DateTimeStep | null): boolean {
     return typeof step?.arrayRef === 'string';
 }
 
@@ -39,13 +55,16 @@ export function isDateTimeListMode(step) {
  * strings to a single date parse (BFSF-375). Already in list mode, the value
  * is taken as written: the author is addressing the row scope by hand.
  */
-export function dateInputPatch(value, { listMode = false } = {}) {
+export function dateInputPatch(
+    value: unknown,
+    { listMode = false }: { listMode?: boolean } = {},
+): { input: unknown; arrayRef?: string } {
     const split = listMode ? null : splitWildcardPath(value);
     if (!split) return { input: value };
     return { arrayRef: split.arrayRef, input: split.itemPath };
 }
 
-export function splitWildcardPath(path) {
+export function splitWildcardPath(path: unknown): WildcardSplit | null {
     const s = String(path || '');
     const at = s.indexOf('[*]');
     if (at < 0) return null;
@@ -65,13 +84,13 @@ export function splitWildcardPath(path) {
  * editor and the variable picker must too. `input2` moves along only when it
  * is a column of the SAME list. Null when nothing is implied.
  */
-export function impliedListMode(step) {
+export function impliedListMode(step?: DateTimeStep | null): { arrayRef: string; input: string; input2?: string } | null {
     if (!step || (step.arrayRef !== undefined && step.arrayRef !== null)) return null;
     // `now` reads no input date: a stale column in its `input` implies nothing.
     if (step.op === 'now') return null;
     const split = typeof step.input === 'string' ? splitWildcardPath(step.input) : null;
     if (!split) return null;
-    const out = { arrayRef: split.arrayRef, input: split.itemPath };
+    const out: { arrayRef: string; input: string; input2?: string } = { arrayRef: split.arrayRef, input: split.itemPath };
     const split2 = typeof step.input2 === 'string' ? splitWildcardPath(step.input2) : null;
     if (split2 && split2.arrayRef === split.arrayRef) out.input2 = split2.itemPath;
     return out;

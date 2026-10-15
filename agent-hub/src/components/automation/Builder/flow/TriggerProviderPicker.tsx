@@ -4,6 +4,21 @@ import { getIntegrationIcon } from '../../../../config/integrationIcons';
 import Modal from '../../../shared/Modal';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+/** One app that can start an automation, with the events it can trigger on. */
+interface TriggerProvider {
+    id: string;
+    label: string;
+    defaultEvent?: string;
+    events?: { id: string; label?: string; deliverability?: string }[];
+}
+
+interface TriggerProviderPickerProps {
+    providers?: TriggerProvider[];
+    selected?: string | null;
+    onPick: (providerId: string) => void;
+    onClose: () => void;
+}
+
 /**
  * App picker for the "App event" trigger — the same overlay + search list +
  * detail pane the agent editor uses (AgentWizard/pickers/AppsPicker), so
@@ -23,10 +38,10 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *   onPick    — (providerId) => void
  *   onClose   — () => void
  */
-export default function TriggerProviderPicker({ providers = [], selected = null, onPick, onClose }) {
+export default function TriggerProviderPicker({ providers = [], selected = null, onPick, onClose }: TriggerProviderPickerProps) {
     const { t } = useTranslation();
     const [search, setSearch] = useState('');
-    const [focusedId, setFocusedId] = useState(
+    const [focusedId, setFocusedId] = useState<string | null>(
         () => (providers.some(p => p.id === selected) ? selected : providers[0]?.id) || null,
     );
 

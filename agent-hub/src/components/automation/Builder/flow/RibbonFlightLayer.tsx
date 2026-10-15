@@ -5,6 +5,26 @@ import IntegrationLogo from './nodes/IntegrationLogo';
 import { CARD_W, typeTileStyle } from './nodeTypeColors';
 import { StepIcon } from './stepIcons';
 import { FLY_MS } from './useRibbonFlight';
+import type { FlightGhost } from './useRibbonFlight';
+
+interface FlightPoint {
+    x: number;
+    y: number;
+}
+
+/** A laid-out canvas node, as far as the ghost's destination reads it. */
+interface FlightNode {
+    id?: string;
+    position?: FlightPoint;
+    parentId?: string;
+}
+
+/** The parts of the React Flow instance the ghost reads; each may be missing (the build test's spy). */
+interface FlightRf {
+    getNode?: (id: string) => { internals?: { positionAbsolute?: FlightPoint } } | undefined;
+    flowToScreenPosition?: (position: FlightPoint) => FlightPoint;
+    getZoom?: () => number;
+}
 
 /**
  * The ghost that flies from the ribbon to the canvas (useRibbonFlight.js
@@ -31,23 +51,23 @@ const CARD_H = 72;
 /** A ghost never flies smaller than this share of a card, or the tile it leaves from reads as a dot. */
 const MIN_START_SCALE = 0.08;
 /** Ease-out cubic: fast off the ribbon, settling onto the slot. */
-const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
 /**
  * A node's absolute flow position: React Flow's own (a node inside an
  * expanded flowlet is stored parent-relative; `internals.positionAbsolute`
  * has the parents added back), else the layout's, walking parentId.
  */
-function absolutePositionOf(id, rf, nodes) {
+function absolutePositionOf(id: string, rf: FlightRf | null | undefined, nodes: FlightNode[] | null | undefined) {
     const rfNode = rf?.getNode?.(id);
     const abs = rfNode?.internals?.positionAbsolute;
     if (abs && Number.isFinite(abs.x) && Number.isFinite(abs.y)) return { x: abs.x, y: abs.y };
-    const byId = new Map();
+    const byId = new Map<string, FlightNode>();
     for (const n of Array.isArray(nodes) ? nodes : []) if (n?.id != null) byId.set(n.id, n);
     const node = byId.get(id);
     if (!node?.position) return null;
     let { x, y } = node.position;
-    let parent = node.parentId;
+    let parent: string | undefined = node.parentId;
     for (let hops = 0; parent && hops < 16; hops += 1) {
         const p = byId.get(parent);
         if (!p?.position) break;
@@ -59,7 +79,7 @@ function absolutePositionOf(id, rf, nodes) {
 }
 
 /** Where the card's top-left is on screen right now, or null when nothing can say. */
-function destinationOf(id, rf, nodes) {
+function destinationOf(id: string, rf: FlightRf | null | undefined, nodes: FlightNode[] | null | undefined) {
     if (typeof rf?.flowToScreenPosition !== 'function') return null;
     const pos = absolutePositionOf(id, rf, nodes);
     if (!pos) return null;
@@ -71,8 +91,8 @@ function destinationOf(id, rf, nodes) {
     }
 }
 
-function Ghost({ ghost, rf, nodes }) {
-    const ref = useRef(null);
+function Ghost({ ghost, rf, nodes }: { ghost: FlightGhost; rf?: FlightRf | null; nodes?: FlightNode[] | null }) {
+    const ref = useRef<HTMLDivElement>(null);
     // The same tile the card will wear: family tint, and the family's shape
     // (a form page's circle, a branch's diamond) read off the step type.
     const { tile: tileStyle, glyph: glyphStyle } = typeTileStyle(ghost.glyph?.family || null, { type: ghost.glyph?.type || null });
@@ -146,7 +166,7 @@ function Ghost({ ghost, rf, nodes }) {
     );
 }
 
-export default function RibbonFlightLayer({ ghosts, rf, nodes = null }) {
+export default function RibbonFlightLayer({ ghosts, rf, nodes = null }: { ghosts?: FlightGhost[] | null; rf?: FlightRf | null; nodes?: FlightNode[] | null }) {
     const list = Array.isArray(ghosts) ? ghosts : [];
     if (!list.length || typeof document === 'undefined') return null;
     return createPortal(

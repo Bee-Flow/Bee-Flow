@@ -4,6 +4,9 @@ import IntegrationLogo from './nodes/IntegrationLogo';
 import { buildStepGroups, buildSearchResults, gated } from './stepPalette';
 import { actionLabelMap, uiDescription } from './appLabels';
 import { stepDragProps } from './stepDrag';
+import type { AddFn, AddStepMenuProps, RecoGroup } from './AddStepMenu.types';
+import type { SearchCandidate, StepGroup } from './stepPalette.types';
+import type { AppCategory, PaletteItem, RibbonApp, StepPayload } from './ribbon/ribbonCategories';
 import { denseInputClass } from './settings/formStyles';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -11,23 +14,14 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  * Shared "add step" list content — rows, the apps category→app→action tree,
  * and search. Presentation only; positioning/outside-click are owned by the
  * caller (AddStepRibbon dropdown or the edge-drop popover in BuilderShell).
- *
- * Props:
- *   scope      — { catalog, layers, inLayer, canAddLayerOutput, isBlockRoot, mode }
- *   group      — a single group descriptor from buildStepGroups (ribbon dropdown).
- *                Omit to render the FULL menu (all groups, used by the popover).
- *   showSearch — show the search box (default: true when no single `group`)
- *   onAdd(payload) — insert the step
- *   onAfterAdd()   — called after a click-add so the caller can close
- *   autoFocus  — focus the search box on mount
  */
-export default function AddStepMenu({ scope = {}, group = null, showSearch, onAdd, onAfterAdd, autoFocus = false }) {
+export default function AddStepMenu({ scope = {}, group = null, showSearch, onAdd, onAfterAdd, autoFocus = false }: AddStepMenuProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
-    const searchRef = useRef(null);
+    const searchRef = useRef<HTMLInputElement>(null);
     const searchable = showSearch ?? !group;
 
-    const add = (payload) => { if (!payload) return; onAdd?.(payload); onAfterAdd?.(); };
+    const add = (payload?: StepPayload | null) => { if (!payload) return; onAdd?.(payload); onAfterAdd?.(); };
 
     const results = useMemo(
         () => (query ? buildSearchResults(query, scope) : []),
@@ -59,9 +53,9 @@ export default function AddStepMenu({ scope = {}, group = null, showSearch, onAd
     // scroll past on their very first action.
     const recoGroups = useMemo(() => {
         if (group || scope.mode === 'trigger') return [];
-        const out = [];
-        const seen = new Set();
-        const take = (items) => (Array.isArray(items) ? items : [])
+        const out: RecoGroup[] = [];
+        const seen = new Set<string>();
+        const take = (items?: SearchCandidate[] | null) => (Array.isArray(items) ? items : [])
             .filter((r) => {
                 const id = recoIdentity(r);
                 if (seen.has(id)) return false;
@@ -120,14 +114,14 @@ export default function AddStepMenu({ scope = {}, group = null, showSearch, onAd
  * actually gets added, so payloads that would add the same thing are the same
  * thing.
  */
-function recoIdentity(r) {
-    const p = r?.payload || {};
+function recoIdentity(r: SearchCandidate) {
+    const p: Partial<StepPayload> = r?.payload || {};
     const what = p.tool || p.layerKey || p.blockId || p.triggerKind || p.mode || '';
     return `${p.kind || ''}:${what}:${what ? '' : (r?.key || '')}`;
 }
 
 /** Smart "Suggested next" / "Frequently used" section (search-result rows). */
-function RecoBlock({ title, accent, items, onAdd }) {
+function RecoBlock({ title, accent, items, onAdd }: { title: string; accent: boolean; items: SearchCandidate[]; onAdd: AddFn }) {
     return (
         <div className="border-b border-[var(--border-default)] last:border-b-0">
             <div className={`px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wide ${accent ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'}`}>
@@ -140,7 +134,7 @@ function RecoBlock({ title, accent, items, onAdd }) {
     );
 }
 
-function GroupBlock({ group, singleGroup, onAdd }) {
+function GroupBlock({ group, singleGroup, onAdd }: { group: StepGroup; singleGroup: boolean; onAdd: AddFn }) {
     const { t } = useTranslation();
     // A consolidated group (Flow) renders its category sub-headings directly —
     // they're descriptive enough, so the group title is omitted to avoid a
@@ -185,7 +179,7 @@ function GroupBlock({ group, singleGroup, onAdd }) {
     );
 }
 
-function ItemIcon({ item, size = 18 }) {
+function ItemIcon({ item, size = 18 }: { item: PaletteItem; size?: number }) {
     if (item?.payload?.kind === 'create_layer') {
         return (
             <span className="relative inline-flex">
@@ -206,7 +200,7 @@ function ItemIcon({ item, size = 18 }) {
  * (BFSF-348). Inert to click, Enter, Space and drag; the reason shows in place
  * of the description.
  */
-function SimpleRow({ item, onAdd }) {
+function SimpleRow({ item, onAdd }: { item: PaletteItem; onAdd: AddFn }) {
     const descId = useId();
     const disabled = !!item.disabled;
     const add = () => { if (!disabled) onAdd(item.payload); };
@@ -248,10 +242,10 @@ function SimpleRow({ item, onAdd }) {
     );
 }
 
-function AppsTree({ categories, onAdd }) {
+function AppsTree({ categories, onAdd }: { categories: AppCategory[]; onAdd: AddFn }) {
     const { t } = useTranslation();
-    const [openCat, setOpenCat] = useState(categories.length === 1 ? categories[0].category : null);
-    const [openApp, setOpenApp] = useState(null);
+    const [openCat, setOpenCat] = useState<string | null>(categories.length === 1 ? categories[0].category : null);
+    const [openApp, setOpenApp] = useState<string | null>(null);
     if (categories.length === 0) {
         return <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.add_step_menu.no_apps_available', 'No apps available.')}</div>;
     }
@@ -281,7 +275,7 @@ function AppsTree({ categories, onAdd }) {
     );
 }
 
-function AppRow({ app, isOpen, onToggle, onAdd }) {
+function AppRow({ app, isOpen, onToggle, onAdd }: { app: RibbonApp & { connected?: boolean }; isOpen: boolean; onToggle: () => void; onAdd: AddFn }) {
     const { t } = useTranslation();
     const notConnected = app.connected === false;
     const primary = app.actions[0];
@@ -349,7 +343,7 @@ function AppRow({ app, isOpen, onToggle, onAdd }) {
  * "Nextcloud Talk"; and the description is the LLM tool-schema text, which
  * carries instructions written at the model rather than at the author.
  */
-function ActionRow({ action, labels, onAdd }) {
+function ActionRow({ action, labels, onAdd }: { action: RibbonApp['actions'][number]; labels?: Map<string, string>; onAdd: AddFn }) {
     const descId = useId();
     // The payload keeps the catalog's full label — the node it creates sits on
     // a canvas with no app row above it to say which app this came from.
@@ -385,7 +379,7 @@ function ActionRow({ action, labels, onAdd }) {
     );
 }
 
-function SearchResults({ results, q, onAdd }) {
+function SearchResults({ results, q, onAdd }: { results: SearchCandidate[]; q: string; onAdd: AddFn }) {
     const { t } = useTranslation();
     if (results.length === 0) {
         return <div className="px-3 py-6 text-xs text-[var(--text-tertiary)] italic text-center">{t('automations.add_step_menu.no_matches_for', 'No matches for “{query}”', { query: q })}</div>;
@@ -397,7 +391,7 @@ function SearchResults({ results, q, onAdd }) {
     );
 }
 
-function SearchResultRow({ result, q, onAdd }) {
+function SearchResultRow({ result, q, onAdd }: { result: SearchCandidate; q: string; onAdd: AddFn }) {
     const descId = useId();
     const Icon = result.Icon;
     // Same rule as SimpleRow: a result the graph can't accept is findable and
@@ -435,7 +429,7 @@ function SearchResultRow({ result, q, onAdd }) {
     );
 }
 
-function highlightMatch(text, q) {
+function highlightMatch(text: string, q: string) {
     if (!q || !text) return text;
     const idx = text.toLowerCase().indexOf(q.toLowerCase());
     if (idx === -1) return text;

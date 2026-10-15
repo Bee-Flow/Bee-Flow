@@ -1,5 +1,15 @@
 import React, { createContext, useContext, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { pathSegments } from './edgeHops';
+
+type PathSegment = ReturnType<typeof pathSegments>[number];
+
+/** What an edge uses to publish its own path and read everyone else's. */
+interface EdgeCrossingApi {
+    publish(id: string | undefined, d: string): void;
+    retract(id: string): void;
+    others(id: string | undefined): PathSegment[];
+}
 
 /**
  * Lets one edge know where the others are drawn, so it can bridge over them.
@@ -33,11 +43,11 @@ import { pathSegments } from './edgeHops';
  * rendered on its own (a test, a preview) simply keeps React Flow's path.
  */
 
-const EdgeCrossingApiContext = createContext(null);
+const EdgeCrossingApiContext = createContext<EdgeCrossingApi | null>(null);
 const EdgeCrossingVersionContext = createContext(0);
 
-export function EdgeCrossingProvider({ children }) {
-    const byId = useRef(new Map());
+export function EdgeCrossingProvider({ children }: { children?: ReactNode }) {
+    const byId = useRef(new Map<string, { d: string; segments: PathSegment[] }>());
     const [version, setVersion] = useState(0);
     const pending = useRef(false);
     const alive = useRef(true);
@@ -45,7 +55,7 @@ export function EdgeCrossingProvider({ children }) {
     // Created once. Its identity is load-bearing: it is what the publish effect
     // depends on, and an identity that changed per bump is exactly the loop
     // described above.
-    const api = useMemo(() => {
+    const api = useMemo((): EdgeCrossingApi => {
         const bump = () => {
             if (pending.current) return;
             pending.current = true;
@@ -66,7 +76,7 @@ export function EdgeCrossingProvider({ children }) {
                 if (byId.current.delete(id)) bump();
             },
             others(id) {
-                const out = [];
+                const out: PathSegment[] = [];
                 for (const [key, entry] of byId.current) {
                     if (key === id) continue;
                     out.push(...entry.segments);

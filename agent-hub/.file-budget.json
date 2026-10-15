@@ -121,7 +121,7 @@
     "src/components/automation/Builder/applyAddNode.ts": 438,
     "src/components/automation/Builder/BuilderShell.jsx": 566,
     "src/components/automation/Builder/DiagramPane.jsx": 812,
-    "src/components/automation/Builder/flow/AddStepMenu.jsx": 449,
+    "src/components/automation/Builder/flow/AddStepMenu.tsx": 449,
     "src/components/automation/Builder/flow/buildChoreography.js": 469,
     "src/components/automation/Builder/flow/CanvasSouthBar.jsx": 437,
     "src/components/automation/Builder/flow/edges.jsx": 529,

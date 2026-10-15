@@ -1,4 +1,5 @@
 import { Boxes, Briefcase, Code2, Grid2x2, HeartPulse, LayoutGrid, Puzzle, Share2, Sparkles, Workflow } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import IntegrationLogo from './nodes/IntegrationLogo';
 import { getIntegrationLogo } from '../../../../utils/integrationLogos';
 
@@ -15,7 +16,7 @@ import { getIntegrationLogo } from '../../../../utils/integrationLogos';
  * pill when the row is too narrow (flow/appsRibbonLayout.js).
  */
 
-export function AppGlyph({ integrationId, size = 14 }) {
+export function AppGlyph({ integrationId, size = 14 }: { integrationId?: string | null; size?: number }) {
     return (
         <IntegrationLogo
             integrationId={integrationId}
@@ -27,7 +28,7 @@ export function AppGlyph({ integrationId, size = 14 }) {
 
 // Vendors get their mark or colour; the kinds get the lucide that says what
 // they are.
-const CATEGORY_GLYPH = {
+const CATEGORY_GLYPH: Record<string, { Icon: LucideIcon; color?: string }> = {
     'Google Workspace': { Icon: LayoutGrid, color: '#4285F4' },
     'Microsoft 365': { Icon: Grid2x2, color: '#0078D4' },
     'AI & Media': { Icon: Sparkles },
@@ -38,7 +39,7 @@ const CATEGORY_GLYPH = {
     Social: { Icon: Share2 },
 };
 
-export function categoryGlyphFor(category, size = 14) {
+export function categoryGlyphFor(category: string, size = 14) {
     // The VENDOR's mark, straight from the brand map: through IntegrationLogo
     // the id `nextcloud` would resolve to the Files app's own folder glyph.
     if (category === 'Nextcloud') {

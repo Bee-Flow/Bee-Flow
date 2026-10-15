@@ -33,7 +33,7 @@ const FLOW = `${BUILDER}/flow`;
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webLayout = require(`${FLOW}/layout.js`);
 const webInline = require(`${FLOW}/inlineFlowlets.js`);
-const webColors = require(`${FLOW}/edgeColors.js`);
+const webColors = require(`${FLOW}/edgeColors.ts`);
 const webColoring = require(`${FLOW}/edgeColoring.js`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);

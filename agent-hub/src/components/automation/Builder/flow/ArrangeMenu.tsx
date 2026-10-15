@@ -8,19 +8,19 @@ import useTranslation from '../../../../hooks/useTranslation';
  * definition change and therefore one Ctrl+Z. Only rendered where the canvas
  * is the user's to edit — DiagramPane gates it on `allowEdgeEdits`.
  */
-export default function ArrangeMenu({ onArrange }) {
+export default function ArrangeMenu({ onArrange }: { onArrange?: ((mode: string) => void) | null }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (!open) return undefined;
-        const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-        const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+        const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         document.addEventListener('mousedown', onDoc, true);
         document.addEventListener('keydown', onKey);
         return () => { document.removeEventListener('mousedown', onDoc, true); document.removeEventListener('keydown', onKey); };
     }, [open]);
-    const pick = (mode) => { setOpen(false); onArrange?.(mode); };
+    const pick = (mode: string) => { setOpen(false); onArrange?.(mode); };
     const items = [
         { mode: 'serpentine', Icon: Rows3, label: t('automations.canvas.arrange_rows', 'Rows that fit the screen') },
         { mode: 'compact', Icon: Shrink, label: t('automations.canvas.arrange_compact', 'One tight line') },
