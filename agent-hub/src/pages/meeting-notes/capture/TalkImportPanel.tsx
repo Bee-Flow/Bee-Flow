@@ -8,9 +8,9 @@ import { listNextcloudTalkRecordings } from '../lib/transcriptionsApi';
 interface TalkRecording {
     path: string;
     name: string;
-    kind?: string;
-    size?: number;
-    lastModified?: string;
+    kind: 'video' | 'audio';
+    size: number | null;
+    lastModified: string | null;
 }
 
 interface TalkRoom {
@@ -26,14 +26,14 @@ interface TalkRoom {
  */
 const NC_BLUE = 'var(--type-ai)';
 
-function fmtSize(bytes?: number) {
+function fmtSize(bytes: number | null) {
     if (!bytes && bytes !== 0) return '';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function fmtDate(s?: string) {
+function fmtDate(s: string | null) {
     if (!s) return '';
     const d = new Date(s);
     return isNaN(d.getTime()) ? '' : d.toLocaleString();
