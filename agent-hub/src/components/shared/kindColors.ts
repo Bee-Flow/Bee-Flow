@@ -39,12 +39,10 @@
 import type { CSSProperties } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { BookOpen, Bot, ClipboardList, FileText, Globe, LayoutGrid, Mic, Package, Scale, Table, Workflow, Zap, Clapperboard } from 'lucide-react';
+import { KIND_ALIASES, KIND_KEYS } from './kindKeys';
+import type { KindKey } from './kindKeys';
 
-export type KindKey =
-    | 'automation' | 'datatable' | 'app' | 'webpage' | 'document' | 'form'
-    | 'agent' | 'skill' | 'kb' | 'meeting'
-    | 'playbook' | 'solution'
-    | 'compliance';
+export type { KindKey };
 
 /** A per-kind table: every kind has an entry, any other string reads as undefined. */
 type KindTable<T> = Readonly<Record<KindKey, T> & Record<string, T | undefined>>;
@@ -67,13 +65,7 @@ export interface KindTileStyle {
     glyph: CSSProperties;
 }
 
-/** The thirteen kinds, in rail order: Bouwen, AI, Bundelen — then the one area you administer. */
-export const KIND_KEYS: readonly KindKey[] = Object.freeze([
-    'automation', 'datatable', 'app', 'webpage', 'document', 'form',
-    'agent', 'skill', 'kb', 'meeting',
-    'playbook', 'solution',
-    'compliance',
-]);
+export { KIND_KEYS };
 
 const KIND_VAR: KindTable<string> = Object.freeze({
     automation: 'var(--type-trigger)',
@@ -106,28 +98,6 @@ const KIND_ICON: KindTable<LucideIcon> = Object.freeze({
     playbook: Clapperboard,
     solution: Package,
     compliance: Scale,
-});
-
-/**
- * The names the rest of the product already uses for these objects — API
- * resource types, sidebar section ids, usage rows, plurals — folded onto
- * the twelve keys, so a caller can hand over whatever it has.
- */
-const KIND_ALIASES: Readonly<Record<string, KindKey>> = Object.freeze({
-    automations: 'automation', automation: 'automation', flow: 'automation',
-    datatables: 'datatable', table: 'datatable', tables: 'datatable', data_table: 'datatable',
-    apps: 'app', application: 'app',
-    webpages: 'webpage', web: 'webpage', page: 'webpage', pages: 'webpage', website: 'webpage',
-    documents: 'document', doc: 'document', invoice: 'document', quote: 'document', letter: 'document',
-    forms: 'form', form_page: 'form',
-    agents: 'agent', assistant: 'agent',
-    skills: 'skill',
-    kbs: 'kb', knowledge: 'kb', knowledge_base: 'kb', knowledge_bases: 'kb', knowledgebase: 'kb',
-    meetings: 'meeting', meet: 'meeting', meeting_note: 'meeting', meeting_notes: 'meeting',
-    transcription: 'meeting', transcriptions: 'meeting',
-    playbooks: 'playbook', recipe: 'playbook',
-    solutions: 'solution', bundle: 'solution',
-    compliance_hub: 'compliance', gdpr: 'compliance', privacy: 'compliance',
 });
 
 /**
