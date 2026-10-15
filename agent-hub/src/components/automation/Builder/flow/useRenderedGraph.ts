@@ -296,7 +296,7 @@ export function useRenderedGraph({
         });
     }, [identityColoredEdges, freshEdgeKeys, buildFxById]);
 
-    // Run-state decoration on top (flow/edgeColoring.js): error red beats
+    // Run-state decoration on top (flow/edgeColoring.ts): error red beats
     // everything; in-flight animates; traversal keeps a custom colour (width
     // bump) and paints uncoloured edges the classic green. runByStep (not
     // runSteps) so a pinned-only graph still decorates — its rows can be

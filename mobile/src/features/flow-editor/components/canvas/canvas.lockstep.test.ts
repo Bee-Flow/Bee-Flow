@@ -8,7 +8,7 @@
  *     sizes, origins, children, their positions, the neighbour shift, and
  *     the open/close rule;
  *   - line colours (edgeColors.ts) against flow/edgeColors.js and
- *     edgeColoring.js's "branches" mode;
+ *     edgeColoring.ts's "branches" mode;
  *   - by text, the numbers only a component holds: the ports' placement
  *     (StepNodeBase), the handle ids (ConditionNode, GuardNode, SwitchNode,
  *     LoopNode), an open loop's port offsets, and the lane pitches (edges.jsx).
@@ -34,7 +34,7 @@ const FLOW = `${BUILDER}/flow`;
 const webLayout = require(`${FLOW}/layout.js`);
 const webInline = require(`${FLOW}/inlineFlowlets.js`);
 const webColors = require(`${FLOW}/edgeColors.ts`);
-const webColoring = require(`${FLOW}/edgeColoring.js`);
+const webColoring = require(`${FLOW}/edgeColoring.ts`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);
 /* eslint-enable @typescript-eslint/no-require-imports */

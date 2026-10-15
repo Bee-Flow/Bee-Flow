@@ -9,7 +9,7 @@ import { STATUS_COLORS, CHART_SERIES } from '../../../../constants/palette';
  * rule (constants/palette.js) holds by construction — a key can only ever
  * resolve to an approved hex.
  *
- * Pure, framework-free. The stroke pipeline lives in edgeColoring.js; this
+ * Pure, framework-free. The stroke pipeline lives in edgeColoring.ts; this
  * module only owns "which colours exist and what they mean".
  */
 

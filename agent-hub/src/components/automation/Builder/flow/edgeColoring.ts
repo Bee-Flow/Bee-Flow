@@ -1,3 +1,4 @@
+import type { Edge } from '@xyflow/react';
 import { autoCaseColor, dominantPiiGroup, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColors';
 
 /**
@@ -21,16 +22,21 @@ import { autoCaseColor, dominantPiiGroup, PII_GROUP_COLORS, resolveEdgeColor } f
 export const EDGE_COLOR_MODES = ['off', 'branches', 'pii'];
 
 /**
- * @param {object} data           the rendered edge's `data` (layout.js)
- * @param {string} mode           'off' | 'branches' | 'pii'
- * @param {object} sourceRunStep  the source node's run row (may carry piiSummary)
- * @param {object} piiGroupColors optional group → HEX map (defaults + the
- *                                definition's overrides — edgeColorOps
- *                                resolvePiiGroupColors); falls back to the
- *                                fixed defaults when omitted
- * @returns {string|null} hex, or null for the neutral default
+ * @param data           the rendered edge's `data` (layout.js)
+ * @param mode           'off' | 'branches' | 'pii'
+ * @param sourceRunStep  the source node's run row (may carry piiSummary)
+ * @param piiGroupColors optional group → HEX map (defaults + the
+ *                       definition's overrides — edgeColorOps
+ *                       resolvePiiGroupColors); falls back to the
+ *                       fixed defaults when omitted
+ * @returns hex, or null for the neutral default
  */
-export function identityColorForEdge(data, mode, sourceRunStep = null, piiGroupColors = null) {
+export function identityColorForEdge(
+    data?: { defColor?: unknown; caseIndex?: number | null } | null,
+    mode?: string,
+    sourceRunStep: { piiSummary?: { groups?: Record<string, unknown> | null } | null } | null = null,
+    piiGroupColors: Record<string, string> | null = null,
+): string | null {
     const manual = resolveEdgeColor(data?.defColor);
     if (manual) return manual;
     if (mode === 'branches') {
@@ -48,10 +54,13 @@ export function identityColorForEdge(data, mode, sourceRunStep = null, piiGroupC
 /**
  * Layer run-state decoration over identity-coloured edges.
  *
- * @param {Array} edges       rendered edges; each may carry data.identityColor
- * @param {object} opts       { runByStep: Map, runInFlight: boolean }
+ * @param edges       rendered edges; each may carry data.identityColor
+ * @param opts        { runByStep: Map, runInFlight: boolean }
  */
-export function decorateRunEdges(edges, { runByStep, runInFlight = false }) {
+export function decorateRunEdges(
+    edges: Edge<{ identityColor?: string | null }>[],
+    { runByStep, runInFlight = false }: { runByStep?: Map<string, { status?: string }> | null; runInFlight?: boolean },
+) {
     if (!runInFlight && (!runByStep || runByStep.size === 0)) return edges;
     return edges.map((e) => {
         const idColor = e.data?.identityColor || null;
