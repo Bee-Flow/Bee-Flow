@@ -7,17 +7,12 @@ import { rankStudioItems } from '../../../utils/studioRecents';
 import { STUDIO_RECENT_SOURCES, normaliseRecentItems } from '../../../utils/studioRecentSources';
 import { studioAppsApi } from '../../admin/Studio/AppStudio/studioAppsApi';
 import { makeCanUse } from '../../admin/Studio/studioApps';
+import type { RecentItem } from '../../../utils/studioRecentSources.types';
 import type { PublishedApp, PublishedForm } from './sidebarNav';
 
 type Check = (id: string) => boolean;
 
-/** One recent item of a Studio section, as normaliseRecentItems yields it. */
-export interface RecentItem {
-    id: string;
-    name?: string;
-    description?: string;
-    updatedAt?: string | number;
-}
+export type { RecentItem };
 
 interface StudioSectionDataOptions {
     currentPage?: string;

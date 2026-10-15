@@ -1,5 +1,5 @@
 export interface SessionSkill {
-    id: string;
+    id?: string;
     dependsOn?: string[];
 }
 
@@ -10,21 +10,21 @@ export interface SessionSkill {
  *   - it has no downstream (terminal node that's active = pipeline done).
  * Kept duplicated on the client to avoid a round-trip; logic is tiny.
  */
-export function deriveCompletedSkillIds(sessionSkills?: SessionSkill[] | null, activatedSkillIds?: string[] | null): string[] {
+export function deriveCompletedSkillIds(sessionSkills?: SessionSkill[] | null, activatedSkillIds?: unknown[] | null): unknown[] {
     if (!Array.isArray(sessionSkills) || sessionSkills.length === 0) return [];
-    const activated = new Set<string>(Array.isArray(activatedSkillIds) ? activatedSkillIds : []);
+    const activated = new Set<unknown>(Array.isArray(activatedSkillIds) ? activatedSkillIds : []);
     if (activated.size === 0) return [];
-    const downstream = new Map<string, string[]>(sessionSkills.map((s: SessionSkill): [string, string[]] => [s.id, []]));
+    const downstream = new Map<unknown, unknown[]>(sessionSkills.map((s: SessionSkill): [unknown, unknown[]] => [s.id, []]));
     for (const s of sessionSkills) {
         for (const dep of s.dependsOn || []) {
-            if (downstream.has(dep)) (downstream.get(dep) as string[]).push(s.id);
+            if (downstream.has(dep)) (downstream.get(dep) as unknown[]).push(s.id);
         }
     }
-    const completed: string[] = [];
+    const completed: unknown[] = [];
     for (const s of sessionSkills) {
         if (!activated.has(s.id)) continue;
         const down = downstream.get(s.id) || [];
-        const hasActiveDownstream = down.some((id: string) => activated.has(id));
+        const hasActiveDownstream = down.some((id: unknown) => activated.has(id));
         const isTerminal = down.length === 0;
         if (hasActiveDownstream || isTerminal) completed.push(s.id);
     }
@@ -38,7 +38,7 @@ export function deriveCompletedSkillIds(sessionSkills?: SessionSkill[] | null, a
  *   'ready'   — not activated, dependencies met, ready to activate.
  *   'waiting' — not activated, has unmet dependencies.
  */
-export function classifySessionSkill(skill: SessionSkill, activatedSet: Set<string>, completedSet: Set<string>): 'done' | 'active' | 'ready' | 'waiting' {
+export function classifySessionSkill(skill: SessionSkill, activatedSet: Set<unknown>, completedSet: Set<unknown>): 'done' | 'active' | 'ready' | 'waiting' {
     if (completedSet.has(skill.id)) return 'done';
     if (activatedSet.has(skill.id)) return 'active';
     const unmet = (skill.dependsOn || []).filter((dep: string) => !activatedSet.has(dep));
