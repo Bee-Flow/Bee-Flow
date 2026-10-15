@@ -111,7 +111,7 @@ describe('the card glyphs', () => {
     it('draws the datatable operations, the trigger kinds and the app events as TriggerNode and DatatableNode do', () => {
         const table = read('nodes/DatatableNode.jsx');
         for (const [op, icon] of Object.entries(DATATABLE_OP_ICON)) expect(table).toMatch(new RegExp(`${op}: ${icon},`));
-        const trigger = read('nodes/TriggerNode.jsx');
+        const trigger = read('nodes/TriggerNode.tsx');
         for (const [kind, icon] of Object.entries(TRIGGER_ICON)) expect(trigger).toMatch(new RegExp(`${kind}:\\s+${icon},`));
         for (const [event, icon] of Object.entries(APP_EVENT_ICON)) expect(trigger).toMatch(new RegExp(`'${event.replace(/\./g, '\\.')}':\\s+${icon},`));
         expect(read('nodes/FormPageNode.tsx')).toMatch(/isEnding \? <CheckCircle2/);
@@ -128,8 +128,8 @@ describe('the lane words', () => {
         expect(read('nodes/ConditionNode.tsx')).toMatch(
             /\{ id: 'then', label: t\('condition_node\.port\.match', 'Match'\)[^}]*\},\s*\{ id: 'else', label: t\('condition_node\.otherwise\.label', 'Otherwise'\)/,
         );
-        expect(read('nodes/GuardNode.jsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
+        expect(read('nodes/GuardNode.tsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
         expect(read('nodes/SwitchNode.tsx')).toMatch(/\{ id: 'case:default', label: t\('condition_node\.otherwise\.label', 'Otherwise'\)/);
-        expect(read('nodes/LoopNode.jsx')).toMatch(/t\('automations\.canvas\.loop_port_on_error', 'On error'\)/);
+        expect(read('nodes/LoopNode.tsx')).toMatch(/t\('automations\.canvas\.loop_port_on_error', 'On error'\)/);
     });
 });

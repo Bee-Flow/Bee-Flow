@@ -27,12 +27,12 @@ export { PRESENTER_KEY, readPresenter, writePresenter } from '../../../shared/bu
 export { PRESENTER_LOD_BREAKS };
 
 /** The LOD bucket for `zoom` with the projector breaks. */
-export function presenterLod(zoom) {
+export function presenterLod(zoom: number) {
     return lodForZoom(zoom, PRESENTER_LOD_BREAKS);
 }
 
 /** The shot recipes with projector floors: push 0.95, wide 0.55. */
-export function presenterShots(base = DEFAULT_SHOTS) {
+export function presenterShots(base: typeof DEFAULT_SHOTS = DEFAULT_SHOTS) {
     return Object.freeze({
         ...base,
         push: Object.freeze({ ...base.push, minZoom: 0.95 }),
@@ -41,6 +41,6 @@ export function presenterShots(base = DEFAULT_SHOTS) {
 }
 
 /** Swap the choreography's active recipes in (`true`) or back out (`false`). */
-export function applyPresenterShots(on) {
+export function applyPresenterShots(on: boolean) {
     setActiveShots(on ? presenterShots() : null);
 }

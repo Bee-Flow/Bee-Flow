@@ -13,6 +13,9 @@ import type { SidecarEntry } from '../diagramPaneTypes';
 /** The translator every card reads from `useTranslation()`. */
 export type TFn = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 
+/** `displayHelpers.humanizeExpression`: the JS source infers its label map as `null`; callers pass the step-label Map. */
+export type HumanizeExpression = (expr: string, stepLabelById?: Map<string, string> | null) => string;
+
 /** A summary line under a card's name: plain text, or `{ muted }` for "not answered yet". */
 export type SummaryText = string | { muted: string };
 
