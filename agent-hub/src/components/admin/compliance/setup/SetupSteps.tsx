@@ -2,6 +2,39 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import UserPicker from '../shared/UserPicker';
+import type { OrgUser } from '../shared/UserPicker';
+import type { ReactNode } from 'react';
+
+export interface SetupData {
+    dpo_name: string;
+    dpo_email: string;
+    dpo_phone: string;
+    legal_bases: string[];
+    data_residency: string;
+    default_retention_days: number | string | null;
+    privacy_notice_url: string;
+    breach_recipients: string[];
+    newRecipient: string;
+}
+
+/** Stored settings / auto-detect payload: the same fields, any of them absent or null. */
+export type SetupSettings = { [K in Exclude<keyof SetupData, 'newRecipient'>]?: SetupData[K] | null };
+
+export type SetupBody = Omit<SetupData, 'newRecipient' | 'default_retention_days'> & { default_retention_days: number | null };
+
+interface SetupStep {
+    key: string;
+    titleKey: string;
+    fields: string[];
+}
+
+interface SetupStepBodyProps {
+    step: number | { key: string };
+    data?: Partial<SetupData> | null;
+    onChange?: (patch: Partial<SetupData>) => void;
+    orgUsers?: OrgUser[] | null;
+    testId?: string;
+}
 
 /**
  * The four setup step bodies + validation, extracted from the legacy
@@ -11,7 +44,7 @@ import UserPicker from '../shared/UserPicker';
  * Step data is one flat object (the wizard's `data`), see `initialSetupData`.
  */
 
-export const LEGAL_BASES = [
+export const LEGAL_BASES: Array<{ id: string; labelKey: string }> = [
     { id: 'consent', labelKey: 'compliance.lb_consent' },
     { id: 'contract', labelKey: 'compliance.lb_contract' },
     { id: 'legal_obligation', labelKey: 'compliance.lb_legal_obligation' },
@@ -21,7 +54,7 @@ export const LEGAL_BASES = [
 ];
 
 // The wizard step keys are reused (compliance.wizard_step_<key> + _desc exist).
-export const SETUP_STEPS = [
+export const SETUP_STEPS: SetupStep[] = [
     { key: 'dpo', titleKey: 'compliance.wizard_step_dpo', fields: ['dpo_name', 'dpo_email', 'dpo_phone'] },
     { key: 'legal', titleKey: 'compliance.wizard_step_legal', fields: ['legal_bases'] },
     { key: 'residency', titleKey: 'compliance.wizard_step_residency', fields: ['data_residency', 'default_retention_days', 'privacy_notice_url'] },
@@ -30,7 +63,7 @@ export const SETUP_STEPS = [
 
 export const SETUP_STEP_COUNT = SETUP_STEPS.length;
 
-export function initialSetupData(settings) {
+export function initialSetupData(settings?: SetupSettings | null): SetupData {
     return {
         dpo_name: settings?.dpo_name || '',
         dpo_email: settings?.dpo_email || '',
@@ -50,9 +83,9 @@ export function initialSetupData(settings) {
  * never saved are touched — a stored setting always wins. Returns the patch
  * and the list of fields it filled (so tiles can say "from …").
  */
-export function applyAutoDetect(detected, stored) {
-    const patch = {};
-    const hit = [];
+export function applyAutoDetect(detected: SetupSettings | null | undefined, stored?: SetupSettings | null): { patch: Partial<SetupData>; hit: string[] } {
+    const patch: Partial<SetupData> = {};
+    const hit: string[] = [];
     if (!detected || typeof detected !== 'object') return { patch, hit };
     if (!(stored?.legal_bases?.length) && Array.isArray(detected.legal_bases) && detected.legal_bases.length) {
         patch.legal_bases = detected.legal_bases; hit.push('legal_bases');
@@ -79,14 +112,14 @@ export function applyAutoDetect(detected, stored) {
 }
 
 /** Validation per step (the wizard's canNext). Steps 2 and 3 are always valid. */
-export function canProceed(stepIndex, data) {
+export function canProceed(stepIndex: number, data?: Partial<SetupData> | null): boolean {
     if (stepIndex === 0) return !!(data?.dpo_email && /@/.test(data.dpo_email) && data?.dpo_name);
     if (stepIndex === 1) return Array.isArray(data?.legal_bases) && data.legal_bases.length > 0;
     return true;
 }
 
 /** True when a step already holds a complete answer (used for "done" tiles before the user visits it). */
-export function stepIsComplete(stepIndex, data) {
+export function stepIsComplete(stepIndex: number, data?: Partial<SetupData> | null): boolean {
     if (stepIndex === 0 || stepIndex === 1) return canProceed(stepIndex, data);
     if (stepIndex === 2) return !!data?.data_residency;
     if (stepIndex === 3) return Array.isArray(data?.breach_recipients) && data.breach_recipients.length > 0;
@@ -94,13 +127,13 @@ export function stepIsComplete(stepIndex, data) {
 }
 
 /** First step that is not complete (0-based); SETUP_STEP_COUNT when all are. */
-export function firstOpenStep(data) {
+export function firstOpenStep(data?: Partial<SetupData> | null): number {
     for (let i = 0; i < SETUP_STEPS.length; i += 1) if (!stepIsComplete(i, data)) return i;
     return SETUP_STEPS.length;
 }
 
 /** The body finishSetup(body) receives — an explicit allow-list, never the raw form state. */
-export function setupBody(data) {
+export function setupBody(data: SetupData): SetupBody {
     return {
         dpo_name: data.dpo_name,
         dpo_email: data.dpo_email,
@@ -116,7 +149,7 @@ export function setupBody(data) {
 
 const INPUT = 'w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--kind-compliance)]';
 
-function Field({ label, children }) {
+function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
     return (
         <label className="flex flex-col gap-1">
             <span className="text-[10px] font-semibold uppercase tracking-[.08em] text-[var(--text-tertiary)]">{label}</span>
@@ -129,10 +162,10 @@ function Field({ label, children }) {
  * One step's body. `step` = index 0..3 (or a SETUP_STEPS record).
  * `onChange(patch)` merges into the flat data object.
  */
-export default function SetupStepBody({ step, data, onChange, orgUsers = null, testId = 'setup-step' }) {
+export default function SetupStepBody({ step, data, onChange, orgUsers = null, testId = 'setup-step' }: SetupStepBodyProps) {
     const { t } = useTranslation();
     const index = typeof step === 'number' ? step : SETUP_STEPS.findIndex(s => s.key === step?.key);
-    const update = (patch) => onChange?.(patch);
+    const update = (patch: Partial<SetupData>) => onChange?.(patch);
     const recipients = Array.isArray(data?.breach_recipients) ? data.breach_recipients : [];
     const bases = Array.isArray(data?.legal_bases) ? data.legal_bases : [];
 

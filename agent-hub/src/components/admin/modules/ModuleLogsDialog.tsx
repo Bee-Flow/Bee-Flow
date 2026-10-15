@@ -3,20 +3,26 @@ import React, { useState } from 'react';
 import { useModuleLogs } from '../../../api/queries/modules';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
+import type { ModuleLogEntry } from '../../../api/queries/modules';
+
+interface ModuleLogsDialogProps {
+    module: { id: string; name?: string };
+    onClose: () => void;
+}
 
 // Live module log viewer (server-side ring buffer). Polls every 2s while open
 // (the useModuleLogs hook owns the interval); level filter is server-side.
 
 const LEVELS = ['debug', 'info', 'warn', 'error'];
 
-const LEVEL_COLOR = {
+const LEVEL_COLOR: Record<string, string> = {
     debug: 'var(--text-muted)',
     info: 'var(--text-secondary)',
     warn: '#f59e0b',
     error: '#ef4444',
 };
 
-function formatTs(ts) {
+function formatTs(ts: number | string) {
     try {
         const d = new Date(ts);
         if (Number.isNaN(d.getTime())) return String(ts);
@@ -26,9 +32,9 @@ function formatTs(ts) {
     }
 }
 
-export default function ModuleLogsDialog({ module, onClose }) {
+export default function ModuleLogsDialog({ module, onClose }: ModuleLogsDialogProps) {
     const { t } = useTranslation();
-    const [level, setLevel] = useState('');
+    const [level, setLevel] = useState<string>('');
     const logsQuery = useModuleLogs(module.id, { level: level || null });
     const logs = logsQuery.data?.logs || [];
     const replica = logsQuery.data?.replica;
@@ -57,7 +63,7 @@ export default function ModuleLogsDialog({ module, onClose }) {
                         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
                     >
                         <option value="">{t('modules.logs_level_all')}</option>
-                        {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                        {LEVELS.map((l: string) => <option key={l} value={l}>{l}</option>)}
                     </select>
                     <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" aria-label={t('modules.close')}>
                         <X className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -74,7 +80,7 @@ export default function ModuleLogsDialog({ module, onClose }) {
                 {logs.length === 0 ? (
                     <p className="text-[var(--text-muted)]">{t('modules.logs_empty')}</p>
                 ) : (
-                    logs.map((row) => (
+                    logs.map((row: ModuleLogEntry) => (
                         <div key={row.seq} className="flex gap-2 py-0.5 leading-relaxed">
                             <span className="flex-shrink-0 text-[var(--text-muted)]">{formatTs(row.ts)}</span>
                             <span className="flex-shrink-0 uppercase w-12" style={{ color: LEVEL_COLOR[row.level] || 'var(--text-secondary)' }}>

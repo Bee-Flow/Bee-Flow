@@ -1,13 +1,20 @@
 import { Check, ServerCrash, ShieldAlert } from 'lucide-react';
 import React from 'react';
 import { normalizePermissions, permissionCopy, splitEnvPermissions } from './permissionCopy';
+import type { ModulePermission } from './permissionCopy';
 import { useTranslation } from '../../../hooks/useTranslation';
+
+interface PermissionListProps {
+    permissions?: unknown;
+    granted?: { list?: string[] } | null;
+    diff?: string[] | null;
+}
 
 // Permission list shared by the consent dialog (pre-install review) and the
 // detail drawer's Permissions tab (granted state). `granted` is the drawer's
 // grantedPermissions object; `diff` marks ids that are NEW in an update.
 
-function PermissionRow({ perm, granted, isNew }) {
+function PermissionRow({ perm, granted, isNew }: { perm: ModulePermission; granted: boolean; isNew: boolean }) {
     const { t } = useTranslation();
     return (
         <li className="flex items-start gap-2.5 py-2" data-testid={`perm-${perm.id}`}>
@@ -37,7 +44,7 @@ function PermissionRow({ perm, granted, isNew }) {
     );
 }
 
-export default function PermissionList({ permissions, granted = null, diff = null }) {
+export default function PermissionList({ permissions, granted = null, diff = null }: PermissionListProps) {
     const { t } = useTranslation();
     const perms = normalizePermissions(permissions);
     if (perms.length === 0) {
@@ -52,7 +59,7 @@ export default function PermissionList({ permissions, granted = null, diff = nul
         <div className="space-y-3">
             {normal.length > 0 && (
                 <ul className="divide-y border-[var(--border-subtle)]">
-                    {normal.map((p) => (
+                    {normal.map((p: ModulePermission) => (
                         <PermissionRow key={p.id} perm={p} granted={grantedSet.has(p.id)} isNew={diffSet.has(p.id)} />
                     ))}
                 </ul>
@@ -66,7 +73,7 @@ export default function PermissionList({ permissions, granted = null, diff = nul
                         {t('modules.permissions.env_disclaimer')}
                     </p>
                     <ul className="divide-y mt-1 border-[var(--border-subtle)]">
-                        {env.map((p) => (
+                        {env.map((p: ModulePermission) => (
                             <PermissionRow key={p.id} perm={p} granted={grantedSet.has(p.id)} isNew={diffSet.has(p.id)} />
                         ))}
                     </ul>

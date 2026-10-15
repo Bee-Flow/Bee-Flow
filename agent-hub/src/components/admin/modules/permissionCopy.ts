@@ -1,10 +1,17 @@
+import type { TranslateFn } from '../../../hooks/useTranslation';
+
 // Canonical operator-facing copy for module permission ids (mv2 manifests).
 // Pure helpers shared by PermissionList / PermissionConsentDialog and unit-
 // tested directly. Copy lives in the i18n dict; this maps ids → keys.
 
 // Fixed ids → dict keys (variable lookup, not literal t() calls, so the i18n
 // guard's literal-call check skips the indirection; every value is in the dict).
-const PERM_KEY = {
+export interface ModulePermission {
+    id: string;
+    reason?: string | null;
+}
+
+const PERM_KEY: Record<string, string> = {
     'db': 'modules.permissions.db',
     'ai': 'modules.permissions.ai',
     'usage:write': 'modules.permissions.usage_write',
@@ -20,22 +27,22 @@ const PERM_KEY = {
  * Server payloads carry permissions either as bare id strings or as
  * { id, reason? } objects — normalise to the object shape.
  */
-export const normalizePermissions = (list) => (Array.isArray(list) ? list : [])
+export const normalizePermissions = (list: unknown): ModulePermission[] => (Array.isArray(list) ? list : [])
     .map((p) => (typeof p === 'string' ? { id: p } : p))
     .filter((p) => p && typeof p.id === 'string' && p.id);
 
 /** env:* ids run with server privileges and render in their own section. */
-export const isEnvPermission = (id) => typeof id === 'string' && id.startsWith('env:');
+export const isEnvPermission = (id: unknown) => typeof id === 'string' && id.startsWith('env:');
 
-export function splitEnvPermissions(perms) {
-    const normal = [];
-    const env = [];
+export function splitEnvPermissions(perms: ModulePermission[]) {
+    const normal: ModulePermission[] = [];
+    const env: ModulePermission[] = [];
     for (const p of perms) (isEnvPermission(p.id) ? env : normal).push(p);
     return { normal, env };
 }
 
 /** Human copy for one permission id (t = useTranslation().t). */
-export function permissionCopy(t, id) {
+export function permissionCopy(t: TranslateFn, id: string) {
     const key = PERM_KEY[id];
     if (key) return t(key);
     if (typeof id === 'string' && id.startsWith('http:')) {

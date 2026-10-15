@@ -1,14 +1,23 @@
 import React from 'react';
 import { AlertTriangle, Bug, Check, Download, Globe, Inbox, Loader2, Mic, Package, Shield, Target, Trash2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { AdminModule, ModuleCapability, ModuleRequirement } from '../../../api/queries/modules';
+
+interface ModuleCardProps {
+    module: AdminModule;
+    onImport: (module: AdminModule) => void;
+    onRemoveRequest: (module: AdminModule) => void;
+    busy?: boolean;
+}
 
 // module.icon arrives as a free-form string: an emoji, a lucide name from the
 // server catalog (e.g. 'shield' for Security Scan), or something we may not
 // know. Render short pictographic strings as-is, map known lucide names, and
 // fall back to Package so an unrecognised icon never breaks the card.
-const NAMED_ICONS = { shield: Shield, globe: Globe, inbox: Inbox, target: Target, mic: Mic, bug: Bug, package: Package };
+const NAMED_ICONS: Record<string, LucideIcon> = { shield: Shield, globe: Globe, inbox: Inbox, target: Target, mic: Mic, bug: Bug, package: Package };
 
-function ModuleIcon({ icon }) {
+function ModuleIcon({ icon }: { icon?: string | null }) {
     if (icon && icon.length <= 4 && /\p{Extended_Pictographic}/u.test(icon)) {
         return <span className="text-2xl leading-none">{icon}</span>;
     }
@@ -16,7 +25,7 @@ function ModuleIcon({ icon }) {
     return <Glyph className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />;
 }
 
-export default function ModuleCard({ module, onImport, onRemoveRequest, busy }) {
+export default function ModuleCard({ module, onImport, onRemoveRequest, busy }: ModuleCardProps) {
     const { t } = useTranslation();
     const imported = module.status === 'imported';
     const requirements = module.requirements || [];
@@ -77,7 +86,7 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }) 
                         {t('modules.requirements')}
                     </div>
                     <div className="space-y-1">
-                        {requirements.map(req => (
+                        {requirements.map((req: ModuleRequirement) => (
                             <div key={req.id} className="text-xs flex items-start gap-1.5 text-[var(--text-secondary)]">
                                 <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${req.met ? 'bg-green-500' : 'bg-amber-500'}`} />
                                 <span className="min-w-0">
@@ -99,7 +108,7 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }) 
                         {t('modules.capabilities')}
                     </div>
                     <div className="flex flex-wrap gap-1">
-                        {capabilities.map(cap => (
+                        {capabilities.map((cap: ModuleCapability) => (
                             <span key={cap.id} className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                                 {cap.label}
                             </span>

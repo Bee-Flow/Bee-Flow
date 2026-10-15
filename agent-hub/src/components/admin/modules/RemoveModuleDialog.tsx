@@ -3,7 +3,14 @@ import React from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
 
-export default function RemoveModuleDialog({ module, busy, onCancel, onConfirm }) {
+interface RemoveModuleDialogProps {
+    module: { id?: string; name: string };
+    busy?: boolean;
+    onCancel: () => void;
+    onConfirm: () => void;
+}
+
+export default function RemoveModuleDialog({ module, busy, onCancel, onConfirm }: RemoveModuleDialogProps) {
     const { t } = useTranslation();
     return (
         <Modal

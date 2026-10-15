@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * Three pulsing CheckCard-shaped skeletons. Used on first load.
  */
-export function CheckCardSkeleton({ count = 3 }) {
+export function CheckCardSkeleton({ count = 3 }: { count?: number }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {Array.from({ length: count }).map((_, i) => (

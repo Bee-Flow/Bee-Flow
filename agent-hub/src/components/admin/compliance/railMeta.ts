@@ -22,8 +22,14 @@
 import { countFor } from './data/useComplianceCounts';
 import { toneOfScore } from '../../shared/statusTone';
 import { DAY_MS, HOUR_MS } from '../../shared/deadlineMath';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 
-const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+interface RailSection {
+    id: string;
+    regulation?: string | null;
+}
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /** The product's ROPA cadence (GDPR-Art30-ropa-reviewed fails after a year). */
 const ROPA_REVIEW_MS = 365 * DAY_MS;
@@ -33,7 +39,7 @@ const ROPA_REVIEW_MS = 365 * DAY_MS;
  * so the rail clock picks hours or days the way the register row does: a
  * window under a week counts hours, a final report counts days.
  */
-const INCIDENT_WINDOW_MS = Object.freeze({
+const INCIDENT_WINDOW_MS: Readonly<Record<string, number>> = Object.freeze({
     early_warning: 24 * HOUR_MS,
     customer_notice: 4 * HOUR_MS, // DORA: the contract's window, 4 h by default (incidentStore)
     authority: 72 * HOUR_MS,
@@ -41,7 +47,7 @@ const INCIDENT_WINDOW_MS = Object.freeze({
 });
 
 /** 'run 09:12' — always 24 h, as the artboard and the Dutch product locale write it. */
-export function formatClock(iso, locale) {
+export function formatClock(iso: string | number | Date | null | undefined, locale?: string | null) {
     if (!iso) return null;
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return null;
@@ -49,7 +55,7 @@ export function formatClock(iso, locale) {
     catch { return d.toISOString().slice(11, 16); }
 }
 
-export function formatDay(iso, locale) {
+export function formatDay(iso: string | number | Date | null | undefined, locale?: string | null) {
     if (!iso) return null;
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return null;
@@ -58,18 +64,18 @@ export function formatDay(iso, locale) {
 }
 
 /** The score a framework section shows in its rail row, or undefined. */
-export function railScore(counts, frameworkId) {
+export function railScore(counts: unknown, frameworkId: string) {
     const s = countFor(counts, `frameworks.${frameworkId}.score`);
     return isNum(s) ? s : undefined;
 }
 
 /** A rail row's tooltip: the label, and the hint on a second line. */
-export function railRowTitle(label, hint) {
+export function railRowTitle(label: string, hint?: string | null) {
     return hint ? `${label}\n${hint}` : label;
 }
 
 /** "{n} {state}" for a positive count, else nothing — the one rule. */
-function countMeta(n, t, key, fallback) {
+function countMeta(n: unknown, t: TranslateFn, key: string, fallback: string) {
     return isNum(n) && n > 0 ? { kind: 'text', text: t(key, fallback, { n }) } : null;
 }
 
@@ -81,7 +87,7 @@ function countMeta(n, t, key, fallback) {
  *        `failing`: the open checks of a framework row — passed by the rail in
  *        its "Needs attention" view, where the row then reads "{n} to fix".
  */
-export default function railMeta(section, counts, t, { now = Date.now(), failing = undefined } = {}) {
+export default function railMeta(section: RailSection | null | undefined, counts: unknown, t: TranslateFn, { now = Date.now(), failing = undefined }: { now?: number; failing?: number } = {}) {
     if (!section) return null;
     const c = counts || null;
     if (section.regulation) {
@@ -173,7 +179,7 @@ export default function railMeta(section, counts, t, { now = Date.now(), failing
  * and in an sr-only description (`aria-describedby`), so hovering or focusing
  * the row reads it. null when there is nothing to say.
  */
-export function railHint(section, counts, t, { locale = undefined } = {}) {
+export function railHint(section: RailSection | null | undefined, counts: unknown, t: TranslateFn, { locale = undefined }: { locale?: string } = {}) {
     if (!section) return null;
     const c = counts || null;
     switch (section.id) {

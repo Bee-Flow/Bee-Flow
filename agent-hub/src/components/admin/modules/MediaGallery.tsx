@@ -1,32 +1,38 @@
 import { X } from 'lucide-react';
 import React, { useState } from 'react';
 import { moduleMediaUrl } from '../../../api/queries/modules';
+import type { MarketplaceMediaEntry } from '../../../api/queries/modules';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
+
+interface MediaGalleryProps {
+    moduleId: string;
+    media?: MarketplaceMediaEntry[] | null;
+}
 
 // Screenshot strip for the detail drawer. Media bytes come off the product
 // server (marketplace/:id/media/:mediaId proxies the hub), so a plain <img>
 // with the session cookie works; broken/unauthorised images are hidden.
-export default function MediaGallery({ moduleId, media }) {
+export default function MediaGallery({ moduleId, media }: MediaGalleryProps) {
     const { t } = useTranslation();
-    const images = (media || []).filter((m) => m && m.media_id && String(m.content_type || '').startsWith('image/'));
-    const [active, setActive] = useState(null);   // media_id of the enlarged image
-    const [broken, setBroken] = useState(() => new Set());
+    const images = (media || []).filter((m: MarketplaceMediaEntry) => m && m.media_id && String(m.content_type || '').startsWith('image/'));
+    const [active, setActive] = useState<string | null>(null);   // media_id of the enlarged image
+    const [broken, setBroken] = useState<Set<string>>(() => new Set());
 
-    const visible = images.filter((m) => !broken.has(m.media_id));
+    const visible = images.filter((m: MarketplaceMediaEntry) => !broken.has(m.media_id));
     if (visible.length === 0) return null;
 
     return (
         <>
             <div className="flex gap-2 overflow-x-auto pb-1" data-testid="media-gallery">
-                {visible.map((m) => (
+                {visible.map((m: MarketplaceMediaEntry) => (
                     <button key={m.media_id} onClick={() => setActive(m.media_id)} className="flex-shrink-0">
                         <img
                             src={moduleMediaUrl(moduleId, m.media_id)}
                             alt=""
                             loading="lazy"
                             className="h-24 rounded-lg border object-cover border-[var(--border-default)]"
-                            onError={() => setBroken((s) => new Set(s).add(m.media_id))}
+                            onError={() => setBroken((s: Set<string>) => new Set(s).add(m.media_id))}
                         />
                     </button>
                 ))}

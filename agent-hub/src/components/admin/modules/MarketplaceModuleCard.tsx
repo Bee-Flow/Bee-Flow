@@ -2,16 +2,38 @@ import React from 'react';
 import { AlertTriangle, ArrowUpCircle, Check, Download, Globe, Inbox, Loader2, Mic, Package, RefreshCw, ShoppingCart, Shield, Target } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import UpdatePolicySelector from './UpdatePolicySelector';
+import type { LucideIcon } from 'lucide-react';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { InstallProgress, MarketplaceModuleDetail, MarketplacePricing, ModuleHealthRow } from '../../../api/queries/modules';
+
+/** Server-derived pricing, plus the legacy { model, amountCents } shape older rows still carry. */
+type CardPricing = MarketplacePricing & { model?: string; amountCents?: number | null };
+
+interface MarketplaceModuleCardProps {
+    module: MarketplaceModuleDetail;
+    health?: ModuleHealthRow | null;
+    awaiting?: boolean;
+    installProgress?: InstallProgress | null;
+    busy?: boolean;
+    onBuy: (module: MarketplaceModuleDetail) => void;
+    onInstall: (module: MarketplaceModuleDetail) => void;
+    onUpdate: (module: MarketplaceModuleDetail) => void;
+    onPaidRefresh: (module: MarketplaceModuleDetail) => void;
+    onReactivate: (module: MarketplaceModuleDetail) => void;
+    onOpenDetails?: (module: MarketplaceModuleDetail) => void;
+    onPolicyChange?: (module: MarketplaceModuleDetail, policy: { channel: string; pin: string }) => void;
+    policyBusy?: boolean;
+}
 
 // Hub catalogue card. Distinct from the installed-tab ModuleCard: it consumes a
 // MarketplaceModule and renders the buy / entitled / installing / update /
 // expired footer variants. Kept separate so the installed card (requirements +
 // capabilities) stays untouched.
 
-const NAMED_ICONS = { shield: Shield, globe: Globe, inbox: Inbox, target: Target, mic: Mic, package: Package };
+const NAMED_ICONS: Record<string, LucideIcon> = { shield: Shield, globe: Globe, inbox: Inbox, target: Target, mic: Mic, package: Package };
 
 // Shared with ModuleDetailDrawer (same icon + price rendering there).
-export function ModuleIcon({ icon }) {
+export function ModuleIcon({ icon }: { icon?: string | null }) {
     if (icon && icon.length <= 4 && /\p{Extended_Pictographic}/u.test(icon)) {
         return <span className="text-2xl leading-none">{icon}</span>;
     }
@@ -19,7 +41,7 @@ export function ModuleIcon({ icon }) {
     return <Glyph className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />;
 }
 
-function formatPrice(amountCents, currency) {
+function formatPrice(amountCents?: number | null, currency?: string | null) {
     const amount = (amountCents || 0) / 100;
     try {
         return new Intl.NumberFormat(undefined, {
@@ -34,7 +56,7 @@ function formatPrice(amountCents, currency) {
 
 // Server-derived typed pricing { type, amount, currency, interval } (v3.1);
 // tolerates the legacy { model, amountCents } shape and null (→ free).
-export function priceLabel(t, pricing) {
+export function priceLabel(t: TranslateFn, pricing?: CardPricing | null) {
     const type = pricing?.type || pricing?.model;
     if (!pricing || type === 'free' || !type) return t('modules.price_free');
     const price = formatPrice(pricing.amount ?? pricing.amountCents, pricing.currency);
@@ -48,7 +70,7 @@ export function priceLabel(t, pricing) {
 
 // Non-terminal install phase → label key. Variable lookup (not a literal t())
 // so the i18n guard's literal-call check skips it; every value is in the dict.
-const PHASE_KEY = {
+const PHASE_KEY: Record<string, string> = {
     downloading: 'modules.installing_download',
     verifying: 'modules.installing_verify',
     migrating: 'modules.installing_migrate',
@@ -58,7 +80,7 @@ const PHASE_KEY = {
 export default function MarketplaceModuleCard({
     module, health = null, awaiting, installProgress, busy,
     onBuy, onInstall, onUpdate, onPaidRefresh, onReactivate, onOpenDetails, onPolicyChange, policyBusy = false,
-}) {
+}: MarketplaceModuleCardProps) {
     const { t } = useTranslation();
     const expired = module.status === 'expired';
     const installing = installProgress && installProgress.phase !== 'done' && installProgress.phase !== 'error';
@@ -68,7 +90,7 @@ export default function MarketplaceModuleCard({
     const sideloaded = health?.source === 'sideload';
     const pendingRestart = !!(module.pendingRestart || health?.pendingRestart);
     // Card click opens the drawer; every action button stops propagation.
-    const act = (fn) => (e) => { e.stopPropagation(); fn(module); };
+    const act = (fn: (module: MarketplaceModuleDetail) => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn(module); };
 
     return (
         <div
@@ -238,7 +260,7 @@ export default function MarketplaceModuleCard({
                         <UpdatePolicySelector
                             policy={module.updatePolicy}
                             busy={policyBusy}
-                            onChange={(policy) => onPolicyChange(module, policy)}
+                            onChange={(policy: { channel: string; pin: string }) => onPolicyChange(module, policy)}
                         />
                     </div>
                 )}

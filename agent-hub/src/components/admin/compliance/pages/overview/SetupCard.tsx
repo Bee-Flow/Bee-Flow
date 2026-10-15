@@ -7,6 +7,19 @@ import SetupStepBody, {
     LEGAL_BASES, SETUP_STEPS, SETUP_STEP_COUNT,
     applyAutoDetect, canProceed, firstOpenStep, initialSetupData, setupBody, stepIsComplete,
 } from '../../setup/SetupSteps';
+import type { SetupBody, SetupData, SetupSettings } from '../../setup/SetupSteps';
+import type { OrgUser } from '../../shared/UserPicker';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+
+interface SetupCardProps {
+    settings?: SetupSettings | null;
+    orgUsers?: OrgUser[] | null;
+    onAutoDetect?: () => SetupSettings | null | undefined | Promise<SetupSettings | null | undefined>;
+    onFinish?: (body: SetupBody) => unknown;
+    onStepChange?: (step: number) => void;
+    className?: string;
+    testId?: string;
+}
 
 /**
  * SetupCard — the ONE not-set-up path (artboard 1g, PLAN-FRONTEND C13).
@@ -27,24 +40,24 @@ import SetupStepBody, {
 export default function SetupCard({
     settings = null, orgUsers = null, onAutoDetect, onFinish, onStepChange,
     className = '', testId = 'setup-card',
-}) {
+}: SetupCardProps) {
     const { t } = useTranslation();
     const [data, setData] = useState(() => initialSetupData(settings));
-    const [detectedFields, setDetectedFields] = useState([]);
+    const [detectedFields, setDetectedFields] = useState<string[]>([]);
     const [active, setActive] = useState(() => Math.min(firstOpenStep(initialSetupData(settings)), SETUP_STEP_COUNT - 1));
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const detectRan = useRef(false);
-    const reported = useRef(null);
+    const reported = useRef<number | null>(null);
 
     // Pre-fill once. A 5xx here is not an error the user needs to see: the four
     // fields are still editable, they are simply empty.
-    const applyDetected = useEffectEvent((detected) => {
+    const applyDetected = useEffectEvent((detected: SetupSettings | null | undefined) => {
         const { patch, hit } = applyAutoDetect(detected, settings);
         if (hit.length) {
-            setData(prev => ({ ...prev, ...patch }));
+            setData((prev: SetupData) => ({ ...prev, ...patch }));
             setDetectedFields(hit);
-            setActive(prev => (prev === 0 && !canProceed(0, { ...data, ...patch }) ? 0 : prev));
+            setActive((prev: number) => (prev === 0 && !canProceed(0, { ...data, ...patch }) ? 0 : prev));
         }
     });
     useEffect(() => {
@@ -53,7 +66,7 @@ export default function SetupCard({
         let alive = true;
         Promise.resolve()
             .then(() => onAutoDetect())
-            .then((detected) => { if (alive) applyDetected(detected); })
+            .then((detected: SetupSettings | null | undefined) => { if (alive) applyDetected(detected); })
             .catch(() => { /* the card works without the pre-fill */ });
         return () => { alive = false; };
     }, [onAutoDetect]);
@@ -66,12 +79,12 @@ export default function SetupCard({
         onStepChange?.(step);
     }, [active, onStepChange]);
 
-    const update = (patch) => setData(prev => ({ ...prev, ...patch }));
+    const update = (patch: Partial<SetupData>) => setData((prev: SetupData) => ({ ...prev, ...patch }));
     const detected = useMemo(() => new Set(detectedFields), [detectedFields]);
     const ready = canProceed(active, data);
     const last = active === SETUP_STEP_COUNT - 1;
 
-    const openStep = (index) => { setActive(index); setOpen(true); };
+    const openStep = (index: number) => { setActive(index); setOpen(true); };
 
     const advance = async () => {
         if (!ready) return;
@@ -188,7 +201,7 @@ export default function SetupCard({
     );
 }
 
-function StepDisc({ index, done, active }) {
+function StepDisc({ index, done, active }: { index: number; done: boolean; active: boolean }) {
     if (done) {
         return (
             <span
@@ -212,8 +225,8 @@ function StepDisc({ index, done, active }) {
 }
 
 /** The "pre-filled value" line under a tile — the fact, plus where it came from. */
-export function tileValue(index, data, detected, t) {
-    const from = (field, text) => (detected?.has?.(field)
+export function tileValue(index: number, data: Partial<SetupData> | null | undefined, detected: ReadonlySet<string> | null | undefined, t: TranslateFn): string {
+    const from = (field: string, text: string): string => (detected?.has?.(field)
         ? t('compliance.setup_from_config', '{value} · from your configuration', { value: text })
         : text);
     if (index === 0) {
@@ -223,8 +236,8 @@ export function tileValue(index, data, detected, t) {
     if (index === 1) {
         const bases = Array.isArray(data?.legal_bases) ? data.legal_bases : [];
         if (!bases.length) return t('compliance.setup_hint_legal', 'why you may process personal data');
-        const names = bases.map(id => {
-            const lb = LEGAL_BASES.find(b => b.id === id);
+        const names = bases.map((id: string) => {
+            const lb = LEGAL_BASES.find((b: { id: string }) => b.id === id);
             return lb ? t(lb.labelKey) : id;
         }).join(', ');
         return detected?.has?.('legal_bases')

@@ -13,8 +13,8 @@
  * @param {{ origin: string, pathname: string }} loc defaults to window.location
  * @returns {{ successUrl: string, cancelUrl: string }}
  */
-export function buildPurchaseReturnUrls(moduleId, loc = window.location) {
-    const mk = (result) => {
+export function buildPurchaseReturnUrls(moduleId: string, loc: Pick<Location, 'origin' | 'pathname'> = window.location) {
+    const mk = (result: string) => {
         const params = new URLSearchParams({ tab: 'marketplace', purchase: result, module: moduleId });
         return `${loc.origin}${loc.pathname}?${params.toString()}`;
     };
@@ -27,7 +27,7 @@ export function buildPurchaseReturnUrls(moduleId, loc = window.location) {
  * @param {string} search e.g. "?tab=marketplace&purchase=success&module=pro"
  * @returns {{ result: 'success' | 'cancel', moduleId: string | null } | null}
  */
-export function parsePurchaseReturn(search) {
+export function parsePurchaseReturn(search?: string | null) {
     const params = new URLSearchParams(search || '');
     const result = params.get('purchase');
     if (result !== 'success' && result !== 'cancel') return null;
@@ -40,7 +40,7 @@ export function parsePurchaseReturn(search) {
  * @param {{ pathname: string, search: string, hash?: string }} loc defaults to window.location
  * @returns {string}
  */
-export function stripPurchaseReturnParams(loc = window.location) {
+export function stripPurchaseReturnParams(loc: Pick<Location, 'pathname' | 'search' | 'hash'> = window.location) {
     const params = new URLSearchParams(loc.search || '');
     params.delete('purchase');
     params.delete('module');

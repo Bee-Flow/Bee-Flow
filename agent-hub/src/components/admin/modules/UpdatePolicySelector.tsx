@@ -1,11 +1,18 @@
 import React from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { UpdatePolicy } from '../../../api/queries/modules';
+
+interface UpdatePolicySelectorProps {
+    policy?: Partial<UpdatePolicy> | null;
+    busy?: boolean;
+    onChange: (policy: { channel: string; pin: string }) => void;
+}
 
 // Compact channel/pin selector for an installed module's update policy.
 // Rendered on the installed card footer and in the drawer's Versions tab.
 // Defensive about missing data: a v1 hub / older server row has no policy,
 // which reads as the defaults { channel: stable, pin: none }.
-export default function UpdatePolicySelector({ policy, busy = false, onChange }) {
+export default function UpdatePolicySelector({ policy, busy = false, onChange }: UpdatePolicySelectorProps) {
     const { t } = useTranslation();
     const channel = policy?.channel || 'stable';
     const pin = policy?.pin || 'none';

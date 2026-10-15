@@ -2,9 +2,15 @@ import React from 'react';
 import { Loader2, Plug } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 
+interface ConnectHubBannerProps {
+    licensed?: boolean;
+    busy?: boolean;
+    onConnect: () => void;
+}
+
 // Shown on the Marketplace tab when the install is not connected to the hub.
 // The primary CTA opens the connect confirm dialog.
-export default function ConnectHubBanner({ licensed = true, busy, onConnect }) {
+export default function ConnectHubBanner({ licensed = true, busy, onConnect }: ConnectHubBannerProps) {
     const { t } = useTranslation();
     return (
         <div

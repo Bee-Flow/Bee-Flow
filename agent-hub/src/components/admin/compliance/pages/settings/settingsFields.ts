@@ -13,10 +13,10 @@
  * `{key, en}` label tables live here — this file belongs on `KEY_TABLE_FILES`
  * in `i18nGuard.test.js` (ask in the DONE file).
  */
-
+import type { Contact, SettingsFieldDef, SettingsForm, SettingsGroupDef, SettingsOption } from './settingsFields.types';
 /* ── option tables ───────────────────────────────────────────────────────── */
 
-export const LEGAL_BASES = Object.freeze([
+export const LEGAL_BASES: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: 'consent', key: 'compliance.lb_consent', en: 'Consent' }),
     Object.freeze({ value: 'contract', key: 'compliance.lb_contract', en: 'Contract' }),
     Object.freeze({ value: 'legal_obligation', key: 'compliance.lb_legal_obligation', en: 'Legal obligation' }),
@@ -25,13 +25,13 @@ export const LEGAL_BASES = Object.freeze([
     Object.freeze({ value: 'legitimate_interests', key: 'compliance.lb_legitimate_interests', en: 'Legitimate interests' }),
 ]);
 
-export const RESIDENCY = Object.freeze([
+export const RESIDENCY: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: 'eu', key: 'compliance.residency_eu', en: 'EU-only' }),
     Object.freeze({ value: 'internal', key: 'compliance.residency_internal', en: 'Self-hosted only' }),
     Object.freeze({ value: 'hybrid', key: 'compliance.residency_hybrid', en: 'Hybrid' }),
 ]);
 
-export const NIS2_ENTITY_CLASSES = Object.freeze([
+export const NIS2_ENTITY_CLASSES: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: '', key: 'compliance.set_unanswered', en: 'Not answered yet' }),
     Object.freeze({ value: 'not_in_scope', key: 'compliance.set_nis2_class_not_in_scope', en: 'Not in scope' }),
     Object.freeze({ value: 'supplier_only', key: 'compliance.set_nis2_class_supplier_only', en: 'Supplier to an in-scope entity' }),
@@ -39,14 +39,14 @@ export const NIS2_ENTITY_CLASSES = Object.freeze([
     Object.freeze({ value: 'essential', key: 'compliance.set_nis2_class_essential', en: 'Essential entity' }),
 ]);
 
-export const CRA_ROLES = Object.freeze([
+export const CRA_ROLES: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: '', key: 'compliance.set_unanswered', en: 'Not answered yet' }),
     Object.freeze({ value: 'manufacturer', key: 'compliance.set_cra_role_manufacturer', en: 'Manufacturer' }),
     Object.freeze({ value: 'distributor', key: 'compliance.set_cra_role_distributor', en: 'Importer / distributor' }),
     Object.freeze({ value: 'user_only', key: 'compliance.set_cra_role_user_only', en: 'User only' }),
 ]);
 
-export const CONFORMANCE_LEVELS = Object.freeze([
+export const CONFORMANCE_LEVELS: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: '', key: 'compliance.set_unanswered', en: 'Not answered yet' }),
     Object.freeze({ value: 'WCAG 2.1 AA', key: 'compliance.set_eaa_level_wcag21aa', en: 'WCAG 2.1 AA' }),
     Object.freeze({ value: 'WCAG 2.2 AA', key: 'compliance.set_eaa_level_wcag22aa', en: 'WCAG 2.2 AA' }),
@@ -55,7 +55,7 @@ export const CONFORMANCE_LEVELS = Object.freeze([
 ]);
 
 /** The three answers `frameworks.setRelevance(id, value, note)` accepts. */
-export const RELEVANCE_OPTIONS = Object.freeze([
+export const RELEVANCE_OPTIONS: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: 'unknown', key: 'compliance.set_relevance_unknown', en: 'Not answered yet' }),
     Object.freeze({ value: 'relevant', key: 'compliance.set_relevance_relevant', en: 'Applies to us' }),
     Object.freeze({ value: 'not_relevant', key: 'compliance.set_relevance_not_relevant', en: 'Does not apply to us' }),
@@ -77,7 +77,7 @@ export const RELEVANCE_OPTIONS = Object.freeze([
  * `sections`; `span` ('third' | 'half' | 'full') overrides the default width;
  * `optional` leaves the field out of "{n} of {total} answered".
  */
-export const SETTINGS_GROUPS = Object.freeze([
+export const SETTINGS_GROUPS: readonly Readonly<SettingsGroupDef>[] = Object.freeze([
     Object.freeze({
         id: 'general',
         framework: 'gdpr',
@@ -320,25 +320,25 @@ export const SETTINGS_FIELD_NAMES = Object.freeze(
     SETTINGS_GROUPS.flatMap(g => g.fields.filter(f => f.kind !== 'relevance' && f.kind !== 'userfill').map(f => f.name)),
 );
 
-const FIELD_BY_NAME = new Map(
+const FIELD_BY_NAME = new Map<string, SettingsFieldDef>(
     SETTINGS_GROUPS.flatMap(g => g.fields.map(f => [f.name, f])),
 );
 
-export function fieldSpec(name) {
+export function fieldSpec(name: string) {
     return FIELD_BY_NAME.get(name) || null;
 }
 
 /* ── form state ──────────────────────────────────────────────────────────── */
 
-const asArray = (v) => (Array.isArray(v) ? v : []);
-const asText = (v) => (v === null || v === undefined ? '' : String(v));
+const asArray = <T = unknown>(v: unknown): T[] => (Array.isArray(v) ? v : []);
+const asText = (v: unknown) => (v === null || v === undefined ? '' : String(v));
 /** A date column into the `YYYY-MM-DD` an <input type="date"> wants. */
-const asDate = (v) => (v ? String(v).slice(0, 10) : '');
+const asDate = (v: unknown) => (v ? String(v).slice(0, 10) : '');
 
 /** Server settings → form state. Unknown/absent values become the empty answer, never a guess. */
-export function normaliseSettings(settings) {
-    const s = settings || {};
-    const form = {};
+export function normaliseSettings(settings?: Record<string, unknown> | null): SettingsForm {
+    const s: Record<string, unknown> = settings || {};
+    const form: SettingsForm = {};
     for (const group of SETTINGS_GROUPS) {
         for (const f of group.fields) {
             switch (f.kind) {
@@ -346,8 +346,8 @@ export function normaliseSettings(settings) {
                 case 'toggle': form[f.name] = f.defaultOn ? s[f.name] !== false : s[f.name] === true; break;
                 case 'chips': case 'emails': case 'strings': form[f.name] = asArray(s[f.name]); break;
                 case 'contacts':
-                    form[f.name] = asArray(s[f.name]).filter(c => c && typeof c === 'object')
-                        .map(c => ({ name: asText(c.name), email: asText(c.email), entity: asText(c.entity) }));
+                    form[f.name] = asArray<Contact>(s[f.name]).filter((c: Contact) => c && typeof c === 'object')
+                        .map((c: Contact) => ({ name: asText(c.name), email: asText(c.email), entity: asText(c.entity) }));
                     break;
                 case 'date': form[f.name] = asDate(s[f.name]); break;
                 case 'stamp': form[f.name] = s[f.name] || null; break;
@@ -363,9 +363,9 @@ export function normaliseSettings(settings) {
  * never "the form object minus a few keys" — a field added next year must be
  * declared here before it can travel (BFSF-441 discipline).
  */
-export function buildSettingsBody(form) {
-    const f = form || {};
-    const body = {};
+export function buildSettingsBody(form?: SettingsForm | null): Record<string, unknown> {
+    const f: SettingsForm = form || {};
+    const body: Record<string, unknown> = {};
     for (const group of SETTINGS_GROUPS) {
         for (const spec of group.fields) {
             const name = spec.name;
@@ -374,15 +374,15 @@ export function buildSettingsBody(form) {
                 case 'relevance': case 'userfill': continue;
                 case 'toggle': body[name] = v === true; break;
                 case 'chips': case 'emails':
-                    body[name] = asArray(v).map(x => String(x).trim()).filter(Boolean);
+                    body[name] = asArray(v).map((x: unknown) => String(x).trim()).filter(Boolean);
                     break;
                 case 'strings':
-                    body[name] = asArray(v).filter(x => (typeof x === 'string' ? x.trim() : x)).map(x => (typeof x === 'string' ? x.trim() : x));
+                    body[name] = asArray(v).filter((x: unknown) => (typeof x === 'string' ? x.trim() : x)).map((x: unknown) => (typeof x === 'string' ? x.trim() : x));
                     break;
                 case 'contacts':
-                    body[name] = asArray(v)
-                        .map(c => ({ name: String(c?.name || '').trim(), email: String(c?.email || '').trim(), entity: String(c?.entity || '').trim() }))
-                        .filter(c => c.name || c.email || c.entity);
+                    body[name] = asArray<Contact | null | undefined>(v)
+                        .map((c: Contact | null | undefined) => ({ name: String(c?.name || '').trim(), email: String(c?.email || '').trim(), entity: String(c?.entity || '').trim() }))
+                        .filter((c: { name: string; email: string; entity: string }) => c.name || c.email || c.entity);
                     break;
                 case 'number': {
                     const n = String(v ?? '').trim();
@@ -401,7 +401,7 @@ export function buildSettingsBody(form) {
 }
 
 /** True when the group's framework is off for this org (the page folds it shut). */
-export function groupIsInactive(group, frameworks) {
+export function groupIsInactive(group: Pick<SettingsGroupDef, 'framework'>, frameworks?: { isEnabled?: (id: string) => boolean; frameworks?: unknown } | null): boolean {
     if (!group.framework || !frameworks || typeof frameworks.isEnabled !== 'function') return false;
     // Not loaded (or failed) is "unknown", never "off": before this guard every
     // group, GDPR and the AI Act included, read "This framework is off" while
