@@ -18,17 +18,27 @@
 import { Users, Eye, MousePointerClick, Timer, Activity, TrendingUp, Layers } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import { errorMessage } from '../../../../../utils/caughtError';
 import { analyticsApi, analyticsFetch } from '../../analyticsApi';
+import type { AnalyticsResponse } from '../../analyticsApi';
 import TrendChart from '../charts/TrendChart';
+import type { TrendSeries } from '../charts/TrendChart';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SkeletonGrid, StatGrid, StatTile,
     BreakdownTable, SplitBar, fmt, statVal, fmtDurationSec, compare,
 } from '../ui';
+import type { CompareKind, DrillHandler, SectionProps, XYRow } from '../ui.types';
 import { resolveWindow, densify, bucketLabel, lastBucketPartial } from '../window';
 
-export default function OverviewSection({ scope, onDrill }) {
+interface OverviewState {
+    data: AnalyticsResponse;
+    loading: boolean;
+    error: string | null | undefined;
+}
+
+export default function OverviewSection({ scope, onDrill }: SectionProps) {
     const { t } = useTranslation();
-    const [state, setState] = useState({ data: null, loading: true, error: null });
+    const [state, setState] = useState<OverviewState>({ data: null, loading: true, error: null });
 
     // scope is a fresh object per render of the shell; its serialised content
     // is the identity, and the load reads the object back from that.
@@ -39,7 +49,7 @@ export default function OverviewSection({ scope, onDrill }) {
             const data = await analyticsFetch(analyticsApi.overview(JSON.parse(scopeKey)));
             setState({ data, loading: false, error: null });
         } catch (e) {
-            setState({ data: null, loading: false, error: e.message });
+            setState({ data: null, loading: false, error: errorMessage(e) });
         }
     }, [scopeKey]);
 
@@ -48,7 +58,7 @@ export default function OverviewSection({ scope, onDrill }) {
     const { data: overview, loading, error } = state;
     const win = useMemo(() => resolveWindow(scope), [scope]);
 
-    const chart = useMemo(() => {
+    const chart = useMemo<{ labels: string[]; series: TrendSeries[]; partialLast: boolean } | null>(() => {
         if (!overview?.pageviews) return null;
         const views = densify(overview.pageviews.pageviews, win);
         const sessions = densify(overview.pageviews.sessions, win);
@@ -87,9 +97,9 @@ export default function OverviewSection({ scope, onDrill }) {
     const prevAvg = prevVisits > 0 ? statVal(cmp.totaltime) / prevVisits : null;
 
     const partial = overview.partialErrors || [];
-    const failed = (key) => partial.find(e => e.key === key)?.message || null;
+    const failed = (key: string) => partial.find(e => e.key === key)?.message || null;
 
-    const tile = (current, previous, kind) => {
+    const tile = (current: number, previous: number | null, kind: CompareKind) => {
         const c = compare(current, previous, kind, t);
         return { delta: c.delta, deltaDisplay: c.display, state: c.state };
     };
@@ -160,14 +170,22 @@ export default function OverviewSection({ scope, onDrill }) {
  * numbers. A donut spends 160px of height to say "67% laptop", carries identity
  * in a colour-only legend, and cannot be scanned against its neighbours.
  */
-function Composition({ overview, onDrill }) {
+/** One composition bar of the "Who visited" card. */
+interface CompositionStrip {
+    key: string;
+    label: string;
+    dim: string;
+    rows?: XYRow[];
+}
+
+function Composition({ overview, onDrill }: { overview: NonNullable<AnalyticsResponse>; onDrill?: DrillHandler }) {
     const { t } = useTranslation();
     const strips = [
         { key: 'devices', label: t('cms_site.analytics.overview.devices', 'Devices'), dim: 'device', rows: overview.devices },
         { key: 'browsers', label: t('cms_site.analytics.overview.browsers', 'Browsers'), dim: 'browser', rows: overview.browsers },
         { key: 'os', label: t('cms_site.analytics.overview.oses', 'Operating systems'), dim: 'os', rows: overview.os },
         { key: 'countries', label: t('cms_site.analytics.overview.countries', 'Countries'), dim: 'country', rows: overview.countries },
-    ].filter(s => Array.isArray(s.rows) && s.rows.length > 0);
+    ].filter((s): s is CompositionStrip & { rows: XYRow[] } => Array.isArray(s.rows) && s.rows.length > 0);
 
     if (!strips.length) {
         return (
@@ -216,7 +234,7 @@ function Composition({ overview, onDrill }) {
     );
 }
 
-function DrillHint({ show }) {
+function DrillHint({ show }: { show: boolean }) {
     const { t } = useTranslation();
     if (!show) return null;
     return (

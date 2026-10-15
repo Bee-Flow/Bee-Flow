@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { getIntegrationIcon } from '../../../config/integrationIcons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { messageOf } from '../../../utils/caughtError';
+import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './access/accessTypes';
 
 /**
  * GroupAccessMatrix — the org "Access & Permissions" surface.
@@ -22,7 +24,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 
 // MCP servers are integrations now (kind 'integration', category 'MCP servers')
 // — they appear under Integrations, no separate section.
-const KIND_SECTIONS = [
+const KIND_SECTIONS: AccessKindSection[] = [
     { kind: 'core', labelKey: 'admin_org.access_matrix_features', label: 'Features', icon: Layers },
     { kind: 'beta', labelKey: 'admin_org.access_matrix_beta_features', label: 'Beta features', icon: Sparkles },
     { kind: 'integration', labelKey: 'admin_org.access_matrix_integrations', label: 'Integrations', icon: Settings },
@@ -36,19 +38,28 @@ const EVERYONE = '__everyone__';
 // `hideHeading`: for a caller whose page already titles the matrix (Settings →
 // Organisation → Integrations, whose h2 and selected tab name it). The intro
 // line and the save status stay.
-export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = null, hideLocked = false, heading, subtitle, hideHeading = false }) {
+interface GroupAccessMatrixProps {
+    orgId?: string | null;
+    kinds?: string[] | null;
+    hideLocked?: boolean;
+    heading?: string;
+    subtitle?: React.ReactNode;
+    hideHeading?: boolean;
+}
+
+export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = null, hideLocked = false, heading, subtitle, hideHeading = false }: GroupAccessMatrixProps) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState(null);
-    const [message, setMessage] = useState(null);
+    const [data, setData] = useState<AccessData | null>(null);
+    const [message, setMessage] = useState<AccessMessage | null>(null);
 
-    const [everyone, setEveryone] = useState(() => new Set());
-    const [groupGrants, setGroupGrants] = useState({});
+    const [everyone, setEveryone] = useState<Set<string>>(() => new Set());
+    const [groupGrants, setGroupGrants] = useState<Record<string, Set<string>>>({});
     const [scope, setScope] = useState(EVERYONE);
     const [groupQuery, setGroupQuery] = useState('');
 
-    const everyoneTimer = useRef(null);
-    const groupTimers = useRef({});
+    const everyoneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const groupTimers = useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
 
     const readPath = orgIdProp
         ? `${API_BASE}/auth/organizations/${encodeURIComponent(orgIdProp)}/group-access`
@@ -65,11 +76,11 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
             const j = await res.json();
             setData(j);
             setEveryone(new Set(j.everyone || []));
-            const gg = {};
+            const gg: Record<string, Set<string>> = {};
             for (const g of (j.groups || [])) gg[g.id] = new Set(g.granted || []);
             setGroupGrants(gg);
         } catch (e) {
-            setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_failed_load', 'Failed to load') });
+            setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_failed_load', 'Failed to load')) });
         } finally { setLoading(false); }
     }, [readPath, t]);
 
@@ -83,25 +94,25 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     const ceiling = useMemo(() => new Set(data?.ceiling || []), [data]);
     const groups = data?.groups || [];
 
-    const saveEveryone = (nextSet) => {
+    const saveEveryone = (nextSet: Set<string>) => {
         if (everyoneTimer.current) clearTimeout(everyoneTimer.current);
         everyoneTimer.current = setTimeout(async () => {
             try {
                 const res = await authFetch(orgWritePath, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
                 if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
                 setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
-            } catch (e) { setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_save_failed', 'Save failed') }); load(); }
+            } catch (e) { setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_save_failed', 'Save failed')) }); load(); }
         }, SAVE_DEBOUNCE_MS);
     };
 
-    const saveGroup = (groupId, nextSet) => {
+    const saveGroup = (groupId: string, nextSet: Set<string>) => {
         if (groupTimers.current[groupId]) clearTimeout(groupTimers.current[groupId]);
         groupTimers.current[groupId] = setTimeout(async () => {
             try {
                 const res = await authFetch(`${API_BASE}/auth/groups/${encodeURIComponent(groupId)}/access`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
                 if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
                 setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
-            } catch (e) { setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_save_failed', 'Save failed') }); load(); }
+            } catch (e) { setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_save_failed', 'Save failed')) }); load(); }
         }, SAVE_DEBOUNCE_MS);
     };
 
@@ -109,10 +120,10 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     // beta rows are read-only there. A group-scoped beta (e.g. Meeting Notes)
     // is the exception in both modes: "All members" is a real choice for it,
     // and a group can hold it while All members does not.
-    const betaReadOnly = (cap) => cap.kind === 'beta' && data?.betaGoverned && !cap.groupScoped;
+    const betaReadOnly = (cap: AccessCapability) => cap.kind === 'beta' && data?.betaGoverned && !cap.groupScoped;
     const isEveryoneScope = scope === EVERYONE;
 
-    const toggle = (cap) => {
+    const toggle = (cap: AccessCapability) => {
         if (!ceiling.has(cap.id) || betaReadOnly(cap)) return;
         if (isEveryoneScope) {
             setEveryone(prev => { const n = new Set(prev); n.has(cap.id) ? n.delete(cap.id) : n.add(cap.id); saveEveryone(n); return n; });
@@ -128,7 +139,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     };
 
     // Count of capabilities granted for a scope (for the sidebar badges).
-    const grantCount = useCallback((scopeId) => {
+    const grantCount = useCallback((scopeId: string) => {
         if (scopeId === EVERYONE) return everyone.size;
         const own = (groupGrants[scopeId] || new Set()).size;
         return own; // own grants; inherited-from-everyone shown separately
@@ -140,7 +151,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     }, [groups, groupQuery]);
 
     const capabilitiesByKind = useMemo(() => {
-        const map = { core: [], beta: [], integration: [] };
+        const map: Record<string, AccessCapability[]> = { core: [], beta: [], integration: [] };
         for (const c of (data?.capabilities || [])) (map[c.kind] || (map[c.kind] = [])).push(c);
         for (const k of Object.keys(map)) map[k].sort((a, b) => (a.category || '').localeCompare(b.category || '') || a.name.localeCompare(b.name));
         return map;
@@ -158,7 +169,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     const activeGroup = isEveryoneScope ? null : groups.find(g => g.id === scope);
     const scopeAccent = isEveryoneScope ? BLUE : EMERALD;
 
-    const Toggle = ({ checked, readOnly, accent, onToggle }) => (
+    const Toggle = ({ checked, readOnly, accent, onToggle }: { checked: boolean; readOnly?: boolean; accent: string; onToggle: () => void }) => (
         <label className="relative inline-flex items-center flex-shrink-0" style={{ cursor: readOnly ? 'default' : 'pointer' }} onClick={e => e.stopPropagation()}>
             <input type="checkbox" checked={checked} disabled={readOnly} onChange={onToggle} className="sr-only peer" />
             <div className="w-9 h-5 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"
@@ -166,7 +177,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         </label>
     );
 
-    const ScopeButton = ({ id, label, icon, accent, count }) => {
+    const ScopeButton = ({ id, label, icon, accent, count }: { id: string; label: string; icon: React.ReactNode; accent: string; count: number }) => {
         const active = scope === id;
         return (
             <button onClick={() => setScope(id)}
@@ -179,10 +190,10 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         );
     };
 
-    const CapabilityCard = ({ cap }) => {
+    const CapabilityCard = ({ cap }: { cap: AccessCapability }) => {
         const locked = !ceiling.has(cap.id);
         const ro = betaReadOnly(cap);
-        let checked, readOnly, inherited = false;
+        let checked: boolean, readOnly: boolean | undefined, inherited: boolean | undefined = false;
         if (isEveryoneScope) {
             checked = ro ? true : everyone.has(cap.id);
             readOnly = ro;
