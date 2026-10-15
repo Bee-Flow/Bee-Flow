@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
 import { tierLabel } from '../../../licensing/tierMeta';
@@ -6,6 +7,15 @@ import BuilderThinkingBlock from './BuilderThinkingBlock';
 import BuilderActivity from './BuilderActivity';
 import InlineMarkdown from './InlineMarkdown';
 import { parseAnswersText } from './questionAnswers';
+import type { LiveRunFocus } from './toolCallDisplay';
+import type { BuilderMessage } from '../../../../hooks/builderStream';
+
+interface MessageBubbleProps {
+    msg: BuilderMessage;
+    activity?: ReactNode;
+    liveRun?: LiveRunFocus | null;
+    onFocusStep?: ((id: string | number) => void) | null;
+}
 
 /**
  * Message bubble styled to match direct/agent chat:
@@ -34,7 +44,7 @@ const USER_MD = 'text-sm [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
  * 32px empty box above the activity row. Thinking and the activity rows are
  * drawn outside the bubble and stay.
  */
-export function isToolOnlyTurn(msg) {
+export function isToolOnlyTurn(msg: BuilderMessage) {
     return msg.role !== 'user' && !(typeof msg.content === 'string' && msg.content.trim())
         && Array.isArray(msg.toolCalls) && msg.toolCalls.length > 0;
 }
@@ -44,7 +54,7 @@ export function isToolOnlyTurn(msg) {
  * item or a fenced block at the start of a line — the shapes a composed brief
  * has and a typed message does not.
  */
-export function readsAsMarkdown(text) {
+export function readsAsMarkdown(text: unknown) {
     const s = typeof text === 'string' ? text : '';
     return /^#{1,6}\s\S/m.test(s) || /^\s*(?:[-*+]\s\S|\d+\.\s\S)/m.test(s) || /^```/m.test(s);
 }
@@ -60,7 +70,7 @@ export function readsAsMarkdown(text) {
  *   message, as flow/runFocus.js reads it; BuilderActivity shows it as its
  *   live row, and only while the message is still streaming.
  */
-export default function MessageBubble({ msg, activity, liveRun = null, onFocusStep = null }) {
+export default function MessageBubble({ msg, activity, liveRun = null, onFocusStep = null }: MessageBubbleProps) {
     const { t } = useTranslation();
     const isUser = msg.role === 'user';
     // The answers to the builder's questions: sent as text for the model, shown

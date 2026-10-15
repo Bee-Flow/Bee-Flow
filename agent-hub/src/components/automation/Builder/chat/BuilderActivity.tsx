@@ -1,9 +1,35 @@
 import { Check, ChevronRight, FlaskConical, Hammer, Layers, Loader2, TriangleAlert, Wrench } from 'lucide-react';
 import React from 'react';
+import type { CSSProperties } from 'react';
 import { describeLiveRun, describeToolCall, detailPayload } from './toolCallDisplay';
+import type { LiveRunFocus, ToolCall, ToolCallRow, Translator } from './toolCallDisplay';
 import { StepBadge, TimelineRail } from '../../../chat/MessageItem/timelineParts';
 import { typeColorVar, typeTileStyle } from '../flow/nodeTypeColors';
 import { StepIcon } from '../flow/stepIcons';
+
+interface BuilderActivityProps {
+    toolCalls?: unknown;
+    running?: boolean;
+    liveRun?: LiveRunFocus | null;
+    t?: Translator | null;
+    onFocusStep?: ((id: string | number) => void) | null;
+}
+
+interface RowGlyphProps {
+    batch: boolean;
+    live: boolean;
+    tc: ToolCall | null;
+}
+
+interface ActivityRowProps {
+    n: number;
+    row: ToolCallRow;
+    tc: ToolCall | null;
+    active: boolean;
+    live?: boolean;
+    onFocusStep?: ((id: string | number) => void) | null;
+    t?: Translator | null;
+}
 
 /**
  * What the AI did, while it is doing it.
@@ -41,7 +67,7 @@ import { StepIcon } from '../flow/stepIcons';
  * list, "Testing the automation… · Read file content · 1/4", and the row before
  * it gets its tick. The real call replaces it when the run lands.
  */
-export default function BuilderActivity({ toolCalls, running = false, liveRun = null, t = null, onFocusStep = null }) {
+export default function BuilderActivity({ toolCalls, running = false, liveRun = null, t = null, onFocusStep = null }: BuilderActivityProps) {
     const calls = Array.isArray(toolCalls) ? toolCalls : [];
     if (calls.length === 0) return null;
 
@@ -102,7 +128,7 @@ export default function BuilderActivity({ toolCalls, running = false, liveRun = 
  * first version of this row styled the wrapper object itself, so the tile
  * rendered with no tint or colour at all.
  */
-function compactTile(family, type, error, size) {
+function compactTile(family: string | null, type: string | null, error: boolean, size: number): CSSProperties {
     const { tile } = typeTileStyle(family, { type, error });
     const radius = Math.round(size * 0.32);
     tile.width = size; tile.height = size;
@@ -111,13 +137,13 @@ function compactTile(family, type, error, size) {
 }
 
 /** The tile's glyph: the batch stack, the flask of a test in flight, or the step's own icon. */
-function RowGlyph({ batch, live, tc }) {
+function RowGlyph({ batch, live, tc }: RowGlyphProps) {
     if (batch) return <Layers size={13} />;
     if (live) return <FlaskConical size={13} />;
     return <StepIcon name={tc?.result?.added?.icon} size={13} fallback={<Wrench size={13} />} />;
 }
 
-function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t = null }) {
+function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t = null }: ActivityRowProps) {
     const failedTone = row.status === 'failed';
     // A `builder_add_steps` batch: one row for the call, and under its summary
     // one compact line per step it created — the SAME cards the canvas is
@@ -180,7 +206,7 @@ function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t =
             </summary>
 
             <div className="px-1 pb-1.5 pl-9">
-                {(tc?.result?.added?.id || tc?.arguments?.stepId) && onFocusStep && <button type="button" onClick={() => onFocusStep(tc?.result?.added?.id || tc?.arguments?.stepId)} className="mb-2 rounded-lg px-2 py-1 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">{t ? t('automations.assistant.show_step', 'Show step') : 'Show step'}</button>}
+                {(tc?.result?.added?.id || tc?.arguments?.stepId) && onFocusStep && <button type="button" onClick={() => onFocusStep((tc?.result?.added?.id || tc?.arguments?.stepId) as string | number)} className="mb-2 rounded-lg px-2 py-1 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">{t ? t('automations.assistant.show_step', 'Show step') : 'Show step'}</button>}
                 {/* A refusal says what is wrong in words; the payload is for
                     when the words are not enough. Showing the reason without a
                     click is the whole point of surfacing failures at all. */}

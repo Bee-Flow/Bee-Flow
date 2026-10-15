@@ -1,4 +1,5 @@
 import React, { createContext, useContext } from 'react';
+import type { ComponentProps } from 'react';
 import SettingsForm from '../SettingsForm';
 import { getSettingsForType } from './registry';
 
@@ -20,7 +21,7 @@ export function useSettingsContext() {
     return useContext(SettingsContext);
 }
 
-export default function SettingsHost(props) {
+export default function SettingsHost(props: ComponentProps<typeof SettingsForm>) {
     const stepType = props?.step?.type;
     const PerType = stepType ? getSettingsForType(stepType) : null;
     const context = {
