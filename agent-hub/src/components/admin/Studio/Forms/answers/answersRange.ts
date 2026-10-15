@@ -4,26 +4,41 @@
  * viewer's local time; `all` sends no bounds at all.
  */
 
-export const PRESETS = Object.freeze(['today', '7d', '30d', '90d', 'all', 'custom']);
+export type RangePreset = 'today' | '7d' | '30d' | '90d' | 'all' | 'custom';
+
+/** The period the dashboard looks at; `from`/`to` only matter for `custom`. */
+export interface AnswersRange {
+    preset: RangePreset;
+    from: string;
+    to: string;
+}
+
+/** The bounds sent to the server: YYYY-MM-DD strings, or nulls for `all`. */
+export interface AnswersQuery {
+    from: string | null;
+    to: string | null;
+}
+
+export const PRESETS = Object.freeze<RangePreset[]>(['today', '7d', '30d', '90d', 'all', 'custom']);
 
 const DAY_MS = 86400000;
 
-function isoDay(d) {
+function isoDay(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
 }
 
-export function defaultRange() {
+export function defaultRange(): AnswersRange {
     return { preset: '30d', from: '', to: '' };
 }
 
 /** `{ from, to }` as YYYY-MM-DD strings (or nulls for `all`). */
-export function rangeToQuery(range, now = new Date()) {
+export function rangeToQuery(range: AnswersRange, now: Date = new Date()): AnswersQuery {
     const preset = PRESETS.includes(range?.preset) ? range.preset : '30d';
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const back = (days) => ({ from: isoDay(new Date(today.getTime() - (days - 1) * DAY_MS)), to: isoDay(today) });
+    const back = (days: number) => ({ from: isoDay(new Date(today.getTime() - (days - 1) * DAY_MS)), to: isoDay(today) });
     switch (preset) {
         case 'today': return back(1);
         case '7d': return back(7);
@@ -31,7 +46,7 @@ export function rangeToQuery(range, now = new Date()) {
         case '90d': return back(90);
         case 'all': return { from: null, to: null };
         case 'custom': {
-            const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || '');
+            const ok = (v: string | undefined) => /^\d{4}-\d{2}-\d{2}$/.test(v || '');
             return { from: ok(range.from) ? range.from : null, to: ok(range.to) ? range.to : null };
         }
         default: return back(30);

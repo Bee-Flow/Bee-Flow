@@ -4,6 +4,29 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { buildRunStepLabelMap, runStepLabel } from '../../../automation/Builder/flow/displayHelpers';
 import { statusLabel, tokenForStep } from '../../../shared/statusTokens';
 import { formatDuration } from '../AutomationsStudio/historyUtils';
+import type { ErrorInfoLike } from './runLogSentence';
+
+/** One recorded step of the run, as this timeline reads it. */
+export interface TimelineStep {
+    stepId: string;
+    parentStepId?: string | null;
+    status?: string | null;
+    durationMs?: number | null;
+    error?: string | null;
+    errorInfo?: ErrorInfoLike | null;
+}
+
+interface TimelineRow extends TimelineStep {
+    attempts: number;
+}
+
+interface RunStepTimelineProps {
+    steps?: TimelineStep[];
+    definition?: unknown;
+    selectedStepId?: string | null;
+    onSelectStep?: ((stepId: string | null) => void) | null;
+    runStatus?: string | null;
+}
 
 /**
  * The run as a story: every step in order, named as the user named it, with
@@ -27,15 +50,15 @@ export default function RunStepTimeline({
     selectedStepId = null,
     onSelectStep = null,
     runStatus = null,
-}) {
+}: RunStepTimelineProps) {
     const { t } = useTranslation();
     // Knows flowlet steps too: a nested row's stepId is `<callId>/<innerId>`.
     const labelById = useMemo(() => buildRunStepLabelMap(definition), [definition]);
 
     // Latest record per (parent, stepId), preserving first-seen order —
     // attempts of one step are one row, not three.
-    const rows = useMemo(() => {
-        const byKey = new Map();
+    const rows = useMemo((): TimelineRow[] => {
+        const byKey = new Map<string, TimelineRow>();
         for (const s of steps) {
             const key = `${s.parentStepId || ''}/${s.stepId}`;
             const cur = byKey.get(key);

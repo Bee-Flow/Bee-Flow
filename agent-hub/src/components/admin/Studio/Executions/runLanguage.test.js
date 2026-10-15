@@ -93,7 +93,7 @@ describe('outcomeLabel / whatHappened', () => {
         // that); this check is about grammar, not about those tables.
         const fs = await import('node:fs');
         const path = await import('node:path');
-        const src = fs.readFileSync(path.join(__dirname, 'runLanguage.js'), 'utf8');
+        const src = fs.readFileSync(path.join(__dirname, 'runLanguage.ts'), 'utf8');
         expect(src).not.toMatch(/\$\{[^}]*\?\s*''\s*:\s*'/);
         expect(src).not.toMatch(/\$\{[^}]*\?\s*"[^"]*"\s*:\s*"s"/);
     });

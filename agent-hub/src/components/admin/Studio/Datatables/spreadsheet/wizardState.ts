@@ -30,14 +30,127 @@
  * `sheetLabel` so a step need not know the rule.
  */
 
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { COLUMN_TYPES, keyFromName, providerName } from '../datatableDisplay';
 
-export const fileKeyOf = (provider, fileId) => `${provider}:${fileId}`;
-export const sheetKeyOf = (fileKey, sheet) => `${fileKey}#${sheet}`;
-export const describeKeyOf = (fileKey, sheet, headerRow) => `${fileKey}#${sheet}@${headerRow}`;
+/** A refusal from the datatables API: the server's code and body ride on the Error. */
+export interface WizardError extends Error {
+    code?: string | null;
+    body?: {
+        key?: string;
+        header?: string;
+        ref?: { provider?: string; fileId?: string; sheet?: string | null };
+    } | null;
+}
+
+/** One file of a storage listing, as the wizard holds it once ticked. */
+export interface WizardFile {
+    id: string;
+    name: string;
+    provider: string;
+    format?: string | null;
+    path?: string | null;
+    modifiedAt?: string | null;
+    owned?: boolean;
+    webUrl?: string | null;
+    linkedAs?: Array<{ datatableId: string; sheet: string | null }>;
+    sharedWriteOptIn?: boolean;
+}
+
+/** One column of a sheet, as the describe sends it and the person retypes it. */
+export interface WizardColumn {
+    col: number;
+    header: string;
+    key: string;
+    type: string;
+    letter?: string;
+    blankHeader?: boolean;
+    duplicateHeader?: boolean;
+    formula?: boolean;
+    samples?: unknown[];
+    typeTouched?: boolean;
+}
+
+/** One sheet that will become a table: the selection entry the dialog edits. */
+export interface SheetSelection {
+    sheetKey: string;
+    fileKey: string;
+    provider: string;
+    fileId: string;
+    fileName: string;
+    format: string | null;
+    path: string | null;
+    sheet: string | null;
+    sheetLabel: string;
+    headerRow: number;
+    columns: WizardColumn[];
+    keyColumn: number | null;
+    name: string;
+    key: string;
+    nameTouched: boolean;
+    keyTouched: boolean;
+    description: string;
+    sharedWriteOptIn: boolean;
+}
+
+/** A relation between two selected sheets, columns addressed by their 0-based `col`. */
+export interface SheetRelation {
+    from: SheetSelection;
+    localColumn: WizardColumn;
+    to: SheetSelection;
+    targetColumn: WizardColumn;
+}
+
+/** A describe the dialog fetched: in flight, failed, or the server's answer. */
+export interface Describe<TData> {
+    loading: boolean;
+    error: WizardError | null;
+    data: TData | null;
+}
+
+/** How the file can be written back (`write` of the file describe). */
+export interface WriteInfo {
+    mode: string;
+    reason?: string | null;
+}
+
+/** One sheet in a file's sheet list. A csv's only sheet is `{ name: null }`. */
+export interface FileSheet {
+    name: string | null;
+    hidden?: boolean;
+    rows?: number | null;
+    cols?: number | null;
+    linkedAs?: Array<{ datatableId: string }>;
+}
+
+/** The file describe: its sheets and how it can be written. */
+export interface FileDescribe {
+    format?: string | null;
+    sheets?: FileSheet[];
+    write?: WriteInfo | null;
+}
+
+/** The sheet describe at one header row: preview, key candidates, warnings. */
+export interface SheetDescribe {
+    keyCandidates?: number[];
+    sheet?: { preview?: { rows?: unknown[][] } | null } | null;
+    warnings?: string[];
+}
+
+/** Which step can fix a refusal, and what to mark there. */
+export interface ErrorStep {
+    step: string | null;
+    key: string | null;
+    fileKey: string | null;
+    sheetKey: string | null;
+}
+
+export const fileKeyOf = (provider: string | null, fileId: string) => `${provider}:${fileId}`;
+export const sheetKeyOf = (fileKey: string, sheet: string | null) => `${fileKey}#${sheet}`;
+export const describeKeyOf = (fileKey: string, sheet: string | null, headerRow: number) => `${fileKey}#${sheet}@${headerRow}`;
 
 /** What a sheet is called on screen: its name, or — for the unnamed only sheet of a csv — the file's. */
-export const sheetLabelOf = (sheet, fileName) => (sheet === null || sheet === undefined || sheet === '' ? String(fileName || '') : String(sheet));
+export const sheetLabelOf = (sheet: string | null | undefined, fileName: string | null | undefined) => (sheet === null || sheet === undefined || sheet === '' ? String(fileName || '') : String(sheet));
 
 export const STEPS = Object.freeze(['files', 'sheets', 'names', 'relations', 'review']);
 export const MAX_TABLES_PER_LINK = 10;
@@ -58,7 +171,7 @@ export const INFERABLE_TYPES = Object.freeze(COLUMN_TYPES.filter(ct => INFERABLE
 const KEY_TYPES = new Set(['text', 'number']);
 
 /** "facturen.xlsx" → "facturen"; a Google Sheet's name has no extension and stays whole. */
-export function baseName(fileName) {
+export function baseName(fileName: string | null | undefined): string {
     const name = String(fileName || '').trim();
     const m = name.match(/^(.+)\.([a-z0-9]{1,5})$/i);
     return m ? m[1] : name;
@@ -70,24 +183,24 @@ export function baseName(fileName) {
  * the same file are linked — two tables both called "Facturen 2026" would
  * be told apart only by their technical names.
  */
-export function defaultName(file, sheet, sheetsChosenInFile) {
+export function defaultName(file: { name?: string } | null | undefined, sheet: string | null, sheetsChosenInFile: number): string {
     const base = baseName(file?.name);
     return sheetsChosenInFile > 1 ? `${base} – ${sheet}` : base;
 }
 
-export function defaultKey(name) {
+export function defaultKey(name: string): string {
     return keyFromName(name);
 }
 
 /** How many sheets of one file are selected. */
-export function sheetsChosenIn(selection, fileKey) {
+export function sheetsChosenIn(selection: Map<string, SheetSelection>, fileKey: string): number {
     let n = 0;
     for (const s of selection.values()) if (s.fileKey === fileKey) n += 1;
     return n;
 }
 
 /** How many files in one storage are selected — the tab badge. */
-export function filesSelectedIn(files, provider) {
+export function filesSelectedIn(files: Map<string, WizardFile>, provider: string): number {
     let n = 0;
     for (const f of files.values()) if (f.provider === provider) n += 1;
     return n;
@@ -99,9 +212,9 @@ export function filesSelectedIn(files, provider) {
  * left alone (NamesStep shows the collision instead); an auto-suffixed
  * key is still `keyTouched:false`, so it re-derives when the name changes.
  */
-export function dedupeKeys(selection) {
-    const next = new Map();
-    const taken = new Set();
+export function dedupeKeys(selection: Map<string, SheetSelection>): Map<string, SheetSelection> {
+    const next = new Map<string, SheetSelection>();
+    const taken = new Set<string>();
     for (const s of selection.values()) if (s.keyTouched) taken.add(s.key);
     for (const [k, s] of selection) {
         if (s.keyTouched) { next.set(k, s); continue; }
@@ -120,9 +233,9 @@ export function dedupeKeys(selection) {
  * then the keys are made unique. Returns a NEW map only when something
  * moved, so a state setter can hand back the same object.
  */
-export function applyDefaults(selection) {
+export function applyDefaults(selection: Map<string, SheetSelection>): Map<string, SheetSelection> {
     let changed = false;
-    const named = new Map();
+    const named = new Map<string, SheetSelection>();
     for (const [k, s] of selection) {
         if (s.nameTouched) { named.set(k, s); continue; }
         const name = defaultName({ name: s.fileName }, s.sheet, sheetsChosenIn(selection, s.fileKey));
@@ -141,7 +254,7 @@ export function applyDefaults(selection) {
  * the person's retype, with a header to call it by. The reason is the word
  * the radio shows when it is off.
  */
-export function keyColumnEligible(col, keyCandidates = []) {
+export function keyColumnEligible(col: WizardColumn | null | undefined, keyCandidates: number[] = []): { ok: boolean; reason: 'type' | 'no_header' | 'repeats' | null } {
     if (!col) return { ok: false, reason: 'type' };
     if (col.blankHeader) return { ok: false, reason: 'no_header' };
     if (!KEY_TYPES.has(col.type)) return { ok: false, reason: 'type' };
@@ -154,7 +267,7 @@ export function keyColumnEligible(col, keyCandidates = []) {
  * choices where the same column is still there — same position AND same
  * header — and take the server's inference for everything else.
  */
-export function mergeColumns(prev, next) {
+export function mergeColumns(prev: WizardColumn[] | null | undefined, next: WizardColumn[] | null | undefined): WizardColumn[] {
     return (next || []).map((c) => {
         const p = (prev || []).find(x => x.col === c.col && x.header === c.header);
         return p && p.typeTouched ? { ...c, type: p.type, typeTouched: true } : c;
@@ -167,7 +280,7 @@ export function mergeColumns(prev, next) {
  * is what keeps Next off. `sheet` is the wire identity (null for a csv);
  * `sheetLabel` is the word for it on screen.
  */
-export function newSelection(file, sheet) {
+export function newSelection(file: WizardFile, sheet: string | null): SheetSelection {
     const fileKey = fileKeyOf(file.provider, file.id);
     return {
         sheetKey: sheetKeyOf(fileKey, sheet),
@@ -192,7 +305,7 @@ export function newSelection(file, sheet) {
 }
 
 /** The body of POST /spreadsheets/link — EXACTLY the contract, nothing the server did not ask for. */
-export function buildLinkBody({ scope, selection, relations }) {
+export function buildLinkBody({ scope, selection, relations }: { scope: string; selection: Map<string, SheetSelection>; relations?: SheetRelation[] | null }) {
     return {
         scope,
         tables: [...selection.values()].map(s => ({
@@ -215,8 +328,8 @@ export function buildLinkBody({ scope, selection, relations }) {
     };
 }
 
-const SHEET_ERRORS = new Set(['already_linked', 'key_not_unique', 'header_missing', 'key_missing', 'sheet_missing']);
-const FILE_ERRORS = new Set([
+const SHEET_ERRORS = new Set<string | null | undefined>(['already_linked', 'key_not_unique', 'header_missing', 'key_missing', 'sheet_missing']);
+const FILE_ERRORS = new Set<string | null | undefined>([
     'provider_not_connected', 'provider_integration_off', 'nc_scope_denied', 'spreadsheet_forbidden',
     'spreadsheet_not_found', 'format_unsupported', 'spreadsheet_too_large', 'spreadsheet_unavailable', 'linker_unavailable',
 ]);
@@ -227,9 +340,9 @@ const FILE_ERRORS = new Set([
  * marked by its `ref` on the sheets step; a storage that refused is marked
  * on the file, back on the files step. Anything else stays where it was.
  */
-export function stepForError(err) {
-    const body = err?.body || {};
-    const ref = body.ref || {};
+export function stepForError(err: WizardError | null | undefined): ErrorStep {
+    const body: NonNullable<WizardError['body']> = err?.body || {};
+    const ref: NonNullable<NonNullable<WizardError['body']>['ref']> = body.ref || {};
     const fileKey = ref.provider && ref.fileId ? fileKeyOf(ref.provider, ref.fileId) : null;
     switch (true) {
         case err?.code === 'key_taken':
@@ -246,7 +359,7 @@ export function stepForError(err) {
 }
 
 /** Why a storage cannot be used right now — the probe's reason, as a sentence. */
-export function ssReasonText(t, { provider, reason } = {}) {
+export function ssReasonText(t: TranslateFn, { provider, reason }: { provider?: string; reason?: string } = {}): string {
     const source = providerName(provider);
     switch (reason) {
         case 'not_connected':
@@ -265,6 +378,6 @@ export function ssReasonText(t, { provider, reason } = {}) {
 }
 
 /** The code family a refusal belongs to, for the "Connect it under Settings" hint. */
-export function isProviderError(err) {
+export function isProviderError(err: { code?: string | null } | null | undefined): boolean {
     return /^provider_/.test(String(err?.code || ''));
 }

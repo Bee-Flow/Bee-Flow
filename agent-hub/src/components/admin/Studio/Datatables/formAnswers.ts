@@ -14,6 +14,26 @@
  * keeps one import path for "what is a table".
  */
 
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+/** One column the server describes for a form-answers table. */
+export interface FormColumn {
+    fieldId: string;
+    name?: string;
+    retired?: boolean;
+}
+
+/** The `table.source` block of a form-answers table. */
+export interface FormSource {
+    columns?: FormColumn[];
+}
+
+/** A table column as the designer holds it (only what the form helpers read). */
+export interface FormField {
+    id?: string;
+    name?: string;
+}
+
 /**
  * Kinds whose column list follows a definition inside Bee Flow — mirrors the
  * server's `fieldsFromDefinition` flag, pinned by
@@ -22,24 +42,24 @@
 export const DEFINITION_MANAGED_KINDS = Object.freeze(['form_answers']);
 
 /** A table that holds the answers to a form. */
-export function isFormAnswers(table) {
+export function isFormAnswers(table: { managedKind?: string | null } | null | undefined): boolean {
     return table?.managedKind === 'form_answers';
 }
 
 /** The columns the server describes for a form-answers table, by field id. */
-export function formColumnsOf(source) {
+export function formColumnsOf(source: FormSource | null | undefined): Map<string, FormColumn> {
     const list = Array.isArray(source?.columns) ? source.columns : [];
     return new Map(list.map(c => [c.fieldId, c]));
 }
 
 /** The form's own description of one column (null for `run_id`/`completed_at`). */
-export function formColumnOf(source, field) {
+export function formColumnOf(source: FormSource | null | undefined, field: FormField | null | undefined): FormColumn | null {
     if (!field?.id) return null;
     return formColumnsOf(source).get(field.id) || null;
 }
 
 /** Is this a column whose question is no longer on the form? */
-export function isRetiredFormColumn(source, field) {
+export function isRetiredFormColumn(source: FormSource | null | undefined, field: FormField | null | undefined): boolean {
     const col = formColumnOf(source, field);
     return !!(col && col.retired === true);
 }
@@ -49,7 +69,7 @@ export function isRetiredFormColumn(source, field) {
  * "from the form · Your e-mail", or the retired variant. `null` for the two
  * fixed columns, which carry the ordinary "filled in automatically" hint.
  */
-export function formColumnHint(t, source, field) {
+export function formColumnHint(t: TranslateFn, source: FormSource | null | undefined, field: FormField): string | null {
     const col = formColumnOf(source, field);
     if (!col) return null;
     return col.retired
