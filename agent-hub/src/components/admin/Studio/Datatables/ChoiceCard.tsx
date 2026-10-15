@@ -1,6 +1,18 @@
 import React from 'react';
 import { kindColorVar, kindIcon } from '../../../shared/kindColors';
 
+interface ChoiceCardProps {
+    name: string;
+    kind?: string;
+    icon?: React.ReactNode;
+    checked: boolean;
+    onChange: React.ChangeEventHandler<HTMLInputElement>;
+    title: React.ReactNode;
+    blurb: React.ReactNode;
+    disabled?: boolean;
+    note?: React.ReactNode;
+}
+
 /**
  * One of a few side-by-side answers (Datatables artboard 1c): a real radio,
  * an ink border when chosen, the kind's own glyph — or a ready icon — a title
@@ -16,7 +28,7 @@ import { kindColorVar, kindIcon } from '../../../shared/kindColors';
  * feature the product has; greying it out with the reason tells them what to
  * switch on.
  */
-export default function ChoiceCard({ name, kind, icon, checked, onChange, title, blurb, disabled = false, note = null }) {
+export default function ChoiceCard({ name, kind, icon, checked, onChange, title, blurb, disabled = false, note = null }: ChoiceCardProps) {
     const Glyph = kind ? kindIcon(kind) : null;
     return (
         <label

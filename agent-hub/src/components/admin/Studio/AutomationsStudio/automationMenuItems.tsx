@@ -1,5 +1,20 @@
 import React from 'react';
 import { Trash2, Copy, Code2, Hash, Pause, Play, History, FolderInput } from 'lucide-react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { ContextMenuItem } from './ContextMenu';
+
+interface AutomationMenuOptions {
+    isAutomation?: boolean;
+    isActive?: boolean;
+    onToggleActive?: () => unknown;
+    onOpenRuns?: () => unknown;
+    onDuplicate?: () => unknown;
+    onExportJson?: () => unknown;
+    onMoveToFolder?: () => unknown;
+    onCopyId?: () => unknown;
+    onDelete?: () => unknown;
+    t?: TranslateFn | null;
+}
 
 /**
  * The per-automation actions menu, in one place.
@@ -25,9 +40,9 @@ export function buildAutomationMenuItems({
     onCopyId,
     onDelete,
     t = null,
-} = {}) {
-    const items = [];
-    const tr = (key, en) => (t ? t(key, en) : en);
+}: AutomationMenuOptions = {}): ContextMenuItem[] {
+    const items: ContextMenuItem[] = [];
+    const tr = (key: string, en: string) => (t ? t(key, en) : en);
     if (isAutomation && onToggleActive) {
         items.push({
             label: isActive ? tr('studio_misc.menu.pause', 'Pause') : tr('studio_misc.menu.activate', 'Activate'),

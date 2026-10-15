@@ -7,7 +7,7 @@
  */
 
 /** "just now" / "26m ago" / "7h ago" / "3d ago" / locale date for older. */
-export function formatRelative(iso) {
+export function formatRelative(iso: string): string {
     try {
         const t = new Date(iso).getTime();
         const diff = Date.now() - t;
@@ -25,7 +25,7 @@ export function formatRelative(iso) {
 }
 
 /** "120ms" / "1.2s" / "2m 5s". */
-export function formatDuration(ms) {
+export function formatDuration(ms: number | null | undefined): string | null {
     if (ms == null || Number.isNaN(ms)) return null;
     if (ms < 1000) return `${ms}ms`;
     if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
@@ -38,7 +38,7 @@ export function formatDuration(ms) {
  * Future-facing countdown for an awaiting-approval deadline.
  * Returns "expired" once past, else "expires in 5m" / "expires in 2h".
  */
-export function formatExpiry(iso) {
+export function formatExpiry(iso: string | number | Date): string | null {
     try {
         const diff = new Date(iso).getTime() - Date.now();
         if (diff <= 0) return 'approval expired';
@@ -54,7 +54,7 @@ export function formatExpiry(iso) {
 }
 
 /** Today / Yesterday / Earlier bucket label for a run's start time. */
-export function dayBucketLabel(iso) {
+export function dayBucketLabel(iso: string | number | Date): string {
     try {
         const d = new Date(iso);
         const now = new Date();
@@ -70,7 +70,7 @@ export function dayBucketLabel(iso) {
 }
 
 /** Which filter bucket a run belongs to (matches the HistoryFilters chips). */
-export function matchesFilter(run, filter) {
+export function matchesFilter(run: { status?: string; mode?: string }, filter: string): boolean {
     switch (filter) {
         case 'all': return true;
         case 'error': return run.status === 'error';
@@ -82,7 +82,7 @@ export function matchesFilter(run, filter) {
 }
 
 /** Whether a run started within the last `hours` hours. */
-export function startedWithinHours(run, hours) {
+export function startedWithinHours(run: { startedAt?: string | null }, hours: number): boolean {
     if (!run.startedAt) return false;
     const t = Date.parse(run.startedAt);
     if (Number.isNaN(t)) return false;
@@ -94,7 +94,7 @@ export function startedWithinHours(run, hours) {
  * for title attributes behind relative times, so "3h ago" can always be
  * pinned down to a real clock time.
  */
-export function absoluteTime(iso, locale = undefined) {
+export function absoluteTime(iso?: string | number | Date | null, locale: string | undefined = undefined): string {
     if (!iso) return '';
     try {
         return new Date(iso).toLocaleString(locale, {
@@ -106,7 +106,7 @@ export function absoluteTime(iso, locale = undefined) {
 }
 
 /** Just the clock time, locale-aware — for dense per-day listings. */
-export function shortClock(iso, locale = undefined) {
+export function shortClock(iso?: string | number | Date | null, locale: string | undefined = undefined): string {
     if (!iso) return '';
     try {
         return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });

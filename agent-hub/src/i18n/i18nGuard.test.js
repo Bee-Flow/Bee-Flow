@@ -471,7 +471,7 @@ const TEXT_HELPERS = [
     // dictionary turn. Only the pure modules need a t-taking variant.
     { rel: 'components/cowork/coworkFormat.js', pending: 'CW — relativeTime/formatDuration/fullTimestamp, plus the browser locale' },
     { rel: 'components/projects/relativeTime.ts', pending: 'PRJ — the same five sentences, copied' },
-    { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.js', pending: 'RUN — times, durations, expiry and the day buckets' },
+    { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.ts', pending: 'RUN — times, durations, expiry and the day buckets' },
     { rel: 'components/automation/taskFormatters.ts', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
     { rel: 'pages/meeting-notes/lib/format.js', pending: 'MTG — the same ladder again' },
     { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },

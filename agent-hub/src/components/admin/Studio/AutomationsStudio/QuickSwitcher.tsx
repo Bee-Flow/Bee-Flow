@@ -3,6 +3,21 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from '../../../shared/Modal';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+export interface QuickSwitcherItem {
+    id?: string;
+    kind: string;
+    title?: string;
+    subtitle?: string;
+    kindLabel?: string;
+}
+
+interface QuickSwitcherProps {
+    open: boolean;
+    items: QuickSwitcherItem[];
+    onPick: (item: QuickSwitcherItem) => void;
+    onClose: () => void;
+}
+
 /**
  * Cmd/Ctrl+K command palette for the Automations page.
  *
@@ -10,11 +25,11 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  * and the selection callbacks. Up/Down arrows move the highlight,
  * Enter activates, Escape closes.
  */
-export default function QuickSwitcher({ open, items, onPick, onClose }) {
+export default function QuickSwitcher({ open, items, onPick, onClose }: QuickSwitcherProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
-    const inputRef = useRef(null);
-    const selectedRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const selectedRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         if (!open) return undefined;
@@ -39,8 +54,8 @@ export default function QuickSwitcher({ open, items, onPick, onClose }) {
     // useState that can lag behind by one paint. setQueryAndReset bundles
     // the "user typed" intent with the highlight reset so we never paint a
     // stale highlight against a freshly-filtered list.
-    const [hoverIdx, setHoverIdx] = useState(null);
-    const setQueryAndReset = (q) => { setQuery(q); setHoverIdx(null); };
+    const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+    const setQueryAndReset = (q: string) => { setQuery(q); setHoverIdx(null); };
     const highlight = hoverIdx == null
         ? 0
         : Math.min(hoverIdx, Math.max(0, filtered.length - 1));
@@ -50,14 +65,14 @@ export default function QuickSwitcher({ open, items, onPick, onClose }) {
         selectedRef.current?.scrollIntoView({ block: 'nearest' });
     }, [highlight]);
 
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setHoverIdx((h) => Math.min((h ?? -1) + 1, filtered.length - 1));
+            setHoverIdx((h: number | null) => Math.min((h ?? -1) + 1, filtered.length - 1));
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            setHoverIdx((h) => Math.max((h ?? 0) - 1, 0));
+            setHoverIdx((h: number | null) => Math.max((h ?? 0) - 1, 0));
         } else if (e.key === 'Enter') {
             e.preventDefault();
             const pick = filtered[highlight];
@@ -82,7 +97,7 @@ export default function QuickSwitcher({ open, items, onPick, onClose }) {
                     <input
                         ref={inputRef}
                         value={query}
-                        onChange={(e) => setQueryAndReset(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQueryAndReset(e.target.value)}
                         onKeyDown={onKeyDown}
                         placeholder={t('studio_misc.quick.placeholder', 'Jump to an automation…')}
                         className="flex-1 bg-transparent outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
