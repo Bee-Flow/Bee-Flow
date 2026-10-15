@@ -1,6 +1,24 @@
 import { History, Loader2, RotateCcw } from 'lucide-react';
 import React from 'react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { LedgerVersion, MarketplaceHubVersion } from '../../../api/queries/modules';
+
+export interface VersionRow {
+    version: string;
+    channel: string | null;
+    changelog: string | null;
+    yanked: boolean;
+    ledger: LedgerVersion | null;
+}
+
+interface VersionHistoryProps {
+    hubVersions?: MarketplaceHubVersion[] | null;
+    ledgerVersions?: LedgerVersion[] | null;
+    busy?: boolean;
+    onRollback?: (version: string) => void;
+    onActivateStaged?: (version: string) => void;
+}
 
 // Unified version list for the detail drawer: hub catalogue versions joined
 // with the local install ledger. Pure join/gating helpers are exported for
@@ -11,12 +29,12 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * kept (newest first from the hub); ledger-only versions (e.g. sideloads or
  * versions the hub no longer lists) are appended.
  */
-export function mergeVersionRows(hubVersions, ledgerVersions) {
-    const hub = (Array.isArray(hubVersions) ? hubVersions : []).filter((v) => v && v.version);
-    const ledger = (Array.isArray(ledgerVersions) ? ledgerVersions : []).filter((v) => v && v.version);
-    const ledgerByVersion = new Map(ledger.map((l) => [l.version, l]));
-    const seen = new Set();
-    const rows = [];
+export function mergeVersionRows(hubVersions?: MarketplaceHubVersion[] | null, ledgerVersions?: LedgerVersion[] | null): VersionRow[] {
+    const hub = (Array.isArray(hubVersions) ? hubVersions : []).filter((v: MarketplaceHubVersion) => v && v.version);
+    const ledger = (Array.isArray(ledgerVersions) ? ledgerVersions : []).filter((v: LedgerVersion) => v && v.version);
+    const ledgerByVersion = new Map<string, LedgerVersion>(ledger.map((l: LedgerVersion) => [l.version, l]));
+    const seen = new Set<string>();
+    const rows: VersionRow[] = [];
     for (const h of hub) {
         if (seen.has(h.version)) continue;
         seen.add(h.version);
@@ -37,12 +55,12 @@ export function mergeVersionRows(hubVersions, ledgerVersions) {
 }
 
 /** Rollback is only offered for retired versions whose package is still on disk. */
-export function canRollback(row) {
+export function canRollback(row: VersionRow | null | undefined) {
     return !!(row && row.ledger && row.ledger.status === 'retired' && row.ledger.hasPackageFile);
 }
 
 // Ledger status → dict key (variable lookup; all values exist in the dict).
-const STATUS_KEY = {
+const STATUS_KEY: Record<string, string> = {
     active: 'modules.version_status_active',
     retired: 'modules.version_status_retired',
     staged: 'modules.version_status_staged',
@@ -51,7 +69,7 @@ const STATUS_KEY = {
     quarantined: 'modules.version_status_quarantined',
 };
 
-const STATUS_STYLE = {
+const STATUS_STYLE: Record<string, CSSProperties> = {
     active: { background: 'rgba(16,185,129,0.15)', color: '#10b981' },
     staged: { background: 'rgba(245,158,11,0.15)', color: '#f59e0b' },
     failed: { background: 'rgba(239,68,68,0.15)', color: '#ef4444' },
@@ -59,7 +77,7 @@ const STATUS_STYLE = {
     quarantined: { background: 'rgba(239,68,68,0.15)', color: '#ef4444' },
 };
 
-export default function VersionHistory({ hubVersions, ledgerVersions, busy = false, onRollback, onActivateStaged }) {
+export default function VersionHistory({ hubVersions, ledgerVersions, busy = false, onRollback, onActivateStaged }: VersionHistoryProps) {
     const { t } = useTranslation();
     const rows = mergeVersionRows(hubVersions, ledgerVersions);
 
@@ -69,7 +87,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
 
     return (
         <ul className="divide-y border-[var(--border-subtle)]" data-testid="version-history">
-            {rows.map((row) => {
+            {rows.map((row: VersionRow) => {
                 const status = row.ledger?.status || null;
                 return (
                     <li key={row.version} className="py-2.5" data-testid={`version-row-${row.version}`}>

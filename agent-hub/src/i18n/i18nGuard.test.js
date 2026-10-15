@@ -417,7 +417,7 @@ const KEY_TABLE_FILES = [
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
-    'components/admin/compliance/pages/settings/settingsFields.js',
+    'components/admin/compliance/pages/settings/settingsFields.ts',
     'components/automation/Builder/flow/nodeTypeColors.ts',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als

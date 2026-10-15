@@ -3,10 +3,19 @@ import React from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
 
+interface ConnectHubDialogProps {
+    mode?: 'connect' | 'disconnect';
+    licensed?: boolean;
+    busy?: boolean;
+    error?: string | null;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
 // Confirm-connect dialog. `licensed` picks the copy: a licensed install
 // connects with its server licence; an unlicensed one connects with a free
 // registration. Reused, with different copy, for the disconnect confirm.
-export default function ConnectHubDialog({ mode = 'connect', licensed = true, busy, error, onConfirm, onCancel }) {
+export default function ConnectHubDialog({ mode = 'connect', licensed = true, busy, error, onConfirm, onCancel }: ConnectHubDialogProps) {
     const { t } = useTranslation();
     const isDisconnect = mode === 'disconnect';
     const title = isDisconnect ? t('modules.disconnect_confirm_title') : t('modules.connect_title');

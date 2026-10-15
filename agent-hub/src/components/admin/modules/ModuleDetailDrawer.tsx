@@ -8,6 +8,30 @@ import VersionHistory from './VersionHistory';
 import { useMarketplaceModuleDetail, useModuleVersions } from '../../../api/queries/modules';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
+import type { MarketplaceModuleDetail, ModuleHealthRow } from '../../../api/queries/modules';
+
+/** What the drawer calls on the shared useModuleActions hook (moduleActions.js). */
+interface ModuleDetailActions {
+    awaitingIds: Set<string>;
+    busyFor: (module: MarketplaceModuleDetail) => boolean;
+    reactivateModule: (module: MarketplaceModuleDetail) => void;
+    buy: (module: MarketplaceModuleDetail) => void;
+    updateModule: (module: MarketplaceModuleDetail) => void;
+    installModule: (module: MarketplaceModuleDetail) => void;
+    paidRefresh: (module: MarketplaceModuleDetail) => void;
+    setPolicy: (module: MarketplaceModuleDetail, policy: { channel: string; pin: string }) => void;
+    updatePolicy: { isPending: boolean };
+    rollbackTo: (module: MarketplaceModuleDetail, version: string) => void;
+    activateStagedVersion: (module: MarketplaceModuleDetail, version?: string) => void;
+}
+
+interface ModuleDetailDrawerProps {
+    module: MarketplaceModuleDetail;
+    health?: ModuleHealthRow | null;
+    actions: ModuleDetailActions;
+    onClose: () => void;
+    onOpenLogs?: (module: MarketplaceModuleDetail) => void;
+}
 
 // Right-hand detail drawer for one marketplace module. Opened by card click or
 // a ?module=<id> deep link (MarketplaceTab owns that URL state). Rich fields
@@ -21,13 +45,13 @@ const MarkdownRenderer = lazy(() => import('../../renderers/MarkdownRenderer'));
 const TAB_IDS = ['overview', 'versions', 'permissions'];
 
 // Tab id → label key (variable lookup; every value is in the dict).
-const TAB_KEY = {
+const TAB_KEY: Record<string, string> = {
     overview: 'modules.details_overview',
     versions: 'modules.details_versions',
     permissions: 'modules.details_permissions',
 };
 
-export default function ModuleDetailDrawer({ module, health = null, actions, onClose, onOpenLogs }) {
+export default function ModuleDetailDrawer({ module, health = null, actions, onClose, onOpenLogs }: ModuleDetailDrawerProps) {
     const { t } = useTranslation();
     const [tab, setTab] = useState('overview');
 
@@ -145,7 +169,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
 
                 {/* Tabs */}
                 <div className="px-5 pt-3 flex gap-1.5 border-b border-[var(--border-subtle)]">
-                    {TAB_IDS.map((id) => (
+                    {TAB_IDS.map((id: string) => (
                         <button
                             key={id}
                             onClick={() => setTab(id)}
@@ -185,15 +209,15 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                                 <UpdatePolicySelector
                                     policy={detail?.updatePolicy}
                                     busy={actions.updatePolicy.isPending}
-                                    onChange={(policy) => actions.setPolicy(module, policy)}
+                                    onChange={(policy: { channel: string; pin: string }) => actions.setPolicy(module, policy)}
                                 />
                             )}
                             <VersionHistory
                                 hubVersions={detail?.versions}
                                 ledgerVersions={ledgerVersions}
                                 busy={busy}
-                                onRollback={(version) => actions.rollbackTo(module, version)}
-                                onActivateStaged={(version) => actions.activateStagedVersion(module, version)}
+                                onRollback={(version: string) => actions.rollbackTo(module, version)}
+                                onActivateStaged={(version: string) => actions.activateStagedVersion(module, version)}
                             />
                         </div>
                     ) : (

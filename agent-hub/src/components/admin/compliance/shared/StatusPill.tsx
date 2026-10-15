@@ -1,5 +1,17 @@
 import React from 'react';
+import type { ComponentType, CSSProperties, ReactElement, ReactNode } from 'react';
 import { TONES } from '../../../shared/statusTone';
+
+type PillIcon = ComponentType<{ style?: CSSProperties; 'aria-hidden'?: 'true' }> | ReactElement;
+
+interface StatusPillProps {
+    tone?: keyof typeof TONES;
+    icon?: PillIcon | null;
+    children?: ReactNode;
+    className?: string;
+    testId?: string;
+    title?: string;
+}
 
 /**
  * StatusPill — the toned status chip of the Compliance Center (redesign,
@@ -23,7 +35,7 @@ import { TONES } from '../../../shared/statusTone';
  *   children  the words
  *   className / testId / title  pass-through
  */
-export default function StatusPill({ tone = 'neutral', icon, children, className = '', testId = 'status-pill', title }) {
+export default function StatusPill({ tone = 'neutral', icon, children, className = '', testId = 'status-pill', title }: StatusPillProps) {
     const key = TONES[tone] ? tone : 'neutral';
     const style = key === 'neutral'
         ? { border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }
@@ -43,7 +55,7 @@ export default function StatusPill({ tone = 'neutral', icon, children, className
     );
 }
 
-function renderIcon(icon) {
+function renderIcon(icon: PillIcon | null | undefined) {
     if (!icon) return null;
     if (React.isValidElement(icon)) return icon;
     const Icon = icon;

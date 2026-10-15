@@ -1,6 +1,23 @@
 import React from 'react';
 import { Circle, CircleDot } from 'lucide-react';
 
+interface RadioOption {
+    value: string;
+    label: React.ReactNode;
+    disabled?: boolean;
+    title?: string;
+}
+
+interface RadioCardsProps {
+    value?: string;
+    onChange?: (value: string) => void;
+    options?: RadioOption[];
+    columns?: number;
+    ariaLabel?: string;
+    className?: string;
+    testId?: string;
+}
+
 /**
  * RadioCards — a 2×2 (or n-column) grid of bordered option cards that behaves
  * as one radio group (artboard 1d, the SoA drawer's "Besluit").
@@ -17,7 +34,7 @@ import { Circle, CircleDot } from 'lucide-react';
  *   columns   default 2
  *   ariaLabel, className, testId (per-card testid `<testId>-<value>`)
  */
-export default function RadioCards({ value, onChange, options = [], columns = 2, ariaLabel, className = '', testId = 'radio-cards' }) {
+export default function RadioCards({ value, onChange, options = [], columns = 2, ariaLabel, className = '', testId = 'radio-cards' }: RadioCardsProps) {
     return (
         <div
             role="radiogroup"
@@ -26,7 +43,7 @@ export default function RadioCards({ value, onChange, options = [], columns = 2,
             className={`grid gap-2 ${className}`}
             style={{ gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))` }}
         >
-            {options.map(opt => {
+            {options.map((opt: RadioOption) => {
                 const selected = opt.value === value;
                 const Glyph = selected ? CircleDot : Circle;
                 return (

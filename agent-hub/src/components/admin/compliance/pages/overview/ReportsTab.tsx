@@ -1,6 +1,35 @@
 import React from 'react';
 import { FileDown, FileArchive, ShieldCheck, Scale } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+
+interface ReportItem {
+    id: string;
+    path: string;
+    kind: string;
+    labelKey: string;
+    labelEn: string;
+    descKey: string;
+    descEn: string;
+}
+
+interface ReportGroup {
+    id: string;
+    icon: LucideIcon;
+    titleKey: string;
+    titleEn: string;
+    iso?: boolean;
+    items: readonly Readonly<ReportItem>[];
+}
+
+interface ReportsTabProps {
+    api?: string;
+    dl?: (url: string) => string | null | undefined;
+    exportsEnabled?: boolean;
+    isoEnabled?: boolean | null;
+    className?: string;
+    testId?: string;
+}
 
 /**
  * ReportsTab — Overview › Reports (C6). One place for every PDF/ZIP the hub
@@ -18,7 +47,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
  *                   the ISO group is shown, because hiding a working export on
  *                   an unknown state is the worse mistake)
  */
-export const REPORT_GROUPS = Object.freeze([
+export const REPORT_GROUPS: readonly Readonly<ReportGroup>[] = Object.freeze([
     Object.freeze({
         id: 'compliance',
         icon: Scale,
@@ -71,7 +100,7 @@ export const REPORT_GROUPS = Object.freeze([
     }),
 ]);
 
-export default function ReportsTab({ api = '/api/compliance', dl, exportsEnabled = true, isoEnabled = null, className = '', testId = 'ovw-reports' }) {
+export default function ReportsTab({ api = '/api/compliance', dl, exportsEnabled = true, isoEnabled = null, className = '', testId = 'ovw-reports' }: ReportsTabProps) {
     const { t } = useTranslation();
 
     if (!exportsEnabled) {
@@ -82,15 +111,15 @@ export default function ReportsTab({ api = '/api/compliance', dl, exportsEnabled
         );
     }
 
-    const groups = REPORT_GROUPS.filter(g => !g.iso || isoEnabled !== false);
+    const groups = REPORT_GROUPS.filter((g: ReportGroup) => !g.iso || isoEnabled !== false);
 
     return (
         <div className={`flex flex-col gap-3 ${className}`} data-testid={testId}>
-            {groups.map(group => {
+            {groups.map((group: ReportGroup) => {
                 const Icon = group.icon;
                 const links = group.items
-                    .map(item => ({ item, href: typeof dl === 'function' ? dl(`${api}${item.path}`) : `${api}${item.path}` }))
-                    .filter(l => !!l.href);
+                    .map((item: ReportItem) => ({ item, href: typeof dl === 'function' ? dl(`${api}${item.path}`) : `${api}${item.path}` }))
+                    .filter((l: { item: ReportItem; href: string | null | undefined }): l is { item: ReportItem; href: string } => !!l.href);
                 if (!links.length) return null;
                 return (
                     <section

@@ -22,7 +22,7 @@
  */
 export const MASK = '•••';
 
-export function maskEmail(value) {
+export function maskEmail(value: unknown): string {
     if (typeof value !== 'string') return MASK;
     const s = value.trim();
     const at = s.indexOf('@');

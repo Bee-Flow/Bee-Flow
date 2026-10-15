@@ -1,15 +1,26 @@
 import { Loader2, ShieldCheck, X } from 'lucide-react';
 import React from 'react';
 import { normalizePermissions } from './permissionCopy';
+import type { ModulePermission } from './permissionCopy';
 import PermissionList from './PermissionList';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
+
+interface PermissionConsentDialogProps {
+    module?: { id?: string; name?: string } | null;
+    permissions?: unknown;
+    mode?: 'install' | 'update';
+    diff?: string[] | null;
+    busy?: boolean;
+    onAccept: (acceptedIds: string[]) => void;
+    onCancel: () => void;
+}
 
 // mv2 permission consent. Opens when an install/update/sideload fails with
 // consent_required; Accept re-fires the action with acceptedPermissions set to
 // exactly the ids shown here. `diff` (update mode) marks which ids are new
 // relative to the already-granted set.
-export default function PermissionConsentDialog({ module, permissions, mode = 'install', diff = null, busy = false, onAccept, onCancel }) {
+export default function PermissionConsentDialog({ module, permissions, mode = 'install', diff = null, busy = false, onAccept, onCancel }: PermissionConsentDialogProps) {
     const { t } = useTranslation();
     const perms = normalizePermissions(permissions);
     const title = mode === 'update'
@@ -49,7 +60,7 @@ export default function PermissionConsentDialog({ module, permissions, mode = 'i
                         {t('modules.cancel')}
                     </button>
                     <button
-                        onClick={() => onAccept(perms.map((p) => p.id))}
+                        onClick={() => onAccept(perms.map((p: ModulePermission) => p.id))}
                         disabled={busy || perms.length === 0}
                         className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
                         style={{ background: 'var(--accent-primary)', color: '#fff' }}
