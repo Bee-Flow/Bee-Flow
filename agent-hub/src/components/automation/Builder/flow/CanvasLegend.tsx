@@ -8,7 +8,12 @@ import { typeColorVar, typeTint } from './nodeTypeColors';
  * the lines mean. The cheapest explanation in the whole builder — four rows,
  * 232px wide, one click away behind the help button.
  */
-export function LegendToggle({ open, onToggle }) {
+export interface LegendToggleProps {
+    open?: boolean;
+    onToggle?: () => void;
+}
+
+export function LegendToggle({ open, onToggle }: LegendToggleProps) {
     const { t } = useTranslation();
     const label = t('automations.canvas.legend_toggle', 'What the marks on the canvas mean');
     return (

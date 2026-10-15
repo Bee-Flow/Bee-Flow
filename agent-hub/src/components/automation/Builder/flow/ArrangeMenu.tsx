@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { LayoutGrid, ChevronDown, Rows3, Shrink, Expand } from 'lucide-react';
+import { LayoutGrid, ChevronDown, Rows3, Shrink, Expand, type LucideIcon } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
 
 /**
@@ -8,20 +8,26 @@ import useTranslation from '../../../../hooks/useTranslation';
  * definition change and therefore one Ctrl+Z. Only rendered where the canvas
  * is the user's to edit — DiagramPane gates it on `allowEdgeEdits`.
  */
-export default function ArrangeMenu({ onArrange }) {
+export type ArrangeMode = 'serpentine' | 'compact' | 'roomy';
+
+export interface ArrangeMenuProps {
+    onArrange?: (mode: ArrangeMode) => void;
+}
+
+export default function ArrangeMenu({ onArrange }: ArrangeMenuProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (!open) return undefined;
-        const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-        const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+        const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         document.addEventListener('mousedown', onDoc, true);
         document.addEventListener('keydown', onKey);
         return () => { document.removeEventListener('mousedown', onDoc, true); document.removeEventListener('keydown', onKey); };
     }, [open]);
-    const pick = (mode) => { setOpen(false); onArrange?.(mode); };
-    const items = [
+    const pick = (mode: ArrangeMode) => { setOpen(false); onArrange?.(mode); };
+    const items: { mode: ArrangeMode; Icon: LucideIcon; label: string }[] = [
         { mode: 'serpentine', Icon: Rows3, label: t('automations.canvas.arrange_rows', 'Rows that fit the screen') },
         { mode: 'compact', Icon: Shrink, label: t('automations.canvas.arrange_compact', 'One tight line') },
         { mode: 'roomy', Icon: Expand, label: t('automations.canvas.arrange_roomy', 'Roomy, with flowlets open') },

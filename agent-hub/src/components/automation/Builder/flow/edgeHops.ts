@@ -35,7 +35,27 @@ const EPS = 0.5;
 
 const CMD_RE = /([MLQ])([^MLQZ]*)/gi;
 
-function nums(chunk) {
+export interface PathPoint {
+    x: number;
+    y: number;
+}
+
+export interface PathOp {
+    cmd: string;
+    coords: number[];
+    from: PathPoint | null;
+    to: PathPoint;
+}
+
+export interface PathSegment {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    horizontal: boolean;
+}
+
+function nums(chunk: string) {
     return String(chunk).trim().split(/[\s,]+/).map(Number).filter(Number.isFinite);
 }
 
@@ -44,10 +64,10 @@ function nums(chunk) {
  * carrying their absolute start and end. Anything unrecognised is dropped, which
  * makes the rewrite a no-op rather than a corruption.
  */
-export function parsePath(d) {
-    const ops = [];
-    let cursor = null;
-    let match;
+export function parsePath(d: string | null | undefined): PathOp[] {
+    const ops: PathOp[] = [];
+    let cursor: PathPoint | null = null;
+    let match: RegExpExecArray | null;
     CMD_RE.lastIndex = 0;
     while ((match = CMD_RE.exec(String(d ?? '')))) {
         const cmd = match[1].toUpperCase();
@@ -73,8 +93,8 @@ export function parsePath(d) {
  * against. Curved corners are deliberately excluded: they are where two paths
  * most often graze without really crossing.
  */
-export function pathSegments(d) {
-    const out = [];
+export function pathSegments(d: string | null | undefined): PathSegment[] {
+    const out: PathSegment[] = [];
     for (const op of parsePath(d)) {
         if (op.cmd !== 'L' || !op.from) continue;
         const horizontal = Math.abs(op.to.y - op.from.y) < EPS;
@@ -87,7 +107,7 @@ export function pathSegments(d) {
 }
 
 /** Where a horizontal segment is crossed by a vertical one, or null. */
-function crossing(h, v) {
+function crossing(h: PathSegment, v: PathSegment): PathPoint | null {
     const hx1 = Math.min(h.x1, h.x2);
     const hx2 = Math.max(h.x1, h.x2);
     const vy1 = Math.min(v.y1, v.y2);
@@ -103,7 +123,7 @@ function crossing(h, v) {
  * its horizontal segments crosses. Returns the original string when there is
  * nothing to hop, so an unchanged path stays referentially identical.
  */
-export function hopPath(d, others, { radius = HOP_RADIUS } = {}) {
+export function hopPath(d: string, others: PathSegment[] | null | undefined, { radius = HOP_RADIUS }: { radius?: number } = {}): string {
     const verticals = (others || []).filter(s => s && !s.horizontal);
     if (!verticals.length) return d;
 
@@ -117,14 +137,15 @@ export function hopPath(d, others, { radius = HOP_RADIUS } = {}) {
         if (op.cmd === 'M') { out += `M${fmt(op.to.x)},${fmt(op.to.y)}`; continue; }
         if (op.cmd === 'Q') { out += `Q${fmt(op.coords[0])},${fmt(op.coords[1])} ${fmt(op.coords[2])},${fmt(op.coords[3])}`; continue; }
 
-        const horizontal = Math.abs(op.to.y - op.from.y) < EPS && Math.abs(op.to.x - op.from.x) >= EPS;
+        const from = op.from as PathPoint;
+        const horizontal = Math.abs(op.to.y - from.y) < EPS && Math.abs(op.to.x - from.x) >= EPS;
         if (!horizontal) { out += `L${fmt(op.to.x)},${fmt(op.to.y)}`; continue; }
 
-        const seg = { x1: op.from.x, y1: op.from.y, x2: op.to.x, y2: op.to.y, horizontal: true };
-        const rightwards = op.to.x > op.from.x;
+        const seg = { x1: from.x, y1: from.y, x2: op.to.x, y2: op.to.y, horizontal: true };
+        const rightwards = op.to.x > from.x;
         const points = verticals
             .map(v => crossing(seg, v))
-            .filter(Boolean)
+            .filter((p): p is PathPoint => p !== null)
             // Along the direction of travel, and never two bridges so close they
             // would merge into one wide bump.
             .sort((a, b) => (rightwards ? a.x - b.x : b.x - a.x))
@@ -134,8 +155,8 @@ export function hopPath(d, others, { radius = HOP_RADIUS } = {}) {
             const enter = rightwards ? p.x - radius : p.x + radius;
             const exit = rightwards ? p.x + radius : p.x - radius;
             // Guard against a bridge that would overshoot its own segment.
-            if ((rightwards && (enter < Math.min(op.from.x, op.to.x) || exit > Math.max(op.from.x, op.to.x)))
-                || (!rightwards && (enter > Math.max(op.from.x, op.to.x) || exit < Math.min(op.from.x, op.to.x)))) continue;
+            if ((rightwards && (enter < Math.min(from.x, op.to.x) || exit > Math.max(from.x, op.to.x)))
+                || (!rightwards && (enter > Math.max(from.x, op.to.x) || exit < Math.min(from.x, op.to.x)))) continue;
             out += `L${fmt(enter)},${fmt(p.y)}`;
             // sweep-flag picks the side of the chord the arc bulges to, and SVG's
             // y axis points DOWN — so 0 is "up" going right and 1 is "up" going
@@ -149,6 +170,6 @@ export function hopPath(d, others, { radius = HOP_RADIUS } = {}) {
     return hopped ? out : d;
 }
 
-function fmt(n) {
+function fmt(n: number) {
     return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
 }

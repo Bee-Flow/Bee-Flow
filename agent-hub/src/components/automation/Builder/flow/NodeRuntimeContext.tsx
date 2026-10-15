@@ -61,7 +61,40 @@ import { createContext, useContext } from 'react';
  * Defaults give read-only inspector contexts (executions drawer) sane
  * behaviour without provider wiring.
  */
-export const NodeRuntimeContext = createContext({
+export interface NodeRuntime {
+    pinnedById: Set<string>;
+    disabledById: Set<string>;
+    onExecuteStep: ((stepId: string) => void) | null;
+    executingStepId: string | null;
+    runInFlight: boolean;
+    runIndexById: Map<string, number>;
+    runTotal: number | null;
+    onOpenLayer: ((layerKey: string) => void) | null;
+    layerSummaries: Record<string, string>;
+    highlightedStepId: string | null;
+    onDetachNode: ((stepId: string) => void) | null;
+    onPatchStep: ((stepId: string, patch: Record<string, unknown>) => void) | null;
+    attachedIds: Set<string>;
+    onToggleInline: ((stepId: string) => void) | null;
+    inlineExpanded: Set<string>;
+    layerRefCounts: Record<string, number>;
+    undeletableIds: Set<string>;
+    typeGroupById: Map<string, string>;
+    stepTypeById: Map<string, string>;
+    stepNumberById: Map<string, number>;
+    onPinNode: ((stepId: string) => void) | null;
+    pinnableIds: Set<string>;
+    // The step open in the bottom drawer (design 1h), its direct sources
+    // (drawn dashed, kicker "· source") and what comes next (dimmed).
+    editingStepId: string | null;
+    editingSourceIds: Set<string>;
+    editingTargetIds: Set<string>;
+    // Build choreography flags — empty outside a DiagramPane build.
+    buildFxById: Map<string, string>;
+    frontierId: string | null;
+}
+
+export const NodeRuntimeContext = createContext<NodeRuntime>({
     pinnedById: new Set(),
     disabledById: new Set(),
     onExecuteStep: null,

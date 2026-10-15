@@ -33,18 +33,26 @@ import { toggleCanvasFullscreen, useStudioMenuHidden } from '../../../../hooks/u
  * leaves out Wrap to fit and the presenter switch: whole-canvas acts that
  * wait until the drawer closes.
  */
-const selectPct = (s) => Math.round((s?.transform?.[2] ?? 1) * 100);
+const selectPct = (s: { transform?: number[] } | undefined) => Math.round((s?.transform?.[2] ?? 1) * 100);
 
 const btn = 'w-[30px] h-[30px] grid place-items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed';
 const sep = 'border-t border-[var(--border-default)]';
 const sepRow = 'border-l border-[var(--border-default)]';
 
-export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, presenter = false, onTogglePresenter = null, compact = false }) {
+export interface CanvasZoomStackProps {
+    onWrapToFit?: () => void;
+    onFit?: () => void;
+    presenter?: boolean;
+    onTogglePresenter?: () => void;
+    compact?: boolean;
+}
+
+export default function CanvasZoomStack({ onWrapToFit, onFit, presenter = false, onTogglePresenter, compact = false }: CanvasZoomStackProps) {
     const { t } = useTranslation();
     const rf = useReactFlow();
     const pct = useStore(selectPct);
     const fullscreen = useStudioMenuHidden();
-    const zoom = (dir) => {
+    const zoom = (dir: number) => {
         try { dir > 0 ? rf.zoomIn({ duration: 200 }) : rf.zoomOut({ duration: 200 }); } catch { /* canvas gone */ }
     };
     const fit = () => {
@@ -52,17 +60,17 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
         try { rf.fitView({ padding: 0.08, duration: 300 }); } catch { /* canvas gone */ }
     };
     // Each control takes the separator class its place in the stack gives it.
-    const zoomIn = (cls) => (
+    const zoomIn = (cls: string) => (
         <button key="in" type="button" onClick={() => zoom(1)} className={`${btn} ${cls}`} title={t('automations.canvas.zoom_in', 'Zoom in')} aria-label={t('automations.canvas.zoom_in', 'Zoom in')}>
             <Plus size={14} />
         </button>
     );
-    const zoomOut = (cls) => (
+    const zoomOut = (cls: string) => (
         <button key="out" type="button" onClick={() => zoom(-1)} className={`${btn} ${cls}`} title={t('automations.canvas.zoom_out', 'Zoom out')} aria-label={t('automations.canvas.zoom_out', 'Zoom out')}>
             <Minus size={14} />
         </button>
     );
-    const zoomPct = (cls) => (
+    const zoomPct = (cls: string) => (
         <button
             key="pct"
             type="button"
@@ -75,12 +83,12 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
             {pct}%
         </button>
     );
-    const fitBtn = (cls) => (
+    const fitBtn = (cls: string) => (
         <button key="fit" type="button" onClick={fit} className={`${btn} ${cls}`} title={t('automations.canvas.zoom_fit', 'Fit the whole flow on screen')} aria-label={t('automations.canvas.zoom_fit', 'Fit the whole flow on screen')}>
             <Maximize size={14} />
         </button>
     );
-    const wrapBtn = (cls) => (
+    const wrapBtn = (cls: string) => (
         <button
             key="wrap"
             type="button"
@@ -92,7 +100,7 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
             <Rows3 size={14} />
         </button>
     );
-    const presenterBtn = (cls) => (
+    const presenterBtn = (cls: string) => (
         <button
             key="presenter"
             type="button"
@@ -106,7 +114,7 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
             <Presentation size={14} />
         </button>
     );
-    const fullscreenBtn = (cls) => (
+    const fullscreenBtn = (cls: string) => (
         <button
             key="fullscreen"
             type="button"

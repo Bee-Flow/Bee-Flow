@@ -1,5 +1,5 @@
 import { appendKey } from '@shared/expr/path.mjs';
-import { Check, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Search } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Search, type LucideIcon } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { summariseData } from '../flow/dataSummary';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -37,6 +37,17 @@ const MAX_ROWS = 50;
  */
 const KEY_SEP = '\u0000';
 
+export interface JsonTreeProps {
+    value: unknown;
+    basePath?: string;
+    searchable?: boolean;
+    onCopyPath?: ((path: string) => void) | null;
+    maxInitialDepth?: number;
+    emptyMessage?: string;
+}
+
+type NodeName = string | number | null;
+
 export default function JsonTree({
     value,
     basePath = '',
@@ -44,15 +55,15 @@ export default function JsonTree({
     onCopyPath,
     maxInitialDepth = 2,
     emptyMessage = 'No data yet.',
-}) {
+}: JsonTreeProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [copied, setCopied] = useState(false);
     // Expand-all / collapse-all remount the tree with a different initial
     // depth. Every node owns its open state locally, and a remount is the one
     // way to reset all of them at once without lifting that state up.
-    const [override, setOverride] = useState(null); // { depth, seq }
-    const copiedTimer = useRef(null);
+    const [override, setOverride] = useState<{ depth: number; seq: number } | null>(null); // { depth, seq }
+    const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
 
     const filterFn = useMemo(() => makeFilter(query), [query]);
@@ -126,7 +137,17 @@ export default function JsonTree({
  * fold everything, and take the raw JSON with you. The footer under this panel
  * has promised "the raw data" for a while and delivered a tree.
  */
-function TreeToolbar({ searchable, query, onQuery, onExpandAll, onCollapseAll, onCopy, copied }) {
+interface TreeToolbarProps {
+    searchable: boolean;
+    query: string;
+    onQuery: (query: string) => void;
+    onExpandAll: () => void;
+    onCollapseAll: () => void;
+    onCopy: () => void;
+    copied: boolean;
+}
+
+function TreeToolbar({ searchable, query, onQuery, onExpandAll, onCollapseAll, onCopy, copied }: TreeToolbarProps) {
     const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1.5 px-2 py-1 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]/30 shrink-0">
@@ -157,7 +178,14 @@ function TreeToolbar({ searchable, query, onQuery, onExpandAll, onCollapseAll, o
     );
 }
 
-function TreeAction({ Icon, label, title, onClick }) {
+interface TreeActionProps {
+    Icon: LucideIcon;
+    label: string;
+    title?: string;
+    onClick: () => void;
+}
+
+function TreeAction({ Icon, label, title, onClick }: TreeActionProps) {
     return (
         <button
             type="button"
@@ -171,7 +199,18 @@ function TreeAction({ Icon, label, title, onClick }) {
     );
 }
 
-function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPath, matches }) {
+interface TreeNodeProps {
+    name: NodeName;
+    value: unknown;
+    path: string;
+    nodeKey: string;
+    depth: number;
+    maxInitialDepth: number;
+    onCopyPath?: ((path: string) => void) | null;
+    matches: Set<string> | null;
+}
+
+function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPath, matches }: TreeNodeProps) {
     const { t } = useTranslation();
     const isObj = value && typeof value === 'object' && !Array.isArray(value);
     const isArr = Array.isArray(value);
@@ -184,7 +223,7 @@ function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPa
     const indent = depth * 12;
     const labelText = name == null ? '' : String(name);
 
-    const copyPath = (e) => {
+    const copyPath = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (path) onCopyPath?.(path);
     };
@@ -218,7 +257,7 @@ function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPa
         );
     }
 
-    const entries = isArr ? value.map((v, i) => [i, v]) : Object.entries(value);
+    const entries: [string | number, unknown][] = isArr ? (value as unknown[]).map((v, i): [number, unknown] => [i, v]) : Object.entries(value as object);
     // Filter FIRST, then cap — otherwise "+N more" would count children the
     // search has already hidden.
     const visible = matches
@@ -300,14 +339,14 @@ function TreeNode({ name, value, path, nodeKey, depth, maxInitialDepth, onCopyPa
     );
 }
 
-function formatLeafValue(v) {
+function formatLeafValue(v: unknown): string {
     if (v === null) return 'null';
     if (v === undefined) return 'undefined';
     if (typeof v === 'string') return `"${v}"`;
     return String(v);
 }
 
-function leafValueClass(v) {
+function leafValueClass(v: unknown): string {
     if (v === null || v === undefined) return 'text-[var(--text-tertiary)]';
     if (typeof v === 'string') return 'text-emerald-700 dark:text-emerald-400';
     if (typeof v === 'number') return 'text-amber-700 dark:text-amber-400';
@@ -315,7 +354,7 @@ function leafValueClass(v) {
     return 'text-[var(--text-primary)]';
 }
 
-function makeFilter(query) {
+function makeFilter(query: string): ((text: string) => boolean) | null {
     const q = query.trim().toLowerCase();
     if (!q) return null;
     return (text) => text.toLowerCase().includes(q);
@@ -329,13 +368,13 @@ function makeFilter(query) {
  * applied, except that this computes it bottom-up and remembers the answer
  * instead of recomputing the whole subtree once per rendered node.
  */
-export function collectMatches(value, filterFn) {
-    const keep = new Set();
+export function collectMatches(value: unknown, filterFn: ((text: string) => boolean) | null): Set<string> {
+    const keep = new Set<string>();
     if (!filterFn) return keep;
-    const walk = (nodeKey, name, val) => {
+    const walk = (nodeKey: string, name: NodeName, val: unknown): boolean => {
         let matched = name != null && filterFn(String(name));
         if (val !== null && val !== undefined && typeof val === 'object') {
-            const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
+            const entries: [string | number, unknown][] = Array.isArray(val) ? val.map((v, i): [number, unknown] => [i, v]) : Object.entries(val);
             for (const [k, v] of entries) {
                 // No short-circuit: descendants must be marked even once this
                 // node is known to be kept, or they would vanish from it.

@@ -50,19 +50,36 @@ import { appRefParam, parseAppRefParam } from '../../../admin/Studio/studioRoute
  * "Studio App trigger" and claims nothing, which is what a definition someone
  * hand-edited deserves.
  */
-export function triggerAppRef(definition) {
+export interface AppRef {
+    appId?: string | null;
+    screenId?: string | null;
+    nodeId?: string | null;
+}
+
+export interface AppRefRecord {
+    status: string;
+    appId?: string | null;
+    screenId?: string | null;
+    nodeId?: string | null;
+    appName?: string | null;
+    screenName?: string | null;
+    nodeLabel?: string | null;
+    canOpen?: boolean;
+}
+
+export function triggerAppRef(definition: { trigger?: { appRef?: unknown } | null } | null | undefined) {
     return parseAppRefParam(appRefParam(definition?.trigger?.appRef));
 }
 
 const TTL_MS = 60_000;
 
 /** key → { at, record }. `record` may be null (the lookup failed). */
-const cache = new Map();
+const cache = new Map<string, { at: number; record: AppRefRecord | null }>();
 /** key → in-flight promise, so two callers for one reference make ONE request. */
-const inflight = new Map();
+const inflight = new Map<string, Promise<AppRefRecord | null>>();
 
 /** Cache key for a reference. Null for anything that is not a whole one. */
-export function appRefKey(ref) {
+export function appRefKey(ref: AppRef | null | undefined): string | null {
     if (!ref?.appId || !ref?.screenId) return null;
     // Scheidingsteken: een ESCAPE (`\u0001`), geen letterlijke byte. Een echte
     // 0x00 in de bron maakt het bestand voor git BINAIR — dan is er in een PR
@@ -74,7 +91,7 @@ export function appRefKey(ref) {
 }
 
 /** The cached record when it is still fresh, else undefined (never null). */
-function fresh(key) {
+function fresh(key: string): AppRefRecord | null | undefined {
     const hit = cache.get(key);
     return hit && Date.now() - hit.at < TTL_MS ? hit.record : undefined;
 }
@@ -83,17 +100,18 @@ function fresh(key) {
  * Resolve one reference. Never rejects; resolves to the record, or to null
  * when the lookup could not be made (offline, 500, a body that is not JSON).
  */
-export function loadAppRef(ref) {
+export function loadAppRef(ref: AppRef | null | undefined): Promise<AppRefRecord | null> {
     const key = appRefKey(ref);
     if (!key) return Promise.resolve(null);
     const hit = fresh(key);
     if (hit !== undefined) return Promise.resolve(hit);
-    if (inflight.has(key)) return inflight.get(key);
+    if (inflight.has(key)) return inflight.get(key) as Promise<AppRefRecord | null>;
 
-    const qs = new URLSearchParams({ screenId: ref.screenId, ...(ref.nodeId ? { nodeId: ref.nodeId } : {}) });
-    const p = authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(ref.appId)}/ref?${qs}`)
+    const target = ref as AppRef;
+    const qs = new URLSearchParams({ screenId: target.screenId as string, ...(target.nodeId ? { nodeId: target.nodeId } : {}) });
+    const p = authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(target.appId as string)}/ref?${qs}`)
         .then((res) => (res.ok ? res.json() : null))
-        .then((record) => {
+        .then((record: AppRefRecord | null) => {
             // A body without a status is not an answer — treating it as one
             // would let a proxy's HTML error page render as a breadcrumb.
             const ok = record && typeof record.status === 'string' ? record : null;
@@ -146,7 +164,7 @@ export const __clearAppRefCacheForTests = clearAppRefCache;
  * unreachable for the whole load window; that is the mistake flow/layout.js
  * writes down beside its own name maps, and it is the same one here.
  */
-export function useAppRefLabel(ref) {
+export function useAppRefLabel(ref: AppRef | null | undefined): AppRefRecord | null | undefined {
     const key = appRefKey(ref);
     const [record, setRecord] = useState(() => (key ? fresh(key) : undefined));
 
@@ -187,11 +205,11 @@ export function useAppRefLabel(ref) {
  *                                viewer. False unless the server said true —
  *                                a link that 403s is worse than no link.
  */
-const GONE_LEVEL = { app_missing: 'app', screen_missing: 'screen', node_missing: 'node' };
+const GONE_LEVEL: Record<string, string> = { app_missing: 'app', screen_missing: 'screen', node_missing: 'node' };
 
-export function appRefDisplay(record, ref = null) {
-    const got = record || {};
-    const asked = ref || {};
+export function appRefDisplay(record: AppRefRecord | null | undefined, ref: AppRef | null = null) {
+    const got: Partial<AppRefRecord> = record || {};
+    const asked: AppRef = ref || {};
     const appId = got.appId || asked.appId || null;
     const screenId = got.screenId || asked.screenId || null;
     const nodeId = got.nodeId || asked.nodeId || null;
@@ -202,7 +220,7 @@ export function appRefDisplay(record, ref = null) {
         appText: got.appName || appId,
         screenText: got.screenName || screenId,
         nodeText: got.nodeLabel || nodeId,
-        gone: GONE_LEVEL[got.status] || null,
+        gone: GONE_LEVEL[got.status as string] || null,
         restricted: got.status === 'restricted',
         unknown: record == null,
         canOpen: got.canOpen === true,

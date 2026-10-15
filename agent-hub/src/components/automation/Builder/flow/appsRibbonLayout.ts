@@ -22,8 +22,12 @@ export const SUITE_MIN_APPS = 3;
  */
 export const OTHER_CATEGORY = 'Other';
 
-/** @typedef {{ category: string, apps: object[] }} CategoryGroup — an orderedAppCategories() entry */
+/** An orderedAppCategories() entry. */
+export interface CategoryGroup {
+    category: string;
+    apps: unknown[];
+}
 
-export function isSuite(group) {
+export function isSuite(group: CategoryGroup | null | undefined): boolean {
     return group?.category !== OTHER_CATEGORY && (group?.apps || []).length >= SUITE_MIN_APPS;
 }

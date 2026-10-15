@@ -28,7 +28,7 @@
  * The vendor word a category already puts on screen: "Google Workspace" →
  * "Google", "Nextcloud" → "Nextcloud", "Microsoft 365" → "Microsoft".
  */
-function vendorWord(category) {
+function vendorWord(category: string | null | undefined): string {
     return String(category || '').trim().split(/\s+/)[0] || '';
 }
 
@@ -40,7 +40,7 @@ function vendorWord(category) {
  * 'nextcloud' is the files/WebDAV integration; the server's own Nextcloud
  * catalog already calls it "Files & WebDAV" (server/core/ncIntegrationCatalog.js).
  */
-const BASE_APP_LABEL = {
+const BASE_APP_LABEL: Record<string, string> = {
     nextcloud: 'Files',
 };
 
@@ -52,12 +52,12 @@ const BASE_APP_LABEL = {
  * Apps ribbon onto a second row, doubling its height, on every screen narrower
  * than about 2000px.
  */
-export function shortAppLabel(label, category, integrationId = null) {
+export function shortAppLabel(label: string | null | undefined, category: string | null | undefined, integrationId: string | null = null): string {
     const full = String(label || '').trim();
     const vendor = vendorWord(category);
     if (!full || !vendor) return full;
     if (full.toLowerCase() === vendor.toLowerCase()) {
-        return BASE_APP_LABEL[integrationId] || full;
+        return BASE_APP_LABEL[integrationId as string] || full;
     }
     if (full.toLowerCase().startsWith(`${vendor.toLowerCase()} `)) {
         return full.slice(vendor.length + 1).trim() || full;
@@ -66,7 +66,12 @@ export function shortAppLabel(label, category, integrationId = null) {
 }
 
 /** The label the server generates when it has nothing human to say. */
-function isMechanicalLabel(action) {
+export interface AppAction {
+    tool?: string | null;
+    label?: string | null;
+}
+
+function isMechanicalLabel(action: AppAction | null | undefined): boolean {
     if (!action?.label) return true;
     return String(action.label).trim() === String(action.tool || '').replace(/_/g, ' ');
 }
@@ -77,7 +82,7 @@ function isMechanicalLabel(action) {
  * Gmail. Never consumes a whole name (something has to be left to show), and
  * needs at least two names to be a prefix rather than a coincidence.
  */
-function commonTokenPrefix(names) {
+function commonTokenPrefix(names: string[]): number {
     if (names.length < 2) return 0;
     const split = names.map(n => String(n).split('_'));
     const cap = Math.min(...split.map(s => s.length)) - 1; // leave ≥1 token
@@ -86,7 +91,7 @@ function commonTokenPrefix(names) {
     return i;
 }
 
-function sentenceCase(text) {
+function sentenceCase(text: string): string {
     if (!text) return text;
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -99,11 +104,11 @@ function sentenceCase(text) {
  * returned untouched — so if the catalog ever gains curated action labels, this
  * stops guessing and defers to them.
  */
-export function actionLabelMap(actions = []) {
-    const list = (actions || []).filter(a => a && a.tool);
+export function actionLabelMap(actions: AppAction[] | null | undefined = []): Map<string, string | null | undefined> {
+    const list = (actions || []).filter((a): a is AppAction & { tool: string } => Boolean(a && a.tool));
     const derivable = list.filter(isMechanicalLabel);
     const skip = commonTokenPrefix(derivable.map(a => a.tool));
-    const out = new Map();
+    const out = new Map<string, string | null | undefined>();
     for (const a of list) {
         if (!isMechanicalLabel(a)) { out.set(a.tool, a.label); continue; }
         const rest = String(a.tool).split('_').slice(skip).join(' ');
@@ -113,8 +118,8 @@ export function actionLabelMap(actions = []) {
 }
 
 /** Convenience for a single action when its siblings are already to hand. */
-export function actionLabel(action, labelMap) {
-    return labelMap?.get(action?.tool) || action?.label || '';
+export function actionLabel(action: AppAction | null | undefined, labelMap: Map<string, string | null | undefined> | null | undefined): string {
+    return labelMap?.get(action?.tool as string) || action?.label || '';
 }
 
 // Sentences written AT the model. They are instructions about how to call the
@@ -139,7 +144,7 @@ const MAX_CHARS = 180;
  * Splits on sentence ends that are followed by a capital or a digit, so "e.g."
  * and "1)" mid-sentence don't cut it in half.
  */
-export function uiDescription(desc) {
+export function uiDescription(desc: unknown): string {
     const flat = String(desc || '').replace(/\s+/g, ' ').trim();
     if (!flat) return '';
     const kept = flat

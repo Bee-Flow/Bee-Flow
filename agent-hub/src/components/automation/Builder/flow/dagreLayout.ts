@@ -17,9 +17,45 @@ import dagre from '@dagrejs/dagre';
  */
 
 const LAYOUT_CACHE_CAP = 8;
-const layoutCache = new Map(); // key -> positionById Map
+export interface Point {
+    x: number;
+    y: number;
+}
 
-export function isFinitePos(p) {
+export interface Dims {
+    width: number;
+    height: number;
+}
+
+export interface Spacing {
+    nodesep: number;
+    ranksep: number;
+}
+
+export interface GraphStep {
+    id: string;
+    position?: Point;
+    [key: string]: unknown;
+}
+
+export interface GraphEdge {
+    from?: string;
+    to?: string;
+    label?: string | null;
+    caseName?: string | null;
+    [key: string]: unknown;
+}
+
+export interface GraphLike {
+    trigger?: GraphStep | null;
+    triggers?: (GraphStep | null | undefined)[];
+    steps?: (GraphStep | null | undefined)[];
+    edges?: GraphEdge[];
+}
+
+const layoutCache = new Map<string, Map<string, Point>>(); // key -> positionById Map
+
+export function isFinitePos(p: Point | null | undefined) {
     return p && typeof p.x === 'number' && typeof p.y === 'number'
         && Number.isFinite(p.x) && Number.isFinite(p.y);
 }
@@ -39,7 +75,7 @@ export function isFinitePos(p) {
  */
 export const DEFAULT_SPACING = Object.freeze({ nodesep: 64, ranksep: 80 });
 
-function layoutCacheKey(allSteps, edges, dims, heightById, spacing) {
+function layoutCacheKey(allSteps: GraphStep[], edges: GraphEdge[], dims: Dims, heightById: Map<string, number> | null, spacing: Spacing): string {
     // Stable: sort to ignore array order changes that don't affect shape.
     // Includes label/caseName — an edge's REAL identity — so parallel branch
     // edges between the same pair don't collapse into one cache entry.
@@ -60,7 +96,7 @@ function layoutCacheKey(allSteps, edges, dims, heightById, spacing) {
     return `${dims.width}x${dims.height}@${spacing.nodesep}/${spacing.ranksep}#${nodeIds}#${edgeKey}#${heights}`;
 }
 
-function rememberLayout(key, positionById) {
+function rememberLayout(key: string, positionById: Map<string, Point>) {
     if (layoutCache.has(key)) layoutCache.delete(key);
     layoutCache.set(key, positionById);
     if (layoutCache.size > LAYOUT_CACHE_CAP) {
@@ -74,7 +110,7 @@ function rememberLayout(key, positionById) {
  * Lay every node out with dagre and return Map<id, {x, y}> in top-left
  * coordinates. Memoised on graph shape.
  */
-export function runDagre(allSteps, edges, dims, heightById = null, spacing = DEFAULT_SPACING) {
+export function runDagre(allSteps: GraphStep[], edges: GraphEdge[], dims: Dims, heightById: Map<string, number> | null = null, spacing: Spacing = DEFAULT_SPACING): Map<string, Point> {
     const gaps = spacing === DEFAULT_SPACING ? DEFAULT_SPACING : { ...DEFAULT_SPACING, ...spacing };
     const key = layoutCacheKey(allSteps, edges, dims, heightById, gaps);
     const cached = layoutCache.get(key);
@@ -104,7 +140,7 @@ export function runDagre(allSteps, edges, dims, heightById = null, spacing = DEF
         g.setEdge(e.from, e.to);
     }
     dagre.layout(g);
-    const out = new Map();
+    const out = new Map<string, Point>();
     for (const s of allSteps) {
         const n = g.node(s.id) || { x: 0, y: 0 };
         out.set(s.id, { x: n.x - dims.width / 2, y: n.y - (heightById?.get(s.id) ?? dims.height) / 2 });
@@ -121,21 +157,21 @@ export function runDagre(allSteps, edges, dims, heightById = null, spacing = DEF
  *
  * @returns {Map<string, {x:number,y:number}>}
  */
-export function graphPositions(graph, dims = { width: 240, height: 96 }) {
+export function graphPositions(graph: GraphLike | null | undefined, dims: Dims = { width: 240, height: 96 }): Map<string, Point> {
     const allSteps = graphNodes(graph);
     if (allSteps.length === 0) return new Map();
     if (allSteps.every(s => isFinitePos(s.position))) {
-        return new Map(allSteps.map(s => [s.id, { x: s.position.x, y: s.position.y }]));
+        return new Map(allSteps.map((s): [string, Point] => [s.id, { x: (s.position as Point).x, y: (s.position as Point).y }]));
     }
     return runDagre(allSteps, (graph?.edges || []).filter(e => e?.from && e?.to), dims);
 }
 
 /** Trigger + secondary triggers + steps, in the order the canvas renders them. */
-export function graphNodes(graph) {
+export function graphNodes(graph: GraphLike | null | undefined): GraphStep[] {
     if (!graph) return [];
     return [
         graph.trigger,
         ...(Array.isArray(graph.triggers) ? graph.triggers : []),
         ...(Array.isArray(graph.steps) ? graph.steps : []),
-    ].filter(s => s && s.id);
+    ].filter((s): s is GraphStep => Boolean(s && s.id));
 }

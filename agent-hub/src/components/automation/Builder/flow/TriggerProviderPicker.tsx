@@ -23,10 +23,29 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *   onPick    — (providerId) => void
  *   onClose   — () => void
  */
-export default function TriggerProviderPicker({ providers = [], selected = null, onPick, onClose }) {
+export interface TriggerEvent {
+    id: string;
+    label?: string;
+    deliverability?: string;
+}
+
+export interface TriggerProvider {
+    id: string;
+    label: string;
+    events?: TriggerEvent[];
+}
+
+export interface TriggerProviderPickerProps {
+    providers?: TriggerProvider[];
+    selected?: string | null;
+    onPick: (id: string) => void;
+    onClose: () => void;
+}
+
+export default function TriggerProviderPicker({ providers = [], selected = null, onPick, onClose }: TriggerProviderPickerProps) {
     const { t } = useTranslation();
     const [search, setSearch] = useState('');
-    const [focusedId, setFocusedId] = useState(
+    const [focusedId, setFocusedId] = useState<string | null>(
         () => (providers.some(p => p.id === selected) ? selected : providers[0]?.id) || null,
     );
 

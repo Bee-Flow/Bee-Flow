@@ -16,24 +16,40 @@ import { stepPayload } from './stepPayload';
  * A Gmail search returns `{query, total, results:[…]}` — reporting that as
  * "1 record" would be technically true and completely useless.
  */
+export interface DataSummary {
+    count: number;
+    kind: string;
+    label: string;
+    total?: number;
+    title?: string;
+}
+
+export interface StepOutput {
+    matchesByCase?: Record<string, unknown> | null;
+    branches?: unknown[];
+    branch?: unknown;
+    items?: unknown[];
+    inputCount?: number;
+}
+
 const LIST_KEYS = ['items', 'results', 'rows', 'records', 'messages', 'values', 'data', 'entries', 'files'];
 
 /** Text longer than this is worth reporting a character count for. */
 const LONG_TEXT = 60;
 
-function plural(n, one, many) {
+function plural(n: number, one: string, many: string) {
     return `${n} ${n === 1 ? one : many}`;
 }
 
 /** Is every element (that we sampled) an object? Then it reads as records. */
-function looksTabular(arr) {
+function looksTabular(arr: unknown[]): boolean {
     const sample = arr.slice(0, 20).filter(v => v !== null && v !== undefined);
     if (!sample.length) return false;
     const objects = sample.filter(v => typeof v === 'object' && !Array.isArray(v));
     return objects.length >= sample.length / 2;
 }
 
-function fromArray(arr) {
+function fromArray(arr: unknown[]): DataSummary {
     if (looksTabular(arr)) return { count: arr.length, kind: 'records', label: plural(arr.length, 'record', 'records') };
     return { count: arr.length, kind: 'items', label: plural(arr.length, 'item', 'items') };
 }
@@ -48,7 +64,7 @@ function fromArray(arr) {
  * withTotal) — in `{total: 100, lines:[…]}` that `total` is far more likely to
  * be an amount of money than a row count.
  */
-function envelopeList(obj) {
+function envelopeList(obj: Record<string, unknown>): { list: unknown[]; conventional: boolean } | null {
     for (const k of LIST_KEYS) {
         if (Array.isArray(obj[k])) return { list: obj[k], conventional: true };
     }
@@ -65,7 +81,7 @@ function envelopeList(obj) {
     // step type is not known (callers that know it pass stepPayload instead).
     const arrays = Object.entries(obj)
         .filter(([k, v]) => Array.isArray(v) && k !== 'branches' && k !== 'logs')
-        .map(([, v]) => v);
+        .map(([, v]) => v as unknown[]);
     return arrays.length === 1 ? { list: arrays[0], conventional: false } : null;
 }
 
@@ -82,7 +98,7 @@ function envelopeList(obj) {
  * (a cart total) or a number that matches the list length says nothing extra
  * and keeps the plain label.
  */
-function withTotal(summary, total) {
+function withTotal(summary: DataSummary, total: number): DataSummary {
     if (!Number.isInteger(total) || total <= summary.count) return summary;
     const noun = summary.kind === 'records' || summary.kind === 'record' ? 'records' : 'items';
     return {
@@ -98,14 +114,14 @@ function withTotal(summary, total) {
  * @returns {{count:number, kind:string, label:string}|null}
  *          null when there is nothing worth reporting (no run yet, empty text)
  */
-export function summariseData(value) {
+export function summariseData(value: unknown): DataSummary | null {
     if (value === null || value === undefined) return null;
     if (Array.isArray(value)) return fromArray(value);
     if (typeof value === 'object') {
-        const found = envelopeList(value);
+        const found = envelopeList(value as Record<string, unknown>);
         if (found) {
             const summary = fromArray(found.list);
-            return found.conventional ? withTotal(summary, value.total) : summary;
+            return found.conventional ? withTotal(summary, (value as Record<string, unknown>).total as number) : summary;
         }
         const n = Object.keys(value).length;
         if (n === 0) return null;
@@ -134,7 +150,11 @@ export function summariseData(value) {
  * @param {object} runStep     its most recent run record ({status, output})
  * @param {object} edge        the definition edge ({label, caseName})
  */
-export function summariseEdgeData(sourceStep, runStep, edge) {
+export function summariseEdgeData(
+    sourceStep: { type?: string } | null | undefined,
+    runStep: { status?: string; output?: StepOutput | null } | null | undefined,
+    edge: { label?: string | null; caseName?: string | null } | null | undefined,
+): DataSummary | null {
     if (!runStep || runStep.status === 'skipped') return null;
     const output = runStep.output;
     if (output === null || output === undefined) return null;
@@ -164,7 +184,7 @@ export function summariseEdgeData(sourceStep, runStep, edge) {
         const edgeBranch = edge?.label === 'then' || edge?.label === 'else'
             ? edge.label
             : (caseName ? `case:${caseName}` : null);
-        const fired = branches.length ? branches.includes(edgeBranch) : edgeBranch === branch;
+        const fired = branches.length ? (branches as unknown[]).includes(edgeBranch) : edgeBranch === branch;
         if (edgeBranch && !fired) return null;
     }
     if (sourceStep?.type === 'filter' && Array.isArray(output.items)) {

@@ -33,11 +33,19 @@ import { pathSegments } from './edgeHops';
  * rendered on its own (a test, a preview) simply keeps React Flow's path.
  */
 
-const EdgeCrossingApiContext = createContext(null);
+type Segments = ReturnType<typeof pathSegments>;
+
+export interface EdgeCrossingApi {
+    publish(id: string, d: string): void;
+    retract(id: string): void;
+    others(id: string): Segments;
+}
+
+const EdgeCrossingApiContext = createContext<EdgeCrossingApi | null>(null);
 const EdgeCrossingVersionContext = createContext(0);
 
-export function EdgeCrossingProvider({ children }) {
-    const byId = useRef(new Map());
+export function EdgeCrossingProvider({ children }: { children?: React.ReactNode }) {
+    const byId = useRef(new Map<string, { d: string; segments: Segments }>());
     const [version, setVersion] = useState(0);
     const pending = useRef(false);
     const alive = useRef(true);
@@ -45,7 +53,7 @@ export function EdgeCrossingProvider({ children }) {
     // Created once. Its identity is load-bearing: it is what the publish effect
     // depends on, and an identity that changed per bump is exactly the loop
     // described above.
-    const api = useMemo(() => {
+    const api = useMemo<EdgeCrossingApi>(() => {
         const bump = () => {
             if (pending.current) return;
             pending.current = true;
@@ -55,18 +63,18 @@ export function EdgeCrossingProvider({ children }) {
             });
         };
         return {
-            publish(id, d) {
+            publish(id: string, d: string) {
                 if (!id) return;
                 const prev = byId.current.get(id);
                 if (prev && prev.d === d) return;
                 byId.current.set(id, { d, segments: pathSegments(d) });
                 bump();
             },
-            retract(id) {
+            retract(id: string) {
                 if (byId.current.delete(id)) bump();
             },
-            others(id) {
-                const out = [];
+            others(id: string) {
+                const out: Segments = [];
                 for (const [key, entry] of byId.current) {
                     if (key === id) continue;
                     out.push(...entry.segments);

@@ -14,12 +14,14 @@ import { STATUS_COLORS, CHART_SERIES } from '../../../../constants/palette';
  */
 
 /** The eight pickable keys, in swatch-row order. */
+const COLORS: Record<string, string> = STATUS_COLORS;
+
 export const EDGE_COLOR_KEYS = Object.keys(STATUS_COLORS);
 
 /** Palette key -> hex; anything else (typos, legacy junk, null) -> null. */
-export function resolveEdgeColor(key) {
+export function resolveEdgeColor(key: unknown): string | null {
     if (typeof key !== 'string') return null;
-    return STATUS_COLORS[key] ?? null;
+    return COLORS[key] ?? null;
 }
 
 /**
@@ -28,7 +30,7 @@ export function resolveEdgeColor(key) {
  * both key on the same index. Wraps and tolerates negatives, mirroring
  * AppStudio's chartColorAt.
  */
-export function autoCaseColor(caseIndex) {
+export function autoCaseColor(caseIndex: number): string {
     const n = CHART_SERIES.length;
     const i = Number.isInteger(caseIndex) ? caseIndex : 0;
     return CHART_SERIES[((i % n) + n) % n];
@@ -41,7 +43,7 @@ export function autoCaseColor(caseIndex) {
  * mapping, documented here so the legend, the stroke and the tooltip all
  * agree; deliberately hexes from STATUS_COLORS only.
  */
-export const PII_GROUP_COLORS = {
+export const PII_GROUP_COLORS: Record<string, string> = {
     Personal: STATUS_COLORS.blue,
     Contact: STATUS_COLORS.green,
     Financial: STATUS_COLORS.orange,
@@ -56,9 +58,9 @@ export const PII_GROUP_COLORS = {
  * ties break by PII_GROUP_COLORS declaration order so the same summary
  * always paints the same colour.
  */
-export function dominantPiiGroup(groups) {
+export function dominantPiiGroup(groups: Record<string, unknown> | null | undefined): string | null {
     if (!groups || typeof groups !== 'object') return null;
-    let best = null;
+    let best: string | null = null;
     let bestCount = 0;
     for (const name of Object.keys(PII_GROUP_COLORS)) {
         const count = Number(groups[name]) || 0;

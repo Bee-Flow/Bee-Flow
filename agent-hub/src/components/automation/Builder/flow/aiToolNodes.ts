@@ -1,5 +1,7 @@
 import { cardHeightForPorts, CARD_H } from './nodeTypeColors';
 import { routePorts } from './routeModel';
+import type { AiDefinitionLike, AiStepFull, AiStepLike, AiToolEdge, AiToolFlowNode, AiToolNode, ToolMeta, ToolState } from './aiToolNodes.types';
+export type { AiDefinitionLike, AiStepFull, AiStepLike, AiToolEdge, AiToolFlowNode, AiToolNode, ToolMeta, ToolState } from './aiToolNodes.types';
 
 /**
  * AI-step tools, drawn on the canvas.
@@ -57,16 +59,16 @@ const PARENT_W = 240;         // StepNodeBase's fixed card width
  */
 export const TOOL_ROW_EXTRA_H = 76;
 
-export function toolNodeId(stepId, tool) {
+export function toolNodeId(stepId: string, tool: string): string {
     return `${stepId}${TOOL_ID_SEP}${tool}`;
 }
 
-export function isToolNodeId(id) {
+export function isToolNodeId(id: unknown): id is string {
     return typeof id === 'string' && id.includes(TOOL_ID_SEP);
 }
 
 /** `{ stepId, tool }` for a synthetic id, else null. */
-export function parseToolNodeId(id) {
+export function parseToolNodeId(id: unknown): { stepId: string; tool: string } | null {
     if (!isToolNodeId(id)) return null;
     const at = id.indexOf(TOOL_ID_SEP);
     return { stepId: id.slice(0, at), tool: id.slice(at + TOOL_ID_SEP.length) };
@@ -82,7 +84,7 @@ export function parseToolNodeId(id) {
  *   'all'      — legacy steps saved with `allowTools: true` and no array:
  *                every tool the user is permitted. Never silently narrowed.
  */
-export function toolStateOf(step) {
+export function toolStateOf(step: AiStepLike | null | undefined): ToolState {
     if (!step || step.type !== 'ai_step') return { mode: 'none', tools: [] };
     if (Array.isArray(step.tools)) return { mode: 'explicit', tools: step.tools.filter(Boolean) };
     return step.allowTools ? { mode: 'all', tools: [] } : { mode: 'none', tools: [] };
@@ -97,7 +99,7 @@ export function toolStateOf(step) {
  * made explicit from everything currently available (the same conversion the
  * editor's "Choose specific tools…" performs) and the new one added on top.
  */
-export function attachTool(definition, stepId, tool, { allToolNames = [] } = {}) {
+export function attachTool<D extends AiDefinitionLike>(definition: D | null | undefined, stepId: string | null | undefined, tool: string | null | undefined, { allToolNames = [] }: { allToolNames?: string[] } = {}) {
     if (!definition || !stepId || !tool) return definition;
     const steps = definition.steps || [];
     const idx = steps.findIndex(s => s?.id === stepId);
@@ -114,7 +116,7 @@ export function attachTool(definition, stepId, tool, { allToolNames = [] } = {})
  * the last one goes — `tools: []` is how the runtime is told "no tools", and
  * normalising it back to null would flip the step to legacy all-tools.
  */
-export function detachTool(definition, stepId, tool) {
+export function detachTool<D extends AiDefinitionLike>(definition: D | null | undefined, stepId: string | null | undefined, tool: string | null | undefined) {
     if (!definition || !stepId || !tool) return definition;
     const steps = definition.steps || [];
     const idx = steps.findIndex(s => s?.id === stepId);
@@ -125,8 +127,8 @@ export function detachTool(definition, stepId, tool) {
     return replaceStep(definition, idx, { tools: next, allowTools: next.length > 0 });
 }
 
-function replaceStep(definition, idx, patch) {
-    const steps = definition.steps.slice();
+function replaceStep<D extends AiDefinitionLike>(definition: D, idx: number, patch: Partial<AiStepLike>): D {
+    const steps = (definition.steps as AiStepLike[]).slice();
     steps[idx] = { ...steps[idx], ...patch };
     return { ...definition, steps };
 }
@@ -141,9 +143,16 @@ function replaceStep(definition, idx, patch) {
  * callers pass a catalog-backed lookup. Missing entries still render (a tool
  * the catalog no longer offers is exactly what the user needs to SEE).
  */
-export function buildAiToolGraph(nodes, { labelFor = null, onDetach = null, editable = false } = {}) {
-    const outNodes = [];
-    const outEdges = [];
+export function buildAiToolGraph(
+    nodes: AiToolFlowNode[] | null | undefined,
+    { labelFor = null, onDetach = null, editable = false }: {
+        labelFor?: ((tool: string) => ToolMeta | null | undefined) | null;
+        onDetach?: ((stepId: string, tool: string) => void) | null;
+        editable?: boolean;
+    } = {},
+): { nodes: AiToolNode[]; edges: AiToolEdge[] } {
+    const outNodes: AiToolNode[] = [];
+    const outEdges: AiToolEdge[] = [];
     for (const parent of nodes || []) {
         if (parent?.type !== 'ai_step') continue;
         const step = parent.data?.step;
@@ -151,7 +160,7 @@ export function buildAiToolGraph(nodes, { labelFor = null, onDetach = null, edit
         // A legacy "all tools" step gets ONE node saying so. Rendering a
         // hundred satellites for it would bury the flow, and the set is not
         // even knowable here — it is whatever the user is permitted at run time.
-        const entries = state.mode === 'all'
+        const entries: { tool: string | null; key: string; all: boolean }[] = state.mode === 'all'
             ? [{ tool: null, key: `${parent.id}${TOOL_ID_SEP}*`, all: true }]
             : state.tools.map(t => ({ tool: t, key: toolNodeId(parent.id, t), all: false }));
         if (entries.length === 0) continue;
@@ -207,8 +216,8 @@ export function buildAiToolGraph(nodes, { labelFor = null, onDetach = null, edit
  * renders with, so layout and canvas cannot disagree). Empty (and cheap)
  * for graphs with neither.
  */
-export function toolLayoutHeights(steps, baseHeight) {
-    const m = new Map();
+export function toolLayoutHeights(steps: AiStepLike[] | null | undefined, baseHeight: number): Map<string, number> {
+    const m = new Map<string, number>();
     for (const s of steps || []) {
         if (!s) continue;
         if (s.type === 'ai_step') {
@@ -233,8 +242,8 @@ export function toolLayoutHeights(steps, baseHeight) {
  * integrationId }. Built once from the same `/catalog` payload the ribbon and
  * the step editor read, so a tool is named identically in all three.
  */
-export function toolLabelIndex(catalog) {
-    const m = new Map();
+export function toolLabelIndex(catalog: CatalogLike | null | undefined): Map<string, ToolMeta> {
+    const m = new Map<string, ToolMeta>();
     for (const app of (catalog?.apps || [])) {
         for (const a of (app.actions || [])) {
             if (!a?.name) continue;
@@ -249,14 +258,18 @@ export function toolLabelIndex(catalog) {
 }
 
 /** Every tool name the catalog currently offers — the legacy-"all" expansion. */
-export function allCatalogToolNames(catalog) {
+interface CatalogLike {
+    apps?: { id?: string; available?: boolean; actions?: { name?: string; label?: string; description?: string; integrationId?: string }[] }[];
+}
+
+export function allCatalogToolNames(catalog: CatalogLike | null | undefined): string[] {
     return (catalog?.apps || [])
         .filter(a => a?.available !== false)
-        .flatMap(a => (a.actions || []).map(x => x?.name).filter(Boolean));
+        .flatMap(a => (a.actions || []).map(x => x?.name).filter((n): n is string => Boolean(n)));
 }
 
 /** `gmail_search` → `Gmail search`, for tools the catalog can no longer name. */
-export function prettyToolName(name) {
+export function prettyToolName(name: unknown): string {
     return String(name || '')
         .replace(/_/g, ' ')
         .trim()
@@ -270,7 +283,7 @@ export function prettyToolName(name) {
  *                   colour, "AI step · skill";
  *   'instruction' — neither: the loose-instruction card, as before.
  */
-export function aiStepVariant(step) {
+export function aiStepVariant(step: { agentId?: unknown; skillIds?: unknown } | null | undefined): 'agent' | 'skill' | 'instruction' {
     if (typeof step?.agentId === 'string' && step.agentId) return 'agent';
     if (Array.isArray(step?.skillIds) && step.skillIds.some((s) => typeof s === 'string' && s)) return 'skill';
     return 'instruction';
@@ -282,12 +295,12 @@ export function aiStepVariant(step) {
  * agent's OWN skills and tools are not on the step, so the card does not
  * claim them.
  */
-export function aiStepPortCounts(step) {
-    const ids = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === 'string' && s) : []);
+export function aiStepPortCounts(step: AiStepFull | null | undefined) {
+    const ids = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string' && Boolean(s)) : []);
     const skillIds = ids(step?.skillIds);
     const knowledgeBaseIds = ids(step?.knowledgeBaseIds);
     return {
-        agentId: aiStepVariant(step) === 'agent' ? step.agentId : null,
+        agentId: aiStepVariant(step) === 'agent' ? step?.agentId : null,
         skillIds,
         knowledgeBaseIds,
         tools: Array.isArray(step?.tools) ? step.tools.length : 0,
@@ -299,7 +312,10 @@ export function aiStepPortCounts(step) {
  * translate function; `agentName` comes from the builder catalog (null while
  * unknown). The loose instruction keeps its old line: the prompt.
  */
-export function aiStepCardText(step, { t, agentName = null, typeLabel = 'AI step' }) {
+export function aiStepCardText(
+    step: AiStepFull,
+    { t, agentName = null, typeLabel = 'AI step' }: { t: (key: string, fallback: string, vars?: Record<string, unknown>) => string; agentName?: string | null; typeLabel?: string },
+) {
     const variant = aiStepVariant(step);
     const { skillIds, tools } = aiStepPortCounts(step);
     if (variant === 'agent') {

@@ -2,7 +2,7 @@ import React from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { isInlineId } from './inlineFlowlets';
 
-const BRANCHERS = new Set(['condition', 'switch', 'filter', 'guard']);
+const BRANCHERS = new Set<string | undefined>(['condition', 'switch', 'filter', 'guard']);
 
 /**
  * What the canvas holds, in one line: "14 steps · 1 branch · 1 loop" — the
@@ -12,7 +12,18 @@ const BRANCHERS = new Set(['condition', 'switch', 'filter', 'guard']);
  *
  * Pure; exported for the test.
  */
-export function flowSummary(definition) {
+interface SummaryStep {
+    id?: string;
+    type?: string;
+}
+
+interface SummaryDefinition {
+    trigger?: SummaryStep | null;
+    triggers?: SummaryStep[];
+    steps?: SummaryStep[];
+}
+
+export function flowSummary(definition: SummaryDefinition | null | undefined) {
     if (!definition?.trigger) return { steps: 0, branches: 0, loops: 0, empty: true };
     const nodes = [definition.trigger, ...(definition.triggers || []), ...(definition.steps || [])]
         .filter(s => s && s.id && !isInlineId(s.id) && s.type !== 'note');
@@ -25,7 +36,11 @@ export function flowSummary(definition) {
     return { steps: nodes.length, branches, loops, empty: false };
 }
 
-export default function FlowSummaryChip({ definition }) {
+interface FlowSummaryChipProps {
+    definition: SummaryDefinition | null | undefined;
+}
+
+export default function FlowSummaryChip({ definition }: FlowSummaryChipProps) {
     const { t } = useTranslation();
     const s = flowSummary(definition);
     const parts = s.empty

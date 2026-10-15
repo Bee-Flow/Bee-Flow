@@ -39,25 +39,42 @@ import {
  * SettingsForm.accordion.test.jsx locates sections. Badges and `meta` are
  * therefore siblings of the button, never children of it.
  */
+export type CollapsibleVariant = 'section' | 'disclosure' | 'quiet' | 'static';
+
+export interface CollapsibleSectionProps {
+    title?: React.ReactNode;
+    count?: number | null;
+    badge?: React.ReactNode;
+    variant?: CollapsibleVariant | null;
+    meta?: React.ReactNode;
+    // What the counted things ARE ("Show 7 more fields"). Default keeps the
+    // historic wording, so "options" can mean exactly one thing in a panel
+    // that also counts hidden SECTIONS as options.
+    countNoun?: string;
+    defaultOpen?: boolean;
+    open?: boolean;
+    onToggle?: (next: boolean) => void;
+    persistKey?: string | null;
+    // Overrides collapsed state without touching the persisted preference —
+    // an error inside must never hide behind a collapsed section (C11).
+    forceOpen?: boolean;
+    children?: React.ReactNode;
+}
+
 export default function CollapsibleSection({
     title = 'Advanced',
     count = null,
     badge = null,
     variant = null,
     meta = null,
-    // What the counted things ARE ("Show 7 more fields"). Default keeps the
-    // historic wording, so "options" can mean exactly one thing in a panel
-    // that also counts hidden SECTIONS as options.
     countNoun = 'option',
     defaultOpen = false,
     open: controlledOpen,
     onToggle,
     persistKey = null,
-    // Overrides collapsed state without touching the persisted preference —
-    // an error inside must never hide behind a collapsed section (C11).
     forceOpen = false,
     children,
-}) {
+}: CollapsibleSectionProps) {
     const isControlled = controlledOpen != null && typeof onToggle === 'function';
     const [internalOpen, setInternalOpen] = useState(() => {
         if (persistKey) return scopedStorage.getItem(`collapse.${persistKey}`) === '1';

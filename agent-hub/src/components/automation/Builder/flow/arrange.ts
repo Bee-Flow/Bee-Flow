@@ -27,6 +27,55 @@ import { ROW_GAP } from './rowBands';
  * existing one keeps its hand-placed positions until Arrange is pressed.
  */
 
+export interface ArrangeStep {
+    id: string;
+    type?: string;
+    position?: { x: number; y: number };
+    [key: string]: unknown;
+}
+
+export interface ArrangeEdge {
+    from?: string;
+    to?: string;
+    [key: string]: unknown;
+}
+
+export interface ArrangeGraph {
+    trigger?: ArrangeStep | null;
+    triggers?: (ArrangeStep | null | undefined)[];
+    steps?: (ArrangeStep | null | undefined)[];
+    edges?: ArrangeEdge[];
+    layers?: Record<string, ArrangeGraph>;
+    [key: string]: unknown;
+}
+
+interface Point {
+    x: number;
+    y: number;
+}
+
+interface Dims {
+    width: number;
+    height: number;
+}
+
+interface Spacing {
+    nodesep: number;
+    ranksep: number;
+}
+
+interface Member {
+    id: string;
+    x: number;
+    y: number;
+}
+
+interface ViewOpts {
+    dims: Dims;
+    viewportWidth?: number;
+    viewportHeight?: number;
+}
+
 export const ARRANGE_MODES = Object.freeze(['compact', 'roomy', 'serpentine']);
 
 export const DEFAULT_DIMS = Object.freeze({ width: 240, height: 96 });
@@ -48,7 +97,7 @@ export const DEFAULT_COLUMNS = 5;
  * it is the mode you pick with the flowlets open, and an expanded container is
  * several times the size of the card this floor was measured against.
  */
-const SPACING = Object.freeze({
+const SPACING: Record<string, Spacing> = Object.freeze({
     compact: { nodesep: DEFAULT_SPACING.nodesep, ranksep: DEFAULT_SPACING.ranksep },
     roomy: { nodesep: 88, ranksep: 140 },
     serpentine: { nodesep: DEFAULT_SPACING.nodesep, ranksep: DEFAULT_SPACING.ranksep },
@@ -62,11 +111,11 @@ const SPACING = Object.freeze({
  * `layoutEdges`) is what keeps `applyPositions` from touching it at all —
  * free-floating means Arrange leaves it exactly where the author put it.
  */
-function layoutNodes(graph) {
+function layoutNodes(graph: ArrangeGraph): ArrangeStep[] {
     return graphNodes(graph).filter(s => !isInlineId(s.id) && s.type !== 'note');
 }
 
-function layoutEdges(graph) {
+function layoutEdges(graph: ArrangeGraph | null | undefined): ArrangeEdge[] {
     return (graph?.edges || []).filter(e => e?.from && e?.to && !isInlineId(e.from) && !isInlineId(e.to));
 }
 
@@ -75,14 +124,18 @@ function layoutEdges(graph) {
  * shares an x, and all cards are the same width, so the top-left x IS the rank
  * key — no need to reach into dagre's internals for it.
  */
-function toRanks(nodes, positionById) {
-    const byX = new Map();
+function toRanks(nodes: ArrangeStep[], positionById: Map<string, Point>): Member[][] {
+    const byX = new Map<number, Member[]>();
     for (const s of nodes) {
         const p = positionById.get(s.id);
         if (!p) continue;
         const key = Math.round(p.x);
-        if (!byX.has(key)) byX.set(key, []);
-        byX.get(key).push({ id: s.id, x: p.x, y: p.y });
+        let bucket = byX.get(key);
+        if (!bucket) {
+            bucket = [];
+            byX.set(key, bucket);
+        }
+        bucket.push({ id: s.id, x: p.x, y: p.y });
     }
     return [...byX.entries()]
         .sort((a, b) => a[0] - b[0])
@@ -97,8 +150,8 @@ function toRanks(nodes, positionById) {
  * its two arms on the next, which reads worse than the long line we set out to
  * fix — so those boundaries are avoided unless there is no alternative.
  */
-function breakableBoundaries(ranks) {
-    const ok = new Array(ranks.length).fill(false);
+function breakableBoundaries(ranks: unknown[][]): boolean[] {
+    const ok: boolean[] = new Array(ranks.length).fill(false);
     for (let i = 1; i < ranks.length; i += 1) {
         ok[i] = ranks[i - 1].length === 1 && ranks[i].length === 1;
     }
@@ -111,9 +164,9 @@ function breakableBoundaries(ranks) {
  * short row beats a broken branch), then forwards, then gives up and cuts at
  * the target — never returning an empty row, so this always terminates.
  */
-function chunkRanks(ranks, maxCols) {
+function chunkRanks<T>(ranks: T[][], maxCols: number): T[][][] {
     const breakable = breakableBoundaries(ranks);
-    const rows = [];
+    const rows: T[][][] = [];
     let start = 0;
     while (start < ranks.length) {
         const target = Math.min(start + maxCols, ranks.length);
@@ -131,7 +184,7 @@ function chunkRanks(ranks, maxCols) {
 }
 
 /** Vertical extent of one row, so the next row can start below all of it. */
-function rowExtent(row, heightById, dims) {
+function rowExtent(row: Member[][], heightById: Map<string, number>, dims: Dims): { minY: number; height: number } | null {
     let minY = Infinity;
     let maxBottom = -Infinity;
     for (const rank of row) {
@@ -151,7 +204,7 @@ function rowExtent(row, heightById, dims) {
  * below is made on the box's RATIO, that phantom is enough to hand the job to
  * the wrong grid.
  */
-function measureRows(rows, heightById, dims, colWidth) {
+function measureRows(rows: Member[][][], heightById: Map<string, number>, dims: Dims, colWidth: number) {
     let width = 0;
     let height = 0;
     rows.forEach((row, i) => {
@@ -174,7 +227,7 @@ function measureRows(rows, heightById, dims, colWidth) {
  * Without a viewport there is nothing to match, so fall back to the design's
  * fixed row width (DEFAULT_COLUMNS) rather than guessing two columns.
  */
-function chooseColumns(ranks, { heightById, dims, colWidth, viewportWidth, viewportHeight }) {
+function chooseColumns(ranks: Member[][], { heightById, dims, colWidth, viewportWidth, viewportHeight }: ViewOpts & { heightById: Map<string, number>; colWidth: number }): number {
     if (!viewportWidth || !viewportHeight) {
         if (!viewportWidth) return DEFAULT_COLUMNS;
         const usable = Math.max(colWidth, viewportWidth - dims.width);
@@ -201,8 +254,8 @@ function chooseColumns(ranks, { heightById, dims, colWidth, viewportWidth, viewp
  * return edge is the price of a canvas you can read in order, and ROW_GAP
  * leaves it a lane to run in.
  */
-function placeRows(rows, heightById, dims, colWidth) {
-    const out = new Map();
+function placeRows(rows: Member[][][], heightById: Map<string, number>, dims: Dims, colWidth: number): Map<string, Point> {
+    const out = new Map<string, Point>();
     let rowTop = 0;
     rows.forEach((row) => {
         const ext = rowExtent(row, heightById, dims);
@@ -218,7 +271,7 @@ function placeRows(rows, heightById, dims, colWidth) {
 }
 
 /** Fold a long left-to-right chain into rows that fit the viewport. */
-function serpentinePositions(nodes, edges, { dims, spacing, viewportWidth, viewportHeight }) {
+function serpentinePositions(nodes: ArrangeStep[], edges: ArrangeEdge[], { dims, spacing, viewportWidth, viewportHeight }: ViewOpts & { spacing: Spacing }): Map<string, Point> {
     const heightById = toolLayoutHeights(nodes, dims.height);
     const flat = runDagre(nodes, edges, dims, heightById, spacing);
     const ranks = toRanks(nodes, flat);
@@ -244,9 +297,9 @@ function serpentinePositions(nodes, edges, { dims, spacing, viewportWidth, viewp
  * @param {object} opts      { dims, spacing, cols, heightById }
  * @returns {Map<string,{x:number,y:number}>}
  */
-export function rowLayoutPositions(nodes, edges, {
+export function rowLayoutPositions(nodes: ArrangeStep[], edges: ArrangeEdge[], {
     dims = DEFAULT_DIMS, spacing = DEFAULT_SPACING, cols = DEFAULT_COLUMNS, heightById = null,
-} = {}) {
+}: { dims?: Dims; spacing?: Spacing; cols?: number; heightById?: Map<string, number> | null } = {}): Map<string, Point> {
     if (!nodes || nodes.length === 0) return new Map();
     const heights = heightById || toolLayoutHeights(nodes, dims.height);
     const flat = runDagre(nodes, edges, dims, heights, spacing);
@@ -257,7 +310,7 @@ export function rowLayoutPositions(nodes, edges, {
 }
 
 /** Positions for one graph in the requested mode. */
-function positionsFor(graph, mode, opts) {
+function positionsFor(graph: ArrangeGraph, mode: string, opts: ViewOpts): Map<string, Point> {
     const nodes = layoutNodes(graph);
     if (nodes.length === 0) return new Map();
     const edges = layoutEdges(graph);
@@ -271,9 +324,9 @@ function positionsFor(graph, mode, opts) {
  * Write positions onto a graph's trigger(s) and steps. Inline nodes keep what
  * they have: their coordinates belong to another graph entirely.
  */
-function applyPositions(graph, positionById) {
+function applyPositions(graph: ArrangeGraph, positionById: Map<string, Point>): ArrangeGraph {
     if (!graph) return graph;
-    const apply = (s) => {
+    const apply = (s: ArrangeStep | null | undefined) => {
         if (!s || isInlineId(s.id)) return s;
         const p = positionById.get(s.id);
         return p ? { ...s, position: { x: p.x, y: p.y } } : s;
@@ -300,13 +353,13 @@ function applyPositions(graph, positionById) {
  *                       otherwise off: rearranging a flowlet you cannot see is
  *                       a surprise, and it still costs an undo entry.
  */
-export function arrangeDefinition(def, {
+export function arrangeDefinition(def: ArrangeGraph | null | undefined, {
     mode = 'roomy',
     dims = DEFAULT_DIMS,
     viewportWidth = 0,
     viewportHeight = 0,
     includeLayers = null,
-} = {}) {
+}: { mode?: string; dims?: Dims; viewportWidth?: number; viewportHeight?: number; includeLayers?: boolean | null } = {}) {
     if (!def || !def.trigger) return def;
     const useMode = ARRANGE_MODES.includes(mode) ? mode : 'roomy';
     const opts = { dims, viewportWidth, viewportHeight };
@@ -318,9 +371,9 @@ export function arrangeDefinition(def, {
 }
 
 /** Tidy the inside of every flowlet. Returns null when there is nothing to do. */
-function arrangeLayers(source, mode, opts) {
+function arrangeLayers(source: Record<string, ArrangeGraph> | null | undefined, mode: string, opts: ViewOpts): Record<string, ArrangeGraph> | null {
     if (!source || typeof source !== 'object') return null;
-    const layers = {};
+    const layers: Record<string, ArrangeGraph> = {};
     let touched = false;
     for (const [key, layer] of Object.entries(source)) {
         if (layer?.trigger) {

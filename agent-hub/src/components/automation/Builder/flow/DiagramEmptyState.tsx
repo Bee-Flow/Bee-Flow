@@ -26,14 +26,14 @@ import useTranslation from '../../../../hooks/useTranslation';
  * one quiet line carries the clock and `caption`, the narrated summary of
  * what the model is thinking right now.
  */
-const SHORT = {
+const SHORT: Record<string, string> = {
     manual: 'Manual', form: 'Form', schedule: 'Schedule', webhook: 'Webhook',
     app_event: 'App event', agent_call: 'Agent call', app_trigger: 'Studio App',
 };
 
 // `startedAt` is an epoch number (captured the instant the stream started);
 // formatElapsed parses ISO strings, and Date.parse(number) is NaN.
-function elapsedSince(startedAt, now) {
+function elapsedSince(startedAt: number | null | undefined, now: number) {
     return startedAt ? formatElapsed(new Date(startedAt).toISOString(), now) : null;
 }
 
@@ -41,7 +41,12 @@ function elapsedSince(startedAt, now) {
  * "Building · 0:04 · <caption>" — mounted only while the assistant builds, so
  * its clock lives and dies with it; an empty canvas at rest schedules nothing.
  */
-function BuildingLine({ caption, startedAt }) {
+interface BuildingLineProps {
+    caption?: string | null;
+    startedAt?: number | null;
+}
+
+function BuildingLine({ caption, startedAt }: BuildingLineProps) {
     const { t } = useTranslation();
     const ticking = !!startedAt;
     const [now, setNow] = useState(() => Date.now());
@@ -73,12 +78,21 @@ function BuildingLine({ caption, startedAt }) {
     );
 }
 
+export interface DiagramEmptyStateProps {
+    onRequestOpenPalette?: (payload?: unknown) => void;
+    onAddTrigger?: (payload: unknown) => void;
+    onOpenAssistant?: () => void;
+    building?: boolean;
+    caption?: string | null;
+    startedAt?: number | null;
+}
+
 export default function DiagramEmptyState({
-    onRequestOpenPalette = null, onAddTrigger = null, onOpenAssistant = null,
+    onRequestOpenPalette, onAddTrigger, onOpenAssistant,
     building = false, caption = null, startedAt = null,
-}) {
+}: DiagramEmptyStateProps) {
     const { t } = useTranslation();
-    const pick = onAddTrigger || (onRequestOpenPalette ? () => onRequestOpenPalette() : null);
+    const pick: ((payload?: unknown) => void) | null = onAddTrigger || (onRequestOpenPalette ? () => onRequestOpenPalette() : null);
     return (
         <div className="w-full h-full flex items-center justify-center px-6 py-10 text-[var(--text-primary)]">
             <div className="w-[640px] max-w-full -mt-[6vh] flex flex-col gap-4">
