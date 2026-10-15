@@ -2,6 +2,18 @@ import { Edit2, Shield, Trash2 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import RoleBadge from '../../../shared/RoleBadge';
+import type { AdminUser } from '../userManagement/types';
+
+export type PeopleUser = AdminUser;
+
+export interface PeopleRowProps {
+    user: PeopleUser;
+    orgChips?: string[];
+    onEdit?: (user: PeopleUser) => void;
+    onResetMfa?: (user: PeopleUser) => void;
+    onDelete?: (user: PeopleUser) => void;
+    canManage?: boolean;
+}
 
 /**
  * One person in the directory.
@@ -19,7 +31,7 @@ import RoleBadge from '../../../shared/RoleBadge';
  *     cannot execute is worse than not having it; real avatars need
  *     getAllUserAvatars and a second round-trip.
  */
-export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onDelete, canManage = false }) {
+export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onDelete, canManage = false }: PeopleRowProps) {
     const { t } = useTranslation();
     const isSystem = user.isSystem || user.id === 'admin';
     const initial = (user.displayName?.[0] || user.username?.[0] || '?').toUpperCase();

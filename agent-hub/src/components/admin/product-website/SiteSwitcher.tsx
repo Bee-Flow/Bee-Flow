@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 import AppIcon from '../../icons/AppIcon';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { CmsSiteListEntry } from './panel/cmsPanelTypes';
 
 /**
  * Site/project switcher.
@@ -17,6 +19,17 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * confirmed here — `onDelete(site)` receives the full site object and the
  * parent asks for confirmation (one dialog system shell-wide).
  */
+interface SiteSwitcherProps {
+    sites: CmsSiteListEntry[];
+    activeSiteId?: string | null;
+    liveSiteId?: string | null;
+    onSelect: (siteId: string) => void;
+    onCreate: (name: string) => Promise<{ id?: string } | null | undefined | void>;
+    onRename: (siteId: string, name: string) => Promise<unknown> | void;
+    onDelete: (site: CmsSiteListEntry) => Promise<unknown> | void;
+    embedded?: boolean;
+}
+
 export default function SiteSwitcher({
     sites,
     activeSiteId,
@@ -26,12 +39,12 @@ export default function SiteSwitcher({
     onRename,
     onDelete,
     embedded = false,
-}) {
+}: SiteSwitcherProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [creating, setCreating] = useState(false);
-    const [renamingId, setRenamingId] = useState(null);
-    const rootRef = useRef(null);
+    const [renamingId, setRenamingId] = useState<string | null>(null);
+    const rootRef = useRef<HTMLDivElement | null>(null);
 
     const activeSite = sites.find(s => s.id === activeSiteId);
 
@@ -42,12 +55,12 @@ export default function SiteSwitcher({
         setRenamingId(null);
     }, { enabled: open, escape: false, defer: false });
 
-    const handlePick = (siteId) => {
+    const handlePick = (siteId: string) => {
         if (siteId !== activeSiteId) onSelect(siteId);
         setOpen(false);
     };
 
-    const handleCreateConfirm = async (name) => {
+    const handleCreateConfirm = async (name: string) => {
         const created = await onCreate(name);
         setCreating(false);
         if (created?.id) {
@@ -55,14 +68,14 @@ export default function SiteSwitcher({
         }
     };
 
-    const handleRenameConfirm = async (siteId, name) => {
+    const handleRenameConfirm = async (siteId: string, name: string) => {
         await onRename(siteId, name);
         setRenamingId(null);
     };
 
     // Confirmation is the parent's job (shared ConfirmDialog); we pass the
     // full site object so the dialog can name what's being deleted.
-    const handleDelete = async (site) => {
+    const handleDelete = async (site: CmsSiteListEntry) => {
         await onDelete(site);
     };
 
@@ -151,7 +164,19 @@ export default function SiteSwitcher({
 
 // ── Row with hover menu + inline rename ─────────────────────────
 
-function SiteRow({ site, isActive, isLive, isRenaming, onPick, onStartRename, onCancelRename, onConfirmRename, onDelete }) {
+interface SiteRowProps {
+    site: CmsSiteListEntry;
+    isActive: boolean;
+    isLive: boolean;
+    isRenaming: boolean;
+    onPick: () => void;
+    onStartRename: () => void;
+    onCancelRename: () => void;
+    onConfirmRename: (name: string) => void;
+    onDelete: () => void;
+}
+
+function SiteRow({ site, isActive, isLive, isRenaming, onPick, onStartRename, onCancelRename, onConfirmRename, onDelete }: SiteRowProps) {
     const { t } = useTranslation();
     if (isRenaming) {
         return (
@@ -189,15 +214,22 @@ function SiteRow({ site, isActive, isLive, isRenaming, onPick, onStartRename, on
                     </span>
                 )}
                 <span className="opacity-40 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                    <IconBtn name="Pencil" title={t('cms_site.site.siteswitcher.rename', 'Rename')} onClick={(e) => { e.stopPropagation(); onStartRename(); }} />
-                    <IconBtn name="Trash2" title={t('cms_site.site.siteswitcher.delete', 'Delete')} danger onClick={(e) => { e.stopPropagation(); onDelete(); }} />
+                    <IconBtn name="Pencil" title={t('cms_site.site.siteswitcher.rename', 'Rename')} onClick={(e: MouseEvent) => { e.stopPropagation(); onStartRename(); }} />
+                    <IconBtn name="Trash2" title={t('cms_site.site.siteswitcher.delete', 'Delete')} danger onClick={(e: MouseEvent) => { e.stopPropagation(); onDelete(); }} />
                 </span>
             </div>
         </li>
     );
 }
 
-function IconBtn({ name, title, onClick, danger }) {
+interface IconBtnProps {
+    name: string;
+    title: string;
+    onClick: (e: MouseEvent) => void;
+    danger?: boolean;
+}
+
+function IconBtn({ name, title, onClick, danger }: IconBtnProps) {
     return (
         <button
             type="button"
@@ -213,10 +245,16 @@ function IconBtn({ name, title, onClick, danger }) {
 
 // ── Inline rename input ─────────────────────────────────────────
 
-function RenameInline({ initial, onConfirm, onCancel }) {
+interface RenameInlineProps {
+    initial?: string;
+    onConfirm: (name: string) => void;
+    onCancel: () => void;
+}
+
+function RenameInline({ initial, onConfirm, onCancel }: RenameInlineProps) {
     const { t } = useTranslation();
     const [name, setName] = useState(initial || '');
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => { inputRef.current?.focus(); inputRef.current?.select(); }, []);
 
@@ -259,10 +297,15 @@ function RenameInline({ initial, onConfirm, onCancel }) {
 
 // ── Create-site inline form ─────────────────────────────────────
 
-function CreateSiteForm({ onConfirm, onCancel }) {
+interface CreateSiteFormProps {
+    onConfirm: (name: string) => void;
+    onCancel: () => void;
+}
+
+function CreateSiteForm({ onConfirm, onCancel }: CreateSiteFormProps) {
     const { t } = useTranslation();
     const [name, setName] = useState('');
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => { inputRef.current?.focus(); }, []);
 

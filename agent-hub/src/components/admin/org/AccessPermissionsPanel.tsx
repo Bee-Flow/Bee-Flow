@@ -5,6 +5,7 @@ import GroupAccessMatrix from './GroupAccessMatrix';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
+import type { Organization } from './useOrgDirectory';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
@@ -24,19 +25,25 @@ import { useEntitlements } from '../../licensing/EntitlementsContext';
 const EMERALD = '#10b981';
 const BLUE = '#3b82f6';
 
-export default function AccessPermissionsPanel({ user, activeSection = 'grants', onNavigate }) {
+interface AccessPermissionsPanelProps {
+    user?: { isAdmin?: boolean; role?: string; permissions?: string[] } | null;
+    activeSection?: string;
+    onNavigate?: (path: string) => void;
+}
+
+export default function AccessPermissionsPanel({ user, activeSection = 'grants', onNavigate }: AccessPermissionsPanelProps) {
     const { t } = useTranslation();
     const isSuperAdmin = !!(user?.isAdmin || user?.role === 'admin' || (user?.permissions || []).includes('all'));
     const { mode, reload: reloadEntitlements } = useEntitlements();
 
-    const [orgs, setOrgs] = useState(null); // null = loading; [] = none / not super-admin
-    const [orgId, setOrgId] = useState(null);
+    const [orgs, setOrgs] = useState<Organization[] | null>(null); // null = loading; [] = none / not super-admin
+    const [orgId, setOrgId] = useState<string | null>(null);
 
     // Persist the picker selection server-side so a GLOBAL super-admin (no org of
     // their own) has their OWN entitlement resolution governed by the org they're
     // administering — the org access ceiling then binds them like everyone else.
     // Reload the snapshot so the change applies immediately. Non-fatal on error.
-    const persistSelectedOrg = useCallback(async (id) => {
+    const persistSelectedOrg = useCallback(async (id: string | null) => {
         if (!id) return;
         try {
             await authFetch(`${API_BASE}/auth/admin/selected-org`, {
@@ -47,7 +54,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
         } catch (_) { /* picker still works for viewing other orgs */ }
     }, [reloadEntitlements]);
 
-    const selectOrg = useCallback((id) => { setOrgId(id); persistSelectedOrg(id); }, [persistSelectedOrg]);
+    const selectOrg = useCallback((id: string | null) => { setOrgId(id); persistSelectedOrg(id); }, [persistSelectedOrg]);
 
     useEffect(() => {
         if (!isSuperAdmin) { setOrgs([]); return; }
@@ -74,7 +81,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     const validIds = sections.map(s => s.id);
     const active = validIds.includes(activeSection) ? activeSection : 'grants';
 
-    const handleSectionClick = (id) => { if (onNavigate) onNavigate(`admin/access/${id}`); };
+    const handleSectionClick = (id: string) => { if (onNavigate) onNavigate(`admin/access/${id}`); };
 
     const orgName = useMemo(() => (orgs || []).find(o => o.id === orgId)?.name || orgId, [orgs, orgId]);
 

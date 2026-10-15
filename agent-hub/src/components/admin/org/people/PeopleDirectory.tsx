@@ -6,8 +6,10 @@ import EmptyState from '../../../shared/EmptyState';
 import SegmentedControl from '../../../shared/SegmentedControl';
 import UserListSkeleton from '../../../shared/UserListSkeleton';
 import UserFilterBar from '../../shared/UserFilterBar';
+import type { AdminGroup, AdminOrganization } from '../userManagement/types';
 import { membershipFor } from './orgMembership';
 import PeopleGroupSection from './PeopleGroupSection';
+import type { PeopleUser } from './PeopleRow';
 import { GROUP_BY, useUserDirectory } from './useUserDirectory';
 
 /**
@@ -23,6 +25,18 @@ import { GROUP_BY, useUserDirectory } from './useUserDirectory';
  * the mutation modals stay there and call loadData() on save. A second cache
  * here would be a second thing to invalidate.
  */
+interface PeopleDirectoryProps {
+    users?: PeopleUser[];
+    groups?: AdminGroup[];
+    organizations?: AdminOrganization[];
+    loading?: boolean;
+    canManageUsers?: boolean;
+    onAddUser: () => void;
+    onEditUser?: (user: PeopleUser) => void;
+    onResetMfa?: (user: PeopleUser) => void;
+    onDeleteUser?: (user: PeopleUser) => void;
+}
+
 export default function PeopleDirectory({
     users = [],
     groups = [],
@@ -33,9 +47,9 @@ export default function PeopleDirectory({
     onEditUser,
     onResetMfa,
     onDeleteUser,
-}) {
+}: PeopleDirectoryProps) {
     const { t } = useTranslation();
-    const [groupBy, setGroupBy] = useState(GROUP_BY.ORG);
+    const [groupBy, setGroupBy] = useState<string>(GROUP_BY.ORG);
 
     // The synthetic 'admin' row (adminRoutes.js:133-139) is a system account, not
     // a person in an organisation — it has no org and would sit alone in the
@@ -64,10 +78,10 @@ export default function PeopleDirectory({
     // section header already says which org this is.
     const orgChipsFor = useMemo(() => {
         if (groupBy === GROUP_BY.FLAT) {
-            return (u) => [...new Set(membershipFor(u, groups).map((m) => m.orgId))]
+            return (u: PeopleUser) => [...new Set(membershipFor(u, groups).map((m) => m.orgId))]
                 .map((id) => orgNameById.get(id) || id);
         }
-        return (u) => {
+        return (u: PeopleUser) => {
             const orgIds = [...new Set(membershipFor(u, groups).map((m) => m.orgId))];
             if (orgIds.length < 2) return [];
             return [t('admin.sec_people_in_n_orgs', 'in {count} orgs', { count: orgIds.length })];
@@ -142,7 +156,7 @@ export default function PeopleDirectory({
                             groups={groups}
                             organizations={organizations}
                             showVia
-                            countLabel={(shown, total) =>
+                            countLabel={(shown: number, total: number) =>
                                 t('admin.sec_people_showing', '{count} of {total} people', { count: shown, total })
                             }
                         />

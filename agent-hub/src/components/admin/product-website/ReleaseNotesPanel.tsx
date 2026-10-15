@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Eye, EyeOff, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { messageOf } from '../../../utils/caughtError';
 
 /**
  * Release notes review queue — the human gate.
@@ -17,14 +18,32 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * The panel says so rather than letting someone lose work silently.
  */
 
-const KIND_LABELS = { feature: 'New', improvement: 'Improved', fix: 'Fixed' };
+interface ReleaseNoteItem {
+    kind?: string;
+    title?: string;
+    body?: string;
+}
+
+/** One entry of GET /api/release-notes/admin. */
+interface ReleaseNoteEntry {
+    id: string;
+    version?: string | null;
+    status?: string;
+    services?: string;
+    title?: string;
+    lead?: string;
+    items?: Array<ReleaseNoteItem | null>;
+    publishedAt?: string | null;
+}
+
+const KIND_LABELS: Record<string, string> = { feature: 'New', improvement: 'Improved', fix: 'Fixed' };
 const KIND_ORDER = ['feature', 'improvement', 'fix'];
 
 export default function ReleaseNotesPanel() {
     const { t } = useTranslation();
-    const [entries, setEntries] = useState([]);
+    const [entries, setEntries] = useState<ReleaseNoteEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [busyId, setBusyId] = useState(null);
+    const [busyId, setBusyId] = useState<string | null>(null);
     const [error, setError] = useState('');
 
     const load = useCallback(async () => {
@@ -36,14 +55,14 @@ export default function ReleaseNotesPanel() {
             const data = await res.json();
             setEntries(Array.isArray(data.entries) ? data.entries : []);
         } catch (e) {
-            setError(e.message || 'Could not load release notes');
+            setError(messageOf(e, 'Could not load release notes'));
         }
         setLoading(false);
     }, []);
 
     useEffect(() => { load(); }, [load]);
 
-    const act = async (id, path, method = 'POST', body) => {
+    const act = async (id: string, path: string, method = 'POST', body?: Record<string, string>) => {
         setBusyId(id);
         setError('');
         try {
@@ -54,12 +73,12 @@ export default function ReleaseNotesPanel() {
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             await load();
         } catch (e) {
-            setError(e.message || 'Action failed');
+            setError(messageOf(e, 'Action failed'));
         }
         setBusyId(null);
     };
 
-    const patch = (id, fields) => act(id, '', 'PUT', fields);
+    const patch = (id: string, fields: Record<string, string>) => act(id, '', 'PUT', fields);
 
     if (loading) {
         return (
@@ -179,7 +198,7 @@ export default function ReleaseNotesPanel() {
                             />
 
                             {KIND_ORDER.map(kind => {
-                                const items = (entry.items || []).filter(i => i && i.kind === kind);
+                                const items = (entry.items || []).filter((i) => i && i.kind === kind);
                                 if (!items.length) return null;
                                 return (
                                     <div key={kind} className="mb-2">

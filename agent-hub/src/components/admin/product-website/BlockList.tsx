@@ -1,4 +1,5 @@
 import React from 'react';
+import type { DragEndEvent } from '@dnd-kit/core';
 import {
     DndContext,
     closestCenter,
@@ -16,6 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import AppIcon from '../../icons/AppIcon';
 import { BLOCK_CATALOGUE } from './editors';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { CmsBlock } from './panel/cmsPanelTypes';
 
 // Derive the row label shown in the left sidebar. Defaults to the block
 // catalogue's static label, but a few block types expose a more useful
@@ -23,7 +25,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 // branches here when other blocks want the same treatment — keep the
 // switch tightly scoped so a typo in one block's content can't affect
 // another block's row label.
-function deriveBlockLabel(block, meta) {
+function deriveBlockLabel(block: CmsBlock, meta: { label?: string } | undefined) {
     const fallback = meta?.label || block.type;
     const content = block?.content;
     if (!content || typeof content !== 'object') return fallback;
@@ -37,7 +39,16 @@ function deriveBlockLabel(block, meta) {
 
 // ── Single draggable block row ────────────────────────────────────────
 
-function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete }) {
+interface BlockRowProps {
+    block: CmsBlock;
+    isActive: boolean;
+    onClick: (blockId: string) => void;
+    onToggle: (blockId: string) => void;
+    onDuplicate: (blockId: string) => void;
+    onDelete: (blockId: string) => void;
+}
+
+function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete }: BlockRowProps) {
     const { t } = useTranslation();
     const {
         attributes, listeners, setNodeRef, transform, transition, isDragging,
@@ -125,11 +136,22 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete })
 // button below AND the canvas insert-between zones with one shared piece
 // of state. BlockList just requests it via `onRequestAdd`.
 
-export default function BlockList({ blocks, activeBlockId, onSelect, onRequestAdd, onToggle, onDuplicate, onDelete, onReorder }) {
+interface BlockListProps {
+    blocks: CmsBlock[];
+    activeBlockId?: string | null;
+    onSelect: (blockId: string) => void;
+    onRequestAdd?: () => void;
+    onToggle: (blockId: string) => void;
+    onDuplicate: (blockId: string) => void;
+    onDelete: (blockId: string) => void;
+    onReorder: (blocks: CmsBlock[]) => void;
+}
+
+export default function BlockList({ blocks, activeBlockId, onSelect, onRequestAdd, onToggle, onDuplicate, onDelete, onReorder }: BlockListProps) {
     const { t } = useTranslation();
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
-    const handleDragEnd = (event) => {
+    const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
             const oldIdx = blocks.findIndex(b => b.id === active.id);

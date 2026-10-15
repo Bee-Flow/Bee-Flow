@@ -1,3 +1,5 @@
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+
 /**
  * Pure folds for the heatmap. Kept out of the components so the part that
  * carries the actual insight — "which block earns the clicks" — is testable
@@ -13,7 +15,39 @@
  * together — a 390px mobile click and a 1280px desktop click at the same
  * pageX are in completely different places on the page.
  */
-export function toPoints(payload) {
+/** One Umami heatmap point, normalised. */
+export interface HeatPoint {
+    x: number;
+    y: number;
+    pageW: number;
+    pageH: number;
+    viewportH: number;
+    count: number;
+}
+
+interface RawHeatPoint {
+    pageX?: unknown;
+    x?: unknown;
+    clientX?: unknown;
+    left?: unknown;
+    pageY?: unknown;
+    y?: unknown;
+    clientY?: unknown;
+    top?: unknown;
+    pageW?: unknown;
+    pageH?: unknown;
+    viewportH?: unknown;
+    count?: unknown;
+    value?: unknown;
+    n?: unknown;
+}
+
+interface HeatPayloadObject {
+    points?: RawHeatPoint[];
+    data?: RawHeatPoint[];
+}
+
+export function toPoints(payload: HeatPayloadObject | RawHeatPoint[] | null | undefined): HeatPoint[] {
     const raw = Array.isArray(payload?.points) ? payload.points
         : Array.isArray(payload) ? payload
         : Array.isArray(payload?.data) ? payload.data
@@ -36,8 +70,15 @@ export function toPoints(payload) {
  * Returns widths sorted by click volume, so the default view is the one most
  * visitors actually saw rather than whichever happens to be widest.
  */
-export function groupByWidth(points) {
-    const byWidth = new Map();
+export interface WidthGroup {
+    width: number;
+    points: HeatPoint[];
+    clicks: number;
+    pageH: number;
+}
+
+export function groupByWidth(points: HeatPoint[]): Array<WidthGroup & { share: number }> {
+    const byWidth = new Map<number, WidthGroup>();
     for (const p of points) {
         const w = p.pageW || 0;
         if (!w) continue;
@@ -60,8 +101,31 @@ export function groupByWidth(points) {
  * is site chrome (header/footer) — reported as its own row rather than dropped,
  * because silently discarding 20% of the clicks would make every share wrong.
  */
-export function attributeToBlocks(points, blocks, { views = 0 } = {}) {
-    const totals = new Map();
+/** A rendered CMS block's geometry, read from the preview frame. */
+export interface PageBlockBox {
+    id: string;
+    type: string;
+    top: number;
+    height: number;
+}
+
+/** Clicks that landed in one block (or in the site chrome, which has no geometry). */
+export interface BlockClicks {
+    id: string;
+    type: string;
+    top: number | null;
+    height: number | null;
+    clicks: number;
+    share: number;
+    per100: number | null;
+}
+
+export function attributeToBlocks(
+    points: HeatPoint[],
+    blocks: PageBlockBox[] | null | undefined,
+    { views = 0 }: { views?: number } = {},
+): { rows: BlockClicks[]; total: number; chrome: number } {
+    const totals = new Map<string, PageBlockBox & { clicks: number }>();
     let chrome = 0;
     let total = 0;
 
@@ -71,7 +135,7 @@ export function attributeToBlocks(points, blocks, { views = 0 } = {}) {
 
     for (const p of points) {
         total += p.count;
-        let hit = null;
+        let hit: PageBlockBox | null = null;
         for (const b of ordered) {
             if (p.y >= b.top && p.y < b.top + b.height) hit = b;
         }
@@ -81,7 +145,7 @@ export function attributeToBlocks(points, blocks, { views = 0 } = {}) {
         totals.set(hit.id, cur);
     }
 
-    const rows = [...totals.values()].map(r => ({
+    const rows: BlockClicks[] = [...totals.values()].map(r => ({
         ...r,
         share: total ? (r.clicks / total) * 100 : 0,
         // Clicks per 100 views is the comparable number: a block far down the
@@ -100,7 +164,7 @@ export function attributeToBlocks(points, blocks, { views = 0 } = {}) {
 }
 
 /** Human label for a block type, e.g. `media-text` → `Media & text`. */
-const TYPE_LABELS = {
+const TYPE_LABELS: Record<string, string> = {
     hero: 'Hero',
     socialProof: 'Social proof',
     content: 'Content',
@@ -118,7 +182,7 @@ const TYPE_LABELS = {
     'customer-support': 'Support form',
     chrome: 'Site chrome (header & footer)',
 };
-const TYPE_LABEL_KEYS = {
+const TYPE_LABEL_KEYS: Record<string, string> = {
     hero: 'cms_site.analytics.block_type.hero',
     socialProof: 'cms_site.analytics.block_type.social_proof',
     content: 'cms_site.analytics.block_type.content',
@@ -137,7 +201,7 @@ const TYPE_LABEL_KEYS = {
     chrome: 'cms_site.analytics.block_type.chrome',
 };
 /** Pass `t` (useTranslation) for a translated label; without it, English. */
-export const blockLabel = (type, t) => {
+export const blockLabel = (type: string | null | undefined, t?: TranslateFn | null): string => {
     if (TYPE_LABELS[type]) return t ? t(TYPE_LABEL_KEYS[type], TYPE_LABELS[type]) : TYPE_LABELS[type];
     if (!type) return t ? t('cms_site.analytics.block_type.block', 'Block') : 'Block';
     return String(type).replace(/[-_]/g, ' ').replace(/^./, c => c.toUpperCase());
@@ -151,7 +215,25 @@ export const blockLabel = (type, t) => {
  * not the reach. Accumulate from the bottom up to get "% who got at least this
  * far", which is the number the fold line and the dimming actually mean.
  */
-export function toScrollReach(scroll) {
+export interface ScrollStep {
+    depth: number;
+    sessions: number;
+    reach: number;
+}
+
+interface ScrollPayload {
+    buckets?: Array<{ depth?: unknown; sessions?: unknown }>;
+    totalSessions?: unknown;
+    pageH?: unknown;
+    viewportH?: unknown;
+}
+
+export function toScrollReach(scroll: ScrollPayload | null | undefined): {
+    steps: ScrollStep[];
+    totalSessions: number;
+    pageH: number | null;
+    viewportH: number | null;
+} {
     const buckets = Array.isArray(scroll?.buckets) ? scroll.buckets : [];
     const totalSessions = Number(scroll?.totalSessions) || 0;
     if (!buckets.length || !totalSessions) return { steps: [], totalSessions, pageH: null, viewportH: null };
@@ -161,7 +243,7 @@ export function toScrollReach(scroll) {
         .sort((a, b) => a.depth - b.depth);
 
     let running = 0;
-    const steps = [];
+    const steps: ScrollStep[] = [];
     for (let i = byDepth.length - 1; i >= 0; i--) {
         running += byDepth[i].sessions;
         steps.unshift({
@@ -179,7 +261,7 @@ export function toScrollReach(scroll) {
 }
 
 /** Reach at an arbitrary depth, interpolated between the measured buckets. */
-export function reachAt(steps, depthPct) {
+export function reachAt(steps: ScrollStep[] | null | undefined, depthPct: number): number | null {
     if (!steps?.length) return null;
     if (depthPct <= steps[0].depth) return 100;
     for (let i = 0; i < steps.length; i++) {

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import CmsAssistantPane from './assistant/CmsAssistantPane';
 import { CreatePageContext } from './fields';
+import type { CreatePageFn } from './fields';
 import CreateFirstSite from './panel/CreateFirstSite';
 import PanelInspector from './panel/PanelInspector';
 import PanelNavigator from './panel/PanelNavigator';
@@ -88,7 +89,12 @@ import { useTranslation } from '../../../hooks/useTranslation';
 //   onExit()          — leave the builder, back to the admin dashboard
 //   onNavigate(path)  — app-level navigation for cross-links
 //                       (e.g. 'admin/languages', 'admin/website-analytics')
-export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
+interface ProductWebsitePanelProps {
+    onExit?: () => void;
+    onNavigate?: (path: string) => void;
+}
+
+export default function ProductWebsitePanel({ onExit, onNavigate }: ProductWebsitePanelProps = {}) {
     const { t } = useTranslation();
     const ps = useCmsPanelState();
     const {
@@ -208,7 +214,7 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
     // "Rendered more hooks than during the previous render" once the
     // guards stop firing).
     const createPageFromPicker = useCallback(
-        (input) => handleAddPage(input, { keepActive: true }),
+        (input: Parameters<CreatePageFn>[0]) => handleAddPage(input, { keepActive: true }),
         [handleAddPage],
     );
 

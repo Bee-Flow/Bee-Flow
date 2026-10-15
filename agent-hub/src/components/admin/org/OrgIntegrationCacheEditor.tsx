@@ -17,25 +17,38 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { errorMessage, messageOf } from '../../../utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
 
-const MINUTES = (s) => Math.round(s / 60);
+const MINUTES = (s: number) => Math.round(s / 60);
 
 // An admin deciding whether to clear needs a size, not just a count — a
 // thousand calendar look-ups and a thousand mail searches are not the same
 // amount of somebody's data sitting in the database.
-const BYTES = (n) => {
+const BYTES = (n: number) => {
     if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
     if (n >= 1024) return `${Math.round(n / 1024)} kB`;
     return `${n} B`;
 };
 
-export default function OrgIntegrationCacheEditor({ orgId }) {
+/** GET /api/org-integration-cache/:orgId (the fields this editor reads). */
+interface IntegrationCacheSettings {
+    enabled?: boolean;
+    ttlSeconds?: number;
+    scopes?: { integration?: boolean; http?: boolean };
+    entries?: number;
+    expiredEntries?: number;
+    bytes?: number;
+    killSwitch?: boolean;
+    ttlRange?: { min: number; max: number };
+}
+
+export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | null }) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState(null);
-    const [server, setServer] = useState(null);
+    const [loadError, setLoadError] = useState<string | null | undefined>(null);
+    const [server, setServer] = useState<IntegrationCacheSettings | null>(null);
     const [enabled, setEnabled] = useState(false);
     const [ttlSeconds, setTtlSeconds] = useState(300);
     // WHICH outbound answers the consent covers. One decision, one config row,
@@ -67,7 +80,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
             // Null the loaded state so Save stays disabled — saving on top of a
             // failed load would write a guess about somebody's data policy.
             setServer(null);
-            setLoadError(err.message);
+            setLoadError(errorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -105,7 +118,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
                 : t('admin.integration_cache.saved', 'Saved'));
             await load();
         } catch (err) {
-            toast.error(err.message || t('admin.integration_cache.save_failed', 'Could not save the setting'));
+            toast.error(messageOf(err, t('admin.integration_cache.save_failed', 'Could not save the setting')));
         } finally {
             setSaving(false);
         }
@@ -211,7 +224,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
 
             <ChoiceCards
                 value={enabled ? 'on' : 'off'}
-                onChange={(v) => setEnabled(v === 'on')}
+                onChange={(v: string) => setEnabled(v === 'on')}
                 options={options}
                 columns={1}
                 ariaLabel={t('admin.integration_cache.choose', 'Reusing answers between runs')}

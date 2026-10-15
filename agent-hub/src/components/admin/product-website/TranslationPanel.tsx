@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { buildPageGroups, buildSiteGroups } from './translatable';
 import { useTranslation } from '../../../hooks/useTranslation';
 import AppIcon from '../../icons/AppIcon';
 import AiTranslateControl from '../languages/AiTranslateControl';
+import type { CmsPageDoc, CmsSiteDoc } from './panel/cmsPanelTypes';
 
 /**
  * TranslationPanel — the translate-mode inspector, shown when the editor is
@@ -21,18 +23,27 @@ import AiTranslateControl from '../languages/AiTranslateControl';
  * soft, and per-block "Clear & retranslate" is the recovery path.
  */
 
-function isMultiline(s) {
+function isMultiline(s: unknown) {
     return typeof s === 'string' && (s.length > 64 || s.includes('\n'));
 }
 
-function TranslationRow({ label, source, value, onChange, onFocus, disabled }) {
+interface TranslationRowProps {
+    label: string;
+    source: string;
+    value?: string | null;
+    onChange: (value: string) => void;
+    onFocus: () => void;
+    disabled: boolean;
+}
+
+function TranslationRow({ label, source, value, onChange, onFocus, disabled }: TranslationRowProps) {
     const multi = isMultiline(source);
     const common = {
         value: value || '',
         placeholder: source,
         onFocus,
         disabled,
-        onChange: (e) => onChange(e.target.value),
+        onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value),
         className: 'w-full px-2 py-1.5 rounded-md text-xs border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-primary)] outline-none disabled:opacity-50 disabled:cursor-not-allowed',
     };
     return (
@@ -52,6 +63,36 @@ function TranslationRow({ label, source, value, onChange, onFocus, disabled }) {
     );
 }
 
+type FieldPath = Array<string | number>;
+
+/** Where a row's edit is written: a block field, a page SEO field or site chrome. */
+type RowTarget =
+    | { type: 'block'; blockId: string; fieldPath: FieldPath }
+    | { type: 'seo'; field: string }
+    | { type: 'chrome'; path: FieldPath };
+
+type LocaleOverride = Record<string, unknown> | null | undefined;
+
+interface TranslationPanelProps {
+    scope: string;
+    site?: CmsSiteDoc | null;
+    page?: CmsPageDoc | null;
+    localeName?: string;
+    defaultLocaleName?: string;
+    pageOverride?: LocaleOverride;
+    siteOverride?: LocaleOverride;
+    aiStatus?: { state?: string; translated?: number } | null;
+    tier?: string;
+    onTierChange: (tier: string) => void;
+    onPageLeaf?: (blockId: string, fieldPath: FieldPath, value: string) => void;
+    onPageSeo?: (field: string, value: string) => void;
+    onChromeLeaf?: (path: FieldPath, value: string) => void;
+    onSelectBlock?: (blockId: string) => void;
+    onAiTranslate: () => void;
+    onClearAndRetranslateBlock?: (blockId: string) => void;
+    onResetTranslations?: () => void;
+}
+
 export default function TranslationPanel({
     scope, site, page, localeName, defaultLocaleName,
     pageOverride, siteOverride, aiStatus,
@@ -59,13 +100,13 @@ export default function TranslationPanel({
     onPageLeaf, onPageSeo, onChromeLeaf, onSelectBlock, onAiTranslate,
     onClearAndRetranslateBlock,     // (blockId) — D3 recovery, optional
     onResetTranslations,            // () — remove every override for this scope, optional
-}) {
+}: TranslationPanelProps) {
     const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [onlyUntranslated, setOnlyUntranslated] = useState(false);
     // Group collapse — keyed by group key; default: groups with every field
     // filled start collapsed (review-on-demand), unfinished ones open.
-    const [collapsed, setCollapsed] = useState({});
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
     // Build the row groups (data only — onChange is dispatched at render).
     const groups = useMemo(() => {
@@ -74,7 +115,7 @@ export default function TranslationPanel({
     }, [scope, site, page, pageOverride, siteOverride]);
 
     // Route a row's edit to the right override writer based on its target.
-    const dispatch = (target, v) => {
+    const dispatch = (target: RowTarget, v: string) => {
         if (target.type === 'block') onPageLeaf?.(target.blockId, target.fieldPath, v);
         else if (target.type === 'seo') onPageSeo?.(target.field, v);
         else if (target.type === 'chrome') onChromeLeaf?.(target.path, v);
@@ -100,7 +141,7 @@ export default function TranslationPanel({
         })
         .filter(g => g.visibleRows.length > 0);
 
-    const isCollapsed = (g) => {
+    const isCollapsed = (g: { key: string; rows: Array<{ value?: string | null }> }) => {
         if (q || onlyUntranslated) return false; // filters override collapse
         if (g.key in collapsed) return collapsed[g.key];
         const groupDone = g.rows.every(r => (r.value || '').trim());

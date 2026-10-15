@@ -21,12 +21,43 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * banner text).
  */
 
-const FALLBACK_LOCALES = [
+interface CookieCopy {
+    message?: string;
+    accept?: string;
+    decline?: string;
+    privacyLabel?: string;
+    privacyUrl?: string;
+}
+
+type CookieText = Record<string, CookieCopy | undefined>;
+
+interface CookieBannerData {
+    enabled?: boolean;
+    text?: CookieText;
+    [key: string]: unknown;
+}
+
+interface CookieLocale {
+    code: string;
+    name?: string;
+}
+
+type FieldUpdater = (locale: string, key: keyof CookieCopy, value: string) => void;
+
+const FALLBACK_LOCALES: CookieLocale[] = [
     { code: 'en', name: 'English' },
     { code: 'nl', name: 'Nederlands' },
 ];
 
-function LocaleCard({ code, label, text, defaultOpen, onField }) {
+interface LocaleCardProps {
+    code: string;
+    label: string;
+    text: CookieText;
+    defaultOpen: boolean;
+    onField: FieldUpdater;
+}
+
+function LocaleCard({ code, label, text, defaultOpen, onField }: LocaleCardProps) {
     const t = text[code] || {};
     return (
         <CollapsibleCard title={label} defaultOpen={defaultOpen} persistKey={`cookie.${code}`}>
@@ -60,7 +91,14 @@ function LocaleCard({ code, label, text, defaultOpen, onField }) {
     );
 }
 
-export default function CookieBannerEditor({ data = {}, onChange, locales = null, defaultLocale = 'en' }) {
+interface CookieBannerEditorProps {
+    data?: CookieBannerData;
+    onChange: (next: CookieBannerData) => void;
+    locales?: CookieLocale[] | null;
+    defaultLocale?: string;
+}
+
+export default function CookieBannerEditor({ data = {}, onChange, locales = null, defaultLocale = 'en' }: CookieBannerEditorProps) {
     const { t } = useTranslation();
     const enabled = data.enabled !== false;
     const text = data.text || {};
@@ -76,7 +114,7 @@ export default function CookieBannerEditor({ data = {}, onChange, locales = null
 
     // Replace one copy field for one locale, leaving every other field and
     // locale intact.
-    const updateField = (locale, key, value) => {
+    const updateField: FieldUpdater = (locale, key, value) => {
         onChange({
             ...data,
             text: {

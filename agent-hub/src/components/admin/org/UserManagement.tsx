@@ -19,8 +19,15 @@ import useUserActions from './userManagement/useUserActions';
 import useUserManagementData from './userManagement/useUserManagementData';
 import { useTranslation } from '../../../hooks/useTranslation';
 import ConfirmDialog from '../../shared/ConfirmDialog';
+import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
 
-const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, user: currentUser }) => {
+interface UserManagementProps {
+    activeSection?: string;
+    onNavigate?: (path: string) => void;
+    user?: AdminCurrentUser | null;
+}
+
+const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, user: currentUser }: UserManagementProps) => {
     const { t } = useTranslation();
     const VALID_SECTIONS = ['users', 'organizations', 'groups', 'roles', 'permissions', 'my-organization'];
     const activeSection = VALID_SECTIONS.includes(activeSectionProp) ? activeSectionProp : 'users';
@@ -41,8 +48,8 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     // Destructive actions route through <ConfirmDialog/> rather than
     // window.confirm: the native dialog is unstyled, unthemeable, blocks the
     // event loop, and cannot be driven by a test.
-    const [confirmState, setConfirmState] = useState(null);
-    const askConfirm = (opts) => setConfirmState(opts);
+    const [confirmState, setConfirmState] = useState<ConfirmOptions | null>(null);
+    const askConfirm = (opts: ConfirmOptions) => setConfirmState(opts);
 
     // The caller's own organisation — used by the my-organization section and by
     // the org-actions hook, which seeds its form from it.

@@ -16,17 +16,28 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { errorMessage, messageOf } from '../../../utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
 
 // "750,000" reads better than "750000" and than "0.75M" at these magnitudes.
-const formatTokens = (n) => Math.round(n).toLocaleString();
+const formatTokens = (n: number) => Math.round(n).toLocaleString();
 
-export default function OrgAiContextEditor({ orgId }) {
+/** GET /api/org-ai-context/:orgId (the fields this editor reads). */
+interface AiContextSettings {
+    compactionEnabled?: boolean;
+    compactionThreshold?: number;
+    recentWindow?: number;
+    contextBudgetPercent?: number;
+    contextBudgetRange?: { min: number; max: number };
+    contextWindowExamples?: Array<{ label: string; contextWindow: number }>;
+}
+
+export default function OrgAiContextEditor({ orgId }: { orgId?: string | null }) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState(null);
-    const [server, setServer] = useState(null);    // last loaded server state
+    const [loadError, setLoadError] = useState<string | null | undefined>(null);
+    const [server, setServer] = useState<AiContextSettings | null>(null);    // last loaded server state
     const [enabled, setEnabled] = useState(false); // current selection
     const [budgetPercent, setBudgetPercent] = useState(75);
     const [saving, setSaving] = useState(false);
@@ -49,7 +60,7 @@ export default function OrgAiContextEditor({ orgId }) {
             // Null the loaded state so Save stays disabled — saving on top of a
             // failed load would write a guess.
             setServer(null);
-            setLoadError(err.message);
+            setLoadError(errorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -84,7 +95,7 @@ export default function OrgAiContextEditor({ orgId }) {
             toast.success(t('admin.ai_context.saved', 'Conversation memory settings saved'));
             await load();
         } catch (err) {
-            toast.error(err.message || t('admin.ai_context.save_failed', 'Could not save conversation memory settings'));
+            toast.error(messageOf(err, t('admin.ai_context.save_failed', 'Could not save conversation memory settings')));
         } finally {
             setSaving(false);
         }
@@ -156,7 +167,7 @@ export default function OrgAiContextEditor({ orgId }) {
 
             <ChoiceCards
                 value={enabled ? 'on' : 'off'}
-                onChange={(v) => setEnabled(v === 'on')}
+                onChange={(v: string) => setEnabled(v === 'on')}
                 options={options}
                 columns={1}
                 ariaLabel={t('admin.ai_context.choose', 'Conversation memory')}
