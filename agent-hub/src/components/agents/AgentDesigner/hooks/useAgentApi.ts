@@ -22,6 +22,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         setToolParams, setIsPublished, setSharedGroups, setStarterPrompts,
         setAvatar, setAllowCopy, setEmbedEnabled, setWorkspaceEnabled,
         setEnableGuardrails, setLlamaGuardEnabled, setWebSearchGuardEnabled,
+
         strictKnowledge, setStrictKnowledge, setIncludeSourceReferences, setKnowledgeBaseIds,
         setEnabledIntegrations, setRegexGuardrailsEnabled, setSelectedCollections,
         setRegexScope, setGuardrailAction, setMessages, setShowChat,
@@ -35,6 +36,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         categoryId, setCategoryId, setAgentCategories,
         setDisableExternalTools,
     } = state;
+
     const initialSelectionDoneRef = useRef(false);
     const { confirm, confirmDialog } = useConfirm();
 

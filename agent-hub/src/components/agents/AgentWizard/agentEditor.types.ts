@@ -4,6 +4,7 @@ import type { RefineChange } from './builderSplit/RefineDoneCard';
 import type { ModelTierMap } from '../../../api/queries/modelTiers';
 import type { Skill } from '../../../api/queries/skills';
 import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
+import type { OrgGroup } from '../AgentDesigner/PublishMenu';
 
 /** Whether a source could be read: not yet, read, or unreadable. */
 export type ReadState = (typeof READ)[keyof typeof READ];
@@ -30,16 +31,13 @@ export interface ChatMessage {
     undoState?: string;
 }
 
-/** An organisation group as `GET /auth/groups` lists it. */
-export type OrgGroupRow = { id: string; name?: string; description?: string | null };
-
 /** What the editor's pickers read, fetched once for the whole studio. */
 export interface AgentEditorBootstrap {
     allSkills: Skill[] | null;
     integrationStatus: IntegrationStatus | null;
     categories: CategoryRow[];
     categoriesState: ReadState;
-    orgGroups: OrgGroupRow[];
+    orgGroups: OrgGroup[];
     tiers: ModelTierMap;
     automations: Array<Record<string, unknown>>;
     automationsState: ReadState;

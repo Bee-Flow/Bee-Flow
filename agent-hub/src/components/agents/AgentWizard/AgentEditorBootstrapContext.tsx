@@ -13,7 +13,8 @@ import { READ } from './canUse/canUseFacts';
 import { readSkills } from '../../../api/queries/skills';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { isAbortError } from '../../../utils/caughtError';
-import type { AgentEditorBootstrap, CategoryRow, OrgGroupRow, ReadState } from './agentEditor.types';
+import type { AgentEditorBootstrap, CategoryRow, ReadState } from './agentEditor.types';
+import type { OrgGroup } from '../AgentDesigner/PublishMenu';
 import type { ModelTierMap } from '../../../api/queries/modelTiers';
 import type { Skill } from '../../../api/queries/skills';
 import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
@@ -49,7 +50,7 @@ export function AgentEditorBootstrapProvider({ children }: { children?: ReactNod
     const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
     const [categories, setCategories] = useState<CategoryRow[]>([]);
     const [categoriesState, setCategoriesState] = useState<ReadState>(READ.LOADING);
-    const [orgGroups, setOrgGroups] = useState<OrgGroupRow[]>([]);
+    const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
     const [tiers, setTiers] = useState<ModelTierMap>({});
     const [automations, setAutomations] = useState<Array<Record<string, unknown>>>([]);
     const [automationsState, setAutomationsState] = useState<ReadState>(READ.LOADING);

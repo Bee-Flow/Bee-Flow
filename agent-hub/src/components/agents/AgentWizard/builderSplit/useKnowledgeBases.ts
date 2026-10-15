@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { READ } from '../canUse/canUseFacts';
+import type { ReadState } from '../agentEditor.types';
 import { messageOf } from '../../../../utils/caughtError';
 
 /** A knowledge base as `GET /api/kb` lists it. */
@@ -40,7 +41,7 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
      * de Kennis-kaart TEKENT dat verschil ("niets gekoppeld" versus een
      * waarschuwing met een opnieuw-knop), dus het moet hier te lezen zijn.
      */
-    const [kbsState, setKbsState] = useState<(typeof READ)[keyof typeof READ]>(READ.LOADING);
+    const [kbsState, setKbsState] = useState<ReadState>(READ.LOADING);
     /**
      * `?context=agent` — only the knowledge bases whose owner made them
      * available to agents (K5's `usage_contexts`). Without it the picker

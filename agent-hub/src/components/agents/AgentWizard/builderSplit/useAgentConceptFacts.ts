@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { READ } from '../canUse/canUseFacts';
+import type { ReadState } from '../agentEditor.types';
 
 /** The persona column of an agent; the editor reads its language. */
 export interface ConceptPersona { language?: string | null; [key: string]: unknown }
-
-type ReadState = (typeof READ)[keyof typeof READ];
 
 interface ConceptFacts {
     id: string | null;
