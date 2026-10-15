@@ -14,7 +14,7 @@ jest.mock('lucide-react', () => new Proxy({}, { get: (_t, name) => (name === '__
 const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webMatch = require(`${FLOW}/matchValidationToStep.ts`);
-const webSection = require(`${FLOW}/sectionForIssue.js`);
+const webSection = require(`${FLOW}/sectionForIssue.ts`);
 const webDisplay = require(`${FLOW}/displayHelpers.js`);
 /* eslint-enable @typescript-eslint/no-require-imports */
 

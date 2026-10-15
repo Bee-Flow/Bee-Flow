@@ -25,7 +25,7 @@ const WEB: Record<string, string[]> = {
     trigger: [
         'flow/settings/triggerEditors.jsx',
         'flow/settings/triggerFilters.jsx',
-        'flow/settings/FormTriggerFields.jsx',
+        'flow/settings/FormTriggerFields.tsx',
         'flow/ScheduleBuilder.jsx',
         'webhooks/TriggerWebhookPanel.tsx',
         'webhooks/useWebhooks.ts',
@@ -47,10 +47,10 @@ const WEB: Record<string, string[]> = {
     loop: ['flow/settings/actionEditors/loopFields.jsx', 'mapping/LoopOverPicker.jsx'],
     ai: ['flow/settings/aiStepEditors.jsx', 'flow/settings/structuredOutputFields.tsx', 'flow/settings/agentStepFields.tsx', 'flow/settings/collectionEditors.jsx'],
     shared: ['flow/settings/collectionEditors.jsx', 'mapping/FieldPicker.jsx', 'flow/settings/SetOperationsEditor.jsx'],
-    set: ['flow/settings/setEditors.jsx', 'flow/settings/SetOperationsEditor.jsx', 'flow/setOperations.js', 'mapping/JsonTreePicker.jsx'],
+    set: ['flow/settings/setEditors.jsx', 'flow/settings/SetOperationsEditor.jsx', 'flow/setOperations.ts', 'mapping/JsonTreePicker.jsx'],
     approval: ['flow/settings/approvalEditors.jsx', 'flow/settings/approvalStages.jsx'],
     datatable: ['flow/settings/datatableEditors.jsx'],
-    http: ['flow/settings/actionEditors/httpRequestFields.jsx', 'flow/settings/HttpAuthPicker.jsx', 'flow/settings/actionEditors/cacheIntoRow.jsx'],
+    http: ['flow/settings/actionEditors/httpRequestFields.jsx', 'flow/settings/HttpAuthPicker.jsx', 'flow/settings/actionEditors/cacheIntoRow.tsx'],
     code: ['flow/settings/actionEditors/codeFields.tsx', 'flow/settings/codeStep/CodeSourceBlock.tsx', 'flow/settings/codeStep/ReachPanel.tsx'],
     document: ['flow/settings/actionEditors/documentFields.jsx'],
 };

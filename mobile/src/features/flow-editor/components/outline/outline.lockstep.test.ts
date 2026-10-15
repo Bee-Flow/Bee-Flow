@@ -22,7 +22,7 @@ import { describeStepResult } from './stepResult';
 
 const FLOW = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webSet = require(`${FLOW}/setOperations.js`);
+const webSet = require(`${FLOW}/setOperations.ts`);
 const webResult = require(`${FLOW}/stepResultChip.ts`);
 // Loaded as text: the file imports lucide-react through nodeTypeColors, which
 // the app's own node_modules (all that CI installs for mobile) does not hold.

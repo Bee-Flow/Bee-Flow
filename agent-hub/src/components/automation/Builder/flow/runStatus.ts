@@ -1,5 +1,12 @@
 import { isTruncatedOutput } from '../mapping/realOutputs';
 import { isInlineId } from './inlineFlowlets';
+import type { DiagramDefinition, DiagramStep, RunByStep, RunRow } from './diagramPaneTypes';
+
+interface StatusRunRow extends RunRow {
+    parentStepId?: string;
+    attempts?: number | string;
+    startedAt?: string;
+}
 
 /**
  * The per-step run row the canvas decorates from (edge chips, node status
@@ -22,13 +29,13 @@ import { isInlineId } from './inlineFlowlets';
  *
  * Pure; colocated test in runStatus.test.js.
  */
-export function effectiveRunByStep(definition, runSteps) {
-    const m = new Map();
-    const nodes = [];
+export function effectiveRunByStep(definition: DiagramDefinition | null | undefined, runSteps: StatusRunRow[] | null | undefined): RunByStep {
+    const m = new Map<string, StatusRunRow>();
+    const nodes: DiagramStep[] = [];
     if (definition?.trigger?.id) nodes.push(definition.trigger);
     for (const t of (definition?.triggers || [])) if (t?.id) nodes.push(t);
     for (const s of (definition?.steps || [])) if (s?.id) nodes.push(s);
-    const nodeIds = new Set(nodes.map(n => n.id));
+    const nodeIds = new Set(nodes.map((n: DiagramStep) => n.id));
     for (const r of (runSteps || [])) {
         if (!r?.stepId) continue;
         if (r.parentStepId && !(isInlineId(r.stepId) && nodeIds.has(r.stepId))) continue;

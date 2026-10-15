@@ -16,6 +16,31 @@
 
 import { NODE_DEFS, FLAT, SYNTHETIC_TYPES } from './nodeDefs';
 
+interface IssueRecord {
+    path?: string;
+    [key: string]: unknown;
+}
+
+interface StepIssues {
+    errors?: IssueRecord[];
+    warnings?: IssueRecord[];
+}
+
+interface IssueSections {
+    fallback: string;
+    map: Record<string, string | null>;
+}
+
+interface NodeDefSections {
+    issueSections?: IssueSections;
+}
+
+interface EditedStep {
+    type: string;
+    id?: string;
+    [key: string]: unknown;
+}
+
 // Per-step-type: `fallback` is the section an unrecognised field tail opens,
 // `map` routes a known one. These now live in flow/nodeDefs.js next to the
 // type's other presentation facts, because keeping a SEPARATE list here is
@@ -30,34 +55,30 @@ import { NODE_DEFS, FLAT, SYNTHETIC_TYPES } from './nodeDefs';
 // Canvas-only node types are excluded: they have no editor and no validation
 // path can name them, so an entry here would be a section map for a form that
 // does not exist.
-const TAXONOMY = Object.fromEntries(
-    Object.entries(NODE_DEFS)
-        .filter(([type]) => !SYNTHETIC_TYPES[type])
-        .map(([type, def]) => [type, def.issueSections]),
+const TAXONOMY: Record<string, IssueSections | undefined> = Object.fromEntries(
+    Object.entries(NODE_DEFS as Record<string, NodeDefSections>)
+        .filter(([type]: [string, NodeDefSections]) => !(SYNTHETIC_TYPES as Record<string, string>)[type])
+        .map(([type, def]: [string, NodeDefSections]) => [type, def.issueSections]),
 );
 
 /** Strip the path down to the field tail after the step id (or `trigger`). */
-function fieldTail(path, stepId) {
+function fieldTail(path: unknown, stepId: string | undefined): string {
     if (typeof path !== 'string') return '';
     let tail = path;
     const idIdx = stepId ? path.indexOf(stepId) : -1;
-    if (idIdx >= 0) tail = path.slice(idIdx + stepId.length);
+    if (idIdx >= 0) tail = path.slice(idIdx + (stepId as string).length);
     else if (path.startsWith('trigger')) tail = path.slice('trigger'.length);
     return tail.replace(/^\]?\.?/, ''); // drop a leading `].` / `.`
 }
 
 /** Leading field segment of a tail, e.g. `inputs.subject` → `inputs`. */
-function leadingSegment(tail) {
+function leadingSegment(tail: string): string {
     return (String(tail).split(/[.[\]]/).filter(Boolean)[0]) || '';
 }
 
-/**
- * @param {object} step        the step being edited (needs `type`, `id`)
- * @param {{errors?:[], warnings?:[]}} stepIssues  step-scoped validation
- * @returns {Set<string>} section keys that contain at least one error
- */
-export function sectionsWithErrors(step, stepIssues) {
-    const out = new Set();
+/** Section keys that contain at least one error. `stepIssues` is step-scoped validation. */
+export function sectionsWithErrors(step: EditedStep | null | undefined, stepIssues: StepIssues | null | undefined): Set<string> {
+    const out = new Set<string>();
     if (!step || !stepIssues) return out;
     const tax = TAXONOMY[step.type];
     if (!tax) return out;

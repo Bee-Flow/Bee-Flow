@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { inputClass } from './formPrimitives';
+
+type JsonObject = Record<string, unknown>;
+
+interface SectionProps {
+    draft: JsonObject;
+    onApply: (parsed: JsonObject) => void;
+}
 
 /**
  * The toggle + panel pair as the settings form mounts it (BFSF-481): the
  * sentence that used to be dead text is the control now.
  */
-export default function JsonConfigSection({ draft, onApply }) {
+export default function JsonConfigSection({ draft, onApply }: SectionProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     return (
@@ -16,7 +23,7 @@ export default function JsonConfigSection({ draft, onApply }) {
                     type="button"
                     data-testid="settings-json-toggle"
                     aria-expanded={open}
-                    onClick={() => setOpen(o => !o)}
+                    onClick={() => setOpen((o: boolean) => !o)}
                     className="underline decoration-dotted underline-offset-2 hover:text-[var(--text-secondary)]"
                 >
                     {/* Two words, not a sentence next to "Advanced" that read as a second
@@ -27,12 +34,16 @@ export default function JsonConfigSection({ draft, onApply }) {
             {open && (
                 <JsonConfigEditor
                     draft={draft}
-                    onApply={(parsed) => { onApply(parsed); setOpen(false); }}
+                    onApply={(parsed: JsonObject) => { onApply(parsed); setOpen(false); }}
                     onClose={() => setOpen(false)}
                 />
             )}
         </>
     );
+}
+
+interface EditorProps extends SectionProps {
+    onClose: () => void;
 }
 
 /**
@@ -46,22 +57,22 @@ export default function JsonConfigSection({ draft, onApply }) {
  * contract as the output editor): half-typed JSON must not rewrite the form
  * underneath the user.
  */
-function JsonConfigEditor({ draft, onApply, onClose }) {
+function JsonConfigEditor({ draft, onApply, onClose }: EditorProps) {
     const { t } = useTranslation();
     const [text, setText] = useState(() => JSON.stringify(draft, null, 2));
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     const apply = () => {
-        let parsed;
+        let parsed: unknown;
         try { parsed = JSON.parse(text); } catch (e) {
-            setError(`Invalid JSON: ${e.message}`);
+            setError(`Invalid JSON: ${(e as Error).message}`);
             return;
         }
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
             setError('The step config must be a JSON object.');
             return;
         }
-        onApply(parsed);
+        onApply(parsed as JsonObject);
     };
 
     return (
@@ -69,7 +80,7 @@ function JsonConfigEditor({ draft, onApply, onClose }) {
             <textarea
                 aria-label={t('automations.json_config_editor.step_config_as_json', 'Step config as JSON')}
                 value={text}
-                onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => { setText(e.target.value); if (error) setError(null); }}
                 rows={Math.min(24, text.split('\n').length + 1)}
                 spellCheck={false}
                 className={inputClass() + ' font-mono text-[11px] leading-snug whitespace-pre'}

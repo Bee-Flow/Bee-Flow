@@ -11,6 +11,27 @@
  * is held in 'custom' mode and round-trips through unchanged.
  */
 
+export type ScheduleMode = 'minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
+
+/** One of the visual builder's presets; which fields are set depends on `mode`. */
+export interface SchedulePreset {
+    mode: ScheduleMode;
+    everyN?: number;
+    hour?: number;
+    minute?: number;
+    days?: number[];
+    day?: number;
+    cron?: string;
+}
+
+/** The app's `t(key, fallback, params)` translator. */
+export type CronTranslate = (key: string, fallback: string, params?: Record<string, unknown>) => string;
+
+interface DescribeCronOptions {
+    t?: CronTranslate | null;
+    tz?: string | null;
+}
+
 export const WEEKDAYS = Object.freeze([
     { id: 1, label: 'Mon' },
     { id: 2, label: 'Tue' },
@@ -27,7 +48,7 @@ export const WEEKDAYS = Object.freeze([
  * knows about. When that's unavailable we fall back to a curated short
  * list so the picker is never empty.
  */
-export const TIMEZONE_OPTIONS = (() => {
+export const TIMEZONE_OPTIONS: string[] = (() => {
     try {
         if (typeof Intl?.supportedValuesOf === 'function') {
             const list = Intl.supportedValuesOf('timeZone');
@@ -45,7 +66,7 @@ export const TIMEZONE_OPTIONS = (() => {
     ];
 })();
 
-const SCHEDULE_MODES = ['minute', 'hourly', 'daily', 'weekly', 'monthly', 'custom'];
+const SCHEDULE_MODES: ScheduleMode[] = ['minute', 'hourly', 'daily', 'weekly', 'monthly', 'custom'];
 export { SCHEDULE_MODES };
 
 /**
@@ -53,7 +74,7 @@ export { SCHEDULE_MODES };
  * that doesn't match falls back to 'custom' so the user can keep
  * editing the raw expression without losing fidelity.
  */
-export function presetFromCron(cron) {
+export function presetFromCron(cron: unknown): SchedulePreset {
     if (typeof cron !== 'string') return defaultPreset();
     const trimmed = cron.trim();
     if (!trimmed) return defaultPreset();
@@ -88,7 +109,7 @@ export function presetFromCron(cron) {
 
     // Weekly: M H * * D[,D,...]  (DOM is *, DOW is restricted).
     if (mon === '*' && dom === '*' && /^\d+$/.test(m) && /^\d+$/.test(h) && /^[0-7](,[0-7])*$/.test(dow)) {
-        const days = dow.split(',').map(d => parseInt(d, 10) === 7 ? 0 : parseInt(d, 10));
+        const days = dow.split(',').map((d: string) => parseInt(d, 10) === 7 ? 0 : parseInt(d, 10));
         return { mode: 'weekly', hour: parseInt(h, 10), minute: parseInt(m, 10), days };
     }
 
@@ -103,11 +124,11 @@ export function presetFromCron(cron) {
     return customPreset(trimmed);
 }
 
-function defaultPreset() {
+function defaultPreset(): SchedulePreset {
     return { mode: 'daily', hour: 9, minute: 0 };
 }
 
-function customPreset(cron) {
+function customPreset(cron: string): SchedulePreset {
     return { mode: 'custom', cron };
 }
 
@@ -116,7 +137,7 @@ function customPreset(cron) {
  * server parser will accept. Defensive defaults so a half-filled form
  * still generates a valid expression.
  */
-export function cronFromPreset(preset) {
+export function cronFromPreset(preset: SchedulePreset | null | undefined): string {
     if (!preset || typeof preset !== 'object') return '0 9 * * *';
     switch (preset.mode) {
         case 'minute': {
@@ -136,7 +157,7 @@ export function cronFromPreset(preset) {
             const m = clampInt(preset.minute, 0, 59, 0);
             const h = clampInt(preset.hour, 0, 23, 9);
             const days = Array.isArray(preset.days) && preset.days.length
-                ? Array.from(new Set(preset.days.map(d => clampInt(d, 0, 6, 1)))).sort((a, b) => a - b)
+                ? Array.from(new Set(preset.days.map((d: number) => clampInt(d, 0, 6, 1)))).sort((a: number, b: number) => a - b)
                 : [1];
             return `${m} ${h} * * ${days.join(',')}`;
         }
@@ -163,20 +184,16 @@ export function cronFromPreset(preset) {
  * without it the English fallback is used, so plain-JS callers (list rows,
  * view models) keep working. `options.tz` appends the time zone:
  * "Every weekday at 07:00 · Europe/Amsterdam".
- *
- * @param {string} cron
- * @param {{ t?: ((key: string, fallback: string, params?: Record<string, unknown>) => string) | null, tz?: string | null }} [options]
- * @returns {string}
  */
-export function describeCron(cron, { t = null, tz = null } = {}) {
-    const tr = (key, fallback, params) => (typeof t === 'function' ? t(key, fallback, params) : fillParams(fallback, params));
+export function describeCron(cron: string, { t = null, tz = null }: DescribeCronOptions = {}): string {
+    const tr: CronTranslate = (key: string, fallback: string, params?: Record<string, unknown>) => (typeof t === 'function' ? t(key, fallback, params) : fillParams(fallback, params));
     const sentence = describeCronSentence(presetFromCron(cron), tr);
     return tz ? tr('automations.schedule.with_tz', '{sentence} · {tz}', { sentence, tz }) : sentence;
 }
 
-const WEEKDAY_IDS = [1, 2, 3, 4, 5];
+const WEEKDAY_IDS: number[] = [1, 2, 3, 4, 5];
 
-function describeCronSentence(preset, tr) {
+function describeCronSentence(preset: SchedulePreset, tr: CronTranslate): string {
     const time = () => `${pad2(preset.hour)}:${pad2(preset.minute)}`;
     switch (preset.mode) {
         case 'minute':
@@ -190,12 +207,12 @@ function describeCronSentence(preset, tr) {
         case 'daily':
             return tr('automations.schedule.every_day_at', 'Every day at {time}', { time: time() });
         case 'weekly': {
-            if (preset.days.length === WEEKDAY_IDS.length && WEEKDAY_IDS.every(d => preset.days.includes(d))) {
+            if ((preset.days as number[]).length === WEEKDAY_IDS.length && WEEKDAY_IDS.every((d: number) => (preset.days as number[]).includes(d))) {
                 return tr('automations.schedule.every_weekday_at', 'Every weekday at {time}', { time: time() });
             }
-            const labels = preset.days
-                .map(d => WEEKDAYS.find(w => w.id === d))
-                .map(w => (w ? tr(`automations.schedule.day_${w.label.toLowerCase()}`, w.label) : ''))
+            const labels = (preset.days as number[])
+                .map((d: number) => WEEKDAYS.find((w: { id: number; label: string }) => w.id === d))
+                .map((w: { id: number; label: string } | undefined) => (w ? tr(`automations.schedule.day_${w.label.toLowerCase()}`, w.label) : ''))
                 .filter(Boolean)
                 .join(', ');
             return tr('automations.schedule.weekly_on', 'Weekly on {days} at {time}', { days: labels, time: time() });
@@ -209,17 +226,17 @@ function describeCronSentence(preset, tr) {
     }
 }
 
-function fillParams(text, params) {
+function fillParams(text: string, params?: Record<string, unknown>): string {
     if (!params) return text;
-    return text.replace(/\{(\w+)\}/g, (m, k) => (params[k] === undefined ? m : String(params[k])));
+    return text.replace(/\{(\w+)\}/g, (m: string, k: string) => (params[k] === undefined ? m : String(params[k])));
 }
 
-function pad2(n) {
+function pad2(n: unknown): string {
     const s = String(n);
     return s.length < 2 ? `0${s}` : s;
 }
 
-function clampInt(v, min, max, fallback) {
+function clampInt(v: unknown, min: number, max: number, fallback: number): number {
     const n = Number(v);
     if (!Number.isFinite(n)) return fallback;
     const i = Math.floor(n);

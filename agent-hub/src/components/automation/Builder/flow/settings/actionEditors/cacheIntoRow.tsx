@@ -1,11 +1,38 @@
 // "Remember answers in a table" — the visible half of reusing an answer, a
 // separate tick from AskOnceRow and offered on the http_request editor.
+import type React from 'react';
 import { useMemo } from 'react';
 import { inputClass } from '../formPrimitives';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 
+export interface CacheTable {
+    id: string;
+    name?: string;
+    scope?: string;
+    managedKind?: string;
+    canWrite?: boolean;
+}
+
+interface CacheInto {
+    datatableId?: string;
+    maxAgeDays?: number;
+}
+
+interface CacheDraft {
+    cacheInto?: CacheInto | null;
+    [key: string]: unknown;
+}
+
+interface CacheIntoRowProps {
+    draft: CacheDraft;
+    set: (key: string, value: unknown) => void;
+    catalog?: { datatables?: CacheTable[] } | null;
+    disabled?: boolean;
+    disabledReason?: string | null;
+}
+
 /** Who else can read a table, in the words the datatables list uses. */
-const TABLE_AUDIENCE = {
+const TABLE_AUDIENCE: Record<string, string> = {
     personal: 'only you',
     org: 'everyone in the organisation',
     groups: 'the groups it is shared with',
@@ -30,10 +57,10 @@ const TABLE_AUDIENCE = {
  * 'http_cache'). Their columns are fixed and the runner writes them by name, so
  * pointing this at an ordinary table would fail once, at run time, at 3am.
  */
-function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledReason = null }) {
+function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledReason = null }: CacheIntoRowProps) {
     const { t } = useTranslation();
     const tables = useMemo(() => (catalog?.datatables || [])
-        .filter(t => t && t.managedKind === 'http_cache' && t.canWrite !== false), [catalog]);
+        .filter((t: CacheTable) => t && t.managedKind === 'http_cache' && t.canWrite !== false), [catalog]);
     const current = (draft.cacheInto && typeof draft.cacheInto === 'object') ? draft.cacheInto : null;
     const on = !!(current && current.datatableId);
     // A tick with nowhere to put the answers would be a setting that reads as
@@ -44,9 +71,9 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
         ? disabledReason
         : (noTables ? 'Make an answers table first — Studio → Datatables → New table → “Web service answers”.' : null);
 
-    const days = Number.isFinite(Number(current?.maxAgeDays)) ? Number(current.maxAgeDays) : 30;
-    const setTable = (datatableId) => set('cacheInto', datatableId ? { datatableId, maxAgeDays: days } : undefined);
-    const setDays = (value) => {
+    const days = Number.isFinite(Number(current?.maxAgeDays)) ? Number((current as CacheInto).maxAgeDays) : 30;
+    const setTable = (datatableId: string) => set('cacheInto', datatableId ? { datatableId, maxAgeDays: days } : undefined);
+    const setDays = (value: string) => {
         const n = Math.round(Number(value));
         if (!current?.datatableId) return;
         set('cacheInto', { datatableId: current.datatableId, ...(Number.isFinite(n) ? { maxAgeDays: n } : {}) });
@@ -60,7 +87,7 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                     className="mt-0.5"
                     checked={on}
                     disabled={blocked}
-                    onChange={(e) => setTable(e.target.checked ? (tables[0]?.id || '') : '')}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTable(e.target.checked ? (tables[0]?.id || '') : '')}
                 />
                 <span>
                     <span className="font-medium">{t('automations.cache_into_row.remember_answers_in_a_table', 'Remember answers in a table')}</span>
@@ -76,21 +103,21 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                         <span className="block text-slate-500 dark:text-slate-400 mb-1">{t('automations.cache_into_row.which_table', 'Which table')}</span>
                         <select
                             value={current.datatableId}
-                            onChange={(e) => setTable(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTable(e.target.value)}
                             className={inputClass()}
                         >
                             {/* A table the step names but this account can no
                                 longer see must not vanish from the control:
                                 silently re-pointing it at another table is
                                 worse than showing that it is gone. */}
-                            {!tables.some(t => t.id === current.datatableId) && (
+                            {!tables.some((t: CacheTable) => t.id === current.datatableId) && (
                                 <option value={current.datatableId}>
                                     {t('automations.cache_into_row.a_table_you_can_no_longer', '(a table you can no longer reach)')}
                                 </option>
                             )}
-                            {tables.map(tb => (
+                            {tables.map((tb: CacheTable) => (
                                 <option key={tb.id} value={tb.id}>
-                                    {tb.name} {t('automations.cache_into_row.readable_by', '— readable by')} {TABLE_AUDIENCE[tb.scope] || t('automations.cache_into_row.everyone_with_access', 'everyone with access')}
+                                    {tb.name} {t('automations.cache_into_row.readable_by', '— readable by')} {TABLE_AUDIENCE[tb.scope as string] || t('automations.cache_into_row.everyone_with_access', 'everyone with access')}
                                 </option>
                             ))}
                         </select>
@@ -104,7 +131,7 @@ function CacheIntoRow({ draft, set, catalog = null, disabled = false, disabledRe
                                 min={1}
                                 max={3650}
                                 value={days}
-                                onChange={(e) => setDays(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDays(e.target.value)}
                                 className={`${inputClass()} w-24`}
                             />
                             <span className="text-slate-500 dark:text-slate-400">{t('automations.cache_into_row.days', 'days')}</span>

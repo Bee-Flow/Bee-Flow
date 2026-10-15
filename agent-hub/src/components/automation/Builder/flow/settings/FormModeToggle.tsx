@@ -3,6 +3,16 @@ import React from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 
+export type FormMode = 'simple' | 'advanced';
+
+interface Props {
+    mode: FormMode;
+    onChange?: (next: FormMode) => void;
+    hiddenCount?: number;
+    size?: 'sm' | 'md';
+    variant?: 'segmented' | 'link';
+}
+
 /**
  * The Simple / Advanced switch, in its two presentations:
  *
@@ -17,12 +27,12 @@ import SegmentedControl from '../../../../shared/SegmentedControl';
  * component never guesses from density.
  */
 export default function FormModeToggle({
-    mode,                  // 'simple' | 'advanced'
-    onChange,              // (next: 'simple' | 'advanced') => void
+    mode,
+    onChange,
     hiddenCount = 0,
     size = 'sm',
     variant = 'segmented',
-}) {
+}: Props) {
     const { t } = useTranslation();
 
     if (variant === 'link') {
@@ -46,7 +56,7 @@ export default function FormModeToggle({
     return (
         <SegmentedControl
             value={mode}
-            onChange={(next) => onChange?.(next)}
+            onChange={(next: FormMode) => onChange?.(next)}
             size={size}
             ariaLabel={t('automations.builder.mode_toggle_label', 'How much of this step to show')}
             options={[

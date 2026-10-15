@@ -21,25 +21,40 @@ export const ROW_GAP = 270;
 /** How far above a row its gutter label sits. */
 export const ROW_LABEL_OFFSET = 28;
 
-/**
- * @param {Array<{id:string, x:number, y:number, width?:number, height?:number, number?:number}>} items
- * @param {{gap?:number}} opts
- * @returns {Array<{index:number, top:number, bottom:number, left:number, right:number, ids:string[], first:number|null, last:number|null}>}
- */
-export function rowBands(items, { gap = ROW_GAP } = {}) {
+export interface BandItem {
+    id: string;
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    number?: number;
+}
+
+export interface RowBand {
+    index: number;
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+    ids: string[];
+    first: number | null;
+    last: number | null;
+}
+
+export function rowBands(items: BandItem[], { gap = ROW_GAP }: { gap?: number } = {}): RowBand[] {
     const valid = (items || []).filter(it => it && it.id != null
         && Number.isFinite(it.x) && Number.isFinite(it.y));
     const sorted = valid.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x));
-    const bands = [];
-    let cur = null;
+    const bands: RowBand[] = [];
+    let cur: RowBand | null = null;
     // Two ranks stacked inside one row (the arms of a condition) sit a card
     // height plus one nodesep apart; the next row starts a whole ROW_GAP
     // below. Half a ROW_GAP therefore separates "same row" from "next row"
     // with room on both sides.
     const threshold = gap / 2;
     for (const it of sorted) {
-        const w = Number.isFinite(it.width) ? it.width : 240;
-        const h = Number.isFinite(it.height) ? it.height : 72;
+        const w = Number.isFinite(it.width) ? it.width as number : 240;
+        const h = Number.isFinite(it.height) ? it.height as number : 72;
         const bottom = it.y + h;
         if (!cur || it.y > cur.bottom + threshold) {
             cur = { index: bands.length + 1, top: it.y, bottom, left: it.x, right: it.x + w, ids: [], first: null, last: null };
@@ -59,8 +74,8 @@ export function rowBands(items, { gap = ROW_GAP } = {}) {
 }
 
 /** `Map<id, rowIndex>` from a band list — empty when there is one row. */
-export function rowIndexById(bands) {
-    const m = new Map();
+export function rowIndexById(bands: RowBand[]): Map<string, number> {
+    const m = new Map<string, number>();
     for (const b of bands || []) for (const id of b.ids) m.set(id, b.index);
     return m;
 }

@@ -14,7 +14,7 @@ const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 const webTriggers = require(`${FLOW}/triggerLabels.ts`);
 const webNames = require(`${FLOW}/stepDisplayName.ts`);
 const webWait = require(`${FLOW}/waitDuration.js`);
-const webSchedule = require(`${FLOW}/scheduleBuilderUtils.js`);
+const webSchedule = require(`${FLOW}/scheduleBuilderUtils.ts`);
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 describe('trigger labels', () => {
