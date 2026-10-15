@@ -160,7 +160,8 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
                             onChange={sheet.setActiveTab}
                             onAdd={sheet.createTab}
                             onRename={sheet.renameTab}
-                            onDelete={sheet.deleteTab}
+                            // a removed tab takes its charts along on the server: show that list
+                            onDelete={(tabId) => { void sheet.deleteTab(tabId).then(charts.reload); }}
                         />
                     </div>
                     {assistantOpen && <SheetAssistantPanel assistant={assistant} selection={selection} selectionKind={grid.kind} tier={tier} readOnly={sheet.readOnly} onClose={toggleAssistant} />}
