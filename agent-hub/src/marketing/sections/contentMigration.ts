@@ -17,8 +17,67 @@
  * place and an old block edited once gets persisted in the new shape.
  */
 
+import type { CmsLink } from '../../components/admin/product-website/fieldKit/LinkField';
+
+export interface ContentElement {
+    id: string;
+    kind: string;
+    heading?: string;
+    subheading?: string;
+    body?: string;
+    align?: string;
+    src?: string;
+    alt?: string;
+    aspectRatio?: string;
+    rounded?: boolean;
+    caption?: string;
+    url?: string;
+    height?: number;
+    label?: string;
+    scrolling?: boolean;
+    link?: CmsLink;
+    style?: string;
+}
+
+export interface ContentColumn {
+    id: string;
+    elements: ContentElement[];
+}
+
+interface LegacyImage {
+    src?: string;
+    alt?: string;
+}
+
+interface LegacyCta {
+    label?: string;
+    link?: CmsLink;
+    style?: string;
+}
+
+/** The new column/elements shape of a Content block's content blob. */
+export interface ContentData {
+    columnLayout?: string;
+    columns?: ContentColumn[];
+    background?: string;
+    verticalAlign?: string;
+}
+
+/** The legacy flat shape (heading, body, image, cta, imagePosition…). */
+export interface LegacyContent {
+    heading?: string;
+    subheading?: string;
+    body?: string;
+    textAlign?: string;
+    image?: LegacyImage | null;
+    cta?: LegacyCta | null;
+    imagePosition?: string;
+    backgroundVariant?: string;
+    columns?: undefined;
+}
+
 let _idSeq = 0;
-function newId(prefix) {
+function newId(prefix: string): string {
     // Crypto would be nicer; for editor-only ids the time-based seq is
     // enough and avoids needing window.crypto in non-browser tests.
     _idSeq += 1;
@@ -26,14 +85,14 @@ function newId(prefix) {
 }
 
 /** True when the content blob already follows the new column/elements shape. */
-export function isNewContentShape(content) {
+export function isNewContentShape(content: ContentData | LegacyContent | null | undefined): content is ContentData {
     return !!content
         && typeof content === 'object'
         && Array.isArray(content.columns);
 }
 
 /** Build an empty element of the given kind with sensible defaults. */
-export function makeElement(kind) {
+export function makeElement(kind: string): ContentElement {
     const base = { id: newId('el'), kind };
     switch (kind) {
         case 'text':   return { ...base,
@@ -59,12 +118,12 @@ export function makeElement(kind) {
 }
 
 /** Build a fresh empty column. */
-export function makeColumn() {
+export function makeColumn(): ContentColumn {
     return { id: newId('col'), elements: [] };
 }
 
 /** Default content for a brand-new Content block. */
-export function makeDefaultContent() {
+export function makeDefaultContent(): ContentData {
     return {
         columnLayout: '1',
         columns: [
@@ -100,18 +159,18 @@ export function makeDefaultContent() {
  * element to the text column. Old `backgroundVariant` ('default' /
  * 'surface' / 'primary' / 'dark') maps onto the new `background`.
  */
-export function migrateLegacyContent(content) {
+export function migrateLegacyContent(content: ContentData | LegacyContent | null | undefined): ContentData {
     if (isNewContentShape(content)) return content;
     if (!content || typeof content !== 'object') return makeDefaultContent();
 
     const heading    = typeof content.heading === 'string' ? content.heading : '';
     const subheading = typeof content.subheading === 'string' ? content.subheading : '';
     const body       = typeof content.body === 'string' ? content.body : '';
-    const align      = ['left', 'center', 'right'].includes(content.textAlign)
+    const align      = (['left', 'center', 'right'] as readonly (string | undefined)[]).includes(content.textAlign)
         ? content.textAlign : 'left';
     const image      = content.image && typeof content.image === 'object' ? content.image : null;
     const cta        = content.cta && typeof content.cta === 'object' ? content.cta : null;
-    const position   = ['above', 'below', 'left', 'right'].includes(content.imagePosition)
+    const position   = (['above', 'below', 'left', 'right'] as readonly (string | undefined)[]).includes(content.imagePosition)
         ? content.imagePosition : 'below';
     const bgRaw      = content.backgroundVariant || 'default';
     const background = bgRaw === 'default' ? 'none'
@@ -126,7 +185,7 @@ export function migrateLegacyContent(content) {
         // text column so the visual order is preserved.
     }
 
-    const elementsForTextColumn = [textEl];
+    const elementsForTextColumn: ContentElement[] = [textEl];
     if (cta) {
         elementsForTextColumn.push({
             ...makeElement('cta'),
@@ -134,13 +193,13 @@ export function migrateLegacyContent(content) {
             link: cta.link && typeof cta.link === 'object'
                 ? cta.link
                 : { kind: 'anchor', anchor: '' },
-            style: ['primary', 'secondary', 'ghost', 'link'].includes(cta.style)
+            style: (['primary', 'secondary', 'ghost', 'link'] as readonly (string | undefined)[]).includes(cta.style)
                 ? cta.style : 'primary',
             align,
         });
     }
 
-    let columnLayout, columns;
+    let columnLayout: string, columns: ContentColumn[];
     if (image && (position === 'left' || position === 'right')) {
         const imgCol = {
             id: newId('col'),
@@ -193,7 +252,7 @@ export function migrateLegacyContent(content) {
  * Returns null when the URL doesn't look like a recognised provider so the
  * renderer can show a placeholder rather than embedding garbage.
  */
-export function resolveVideoEmbed(url) {
+export function resolveVideoEmbed(url: unknown): string | null {
     if (typeof url !== 'string' || !url.trim()) return null;
     const u = url.trim();
     try {
@@ -238,7 +297,7 @@ export function resolveVideoEmbed(url) {
 }
 
 // "1m30s" / "90" / "1:30" → seconds. Returns null for invalid input.
-function parseTimestamp(raw) {
+function parseTimestamp(raw: string | null): number | null {
     if (!raw) return null;
     if (/^\d+$/.test(raw)) return Number(raw);
     const m = String(raw).match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);

@@ -1,5 +1,24 @@
 import { useEffect } from 'react';
 
+interface CmsSeo {
+    metaTitle?: string;
+    metaDescription?: string;
+    ogImage?: string;
+    noIndex?: boolean;
+}
+
+interface UseCmsHeadOptions {
+    /** false in editor preview — hook is a no-op */
+    enabled: boolean;
+    /** the page's title (fallback for metaTitle) */
+    pageTitle?: string;
+    seo?: CmsSeo;
+    /** design.favicon (cms/… asset key or URL) */
+    favicon?: string;
+    /** cms/… → /api/cms/asset/… resolver */
+    resolveAssetUrl: (u: string) => string;
+}
+
 // Client-side <head> manager for the public CMS site.
 //
 // The admin has always offered per-page SEO fields (metaTitle,
@@ -14,7 +33,7 @@ import { useEffect } from 'react';
 // every page change; empty values remove their tag. Never active in the
 // editor preview (the iframe should keep its neutral title).
 
-function upsertMeta(attrName, attrValue, content) {
+function upsertMeta(attrName: string, attrValue: string, content: string): void {
     const selector = `meta[${attrName}="${attrValue}"][data-cms-head]`;
     let el = document.head.querySelector(selector);
     if (!content) {
@@ -30,7 +49,7 @@ function upsertMeta(attrName, attrValue, content) {
     el.setAttribute('content', content);
 }
 
-function upsertIcon(href) {
+function upsertIcon(href: string): void {
     let el = document.head.querySelector('link[rel="icon"][data-cms-head]');
     if (!href) {
         if (el) el.remove();
@@ -46,19 +65,11 @@ function upsertIcon(href) {
     el.setAttribute('href', href);
 }
 
-function toAbsolute(url) {
+function toAbsolute(url: string): string {
     try { return new URL(url, window.location.origin).href; } catch { return url; }
 }
 
-/**
- * @param {object} opts
- * @param {boolean} opts.enabled     false in editor preview — hook is a no-op
- * @param {string}  [opts.pageTitle] the page's title (fallback for metaTitle)
- * @param {object}  [opts.seo]       { metaTitle, metaDescription, ogImage, noIndex }
- * @param {string}  [opts.favicon]   design.favicon (cms/… asset key or URL)
- * @param {(u: string) => string} opts.resolveAssetUrl  cms/… → /api/cms/asset/… resolver
- */
-export default function useCmsHead({ enabled, pageTitle, seo, favicon, resolveAssetUrl }) {
+export default function useCmsHead({ enabled, pageTitle, seo, favicon, resolveAssetUrl }: UseCmsHeadOptions): void {
     const metaTitle = seo?.metaTitle || '';
     const metaDescription = seo?.metaDescription || '';
     const ogImage = seo?.ogImage || '';

@@ -207,7 +207,7 @@
     "src/pages/documents/HouseStylePanel.jsx": 402,
     "src/pages/documents/notebook/MermaidBlock.jsx": 567,
     "src/pages/EmbedChat.jsx": 528,
-    "src/pages/EncryptionSetup.jsx": 428,
+    "src/pages/EncryptionSetup.tsx": 428,
     "src/pages/LoginPage.jsx": 1009,
     "src/pages/meeting-notes/lib/insightsMetrics.js": 577,
     "src/pages/meeting-notes/lib/transcriptionsApi.js": 426,

@@ -1,3 +1,11 @@
+import type { CSSProperties } from 'react';
+
+export interface TextStyleInput {
+    fontFamily?: string;
+    fontSize?: number;
+    color?: string;
+}
+
 /**
  * Shared per-text inline-style helper, used by section renderers
  * (SocialProof, Hero, …) that expose font / size / color / alignment
@@ -16,8 +24,8 @@
  * It is applied as `text-align` directly on the text element, so each
  * field aligns independently of any block-level wrapper.
  */
-export function inlineTextStyle(style, align) {
-    const out = {};
+export function inlineTextStyle(style: TextStyleInput | null | undefined, align?: string): CSSProperties | undefined {
+    const out: CSSProperties = {};
     if (style && typeof style === 'object') {
         if (typeof style.fontFamily === 'string' && style.fontFamily.trim()) {
             // Quote names with spaces; always include a system fallback so
@@ -26,7 +34,7 @@ export function inlineTextStyle(style, align) {
             const quoted = /\s/.test(name) ? `"${name}"` : name;
             out.fontFamily = `${quoted}, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
         }
-        if (Number.isFinite(style.fontSize) && style.fontSize > 0) {
+        if (Number.isFinite(style.fontSize) && (style.fontSize as number) > 0) {
             out.fontSize = `${style.fontSize}px`;
         }
         if (typeof style.color === 'string' && style.color.trim()) {

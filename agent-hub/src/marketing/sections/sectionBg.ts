@@ -6,7 +6,7 @@
 // value — including 'default' — switches to the shared cms-bg--* utilities,
 // which is what makes the editor's Background control actually work on
 // every block (it was a dead control on 7 of 15 types).
-export function sectionBgClass(data, legacyClass = '') {
+export function sectionBgClass(data: { backgroundVariant?: string | null } | null | undefined, legacyClass = ''): string {
     const v = data?.backgroundVariant;
     if (v === undefined || v === null || v === '') return legacyClass;
     if (v === 'default') return '';
