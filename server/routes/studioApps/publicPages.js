@@ -4,7 +4,6 @@
  */
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const studioAppStore = require('../../stores/studioAppStore');
 const { requireAuth } = require('../../auth/permissions');
 const publicAccess = require('../../appStudio/publicAccess');
@@ -13,7 +12,6 @@ const publicAccess = require('../../appStudio/publicAccess');
 const publicationAudit = require('../../appStudio/publicationAudit');
 const { publicAppUrlForToken } = require('../../automation/publicUrl');
 const { requireManageApps, audienceFor } = require('./access');
-const { rethrowClientError } = require('./appHelpers');
 
 const router = express.Router();
 
@@ -84,65 +82,47 @@ function publicPageView(page, req) {
 }
 
 router.get('/:id/public-pages', requireAuth, async (req, res) => {
-    try {
-        const app = await loadOwnedAppForPublic(req, res);
-        if (!app) return undefined;
-        const pages = await studioAppStore.listPublicPages(app.id);
-        return res.json({
-            pages: pages.map((p) => publicPageView(p, req)),
-            publicAccess: (app.definition && app.definition.publicAccess) || null,
-            blockers: publicPageBlockers(app),
-        });
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[StudioApps] list public pages failed:', err.message);
-        return res.status(500).json({ error: 'Failed to load public pages' });
-    }
+    const app = await loadOwnedAppForPublic(req, res);
+    if (!app) return undefined;
+    const pages = await studioAppStore.listPublicPages(app.id);
+    return res.json({
+        pages: pages.map((p) => publicPageView(p, req)),
+        publicAccess: (app.definition && app.definition.publicAccess) || null,
+        blockers: publicPageBlockers(app),
+    });
 });
 
 router.post('/:id/public-pages', requireAuth, requireManageApps, async (req, res) => {
-    try {
-        const app = await loadOwnedAppForPublic(req, res);
-        if (!app) return undefined;
-        // One live URL per app is the shape the UI needs; rotating means
-        // revoking the old one explicitly, so a link already handed out never
-        // dies by accident.
-        const existing = await studioAppStore.listPublicPages(app.id);
-        if (existing.length >= MAX_PUBLIC_PAGES_PER_APP) {
-            return res.status(409).json({ error: `An app can have at most ${MAX_PUBLIC_PAGES_PER_APP} public URLs — revoke one first.` });
-        }
-        const page = await studioAppStore.createPublicPage(app.id, req.session.user.id);
-        // The single largest exposure change the studio can make: from here the
-        // app answers to anyone on the internet with the link, with no account.
-        await publicationAudit.auditPublicPage({
-            app, actorId: req.session.user.id, token: page?.token, created: true,
-        });
-        return res.status(201).json({
-            page: publicPageView({ ...page, createdAt: new Date().toISOString(), lastSeenAt: null }, req),
-            blockers: publicPageBlockers(app),
-        });
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[StudioApps] mint public page failed:', err.message);
-        return res.status(500).json({ error: 'Failed to create a public page' });
+    const app = await loadOwnedAppForPublic(req, res);
+    if (!app) return undefined;
+    // One live URL per app is the shape the UI needs; rotating means
+    // revoking the old one explicitly, so a link already handed out never
+    // dies by accident.
+    const existing = await studioAppStore.listPublicPages(app.id);
+    if (existing.length >= MAX_PUBLIC_PAGES_PER_APP) {
+        return res.status(409).json({ error: `An app can have at most ${MAX_PUBLIC_PAGES_PER_APP} public URLs — revoke one first.` });
     }
+    const page = await studioAppStore.createPublicPage(app.id, req.session.user.id);
+    // The single largest exposure change the studio can make: from here the
+    // app answers to anyone on the internet with the link, with no account.
+    await publicationAudit.auditPublicPage({
+        app, actorId: req.session.user.id, token: page?.token, created: true,
+    });
+    return res.status(201).json({
+        page: publicPageView({ ...page, createdAt: new Date().toISOString(), lastSeenAt: null }, req),
+        blockers: publicPageBlockers(app),
+    });
 });
 
 router.delete('/:id/public-pages/:token', requireAuth, requireManageApps, async (req, res) => {
-    try {
-        const app = await loadOwnedAppForPublic(req, res);
-        if (!app) return undefined;
-        const ok = await studioAppStore.deletePublicPage(req.params.token, app.id);
-        if (!ok) return res.status(404).json({ error: 'Public page not found' });
-        await publicationAudit.auditPublicPage({
-            app, actorId: req.session.user.id, token: req.params.token, created: false,
-        });
-        return res.json({ success: true });
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[StudioApps] revoke public page failed:', err.message);
-        return res.status(500).json({ error: 'Failed to revoke the public page' });
-    }
+    const app = await loadOwnedAppForPublic(req, res);
+    if (!app) return undefined;
+    const ok = await studioAppStore.deletePublicPage(req.params.token, app.id);
+    if (!ok) return res.status(404).json({ error: 'Public page not found' });
+    await publicationAudit.auditPublicPage({
+        app, actorId: req.session.user.id, token: req.params.token, created: false,
+    });
+    return res.json({ success: true });
 });
 
 module.exports = router;
