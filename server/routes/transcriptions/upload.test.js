@@ -61,7 +61,10 @@ stub('../../stores/configStore', {
     getConfig: async (k) => (k in cfg.config ? cfg.config[k] : (k === 'transcription_provider' ? 'whisperx' : null)),
     getSecret: async (k) => cfg.secrets[k] || null,
 });
-const providerCalls = { local: [], voxtral: [], mistralClient: [] };
+const providerCalls = { local: [], voxtral: [], mistralClient: [], azure: [], whisperAzure: [] };
+let azureResult = { text: 'azuretekst', truncated: null, segments: [{ speakerId: 'speaker_0', start: 0, end: 3, text: 'azure' }] };
+stub('../../core/voice/azureSpeech', { transcribeWithAzureSpeech: async (...a) => { providerCalls.azure.push(a); return azureResult; } });
+stub('../../integrations/transcriptionTools', { runAzureWhisperBatch: async (a) => { providerCalls.whisperAzure.push(a); return { text: 'whisperazure', segments: [{ speakerId: 'speaker_0', start: 0, end: 3, text: 'wa' }] }; } });
 let localImpl = async () => ({ text: 'lokaal', segments: [{ speakerId: 'speaker_0', start: 0, end: 3, text: 'lokaal' }] });
 stub('../../core/voice/localWhisper', { transcribeLocally: async (...a) => { providerCalls.local.push(a); return localImpl(...a); } });
 stub('../../core/meetingNotes/voxtralClient', {
@@ -191,6 +194,9 @@ test.beforeEach(() => {
     providerCalls.local.length = 0;
     providerCalls.voxtral.length = 0;
     providerCalls.mistralClient.length = 0;
+    providerCalls.azure.length = 0;
+    providerCalls.whisperAzure.length = 0;
+    azureResult = { text: 'azuretekst', truncated: null, segments: [{ speakerId: 'speaker_0', start: 0, end: 3, text: 'azure' }] };
     localImpl = async () => ({ text: 'lokaal', segments: [{ speakerId: 'speaker_0', start: 0, end: 3, text: 'lokaal' }] });
     createFails = null;
     artifactsResult = {
@@ -477,4 +483,26 @@ test('a failure before the note exists is a 500 transcription_failed and writes 
     assert.strictEqual(res.body.code, 'transcription_failed');
     assert.strictEqual(res.body.error, 'Transcription failed');
     assert.strictEqual(updates.length, 0);
+});
+
+test('azure: transcribes with language and context terms, and a salvaged partial transcript is announced on the note', async () => {
+    cfg.config.transcription_provider = 'azure';
+    azureResult = { ...azureResult, truncated: { seconds: 600 } };
+    await dispatch({ body: { language: 'en', context_terms: 'Acme' } });
+    await waitFor(() => !!completion());
+    assert.deepStrictEqual(providerCalls.azure[0], [AUDIO_PATH, { language: 'en', contextTerms: 'Acme' }]);
+    const p = completion();
+    assert.strictEqual(p.fullText, 'azuretekst');
+    assert.strictEqual(p.provider, 'azure');
+    assert.notStrictEqual(p.summary, 'Samenvatting van de meeting.', 'a truncation notice is prepended');
+    assert.ok(p.summary.endsWith('Samenvatting van de meeting.'));
+});
+
+test('whisper_azure: gets the file, name, language and speaker hint, and keeps its text and segments', async () => {
+    cfg.config.transcription_provider = 'whisper_azure';
+    await dispatch({ body: { language: 'en', num_speakers: '2' } });
+    await waitFor(() => !!completion());
+    assert.deepStrictEqual(providerCalls.whisperAzure[0], { filePath: AUDIO_PATH, fileName: 'standup.webm', language: 'en', numSpeakers: 2 });
+    assert.strictEqual(completion().fullText, 'whisperazure');
+    assert.strictEqual(completion().provider, 'whisper_azure');
 });

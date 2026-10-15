@@ -174,7 +174,10 @@ router.get('/catalog', async (req, res) => {
 router.get('/catalog/form-pick-sources', async (req, res) => {
     // Unknown, not empty, when the lookup fails: `available` then reads false
     // everywhere, which greys out a hint and never removes a choice.
-    const { userToolNames } = await loadUserTools(req, req.session.user.id);
+    let userToolNames = new Set();
+    try {
+        ({ userToolNames } = await loadUserTools(req, req.session.user.id));
+    } catch (_) { /* a tools module that will not load: every source reads unavailable */ }
     res.json({ sources: buildFormPickSources(userToolNames) });
 });
 

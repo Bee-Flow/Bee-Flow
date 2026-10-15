@@ -177,13 +177,8 @@ test('the builder catalog, the tool schema and the validator agree on the strate
     // one but not another is either a dropdown entry the save refuses or a
     // value the editor can never produce — both silent, both only found by
     // somebody trying it.
-    const fs = require('node:fs');
-    const path = require('node:path');
-    const here = path.resolve(__dirname, '..');
-
-    const catalogSrc = fs.readFileSync(path.join(here, 'routes/automation/catalog.js'), 'utf8');
-    const block = catalogSrc.slice(catalogSrc.indexOf('knowledgeWriteStrategies:'));
-    const fromCatalog = [...block.slice(0, block.indexOf(']')).matchAll(/value: '([a-z]+)'/g)].map(m => m[1]);
+    const { KNOWLEDGE_WRITE_STRATEGIES } = require('../routes/automation/catalogPickers');
+    const fromCatalog = KNOWLEDGE_WRITE_STRATEGIES.map(s => s.value);
     assert.deepStrictEqual(fromCatalog, [...KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES],
         'the editor dropdown offers exactly what the validator accepts, in the same order');
 

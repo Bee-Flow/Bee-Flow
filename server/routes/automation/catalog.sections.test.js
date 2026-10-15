@@ -394,3 +394,19 @@ test('GET /catalog/form-pick-sources serves just the sources, with the same avai
     assert.deepStrictEqual(res.body.sources.map(s => [s.id, s.available]), [['internal-src', true], ['ext-src', false], ['ext-other', false]],
         'unknown tools grey out a hint, never remove a choice');
 });
+
+test('form-pick-sources: a tools module that will not load reads every source as unavailable', async () => {
+    reset();
+    const id = require.resolve('../../core/integrations/integrationTools');
+    const saved = require.cache[id];
+    require.cache[id] = Object.assign(new Module(id), { loaded: true, exports: Object.defineProperty({}, 'getIntegrationTools', { get() { throw new Error('module failed to load'); } }) });
+    try {
+        const pickHandler = findHandler(catalogRouter, 'get', '/catalog/form-pick-sources');
+        const res = { statusCode: 200, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+        await pickHandler({ session: { user: { id: 'user1' }, isAdmin: false } }, res);
+        assert.strictEqual(res.statusCode, 200);
+        assert.deepStrictEqual(res.body.sources.map(x => [x.id, x.available]), [['internal-src', true], ['ext-src', false], ['ext-other', false]]);
+    } finally {
+        require.cache[id] = saved;
+    }
+});

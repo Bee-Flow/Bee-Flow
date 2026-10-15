@@ -1099,11 +1099,13 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
             'apps', 'datatables', 'knowledgeBases', 'agents', 'formPickSources', 'agentsError',
             'knowledgeWriteStrategies', 'datatableOps', 'steps', 'triggerOutputs', 'triggerMeta',
             'deliverability', 'stepTypes', 'triggers', 'flags',
-            // one action
-            'name', 'label', 'description', 'inputSchema', 'outputSchema', 'outputSample', 'producesList',
-            'listField', 'sideEffect', 'effect', 'integrationId', 'integrationLabel', 'available', 'actions',
             // the flags
             'code', 'codeReason', 'automations',
+        ])).toEqual([]);
+        // One app and one action are built in catalogApps.js.
+        expect(missingFrom(functionSlice(read('routes/automation/catalogApps.js'), 'buildApps'), [
+            'name', 'label', 'description', 'inputSchema', 'outputSchema', 'outputSample', 'producesList',
+            'listField', 'sideEffect', 'effect', 'integrationId', 'integrationLabel', 'available', 'actions',
         ])).toEqual([]);
         expect(missingFrom(functionSlice(read('automation/formPickSources.js'), 'catalog'), [
             'id', 'appId', 'app', 'label', 'searchHint', 'internal', 'sampleData',

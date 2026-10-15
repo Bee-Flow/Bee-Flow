@@ -74,7 +74,6 @@ function createFormQueue(overrides = {}) {
 
     const { makeItem, stopServingPage } = createFormWork({ automationStore, runner, formAnswers });
 
-
     const { heldSessionIds, ensureRenewal, stopRenewal, clearPending, settleUnfinished } = createFormLeases({ automationStore, queues });
 
     // ── The FIFO ──────────────────────────────────────────
@@ -192,7 +191,6 @@ function createFormQueue(overrides = {}) {
         automationStore, automationForRun, clearPending, makeItem, push, heldSessionIds,
         isStopping: () => stopping,
     });
-
 
     /**
      * Shutdown: take nothing more off the queue and hand everything still waiting

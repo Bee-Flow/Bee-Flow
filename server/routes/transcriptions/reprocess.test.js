@@ -94,7 +94,8 @@ stub('../../core/meetingNotes/summaryHelpers', {
 stub('../../db', { run: async (sql, params) => { calls.run.push({ sql, params }); return runResult; } });
 stub('../../stores/transcriptCrypto', {
     resolveTranscriptCrypto: async (org) => ({ org }),
-    encryptRow: (id, row) => ({ ...row }),
+    // Tags every value, so a write that skipped the sealing step is visible in the UPDATE params.
+    encryptRow: (id, row) => Object.fromEntries(Object.entries(row).map(([k, v]) => [k, { sealed: v }])),
     buildSnippet: (id, text) => `snip:${text}`,
     buildSummarySnippet: (id, text) => `ssnip:${text}`,
 });
@@ -300,8 +301,8 @@ test('the 202 answers first, then the whisperx run completes the note and announ
     assert.strictEqual(params.length, 21);
     assert.strictEqual(params[0], 'completed');
     assert.strictEqual(params[1], 9);
-    assert.strictEqual(params[4], 'hallo hoi');
-    assert.strictEqual(params[8], 'Nieuwe samenvatting.');
+    assert.deepStrictEqual(params[4], { sealed: 'hallo hoi' });
+    assert.deepStrictEqual(params[8], { sealed: 'Nieuwe samenvatting.' });
     assert.strictEqual(params[13], JSON.stringify(['planning']));
     assert.strictEqual(params[14], '[]');
     assert.strictEqual(params[15], 'tpl-1');
@@ -313,7 +314,8 @@ test('the 202 answers first, then the whisperx run completes the note and announ
     const actions = JSON.parse(params[10]);
     assert.ok(actions.some(a => a.text === 'Offerte sturen'));
     assert.ok(actions.some(a => a.text === 'typed by hand'), 'a hand-typed action survives');
-    assert.strictEqual(params[3], JSON.parse(params[6]).length);
+    assert.strictEqual(params[3], JSON.parse(params[6].sealed).length);
+    for (const i of [4, 5, 6, 7, 8, 9]) assert.deepStrictEqual(Object.keys(params[i]), ['sealed'], `column ${i} is written sealed`);
 
     assert.deepStrictEqual(calls.emitted[0], {
         transcriptionId: 't-1', tags: ['planning'], userId: 'owner-1', orgId: 'org-1', reprocessed: true,
@@ -327,8 +329,8 @@ test('a failed artifact pass keeps the lists, adds the notice and announces no t
     await dispatch();
     await waitFor(() => calls.emitted.length > 0);
     const { params } = calls.run[0];
-    assert.match(params[8], /action items.*failed/i);
-    assert.ok(params[8].includes('Nieuwe samenvatting.'));
+    assert.match(params[8].sealed, /action items.*failed/i);
+    assert.ok(params[8].sealed.includes('Nieuwe samenvatting.'));
     assert.strictEqual(params[13], '[]');
     assert.ok(JSON.parse(params[10]).some(a => a.text === 'typed by hand'));
     assert.deepStrictEqual(calls.emitted[0].tags, []);
@@ -388,7 +390,7 @@ test('voxtral: the key is required and the file goes over as m4a-named content',
     await waitFor(() => calls.emitted.length > 0);
     assert.deepStrictEqual(calls.mistralClient[0], { key: 'key', opts: { timeoutMs: 1234 } });
     const params = calls.run[0].params;
-    assert.strictEqual(params[4], 'voxtral');
+    assert.deepStrictEqual(params[4], { sealed: 'voxtral' });
 });
 
 test('voxtral without an API key fails the note', async () => {
@@ -407,7 +409,7 @@ test('local: transcribes on-device and fails loudly when the model is missing', 
     await dispatch();
     await waitFor(() => calls.emitted.length > 0);
     assert.deepStrictEqual(calls.local[0], [AUDIO_PATH, { language: 'en' }]);
-    assert.strictEqual(calls.run[0].params[4], 'lokaal');
+    assert.deepStrictEqual(calls.run[0].params[4], { sealed: 'lokaal' });
 
     localResult = null; note.status = 'failed';
     await dispatch();
