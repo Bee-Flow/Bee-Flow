@@ -1,6 +1,7 @@
 import { AlertTriangle, Link2, Lock, User } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { tRich } from './tRich';
+import type { CatalogAction, Connector } from './connectors/connectorModel';
 import useTranslation from '../../../../../hooks/useTranslation';
 
 /**
@@ -33,24 +34,41 @@ import useTranslation from '../../../../../hooks/useTranslation';
 const INPUT = 'w-full rounded-md px-2 py-1.5 text-sm bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)]';
 const LABEL = 'text-xs font-medium text-[var(--text-secondary)]';
 
+/** One parameter's JSON Schema, as far as the form reads it. */
+interface ParamSpec {
+    type?: string;
+    enum?: unknown[];
+    items?: { type?: string };
+    description?: string;
+    [key: string]: unknown;
+}
+
+interface ParamInfo {
+    key: string;
+    spec: ParamSpec;
+    required: boolean;
+}
+
+type ParamSource = 'pinned' | 'viewer' | 'chain' | 'unset';
+
 const SOURCES = [
     { value: 'pinned', labelKey: 'studio_apps_bi.params.source_pinned', label: 'Pinned', Icon: Lock, hint: 'You set the value; viewers cannot change it.' },
     { value: 'viewer', labelKey: 'studio_apps_bi.params.source_viewer', label: 'Ask the viewer', Icon: User, hint: 'The app asks each viewer for this value.' },
 ];
 
 /** The parameter names an action declares, required ones first. */
-export function paramsOfAction(action) {
+export function paramsOfAction(action: CatalogAction | null | undefined): ParamInfo[] {
     const schema = action?.inputSchema;
     const props = (schema && typeof schema.properties === 'object' && schema.properties) ? schema.properties : null;
     if (!props) return [];
-    const required = new Set(Array.isArray(schema.required) ? schema.required : []);
+    const required = new Set(Array.isArray((schema as NonNullable<typeof schema>).required) ? (schema as NonNullable<typeof schema>).required : []);
     return Object.entries(props)
-        .map(([key, spec]) => ({ key, spec: spec && typeof spec === 'object' ? spec : {}, required: required.has(key) }))
+        .map(([key, spec]): ParamInfo => ({ key, spec: (spec && typeof spec === 'object' ? spec : {}) as ParamSpec, required: required.has(key) }))
         .sort((a, b) => Number(b.required) - Number(a.required) || a.key.localeCompare(b.key));
 }
 
 /** Where a parameter's value comes from right now. */
-export function sourceOf(connector, key) {
+export function sourceOf(connector: Connector | null | undefined, key: string): ParamSource {
     if (connector?.fixedArgs && Object.hasOwn(connector.fixedArgs, key)) return 'pinned';
     if (Array.isArray(connector?.params) && connector.params.some((p) => p?.key === key)) return 'viewer';
     const chain = Array.isArray(connector?.chain) ? connector.chain : [];
@@ -66,13 +84,13 @@ export function sourceOf(connector, key) {
  * A parameter counts as satisfied when it is pinned (even to an empty string,
  * which is a deliberate choice), declared for the viewer, or bound by a chain.
  */
-export function missingRequiredParams(action, connector) {
+export function missingRequiredParams(action: CatalogAction | null | undefined, connector: Connector): string[] {
     return paramsOfAction(action)
         .filter((p) => p.required && sourceOf(connector, p.key) === 'unset')
         .map((p) => p.key);
 }
 
-function typeOf(spec) {
+function typeOf(spec: ParamSpec): string {
     if (Array.isArray(spec.enum) && spec.enum.length) return 'enum';
     if (spec.type === 'boolean') return 'boolean';
     if (spec.type === 'integer' || spec.type === 'number') return 'number';
@@ -82,25 +100,33 @@ function typeOf(spec) {
 }
 
 /** A pinned value → the control's display value, and back. */
-function ValueControl({ spec, value, onChange, disabled, id }) {
+interface ValueControlProps {
+    spec: ParamSpec;
+    value: unknown;
+    onChange: (value: unknown) => void;
+    disabled: boolean;
+    id: string;
+}
+
+function ValueControl({ spec, value, onChange, disabled, id }: ValueControlProps) {
     const { t } = useTranslation();
     const kind = typeOf(spec);
     const [jsonText, setJsonText] = useState(() => (value === undefined ? '' : JSON.stringify(value, null, 2)));
-    const [jsonError, setJsonError] = useState(null);
+    const [jsonError, setJsonError] = useState<string | null>(null);
 
     if (kind === 'enum') {
         return (
-            <select id={id} className={INPUT} value={value ?? ''} disabled={disabled}
-                onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}>
+            <select id={id} className={INPUT} value={(value ?? '') as string} disabled={disabled}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value === '' ? undefined : e.target.value)}>
                 <option value="">{t('studio_apps_bi.params.not_set', 'Not set')}</option>
-                {spec.enum.map((opt) => <option key={String(opt)} value={String(opt)}>{String(opt)}</option>)}
+                {(spec.enum as unknown[]).map((opt) => <option key={String(opt)} value={String(opt)}>{String(opt)}</option>)}
             </select>
         );
     }
     if (kind === 'boolean') {
         return (
             <select id={id} className={INPUT} value={value === undefined ? '' : String(!!value)} disabled={disabled}
-                onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value === 'true')}>
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value === '' ? undefined : e.target.value === 'true')}>
                 <option value="">{t('studio_apps_bi.params.not_set', 'Not set')}</option>
                 <option value="true">{t('studio_apps_bi.params.yes', 'Yes')}</option>
                 <option value="false">{t('studio_apps_bi.params.no', 'No')}</option>
@@ -109,8 +135,8 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
     }
     if (kind === 'number') {
         return (
-            <input id={id} type="number" className={INPUT} value={value ?? ''} disabled={disabled}
-                onChange={(e) => {
+            <input id={id} type="number" className={INPUT} value={(value ?? '') as string | number} disabled={disabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     if (e.target.value === '') return onChange(undefined);
                     const n = Number(e.target.value);
                     onChange(Number.isFinite(n) ? n : undefined);
@@ -120,10 +146,10 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
     if (kind === 'list') {
         // A list of scalars is far friendlier as comma-separated text than as
         // JSON — `INBOX, UNREAD` rather than `["INBOX","UNREAD"]`.
-        const asText = Array.isArray(value) ? value.join(', ') : (value ?? '');
+        const asText = Array.isArray(value) ? value.join(', ') : ((value ?? '') as string);
         return (
             <input id={id} className={INPUT} value={asText} disabled={disabled} placeholder={t('studio_apps_bi.params.list_placeholder', 'value, another value')}
-                onChange={(e) => {
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const parts = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
                     onChange(parts.length ? parts : undefined);
                 }} />
@@ -133,7 +159,7 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
         return (
             <>
                 <textarea id={id} className={`${INPUT} font-mono min-h-[4rem]`} value={jsonText} disabled={disabled} spellCheck={false}
-                    onChange={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                         setJsonText(e.target.value);
                         const raw = e.target.value.trim();
                         if (!raw) { setJsonError(null); onChange(undefined); return; }
@@ -144,18 +170,25 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
         );
     }
     return (
-        <input id={id} className={INPUT} value={value ?? ''} disabled={disabled} spellCheck={false}
-            onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)} />
+        <input id={id} className={INPUT} value={(value ?? '') as string} disabled={disabled} spellCheck={false}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value === '' ? undefined : e.target.value)} />
     );
 }
 
-function ParamRow({ param, connector, onChange, disabled }) {
+interface ParamRowProps {
+    param: ParamInfo;
+    connector: Connector;
+    onChange: (patch: Partial<Connector>) => void;
+    disabled: boolean;
+}
+
+function ParamRow({ param, connector, onChange, disabled }: ParamRowProps) {
     const { t } = useTranslation();
     const { key, spec, required } = param;
     const source = sourceOf(connector, key);
     const controlId = `param-${key}`;
 
-    const setSource = (next) => {
+    const setSource = (next: string) => {
         const fixedArgs = { ...(connector.fixedArgs || {}) };
         const params = (Array.isArray(connector.params) ? connector.params : []).filter((p) => p?.key !== key);
         delete fixedArgs[key];
@@ -170,7 +203,7 @@ function ParamRow({ param, connector, onChange, disabled }) {
         });
     };
 
-    const setValue = (value) => {
+    const setValue = (value: unknown) => {
         const fixedArgs = { ...(connector.fixedArgs || {}) };
         if (value === undefined) delete fixedArgs[key]; else fixedArgs[key] = value;
         onChange({ fixedArgs: Object.keys(fixedArgs).length ? fixedArgs : undefined });
@@ -204,7 +237,7 @@ function ParamRow({ param, connector, onChange, disabled }) {
                         value={source === 'chain' ? 'chain' : source}
                         disabled={disabled || source === 'chain'}
                         aria-label={t('studio_apps_bi.params.source_label', 'Where {key} comes from', { key })}
-                        onChange={(e) => setSource(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSource(e.target.value)}
                     >
                         {source === 'unset' ? <option value="unset">{t('studio_apps_bi.params.not_set', 'Not set')}</option> : null}
                         {source === 'chain' ? <option value="chain">{t('studio_apps_bi.params.from_previous_step', 'From a previous step')}</option> : null}
@@ -229,7 +262,7 @@ function ParamRow({ param, connector, onChange, disabled }) {
             {source === 'chain' ? (
                 <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                     <Link2 className="h-3 w-3" aria-hidden="true" />
-                    {tRich(t, 'studio_apps_bi.params.chain_note', 'Filled from {field} of each row from the step before.', null, { field: <code>{chainStep?.argsFrom?.[key]}</code> })}
+                    {tRich(t, 'studio_apps_bi.params.chain_note', 'Filled from {field} of each row from the step before.', null, { field: <code>{chainStep?.argsFrom?.[key] as string | undefined}</code> })}
                 </p>
             ) : null}
 
@@ -243,7 +276,15 @@ function ParamRow({ param, connector, onChange, disabled }) {
     );
 }
 
-export default function ActionParamsForm({ action, connector, onChange, disabled = false, catalogUnavailable = false }) {
+interface ActionParamsFormProps {
+    action: CatalogAction | null | undefined;
+    connector: Connector;
+    onChange: (patch: Partial<Connector>) => void;
+    disabled?: boolean;
+    catalogUnavailable?: boolean;
+}
+
+export default function ActionParamsForm({ action, connector, onChange, disabled = false, catalogUnavailable = false }: ActionParamsFormProps) {
     const { t } = useTranslation();
     const params = useMemo(() => paramsOfAction(action), [action]);
 

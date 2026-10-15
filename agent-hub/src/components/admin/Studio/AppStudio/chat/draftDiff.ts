@@ -1,5 +1,34 @@
 import { collectIds } from '../state/definitionOps';
 
+/** A component (or nested container) of an app definition. */
+interface DefNode {
+    id?: string | null;
+    children?: DefNode[];
+    [key: string]: unknown;
+}
+
+interface DefSection extends DefNode {
+    children?: DefNode[];
+}
+
+interface DefScreen {
+    id?: string | null;
+    sections?: DefSection[];
+    [key: string]: unknown;
+}
+
+/** An app definition, as far as the diff reads it. */
+export interface AppDefinitionLike {
+    screens?: DefScreen[];
+    actions?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+interface IndexEntry {
+    sig: string | null;
+    screenId: string | null;
+}
+
 /**
  * App Studio AI builder — cheap, pure diff between two app definitions.
  *
@@ -18,10 +47,10 @@ import { collectIds } from '../state/definitionOps';
  * JSON by contract and small), with child collections excluded so identity
  * stays shallow.
  */
-export function diffDefinitions(prevDef, nextDef) {
-    const addedIds = new Set();
-    const changedIds = new Set();
-    const addedOnScreens = new Set();
+export function diffDefinitions(prevDef: AppDefinitionLike | null | undefined, nextDef: AppDefinitionLike | null | undefined) {
+    const addedIds = new Set<string>();
+    const changedIds = new Set<string>();
+    const addedOnScreens = new Set<string>();
     if (!nextDef) return { addedIds, changedIds, addedOnScreens };
 
     const prevIds = collectIds(prevDef || {});
@@ -40,8 +69,8 @@ export function diffDefinitions(prevDef, nextDef) {
 }
 
 /** id → { sig, screenId } for every screen/section/component/action. */
-function indexDefinition(def) {
-    const map = new Map();
+function indexDefinition(def: AppDefinitionLike | null | undefined): Map<string, IndexEntry> {
+    const map = new Map<string, IndexEntry>();
     for (const screen of def?.screens || []) {
         const screenId = screen.id ?? null;
         if (screenId != null) {
@@ -64,7 +93,7 @@ function indexDefinition(def) {
     return map;
 }
 
-function walk(children, visit) {
+function walk(children: DefNode[] | undefined, visit: (node: DefNode) => void): void {
     for (const node of children || []) {
         visit(node);
         if (Array.isArray(node.children)) walk(node.children, visit);
@@ -72,7 +101,7 @@ function walk(children, visit) {
 }
 
 /** JSON signature of an entity with its child collection excluded. */
-function signature(obj, childKey) {
+function signature(obj: unknown, childKey: string | null): string | null {
     try {
         return JSON.stringify(obj, (key, value) => (childKey && key === childKey ? undefined : value));
     } catch {

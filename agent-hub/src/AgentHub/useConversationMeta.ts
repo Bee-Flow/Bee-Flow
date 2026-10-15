@@ -1,7 +1,48 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { projectErrorText } from '../components/projects/workspace/projectErrorText';
 import { toast } from '../components/shared/Toast';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { mutate } from '../api/mutate';
+import type { TranslateFn } from '../hooks/useTranslation';
+
+/** One row of a conversation list, as the hub's lists carry it. */
+export interface ConversationRow {
+    id: string;
+    title?: string;
+    project_id?: string | null;
+    agent_id?: string | null;
+    shared_scope?: string | null;
+    pinned?: boolean | number;
+    labels_json?: string | null;
+    [key: string]: unknown;
+}
+
+/** A conversation label (name + colour). */
+export interface ConversationLabel {
+    id: string;
+    name?: string;
+    color?: string;
+    [key: string]: unknown;
+}
+
+interface ConfirmOptions {
+    title: string;
+    description?: string;
+    confirmLabel?: string;
+    destructive?: boolean;
+}
+
+interface UseConversationMetaArgs {
+    t: TranslateFn;
+    directChatMode: boolean;
+    selectedAgent: { id: string } | null;
+    loadDirectConversations: () => void;
+    loadConversations: (agentId: string) => void;
+    setDirectConversations: Dispatch<SetStateAction<ConversationRow[]>>;
+    setConversations: Dispatch<SetStateAction<ConversationRow[]>>;
+    setConversationLabels: Dispatch<SetStateAction<ConversationLabel[]>>;
+    confirm: (options: ConfirmOptions) => Promise<boolean>;
+}
 
 // Conversation bookkeeping shared by the sidebar rows: project filing/sharing,
 // rename, pin and labels. Plain closures (no hooks) moved verbatim from
@@ -11,7 +52,7 @@ const useConversationMeta = ({
     loadDirectConversations, loadConversations,
     setDirectConversations, setConversations, setConversationLabels,
     confirm,
-}) => {
+}: UseConversationMetaArgs) => {
     /**
      * Share a conversation into the project it is filed under — or stop.
      *
@@ -22,7 +63,7 @@ const useConversationMeta = ({
      * accepts it only from the conversation's owner (on the zero-knowledge tier
      * only they hold the key that opens the current ciphertext).
      */
-    const handleShareToProject = async (conv) => {
+    const handleShareToProject = async (conv: ConversationRow) => {
         const projectId = conv.project_id;
         if (!projectId) return;
         const type = conv.agent_id ? 'agent' : 'direct';
@@ -72,7 +113,7 @@ const useConversationMeta = ({
      * A refusal (a Solution holds no chats, a project that is gone) is said
      * out loud instead of leaving the row where it was without a word.
      */
-    const handleMoveToProject = async (conv, targetProject) => {
+    const handleMoveToProject = async (conv: ConversationRow, targetProject: { id: string } | null) => {
         const type = conv.agent_id ? 'agent' : 'direct';
         const projectId = targetProject ? targetProject.id : conv.project_id;
         if (!projectId) return;
@@ -97,7 +138,7 @@ const useConversationMeta = ({
         }
     };
 
-    const handleRenameConversation = async (conv, newTitle) => {
+    const handleRenameConversation = async (conv: ConversationRow, newTitle: string) => {
         try {
             if (directChatMode) {
                 await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
@@ -117,11 +158,11 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to rename conversation:', e);
-            toast.error(e.message);
+            toast.error((e as Error).message);
         }
     };
 
-    const handlePinConversation = async (conv) => {
+    const handlePinConversation = async (conv: ConversationRow) => {
         const newPinned = !conv.pinned;
         try {
             if (directChatMode) {
@@ -142,15 +183,15 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to pin/unpin conversation:', e);
-            toast.error(e.message);
+            toast.error((e as Error).message);
         }
     };
 
-    const handleLabelConversation = async (conv, label) => {
+    const handleLabelConversation = async (conv: ConversationRow, label: string) => {
         // Toggle label: if already has it, remove; otherwise add
         const currentLabels = (() => { try { return JSON.parse(conv.labels_json || '[]'); } catch { return []; } })();
         const newLabels = currentLabels.includes(label)
-            ? currentLabels.filter(l => l !== label)
+            ? currentLabels.filter((l: string) => l !== label)
             : [...currentLabels, label];
         try {
             if (directChatMode) {
@@ -171,11 +212,11 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to update conversation labels:', e);
-            toast.error(e.message);
+            toast.error((e as Error).message);
         }
     };
 
-    const handleCreateLabel = async (name, color) => {
+    const handleCreateLabel = async (name: string, color: string) => {
         try {
             const res = await authFetch(`${API_BASE}/ai/labels`, {
                 method: 'POST',
@@ -192,17 +233,17 @@ const useConversationMeta = ({
         }
     };
 
-    const handleDeleteLabel = async (labelId) => {
+    const handleDeleteLabel = async (labelId: string) => {
         try {
             await mutate(`${API_BASE}/ai/labels/${labelId}`, { method: 'DELETE' });
             setConversationLabels(prev => prev.filter(l => l.id !== labelId));
         } catch (e) {
             console.error('Failed to delete label:', e);
-            toast.error(e.message);
+            toast.error((e as Error).message);
         }
     };
 
-    const handleEditLabel = async (labelId, updates) => {
+    const handleEditLabel = async (labelId: string, updates: Partial<ConversationLabel>) => {
         try {
             const res = await authFetch(`${API_BASE}/ai/labels/${labelId}`, {
                 method: 'PATCH',

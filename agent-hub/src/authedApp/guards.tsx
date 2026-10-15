@@ -3,6 +3,19 @@ import { MOBILE_ALLOWED_PAGES, isApprovalsStudioPath } from './appRoutes';
 import { useLicenseContext } from '../components/licensing/LicenseContext';
 import { useSubscriptionContext } from '../components/licensing/SubscriptionContext';
 
+interface MobileRouteGuardProps {
+    isMobile: boolean;
+    currentPage: string;
+    navigateToPage: (page: string) => void;
+}
+
+interface SubscriptionGateProps {
+    user: { id?: string; organizationId?: string; orgId?: string } | null;
+    currentPage: string;
+    deploymentMode: string;
+    navigateToPage: (page: string) => void;
+}
+
 /**
  * Invisible app-shell gate. When the org has no active subscription
  * (status !== 'active' / 'trialing'), force navigate to the License &
@@ -15,7 +28,7 @@ import { useSubscriptionContext } from '../components/licensing/SubscriptionCont
 // rotate) while sitting on a disallowed page. Idempotent — once it lands on
 // 'agents' the condition is false. Mounted only under isAuthenticated, so it
 // never runs for the embed/CMS/legal/pricing routes that return earlier.
-export function MobileRouteGuard({ isMobile, currentPage, navigateToPage }) {
+export function MobileRouteGuard({ isMobile, currentPage, navigateToPage }: MobileRouteGuardProps) {
     useEffect(() => {
         if (!isMobile || MOBILE_ALLOWED_PAGES.has(currentPage)) return;
         // The one Studio slice that must work on a phone: the approval a bell
@@ -32,7 +45,7 @@ export function MobileRouteGuard({ isMobile, currentPage, navigateToPage }) {
     return null;
 }
 
-export function SubscriptionGate({ user, currentPage, deploymentMode, navigateToPage }) {
+export function SubscriptionGate({ user, currentPage, deploymentMode, navigateToPage }: SubscriptionGateProps) {
     const { hasActiveSub, loading } = useSubscriptionContext();
     const { serverOverride, loading: licLoading } = useLicenseContext();
     const isPlatformOperator = user?.id === 'admin';

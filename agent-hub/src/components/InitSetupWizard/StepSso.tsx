@@ -2,7 +2,19 @@ import React from 'react';
 import { MicrosoftLogo } from './ProviderLogos';
 import { useTranslation } from '../../hooks/useTranslation';
 
-const StepSso = ({ isAzure, msClientId, setMsClientId, msClientSecret, setMsClientSecret, msTenantId, setMsTenantId, inputClass, inputStyle }) => {
+interface StepSsoProps {
+    isAzure: boolean;
+    msClientId: string;
+    setMsClientId: (value: string) => void;
+    msClientSecret: string;
+    setMsClientSecret: (value: string) => void;
+    msTenantId: string;
+    setMsTenantId: (value: string) => void;
+    inputClass: string;
+    inputStyle: React.CSSProperties;
+}
+
+const StepSso = ({ isAzure, msClientId, setMsClientId, msClientSecret, setMsClientSecret, msTenantId, setMsTenantId, inputClass, inputStyle }: StepSsoProps) => {
     const { t } = useTranslation();
     return (
     <>
@@ -25,21 +37,21 @@ const StepSso = ({ isAzure, msClientId, setMsClientId, msClientSecret, setMsClie
         <div className="space-y-3">
             <div>
                 <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_sso_application_client_id', 'Application (Client) ID')}</label>
-                <input type="text" value={msClientId} onChange={e => setMsClientId(e.target.value)}
+                <input type="text" value={msClientId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsClientId(e.target.value)}
                     placeholder={t('init_setup.step_sso_xxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')}
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */}
                 <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_sso_client_secret', 'Client Secret')}</label>
-                <input type="password" value={msClientSecret} onChange={e => setMsClientSecret(e.target.value)}
+                <input type="password" value={msClientSecret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsClientSecret(e.target.value)}
                     /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
                     placeholder={t('init_setup.step_sso_client_secret_value', 'Client secret value')}
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
                 <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_sso_tenant_id', 'Tenant ID')}</label>
-                <input type="text" value={msTenantId} onChange={e => setMsTenantId(e.target.value)}
+                <input type="text" value={msTenantId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsTenantId(e.target.value)}
                     placeholder={t('init_setup.step_sso_common_multi_tenant_or_your_tenant', 'common (multi-tenant) or your tenant GUID')}
                     className={inputClass} style={inputStyle} />
                 <p className="text-xs mt-1 text-[var(--text-muted)]">

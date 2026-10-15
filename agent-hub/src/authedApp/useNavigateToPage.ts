@@ -11,6 +11,7 @@ import {
 import { isProjectsPage, projectRouteFromPage } from './projectNavigation';
 import { parseStudioQuery, sectionFromRaw, segmentForSection } from '../components/admin/Studio/studioRoutes';
 import { projectRoutePath } from '../utils/projectRoutes';
+import type { UseNavigateToPageArgs } from './useNavigateToPage.types';
 
 // The app-shell `navigateToPage` callback, extracted verbatim from AuthedApp's
 // <App/>. Must be called from the exact same hook position as the original
@@ -38,8 +39,8 @@ export function useNavigateToPage({
     // Optional so a host without the projects pages can still use the hook.
     setShowProjects = () => {},
     setInitialProjectRoute = () => {},
-}) {
-    const navigateToPage = useCallback((page, { replace = false } = {}) => whenMayNavigate(() => {
+}: UseNavigateToPageArgs) {
+    const navigateToPage = useCallback((page: string, { replace = false }: { replace?: boolean } = {}) => whenMayNavigate(() => {
         // Mobile access control: on phones, any destination that isn't chat or
         // user-settings bounces to the app home. Belt-and-suspenders with
         // MobileRouteGuard (which catches deep-links/refresh + resize). Close
@@ -122,7 +123,7 @@ export function useNavigateToPage({
             // Reserved automations "steps" segment — same rule as parseStudioUrl.
             // In-app navigation used to drop it, so a Reusable-Step deep link
             // mis-resolved to an automation named "steps".
-            let automationKind = null;
+            let automationKind: string | null = null;
             if ((sectionRaw === 'automations' || sectionRaw === 'routines' || sectionRaw === 'ai-tasks') && id === 'steps') {
                 automationKind = 'step';
                 id = parts[2] || null;

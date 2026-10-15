@@ -2,6 +2,7 @@ import React from 'react';
 import beeFlowLogo from '../assets/bee-flow-logo.svg';
 import beeFlowIcon from '../assets/BeeFlow-logo-Icon-2026.svg';
 import { useTranslation } from '../hooks/useTranslation';
+import type { TranslateFn } from '../hooks/useTranslation';
 
 /**
  * Full-screen states of the authenticated shell, lifted verbatim out of
@@ -27,8 +28,29 @@ export function AppBackdrop() {
     return <div style={{ background: '#06090F', minHeight: '100vh' }} />;
 }
 
+interface BrandProps {
+    useOrgBrand: boolean;
+    orgLogo?: string;
+    t: TranslateFn;
+}
+
+/** What the connector's bootstrap reported while the server was unreachable. */
+export interface BootstrapDiagnostics {
+    state?: string;
+    lastError?: {
+        category?: string;
+        error?: string;
+        remediation?: string;
+        nextRetryAt?: string | number;
+    } | null;
+}
+
+interface ServerUnavailableScreenProps extends BrandProps {
+    bootstrapDiagnostics?: BootstrapDiagnostics | null;
+}
+
 // Loading spinner while checking auth.
-export function LoadingScreen({ useOrgBrand, orgLogo, t }) {
+export function LoadingScreen({ useOrgBrand, orgLogo, t }: BrandProps) {
     return (
         <div className="h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
             <div className="flex flex-col items-center gap-4">
@@ -44,7 +66,7 @@ export function LoadingScreen({ useOrgBrand, orgLogo, t }) {
 }
 
 // Server is unreachable — show a clear error instead of the product website.
-export function ServerUnavailableScreen({ useOrgBrand, orgLogo, bootstrapDiagnostics, t }) {
+export function ServerUnavailableScreen({ useOrgBrand, orgLogo, bootstrapDiagnostics, t }: ServerUnavailableScreenProps) {
     return (
         <div style={{
             height: '100vh',
@@ -146,7 +168,7 @@ export function ServerUnavailableScreen({ useOrgBrand, orgLogo, bootstrapDiagnos
 }
 
 // No-organisation gate for SSO users without org membership.
-export function NoOrganizationScreen({ handleLogout }) {
+export function NoOrganizationScreen({ handleLogout }: { handleLogout: () => void }) {
     const { t } = useTranslation();
     return (
         <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
@@ -188,7 +210,7 @@ export function NoOrganizationScreen({ handleLogout }) {
 }
 
 // Pending-approval gate for SSO users awaiting admin approval.
-export function PendingApprovalScreen({ user, handleLogout }) {
+export function PendingApprovalScreen({ user, handleLogout }: { user: { isConsumerAccount?: boolean } | null; handleLogout: () => void }) {
     const { t } = useTranslation();
     return (
         <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>

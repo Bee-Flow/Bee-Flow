@@ -37,12 +37,12 @@ const PII_CATEGORIES = [
 
 const DEFAULT_PII = ['Person', 'Email', 'PhoneNumber', 'Address', 'BankAccountNumber'];
 
-const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud' }) => {
+const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud' }: { user: { organizationId?: string; email?: string } | null; orgName?: string; onComplete?: () => void; deploymentMode?: string }) => {
     const { t } = useTranslation();
     const orgId = user?.organizationId;
     const [stepIdx, setStepIdx] = useState(0);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Organisation form. Pre-fill happens once on mount via GET /auth/organizations/:id.
     const [org, setOrg] = useState({
@@ -51,14 +51,14 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
     });
 
     const [syncMode, setSyncMode] = useState('mirror_all');
-    const [syncGroups, setSyncGroups] = useState([]);
+    const [syncGroups, setSyncGroups] = useState<string[]>([]);
     const [excludedGroups, setExcludedGroups] = useState(['admin']);
     const [newUserDefaultStatus, setNewUserDefaultStatus] = useState('active');
     const [shieldEnabled, setShieldEnabled] = useState(true);
     const [shieldAction, setShieldAction] = useState('tokenize');
     const [shieldCategories, setShieldCategories] = useState(DEFAULT_PII);
 
-    const [groups, setGroups] = useState([]);
+    const [groups, setGroups] = useState<string[]>([]);
     const [groupsLoading, setGroupsLoading] = useState(true);
 
     // Pre-fill organisation form. Falls back to NC bootstrap data (orgName
@@ -103,7 +103,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
         return true;
     };
 
-    const toggle = (list, setter, val) => {
+    const toggle = (list: string[], setter: (next: string[]) => void, val: string) => {
         setter(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
     };
 
@@ -159,7 +159,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
 
             onComplete?.();
         } catch (e) {
-            setError(e.message);
+            setError((e as Error).message);
             setSubmitting(false);
         }
     };
@@ -172,20 +172,20 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
             </p>
             <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_organisation_name', 'Organisation name *')}</label>
-                <input value={org.name} onChange={e => setOrg({ ...org, name: e.target.value })}
+                <input value={org.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, name: e.target.value })}
                     className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
             </div>
             <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_billing_email', 'Billing email')}</label>
-                <input type="email" value={org.email} onChange={e => setOrg({ ...org, email: e.target.value })}
+                <input type="email" value={org.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, email: e.target.value })}
                     placeholder="finance@example.com"
                     className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
             </div>
             <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_tagline', 'Tagline')}</label>
-                <input value={org.tagline} onChange={e => setOrg({ ...org, tagline: e.target.value })}
+                <input value={org.tagline} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, tagline: e.target.value })}
                     placeholder={t('nc_onboarding.nc_onboarding_wizard_one_line_that_describes_your_team', 'One line that describes your team')}
                     className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
@@ -193,13 +193,13 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_phone', 'Phone')}</label>
-                    <input value={org.phone} onChange={e => setOrg({ ...org, phone: e.target.value })}
+                    <input value={org.phone} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, phone: e.target.value })}
                         className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
                 </div>
                 <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_website', 'Website')}</label>
-                    <input value={org.website} onChange={e => setOrg({ ...org, website: e.target.value })}
+                    <input value={org.website} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, website: e.target.value })}
                         placeholder="https://"
                         className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
@@ -207,20 +207,20 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
             </div>
             <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_address', 'Address')}</label>
-                <input value={org.address} onChange={e => setOrg({ ...org, address: e.target.value })}
+                <input value={org.address} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, address: e.target.value })}
                     className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                     style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_chamber_of_commerce_kvk', 'Chamber of Commerce (KVK)')}</label>
-                    <input value={org.kvk} onChange={e => setOrg({ ...org, kvk: e.target.value })}
+                    <input value={org.kvk} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, kvk: e.target.value })}
                         className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
                 </div>
                 <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_vat', 'VAT')}</label>
-                    <input value={org.vat} onChange={e => setOrg({ ...org, vat: e.target.value })}
+                    <input value={org.vat} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, vat: e.target.value })}
                         className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
                         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
                 </div>
@@ -343,7 +343,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                     {step === 'shield' && (
                         <div className="space-y-4">
                             <label className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer" style={{ borderColor: shieldEnabled ? 'var(--accent-primary)' : 'var(--border-subtle)', background: shieldEnabled ? 'var(--bg-tertiary)' : 'transparent' }}>
-                                <input type="checkbox" checked={shieldEnabled} onChange={e => setShieldEnabled(e.target.checked)} className="mt-1" />
+                                <input type="checkbox" checked={shieldEnabled} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShieldEnabled(e.target.checked)} className="mt-1" />
                                 <div>
                                     <div className="text-sm font-medium">{t('nc_onboarding.nc_onboarding_wizard_enable_privacy_shield', 'Enable Privacy Shield')}</div>
                                     <div className="text-xs text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_detects_pii_emails_phone_numbers_ibans', 'Detects PII (emails, phone numbers, IBANs, etc.) before messages reach the AI. Runs locally, in-process — no third-party services.')}</div>

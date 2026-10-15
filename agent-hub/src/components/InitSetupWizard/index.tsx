@@ -10,25 +10,25 @@ import StepAiProvider from './StepAiProvider';
 import StepSearch from './StepSearch';
 import StepTiers from './StepTiers';
 import StepSso from './StepSso';
-import { TIERS } from './StepTiers';
+import { TIERS, type TierConfig, type TierKey } from './StepTiers';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const INPUT_CLASS = "w-full px-4 py-3 rounded-xl border-2 outline-none text-sm transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] placeholder:text-gray-400";
 const INPUT_STYLE = { background: '#fff', borderColor: '#d1d5db', color: '#1f2937', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' };
 
-const makeTierState = () => ({
+const makeTierState = (): TierConfig => ({
     fast: { modelId: '', label: 'Fast' },
     thinking: { modelId: '', label: 'Thinking' },
     writer: { modelId: '', label: 'Writer' },
     pro: { modelId: '', label: 'Deep Thinking' },
 });
 
-const InitSetupWizard = ({ onComplete }) => {
+const InitSetupWizard = ({ onComplete }: { onComplete: () => void }) => {
     const { t } = useTranslation();
     const [step, setStep] = useState(0);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
-    const [recoveryKey, setRecoveryKey] = useState(null);
+    const [recoveryKey, setRecoveryKey] = useState<string | null>(null);
 
     // Deployment type
     const [deploymentType, setDeploymentType] = useState('');
@@ -72,8 +72,8 @@ const InitSetupWizard = ({ onComplete }) => {
         ? azureModels.split(',').map(m => m.split('=')[0].trim()).filter(Boolean)
         : [];
 
-    const updateTier = (key, value) => setTierConfig(prev => ({ ...prev, [key]: { ...prev[key], modelId: value } }));
-    const updateEuTier = (key, value) => setEuTierConfig(prev => ({ ...prev, [key]: { ...prev[key], modelId: value } }));
+    const updateTier = (key: TierKey, value: string) => setTierConfig(prev => ({ ...prev, [key]: { ...prev[key], modelId: value } }));
+    const updateEuTier = (key: TierKey, value: string) => setEuTierConfig(prev => ({ ...prev, [key]: { ...prev[key], modelId: value } }));
 
     // ─── Dynamic Steps ────────────────────────────────────────
 
@@ -147,7 +147,7 @@ const InitSetupWizard = ({ onComplete }) => {
             });
 
             // 3. Save AI / Search config
-            const aiBody = {};
+            const aiBody: Record<string, string | boolean> = {};
             if (isAzure) {
                 if (azureEndpoint.trim()) aiBody.azureEndpoint = azureEndpoint;
                 if (azureKey.trim()) aiBody.azureApiKey = azureKey;
@@ -196,7 +196,7 @@ const InitSetupWizard = ({ onComplete }) => {
 
             // 5. Save SSO config
             if (msClientId.trim() || msClientSecret.trim()) {
-                const ssoBody = {};
+                const ssoBody: Record<string, string> = {};
                 if (msClientId.trim()) ssoBody.clientId = msClientId;
                 if (msClientSecret.trim()) ssoBody.clientSecret = msClientSecret;
                 if (msTenantId.trim()) ssoBody.tenantId = msTenantId;
@@ -212,12 +212,12 @@ const InitSetupWizard = ({ onComplete }) => {
             // Done — if no recovery key, go straight to login
             if (!setupData.recoveryKey) onComplete();
         } catch (e) {
-            setError(e.message || 'Setup failed');
+            setError((e as Error).message || 'Setup failed');
         }
         setSaving(false);
     };
 
-    const HANDLER_MAP = {
+    const HANDLER_MAP: Record<string, () => void | Promise<void>> = {
         password: validatePassword,
         type: handleDeployType,
         azure: advanceStep,
@@ -319,7 +319,7 @@ const InitSetupWizard = ({ onComplete }) => {
                                             background: i <= step ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
                                             color: i <= step ? '#fff' : 'var(--text-muted)',
                                             '--tw-ring-offset-color': 'var(--bg-secondary)',
-                                        }}>
+                                        } as React.CSSProperties}>
                                         {i < step ? '✓' : s.icon}
                                     </div>
                                     {i < steps.length - 1 && (

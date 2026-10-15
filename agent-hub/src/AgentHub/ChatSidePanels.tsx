@@ -1,10 +1,51 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { lazy } from '../utils/lazyWithReload';
 import { logger } from '../utils/logger';
+import type { GammaPreview } from '../hooks/useChatEngine/sse/gammaPreview';
+import type { PreviewSelection } from '../pages/webpages/preview/usePreviewToken';
+import type { WebpageRow } from '../pages/webpages/webpageEditorTypes';
 
 const WorkspaceNotebook = lazy(() => import('../components/chat/WorkspaceNotebook'));
 const GammaPreviewPanel = lazy(() => import('../components/chat/GammaPreviewPanel'));
 const SideWebpagePanel = lazy(() => import('../components/webpages/SideWebpagePanel'));
 const SideDocumentPanel = lazy(() => import('../components/documents/SideDocumentPanel'));
+
+interface IdRef { id?: string }
+
+interface ChatSidePanelsProps {
+    mode: 'agent' | 'direct';
+    isMobile: boolean;
+    notebooksEnabled: boolean;
+    notebookWrapperClass: string;
+    showNotebook: boolean;
+    setShowNotebook: (show: boolean) => void;
+    showGammaPreview: boolean;
+    setShowGammaPreview: (show: boolean) => void;
+    notebookContent: string;
+    setNotebookContent: (content: string) => void;
+    setNotebookSelection: (text: string) => void;
+    saveNotebook: () => void;
+    handleOpenInNotebook: () => void;
+    isLoading: boolean;
+    selectedAgent: IdRef | null;
+    sendMessage: (message: string, attachments: never[]) => void;
+    user: { id?: string } | null;
+    currentConversation: IdRef | null;
+    currentDirectConversation: IdRef | null;
+    notebookLinkedId: string | null;
+    setNotebookLinkedId: (id: string | null) => void;
+    gammaPreview: GammaPreview & { error?: string } | null;
+    setGammaPreview: (preview: GammaPreview & { error?: string }) => void;
+    sidePanelWebpageId: string | null;
+    closeWebpagePanel: () => void;
+    setSidePanelWebpage: (webpage: WebpageRow | null) => void;
+    setSidePanelWebpageFiles: Dispatch<SetStateAction<{ html: string; css: string; js: string }>>;
+    setAttachedWebpageSelection: (selection: PreviewSelection) => void;
+    sidePanelReloadKey: number;
+    onNavigate: (page: string) => void;
+    sidePanelDocumentId: string | null;
+    closeDocumentPanel: () => void;
+}
 
 // Right-hand split column shared by the agent-chat and direct-chat layouts.
 // The notebook / gamma-preview / webpage / document panels are mutually exclusive and
@@ -24,7 +65,7 @@ const ChatSidePanels = ({
     setSidePanelWebpageFiles, setAttachedWebpageSelection,
     sidePanelReloadKey, onNavigate,
     sidePanelDocumentId, closeDocumentPanel,
-}) => {
+}: ChatSidePanelsProps) => {
         const conversationId = mode === 'agent'
             ? currentConversation?.id
             : currentDirectConversation?.id;
@@ -39,8 +80,8 @@ const ChatSidePanels = ({
                             onChange={setNotebookContent}
                             onSave={saveNotebook}
                             onClose={() => setShowNotebook(false)}
-                            onSelectionChange={(text) => { setNotebookSelection(text); }}
-                            onAskAI={(message) => {
+                            onSelectionChange={(text: string) => { setNotebookSelection(text); }}
+                            onAskAI={(message: string) => {
                                 if (mode === 'agent') {
                                     logger.debug('[Notebook AI] AgentHub.onAskAI -> sendMessage, isLoading=', isLoading, 'mode=agent', 'agent=', selectedAgent?.id);
                                 } else {
@@ -81,14 +122,14 @@ const ChatSidePanels = ({
                             onClose={closeWebpagePanel}
                             user={user}
                             onLoaded={setSidePanelWebpage}
-                            onFilesLoaded={(files) => {
+                            onFilesLoaded={(files: { html?: string; css?: string; js?: string } | null) => {
                                 if (files) setSidePanelWebpageFiles({
                                     html: files.html || '',
                                     css: files.css || '',
                                     js: files.js || '',
                                 });
                             }}
-                            onSelectionAttach={(sel) => { if (sel?.text) setAttachedWebpageSelection(sel); }}
+                            onSelectionAttach={(sel: PreviewSelection) => { if (sel?.text) setAttachedWebpageSelection(sel); }}
                             reloadKey={sidePanelReloadKey}
                             onNavigate={onNavigate}
                         />

@@ -38,7 +38,7 @@
 // settingsNavItems.jsx now BUILDS its rows (and the phone subset) from this
 // list, in this order, so a section that renders always has an address and the
 // order of the sidebar is the order below. Adding a section starts here.
-export const SETTINGS_TOP_LEVEL_TAB_IDS = [
+export const SETTINGS_TOP_LEVEL_TAB_IDS: string[] = [
     'preferences',
     'appearance',
     'security',
@@ -59,27 +59,27 @@ export const SETTINGS_TOP_LEVEL_TAB_IDS = [
 // the segment 'preferences', because /app/settings/account/license is a Stripe
 // return URL that has been minted into payment receipts. Swapping the branch
 // order to let a tab win instead would strand those.
-export const SETTINGS_GROUP_SEGMENTS = ['account', 'organisation'];
+export const SETTINGS_GROUP_SEGMENTS: string[] = ['account', 'organisation'];
 
 /* ── Legacy aliases: segments that moved and kept parsing ────────────────── */
 // Simple Mode used to be its own section at /app/settings/simple-mode; it is a
 // single toggle inside Preferences now. This is where a renamed segment lands
 // — the settings-level equivalent of pageFromPath's alias branches, and just
 // as permanent: a bookmark does not expire.
-export const SETTINGS_LEGACY_SEGMENT_ALIASES = { 'simple-mode': 'preferences' };
+export const SETTINGS_LEGACY_SEGMENT_ALIASES: Record<string, string> = { 'simple-mode': 'preferences' };
 
 /* ── Consumer sub-tabs: /app/settings/account/<sub> ──────────────────────── */
 // Internal ids stay `consumer_*` (they gate on isConsumerAccount); the URL
 // says what the user sees. The 'account' parent is what keeps 'integrations'
 // here from colliding with the top-level 'integrations' tab.
-export const SETTINGS_ACCOUNT_ID_TO_URL = {
+export const SETTINGS_ACCOUNT_ID_TO_URL: Record<string, string> = {
     consumer_license: 'license',
     consumer_privacy: 'privacy',
     consumer_usage: 'usage',
     consumer_integrations: 'integrations',
     consumer_beta: 'beta',
 };
-const ACCOUNT_URL_TO_ID = Object.fromEntries(
+const ACCOUNT_URL_TO_ID: Record<string, string> = Object.fromEntries(
     Object.entries(SETTINGS_ACCOUNT_ID_TO_URL).map(([id, url]) => [url, id]),
 );
 
@@ -89,7 +89,7 @@ const ACCOUNT_URL_TO_ID = Object.fromEntries(
 // was ai_context and integration_cache). AdvancedSettings derives its set of
 // org tab ids from these keys, and the phone's routeOrg.lockstep.test.ts holds
 // its section list to them, so a new row without an address goes red there.
-export const SETTINGS_ORG_ID_TO_URL = {
+export const SETTINGS_ORG_ID_TO_URL: Record<string, string> = {
     license: 'license',
     auth: 'auth',
     privacy: 'privacy',
@@ -109,12 +109,12 @@ export const SETTINGS_ORG_ID_TO_URL = {
     org_meeting_templates: 'meeting-templates',
     org_azure: 'azure',
 };
-const ORG_URL_TO_ID = Object.fromEntries(
+const ORG_URL_TO_ID: Record<string, string> = Object.fromEntries(
     Object.entries(SETTINGS_ORG_ID_TO_URL).map(([id, url]) => [url, id]),
 );
 
 /** The tab id a settings URL opens on, or null when the path is not settings. */
-export function settingsTabFromPath(pathname = window.location.pathname) {
+export function settingsTabFromPath(pathname: string | null | undefined = window.location.pathname): string | null {
     const parts = String(pathname || '').replace(/^\/+|\/+$/g, '').split('/');
     // Expecting 'app', 'settings', …
     if (parts[0] !== 'app' || parts[1] !== 'settings') return null;
@@ -132,7 +132,7 @@ export function settingsTabFromPath(pathname = window.location.pathname) {
 }
 
 /** The canonical address of a tab id — the inverse of settingsTabFromPath. */
-export function settingsPathForTab(tabId) {
+export function settingsPathForTab(tabId: string): string {
     if (SETTINGS_TOP_LEVEL_TAB_IDS.includes(tabId)) return `/app/settings/${tabId}`;
     const accountUrl = SETTINGS_ACCOUNT_ID_TO_URL[tabId];
     if (accountUrl) return `/app/settings/account/${accountUrl}`;
@@ -147,7 +147,7 @@ export function settingsPathForTab(tabId) {
  * segments drive ComplianceHub's activeSection / focusCheckId and
  * UsageSection's initialReport (usage/safety).
  */
-export function settingsOrgDeepSegsFromPath(pathname = window.location.pathname) {
+export function settingsOrgDeepSegsFromPath(pathname: string | null | undefined = window.location.pathname): { seg1: string; seg2: string } {
     const parts = String(pathname || '').replace(/^\/+|\/+$/g, '').split('/');
     if (parts[0] !== 'app' || parts[1] !== 'settings' || parts[2] !== 'organisation') {
         return { seg1: '', seg2: '' };

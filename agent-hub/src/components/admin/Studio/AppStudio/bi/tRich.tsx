@@ -1,4 +1,6 @@
 import React from 'react';
+import type { ReactNode } from 'react';
+import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
 
 /**
  * A translated sentence with React elements inside it (`<code>`, `<strong>`).
@@ -9,8 +11,14 @@ import React from 'react';
  *
  * `params` are ordinary string/number placeholders, `nodes` the elements.
  */
-export function tRich(t, key, english, params, nodes) {
-    const slots = {};
+export function tRich(
+    t: TranslateFn,
+    key: string,
+    english: string,
+    params?: TranslateParams | null,
+    nodes?: Record<string, ReactNode> | null,
+): ReactNode[] {
+    const slots: Record<string, string> = {};
     for (const name of Object.keys(nodes || {})) slots[name] = `{${name}}`;
     const text = t(key, english, { ...(params || {}), ...slots });
     return String(text).split(/(\{\w+\})/).map((part, i) => {
