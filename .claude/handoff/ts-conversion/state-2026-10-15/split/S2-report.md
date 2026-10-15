@@ -126,6 +126,13 @@ never returns; RoadmapEditor passes `checked=` to the fields Toggle whose prop i
 - Integration: merged origin/ccr-28820270-xkvwp8 @ e738f454 first (clean), then s2/batch-15 (one conflict in
   i18nGuard.test.js: adjacent renames modelMeta.ts / filters.ts, both kept; i18nGuard 16/16).
 
+- Full gate at the merge (push 3, after e738f454 + batch 15): check:fast 39/39; server tc 0; duplication production 15362 ≤
+  15383, test 26228 at budget; gitleaks clean; agent-hub tc 0; vitest 1836 files / 21619 tests pass BUT rc=1 from 3 unhandled
+  rejections ("window is not defined") in `src/pages/webpages/WebpageIDE.i18n.test.jsx` via `useBfMarks.ts:57` — a setState
+  after jsdom teardown (out of S2 scope, identical to the convert branch; 3 isolated reruns clean). Fix belongs with the
+  owner of pages/webpages: await/abort the fetch in the test or guard the setState after unmount. Mobile jest 762 suites /
+  13430 pass, tsc 0; server 28933 pass, 0 fail, no HUNG.
+
 ## What the integrator must watch at merge
 - `agent-hub/src/i18n/i18nGuard.test.js`: S2 renamed entries (filters.ts; earlier batches' paths); other sessions edit the
   same list — keep both sides.
