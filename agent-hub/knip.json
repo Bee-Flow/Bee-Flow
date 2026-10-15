@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/main.jsx",
-    "src/test/setup.js",
+    "src/test/setup.ts",
     "src/**/*.test.{js,jsx,ts,tsx}",
     "src/editor/serialization/index.js",
     "src/shared/expr/index.mjs",

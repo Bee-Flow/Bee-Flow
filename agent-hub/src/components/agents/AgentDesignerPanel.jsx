@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AgentEditorUI from './AgentEditorUI';
-import { filterVisibleModels } from '../../utils/modelMeta.js';
+import { filterVisibleModels } from '../../utils/modelMeta';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from '../shared/Toast';

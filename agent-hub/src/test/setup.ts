@@ -71,6 +71,10 @@ if (typeof Element !== 'undefined' && typeof Element.prototype.scrollIntoView !=
 }
 if (typeof globalThis.IntersectionObserver === 'undefined') {
     globalThis.IntersectionObserver = class IntersectionObserver {
+        declare root: Element | Document | null;
+        declare rootMargin: string;
+        declare scrollMargin: string;
+        declare thresholds: ReadonlyArray<number>;
         constructor() { this.root = null; this.rootMargin = ''; this.thresholds = []; }
         observe() {}
         unobserve() {}

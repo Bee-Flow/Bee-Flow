@@ -1,6 +1,7 @@
 import { HelpCircle, Layers } from 'lucide-react';
 import React from 'react';
 import useTranslation from '../../hooks/useTranslation';
+import type { WebpageRow } from './webpageEditorTypes';
 
 /**
  * "Used by" — what depends on this page.
@@ -15,7 +16,11 @@ import useTranslation from '../../hooks/useTranslation';
  * claim, and an owner who reads it might delete a page three automations link
  * to. The tab's badge in the header is absent for the same reason.
  */
-export default function WebpageUsedByTab({ page }) {
+interface Props {
+    page?: WebpageRow | null;
+}
+
+export default function WebpageUsedByTab({ page }: Props) {
     const { t } = useTranslation();
     const inSolution = !!page?.projectId;
 

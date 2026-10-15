@@ -1,5 +1,19 @@
 import { BookOpen, Brain, Compass, Globe, ListChecks, Music, Presentation } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React from 'react';
+import type { ReactNode } from 'react';
+
+export interface LogoProps {
+    size?: number;
+    className?: string;
+}
+
+interface WrapProps extends LogoProps {
+    viewBox: string;
+    children?: ReactNode;
+}
+
+type LogoComponent = (props: LogoProps) => React.JSX.Element;
 
 /**
  * INTEGRATION_LOGOS — official brand SVGs per integration id, keyed in
@@ -21,7 +35,7 @@ import React from 'react';
  * letter-only fallback.
  */
 
-const Wrap = ({ size = 18, viewBox, children, className }) => (
+const Wrap = ({ size = 18, viewBox, children, className }: WrapProps) => (
     <svg
         width={size}
         height={size}
@@ -36,7 +50,7 @@ const Wrap = ({ size = 18, viewBox, children, className }) => (
 
 // ── Google ─────────────────────────────────────────────────────
 
-const GmailLogo = (p) => (
+const GmailLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <path d="M45 16.2l-5 2.75-5 4.75V40h7c1.66 0 3-1.34 3-3V16.2z" fill="#4caf50" />
         <path d="M3 16.2l3.04 1.67L13 24.7V40H6c-1.66 0-3-1.34-3-3V16.2z" fill="#1e88e5" />
@@ -46,7 +60,7 @@ const GmailLogo = (p) => (
     </Wrap>
 );
 
-const GoogleDriveLogo = (p) => (
+const GoogleDriveLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 87.3 78">
         <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
         <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-20.4 35.3c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47" />
@@ -57,7 +71,7 @@ const GoogleDriveLogo = (p) => (
     </Wrap>
 );
 
-const GoogleCalendarLogo = (p) => (
+const GoogleCalendarLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 200 200">
         <path d="M148.363 32H51.637C40.799 32 32 40.799 32 51.637v96.726C32 159.201 40.799 168 51.637 168h96.726c10.838 0 19.637-8.799 19.637-19.637V51.637C168 40.799 159.201 32 148.363 32z" fill="#fff" />
         <path d="M168 68H32V51.637C32 40.799 40.799 32 51.637 32h96.726C159.201 32 168 40.799 168 51.637V68z" fill="#4285f4" />
@@ -67,7 +81,7 @@ const GoogleCalendarLogo = (p) => (
     </Wrap>
 );
 
-const GoogleDocsLogo = (p) => (
+const GoogleDocsLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <path d="M40 45H8c-1.66 0-3-1.34-3-3V6c0-1.66 1.34-3 3-3h22l13 13v27c0 1.66-1.34 3-3 3z" fill="#4285F4" />
         <path d="M30 3l13 13H33c-1.66 0-3-1.34-3-3V3z" fill="#2A67C8" />
@@ -77,7 +91,7 @@ const GoogleDocsLogo = (p) => (
     </Wrap>
 );
 
-const GoogleSheetsLogo = (p) => (
+const GoogleSheetsLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <path d="M40 45H8c-1.66 0-3-1.34-3-3V6c0-1.66 1.34-3 3-3h22l13 13v27c0 1.66-1.34 3-3 3z" fill="#0F9D58" />
         <path d="M30 3l13 13H33c-1.66 0-3-1.34-3-3V3z" fill="#087B4A" />
@@ -88,7 +102,7 @@ const GoogleSheetsLogo = (p) => (
     </Wrap>
 );
 
-const GoogleSlidesLogo = (p) => (
+const GoogleSlidesLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <path d="M40 45H8c-1.66 0-3-1.34-3-3V6c0-1.66 1.34-3 3-3h22l13 13v27c0 1.66-1.34 3-3 3z" fill="#FBBC04" />
         <path d="M30 3l13 13H33c-1.66 0-3-1.34-3-3V3z" fill="#E8A400" />
@@ -98,7 +112,7 @@ const GoogleSlidesLogo = (p) => (
     </Wrap>
 );
 
-const GoogleContactsLogo = (p) => (
+const GoogleContactsLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <path d="M40 45H8c-1.66 0-3-1.34-3-3V6c0-1.66 1.34-3 3-3h22l13 13v27c0 1.66-1.34 3-3 3z" fill="#4285F4" />
         <path d="M30 3l13 13H33c-1.66 0-3-1.34-3-3V3z" fill="#2A67C8" />
@@ -107,7 +121,7 @@ const GoogleContactsLogo = (p) => (
     </Wrap>
 );
 
-const GoogleKeepLogo = (p) => (
+const GoogleKeepLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <rect x="5" y="3" width="38" height="42" rx="3" fill="#FBBC04" />
         <rect x="14" y="16" width="20" height="3" rx="1.5" fill="#fff" />
@@ -117,7 +131,7 @@ const GoogleKeepLogo = (p) => (
     </Wrap>
 );
 
-const GoogleGroupsLogo = (p) => (
+const GoogleGroupsLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <circle cx="16" cy="20" r="6" fill="#34A853" />
         <circle cx="32" cy="20" r="6" fill="#4285F4" />
@@ -126,7 +140,7 @@ const GoogleGroupsLogo = (p) => (
     </Wrap>
 );
 
-const GoogleMapsLogo = (p) => (
+const GoogleMapsLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335" />
         <circle cx="12" cy="9" r="2.5" fill="#fff" />
@@ -135,7 +149,7 @@ const GoogleMapsLogo = (p) => (
 
 // ── Microsoft ──────────────────────────────────────────────────
 
-const OutlookLogo = (p) => (
+const OutlookLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <defs>
             <linearGradient id="logo_ol_g1" x1="2" y1="12" x2="26" y2="36" gradientUnits="userSpaceOnUse">
@@ -153,7 +167,7 @@ const OutlookLogo = (p) => (
     </Wrap>
 );
 
-const MsCalendarLogo = (p) => (
+const MsCalendarLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <rect x="6" y="10" width="36" height="32" rx="3" fill="#0078D4" />
         <rect x="6" y="10" width="36" height="8" fill="#005A9E" />
@@ -163,7 +177,7 @@ const MsCalendarLogo = (p) => (
     </Wrap>
 );
 
-const OneDriveLogo = (p) => (
+const OneDriveLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <path d="M19.55 22.1l8.65-5.3a11.09 11.09 0 0 1 5.7-1.57A11.23 11.23 0 0 1 44 24.9l.08.6A7.54 7.54 0 0 1 39.5 39H14.05a9.05 9.05 0 0 1-3.85-17.25z" fill="#0364B8" />
         <path d="M19.55 22.1l.15-.25A12.8 12.8 0 0 1 26.35 17a11.09 11.09 0 0 1 1.85-.17l-.4-.03A12.75 12.75 0 0 0 14.95 8.5a12.8 12.8 0 0 0-12.7 10.72 9.55 9.55 0 0 1 7.95 2.53z" fill="#0078D4" />
@@ -172,7 +186,7 @@ const OneDriveLogo = (p) => (
     </Wrap>
 );
 
-const MsContactsLogo = (p) => (
+const MsContactsLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <rect x="4" y="4" width="40" height="40" rx="4" fill="#0078D4" />
         <circle cx="24" cy="20" r="6" fill="#fff" />
@@ -189,7 +203,7 @@ const MsContactsLogo = (p) => (
 
 const NEXTCLOUD_LOGO_SRC = 'https://avatars.githubusercontent.com/u/19211038?s=200&v=4';
 
-const NextcloudLogo = ({ size = 18, className }) => (
+const NextcloudLogo = ({ size = 18, className }: LogoProps) => (
     <img
         src={NEXTCLOUD_LOGO_SRC}
         alt="Nextcloud"
@@ -202,7 +216,7 @@ const NextcloudLogo = ({ size = 18, className }) => (
 
 // ── Third-Party / AI ──────────────────────────────────────────
 
-const FirefliesLogo = (p) => (
+const FirefliesLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="22 20 24 24">
         <defs>
             <linearGradient id="logo_ff_g1" x1="40" y1="40" x2="14" y2="14" gradientUnits="userSpaceOnUse">
@@ -218,7 +232,7 @@ const FirefliesLogo = (p) => (
     </Wrap>
 );
 
-const YouTrackLogo = (p) => (
+const YouTrackLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 70 70">
         <defs>
             <linearGradient id="logo_yt_g1" x1="12" y1="58" x2="58" y2="12" gradientUnits="userSpaceOnUse">
@@ -233,7 +247,7 @@ const YouTrackLogo = (p) => (
     </Wrap>
 );
 
-const GammaLogo = (p) => (
+const GammaLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <defs>
             <linearGradient id="logo_gamma_g1" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
@@ -246,21 +260,21 @@ const GammaLogo = (p) => (
     </Wrap>
 );
 
-const AfasLogo = (p) => (
+const AfasLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect x="2" y="2" width="20" height="20" rx="4" fill="#E30613" />
         <path d="M12 6.5L7 17.5h2.3l1-2.4h3.4l1 2.4H17L12 6.5zm0 4.1l1 2.5h-2l1-2.5z" fill="#fff" fillOpacity="0.95" />
     </Wrap>
 );
 
-const NmbrsLogo = (p) => (
+const NmbrsLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect x="2" y="2" width="20" height="20" rx="4" fill="#00C389" />
         <path d="M7 16.5v-9h1.9v1.1c.45-.8 1.3-1.3 2.4-1.3 1.05 0 1.85.42 2.3 1.2.5-.78 1.4-1.2 2.45-1.2 1.95 0 2.95 1.2 2.95 3.2v6H19v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55h-2v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55H7z" fill="#fff" fillOpacity="0.95" />
     </Wrap>
 );
 
-const VplanLogo = (p) => (
+const VplanLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect x="2" y="2" width="20" height="20" rx="4" fill="#1D4ED8" />
         <rect x="6" y="7" width="11" height="2.4" rx="1.2" fill="#fff" fillOpacity="0.95" />
@@ -269,7 +283,7 @@ const VplanLogo = (p) => (
     </Wrap>
 );
 
-const ScalewayBillingLogo = (p) => (
+const ScalewayBillingLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect x="2" y="2" width="20" height="20" rx="4" fill="#4F0599" />
         <path d="M7 5.5h10v13l-1.7-1.2-1.6 1.2-1.7-1.2-1.7 1.2-1.6-1.2L7 18.5v-13z" fill="#fff" fillOpacity="0.95" />
@@ -279,7 +293,7 @@ const ScalewayBillingLogo = (p) => (
     </Wrap>
 );
 
-const LinkedInLogo = (p) => (
+const LinkedInLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="3" fill="#0A66C2" />
         <path
@@ -289,7 +303,7 @@ const LinkedInLogo = (p) => (
     </Wrap>
 );
 
-const GitHubLogo = (p) => (
+const GitHubLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <path
             fill="#181717"
@@ -298,7 +312,7 @@ const GitHubLogo = (p) => (
     </Wrap>
 );
 
-const SignRequestLogo = (p) => (
+const SignRequestLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <rect width="48" height="48" rx="8" fill="#2D9CDB" />
         <path
@@ -309,7 +323,7 @@ const SignRequestLogo = (p) => (
     </Wrap>
 );
 
-const N8nLogo = (p) => (
+const N8nLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="6" fill="#EA4B71" />
         <circle cx="6" cy="12" r="2" fill="#fff" />
@@ -320,7 +334,7 @@ const N8nLogo = (p) => (
     </Wrap>
 );
 
-const KbSearchLogo = (p) => (
+const KbSearchLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="4" fill="#10B981" />
         <path d="M6 6h12v12H6z" fill="#fff" />
@@ -328,7 +342,7 @@ const KbSearchLogo = (p) => (
     </Wrap>
 );
 
-const ImageGenLogo = (p) => (
+const ImageGenLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <defs>
             <linearGradient id="logo_imgen_g1" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
@@ -342,7 +356,7 @@ const ImageGenLogo = (p) => (
     </Wrap>
 );
 
-const VideoGenLogo = (p) => (
+const VideoGenLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="4" fill="#0EA5E9" />
         <rect x="4" y="6" width="14" height="12" rx="1" fill="#fff" />
@@ -351,7 +365,7 @@ const VideoGenLogo = (p) => (
     </Wrap>
 );
 
-const ElevenLabsLogo = (p) => (
+const ElevenLabsLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="4" fill="#000" />
         <text x="12" y="16" textAnchor="middle" fontFamily="Inter,Arial,sans-serif" fontWeight="700" fontSize="11" fill="#fff">11</text>
@@ -366,8 +380,8 @@ const ElevenLabsLogo = (p) => (
  * borrow a mark from, so none of them falls back to a letter or a puzzle
  * piece.
  */
-function toolTile(Icon, fill) {
-    const Tile = (p) => (
+function toolTile(Icon: LucideIcon, fill: string) {
+    const Tile = (p: LogoProps) => (
         <Wrap {...p} viewBox="0 0 24 24">
             <rect width="24" height="24" rx="4" fill={fill} />
             <Icon x={4} y={4} size={16} color="#fff" strokeWidth={2.25} aria-hidden="true" />
@@ -383,8 +397,8 @@ const MemoryLogo = toolTile(Brain, '#8B5CF6');
  * colour, like Note / Code / Privacy Shield in the ribbon. These three are
  * the Studio sections (Webpages, Knowledge, Automations), not brands.
  */
-function studioGlyph(Icon) {
-    const Glyph = ({ size = 18, className }) => (
+function studioGlyph(Icon: LucideIcon) {
+    const Glyph = ({ size = 18, className }: LogoProps) => (
         <Icon size={size} className={className || 'text-[var(--text-secondary)]'} aria-hidden="true" />
     );
     return Glyph;
@@ -399,7 +413,7 @@ const BrowseWebLogo = toolTile(Compass, '#0EA5E9');
 const MusicGenLogo = toolTile(Music, '#0EA5E9');
 const PresentationsLogo = toolTile(Presentation, '#EA580C');
 
-const TranscriptionLogo = (p) => (
+const TranscriptionLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="4" fill="#0EA5E9" />
         <rect x="11" y="4" width="2" height="10" rx="1" fill="#fff" />
@@ -408,7 +422,7 @@ const TranscriptionLogo = (p) => (
     </Wrap>
 );
 
-const AgentSearchLogo = (p) => (
+const AgentSearchLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="6.5" stroke="#0EA5E9" strokeWidth="2" fill="rgba(14,165,233,0.12)" />
         <line x1="16" y1="16" x2="21" y2="21" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round" />
@@ -420,7 +434,7 @@ const AgentSearchLogo = (p) => (
 // These ids were surfacing as letter-only fallbacks everywhere the ticket
 // assistant and the marketing integrations wall render them.
 
-const JiraLogo = (p) => (
+const JiraLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <path d="M15.9 2 5.1 12.8a1.2 1.2 0 0 0 0 1.7l6 6 4.8-4.8 4.8-4.8L15.9 2z" fill="#2684FF" />
         <path d="M15.9 12.2a5.7 5.7 0 0 1-.02-8.04L15.9 2l-4.8 4.8 4.8 5.4z" fill="#0052CC" />
@@ -429,14 +443,14 @@ const JiraLogo = (p) => (
     </Wrap>
 );
 
-const ServiceNowLogo = (p) => (
+const ServiceNowLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <circle cx="16" cy="16" r="14" fill="#62D84E" />
         <path d="M16 6.5A9.5 9.5 0 0 0 9.2 22.6a1.5 1.5 0 0 0 2-.1 6.6 6.6 0 0 1 9.6 0 1.5 1.5 0 0 0 2 .1A9.5 9.5 0 0 0 16 6.5z" fill="#1B1D1F" />
     </Wrap>
 );
 
-const ZendeskLogo = (p) => (
+const ZendeskLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <path d="M15 8v18L2 26 15 8z" fill="#03363D" />
         <path d="M15 4a6.5 6.5 0 0 1-13 0h13z" fill="#03363D" />
@@ -445,14 +459,14 @@ const ZendeskLogo = (p) => (
     </Wrap>
 );
 
-const FreshserviceLogo = (p) => (
+const FreshserviceLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <rect width="32" height="32" rx="7" fill="#25C16F" />
         <path d="M16 7a9 9 0 0 0-9 9v6.5A2.5 2.5 0 0 0 9.5 25H13v-7H9.9v-2a6.1 6.1 0 0 1 12.2 0v2H19v7h3.5a2.5 2.5 0 0 0 2.5-2.5V16a9 9 0 0 0-9-9z" fill="#fff" />
     </Wrap>
 );
 
-const TopDeskLogo = (p) => (
+const TopDeskLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <rect width="32" height="32" rx="7" fill="#004E9E" />
         <path d="M7 11h18v3.2h-7.2V24h-3.6V14.2H7V11z" fill="#fff" />
@@ -460,14 +474,14 @@ const TopDeskLogo = (p) => (
     </Wrap>
 );
 
-const StripeLogo = (p) => (
+const StripeLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <rect width="32" height="32" rx="7" fill="#635BFF" />
         <path d="M15.3 12.6c0-.8.7-1.1 1.7-1.1 1.5 0 3.4.5 4.9 1.3V9.1a12 12 0 0 0-4.9-.9c-4 0-6.7 2.1-6.7 5.6 0 5.4 7.5 4.5 7.5 6.9 0 .9-.8 1.2-1.9 1.2-1.6 0-3.8-.7-5.5-1.6v4a13.6 13.6 0 0 0 5.5 1.2c4.1 0 6.9-2 6.9-5.6 0-5.9-7.5-4.8-7.5-7.3z" fill="#fff" />
     </Wrap>
 );
 
-const PlaywrightLogo = (p) => (
+const PlaywrightLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <circle cx="16" cy="16" r="14" fill="#2D4552" />
         <path d="M8.5 13.5c1.6-1.4 3.6-1.3 5 .2l-5 1.6v-1.8z" fill="#E2574C" />
@@ -476,7 +490,7 @@ const PlaywrightLogo = (p) => (
     </Wrap>
 );
 
-const GoogleMeetLogo = (p) => (
+const GoogleMeetLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 48 48">
         <path d="M29 24l9-7v14l-9-7z" fill="#00832d" />
         <path d="M38 17v14l6 4.5c.9.7 2 0 2-1.1V13.6c0-1.1-1.1-1.8-2-1.1L38 17z" fill="#ffba00" />
@@ -486,14 +500,14 @@ const GoogleMeetLogo = (p) => (
     </Wrap>
 );
 
-const EntraIdLogo = (p) => (
+const EntraIdLogo = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <path d="M16 3 4 26h6.5L16 14.5 21.5 26H28L16 3z" fill="#2C7DD6" />
         <path d="M16 14.5 10.5 26h11L16 14.5z" fill="#41A5EE" />
     </Wrap>
 );
 
-const McpLogoMark = (p) => (
+const McpLogoMark = (p: LogoProps) => (
     <Wrap {...p} viewBox="0 0 32 32">
         <rect width="32" height="32" rx="7" fill="#111827" />
         <path d="M8 21c3.2-3.2 5.5-5.5 7-7 2.2-2.2 5.4.9 3.2 3.1L14 21.5" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" />
@@ -503,7 +517,7 @@ const McpLogoMark = (p) => (
 
 // ── id → logo registry ─────────────────────────────────────────
 
-export const INTEGRATION_LOGOS = {
+export const INTEGRATION_LOGOS: Record<string, LogoComponent> = {
     // Google
     gmail: GmailLogo,
     google_drive: GoogleDriveLogo,
@@ -593,7 +607,7 @@ export const INTEGRATION_LOGOS = {
  * Returns the React component or null if none registered — callers fall
  * back to the brand letter mark from `INTEGRATION_META`.
  */
-export function getIntegrationLogo(integrationId) {
+export function getIntegrationLogo(integrationId?: string | null): LogoComponent | null {
     if (!integrationId) return null;
     const normalised = String(integrationId).replace(/-/g, '_');
     return INTEGRATION_LOGOS[normalised] || INTEGRATION_LOGOS[integrationId] || null;

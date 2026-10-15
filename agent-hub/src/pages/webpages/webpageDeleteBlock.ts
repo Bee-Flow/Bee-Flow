@@ -34,9 +34,26 @@
  * later still arrives through `unchecked` under its own name; this list is
  * only what an UNREADABLE answer falls back to.
  */
-export const DELETE_BLOCK_KINDS = Object.freeze(['solution', 'automation', 'chat', 'agent']);
+export const DELETE_BLOCK_KINDS: readonly string[] = Object.freeze(['solution', 'automation', 'chat', 'agent']);
 
-const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/** The 409 payload as far as this reader looks into it. */
+export interface BlockBody {
+    status?: number;
+    code?: string;
+    body?: BlockBody;
+    usage?: BlockBody[];
+    unchecked?: string[];
+}
+
+/** What `readDeleteBlock` reports. */
+export interface DeleteBlock {
+    blocked: boolean;
+    usage: BlockBody[];
+    unchecked: string[];
+    readable: boolean;
+}
+
+const isObj = (v: unknown): v is BlockBody => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**
  * The `in_use` body out of whatever the caller got: the payload itself, an
@@ -49,7 +66,7 @@ const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
  * `Array.isArray(usage)` because it only needs rows to render; here the
  * absence of that array is itself the finding.
  */
-function blockPayload(x) {
+function blockPayload(x: unknown): BlockBody | null {
     if (!isObj(x)) return null;
     const refused = x.status === 409
         || x.code === 'in_use'
@@ -65,15 +82,9 @@ function blockPayload(x) {
 }
 
 /**
- * @param {unknown} x the 409 payload, an error carrying it, or anything at all
- * @returns {{
- *   blocked: boolean,
- *   usage: Array,
- *   unchecked: string[],
- *   readable: boolean,
- * }}
+ * @param x the 409 payload, an error carrying it, or anything at all
  */
-export function readDeleteBlock(x) {
+export function readDeleteBlock(x: unknown): DeleteBlock {
     const body = blockPayload(x);
     // Not the guard: nothing is claimed in either direction. `blocked:false`
     // says only "this response was not a refusal", never "nothing uses it" —
@@ -84,7 +95,7 @@ export function readDeleteBlock(x) {
     // `unchecked` that is not an array is itself an unreadable answer, and the
     // narrow reading of that is "none of it was checked".
     const unchecked = Array.isArray(body.unchecked)
-        ? body.unchecked.filter((k) => typeof k === 'string' && k)
+        ? body.unchecked.filter((k: string) => typeof k === 'string' && k)
         : [...DELETE_BLOCK_KINDS];
 
     return {
@@ -102,6 +113,6 @@ export function readDeleteBlock(x) {
  * the guard has already decided this needs a human, and hiding the button
  * would leave no path at all.
  */
-export function blockHasFindings(block) {
+export function blockHasFindings(block: DeleteBlock | null | undefined): boolean {
     return !!block && block.usage.length > 0;
 }

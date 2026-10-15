@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { getIntegrationLogo } from './integrationLogos.jsx';
+import { getIntegrationLogo } from './integrationLogos.tsx';
 import { NEXTCLOUD_INTEGRATION_IDS } from '../config/integrationCatalog.js';
 
 describe('getIntegrationLogo', () => {

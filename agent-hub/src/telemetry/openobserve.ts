@@ -29,12 +29,33 @@
 
    The gate is entirely build-time env plus `window.location`, so it is cheap
    to evaluate before deciding to fetch anything. */
-let openobserveLogs = null;
-let openobserveRum = null;
+let openobserveLogs: typeof OpenObserveLogs | null = null;
+let openobserveRum: typeof OpenObserveRum | null = null;
+import type { openobserveLogs as OpenObserveLogs } from '@openobserve/browser-logs';
+import type { openobserveRum as OpenObserveRum } from '@openobserve/browser-rum';
 import { consentAccepted } from '../marketing/components/consent';
 import { APP_BUILD_SHA } from '../utils/appVersion';
 import { redactSecrets } from '../utils/clientErrorReporter';
 import { isPublicMarketingPath } from '../utils/cmsPublicRouting';
+
+declare global {
+    interface Window {
+        __BEEFLOW_RUNTIME__?: {
+            telemetry?: {
+                clientToken?: string;
+                site?: string;
+                enabled?: boolean;
+            };
+        };
+    }
+}
+
+/** The slice of an RUM event the redaction hook reads and rewrites. */
+interface ScrubbableRumEvent {
+    error?: { message?: string; stack?: string };
+    view?: { url?: string };
+    resource?: { url?: string };
+}
 
 const env = import.meta.env;
 
@@ -155,7 +176,7 @@ function tracingUrls() {
 // They double as the consent kill switch: returning false discards the event
 // before batching, so a withdrawal on the public site stops every request even
 // though the SDK itself cannot be torn down once initialised.
-function scrubRumEvent(event) {
+function scrubRumEvent(event: ScrubbableRumEvent) {
     if (consentWithheld()) return false;
     try {
         if (event?.error?.message) event.error.message = redactSecrets(event.error.message);
@@ -165,7 +186,7 @@ function scrubRumEvent(event) {
     } catch { /* never break telemetry */ }
     return true;
 }
-function scrubLog(log) {
+function scrubLog(log: { message?: string }) {
     if (consentWithheld()) return false;
     try { if (log?.message) log.message = redactSecrets(log.message); } catch { /* noop */ }
     return true;
@@ -190,7 +211,7 @@ export async function initOpenObserve() {
         // Chunk fetch failed (offline, blocked, cache miss on a stale deploy).
         // Telemetry must never break the app.
         started = false;
-        try { console.warn('[openobserve] sdk load failed:', e && e.message); } catch { /* noop */ }
+        try { console.warn('[openobserve] sdk load failed:', e && (e as Error).message); } catch { /* noop */ }
         return;
     }
 
@@ -236,13 +257,13 @@ export async function initOpenObserve() {
     } catch (e) {
         // Telemetry must never break the app.
         started = false;
-        try { console.warn('[openobserve] init failed:', e && e.message); } catch { /* noop */ }
+        try { console.warn('[openobserve] init failed:', e && (e as Error).message); } catch { /* noop */ }
     }
 }
 
 // Optional: give RUM a low-cardinality view name instead of raw pathnames
 // that carry agent/notebook IDs.
-export function setTelemetryView(name) {
+export function setTelemetryView(name: string) {
     // `started` is set before the dynamic import resolves, so the null check on
     // the SDK matters: a view change during that window is dropped rather than
     // throwing.

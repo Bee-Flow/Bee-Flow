@@ -30,6 +30,58 @@
  * and silently empty for anyone without manage_agents.
  */
 
+/** The fields of a raw list row that any section's accessors read. */
+interface RawRow {
+    id: string;
+    name?: string;
+    title?: string;
+    fileName?: string;
+    description?: string;
+    tagline?: string;
+    recipeLabel?: string;
+    recipeId?: string;
+    summarySnippet?: string;
+    updated_at?: string;
+    updatedAt?: string;
+    isPublished?: boolean | string | null;
+    is_published?: boolean | string | null;
+    publishedVersion?: number | string | null;
+    published_version?: number | string | null;
+    definitionVersion?: number | string | null;
+    isDraft?: boolean;
+    isActive?: boolean | null;
+    lastStatus?: string;
+    status?: string;
+    phases?: { status?: string }[];
+}
+
+/** The envelopes the list endpoints wrap their rows in (some answer a bare array instead). */
+interface RecentEnvelope {
+    automations?: unknown[];
+    webpages?: unknown[];
+    apps?: unknown[];
+    datatables?: unknown[];
+    transcriptions?: unknown[];
+    playbooks?: unknown[];
+    projects?: unknown[];
+}
+
+/** A row once a section's `map` has normalised it. */
+interface RecentItem {
+    id: string;
+    name?: string;
+    description?: string | null;
+    updatedAt?: string;
+}
+
+/** One section's declarative source. */
+interface RecentSource {
+    url: string;
+    pick: (d?: RecentEnvelope) => unknown;
+    map: (row: RawRow) => RecentItem;
+    status?: (row: RawRow) => RecentStatusCode;
+}
+
 // `limit` where the endpoint honours one — the panel shows five, and ranking
 // happens client-side, so a couple of dozen rows is plenty to rank over.
 const FETCH_LIMIT = 25;
@@ -49,7 +101,7 @@ const DESC_MAX = 90;
  * (headings, bullets, quotes, tables, rules, bold-only lines) and take the
  * first line that is actually about something.
  */
-export function firstProse(markdown) {
+export function firstProse(markdown: unknown): string | null {
     if (typeof markdown !== 'string') return null;
     for (const rawLine of markdown.split('\n')) {
         const line = rawLine.trim();
@@ -70,7 +122,7 @@ export function firstProse(markdown) {
     return null;
 }
 
-export function clampDescription(text) {
+export function clampDescription(text: unknown): string | null {
     const s = typeof text === 'string' ? text.trim().replace(/\s+/g, ' ') : '';
     if (!s) return null;
     if (s.length <= DESC_MAX) return s;
@@ -115,11 +167,13 @@ export const RECENT_STATUS = Object.freeze({
     READY: 'ready',
 });
 
+type RecentStatusCode = (typeof RECENT_STATUS)[keyof typeof RECENT_STATUS];
+
 // What an accessor below may answer. UNSUPPORTED is deliberately NOT in it:
 // "this kind has no status" is a property of the SECTION, decided by whether
 // it declares an accessor at all, and never something one row can claim.
-const ROW_STATUSES = new Set(
-    Object.values(RECENT_STATUS).filter((s) => s !== RECENT_STATUS.UNSUPPORTED),
+const ROW_STATUSES = new Set<string>(
+    Object.values(RECENT_STATUS).filter((s: string) => s !== RECENT_STATUS.UNSUPPORTED),
 );
 
 /**
@@ -129,7 +183,7 @@ const ROW_STATUSES = new Set(
  * is a claim about a row this client could not read. Postgres' 't'/'f' pass
  * through because /agents/all returns raw rows.
  */
-const publishedFlag = (row) => {
+const publishedFlag = (row?: RawRow | null): boolean | null => {
     const v = row?.isPublished ?? row?.is_published;
     if (v === true || v === 't') return true;
     if (v === false || v === 'f') return false;
@@ -137,7 +191,7 @@ const publishedFlag = (row) => {
 };
 
 /** published / draft / unknown, for the kinds whose lifecycle is exactly that. */
-const publishState = (row) => {
+const publishState = (row?: RawRow | null): RecentStatusCode => {
     const flag = publishedFlag(row);
     if (flag === null) return RECENT_STATUS.UNKNOWN;
     return flag ? RECENT_STATUS.PUBLISHED : RECENT_STATUS.DRAFT;
@@ -160,7 +214,7 @@ const publishState = (row) => {
  * `SELECT *` on /agents/all carries the column, so this is a read, not a guess.
  * Absent → UNKNOWN: a row this client could not read is not a draft.
  */
-const agentLiveState = (row) => {
+const agentLiveState = (row?: RawRow | null): RecentStatusCode => {
     const raw = row?.publishedVersion ?? row?.published_version;
     if (raw === null || raw === undefined || raw === '') return RECENT_STATUS.UNKNOWN;
     const n = Number(raw);
@@ -168,7 +222,7 @@ const agentLiveState = (row) => {
     return n > 0 ? RECENT_STATUS.PUBLISHED : RECENT_STATUS.DRAFT;
 };
 
-export const STUDIO_RECENT_SOURCES = {
+export const STUDIO_RECENT_SOURCES: Record<string, RecentSource> = {
     // `/agents/all` — the SAME list Studio → Agents shows (AgentStudio calls it
     // too). Not the Sidebar's own `agents` prop, which comes from a different
     // query (`owner_id = you OR 'system'`) and so includes the built-in system
@@ -177,16 +231,16 @@ export const STUDIO_RECENT_SOURCES = {
     // Requires manage_agents; a user without it simply gets no panel here.
     agents: {
         url: '/agents/all',
-        pick: (d) => d, // bare array
-        map: (a) => ({ id: a.id, name: a.name, description: a.description, updatedAt: a.updated_at }),
+        pick: (d?: RecentEnvelope) => d, // bare array
+        map: (a: RawRow) => ({ id: a.id, name: a.name, description: a.description, updatedAt: a.updated_at }),
         // Raw rows, so snake_case — agentLiveState reads both spellings. And
         // it reads published_VERSION, not is_published: see the helper.
         status: agentLiveState,
     },
     skills: {
         url: '/api/skills',
-        pick: (d) => d, // bare array
-        map: (s) => ({ id: s.id, name: s.name, description: s.description, updatedAt: s.updatedAt }),
+        pick: (d?: RecentEnvelope) => d, // bare array
+        map: (s: RawRow) => ({ id: s.id, name: s.name, description: s.description, updatedAt: s.updatedAt }),
         // NO status accessor, deliberately: a skill row carries none. The
         // nearest thing is `lastTest` (routes/skills.js asks the store for it),
         // and "the last test passed" is not the same claim as "this skill is
@@ -194,8 +248,8 @@ export const STUDIO_RECENT_SOURCES = {
     },
     knowledge: {
         url: '/api/kb',
-        pick: (d) => d, // bare array
-        map: (k) => ({ id: k.id, name: k.name, description: k.description, updatedAt: k.updated_at }),
+        pick: (d?: RecentEnvelope) => d, // bare array
+        map: (k: RawRow) => ({ id: k.id, name: k.name, description: k.description, updatedAt: k.updated_at }),
         // NO status accessor: `knowledge_bases` has no status column. The list
         // does carry document counts, from which "empty" is derivable — but
         // "in error" lives on kb_sources and is not here, so a word derived
@@ -205,8 +259,8 @@ export const STUDIO_RECENT_SOURCES = {
     },
     aiTasks: {
         url: '/api/automation',
-        pick: (d) => d?.automations,
-        map: (a) => ({ id: a.id, name: a.title, description: a.description, updatedAt: a.updatedAt }),
+        pick: (d?: RecentEnvelope) => d?.automations,
+        map: (a: RawRow) => ({ id: a.id, name: a.title, description: a.description, updatedAt: a.updatedAt }),
         // The richest of the nine (rowToAutomation: isDraft, isActive,
         // lastStatus, lastRunAt), so the precedence is worth stating:
         //   draft   — never made live; what it did in a test run is not what
@@ -215,7 +269,7 @@ export const STUDIO_RECENT_SOURCES = {
         //   paused / active — the ordinary two
         // `isActive` is read strictly: a row that carried neither true nor
         // false is unknown, not "paused".
-        status: (a) => {
+        status: (a: RawRow) => {
             if (a?.isDraft === true) return RECENT_STATUS.DRAFT;
             if (a?.lastStatus === 'error') return RECENT_STATUS.FAILED;
             if (a?.isActive === true) return RECENT_STATUS.ACTIVE;
@@ -227,8 +281,8 @@ export const STUDIO_RECENT_SOURCES = {
         // `tagline` is the one-liner authors actually write for a page;
         // `description` is often the long SEO blurb.
         url: '/api/webpages',
-        pick: (d) => d?.webpages,
-        map: (w) => ({ id: w.id, name: w.name, description: w.tagline || w.description, updatedAt: w.updatedAt }),
+        pick: (d?: RecentEnvelope) => d?.webpages,
+        map: (w: RawRow) => ({ id: w.id, name: w.name, description: w.tagline || w.description, updatedAt: w.updatedAt }),
         status: publishState,
     },
     // (Support used to have an entry here. It stopped being a Studio section —
@@ -238,15 +292,15 @@ export const STUDIO_RECENT_SOURCES = {
     // the shared list is dominated by other people's published apps.
     apps: {
         url: '/api/studio-apps/mine',
-        pick: (d) => d?.apps,
-        map: (a) => ({ id: a.id, name: a.name, description: a.description, updatedAt: a.updatedAt }),
+        pick: (d?: RecentEnvelope) => d?.apps,
+        map: (a: RawRow) => ({ id: a.id, name: a.name, description: a.description, updatedAt: a.updatedAt }),
         // The one kind that can say "live, but the draft has moved on":
         // definitionVersion vs publishedVersion. `publishedVersion` is NULL on
         // apps published before the column existed, and mapAppMetaRow's own
         // note says callers must read that as "unknown, never as in step with
         // the draft" — so a published app whose live version is unknown stays
         // PUBLISHED here rather than being accused of unpublished changes.
-        status: (a) => {
+        status: (a: RawRow) => {
             const flag = publishedFlag(a);
             if (flag === null) return RECENT_STATUS.UNKNOWN;
             if (!flag) return RECENT_STATUS.DRAFT;
@@ -266,8 +320,8 @@ export const STUDIO_RECENT_SOURCES = {
     // another automation is filling is exactly the one you want to jump back to.
     datatables: {
         url: '/api/datatables',
-        pick: (d) => d?.datatables,
-        map: (t) => ({ id: t.id, name: t.name, description: t.description, updatedAt: t.updatedAt }),
+        pick: (d?: RecentEnvelope) => d?.datatables,
+        map: (t: RawRow) => ({ id: t.id, name: t.name, description: t.description, updatedAt: t.updatedAt }),
         // NO status accessor, deliberately. `rowCount` rides along, but a row
         // count is a size, not a state: an empty table is a perfectly healthy
         // new table. And `isPublished` on a table is NOT a lifecycle — it is
@@ -287,8 +341,8 @@ export const STUDIO_RECENT_SOURCES = {
     // Falls back to the timestamp while a recording is still being processed.
     meetingNotes: {
         url: `/api/transcriptions?limit=${FETCH_LIMIT}`,
-        pick: (d) => d?.transcriptions,
-        map: (m) => ({
+        pick: (d?: RecentEnvelope) => d?.transcriptions,
+        map: (m: RawRow) => ({
             id: m.id,
             name: m.title || m.fileName,
             description: firstProse(m.summarySnippet),
@@ -299,7 +353,7 @@ export const STUDIO_RECENT_SOURCES = {
         // the payload did not carry one at all). Anything that is neither of
         // the two settled values is still in flight — which is the honest
         // reading of a vocabulary that may gain a queue state later.
-        status: (m) => {
+        status: (m: RawRow) => {
             const s = typeof m?.status === 'string' ? m.status.trim() : '';
             if (!s) return RECENT_STATUS.UNKNOWN;
             if (s === 'failed') return RECENT_STATUS.FAILED;
@@ -309,18 +363,18 @@ export const STUDIO_RECENT_SOURCES = {
     },
     playbooks: {
         url: '/api/playbooks',
-        pick: (d) => d?.playbooks,
-        map: (p) => ({ id: p.id, name: p.title, description: p.recipeLabel || p.recipeId, updatedAt: p.updatedAt }),
+        pick: (d?: RecentEnvelope) => d?.playbooks,
+        map: (p: RawRow) => ({ id: p.id, name: p.title, description: p.recipeLabel || p.recipeId, updatedAt: p.updatedAt }),
         // Playbook-level status folded onto the vocabulary: a build in a phase
         // is PROCESSING, waiting for the person's "go on" is PAUSED, complete
         // is READY, stopped is PAUSED too (the person can pick it back up).
-        status: (p) => {
+        status: (p: RawRow) => {
             const phases = Array.isArray(p?.phases) ? p.phases : [];
             if (p?.status === 'done') return RECENT_STATUS.READY;
             if (p?.status === 'stopped') return RECENT_STATUS.PAUSED;
-            if (phases.some((x) => x && x.status === 'failed')) return RECENT_STATUS.FAILED;
-            if (phases.some((x) => x && x.status === 'running')) return RECENT_STATUS.PROCESSING;
-            if (phases.some((x) => x && x.status === 'awaiting')) return RECENT_STATUS.PAUSED;
+            if (phases.some((x: { status?: string }) => x && x.status === 'failed')) return RECENT_STATUS.FAILED;
+            if (phases.some((x: { status?: string }) => x && x.status === 'running')) return RECENT_STATUS.PROCESSING;
+            if (phases.some((x: { status?: string }) => x && x.status === 'awaiting')) return RECENT_STATUS.PAUSED;
             return p?.status === 'active' ? RECENT_STATUS.PROCESSING : RECENT_STATUS.UNKNOWN;
         },
     },
@@ -332,8 +386,8 @@ export const STUDIO_RECENT_SOURCES = {
     // Studio items and never appear here.
     solutions: {
         url: '/api/projects?kind=solution',
-        pick: (d) => (Array.isArray(d) ? d : d?.projects),
-        map: (p) => ({ id: p.id, name: p.name, description: p.description, updatedAt: p.updatedAt || p.updated_at }),
+        pick: (d?: RecentEnvelope) => (Array.isArray(d) ? d : d?.projects),
+        map: (p: RawRow) => ({ id: p.id, name: p.name, description: p.description, updatedAt: p.updatedAt || p.updated_at }),
         // NO status accessor: /api/projects carries none. A Solution's health
         // is `complete` / `blocked` / `unavailable` from GET
         // /api/projects/summary, which is a second (budgeted) request and a
@@ -357,12 +411,12 @@ export const STUDIO_RECENT_SOURCES = {
  * not "what state is it in"), and adding them to the normalised shape would
  * change what every existing caller of normaliseRecentItems receives.
  */
-export function recentStatusOf(sectionId, row) {
+export function recentStatusOf(sectionId: string, row?: RawRow | null): RecentStatusCode {
     const source = STUDIO_RECENT_SOURCES[sectionId];
     if (!source) return RECENT_STATUS.UNSUPPORTED;
     if (typeof source.status !== 'function') return RECENT_STATUS.UNSUPPORTED;
     if (!row || typeof row !== 'object') return RECENT_STATUS.UNKNOWN;
-    let code = null;
+    let code: RecentStatusCode | null = null;
     try {
         code = source.status(row);
     } catch {
@@ -372,17 +426,17 @@ export function recentStatusOf(sectionId, row) {
 }
 
 /** Normalise already-extracted rows into `{ id, name, description, updatedAt }[]`. */
-export function normaliseRecentRows(sectionId, rows) {
+export function normaliseRecentRows(sectionId: string, rows: unknown): RecentItem[] {
     const source = STUDIO_RECENT_SOURCES[sectionId];
     if (!source || !Array.isArray(rows)) return [];
     return rows
         .map(source.map)
-        .filter((item) => item && item.id)
-        .map((item) => ({ ...item, description: clampDescription(item.description) }));
+        .filter((item: RecentItem) => item && item.id)
+        .map((item: RecentItem) => ({ ...item, description: clampDescription(item.description) }));
 }
 
 /** Normalise one endpoint payload into `{ id, name, description, updatedAt }[]`. */
-export function normaliseRecentItems(sectionId, payload) {
+export function normaliseRecentItems(sectionId: string, payload?: RecentEnvelope): RecentItem[] {
     const source = STUDIO_RECENT_SOURCES[sectionId];
     if (!source) return [];
     return normaliseRecentRows(sectionId, source.pick ? source.pick(payload) : payload);

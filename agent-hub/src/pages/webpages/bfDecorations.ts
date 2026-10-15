@@ -36,12 +36,51 @@
 
 import { BF_ELEMENTS } from '../../utils/bfElements';
 
+/** Eén markering zoals de server hem teruggeeft (`GET /api/webpages/:id/bindings`). */
+export interface BfMark {
+    line?: number;
+    known?: boolean;
+    missing?: string[];
+    family?: string;
+    tag?: string;
+}
+
+/** De markeringen van één regel, met de familie van de eerste. */
+export interface BfMarkGroup {
+    line: number;
+    marks: BfMark[];
+    family: string;
+}
+
+interface MonacoDecorationOptions {
+    isWholeLine: boolean;
+    className: string;
+    linesDecorationsClassName: string;
+    after?: { content: string; inlineClassName: string };
+    hoverMessage?: { value: string };
+}
+
+export interface BfDecoration {
+    range: {
+        startLineNumber: number;
+        startColumn: number;
+        endLineNumber: number;
+        endColumn: number;
+    };
+    options: MonacoDecorationOptions;
+}
+
+interface DecorationOpts {
+    label?: (group: BfMarkGroup) => string;
+    hover?: (group: BfMarkGroup) => string;
+}
+
 /** Families die geen binding zijn, maar wel een eigen tint hebben. */
 const EXTRA_FAMILIES = Object.freeze(['incomplete', 'unknown']);
 
 /** Elke familie die een markering kan dragen, in vocabulairevolgorde. */
 export const BF_FAMILIES = Object.freeze([
-    ...BF_ELEMENTS.reduce((acc, def) => {
+    ...BF_ELEMENTS.reduce((acc: string[], def) => {
         const kind = def.binding && def.binding.kind;
         if (kind && !acc.includes(kind)) acc.push(kind);
         return acc;
@@ -62,7 +101,7 @@ export const BF_FAMILIES = Object.freeze([
  *      tabelelement), dus dit onderscheid leest op `missing`, niet op `family`;
  *   3. anders de familie zelf.
  */
-export function familyOf(mark) {
+export function familyOf(mark?: BfMark | null): string {
     if (!mark) return 'unknown';
     if (mark.known === false) return 'unknown';
     if (Array.isArray(mark.missing) && mark.missing.length > 0) return 'incomplete';
@@ -81,10 +120,10 @@ export function familyOf(mark) {
  * de gegevens er al lagen: de gespiegelde registry draagt per element zowel de
  * toestand als de zin die de lezer te zien krijgt.
  *
- * @returns {{state:string, notice:string}|null} `null` voor een tag die het
+ * Geeft `null` voor een tag die het
  *   vocabulaire niet kent — daar valt niets over te beweren.
  */
-export function publishedFate(tag) {
+export function publishedFate(tag: unknown): { state: string; notice: string } | null {
     const def = BF_ELEMENTS.find(e => e.tag === String(tag || '').toLowerCase());
     if (!def) return null;
     const vanilla = (def.surfaces && def.surfaces.vanillaSnapshot) || null;
@@ -93,7 +132,7 @@ export function publishedFate(tag) {
 }
 
 /** Blijft dit element werken op de gepubliceerde pagina? */
-export function survivesPublishing(tag) {
+export function survivesPublishing(tag: unknown): boolean {
     const fate = publishedFate(tag);
     // Onbekend telt NIET als "overleeft het": DOMPurify pakt zo'n element stil
     // uit, en dat is het tegenovergestelde van overleven.
@@ -102,7 +141,7 @@ export function survivesPublishing(tag) {
 }
 
 /** De CSS-klasse van een familie. De tinten staan in vscode-theme.css. */
-export function familyClass(family) {
+export function familyClass(family: string): string {
     return `bf-mark--${family}`;
 }
 
@@ -114,17 +153,17 @@ export function familyClass(family) {
  * elkaar zijn onleesbaar. De regel houdt de familie van het eerste element en
  * het label noemt ze allebei.
  */
-export function groupMarksByLine(marks) {
-    const byLine = new Map();
+export function groupMarksByLine(marks?: BfMark[] | null): BfMarkGroup[] {
+    const byLine = new Map<number, BfMark[]>();
     for (const mark of (Array.isArray(marks) ? marks : [])) {
         const line = Number(mark && mark.line);
         if (!Number.isInteger(line) || line < 1) continue;
         if (!byLine.has(line)) byLine.set(line, []);
-        byLine.get(line).push(mark);
+        (byLine.get(line) as BfMark[]).push(mark);
     }
     return [...byLine.entries()]
-        .sort((a, b) => a[0] - b[0])
-        .map(([line, group]) => ({ line, marks: group, family: familyOf(group[0]) }));
+        .sort((a: [number, BfMark[]], b: [number, BfMark[]]) => a[0] - b[0])
+        .map(([line, group]: [number, BfMark[]]) => ({ line, marks: group, family: familyOf(group[0]) }));
 }
 
 /**
@@ -133,19 +172,15 @@ export function groupMarksByLine(marks) {
  * Puur: geen Monaco-import, geen editor — een lijst gewone objecten, zodat
  * deze vertaling te testen valt zonder een editor te starten.
  *
- * @param {Array} marks    de markeringen van DIT bestand
- * @param {object} [opts]
- * @param {(group:{line:number,marks:Array,family:string}) => string} [opts.label]
- *        de tekst achter de regel. Wordt in de component met `t()` gemaakt —
- *        vertaalde tekst hoort niet in een puur model.
- * @param {(group:object) => string} [opts.hover]  tekst van de tooltip
- * @returns {Array<{range:object, options:object}>}
+ * `opts.label` is de tekst achter de regel. Wordt in de component met `t()`
+ * gemaakt — vertaalde tekst hoort niet in een puur model. `opts.hover` is de
+ * tekst van de tooltip.
  */
-export function buildBfDecorations(marks, { label, hover } = {}) {
-    return groupMarksByLine(marks).map((group) => {
+export function buildBfDecorations(marks?: BfMark[] | null, { label, hover }: DecorationOpts = {}): BfDecoration[] {
+    return groupMarksByLine(marks).map((group: BfMarkGroup) => {
         const text = typeof label === 'function' ? label(group) : '';
         const tip = typeof hover === 'function' ? hover(group) : '';
-        const options = {
+        const options: MonacoDecorationOptions = {
             isWholeLine: true,
             className: `bf-mark ${familyClass(group.family)}`,
             linesDecorationsClassName: `bf-mark-gutter ${familyClass(group.family)}`,

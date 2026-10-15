@@ -1,5 +1,32 @@
 import { API_BASE, authFetch } from './helpers';
 import { readDeviceJSON } from './storageMigrations';
+
+/** Human-readable metadata for one model id. */
+export interface ModelMeta {
+    name: string;
+    desc?: string;
+    cat: string;
+    input?: number;
+    output?: number;
+    price?: string;
+}
+
+/** A model as the pickers handle it: server-described models carry a flag for their source. */
+export interface ModelEntry {
+    id: string;
+    name?: string;
+    desc?: string;
+    cat?: string;
+    local?: boolean;
+    scaleway?: boolean;
+    eugpt?: boolean;
+}
+
+/** `allowedModelsByAgentType` from `GET /ai/config`: agent type → allowed model ids. */
+type AllowedModelsConfig = Record<string, string[]>;
+
+/** A device-level id → value map (aliases, hidden flags). */
+type DeviceMap = Record<string, string>;
 // Shared model metadata, whitelist, and helpers
 // Used by AIConfigPanel, AgentDesigner, MultiAgentConfig, etc.
 
@@ -8,11 +35,11 @@ import { readDeviceJSON } from './storageMigrations';
 // read stays for the window before that pass runs (and for hand-edited
 // storage): a corrupt value used to THROW out of JSON.parse and crash every
 // model picker. Only a plain object is accepted.
-const asObjectMap = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : undefined);
-const readDeviceMap = (key) => readDeviceJSON(key, {}, asObjectMap);
+const asObjectMap = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? v as DeviceMap : undefined);
+const readDeviceMap = (key: string) => readDeviceJSON(key, {} as DeviceMap, asObjectMap);
 
 // Human-readable metadata for Mistral models (prices in $ per million tokens unless noted)
-export const MISTRAL_MODEL_META = {
+export const MISTRAL_MODEL_META: Record<string, ModelMeta> = {
     // --- Frontier: Generalist ---
     // The -latest aliases describe the model they point to today; prices match
     // server/core/providers/mistralModels.js (docs.mistral.ai/inference/pricing).
@@ -122,7 +149,7 @@ export const MISTRAL_MODEL_META = {
 };
 
 // Only these models are shown by default
-export const VISIBLE_MODELS = new Set([
+export const VISIBLE_MODELS = new Set<string>([
     // Mistral: the current line-up. Magistral, Pixtral and Devstral are
     // retired on La Plateforme (their ids 404); reasoning is a switch on
     // Small 4 and Medium 3.5 now.
@@ -161,9 +188,9 @@ export const VISIBLE_MODELS = new Set([
 ]);
 
 // Get metadata for a model ID (exact then fuzzy prefix match)
-export const getModelMeta = (id) => {
+export const getModelMeta = (id: string): ModelMeta | null => {
     if (MISTRAL_MODEL_META[id]) return MISTRAL_MODEL_META[id];
-    const prefixes = Object.keys(MISTRAL_MODEL_META).sort((a, b) => b.length - a.length);
+    const prefixes = Object.keys(MISTRAL_MODEL_META).sort((a: string, b: string) => b.length - a.length);
     for (const prefix of prefixes) {
         if (id.startsWith(prefix.replace(/-latest$/, '').replace(/-\d{4}$/, ''))) {
             return MISTRAL_MODEL_META[prefix];
@@ -174,17 +201,17 @@ export const getModelMeta = (id) => {
 
 // Auto-format a raw model ID into a readable name: strip trailing date
 // stamps (e.g. -20251101 or -2411) and title-case the hyphenated parts.
-export const formatModelId = (id) => {
+export const formatModelId = (id: string): string => {
     if (!id) return id;
     const name = String(id).replace(/-\d{6,8}$/, '').replace(/-\d{4}$/, '');
-    return name.split('-').map(part => /^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+    return name.split('-').map((part: string) => /^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 };
 
 // Get the display name for a model. Accepts either a raw model ID string or
 // a model object ({ id, name }). Resolution order: user alias → self-hosted
 // label from the server → metadata name → server-provided name (object form
 // only) → auto-formatted ID.
-export const getModelDisplayName = (model) => {
+export const getModelDisplayName = (model: string | ModelEntry): string => {
     const id = typeof model === 'string' ? model : model?.id;
     if (!id) return '';
     const aliases = readDeviceMap('modelAliases');
@@ -203,7 +230,7 @@ export const getModelDisplayName = (model) => {
 
 // Coarse model-family bucket for a model ID — powers the "Family" filter
 // chips in the shared searchable model picker.
-export const getModelFamily = (modelId) => {
+export const getModelFamily = (modelId: string): string => {
     if (/^gpt-6/.test(modelId)) return 'GPT-6';
     // 5.6 is its own generation: different reasoning-effort vocabulary, no
     // verbosity knob, a 1.05M window. Grouping it under GPT-5 in the picker
@@ -242,8 +269,8 @@ export const getModelFamily = (modelId) => {
 };
 
 // Cache for allowed models config (fetched from server DB)
-let _allowedModelsCache = null;
-let _allowedModelsFetchPromise = null;
+let _allowedModelsCache: AllowedModelsConfig | null = null;
+let _allowedModelsFetchPromise: Promise<AllowedModelsConfig | null> | null = null;
 
 // Fetch allowed models config from server and cache it
 export const fetchAllowedModelsByAgentType = async () => {
@@ -278,7 +305,7 @@ export const invalidateAllowedModelsCache = () => {
 // Filter models to only visible ones (respecting whitelist + manual hides + per-agent-type restrictions)
 // agentType is optional: 'chat'
 // allowedConfig is optional: pre-fetched allowedModelsByAgentType object (avoids async)
-export const filterVisibleModels = (models, agentType = null, allowedConfig = null) => {
+export const filterVisibleModels = (models: ModelEntry[], agentType: string | null = null, allowedConfig: AllowedModelsConfig | null = null) => {
     const hiddenModels = readDeviceMap('hiddenModels');
     // VISIBLE_MODELS is a hand-curated allow-list of cloud model ids, so it can
     // never contain a self-hosted one — whatever the customer pulled onto their
@@ -292,17 +319,17 @@ export const filterVisibleModels = (models, agentType = null, allowedConfig = nu
     // frontend would hide every new model until the next release. EU GPT's
     // single routed model is admitted on its `eugpt` flag for the same reason.
     let filtered = models
-        .filter(m => !hiddenModels[m.id] && (m.local || m.scaleway || m.eugpt || VISIBLE_MODELS.has(m.id)));
+        .filter((m: ModelEntry) => !hiddenModels[m.id] && (m.local || m.scaleway || m.eugpt || VISIBLE_MODELS.has(m.id)));
 
     // Apply per-agent-type restrictions if provided
     if (agentType && allowedConfig) {
         const allowed = allowedConfig[agentType];
         if (allowed && Array.isArray(allowed) && allowed.length > 0) {
-            filtered = filtered.filter(m => allowed.includes(m.id));
+            filtered = filtered.filter((m: ModelEntry) => allowed.includes(m.id));
         }
     }
 
-    return filtered.map(m => {
+    return filtered.map((m: ModelEntry) => {
         // Models the server described (self-hosted, Scaleway, EU GPT) carry their own
         // metadata and must not be re-labelled by getModelMeta's fuzzy prefix
         // match — "mistral-medium-3.5-128b" starts with "mistral-medium" and
@@ -322,7 +349,7 @@ export const filterVisibleModels = (models, agentType = null, allowedConfig = nu
     });
 };
 
-export const CAT_COLORS = {
+export const CAT_COLORS: Record<string, string> = {
     Generalist: 'rgba(59, 130, 246, 0.2)',
     Reasoning: 'rgba(168, 85, 247, 0.2)',
     Coding: 'rgba(16, 185, 129, 0.2)',

@@ -19,6 +19,35 @@
 import { compile } from '@shared/expr/engine.mjs';
 import { formatPath, getRelativePath, parsePath, scanTemplate, walkTokens } from '@shared/expr/path.mjs';
 
+/** One step of a parsed path (shared/expr/path.mjs): a key or index, a `[*]`, or a `[name="x"]` match. */
+interface PathToken {
+    type: string;
+    key?: string | number;
+    raw?: string;
+    bare?: boolean;
+    value?: unknown;
+}
+
+/** A node of the expression AST, as far as `readsAsArithmetic` looks. */
+interface AstNode {
+    kind?: string;
+    op?: string;
+    a?: AstNode;
+    b?: AstNode;
+    segments?: unknown[];
+}
+
+/** A stored binding, or anything shaped like one. */
+interface BindingLike {
+    kind?: string;
+    value?: unknown;
+    path?: string;
+}
+
+type BindingInput = BindingLike | string | number | boolean | null | undefined;
+
+type TextControl = HTMLInputElement | HTMLTextAreaElement;
+
 // A cheap "might hold {{…}}" probe, kept for older callers. It cannot see a
 // placeholder whose quoted key holds a brace; `detectTemplate` can.
 export const TEMPLATE_RE = /\{\{[^}]+\}\}/;
@@ -29,13 +58,13 @@ export const INLINE_STEP_PATH_RE = /^steps\.[A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]
 // The same head, for splitting it off: the id is one key, the rest is an
 // ordinary path tail.
 const INLINE_HEAD_RE = /^steps\.([A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]*)+)(?=$|[.[])/;
-const VALID_REF_ROOTS = ['trigger', 'steps', 'vars', 'secrets', 'loop'];
+const VALID_REF_ROOTS: (string | number | undefined)[] = ['trigger', 'steps', 'vars', 'secrets', 'loop'];
 // A path the author can mean starts like a name. The grammar also reads `42`
 // or `-x` as a key, but as typed text those are a number and a formula.
 const NAME_START_RE = /^[\p{L}_$]/u;
 
 /** Tokens of a path TAIL (`.a["b"]`, `[0].x`, ``), or null when it does not continue a path. */
-function tailTokens(rest) {
+function tailTokens(rest: string): PathToken[] | null {
     if (!rest) return [];
     if (rest[0] !== '.' && rest[0] !== '[') return null;
     const t = parsePath(`$${rest}`);
@@ -47,7 +76,7 @@ function tailTokens(rest) {
  * plus the builder-only flowlet sub-step id (`steps.<call>/<sub>`), which is
  * one key whose `/` no runtime grammar reads.
  */
-function anyPathTokens(text) {
+function anyPathTokens(text: unknown): PathToken[] | null {
     if (typeof text !== 'string') return null;
     const t = text.trim();
     const inline = INLINE_HEAD_RE.exec(t);
@@ -59,7 +88,7 @@ function anyPathTokens(text) {
 }
 
 /** The tokens of a reference path an author typed or picked, or null. */
-export function refPathTokens(text) {
+export function refPathTokens(text: unknown): PathToken[] | null {
     if (typeof text !== 'string' || !NAME_START_RE.test(text.trim())) return null;
     return anyPathTokens(text);
 }
@@ -69,7 +98,7 @@ export function refPathTokens(text) {
  * JSON-escaped) — what every insertion writes, and what the expression engine
  * reads as the same path. Text that is not a path comes back trimmed.
  */
-export function canonicalRefPath(text) {
+export function canonicalRefPath(text: unknown): string {
     const t = String(text ?? '').trim();
     const tokens = anyPathTokens(t);
     if (!tokens) return t;
@@ -79,9 +108,9 @@ export function canonicalRefPath(text) {
 }
 
 /** A `-` outside quotes and brackets: the one name character that is also an operator. */
-function dashInName(t) {
+function dashInName(t: string): boolean {
     let depth = 0;
-    let quote = null;
+    let quote: string | null = null;
     for (let i = 0; i < t.length; i++) {
         const c = t[i];
         if (quote) {
@@ -103,12 +132,12 @@ function dashInName(t) {
  * `headers.content-type` and `x-request-id` do not (a lone word is a key
  * fragment, not an operand anyone subtracts).
  */
-function readsAsArithmetic(t) {
+function readsAsArithmetic(t: string): boolean {
     if (!dashInName(t)) return false;
     let ast;
     try { ast = compile(t).ast; } catch { return false; }
-    const operand = (n) => n?.kind === 'num' || (n?.kind === 'path' && n.segments.length > 1);
-    const walk = (n) => !!n && typeof n === 'object' && (
+    const operand = (n?: AstNode | null) => n?.kind === 'num' || (n?.kind === 'path' && (n.segments as unknown[]).length > 1);
+    const walk = (n?: AstNode | null): boolean => !!n && typeof n === 'object' && (
         (n.kind === 'binop' && n.op === '-' && operand(n.b)) || walk(n.a) || walk(n.b)
     );
     return walk(ast);
@@ -119,9 +148,9 @@ function readsAsArithmetic(t) {
  * the runtime scans (shared/expr/path.mjs scanTemplate): `{{ x["a}b"] }}`
  * is one placeholder, `{{ }}` is none.
  */
-export function detectTemplate(text) {
+export function detectTemplate(text: unknown): boolean {
     if (typeof text !== 'string') return false;
-    return scanTemplate(text).some(p => p.type === 'ref');
+    return scanTemplate(text).some((p: { type: string }) => p.type === 'ref');
 }
 
 /**
@@ -129,7 +158,7 @@ export function detectTemplate(text) {
  * Points"]`, `x.list[*].id`, `headers[name="Subject"].value`) — no operators?
  * A dashed name that reads as a subtraction (`total-1`) is a formula.
  */
-export function isCleanPath(text) {
+export function isCleanPath(text: unknown): boolean {
     if (typeof text !== 'string') return false;
     const t = text.trim();
     if (!refPathTokens(t)) return false;
@@ -148,7 +177,7 @@ export function isCleanPath(text) {
  *
  * Returns a canonical binding object the runtime resolver accepts.
  */
-export function bindingFromInput(value, mode) {
+export function bindingFromInput(value: unknown, mode: string) {
     if (mode === 'expression') {
         const v = String(value ?? '').trim();
         if (!v) return { kind: 'literal', value: '' };
@@ -163,7 +192,7 @@ export function bindingFromInput(value, mode) {
     return { kind: 'literal', value: value ?? '' };
 }
 
-const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
+const BINDING_KINDS = new Set<string | undefined>(['literal', 'ref', 'template', 'expr']);
 
 /**
  * A value the text editor can only show as JSON: a bare map of bindings (the
@@ -172,7 +201,7 @@ const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
  * (bind.js resolveDeep), so turning the edited text into a string would hand
  * the tool binding descriptors instead of values.
  */
-export function isStructuredBinding(b) {
+export function isStructuredBinding(b: BindingLike | unknown[] | string | number | boolean | null | undefined): boolean {
     if (b == null || typeof b !== 'object') return false;
     if (Array.isArray(b)) return true;
     if (BINDING_KINDS.has(b.kind)) return b.kind === 'literal' && b.value !== null && typeof b.value === 'object';
@@ -185,7 +214,7 @@ export function isStructuredBinding(b) {
  * bare map, nested {kind} wrappers intact). Null while the text is not a JSON
  * object or array — the caller keeps the old value rather than saving a string.
  */
-export function structuredFromText(text, original) {
+export function structuredFromText(text: unknown, original?: BindingLike | unknown[] | null) {
     let parsed;
     try { parsed = JSON.parse(String(text ?? '')); } catch { return null; }
     if (parsed === null || typeof parsed !== 'object') return null;
@@ -204,7 +233,7 @@ export function structuredFromText(text, original) {
  * runtime resolver's tolerance — see canonicalizeBinding in
  * server/automation/builderTools.js).
  */
-export function inputFromBinding(binding) {
+export function inputFromBinding(binding: BindingInput) {
     if (binding == null) return { mode: 'fixed', text: '' };
     if (typeof binding !== 'object') {
         return { mode: 'fixed', text: String(binding) };
@@ -236,7 +265,7 @@ export function inputFromBinding(binding) {
  * state in the same tick (uncontrolled DOM mutation alone won't trigger
  * React's onChange).
  */
-export function insertAtCursor(el, snippet) {
+export function insertAtCursor(el: TextControl | null | undefined, snippet: string): string | null {
     if (!el) return null;
     const isTextLike = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
     if (!isTextLike) return null;
@@ -263,7 +292,7 @@ export function insertAtCursor(el, snippet) {
  * automation roots but `item`/`vars` (see AUTOCOMPLETE_ROOTS).
  * Returns `{ start, end, query }` (range in el.value) or null.
  */
-export function getAutocompleteToken(el, mode, roots = AUTOCOMPLETE_ROOTS) {
+export function getAutocompleteToken(el: TextControl | null | undefined, mode: string, roots: unknown = AUTOCOMPLETE_ROOTS) {
     if (!el || typeof el.value !== 'string') return null;
     const caret = el.selectionStart ?? el.value.length;
     const hit = getAutocompleteTokenFromPrefix(el.value.slice(0, caret), mode, roots);
@@ -276,7 +305,7 @@ export function getAutocompleteToken(el, mode, roots = AUTOCOMPLETE_ROOTS) {
  * before the caret are not text at all). Returns `{ length, query }`, where
  * `length` is how many typed characters the accepted suggestion should swallow.
  */
-export function getAutocompleteTokenFromPrefix(before, mode, roots = AUTOCOMPLETE_ROOTS) {
+export function getAutocompleteTokenFromPrefix(before: unknown, mode: string, roots: unknown = AUTOCOMPLETE_ROOTS) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a constant character class with one * on a slice after the last {{: linear
     const text = typeof before === 'string' ? before : '';
     if (mode === 'fixed') {
@@ -306,7 +335,7 @@ export function getAutocompleteTokenFromPrefix(before, mode, roots = AUTOCOMPLET
     const partial = bare[1];
     if (partial.length < 2) return null;
     const lower = partial.toLowerCase();
-    if (!list.some(root => root.toLowerCase().startsWith(lower))) return null;
+    if (!list.some((root: string) => root.toLowerCase().startsWith(lower))) return null;
     return { length: partial.length, query: partial };
 }
 
@@ -320,9 +349,9 @@ export const AUTOCOMPLETE_ROOTS = ['steps', 'trigger', 'loop', 'item', 'vars'];
  * App Studio's case, one fetched from the server catalog) can never smuggle
  * regex metacharacters into the pattern built above.
  */
-function safeRoots(roots) {
+function safeRoots(roots: unknown): string[] {
     const list = Array.isArray(roots) ? roots : AUTOCOMPLETE_ROOTS;
-    return list.filter(r => typeof r === 'string' && /^[A-Za-z_$][\w$]*$/.test(r));
+    return list.filter((r: unknown) => typeof r === 'string' && /^[A-Za-z_$][\w$]*$/.test(r));
 }
 
 /**
@@ -331,7 +360,7 @@ function safeRoots(roots) {
  * range was recorded when autocomplete opened — focus may have moved to
  * the picker's search box since). Returns the new full value.
  */
-export function replaceRange(el, start, end, snippet) {
+export function replaceRange(el: TextControl | null | undefined, start: number, end: number, snippet: string): string | null {
     if (!el) return null;
     const value = String(el.value ?? '');
     const from = Math.max(0, Math.min(start, value.length));
@@ -349,7 +378,7 @@ export function replaceRange(el, start, end, snippet) {
  * (`trigger.output.subject` → `subject`). Used by the Set editor's
  * "Add field from a previous step" action.
  */
-export function suggestKeyFromPath(path) {
+export function suggestKeyFromPath(path: unknown): string {
     const tokens = anyPathTokens(String(path || ''));
     let seg = '';
     if (tokens) {
@@ -360,7 +389,7 @@ export function suggestKeyFromPath(path) {
     } else {
         const segs = String(path || '').trim().replace(/\[(?:\*|\d+)\]/g, '').split('.').filter(Boolean);
         seg = segs.pop() || '';
-        if (seg === 'output' && segs.length) seg = segs.pop();
+        if (seg === 'output' && segs.length) seg = segs.pop() as string;
     }
     const key = String(seg).replace(/[^A-Za-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
     return key || 'field';
@@ -368,10 +397,10 @@ export function suggestKeyFromPath(path) {
 
 // Keys that only say "the value of it". After a match segment the matched
 // value is the name: `headers[name="Subject"].value` is the Subject header.
-const GENERIC_VALUE_KEYS = new Set(['value', 'Value', 'val', 'content', 'text']);
+const GENERIC_VALUE_KEYS = new Set<string | undefined>(['value', 'Value', 'val', 'content', 'text']);
 
 /** The name a token list ends in: the last real key, skipping `[*]` and indexes. */
-function leafOf(tokens) {
+function leafOf(tokens: PathToken[]): string {
     for (let i = tokens.length - 1; i >= 0; i--) {
         const t = tokens[i];
         if (t.type === 'wild') continue;
@@ -379,7 +408,7 @@ function leafOf(tokens) {
         if (typeof t.key === 'number') continue;
         const prev = tokens[i - 1];
         if (GENERIC_VALUE_KEYS.has(t.key) && prev?.type === 'match') return prev.value === null ? 'null' : String(prev.value);
-        return t.key;
+        return t.key as string;
     }
     return '';
 }
@@ -390,7 +419,7 @@ function leafOf(tokens) {
  * `items[0]` → "items", `headers[name="Subject"].value` → "Subject". '' when
  * there is none.
  */
-export function pathLeafKey(pathOrTail) {
+export function pathLeafKey(pathOrTail: unknown): string {
     const t = String(pathOrTail ?? '').trim();
     if (!t) return '';
     const tokens = t[0] === '[' ? tailTokens(t) : anyPathTokens(t);
@@ -400,8 +429,8 @@ export function pathLeafKey(pathOrTail) {
 // Leaf keys that name nothing on their own: two pills reading "▸ Address"
 // (a sender's and a cc's) would look identical, so the label adds the key
 // that says WHOSE address it is.
-const GENERIC_LEAF_KEYS = new Set(['address', 'name', 'id', 'value', 'email', 'type']);
-const squash = (k) => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
+const GENERIC_LEAF_KEYS = new Set<string>(['address', 'name', 'id', 'value', 'email', 'type']);
+const squash = (k: unknown) => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /**
  * What a pill or chip is named after, read from the path's keys:
@@ -415,7 +444,7 @@ const squash = (k) => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
  *   index   an index right after the leaf (`items[0]` → 0, `[-1]` → -1), or null
  * Null when the text is not a path.
  */
-export function pathLabelParts(pathOrTail) {
+export function pathLabelParts(pathOrTail: unknown) {
     const t = String(pathOrTail ?? '').trim();
     if (!t) return null;
     const tokens = t[0] === '[' ? tailTokens(t) : anyPathTokens(t);
@@ -424,14 +453,14 @@ export function pathLabelParts(pathOrTail) {
     // Where the leaf sits: the last key that is not an index or a wildcard.
     let at = tokens.length - 1;
     while (at >= 0 && isIndexOrWild(tokens[at])) at--;
-    const after = tokens.slice(at + 1).find(x => x.type === 'prop' && typeof x.key === 'number');
+    const after = tokens.slice(at + 1).find((x: PathToken) => x.type === 'prop' && typeof x.key === 'number');
     return { leaf, parent: parentOf(tokens, at, leaf), index: after ? after.key : null };
 }
 
-const isIndexOrWild = (tok) => tok.type === 'wild' || (tok.type === 'prop' && typeof tok.key === 'number');
+const isIndexOrWild = (tok: PathToken) => tok.type === 'wild' || (tok.type === 'prop' && typeof tok.key === 'number');
 
 /** For a generic leaf, the nearest key above it that says whose it is ('' when none). */
-function parentOf(tokens, at, leaf) {
+function parentOf(tokens: PathToken[], at: number, leaf: string): string {
     if (!GENERIC_LEAF_KEYS.has(squash(leaf))) return '';
     for (let i = at - 1; i >= 0; i--) {
         const k = tokens[i];
@@ -448,7 +477,7 @@ function parentOf(tokens, at, leaf) {
  *   - 'fixed'      — wrap as `{{path}}` so the runtime interpolates it
  *   - 'expression' — bare path (the field will detect ref vs expr)
  */
-export function formatPathForInsert(path, mode) {
+export function formatPathForInsert(path: unknown, mode: string): string {
     const cleaned = String(path || '').trim();
     if (!cleaned) return '';
     // Canonical, whatever spelling the source handed over: a drag from an
@@ -472,7 +501,7 @@ export function formatPathForInsert(path, mode) {
  */
 const COND_OPS = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'];
 
-export function parseSimpleCondition(expr) {
+export function parseSimpleCondition(expr: unknown) {
     if (typeof expr !== 'string') return null;
     const text = expr.trim();
     if (!text) return null;
@@ -490,7 +519,7 @@ export function parseSimpleCondition(expr) {
     return null;
 }
 
-function findOperator(text, op) {
+function findOperator(text: string, op: string): number {
     let from = 0;
     while (from < text.length) {
         const idx = text.indexOf(op, from);
@@ -515,8 +544,8 @@ function findOperator(text, op) {
 }
 
 /** Is position `at` inside a quoted string of `text`? */
-function insideQuotes(text, at) {
-    let quote = null;
+function insideQuotes(text: string, at: number): boolean {
+    let quote: string | null = null;
     for (let i = 0; i < at; i++) {
         const c = text[i];
         if (quote) {
@@ -534,7 +563,7 @@ function insideQuotes(text, at) {
  * three slots. `rightBinding` may be a literal (rendered as JSON) or
  * a ref/expr (rendered as the bare path / expression).
  */
-export function buildConditionExpr(leftPath, op, rightBinding) {
+export function buildConditionExpr(leftPath: unknown, op: string, rightBinding: BindingInput): string {
     const left = String(leftPath || '').trim();
     if (!left) return '';
     const right = renderBindingValue(rightBinding);
@@ -546,7 +575,7 @@ export function buildConditionExpr(leftPath, op, rightBinding) {
  * literals as JSON, refs as the bare path, exprs verbatim. Shared by the
  * condition/filter builders so every comparison serialises identically.
  */
-export function renderBindingValue(b) {
+export function renderBindingValue(b: BindingInput): string {
     if (!b || typeof b !== 'object') return JSON.stringify(b ?? '');
     // `?? ''` here meant an EXPLICIT null rendered as the empty string, so the
     // condition builder rewrote `form.assignee == null` into
@@ -582,8 +611,8 @@ export function renderBindingValue(b) {
  * path (e.g. `{{a + 1}}`) keeps the historical quoted-raw-string rendering
  * rather than emitting something the restricted grammar can't parse.
  */
-function templateToExprFragment(text) {
-    const parts = [];
+function templateToExprFragment(text: string): string {
+    const parts: string[] = [];
     let sawPath = false;
     // The runtime's own placeholder scan (quote-aware), and the runtime's own
     // path grammar for what is inside: the template resolves `{{ a.content-type }}`
@@ -615,7 +644,7 @@ function templateToExprFragment(text) {
  * is the flowlet sub-step id (`steps.<call>/<sub>`), which exists only while
  * a flowlet is expanded on the canvas and is stripped on save.
  */
-export function walkPath(path, root) {
+export function walkPath(path: unknown, root: unknown) {
     if (!path || root == null) return undefined;
     const tokens = anyPathTokens(String(path));
     return tokens ? walkTokens(tokens, root) : undefined;
@@ -628,7 +657,7 @@ export function walkPath(path, root) {
  * exactly what the runtime extracts. `''`/`'$'`/nullish returns the whole
  * source; `[0].x`, `[*].sku` and `$.a` start at a root list or object.
  */
-export function walkRelativePath(path, value) {
+export function walkRelativePath(path: unknown, value: unknown) {
     return getRelativePath(value, path);
 }
 
@@ -637,7 +666,7 @@ export function walkRelativePath(path, value) {
  * Strings are shown raw (truncated), numbers/booleans/null serialise
  * naturally, objects/arrays show as `{…}` / `[N items]`.
  */
-export function previewValue(value, maxLen = 40) {
+export function previewValue(value: unknown, maxLen = 40): string {
     if (value == null) return '—';
     if (typeof value === 'string') {
         return value.length > maxLen ? value.slice(0, maxLen - 1) + '…' : value;

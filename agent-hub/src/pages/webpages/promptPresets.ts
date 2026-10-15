@@ -1,3 +1,11 @@
+import type { TranslateFn } from '../../hooks/useTranslation';
+
+export interface PromptPreset {
+    id: string;
+    label: string;
+    prompt: string;
+}
+
 /**
  * The four examples on the overview's dashed "Start from an example" card
  * (Webpages artboard 1a, plan W1).
@@ -11,7 +19,7 @@
  *
  * The labels are the artboard's own four phrases, in its order.
  */
-export default function promptPresets(t) {
+export default function promptPresets(t: TranslateFn): PromptPreset[] {
     return [
         {
             id: 'status_page',

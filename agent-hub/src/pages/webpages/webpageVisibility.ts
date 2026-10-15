@@ -1,5 +1,11 @@
 import { audienceModeOf } from '../../components/shared/VisibilityCapsule';
 
+export interface VisibilityWebpage {
+    publicShareCount?: number | string | null;
+    isPublished?: boolean;
+    sharedGroups?: unknown[] | null;
+}
+
 /**
  * Who can see a webpage — ONE derivation, shared by the overview card and
  * (from W2) the editor's capsule.
@@ -17,12 +23,12 @@ import { audienceModeOf } from '../../components/shared/VisibilityCapsule';
  * list endpoint carries it, the state is simply never reached — which is the
  * safe direction: it under-claims reach, never over-claims privacy.
  */
-export function isPubliclyShared(webpage) {
+export function isPubliclyShared(webpage?: VisibilityWebpage | null): boolean {
     return Number(webpage?.publicShareCount) > 0;
 }
 
 /** `{ isPublic, mode }` — `mode` is the audience underneath either way. */
-export function visibilityOf(webpage) {
+export function visibilityOf(webpage?: VisibilityWebpage | null) {
     return {
         isPublic: isPubliclyShared(webpage),
         mode: audienceModeOf({
