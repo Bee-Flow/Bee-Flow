@@ -18,11 +18,29 @@
  */
 import { useMemo } from 'react';
 
+import type { ChatMessage } from '../../../hooks/useChatEngine/types';
 import { useDeploymentMode } from '../../../hooks/useDeploymentMode';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 import useShieldStatus from '../../../hooks/useShieldStatus';
+import type { ModelTierMap } from '../../../api/queries/modelTiers';
 import { tierLabel } from '../../licensing/tierMeta';
 import { footerNotice, resolveTierClaim, shieldLine } from '../composerClaims';
 import { attachedNames } from '../knowledgeBaseClaim';
+import type { KbClaim } from '../knowledgeBaseClaim';
+
+interface ComposerClaimsArgs {
+    t: TranslateFn;
+    canShowPills: boolean;
+    showTierSlider: boolean;
+    directMode: boolean;
+    modelTiers: ModelTierMap | null;
+    selectedTier: string | null;
+    selectedAgent: { model?: unknown } | null;
+    messages: ChatMessage[] | null;
+    kbClaim: KbClaim | null;
+    user: unknown;
+    shieldApplies: boolean;
+}
 
 export default function useComposerClaims({
     t,
@@ -36,7 +54,7 @@ export default function useComposerClaims({
     kbClaim,
     user,
     shieldApplies,
-}) {
+}: ComposerClaimsArgs) {
     // C2 — the tier, by name, never the model (B4). ONLY where nothing else
     // already says it.
     //

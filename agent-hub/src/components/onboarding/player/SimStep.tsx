@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Check, X, RotateCcw, Eye, ArrowRight, Zap, Plus, Flag } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { LessonStep, OnState, SimConfig, SimStepProps, TranslateFn } from './SimStep.types';
 import { matchPickCorrect, evaluateOrder, evaluateFlow, seededShuffle } from './sims/simLogic';
-
 /**
  * SimStep — an interactive widget that IS the question (Brilliant-style): the
  * learner constructs the answer instead of picking prose from a list. Three
@@ -21,7 +21,7 @@ import { matchPickCorrect, evaluateOrder, evaluateFlow, seededShuffle } from './
  *   saved   — resume state { status, attempts }
  *   onState — called with { status, attempts } on pass/reveal
  */
-export default function SimStep({ step, saved, onState }) {
+export default function SimStep({ step, saved, onState }: SimStepProps) {
     const { t } = useTranslation();
     const sim = step.sim || {};
     const alreadyDone = saved?.status === 'passed' || saved?.status === 'revealed';
@@ -61,20 +61,20 @@ export default function SimStep({ step, saved, onState }) {
 
 /* ── match: tap-the-pairs ─────────────────────────────────────────────────── */
 
-function MatchSim({ step, sim, t, onState }) {
+function MatchSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig; t: TranslateFn; onState: OnState }) {
     const pairs = sim.pairs || [];
     const lefts = useMemo(() => seededShuffle(pairs, `${step.id}-l`), [pairs, step.id]);
     const rights = useMemo(() => seededShuffle(pairs, `${step.id}-r`), [pairs, step.id]);
 
-    const [pickedLeft, setPickedLeft] = useState(null);
-    const [matched, setMatched] = useState(() => new Set());
-    const [wrongFlash, setWrongFlash] = useState(null); // right id that flashed wrong
+    const [pickedLeft, setPickedLeft] = useState<string | null>(null);
+    const [matched, setMatched] = useState<Set<string>>(() => new Set());
+    const [wrongFlash, setWrongFlash] = useState<string | null>(null); // right id that flashed wrong
     const [mistakes, setMistakes] = useState(0);
-    const [lastNote, setLastNote] = useState(null);
+    const [lastNote, setLastNote] = useState<string | null>(null);
 
     const done = matched.size === pairs.length && pairs.length > 0;
 
-    const pickRight = (rightId) => {
+    const pickRight = (rightId: string) => {
         if (!pickedLeft || matched.has(rightId)) return;
         if (matchPickCorrect(pairs, pickedLeft, rightId)) {
             const next = new Set(matched);
@@ -93,7 +93,7 @@ function MatchSim({ step, sim, t, onState }) {
         }
     };
 
-    const tile = (active, ok, bad) => ({
+    const tile = (active: boolean, ok: boolean, bad: boolean) => ({
         borderColor: bad ? '#b91c1c' : ok ? '#15803d' : active ? 'var(--accent-primary)' : 'var(--border-default)',
         background: bad ? 'color-mix(in srgb, #ef4444 10%, transparent)'
             : ok ? 'color-mix(in srgb, #22c55e 10%, transparent)'
@@ -145,23 +145,23 @@ function MatchSim({ step, sim, t, onState }) {
 
 /* ── order: build the sequence ────────────────────────────────────────────── */
 
-function OrderSim({ step, sim, t, onState }) {
+function OrderSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig; t: TranslateFn; onState: OnState }) {
     const items = sim.items || [];
     const bank = useMemo(() => seededShuffle(items, step.id), [items, step.id]);
-    const [placed, setPlaced] = useState([]); // item ids in chosen order
+    const [placed, setPlaced] = useState<string[]>([]); // item ids in chosen order
     const [attempts, setAttempts] = useState(0);
-    const [verdict, setVerdict] = useState(null); // { correct, firstWrongIndex }
+    const [verdict, setVerdict] = useState<{ correct: boolean; firstWrongIndex: number } | null>(null); // { correct, firstWrongIndex }
     const [revealed, setRevealed] = useState(false);
 
     const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
     const passed = verdict?.correct || revealed;
 
-    const place = (id) => {
+    const place = (id: string) => {
         if (passed || placed.includes(id)) return;
         setVerdict(null);
         setPlaced((p) => [...p, id]);
     };
-    const unplace = (id) => {
+    const unplace = (id: string) => {
         if (passed) return;
         setVerdict(null);
         setPlaced((p) => p.filter((x) => x !== id));
@@ -258,13 +258,13 @@ function OrderSim({ step, sim, t, onState }) {
 
 /* ── flow-build: the mini automation canvas ──────────────────────────────── */
 
-function FlowBuildSim({ sim, t, onState }) {
+function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onState: OnState }) {
     const scenarios = sim.scenarios || [];
     const [scenarioIdx, setScenarioIdx] = useState(0);
-    const [triggerId, setTriggerId] = useState(null);
-    const [stepIds, setStepIds] = useState([]);
+    const [triggerId, setTriggerId] = useState<string | null>(null);
+    const [stepIds, setStepIds] = useState<string[]>([]);
     const [attempts, setAttempts] = useState(0);      // attempts on the CURRENT scenario
-    const [problems, setProblems] = useState(null);
+    const [problems, setProblems] = useState<string[] | null>(null);
     const [solvedCurrent, setSolvedCurrent] = useState(false);
     const [anyRevealed, setAnyRevealed] = useState(false);
     const [allDone, setAllDone] = useState(false);
@@ -274,18 +274,18 @@ function FlowBuildSim({ sim, t, onState }) {
 
     const resetBoard = () => { setTriggerId(null); setStepIds([]); setProblems(null); setAttempts(0); setSolvedCurrent(false); };
 
-    const addStep = (id) => {
+    const addStep = (id: string) => {
         if (solvedCurrent || stepIds.includes(id)) return;
         setProblems(null);
         setStepIds((s) => [...s, id]);
     };
-    const removeStep = (id) => {
+    const removeStep = (id: string) => {
         if (solvedCurrent) return;
         setProblems(null);
         setStepIds((s) => s.filter((x) => x !== id));
     };
 
-    const finishScenario = (revealedNow) => {
+    const finishScenario = (revealedNow: boolean) => {
         setSolvedCurrent(true);
         const isLast = scenarioIdx === scenarios.length - 1;
         if (isLast) {
@@ -318,9 +318,9 @@ function FlowBuildSim({ sim, t, onState }) {
         resetBoard();
     };
 
-    const stepLabel = (id) => (scenario.steps?.palette || []).find((p) => p.id === id)?.label || id;
+    const stepLabel = (id: string) => (scenario.steps?.palette || []).find((p) => p.id === id)?.label || id;
 
-    const node = (content, kind) => (
+    const node = (content: React.ReactNode, kind: string) => (
         <div className="px-3 py-2 rounded-lg border text-[12.5px] flex items-center gap-2"
             style={{
                 borderColor: solvedCurrent ? '#15803d' : 'var(--border-default)',

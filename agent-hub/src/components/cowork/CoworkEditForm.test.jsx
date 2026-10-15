@@ -25,7 +25,7 @@ import CoworkEditForm from './CoworkEditForm';
  * read the module that produced it.
  */
 const FORM_SOURCE = fs.readFileSync(
-    path.join(path.dirname(fileURLToPath(import.meta.url)), 'CoworkEditForm.jsx'),
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'CoworkEditForm.tsx'),
     'utf8',
 );
 

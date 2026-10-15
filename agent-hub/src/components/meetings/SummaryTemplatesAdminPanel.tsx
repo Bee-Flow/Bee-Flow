@@ -3,6 +3,13 @@ import { FileText } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import * as api from '../../pages/meeting-notes/lib/transcriptionsApi';
 import TemplateManager from '../../pages/meeting-notes/detail/TemplateManager';
+import type { BuiltinTemplate, CustomTemplate, OrgGroup } from '../../pages/meeting-notes/detail/summaryTemplates.types';
+
+interface OrgTemplates {
+    orgId: string;
+    templates: CustomTemplate[];
+    groups: OrgGroup[];
+}
 
 /**
  * Org-admin panel: manage organization-wide and group summary templates in one
@@ -12,8 +19,8 @@ import TemplateManager from '../../pages/meeting-notes/detail/TemplateManager';
  */
 export default function SummaryTemplatesAdminPanel() {
     const { t } = useTranslation();
-    const [org, setOrg] = useState(null);      // { orgId, templates, groups }
-    const [builtins, setBuiltins] = useState([]);
+    const [org, setOrg] = useState<OrgTemplates | null>(null);      // { orgId, templates, groups }
+    const [builtins, setBuiltins] = useState<BuiltinTemplate[]>([]);
     const [available, setAvailable] = useState(true);
     const [loading, setLoading] = useState(true);
 

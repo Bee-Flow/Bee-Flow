@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
+import type { MetaFor, TierSliderProps, TierTrackProps } from './TierSlider.types';
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, DEPTH_TIER_KEYS } from './tierMeta';
 import scopedStorage from '../../utils/scopedStorage';
 import MemoryModeControl from '../chat/memory/MemoryModeControl';
@@ -35,7 +35,7 @@ import useTranslation from '../../hooks/useTranslation';
 const LEGACY_EFFORT_KEY = 'reasoningEffort';
 
 /** Icon for a tier, in the same precedence the dropdown uses. */
-function TierIcon({ tierKey, meta, className = 'w-3.5 h-3.5', style }) {
+function TierIcon({ tierKey, meta, className = 'w-3.5 h-3.5', style }: { tierKey: string; meta: ReturnType<MetaFor>; className?: string; style?: React.CSSProperties }) {
     if (meta.iconSrc) return <img src={meta.iconSrc} alt="" className={`${className} object-contain`} />;
     if (meta.Icon) return <meta.Icon className={className} style={style} />;
     return <AppEmoji id={tierCatalogId(tierKey)} default={meta.emoji} />;
@@ -53,12 +53,12 @@ const GAUGE_START_DEG = -135;
 const GAUGE_SWEEP_DEG = 270;
 
 /** Degrees are clockwise from 12 o'clock, which is how a gauge is read. */
-function polarPoint(cx, cy, r, deg) {
+function polarPoint(cx: number, cy: number, r: number, deg: number) {
     const rad = (deg - 90) * (Math.PI / 180);
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function arcPath(cx, cy, r, fromDeg, toDeg) {
+function arcPath(cx: number, cy: number, r: number, fromDeg: number, toDeg: number) {
     const start = polarPoint(cx, cy, r, fromDeg);
     const end = polarPoint(cx, cy, r, toDeg);
     const largeArc = Math.abs(toDeg - fromDeg) > 180 ? 1 : 0;
@@ -90,7 +90,7 @@ const GAUGE_ARC_LEN = (GAUGE_SWEEP_DEG / 360) * 2 * Math.PI * GAUGE_RADIUS;
  *   entirely: the whole arc lights (dimmed — the range is available, not maxed)
  *   and an "A" takes the pivot's place.
  */
-function TierGauge({ fraction, auto = false, size = 17 }) {
+function TierGauge({ fraction, auto = false, size = 17 }: { fraction: number | null; auto?: boolean; size?: number }) {
     const c = 12;
     const f = typeof fraction === 'number' ? Math.min(1, Math.max(0, fraction)) : null;
     const inactive = f === null && !auto;
@@ -164,7 +164,7 @@ const THUMB_PAD = 20;
 const THUMB_RADIUS = 14;
 
 /** Horizontal centre of stop `i`, as a CSS length usable by both rows. */
-const stopCenter = (i, count) => (count < 2
+const stopCenter = (i: number, count: number) => (count < 2
     ? '50%'
     : `calc(${THUMB_PAD}px + (100% - ${THUMB_PAD * 2}px) * ${i / (count - 1)})`);
 
@@ -187,8 +187,8 @@ const FILL_MAX_END_PCT = 44; // % ink at the thumb at the deepest level
 // …which puts the four stops at 20 / 28 / 36 / 44% ink at the thumb — far
 // enough apart to tell the levels apart at a glance without the shallow end
 // disappearing into the track.
-const inkMix = (pct) => `color-mix(in srgb, var(--text-primary) ${pct}%, var(--bg-tertiary))`;
-const fillGradientFor = (travel) => {
+const inkMix = (pct: number) => `color-mix(in srgb, var(--text-primary) ${pct}%, var(--bg-tertiary))`;
+const fillGradientFor = (travel: number) => {
     const end = Math.round(FILL_MIN_END_PCT + (FILL_MAX_END_PCT - FILL_MIN_END_PCT) * travel);
     return `linear-gradient(90deg, ${inkMix(FILL_START_PCT)} 0%, ${inkMix(end)} 100%)`;
 };
@@ -198,7 +198,7 @@ const fillGradientFor = (travel) => {
  * `activeIndex` is -1 when the selected tier isn't on the depth scale, which
  * dims the whole track rather than parking the thumb somewhere misleading.
  */
-function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerDown, onPointerMove, onPointerEnd, onKeyDown }) {
+function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerDown, onPointerMove, onPointerEnd, onKeyDown }: TierTrackProps) {
     const { t } = useTranslation();
     const onScale = activeIndex >= 0;
     const count = stops.length;
@@ -306,7 +306,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
 }
 
 /** Kinds of work that don't sit on the depth scale — Flow, Swarm, Write, custom. */
-function OtherTierPills({ keys, value, metaFor, onSelect }) {
+function OtherTierPills({ keys, value, metaFor, onSelect }: { keys: string[]; value: string; metaFor: MetaFor; onSelect: (key: string) => void }) {
     const { t } = useTranslation();
     return (
         <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
@@ -363,7 +363,7 @@ function OtherTierPills({ keys, value, metaFor, onSelect }) {
  * The older `{ enabled, onToggle }` shape still works: enabled is On, not
  * enabled is Read only, which is what the old switch did.
  */
-function MemoryToggle({ memory }) {
+function MemoryToggle({ memory }: { memory: NonNullable<TierSliderProps['memory']> }) {
     const mode = memory.mode || (memory.enabled ? 'on' : 'read');
     const onChange = memory.onChange || (() => memory.onToggle?.());
     return (
@@ -378,12 +378,12 @@ function MemoryToggle({ memory }) {
     );
 }
 
-export default function TierSlider({ tiers = {}, value = 'fast', onChange, variant = 'input', memory = null }) {
+export default function TierSlider({ tiers = {}, value = 'fast', onChange, variant = 'input', memory = null }: TierSliderProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const rootRef = useRef(null);
-    const trackRef = useRef(null);
-    const panelRef = useRef(null);
+    const rootRef = useRef<HTMLDivElement>(null);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
     const draggingRef = useRef(false);
     // Correction applied on top of the centring transform. Measured once per
     // open, from the centred position, so it converges immediately.
@@ -405,14 +405,14 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
     }, [open]);
 
     useEffect(() => {
-        const handler = (e) => {
-            if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+        const handler = (e: MouseEvent) => {
+            if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    const metaFor = useCallback((key) => (
+    const metaFor = useCallback((key: string) => (
         TIER_META[key]
         || (key?.startsWith('custom:') ? customTierMeta(key, tiers[key]) : null)
         || TIER_META.fast
@@ -443,11 +443,11 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
         ? null
         : (scaleStops.length > 1 ? scaleIndex / (scaleStops.length - 1) : 1);
 
-    const commit = useCallback((next) => {
+    const commit = useCallback((next: string | undefined) => {
         if (next && next !== value) onChange?.(next);
     }, [onChange, value]);
 
-    const selectIndex = useCallback((i) => {
+    const selectIndex = useCallback((i: number) => {
         if (!stops.length) return;
         commit(stops[Math.min(stops.length - 1, Math.max(0, i))]);
     }, [stops, commit]);
@@ -455,7 +455,7 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
     // Measured against the same inset the dots are laid out on, or a click on
     // the far left would land between "before the first stop" and the first
     // stop's centre and read as a fractional position.
-    const indexFromClientX = useCallback((clientX) => {
+    const indexFromClientX = useCallback((clientX: number) => {
         const el = trackRef.current;
         if (!el || stops.length < 2) return 0;
         const r = el.getBoundingClientRect();
@@ -464,24 +464,24 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
         return Math.round(ratio * (stops.length - 1));
     }, [stops.length]);
 
-    const handlePointerDown = (e) => {
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (!stops.length) return;
         draggingRef.current = true;
         e.currentTarget.setPointerCapture?.(e.pointerId);
         selectIndex(indexFromClientX(e.clientX));
     };
-    const handlePointerMove = (e) => {
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
         if (draggingRef.current) selectIndex(indexFromClientX(e.clientX));
     };
-    const handlePointerEnd = (e) => {
+    const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
         draggingRef.current = false;
         e.currentTarget.releasePointerCapture?.(e.pointerId);
     };
 
     // APG slider keys. Home/End matter more here than usual: "cheapest" and
     // "everything you've got" are the two most common intents.
-    const handleKeyDown = (e) => {
-        const KEY_DELTA = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const KEY_DELTA: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
         if (!stops.length) return;
         const from = activeIndex >= 0 ? activeIndex : 0;
         let next;

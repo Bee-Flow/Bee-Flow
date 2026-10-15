@@ -3,6 +3,22 @@ import { createPortal } from 'react-dom';
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId } from './tierMeta';
 import AppEmoji from '../icons/AppEmoji';
 import useTranslation from '../../hooks/useTranslation';
+import type { ModelTierMap } from '../../api/queries/modelTiers';
+
+interface ModelTierSelectorProps {
+    tiers?: ModelTierMap;
+    value?: string;
+    onChange?: (key: string) => void;
+    dropDirection?: 'up' | 'down';
+    variant?: string;
+    portal?: boolean;
+}
+
+interface PanelPosition {
+    left: number;
+    top?: number;
+    bottom?: number;
+}
 
 const PANEL_MIN_WIDTH = 240;
 
@@ -13,19 +29,19 @@ const PANEL_MIN_WIDTH = 240;
  * ancestor's overflow. Off by default — every existing call site keeps its
  * current absolute behaviour.
  */
-const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection = 'up', variant = 'default', portal = false }) => {
+const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection = 'up', variant = 'default', portal = false }: ModelTierSelectorProps) => {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
-    const panelRef = useRef(null);
-    const [pos, setPos] = useState(null);
+    const ref = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+    const [pos, setPos] = useState<PanelPosition | null>(null);
 
     useEffect(() => {
-        const handler = (e) => {
-            if (ref.current && ref.current.contains(e.target)) return;
+        const handler = (e: MouseEvent) => {
+            if (ref.current && ref.current.contains(e.target as Node)) return;
             // The portalled panel lives outside `ref` — without this it would
             // unmount on mousedown and swallow the option's click.
-            if (panelRef.current && panelRef.current.contains(e.target)) return;
+            if (panelRef.current && panelRef.current.contains(e.target as Node)) return;
             setOpen(false);
         };
         document.addEventListener('mousedown', handler);
@@ -36,7 +52,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
     useLayoutEffect(() => {
         if (!portal || !open || !ref.current) return undefined;
         const update = () => {
-            const r = ref.current.getBoundingClientRect();
+            const r = (ref.current as HTMLDivElement).getBoundingClientRect();
             const width = panelRef.current?.offsetWidth || PANEL_MIN_WIDTH;
             // Right-align to the trigger, then CLAMP into the viewport: a
             // trigger near the left edge (the AI builder composer) would
@@ -45,7 +61,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                 Math.max(8, r.right - width),
                 Math.max(8, window.innerWidth - width - 8),
             );
-            const next = { left };
+            const next: PanelPosition = { left };
             if (dropDirection === 'down') next.top = r.bottom + 6;
             else next.bottom = Math.max(8, window.innerHeight - r.top + 6);
             setPos(next);
@@ -69,7 +85,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
         || TIER_META.fast;
 
     // Portalled panels escape the ancestor's overflow; inline ones stay put.
-    const renderPanel = (el) => (portal ? createPortal(el, document.body) : el);
+    const renderPanel = (el: React.ReactElement) => (portal ? createPortal(el, document.body) : el);
 
     return (
         <div ref={ref} style={{ position: 'relative', display: 'inline-block' }} data-testid="model-tier-selector">

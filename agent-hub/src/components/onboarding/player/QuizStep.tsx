@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Check, X, RotateCcw, Loader2 } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import type { LessonStep, StepState } from '../lessons.types';
 import { gradePracticeItem } from '../practiceClient';
 
 /**
@@ -34,7 +35,14 @@ import { gradePracticeItem } from '../practiceClient';
 // the per-step state stays far under the server's 2KB cap.
 const MAX_WRONG_IDS = 8;
 
-export default function QuizStep({ step, lessonId, saved, onState }) {
+interface QuizStepProps {
+    step: LessonStep;
+    lessonId: string;
+    saved?: StepState | null;
+    onState?: (state: StepState) => void;
+}
+
+export default function QuizStep({ step, lessonId, saved, onState }: QuizStepProps) {
     const { t } = useTranslation();
     const multi = !!step.multi;
     const serverGraded = !!step.serverGraded;
@@ -45,22 +53,22 @@ export default function QuizStep({ step, lessonId, saved, onState }) {
         [step],
     );
     // For remotely-graded quizzes the key arrives with a passing verdict.
-    const [revealedIds, setRevealedIds] = useState(() => new Set(saved?.correctChoiceIds || []));
+    const [revealedIds, setRevealedIds] = useState<Set<string>>(() => new Set(saved?.correctChoiceIds || []));
     const correctIds = remoteGraded ? revealedIds : localCorrectIds;
 
     const alreadyPassed = saved?.status === 'passed';
-    const [selected, setSelected] = useState(() => new Set(saved?.choiceIds || []));
-    const [result, setResult] = useState(alreadyPassed ? 'correct' : null); // null | 'correct' | 'wrong'
+    const [selected, setSelected] = useState<Set<string>>(() => new Set(saved?.choiceIds || []));
+    const [result, setResult] = useState<'correct' | 'wrong' | null>(alreadyPassed ? 'correct' : null); // null | 'correct' | 'wrong'
     const [checking, setChecking] = useState(false);
     // Practice items get their explanation from the grade response.
     const [practiceExplanation, setPracticeExplanation] = useState('');
-    const [practiceNote, setPracticeNote] = useState(null);
+    const [practiceNote, setPracticeNote] = useState<string | null>(null);
 
     // Per-run bookkeeping for the mistakes inventory.
     const [attempts, setAttempts] = useState(0);
-    const wrongIdsRef = useRef(new Set());
+    const wrongIdsRef = useRef(new Set<string>());
 
-    const toggle = (id) => {
+    const toggle = (id: string) => {
         if (result === 'correct') return;
         setResult(null);
         setSelected((prev) => {
@@ -72,7 +80,7 @@ export default function QuizStep({ step, lessonId, saved, onState }) {
 
     const wrongIdsOut = () => [...wrongIdsRef.current].slice(0, MAX_WRONG_IDS);
 
-    const recordFail = (wrongPicked) => {
+    const recordFail = (wrongPicked: string[]) => {
         const n = attempts + 1;
         setAttempts(n);
         wrongPicked.forEach((id) => { if (wrongIdsRef.current.size < MAX_WRONG_IDS) wrongIdsRef.current.add(id); });
@@ -80,7 +88,7 @@ export default function QuizStep({ step, lessonId, saved, onState }) {
         onState?.({ status: 'failed', attempts: n, wrongChoiceIds: wrongIdsOut(), answeredAt: new Date().toISOString() });
     };
 
-    const recordPass = (extra = {}) => {
+    const recordPass = (extra: Partial<StepState> = {}) => {
         const n = attempts + 1;
         setAttempts(n);
         setResult('correct');

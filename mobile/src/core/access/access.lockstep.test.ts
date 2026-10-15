@@ -128,8 +128,8 @@ describe('the web logic this ports', () => {
     });
 
     it('LicenseContext.hasFeature delegates to the entitlements', () => {
-        const src = read('agent-hub/src/components/licensing/LicenseContext.jsx');
-        expect(contains(src, 'const hasFeature = useCallback((name) => entCan(name), [entCan]);')).toBe(true);
+        const src = read('agent-hub/src/components/licensing/LicenseContext.tsx');
+        expect(contains(src, 'const hasFeature = useCallback((name: string) => entCan(name), [entCan]);')).toBe(true);
         expect(contains(src, "export const TIER_HIERARCHY = ['community', 'enterprise', 'full'];")).toBe(true);
     });
 

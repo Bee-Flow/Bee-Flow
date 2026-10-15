@@ -18,9 +18,15 @@
 import { useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useLicenseContext } from '../../licensing/LicenseContext';
+import type { PermissionUser } from '../../../hooks/usePermissionCheck';
 
-export default function useVoiceChatReady(user) {
-    const [ready, setReady] = useState(null);
+/** The signed-in user, as far as the voice gate reads it. */
+interface VoiceUser extends PermissionUser {
+    betaFeatures?: string[];
+}
+
+export default function useVoiceChatReady(user: VoiceUser | null | undefined) {
+    const [ready, setReady] = useState<boolean | null>(null);
     const { hasFeature: hasLicenseFeature } = useLicenseContext();
 
     const hasBetaFlag = !!(

@@ -9,6 +9,7 @@ import type { ClipboardEvent, ChangeEvent, KeyboardEvent, RefObject } from 'reac
 import { IMAGE_ACCEPT_ATTR, MAX_IMAGES_PER_TURN, imageFilesFrom, prepareComposerImages as prepareComposerImagesJs } from './composerImages';
 import { StagedImages } from './TranscriptItems';
 import type { StagedImage } from './TranscriptItems';
+import type { ModelTierMap } from '../../../../../api/queries/modelTiers';
 import useTranslation from '../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import ModelTierSelector from '../../../../licensing/ModelTierSelector';
@@ -26,7 +27,7 @@ interface BuilderComposerProps {
     /** Starts a turn with the text and the attached pictures (data URLs). */
     onSend: (text: string, images: string[]) => void;
     onStop: () => void;
-    modelTiers: Record<string, unknown> | null | undefined;
+    modelTiers: ModelTierMap | null | undefined;
     tier: string;
     onTierChange: (tier: string) => void;
     /** A tier pinned by the host: shown, but the picker cannot change it. */

@@ -22,8 +22,8 @@ import { APP_DEFS, buildAppCatalog, filterAvailableApps } from '../components/ap
 export interface CatalogApp {
     id: string;
     label: string;
-    description?: string;
-    iconSvg?: (size?: string) => ReactNode;
+    description: string;
+    iconSvg: (size?: string) => ReactNode;
     [key: string]: unknown;
 }
 
