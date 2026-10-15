@@ -40,7 +40,7 @@ export type ScreenForms = Record<string, Record<string, unknown>>;
 
 /** The store: stable over the shell's whole life. */
 export interface ScreenValuesStore {
-    publish: (formName: string, values: unknown) => void;
+    publish: (formName: string, values: Record<string, unknown> | null | undefined) => void;
     read: () => ScreenForms;
     readForm: (formName: string | null | undefined) => Record<string, unknown> | null;
 }
@@ -55,7 +55,7 @@ export function useScreenValuesStore(): ScreenValuesStore {
     const ref = useRef<ScreenForms>({});
     return useMemo(() => ({
         /** Zelfde vouw als de canvas-scope (mergeFormValues) — één bron, één vorm. */
-        publish(formName: string, values: unknown) {
+        publish(formName: string, values: Record<string, unknown> | null | undefined) {
             ref.current = mergeFormValues(ref.current, formName, values);
         },
         /** Alle formulieren, `{ [formName]: { [field]: value } }`. */

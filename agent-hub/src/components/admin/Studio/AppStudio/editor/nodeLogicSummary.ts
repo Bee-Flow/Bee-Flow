@@ -3,10 +3,8 @@ import { describeAction } from '../inspector/actionLabels';
 import type { AppAction, AppDefinition, AppNode } from '../inspector/appDefinition';
 import { NODE_EVENTS } from '../state/definitionOps';
 
-/** automation id → its title, or null when it has none (a bivariant method type, so a `(id: string)` lookup is assignable). */
-export type TitleFor = {
-    bivarianceHack(automationId: string | undefined): string | null;
-}['bivarianceHack'];
+/** automation id → its title, or null when it has none. */
+export type TitleFor = (automationId: string | undefined) => string | null;
 
 /** describeAction, as its header describes it: its `= null` default is all TypeScript reads of titleFor. */
 type DescribeActionFn = (id: string, action: AppAction, definition: AppDefinition | null | undefined, titleFor?: TitleFor | null) => string;
