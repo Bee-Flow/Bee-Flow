@@ -2,7 +2,7 @@ import {
     Database, Table2, Play, RefreshCw, Plus, Trash2, AlertTriangle,
     ChevronLeft, ChevronRight, Loader2, KeyRound, X,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import type { BrowseTabProps, ColumnDraft, DbColumn, DbRow, DbSchema, DbTable, EditState, Props, SchemaTabProps, SqlResult, SqlTabProps, TabDef } from './WebpageDbViewer.types';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { nOf, pluralKey } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
@@ -10,77 +10,14 @@ import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { ApiOptions } from './webpagesApi';
 
-interface DbColumn {
-    name: string;
-    type?: string;
-    primaryKey?: boolean;
-    notNull?: boolean;
-    defaultValue?: string | null;
-}
-
-interface DbTable {
-    name: string;
-    columns: DbColumn[];
-    sql?: string;
-}
-
-interface DbSchema {
-    tables?: DbTable[];
-}
-
-/** One result row; `rowid` is selected explicitly by the browse query. */
-interface DbRow {
-    rowid?: number;
-    [column: string]: unknown;
-}
-
-/** A column being drafted in the new-table form. */
-interface ColumnDraft {
-    name: string;
-    type: string;
-    pk: boolean;
-    notnull: boolean;
-}
-
-/** The cell being edited in the browse tab. */
-interface EditState {
-    rowidx: number;
-    col: string;
-    value: string;
-    wasNull: boolean;
-}
-
-/** What the SQL tab last ran: an error, a row set or an exec summary. */
-interface SqlResult {
-    error?: string;
-    kind?: 'rows' | 'exec';
-    rows?: DbRow[];
-    columns?: string[];
-    truncated?: boolean;
-    changes?: number;
-    lastInsertRowid?: number;
-    multi?: boolean;
-    message?: string;
-}
-
-interface TabDef {
-    id: string;
-    label: string;
-    Icon: LucideIcon;
-}
-
 /**
  * WebpageDbViewer — three-tab UI on top of the per-webpage SQLite DB.
  *
  *   Schema  list tables + their columns (click + new-table form)
  *   Browse  pick a table, page through rows, edit/insert/delete
  *   SQL     free-form editor; auto-routes SELECT → /db/query, else → /db/exec
- *
- * Endpoints (server/routes/webpages.js):
- *   GET    /api/webpages/:id/db/schema
- *   POST   /api/webpages/:id/db/query  { sql, params? }
- *   POST   /api/webpages/:id/db/exec   { sql, params? }
- *   DELETE /api/webpages/:id/db
+ * Endpoints (server/routes/webpages.js): GET /api/webpages/:id/db/schema,
+ * POST .../db/query and .../db/exec ({ sql, params? }), DELETE .../db
  */
 
 const PAGE_SIZE = 50;
@@ -103,15 +40,6 @@ function api(webpageId: string | undefined, path: string, opts: ApiOptions = {})
 }
 
 // ─── Schema tab ─────────────────────────────────────────────────────
-
-interface SchemaTabProps {
-    webpageId?: string;
-    schema: DbSchema | null;
-    onRefresh: () => void;
-    busy: boolean;
-    onError: (message: string) => void;
-    unreadable?: boolean;
-}
 
 function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = false }: SchemaTabProps) {
     const { t } = useTranslation();
@@ -339,12 +267,6 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
 }
 
 // ─── Browse tab ─────────────────────────────────────────────────────
-
-interface BrowseTabProps {
-    webpageId?: string;
-    schema: DbSchema | null;
-    onError: (message: string) => void;
-}
 
 function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
     const { t } = useTranslation();
@@ -634,12 +556,6 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
 
 // ─── SQL tab ────────────────────────────────────────────────────────
 
-interface SqlTabProps {
-    webpageId?: string;
-    onError: (message: string) => void;
-    onSchemaChanged?: () => void;
-}
-
 function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
@@ -804,10 +720,6 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
 }
 
 // ─── Top-level viewer ───────────────────────────────────────────────
-
-interface Props {
-    webpageId?: string;
-}
 
 export default function WebpageDbViewer({ webpageId }: Props) {
     const { t } = useTranslation();

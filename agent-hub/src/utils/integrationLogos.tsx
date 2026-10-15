@@ -1,38 +1,23 @@
 import { BookOpen, Brain, Compass, Globe, ListChecks, Music, Presentation } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
-import type { ReactNode } from 'react';
-
-export interface LogoProps {
-    size?: number;
-    className?: string;
-}
-
-interface WrapProps extends LogoProps {
-    viewBox: string;
-    children?: ReactNode;
-}
-
-type LogoComponent = (props: LogoProps) => React.JSX.Element;
+import type { LogoComponent, LogoProps, WrapProps } from './integrationLogos.types';
 
 /**
- * INTEGRATION_LOGOS — official brand SVGs per integration id, keyed in
- * underscore form ('google_drive') so they line up with INTEGRATION_META
- * in `integrationIcons.js` and the dispatcher / catalog ids alike.
+ * INTEGRATION_LOGOS — official brand SVGs per integration id, keyed in underscore
+ * form ('google_drive') so they line up with INTEGRATION_META in
+ * `integrationIcons.js` and the dispatcher / catalog ids alike.
  *
- * Each entry is a React component `(props: {size, className}) => JSX`.
- * Render via `<IntegrationLogo integrationId="..." />` — the resolver
- * normalises dashes → underscores and falls back to the brand-coloured
- * letter mark if no logo is registered for the id.
- *
- * Most SVGs were extracted verbatim from the chat sidebar's APP_DEFS so
+ * Each entry is a React component `(props: {size, className}) => JSX`. Render
+ * via `<IntegrationLogo integrationId="..." />` — the resolver normalises
+ * dashes → underscores and falls back to the brand-coloured letter mark if no
+ * logo is registered for the id. Most SVGs were extracted verbatim from the chat sidebar's APP_DEFS so
  * the chat panel and the automation palette show the SAME marks.
  *
  * IDs we add here that were NOT in APP_DEFS (Nextcloud, GitHub, LinkedIn,
  * SignRequest, n8n, KB, Webpages, Video Gen, Transcription, Agent Search,
- * Maps) carry compact official-style brand glyphs so every integration
- * the automation palette surfaces gets a recognisable mark instead of a
- * letter-only fallback.
+ * Maps) carry compact official-style brand glyphs so every integration the
+ * automation palette surfaces gets a recognisable mark, not a letter fallback.
  */
 
 const Wrap = ({ size = 18, viewBox, children, className }: WrapProps) => (

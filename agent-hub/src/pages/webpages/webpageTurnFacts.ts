@@ -28,7 +28,6 @@
  * so the card that renders them and the tests that pin them share one truth.
  */
 
-/** The three tools that write a bridge grant (server/integrations/webpageBridgeTools.js). */
 /** One entry of `msg.toolHistory`. */
 export interface ToolEvent {
     name: string;
@@ -43,6 +42,7 @@ export interface TurnMessage {
     toolHistory?: ToolEvent[] | null;
 }
 
+/** The three tools that write a bridge grant (server/integrations/webpageBridgeTools.js). */
 export const GRANT_TOOL_RX = /^webpage_grant_[a-z]+$/;
 
 /**

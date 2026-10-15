@@ -26,7 +26,6 @@ export interface ModelEntry {
 type AllowedModelsConfig = Record<string, string[]>;
 
 /** A device-level id → value map (aliases, hidden flags). */
-type DeviceMap = Record<string, string>;
 // Shared model metadata, whitelist, and helpers
 // Used by AIConfigPanel, AgentDesigner, MultiAgentConfig, etc.
 
@@ -35,8 +34,8 @@ type DeviceMap = Record<string, string>;
 // read stays for the window before that pass runs (and for hand-edited
 // storage): a corrupt value used to THROW out of JSON.parse and crash every
 // model picker. Only a plain object is accepted.
-const asObjectMap = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? v as DeviceMap : undefined);
-const readDeviceMap = (key: string) => readDeviceJSON(key, {} as DeviceMap, asObjectMap);
+const asObjectMap = <T,>(v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, T> : undefined);
+const readDeviceMap = <T,>(key: string) => readDeviceJSON<Record<string, T>>(key, {}, asObjectMap);
 
 // Human-readable metadata for Mistral models (prices in $ per million tokens unless noted)
 export const MISTRAL_MODEL_META: Record<string, ModelMeta> = {
@@ -214,7 +213,7 @@ export const formatModelId = (id: string): string => {
 export const getModelDisplayName = (model: string | ModelEntry): string => {
     const id = typeof model === 'string' ? model : model?.id;
     if (!id) return '';
-    const aliases = readDeviceMap('modelAliases');
+    const aliases = readDeviceMap<string>('modelAliases');
     if (aliases[id]) return aliases[id];
     // Self-hosted models: the server already produced the label (it is the only
     // side that knows the parameter size / quantisation the runtime reported),
@@ -306,7 +305,7 @@ export const invalidateAllowedModelsCache = () => {
 // agentType is optional: 'chat'
 // allowedConfig is optional: pre-fetched allowedModelsByAgentType object (avoids async)
 export const filterVisibleModels = (models: ModelEntry[], agentType: string | null = null, allowedConfig: AllowedModelsConfig | null = null) => {
-    const hiddenModels = readDeviceMap('hiddenModels');
+    const hiddenModels = readDeviceMap<boolean>('hiddenModels');
     // VISIBLE_MODELS is a hand-curated allow-list of cloud model ids, so it can
     // never contain a self-hosted one — whatever the customer pulled onto their
     // own box is by definition not in a list shipped with the product. Local

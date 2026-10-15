@@ -1,7 +1,7 @@
 /**
  * The binding helpers the condition model writes expressions with —
  * `isCleanPath`, `detectTemplate`, `bindingFromInput`, `renderBindingValue` —
- * ported from the web's utils/bindingHelpers.js and pinned to it by
+ * ported from the web's utils/bindingHelpers.ts and pinned to it by
  * route.lockstep.test.ts (and by bindings/bindingHelpers.lockstep.test.ts,
  * through the re-export).
  *

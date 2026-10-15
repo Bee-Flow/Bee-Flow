@@ -79,7 +79,9 @@ const BEARER_RE = /\b[Bb]earer\s+[A-Za-z0-9._-]{8,}/g;
 // strings the previous passes have already replaced with `[REDACTED]`.
 const KV_RE = /(token|key|secret|password|api[-_]?key)([=:\s]+)[^\s,"'<>[\]]{4,}/gi;
 
-export function redactSecrets(input: string): string {
+export function redactSecrets(input: string): string;
+export function redactSecrets<T>(input: T): T;
+export function redactSecrets(input: unknown): unknown {
     if (typeof input !== 'string' || input.length === 0) return input;
     return input
         .replace(JWT_RE, '[REDACTED_JWT]')

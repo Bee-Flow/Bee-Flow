@@ -29,58 +29,7 @@
  * one of these lists would be wrong for Meeting Notes (capped at FETCH_LIMIT)
  * and silently empty for anyone without manage_agents.
  */
-
-/** The fields of a raw list row that any section's accessors read. */
-interface RawRow {
-    id: string;
-    name?: string;
-    title?: string;
-    fileName?: string;
-    description?: string;
-    tagline?: string;
-    recipeLabel?: string;
-    recipeId?: string;
-    summarySnippet?: string;
-    updated_at?: string;
-    updatedAt?: string;
-    isPublished?: boolean | string | null;
-    is_published?: boolean | string | null;
-    publishedVersion?: number | string | null;
-    published_version?: number | string | null;
-    definitionVersion?: number | string | null;
-    isDraft?: boolean;
-    isActive?: boolean | null;
-    lastStatus?: string;
-    status?: string;
-    phases?: { status?: string }[];
-}
-
-/** The envelopes the list endpoints wrap their rows in (some answer a bare array instead). */
-interface RecentEnvelope {
-    automations?: unknown[];
-    webpages?: unknown[];
-    apps?: unknown[];
-    datatables?: unknown[];
-    transcriptions?: unknown[];
-    playbooks?: unknown[];
-    projects?: unknown[];
-}
-
-/** A row once a section's `map` has normalised it. */
-interface RecentItem {
-    id: string;
-    name?: string;
-    description?: string | null;
-    updatedAt?: string;
-}
-
-/** One section's declarative source. */
-interface RecentSource {
-    url: string;
-    pick: (d?: RecentEnvelope) => unknown;
-    map: (row: RawRow) => RecentItem;
-    status?: (row: RawRow) => RecentStatusCode;
-}
+import type { RawRow, RecentEnvelope, RecentItem, RecentPayload, RecentSource } from './studioRecentSources.types';
 
 // `limit` where the endpoint honours one — the panel shows five, and ranking
 // happens client-side, so a couple of dozen rows is plenty to rank over.
@@ -167,7 +116,7 @@ export const RECENT_STATUS = Object.freeze({
     READY: 'ready',
 });
 
-type RecentStatusCode = (typeof RECENT_STATUS)[keyof typeof RECENT_STATUS];
+export type RecentStatusCode = (typeof RECENT_STATUS)[keyof typeof RECENT_STATUS];
 
 // What an accessor below may answer. UNSUPPORTED is deliberately NOT in it:
 // "this kind has no status" is a property of the SECTION, decided by whether
@@ -436,7 +385,7 @@ export function normaliseRecentRows(sectionId: string, rows: unknown): RecentIte
 }
 
 /** Normalise one endpoint payload into `{ id, name, description, updatedAt }[]`. */
-export function normaliseRecentItems(sectionId: string, payload?: RecentEnvelope): RecentItem[] {
+export function normaliseRecentItems(sectionId: string, payload?: RecentPayload): RecentItem[] {
     const source = STUDIO_RECENT_SOURCES[sectionId];
     if (!source) return [];
     return normaliseRecentRows(sectionId, source.pick ? source.pick(payload) : payload);

@@ -18,35 +18,7 @@
  */
 import { compile } from '@shared/expr/engine.mjs';
 import { formatPath, getRelativePath, parsePath, scanTemplate, walkTokens } from '@shared/expr/path.mjs';
-
-/** One step of a parsed path (shared/expr/path.mjs): a key or index, a `[*]`, or a `[name="x"]` match. */
-interface PathToken {
-    type: string;
-    key?: string | number;
-    raw?: string;
-    bare?: boolean;
-    value?: unknown;
-}
-
-/** A node of the expression AST, as far as `readsAsArithmetic` looks. */
-interface AstNode {
-    kind?: string;
-    op?: string;
-    a?: AstNode;
-    b?: AstNode;
-    segments?: unknown[];
-}
-
-/** A stored binding, or anything shaped like one. */
-interface BindingLike {
-    kind?: string;
-    value?: unknown;
-    path?: string;
-}
-
-type BindingInput = BindingLike | string | number | boolean | null | undefined;
-
-type TextControl = HTMLInputElement | HTMLTextAreaElement;
+import type { AstNode, BindingInput, BindingLike, PathToken, TextControl } from './bindingHelpers.types';
 
 // A cheap "might hold {{…}}" probe, kept for older callers. It cannot see a
 // placeholder whose quoted key holds a brace; `detectTemplate` can.
@@ -55,8 +27,7 @@ export const TEMPLATE_RE = /\{\{[^}]+\}\}/;
 // prefix is stripped on save — flow/inlineFlowlets.js). The `/` is allowed
 // ONLY inside that step id, so `steps.a.output.total/2` stays a formula.
 export const INLINE_STEP_PATH_RE = /^steps\.[A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]*)+(?:\.[\w$]+|\[[^\]]*\])*$/;
-// The same head, for splitting it off: the id is one key, the rest is an
-// ordinary path tail.
+// The same head, for splitting it off: the id is one key, the rest is a path tail.
 const INLINE_HEAD_RE = /^steps\.([A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]*)+)(?=$|[.[])/;
 const VALID_REF_ROOTS: (string | number | undefined)[] = ['trigger', 'steps', 'vars', 'secrets', 'loop'];
 // A path the author can mean starts like a name. The grammar also reads `42`

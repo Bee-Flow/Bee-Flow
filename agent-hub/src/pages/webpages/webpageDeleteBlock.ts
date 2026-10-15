@@ -36,24 +36,27 @@
  */
 export const DELETE_BLOCK_KINDS: readonly string[] = Object.freeze(['solution', 'automation', 'chat', 'agent']);
 
+/** One row of the usage contract shared/UsedByTab renders. */
+export type UsageRow = Record<string, unknown>;
+
 /** The 409 payload as far as this reader looks into it. */
 export interface BlockBody {
     status?: number;
     code?: string;
     body?: BlockBody;
-    usage?: BlockBody[];
+    usage?: unknown[];
     unchecked?: string[];
 }
 
 /** What `readDeleteBlock` reports. */
 export interface DeleteBlock {
     blocked: boolean;
-    usage: BlockBody[];
+    usage: UsageRow[];
     unchecked: string[];
     readable: boolean;
 }
 
-const isObj = (v: unknown): v is BlockBody => !!v && typeof v === 'object' && !Array.isArray(v);
+const isObj = <T extends object = BlockBody>(v: unknown): v is T => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**
  * The `in_use` body out of whatever the caller got: the payload itself, an
@@ -91,7 +94,7 @@ export function readDeleteBlock(x: unknown): DeleteBlock {
     // the list on screen keeps answering that question.
     if (!body) return { blocked: false, usage: [], unchecked: [], readable: true };
 
-    const usage = Array.isArray(body.usage) ? body.usage.filter(isObj) : null;
+    const usage = Array.isArray(body.usage) ? body.usage.filter(isObj<UsageRow>) : null;
     // `unchecked` that is not an array is itself an unreadable answer, and the
     // narrow reading of that is "none of it was checked".
     const unchecked = Array.isArray(body.unchecked)

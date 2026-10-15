@@ -1,4 +1,4 @@
-/** The per-section list readers keep the web's status rules (studioRecentSources.js). */
+/** The per-section list readers keep the web's status rules (studioRecentSources.ts). */
 
 import { readRecentRows, RECENT_SOURCES } from './recentSources';
 
