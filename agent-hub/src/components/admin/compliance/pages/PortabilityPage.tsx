@@ -1,10 +1,38 @@
 import React, { useEffect, useMemo } from 'react';
 import { ArrowLeftRight, Check, TriangleAlert, X } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { DataTableContext, RowLike, TableColumn } from '../../../shared/DataTable';
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
+import type { Tone } from '../../../shared/statusTone';
 import { TONES } from '../../../shared/statusTone';
 import { API, asArray } from '../data/api';
 import useResource from '../data/useResource';
+import type { SetHeaderActions } from './audits/useHeaderPrimary';
+
+interface ExportRoute {
+    method: string;
+    path: string;
+}
+
+/** One row of GET /portability (compliance/dataPortability/exportRegistry.js `coverageMatrix`). */
+export interface PortabilityRow extends RowLike {
+    kind: string;
+    label_key: string;
+    /** null when the count could not be read: renders nothing, never a 0. */
+    held: number | null;
+    held_scope: 'org' | 'platform';
+    route: ExportRoute | null;
+    extra_routes?: ExportRoute[];
+    render_only?: (ExportRoute & { formats?: string[] }) | null;
+    formats?: string[];
+    scope: 'per-item' | 'bulk';
+    mounted: boolean;
+    gap_key: string | null;
+}
+
+interface RouteLine extends ExportRoute {
+    role: 'primary' | 'extra' | 'render_only';
+}
 
 /**
  * PortabilityPage — the Data Act export matrix (Art. 30 / Art. 23; CHECK-CATALOGUE §4.1).
@@ -29,7 +57,7 @@ import useResource from '../data/useResource';
  */
 
 /** Pure: the tone one matrix row wears. A missing route and a broken route are both red. */
-export function rowTone(row) {
+export function rowTone(row: PortabilityRow | null | undefined): Tone {
     if (!row) return 'neutral';
     if (!row.route) return 'error';
     if (!row.mounted) return 'error';
@@ -37,12 +65,12 @@ export function rowTone(row) {
 }
 
 /** Pure: is this kind portable today? (a route that exists AND is mounted) */
-export function isPortable(row) {
+export function isPortable(row: PortabilityRow | null | undefined) {
     return !!(row && row.route && row.mounted);
 }
 
 /** Pure: `{ portable, total, held }` over the matrix; `null` until it is loaded. */
-export function coverageSummary(rows) {
+export function coverageSummary(rows: PortabilityRow[] | null | undefined) {
     if (!Array.isArray(rows)) return null;
     return {
         total: rows.length,
@@ -52,8 +80,8 @@ export function coverageSummary(rows) {
 }
 
 /** Pure: every route the row declares, flattened for the route cell. */
-export function routeLines(row) {
-    const out = [];
+export function routeLines(row: PortabilityRow | null | undefined) {
+    const out: RouteLine[] = [];
     if (row?.route) out.push({ ...row.route, role: 'primary' });
     for (const r of row?.extra_routes || []) out.push({ ...r, role: 'extra' });
     if (row?.render_only) out.push({ method: row.render_only.method, path: row.render_only.path, role: 'render_only' });
@@ -62,11 +90,11 @@ export function routeLines(row) {
 
 const MONO = 'font-mono text-[11px]';
 
-export default function PortabilityPage(props) {
+export default function PortabilityPage(props: { isMobile?: boolean; setHeaderActions?: SetHeaderActions }) {
     const { isMobile = false, setHeaderActions } = props;
     const { t } = useTranslation();
     const res = useResource(`${API}/portability`, { parse: (b) => asArray(b) });
-    const rows = res.data;
+    const rows: PortabilityRow[] | null = res.data;
     const summary = useMemo(() => coverageSummary(rows), [rows]);
 
     useEffect(() => {
@@ -74,7 +102,7 @@ export default function PortabilityPage(props) {
         return () => setHeaderActions?.({});
     }, [setHeaderActions, summary, res.refresh]);
 
-    const columns = [
+    const columns: TableColumn[] = [
         { id: 'kind', width: '1fr', label: t('compliance.pf_col_kind', 'Kind of data') },
         { id: 'held', width: '84px', align: 'right', label: t('compliance.pf_col_held', 'Held') },
         { id: 'route', width: '2fr', label: t('compliance.pf_col_route', 'Export route') },
@@ -118,7 +146,7 @@ export default function PortabilityPage(props) {
                 rowKey={(r) => r.kind}
                 ariaLabel={t('compliance.pf_title', 'Data Act export matrix')}
                 testId="pf-table"
-                renderCard={(row) => {
+                renderCard={(row: PortabilityRow) => {
                     const gap = !row.route;
                     return (
                         <div className="w-full min-w-0 flex flex-col gap-1" data-testid="pf-card" data-kind={row.kind}>
@@ -175,7 +203,7 @@ export default function PortabilityPage(props) {
                         </div>
                     );
                 }}
-                renderRow={(row, ctx) => {
+                renderRow={(row: PortabilityRow, ctx: DataTableContext) => {
                     const tone = rowTone(row);
                     const gap = !row.route;
                     return (

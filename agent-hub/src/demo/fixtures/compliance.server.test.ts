@@ -26,7 +26,7 @@ const isInt = (v: unknown) => typeof v === 'number' && Number.isInteger(v);
 const RISK_STATUSES = ['open', 'treating', 'accepted', 'closed'];
 const TREATMENT_OPTIONS = ['mitigate', 'transfer', 'avoid', 'accept'];
 const OBLIGATION_KINDS = ['policy_review', 'soa_review', 'internal_audit', 'management_review', 'training', 'access_review', 'supplier_review', 'pentest', 'custom'];
-// pages/risks/RisksTable.jsx CATEGORIES, the words the server's seeds use (iso/risks/seed)
+// pages/risks/RisksTable.tsx CATEGORIES, the words the server's seeds use (iso/risks/seed)
 const RISK_CATEGORIES = ['confidentiality', 'integrity', 'availability', 'compliance'];
 // stores/incidentStore.js
 const INCIDENT_STATUSES = ['open', 'assessing', 'early_warning_sent', 'authority_notified', 'reported', 'subjects_notified', 'closed'];
