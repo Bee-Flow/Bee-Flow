@@ -12,12 +12,13 @@ import { getNode, updateAt } from './doc.js';
 import { inlineToTokens, textTokens, tokensToInline, toggleMarkTokens } from './inline.js';
 import { isText, isCollapsed, selRange, textSelection, pos } from './selection.js';
 import * as T from './transforms.js';
+import type { EditorState } from './state.js';
 
 interface Mark { type: string; attrs?: Record<string, unknown> }
-interface Tok { ch?: string; marks?: Mark[]; node?: unknown }
+interface Tok { ch?: string; marks?: Mark[]; node?: AnyNode }
 interface AnyNode { type: string; content?: AnyNode[] }
 interface ModelPos { path: number[]; offset: number }
-interface AnyState { doc: AnyNode; selection: any; storedMarks?: Mark[] | null }
+type AnyState = EditorState;
 
 const hrefOf = (t: Tok | undefined): string | null => {
     const m = t && !t.node ? (t.marks || []).find((x) => x.type === 'link') : null;

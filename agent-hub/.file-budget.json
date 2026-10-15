@@ -188,7 +188,7 @@
     "src/components/skills/SkillsPopover.jsx": 538,
     "src/components/support/SupportInboxPanel.tsx": 838,
     "src/editor/engine/tables.js": 727,
-    "src/editor/engine/transforms.js": 905,
+    "src/editor/engine/transforms.ts": 905,
     "src/editor/engine/view.js": 1179,
     "src/editor/react/BeeEditor.jsx": 736,
     "src/editor/serialization/mdToAst.js": 419,
