@@ -22,7 +22,7 @@ import type { ChatMessage } from '../../../hooks/useChatEngine/types';
 import { useDeploymentMode } from '../../../hooks/useDeploymentMode';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import useShieldStatus from '../../../hooks/useShieldStatus';
-import type { ModelTierConfig } from '../../../api/queries/modelTiers';
+import type { ModelTierMap } from '../../../api/queries/modelTiers';
 import { tierLabel } from '../../licensing/tierMeta';
 import { footerNotice, resolveTierClaim, shieldLine } from '../composerClaims';
 import { attachedNames } from '../knowledgeBaseClaim';
@@ -33,7 +33,7 @@ interface ComposerClaimsArgs {
     canShowPills: boolean;
     showTierSlider: boolean;
     directMode: boolean;
-    modelTiers: Record<string, ModelTierConfig> | null;
+    modelTiers: ModelTierMap | null;
     selectedTier: string | null;
     selectedAgent: { model?: unknown } | null;
     messages: ChatMessage[] | null;

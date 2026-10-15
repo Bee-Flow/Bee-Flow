@@ -28,6 +28,13 @@ function ScoreRing({ score, passed }: { score: number | null; passed: boolean })
     );
 }
 
+interface ExerciseStepProps {
+    step: LessonStep;
+    saved?: StepState | null;
+    modelTier?: string;
+    onState?: (state: StepState) => void;
+}
+
 /**
  * ExerciseStep — a free-text prompt the AI coach grades. This is the "AI watching
  * the learner and giving pointers" surface. Soft gate: a passing score unlocks
@@ -40,13 +47,6 @@ function ScoreRing({ score, passed }: { score: number | null; passed: boolean })
  *   modelTier — user/org-selected tier for the coach call
  *   onState   — called with the recorded state after each grade / skip
  */
-interface ExerciseStepProps {
-    step: LessonStep;
-    saved?: StepState | null;
-    modelTier?: string;
-    onState?: (state: StepState) => void;
-}
-
 export default function ExerciseStep({ step, saved, modelTier = 'fast', onState }: ExerciseStepProps) {
     const { t, locale } = useTranslation();
     const maxAttempts = step.maxAttempts || 4;
