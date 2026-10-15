@@ -6,6 +6,7 @@ import type { ActionEntry, ActionState, EffectObject, RunOpts, Translate, Vars }
 import type {
     BeforeServerStep, BrowseEventSink, ConfirmFn, LiveInputs, NavigateFn, RefreshFn, RunnerContext, RunnerDefinition,
 } from './actionRunner/runnerContext';
+import type { DataState } from './DataContext';
 import { reconcileVariableDefaults, seedVariableDefaults } from './appVariables';
 import useTranslation from '../../../../../hooks/useTranslation';
 
@@ -67,7 +68,7 @@ export interface ActionRunnerOptions {
     confirm?: ConfirmFn | null;
     onRefresh?: RefreshFn | null;
     currentUser?: unknown;
-    dataState?: Record<string, unknown> | null;
+    dataState?: DataState | null;
     // The two scope roots the RENDERER always has and the runner did not:
     // `forms` (every form's live values, by node id) and `screen`
     // ({ id, name, params }). A step formula reading screen.params.<name> —

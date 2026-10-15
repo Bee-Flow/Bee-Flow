@@ -41,7 +41,8 @@ function read(rel: string): string {
 /** Concatenated source of every non-test .js file under a server directory. */
 /** The agent table's DDL: initSchema.js composes the steps in initSchema.base.js and .agents.js. */
 function agentSchema(): string {
-    return ['initSchema.js', 'initSchema.base.js', 'initSchema.agents.js'].map((f) => read(`stores/agent/${f}`)).join('\n');
+    // Literal paths: serverClosure.test.ts finds the server files mobile reads by these strings.
+    return [read('stores/agent/initSchema.js'), read('stores/agent/initSchema.base.js'), read('stores/agent/initSchema.agents.js')].join('\n');
 }
 
 function readTree(rel: string): string {

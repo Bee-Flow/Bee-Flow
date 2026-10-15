@@ -9,13 +9,69 @@
  * not become a field this file claims does not exist.
  */
 
-/** One component on a screen. Events live on it as `onClick`, `onSubmit`, … */
-export interface AppNode {
-    id: string;
-    type?: string;
-    props?: { name?: string; multiple?: boolean;[key: string]: unknown };
-    children?: AppNode[];
+/** The style knobs a node carries (span, gap, size, …); only the ones that were set. */
+export interface NodeStyle {
+    span?: number;
+    gap?: number;
+    padding?: number;
+    size?: string;
+    align?: string;
+    height?: number | string;
     [key: string]: unknown;
+}
+
+/** The props the inspector reads off any node; `AppNode<P>` swaps in a component's own shape. */
+export interface CommonNodeProps {
+    name?: string;
+    multiple?: boolean;
+    title?: string;
+    label?: string;
+    [key: string]: unknown;
+}
+
+/**
+ * One component on a screen. Events live on it as `onClick`, `onSubmit`, …
+ * `P` is the shape of that component's own props (the inspector reads the common ones).
+ */
+export interface AppNode<P = CommonNodeProps> {
+    id: string;
+    type: string;
+    props?: P;
+    style?: NodeStyle;
+    children?: AppNode[];
+    visible?: boolean;
+    visibleWhen?: BoolOrFormula;
+    enabledWhen?: BoolOrFormula;
+    validations?: ValidationRule[];
+    computed?: Record<string, FormulaValue>;
+    onClick?: string;
+    onSubmit?: string;
+    onRowClick?: string;
+    onRowSelect?: string;
+    onCardMove?: string;
+    onChange?: string;
+    onDecided?: string;
+    [key: string]: unknown;
+}
+
+/** A formula as the schema stores it. Legacy documents hold the bare expression string instead. */
+export interface FormulaRef {
+    kind?: string;
+    expr?: string;
+}
+
+export type FormulaValue = string | FormulaRef | null | undefined;
+
+/** A flag that is a plain boolean or a formula. */
+export type BoolOrFormula = boolean | FormulaValue;
+
+/** One entry of a node's `validations`: required, format, minLength or formula. */
+export interface ValidationRule {
+    type: string;
+    format?: string;
+    value?: number;
+    expr?: string;
+    message?: string;
 }
 
 /** One band of a screen. It holds nodes but is not one — it has no `type`. */
@@ -66,10 +122,14 @@ export interface ActionEffect {
 }
 
 export interface AppAction {
-    kind?: string;
+    kind: string;
     /** A `sequence` action's steps, each of which is a step kind of its own. */
     steps?: unknown[];
     automationId?: string;
+    screenId?: string;
+    modalId?: string;
+    message?: string;
+    url?: string;
     inputMapping?: Record<string, InputMapping>;
     onSuccess?: ActionEffect;
     onError?: ActionEffect;
@@ -101,4 +161,16 @@ export interface AppRef {
     appId: string;
     screenId: string;
     nodeId: string;
+}
+
+/**
+ * What every per-type Content panel receives. `P` names the props of the one
+ * component type the panel edits; the node's own `props` then reads as those
+ * members and nothing is claimed about the rest.
+ */
+export interface PanelProps<P = Record<string, unknown>> {
+    node: AppNode & { props?: P };
+    definition: AppDefinition;
+    onCommit: (definition: AppDefinition) => void;
+    disabled?: boolean;
 }

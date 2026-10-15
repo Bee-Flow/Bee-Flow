@@ -10,7 +10,7 @@ import { loadWeb } from './testing/loadWeb';
 import type { AppDefinition } from './types';
 
 type AnyFn = (...args: unknown[]) => unknown;
-const web = loadWeb<Record<string, unknown>>('state/clipboard.js');
+const web = loadWeb<Record<string, unknown>>('state/clipboard.ts');
 
 function both(name: string, ...args: unknown[]): unknown {
     const w = withSeed(11, () => (web[name] as AnyFn)(...args));
