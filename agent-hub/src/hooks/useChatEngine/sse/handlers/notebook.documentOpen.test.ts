@@ -13,7 +13,7 @@ const ids: SseDispatchIds = {
 };
 const ctx: SseDispatchContext = {
     setMessages: noop,
-    tRef: { current: (key) => key },
+    tRef: { current: (key) => key ?? '' },
     onGammaPreviewRef: { current: undefined },
     onNotebookDocUpdateRef: { current: undefined },
     onNotebookSourceAddedRef: { current: undefined },
