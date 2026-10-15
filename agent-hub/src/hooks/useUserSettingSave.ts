@@ -32,6 +32,7 @@
 // no-payload calls).
 
 import { useState } from 'react';
+import type { AuthFetchOptions } from '../utils/helpers';
 import { API_BASE, authFetch } from '../utils/helpers';
 
 const USER_SETTINGS_URL = `${API_BASE}/ai/user-settings`;
@@ -73,7 +74,7 @@ export default function useUserSettingSave(onSaved?: () => void): UseUserSetting
         setBusy(true);
         setError(null);
         try {
-            const opts: RequestInit = { method };
+            const opts: AuthFetchOptions = { method };
             if (body != null) {
                 opts.headers = { 'Content-Type': 'application/json' };
                 opts.body = JSON.stringify(body);

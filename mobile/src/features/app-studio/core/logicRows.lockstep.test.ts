@@ -15,7 +15,6 @@ type AnyFn = (...args: unknown[]) => unknown;
 const web = loadWeb<Record<string, AnyFn>>('editor/logicRows.js');
 const webLabels = loadWeb<Record<string, AnyFn>>('inspector/actionLabels.ts');
 const webSummary = loadWeb<Record<string, AnyFn>>('editor/nodeLogicSummary.ts');
-const webKnobs = loadWeb<Record<string, unknown>>('inspector/styleKnobMeta.js');
 
 const fixtures = allFixtures();
 const titleFor = (id: unknown) => (id === 'auto_1' ? 'Nightly import' : null);
@@ -74,7 +73,6 @@ describe('the pieces agree', () => {
     });
 
     it('event lists, slots and words', () => {
-        expect(port.TYPE_EVENT_LISTS).toEqual(webKnobs.TYPE_EVENT_LISTS);
         for (const event of ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided', 'onHover']) {
             expect(port.eventText(EN_ONLY, event)).toBe(webSummary.eventText?.(EN_ONLY, event));
             expect(port.eventText(shout, event)).toBe(webSummary.eventText?.(shout, event));

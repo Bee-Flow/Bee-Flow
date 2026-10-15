@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { AgentAvatarSource } from '../../utils/agentAvatar';
 import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '../../utils/agentAvatar';
 
-interface WelcomeAgent {
+interface WelcomeAgent extends AgentAvatarSource {
     name?: string;
     description?: string;
     starter_prompts?: string[] | string | null;

@@ -1,37 +1,19 @@
 /**
  * Which events a component type may carry, and how each event reads.
  *
- * TYPE_EVENT_LISTS is the web's (inspector/styleKnobMeta.js), a mirror of
- * each type's `events` in the server's COMPONENT_SPECS; eventText is the
- * web's (editor/nodeLogicSummary.js) and borrows its keys, which exist in both
- * dictionaries. Pinned by logicRows.lockstep.test.ts.
+ * TYPE_EVENT_LISTS is the web's (inspector/typeEventLists.ts, generated into
+ * mirror/), a mirror of each type's `events` in the server's COMPONENT_SPECS;
+ * eventText is the web's (editor/nodeLogicSummary.js) and borrows its keys,
+ * which exist in both dictionaries. Pinned by logicRows.lockstep.test.ts.
  */
+
+import { TYPE_EVENT_LISTS } from '@/features/app-studio/mirror/typeEventLists';
 
 import type { Translate } from '../msg';
 import { NODE_EVENTS } from '../ops';
 import type { AppNode } from '../types';
 
-export const TYPE_EVENT_LISTS: Readonly<Record<string, readonly string[]>> = {
-    button: ['onClick'],
-    list: ['onRowClick'],
-    form: ['onSubmit'],
-    data_grid: ['onRowClick', 'onRowSelect'],
-    timeline: ['onRowClick'],
-    stepper: ['onRowClick'],
-    file_gallery: ['onRowClick'],
-    badge_list: ['onRowClick'],
-    input_select: ['onChange'],
-    input_checkbox: ['onChange'],
-    input_date: ['onChange'],
-    input_multiselect: ['onChange'],
-    input_file: ['onChange'],
-    input_dataset: ['onChange'],
-    message_thread: ['onRowClick'],
-    kanban: ['onRowClick', 'onCardMove'],
-    calendar: ['onRowClick'],
-    chart: ['onRowClick'],
-    approval_list: ['onDecided'],
-};
+export { TYPE_EVENT_LISTS };
 
 /** An event slot, in the words a person reads it in. An unknown slot reads as its name. */
 export function eventText(t: Translate, event: string): string {

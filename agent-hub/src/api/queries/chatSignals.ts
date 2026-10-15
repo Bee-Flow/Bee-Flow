@@ -19,6 +19,7 @@ import {
     type ChatMonitoringState,
     type ChatSignal,
 } from './shieldStatus';
+import type { AuthFetchOptions } from '../../utils/helpers';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { queryClient } from '../queryClient';
 
@@ -101,7 +102,7 @@ export function embedMarker(notice: EmbedComplianceNotice): string | null {
     return notice.state !== 'off' && notice.version ? `agent_public@${notice.version}` : null;
 }
 
-async function readJson(url: string, init?: RequestInit): Promise<unknown> {
+async function readJson(url: string, init?: AuthFetchOptions): Promise<unknown> {
     const res = await authFetch(url, init);
     if (!res.ok) throw new Error(`${res.status}`);
     return res.json();

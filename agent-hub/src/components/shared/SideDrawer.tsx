@@ -1,7 +1,24 @@
+import type { LucideIcon } from 'lucide-react';
 import { Save, X } from 'lucide-react';
+import type { MouseEventHandler, ReactNode } from 'react';
 import React, { useEffect, useRef } from 'react';
 import Modal from './Modal';
 import useTranslation from '../../hooks/useTranslation';
+
+export type SideDrawerMode = 'inline' | 'overlay' | 'modal';
+
+export interface SideDrawerProps {
+    open?: boolean;
+    onClose?: () => void;
+    width?: number | string;
+    header?: ReactNode;
+    footer?: ReactNode;
+    children?: ReactNode;
+    ariaLabel?: string;
+    mode?: SideDrawerMode;
+    className?: string;
+    testId?: string;
+}
 
 /**
  * SideDrawer — the 380px right-hand editing lade of the register pages
@@ -48,6 +65,7 @@ import useTranslation from '../../hooks/useTranslation';
  * actions on the left, ONE primary on the right, "Save" unless told
  * otherwise).
  */
+
 export default function SideDrawer({
     open = false,
     onClose,
@@ -59,15 +77,15 @@ export default function SideDrawer({
     mode = 'inline',
     className = '',
     testId = undefined,
-}) {
+}: SideDrawerProps) {
     const { t } = useTranslation();
-    const headerRef = useRef(null);
-    const returnFocusRef = useRef(null);
+    const headerRef = useRef<HTMLDivElement>(null);
+    const returnFocusRef = useRef<HTMLElement | null>(null);
 
     // Escape closes — while open, from anywhere on the page.
     useEffect(() => {
         if (!open) return undefined;
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && !e.defaultPrevented) onClose?.();
         };
         window.addEventListener('keydown', onKey);
@@ -179,12 +197,20 @@ export default function SideDrawer({
     );
 }
 
+export interface DrawerSectionProps {
+    label?: ReactNode;
+    hint?: ReactNode;
+    children?: ReactNode;
+    className?: string;
+    testId?: string;
+}
+
 /**
  * A labelled block inside the drawer: 10px uppercase tracking-[.08em] label,
  * an optional quieter hint after it ("· required when excluded"), then the
  * content stacked below.
  */
-export function DrawerSection({ label = null, hint = null, children = null, className = '', testId = undefined }) {
+export function DrawerSection({ label = null, hint = null, children = null, className = '', testId = undefined }: DrawerSectionProps) {
     return (
         <div className={`flex flex-col gap-1.5 ${className}`.trim()} data-testid={testId}>
             {(label || hint) && (
@@ -198,13 +224,27 @@ export function DrawerSection({ label = null, hint = null, children = null, clas
     );
 }
 
+export interface DrawerIdProps {
+    children?: ReactNode;
+    className?: string;
+    testId?: string;
+}
+
 /** The mono 11px identifier that leads a drawer header: "#2038", "A.5.20". */
-export function DrawerId({ children, className = '', testId = undefined }) {
+export function DrawerId({ children, className = '', testId = undefined }: DrawerIdProps) {
     return (
         <span className={`font-mono text-[11px] text-[var(--text-secondary)] flex-shrink-0 ${className}`.trim()} data-testid={testId}>
             {children}
         </span>
     );
+}
+
+interface PrimaryButtonProps {
+    onClick: MouseEventHandler<HTMLButtonElement>;
+    disabled?: boolean;
+    label: ReactNode;
+    icon?: LucideIcon | null;
+    testId?: string;
 }
 
 /**
@@ -214,7 +254,7 @@ export function DrawerId({ children, className = '', testId = undefined }) {
  * `primaryLabel` (default "Save") with `primaryIcon` (default Save). No
  * primary at all is fine: a drawer that only reads has only secondaries.
  */
-function PrimaryButton({ onClick, disabled, label, icon: Icon, testId }) {
+function PrimaryButton({ onClick, disabled, label, icon: Icon, testId }: PrimaryButtonProps) {
     return (
         <button
             type="button"
@@ -229,6 +269,18 @@ function PrimaryButton({ onClick, disabled, label, icon: Icon, testId }) {
     );
 }
 
+export interface DrawerFooterProps {
+    children?: ReactNode;
+    /** A ready element; wins over the built button. */
+    primary?: ReactNode;
+    onPrimary?: MouseEventHandler<HTMLButtonElement>;
+    primaryLabel?: ReactNode;
+    primaryIcon?: LucideIcon | null;
+    primaryDisabled?: boolean;
+    className?: string;
+    testId?: string;
+}
+
 export function DrawerFooter({
     children = null,
     primary = null,
@@ -238,7 +290,7 @@ export function DrawerFooter({
     primaryDisabled = false,
     className = '',
     testId = undefined,
-}) {
+}: DrawerFooterProps) {
     const { t } = useTranslation();
     const built = typeof onPrimary === 'function'
         ? <PrimaryButton onClick={onPrimary} disabled={primaryDisabled} label={primaryLabel ?? t('common.save', 'Save')} icon={primaryIcon} testId={testId && `${testId}-primary`} />

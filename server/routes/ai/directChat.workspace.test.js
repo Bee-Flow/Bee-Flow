@@ -17,7 +17,7 @@
  * unscoped one. The route was still calling it with 3. Every save therefore
  * threw into the handler's blanket catch and answered 500 — including the
  * owner's own saves. And the SPA does not surface it: authFetch
- * (agent-hub/src/utils/helpers.js) does not throw on a non-2xx, so
+ * (agent-hub/src/utils/helpers.ts) does not throw on a non-2xx, so
  * AgentHub.saveNotebook's try/catch never fired. The user saw the optimistic
  * update, and the notebook came back empty on reload. A closed security hole
  * that eats the owner's data is not a fix.

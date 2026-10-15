@@ -418,7 +418,7 @@ const METRICS = {
         advice: 'read through useQuery/useMutation in src/api/queries/ instead',
     },
     'authfetch-outside-api': {
-        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/') && rel !== 'utils/helpers.js',
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/') && rel !== 'utils/helpers.ts',
         measure: (text) => (/(?<![\w.$])authFetch\s*\(/.test(text) ? 1 : 0),
         what: 'files calling authFetch outside src/api',
         advice: 'call through src/api/ instead: apiClient or createJsonResource (api/client.ts), mutate() (api/mutate.ts), or a reader in api/queries/',

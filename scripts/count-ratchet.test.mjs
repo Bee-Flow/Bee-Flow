@@ -203,7 +203,7 @@ test('authfetch-outside-api counts files calling authFetch outside src/api, not 
             'components/Hand.jsx': 'const r = await authFetch(url);\nconst s = await authFetch(other);\n',
             'pages/Imports.jsx': "import { authFetch } from '../utils/helpers';\nexport { authFetch };\n",
             'api/client.ts': 'const res = await authFetch(url, init);\n',
-            'utils/helpers.js': 'export async function authFetch(url) { return fetch(url); }\nauthFetch(x);\n',
+            'utils/helpers.ts': 'export async function authFetch(url) { return fetch(url); }\nauthFetch(x);\n',
             'components/Hand.test.jsx': 'authFetch(url);\n',
         },
     });

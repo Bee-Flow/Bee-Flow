@@ -22,21 +22,30 @@
  * Pure and React-free on purpose: the rail meta, the header pill, the table
  * rows and the mobile cards all import it, and a leaf cannot create a cycle.
  */
+import type { LucideIcon } from 'lucide-react';
 import {
     CircleCheck, CircleDashed, CircleMinus, CircleX, TriangleAlert,
 } from 'lucide-react';
 
-export const TONES = Object.freeze({
+export type Tone = 'success' | 'warning' | 'error' | 'neutral';
+
+export interface ToneTokens {
+    raw: string;
+    ink: string;
+}
+
+/** Every tone has an entry; any other string reads as undefined. */
+export const TONES: Readonly<Record<Tone, Readonly<ToneTokens>> & Record<string, Readonly<ToneTokens> | undefined>> = Object.freeze({
     success: Object.freeze({ raw: 'var(--success)', ink: 'var(--success-ink)' }),
     warning: Object.freeze({ raw: 'var(--warning)', ink: 'var(--warning-ink)' }),
     error: Object.freeze({ raw: 'var(--error)', ink: 'var(--error-ink)' }),
     neutral: Object.freeze({ raw: 'var(--bg-tertiary)', ink: 'var(--text-tertiary)' }),
 });
 
-export const TONE_KEYS = Object.freeze(Object.keys(TONES));
+export const TONE_KEYS: readonly string[] = Object.freeze(Object.keys(TONES));
 
 /** A check row's `status` (registry.js): pass · warn · fail · not_applicable · pending. */
-export function toneOfCheckStatus(status) {
+export function toneOfCheckStatus(status?: string | null): Tone {
     switch (status) {
         case 'pass': return 'success';
         case 'warn': return 'warning';
@@ -50,7 +59,7 @@ export function toneOfCheckStatus(status) {
  * headline have used since the hub shipped (≥ 85 good, ≥ 60 attention).
  * A missing score is `neutral` — the placeholder ring, never a red one.
  */
-export function toneOfScore(score) {
+export function toneOfScore(score?: number | string | null): Tone {
     const n = Number(score);
     if (score === null || score === undefined || Number.isNaN(n)) return 'neutral';
     if (n >= 85) return 'success';
@@ -59,7 +68,7 @@ export function toneOfScore(score) {
 }
 
 /** A deadline clock's `state` (deadlineMath.js / GET /deadlines): ok · urgent · overdue · done · none. */
-export function toneOfClock(state) {
+export function toneOfClock(state?: string | null): Tone {
     switch (state) {
         case 'ok': return 'success';
         case 'urgent': return 'warning';
@@ -74,7 +83,7 @@ export function toneOfClock(state) {
  * always follows the STATUS, never the severity (design rule 5: severity
  * appears only on open rows, and only as a word).
  */
-export function toneOfSeverity(severity) {
+export function toneOfSeverity(severity?: string | null): Tone {
     switch (severity) {
         case 'critical':
         case 'high': return 'error';
@@ -84,7 +93,7 @@ export function toneOfSeverity(severity) {
 }
 
 /** The lucide glyph a check row leads with, by status. */
-export function glyphOfCheckStatus(status) {
+export function glyphOfCheckStatus(status?: string | null): LucideIcon {
     switch (status) {
         case 'pass': return CircleCheck;
         case 'warn': return TriangleAlert;
@@ -94,12 +103,18 @@ export function glyphOfCheckStatus(status) {
     }
 }
 
+export type HeadlineKey =
+    | 'compliance.ovw_headline_good'
+    | 'compliance.ovw_headline_attention'
+    | 'compliance.ovw_headline_gaps'
+    | 'compliance.ovw_headline_pending';
+
 /**
  * The overview headline for a score — three sentences, same thresholds as
  * `toneOfScore`. Returns the i18n KEY; the caller passes it to t() with the
  * English fallback (the keys live in the compliance.* dictionary).
  */
-export function headlineKeyOfScore(score) {
+export function headlineKeyOfScore(score?: number | string | null): HeadlineKey {
     switch (toneOfScore(score)) {
         case 'success': return 'compliance.ovw_headline_good';
         case 'warning': return 'compliance.ovw_headline_attention';
@@ -108,7 +123,7 @@ export function headlineKeyOfScore(score) {
     }
 }
 
-export const HEADLINE_FALLBACK = Object.freeze({
+export const HEADLINE_FALLBACK: Readonly<Record<HeadlineKey, string>> = Object.freeze({
     'compliance.ovw_headline_good': 'You are in good shape',
     'compliance.ovw_headline_attention': 'A few items need attention',
     'compliance.ovw_headline_gaps': 'Clear gaps',

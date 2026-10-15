@@ -8,14 +8,16 @@
  * lockstep with the server file.
  */
 
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { KIND_OPTIONS } from './actionKindCatalog';
+import type { StyleKnobTable, UnitRange } from './styleKnobMeta.types';
 
 // Mirror of COLOR_ROLES (componentSpecs.js).
-export const COLOR_ROLES = ['primary', 'neutral', 'success', 'warning', 'danger', 'info'];
+export const COLOR_ROLES: string[] = ['primary', 'neutral', 'success', 'warning', 'danger', 'info'];
 
 // Mirror of STYLE_KNOBS (componentSpecs.js) — the closed visual vocabulary.
 // Sliders take min/max/step from here; enum knobs render their `values`.
-export const STYLE_KNOBS = {
+export const STYLE_KNOBS: StyleKnobTable = {
     span:       { type: 'int', min: 1, max: 12, step: 1, default: 12 },
     size:       { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' },
     align:      { type: 'enum', values: ['start', 'center', 'end'], default: 'start' },
@@ -73,7 +75,7 @@ export const RESPONSIVE_VISIBILITY_KNOBS = ['hideBelow', 'hideAbove'];
  * the literal string "undefined". knobLabel() falls back to the key, so the
  * next knob added to STYLE_KNOBS shows its own name rather than nothing.
  */
-const KNOB_KEYS = {
+const KNOB_KEYS: Record<string, [string, string]> = {
     span: ['studio_apps_insp.knobs.span', 'Width'],
     size: ['studio_apps_insp.knobs.size', 'Size'],
     align: ['studio_apps_insp.knobs.align', 'Align'],
@@ -93,10 +95,10 @@ const KNOB_KEYS = {
     hideAbove: ['studio_apps_insp.knobs.hide_above', 'Hide from'],
 };
 
-export const KNOB_LABELS = Object.fromEntries(Object.entries(KNOB_KEYS).map(([k, [, en]]) => [k, en]));
+export const KNOB_LABELS: Record<string, string> = Object.fromEntries(Object.entries(KNOB_KEYS).map(([k, [, en]]) => [k, en]));
 
 /** `t` is optional: without it (tests, non-UI callers) the English label comes back. */
-export function knobLabel(knob, t = null) {
+export function knobLabel(knob: string, t: TranslateFn | null = null): string {
     const entry = KNOB_KEYS[knob];
     if (entry) return t ? t(entry[0], entry[1]) : entry[1];
     return String(knob).charAt(0).toUpperCase() + String(knob).slice(1);
@@ -105,7 +107,7 @@ export function knobLabel(knob, t = null) {
 // Human labels for enum values (fall back to the capitalised value). Advanced
 // sizing units: 'span'/'preset' are the defaults, so they read as "the
 // ordinary control above still owns this", not as an off switch.
-const VALUE_KEYS = {
+const VALUE_KEYS: Record<string, [string, string]> = {
     sm: ['studio_apps_insp.values.sm', 'S'],
     md: ['studio_apps_insp.values.md', 'M'],
     lg: ['studio_apps_insp.values.lg', 'L'],
@@ -129,7 +131,7 @@ const VALUE_KEYS = {
     vh: ['studio_apps_insp.values.vh', 'vh'],
 };
 
-export function valueLabel(v, t = null) {
+export function valueLabel(v: string | number, t: TranslateFn | null = null): string {
     const entry = Object.prototype.hasOwnProperty.call(VALUE_KEYS, v) ? VALUE_KEYS[v] : null;
     if (entry) return t ? t(entry[0], entry[1]) : entry[1];
     return String(v).charAt(0).toUpperCase() + String(v).slice(1);
@@ -138,7 +140,7 @@ export function valueLabel(v, t = null) {
 // Mirror of each type's `styleKnobs` list in COMPONENT_SPECS (componentSpecs.js).
 // EVERY catalog type appears here — runtime/catalogLockstep.test.js fails the
 // build when this map drifts from the server spec.
-export const TYPE_STYLE_KNOBS = {
+export const TYPE_STYLE_KNOBS: Record<string, string[]> = {
     heading:        ['span', 'align', 'color'],
     text:           ['span', 'align', 'color', 'weight', 'size'],
     button:         ['span', 'size', 'align'],
@@ -205,7 +207,7 @@ export { SECTION_STYLE_KNOBS, SECTION_STYLE_DEFAULTS } from '@shared/appDefiniti
 
 // Mirror of THEME_SPEC enums (componentSpecs.js); the preset hex list lives
 // in runtime/themeVars.js (APP_COLOR_PRESETS) — import it from there.
-export const THEME_ENUMS = {
+export const THEME_ENUMS: Record<string, string[]> = {
     radius:     ['none', 'sm', 'md', 'lg', 'xl'],
     density:    ['compact', 'comfortable', 'spacious'],
     fontScale:  ['sm', 'md', 'lg'],
@@ -235,45 +237,15 @@ export const SCREEN_DEFAULTS = { maxWidth: 'medium', refreshInterval: 0, showInN
 // three answers. actionKinds.lockstep.test.js now pins all of them, and this
 // one cannot drift because it is computed.
 export const ACTION_KINDS = KIND_OPTIONS.map((o) => o.value);
-export const TOAST_TONES = ['info', 'success', 'warning', 'danger'];
+export const TOAST_TONES: string[] = ['info', 'success', 'warning', 'danger'];
 
-// Full mirror of each type's `events` array in COMPONENT_SPECS — the lockstep
-// test pins this against the server spec. A type absent here carries no events.
-export const TYPE_EVENT_LISTS = {
-    button: ['onClick'],
-    list: ['onRowClick'],
-    form: ['onSubmit'],
-    data_grid: ['onRowClick', 'onRowSelect'],
-    timeline: ['onRowClick'],
-    stepper: ['onRowClick'],
-    file_gallery: ['onRowClick'],
-    badge_list: ['onRowClick'],
-    input_select: ['onChange'],
-    input_checkbox: ['onChange'],
-    input_date: ['onChange'],
-    input_multiselect: ['onChange'],
-    // Fires once per upload batch, after the descriptor lands — the hook a form
-    // uses to check a file the moment it arrives instead of at submit time.
-    input_file: ['onChange'],
-    // Fires when a dataset becomes the value: on pick, or on upload AFTER the
-    // background ingest reaches 'ready' (an indexing dataset is not queryable).
-    input_dataset: ['onChange'],
-    message_thread: ['onRowClick'],
-    kanban: ['onRowClick', 'onCardMove'],
-    calendar: ['onRowClick'],
-    // Fires with the clicked point's row (the synthetic time column stripped),
-    // so a trend chart can open the reading behind a spike.
-    chart: ['onRowClick'],
-    // Fires after a decision lands in the in-app approvals inbox, with
-    // { approvalId, decision, reason, answers, context } in the form scope.
-    approval_list: ['onDecided'],
-};
+export { TYPE_EVENT_LISTS } from './typeEventLists';
 
 // Which event slot the inspector's Actions section can WIRE today. This stays
 // limited to onClick/onSubmit because state/definitionOps.setNodeEvent only
 // accepts those two; widening it (row/card events) needs setNodeEvent +
 // ActionsSection changes — until then the AI builder wires row/card events.
-export const TYPE_EVENTS = { button: 'onClick', form: 'onSubmit' };
+export const TYPE_EVENTS: Record<string, string> = { button: 'onClick', form: 'onSubmit' };
 
 /**
  * Mirror of FORMULA_SCOPE_ROOTS (componentSpecs.js) — every root a formula may
@@ -286,13 +258,13 @@ export const TYPE_EVENTS = { button: 'onClick', form: 'onSubmit' };
  * The lockstep test pins this against the server list, so drift fails CI
  * instead of quietly changing what autocompletes.
  */
-export const FORMULA_SCOPE_ROOTS = [
+export const FORMULA_SCOPE_ROOTS: string[] = [
     'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value',
     'currentUser', 'records', 'datasets', 'connectors', 'now', 'today',
 ];
 
 // Mirror of INPUT_TYPES (componentSpecs.js) — types that collect a form value.
-export const INPUT_TYPES = [
+export const INPUT_TYPES: string[] = [
     'input_text', 'input_textarea', 'input_number',
     'input_select', 'input_checkbox', 'input_date',
     'input_file', 'input_dataset', 'input_richtext', 'input_html', 'input_datetime',
@@ -302,8 +274,8 @@ export const INPUT_TYPES = [
 export const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 /** Knob list for a component type (empty array for unknown types). */
-export function getKnobsForType(type) {
-    return TYPE_STYLE_KNOBS[type] || [];
+export function getKnobsForType(type?: string | null): string[] {
+    return (type == null ? undefined : TYPE_STYLE_KNOBS[type]) || [];
 }
 
 /**
@@ -312,7 +284,7 @@ export function getKnobsForType(type) {
  * type that cannot express the basic knob never offers the advanced one
  * (a `tab` has neither; a section has height but no span).
  */
-export function advancedKnobsFor(knobs) {
+export function advancedKnobsFor(knobs?: string[] | null): string[] {
     const list = Array.isArray(knobs) ? knobs : [];
     return [
         ...(list.includes('span') ? ADVANCED_WIDTH_KNOBS : []),
@@ -322,19 +294,19 @@ export function advancedKnobsFor(knobs) {
 }
 
 /** The unit a *Value knob is measured in right now (its *Mode sibling, or the default). */
-export function effectiveSizeMode(style, knobName) {
+export function effectiveSizeMode(style: Record<string, unknown> | null | undefined, knobName: string): string | null {
     const spec = STYLE_KNOBS[knobName];
     if (!spec || spec.type !== 'unitInt') return null;
     const modeSpec = STYLE_KNOBS[spec.modeKnob];
     const v = (style || {})[spec.modeKnob];
-    return modeSpec.values.includes(v) ? v : modeSpec.default;
+    return typeof v === 'string' && modeSpec.values.includes(v) ? v : modeSpec.default;
 }
 
 /** The min/max/step for a unitInt knob under `mode` — null when that mode carries no value. */
-export function unitRange(knobName, mode) {
+export function unitRange(knobName: string, mode?: string | null): UnitRange | null {
     const spec = STYLE_KNOBS[knobName];
     if (!spec || spec.type !== 'unitInt') return null;
-    return spec.units[mode] || null;
+    return (mode == null ? undefined : spec.units[mode]) || null;
 }
 
 /**
@@ -345,7 +317,7 @@ export function unitRange(knobName, mode) {
  * `style` is only consulted for the unitInt pairs, whose legal range depends on
  * the unit their *Mode sibling names (40..2000 px vs 5..100 %).
  */
-function clampUnitInt(knob, value, style) {
+function clampUnitInt(knob: string, value: unknown, style: Record<string, unknown> | null | undefined): number | null {
     if (value === null || value === undefined) return null;   // the "not set" state
     const range = unitRange(knob, effectiveSizeMode(style, knob));
     if (!range) return null;                                  // this mode carries no value at all
@@ -354,7 +326,7 @@ function clampUnitInt(knob, value, style) {
     return Math.max(range.min, Math.min(range.max, n));
 }
 
-export function clampKnob(knob, value, style = null) {
+export function clampKnob(knob: string, value: unknown, style: Record<string, unknown> | null = null): unknown {
     const spec = STYLE_KNOBS[knob];
     if (!spec) return value;
     if (spec.type === 'unitInt') return clampUnitInt(knob, value, style);

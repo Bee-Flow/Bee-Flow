@@ -51,6 +51,9 @@ export interface AppNode<P = CommonNodeProps> {
     onCardMove?: string;
     onChange?: string;
     onDecided?: string;
+    /** Role keys gating the node (absent or empty = everyone). */
+    visibleToRoles?: string[];
+    readOnly?: BoolOrFormula;
     [key: string]: unknown;
 }
 
@@ -86,12 +89,34 @@ export interface AppScreen {
     id?: string;
     name?: string;
     sections?: AppSection[];
+    /** Role keys gating the screen (absent or empty = everyone). */
+    visibleToRoles?: string[];
+    [key: string]: unknown;
+}
+
+/** A role the definition mirrors from the data model, so `visibleToRoles` references resolve. */
+export interface MirroredRole {
+    id: string;
+    name?: string;
+}
+
+/** One declared variable (`definition.variables`), matched by `name`. */
+export interface DefinitionVariable {
+    name: string;
+    label?: string;
+    type?: string;
+    default?: unknown;
     [key: string]: unknown;
 }
 
 export interface AppDefinition {
     screens?: AppScreen[];
     actions?: Record<string, AppAction>;
+    homeScreenId?: string;
+    // The ops read the elements of these two defensively (`v?.name`, `r && r.id`).
+    roles?: MirroredRole[];
+    variables?: DefinitionVariable[];
+    aiBrowsing?: Record<string, unknown>;
     [key: string]: unknown;
 }
 
