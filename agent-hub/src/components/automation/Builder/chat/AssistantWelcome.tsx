@@ -13,7 +13,7 @@ interface AssistantWelcomeProps {
 export default function AssistantWelcome({ triggerKind, definition = null, selectedStep = null, onPick }: AssistantWelcomeProps) {
     const { t } = useTranslation();
     const steps = definition?.steps || [];
-    const chips = [];
+    const chips: Array<{ Icon: LucideIcon; text: string }> = [];
     const suggest = (Icon: LucideIcon, key: string, fallback: string) => chips.push({ Icon, text: t(`automations.assistant.suggest.${key}`, fallback) });
     if (selectedStep?.type === 'code') suggest(Code, 'code', 'Write the code for the selected step');
     if (selectedStep?.type === 'ai_step') suggest(Sparkles, 'prompt', 'Improve the instruction for this AI step');
