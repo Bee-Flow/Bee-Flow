@@ -1,32 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
+import type { MetaFor, TierSliderProps, TierTrackProps } from './TierSlider.types';
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, DEPTH_TIER_KEYS } from './tierMeta';
-import type { TierMeta } from './tierMeta';
 import scopedStorage from '../../utils/scopedStorage';
 import MemoryModeControl from '../chat/memory/MemoryModeControl';
 import AppEmoji from '../icons/AppEmoji';
 import useTranslation from '../../hooks/useTranslation';
-import type { ModelTierMap } from '../../api/queries/modelTiers';
-import type { MemoryLock, MemoryMode } from '../../utils/memoryMode';
-
-type MetaFor = (key: string) => TierMeta;
-
-/** The composer's memory control as TierSlider is handed it: the current `{ mode, onChange, lock }` shape or the older `{ enabled, onToggle }`. */
-interface TierSliderMemory {
-    mode?: MemoryMode;
-    onChange?: (next: MemoryMode) => void;
-    lock?: MemoryLock;
-    enabled?: boolean;
-    onToggle?: () => void;
-}
-
-interface TierSliderProps {
-    tiers?: ModelTierMap;
-    value?: string;
-    onChange?: (key: string) => void;
-    variant?: string;
-    memory?: TierSliderMemory | null;
-}
 
 /**
  * Composer tier control — a slider, not a menu.
@@ -57,7 +35,7 @@ interface TierSliderProps {
 const LEGACY_EFFORT_KEY = 'reasoningEffort';
 
 /** Icon for a tier, in the same precedence the dropdown uses. */
-function TierIcon({ tierKey, meta, className = 'w-3.5 h-3.5', style }: { tierKey: string; meta: TierMeta; className?: string; style?: React.CSSProperties }) {
+function TierIcon({ tierKey, meta, className = 'w-3.5 h-3.5', style }: { tierKey: string; meta: ReturnType<MetaFor>; className?: string; style?: React.CSSProperties }) {
     if (meta.iconSrc) return <img src={meta.iconSrc} alt="" className={`${className} object-contain`} />;
     if (meta.Icon) return <meta.Icon className={className} style={style} />;
     return <AppEmoji id={tierCatalogId(tierKey)} default={meta.emoji} />;
@@ -220,18 +198,6 @@ const fillGradientFor = (travel: number) => {
  * `activeIndex` is -1 when the selected tier isn't on the depth scale, which
  * dims the whole track rather than parking the thumb somewhere misleading.
  */
-interface TierTrackProps {
-    stops: string[];
-    activeIndex: number;
-    metaFor: MetaFor;
-    onSelect: (key: string) => void;
-    trackRef: React.RefObject<HTMLDivElement | null>;
-    onPointerDown: React.PointerEventHandler<HTMLDivElement>;
-    onPointerMove: React.PointerEventHandler<HTMLDivElement>;
-    onPointerEnd: React.PointerEventHandler<HTMLDivElement>;
-    onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
-}
-
 function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerDown, onPointerMove, onPointerEnd, onKeyDown }: TierTrackProps) {
     const { t } = useTranslation();
     const onScale = activeIndex >= 0;
@@ -397,7 +363,7 @@ function OtherTierPills({ keys, value, metaFor, onSelect }: { keys: string[]; va
  * The older `{ enabled, onToggle }` shape still works: enabled is On, not
  * enabled is Read only, which is what the old switch did.
  */
-function MemoryToggle({ memory }: { memory: TierSliderMemory }) {
+function MemoryToggle({ memory }: { memory: NonNullable<TierSliderProps['memory']> }) {
     const mode = memory.mode || (memory.enabled ? 'on' : 'read');
     const onChange = memory.onChange || (() => memory.onToggle?.());
     return (

@@ -1,12 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Check, X, RotateCcw, Eye, ArrowRight, Zap, Plus, Flag } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { LessonStep, SimConfig, StepState } from '../lessons.types';
+import type { LessonStep, OnState, SimConfig, SimStepProps, TranslateFn } from './SimStep.types';
 import { matchPickCorrect, evaluateOrder, evaluateFlow, seededShuffle } from './sims/simLogic';
-
-type OnState = ((state: StepState) => void) | undefined;
-
 /**
  * SimStep — an interactive widget that IS the question (Brilliant-style): the
  * learner constructs the answer instead of picking prose from a list. Three
@@ -25,12 +21,6 @@ type OnState = ((state: StepState) => void) | undefined;
  *   saved   — resume state { status, attempts }
  *   onState — called with { status, attempts } on pass/reveal
  */
-interface SimStepProps {
-    step: LessonStep;
-    saved?: StepState | null;
-    onState?: (state: StepState) => void;
-}
-
 export default function SimStep({ step, saved, onState }: SimStepProps) {
     const { t } = useTranslation();
     const sim = step.sim || {};
