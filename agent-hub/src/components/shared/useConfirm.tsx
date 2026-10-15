@@ -1,5 +1,9 @@
 import React, { useCallback, useRef, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
+import type { ConfirmDialogProps } from './ConfirmDialog';
+
+/** What a caller hands to `confirm()`; every field is optional (defaults below). */
+export type ConfirmOptions = Partial<Pick<ConfirmDialogProps, 'title' | 'description' | 'confirmLabel' | 'cancelLabel' | 'destructive'>>;
 
 /**
  * Promise-based confirm — ONE dialog paradigm for every destructive or
@@ -26,21 +30,21 @@ import ConfirmDialog from './ConfirmDialog';
  * a second call while one is open resolves the first as cancelled.
  */
 export default function useConfirm() {
-    const [pending, setPending] = useState(null); // { title, description, confirmLabel, cancelLabel, destructive }
-    const resolveRef = useRef(null);
+    const [pending, setPending] = useState<ConfirmOptions | null>(null);
+    const resolveRef = useRef<((ok: boolean) => void) | null>(null);
 
-    const settle = useCallback((ok) => {
+    const settle = useCallback((ok: boolean) => {
         const resolve = resolveRef.current;
         resolveRef.current = null;
         setPending(null);
         if (resolve) resolve(ok);
     }, []);
 
-    const confirm = useCallback((opts) => {
+    const confirm = useCallback((opts?: ConfirmOptions | null): Promise<boolean> => {
         // Cancel any confirm already on screen — mirrors the "one native
         // dialog at a time" behavior callers were written against.
         if (resolveRef.current) resolveRef.current(false);
-        return new Promise((resolve) => {
+        return new Promise<boolean>((resolve) => {
             resolveRef.current = resolve;
             setPending(opts || {});
         });

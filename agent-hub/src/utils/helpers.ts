@@ -1,9 +1,11 @@
 import { isPublicMarketingPath } from './cmsPublicRouting';
+import type { AuthFetchOptions, FetchTransport, SaveErrorBody, SaveErrorInfo } from './helpers.types';
+export type { AuthFetchOptions } from './helpers.types';
 
 /** Anonymous marketing surface — a 401 there is the expected answer, not a
  *  session that needs recovering. Imported rather than re-derived so the
  *  reload guard, the telemetry consent gate and the router share one rule. */
-function onPublicMarketingPage() {
+function onPublicMarketingPage(): boolean {
     if (typeof window === 'undefined') return false;
     try { return isPublicMarketingPath(window.location.pathname); }
     catch (_) { return false; }
@@ -26,7 +28,7 @@ function onPublicMarketingPage() {
  * deployment shape we don't recognise) — the caller then keeps the baked
  * value, so this can only ever correct a prefix, never invent one.
  */
-function deriveEmbedApiBase(configured) {
+function deriveEmbedApiBase(configured: unknown): string | null {
     if (typeof window === 'undefined') return null;
     const appId = String(configured).replace(/\/+$/, '').split('/').pop();
     if (!appId) return null;
@@ -38,7 +40,7 @@ function deriveEmbedApiBase(configured) {
     return null;
 }
 
-function getApiBase() {
+function getApiBase(): string {
     if (import.meta.env.VITE_API_URL) {
         return deriveEmbedApiBase(import.meta.env.VITE_API_URL) || import.meta.env.VITE_API_URL;
     }
@@ -49,7 +51,7 @@ function getApiBase() {
     const host = window.location.hostname;
     return `http://${host}:3001`;
 }
-export const API_BASE = getApiBase();
+export const API_BASE: string = getApiBase();
 
 /**
  * Is this build running inside Nextcloud, behind AppAPI's signed proxy?
@@ -58,11 +60,11 @@ export const API_BASE = getApiBase();
  * Dockerfile), so API_BASE is the reliable, build-time-accurate signal —
  * more so than sniffing window.location, which is the NC host either way.
  */
-export const isNextcloudEmbed = () => API_BASE.includes('/apps/app_api/proxy/') || API_BASE.includes('/exapps/');
+export const isNextcloudEmbed = (): boolean => API_BASE.includes('/apps/app_api/proxy/') || API_BASE.includes('/exapps/');
 
 // crypto.randomUUID only exists in secure contexts (HTTPS, localhost); a
 // self-hosted instance on plain HTTP still has getRandomValues, so build a v4 from that.
-export const generateMessageId = () => {
+export const generateMessageId = (): string => {
     if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
     const b = crypto.getRandomValues(new Uint8Array(16));
     b[6] = (b[6] & 0x0f) | 0x40;
@@ -81,14 +83,14 @@ export const generateMessageId = () => {
 // migration — see the key inventory in utils/storageMigrations.js.
 const SESSION_TOKEN_KEY = 'bf_session_token';
 
-export const setSessionToken = (token) => {
+export const setSessionToken = (token?: string | null): void => {
     try {
         if (token) sessionStorage.setItem(SESSION_TOKEN_KEY, token);
         else sessionStorage.removeItem(SESSION_TOKEN_KEY);
     } catch (_) { /* sessionStorage may be unavailable in private mode */ }
 };
 
-export const getSessionToken = () => {
+export const getSessionToken = (): string | null => {
     try { return sessionStorage.getItem(SESSION_TOKEN_KEY); }
     catch (_) { return null; }
 };
@@ -105,19 +107,19 @@ export const getSessionToken = () => {
 // route is an ERROR, not a passthrough: a passthrough default would mean one
 // missing route silently turns an anonymous visitor's click into a real,
 // unauthenticated API call. Fail closed instead — see helpers.demo.test.js.
-let demoTransport = null;
+let demoTransport: FetchTransport | null = null;
 
 /** Install (fn) or remove (null) the demo transport. Returns the previous one. */
-export const setDemoTransport = (fn) => {
+export const setDemoTransport = (fn?: FetchTransport | null): FetchTransport | null => {
     const previous = demoTransport;
     demoTransport = typeof fn === 'function' ? fn : null;
     return previous;
 };
 
-export const isDemoMode = () => demoTransport !== null;
+export const isDemoMode = (): boolean => demoTransport !== null;
 
 /** Is this the path of a public feature demo? */
-export const isDemoPath = (pathname) => /^\/__demo__\/[a-z0-9-]+\/?$/.test(pathname || '');
+export const isDemoPath = (pathname?: string | null): boolean => /^\/__demo__\/[a-z0-9-]+\/?$/.test(pathname || '');
 
 /**
  * Close the gap between first paint and DemoHost.
@@ -142,7 +144,7 @@ export const isDemoPath = (pathname) => /^\/__demo__\/[a-z0-9-]+\/?$/.test(pathn
  * fixture, and warning about them would train the eye to ignore the warning
  * that does matter.
  */
-export const sealDemoBeforeBoot = (pathname) => {
+export const sealDemoBeforeBoot = (pathname?: string | null): boolean => {
     if (!isDemoPath(pathname)) return false;
     setDemoTransport(async () => new Response(
         JSON.stringify({ error: 'Not available in the demo', demo: true }),
@@ -169,18 +171,18 @@ export const sealDemoBeforeBoot = (pathname) => {
 // Fails closed exactly like the demo transport: a path the public router does
 // not serve answers 404 here rather than reaching the authenticated API as an
 // anonymous request.
-let publicAppTransport = null;
+let publicAppTransport: FetchTransport | null = null;
 
 /** Install (fn) or remove (null) the public-app transport. Returns the previous one. */
-export const setPublicAppTransport = (fn) => {
+export const setPublicAppTransport = (fn?: FetchTransport | null): FetchTransport | null => {
     const previous = publicAppTransport;
     publicAppTransport = typeof fn === 'function' ? fn : null;
     return previous;
 };
 
-export const isPublicAppMode = () => publicAppTransport !== null;
+export const isPublicAppMode = (): boolean => publicAppTransport !== null;
 
-export const authFetch = async (url, options = {}) => {
+export const authFetch = async (url: string, options: AuthFetchOptions = {}): Promise<Response> => {
     if (demoTransport) {
         const response = await demoTransport(url, options);
         if (!(response instanceof Response)) {
@@ -199,7 +201,7 @@ export const authFetch = async (url, options = {}) => {
         return response;
     }
 
-    const defaultOptions = {
+    const defaultOptions: AuthFetchOptions = {
         credentials: 'include',
         // Never serve dynamic per-user API responses from the browser's HTTP
         // cache. In the Nextcloud-embedded path (browser → AppAPI proxy →
@@ -212,7 +214,7 @@ export const authFetch = async (url, options = {}) => {
         cache: 'no-store',
     };
 
-    const finalOptions = {
+    const finalOptions: AuthFetchOptions = {
         ...defaultOptions,
         ...options
     };
@@ -311,27 +313,27 @@ export const authFetch = async (url, options = {}) => {
 
 // Parse a non-OK fetch Response into { message, code, resource }. Tolerates
 // both JSON ({error,code,resource}) and plain-text error bodies.
-export const parseSaveError = async (res) => {
+export const parseSaveError = async (res: Pick<Response, 'status' | 'text'>): Promise<SaveErrorInfo> => {
     let body = '';
     try { body = await res.text(); } catch (_) { /* ignore */ }
-    let info = {};
+    let info: SaveErrorBody = {};
     try { info = JSON.parse(body); } catch (_) { info = { error: body }; }
     const message = info.error || info.message || `Save failed (${res.status})`;
     const isLimit = res.status === 403 && (info.code === 'limit_reached' || /reached (its|the) limit|seat limit/i.test(message));
     return { message, code: info.code, resource: info.resource, isLimit };
 };
 
-export const getAgentInitials = (name) => {
+export const getAgentInitials = (name?: string | null): string => {
     if (!name) return '?';
     return name
         .split(' ')
-        .map(n => n[0])
+        .map((n: string) => n[0])
         .slice(0, 2)
         .join('')
         .toUpperCase();
 };
 
-export const getAgentColor = (name) => {
+export const getAgentColor = (name?: string | null): string => {
     if (!name) return 'var(--accent-primary)';
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -343,14 +345,12 @@ export const getAgentColor = (name) => {
 
 /**
  * Returns a human-friendly relative time string (e.g., "3 days ago")
- * @param {string|Date} date - The date to format
- * @returns {string}
  */
-export const getRelativeTime = (date) => {
+export const getRelativeTime = (date?: Date | string | number | null): string => {
     if (!date) return '';
     const now = new Date();
     const then = new Date(date);
-    const diffInSeconds = Math.floor((now - then) / 1000);
+    const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
 
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
@@ -362,7 +362,7 @@ export const getRelativeTime = (date) => {
 /**
  * Maps technical tool IDs to human-friendly names
  */
-export const TOOL_NAME_MAP = {
+export const TOOL_NAME_MAP: Readonly<Record<string, string>> = {
     'google_search': 'Google Search',
     'terminal_exec': 'Terminal',
     'python_interpreter': 'Python',
@@ -393,10 +393,10 @@ export const TOOL_NAME_MAP = {
  * Returns a human-friendly label for a tool name.
  * Falls back to prettifying the raw name (snake_case → Title Case).
  */
-export const getToolLabel = (name) => {
+export const getToolLabel = (name?: string | null): string => {
     if (!name) return 'Tool';
     if (TOOL_NAME_MAP[name]) return TOOL_NAME_MAP[name];
-    return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return name.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
 };
 
 /**
@@ -406,8 +406,8 @@ export const getToolLabel = (name) => {
  *
  * Returns 'tools.fallback' for unknown tools so AppEmoji renders the generic 🔧.
  */
-export const toolNameToCatalogId = (name) => {
-    const map = {
+export const toolNameToCatalogId = (name?: string | null): string => {
+    const map: Readonly<Record<string, string>> = {
         agent_search: 'tools.search', google_search: 'tools.search', serper_search: 'tools.search',
         scholar_search: 'tools.search', arxiv_search: 'tools.search', pubmed_search: 'tools.search',
         crossref_lookup: 'tools.search',
@@ -434,10 +434,10 @@ export const toolNameToCatalogId = (name) => {
         gamma_list_themes: 'tools.gamma_themes',
         gamma_list_folders: 'tools.gamma_folders',
     };
-    return map[name] || 'tools.fallback';
+    return (name == null ? undefined : map[name]) || 'tools.fallback';
 };
 
-const TOOL_DEFAULT_EMOJI = {
+const TOOL_DEFAULT_EMOJI: Readonly<Record<string, string>> = {
     'tools.search': '🔍', 'tools.web_browser': '🌐', 'tools.terminal': '💻',
     'tools.python': '🐍', 'tools.notebook_write': '📝', 'tools.notebook_attach': '📎',
     'tools.sql': '🗄️', 'tools.file_read': '📂', 'tools.document_reader': '📄',
@@ -454,4 +454,4 @@ const TOOL_DEFAULT_EMOJI = {
  * <AppEmoji id={toolNameToCatalogId(name)} /> so user overrides apply;
  * use this only when you need a synchronous string (logs, plain strings).
  */
-export const getToolIcon = (name) => TOOL_DEFAULT_EMOJI[toolNameToCatalogId(name)] || '🔧';
+export const getToolIcon = (name?: string | null): string => TOOL_DEFAULT_EMOJI[toolNameToCatalogId(name)] || '🔧';

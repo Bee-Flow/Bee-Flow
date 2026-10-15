@@ -294,3 +294,44 @@ describe('useNow / helpers', () => {
         expect(resolveClock({ ...base, state: 'done' }).pct).toBe(1);
     });
 });
+
+/**
+ * `quietUntilMs` quiets an ok clock only when it is a finite number and the
+ * clock is further away than it. Pinned for every kind of input so the guard
+ * can be spelled with a `typeof` check (Number.isFinite is already false for
+ * every non-number).
+ */
+const far = new Date(NOW + 200 * DAY_MS).toISOString();
+
+function quietFor(quietUntilMs) {
+    const { unmount } = render(<DeadlineClock dueAt={far} quietUntilMs={quietUntilMs} variant="inline" testId="c" />);
+    const el = screen.getByTestId('c');
+    const out = { quiet: el.dataset.quiet === 'true', tone: el.dataset.tone, state: el.dataset.state };
+    unmount();
+    return out;
+}
+
+describe('DeadlineClock — quietUntilMs', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(NOW);
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('does not quiet a clock without a usable threshold', () => {
+        for (const bad of [undefined, null, NaN, Infinity, -Infinity, '2592000000', '', true, {}, []]) {
+            expect(quietFor(bad), String(bad)).toEqual({ quiet: false, tone: 'success', state: 'ok' });
+        }
+    });
+
+    it('quiets a clock further away than a finite threshold', () => {
+        expect(quietFor(30 * DAY_MS)).toEqual({ quiet: true, tone: 'neutral', state: 'ok' });
+        expect(quietFor(0)).toEqual({ quiet: true, tone: 'neutral', state: 'ok' });
+        expect(quietFor(-1)).toEqual({ quiet: true, tone: 'neutral', state: 'ok' });
+    });
+
+    it('does not quiet a clock within reach of the threshold', () => {
+        expect(quietFor(200 * DAY_MS)).toEqual({ quiet: false, tone: 'success', state: 'ok' });
+        expect(quietFor(365 * DAY_MS)).toEqual({ quiet: false, tone: 'success', state: 'ok' });
+    });
+});

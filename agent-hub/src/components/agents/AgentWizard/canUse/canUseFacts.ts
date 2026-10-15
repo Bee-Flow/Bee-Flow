@@ -38,16 +38,88 @@
 /** De leesbaarheid van een bron. `LOADING` is nooit hetzelfde als `OK` met nul rijen. */
 export const READ = Object.freeze({ LOADING: 'loading', OK: 'ok', ERROR: 'error' });
 
+export type ReadState = (typeof READ)[keyof typeof READ];
+
+export type DatatableScope = 'own' | 'all';
+
+/** Eén gegunde tabel: `columns` is `'*'` (elke gedeclareerde kolom) of de gekozen lijst. */
+export interface DatatableGrant {
+    id: string;
+    scope: DatatableScope;
+    columns: string[] | '*';
+}
+
+export interface DatatableGrants {
+    grants: DatatableGrant[];
+    /** Het aantal grants dat de runtime NIET meer meeneemt. */
+    truncated: number;
+}
+
+/** Wat een lijst-route per rij kan dragen om op id te indexeren. */
+interface Identified {
+    id?: unknown;
+    ID?: unknown;
+}
+
+/** Een rij van `GET /api/kb?context=agent` (snake_case en camelCase naast elkaar). */
+export interface KnowledgeBaseSource extends Identified {
+    name?: unknown;
+    documentCount?: unknown;
+    document_count?: unknown;
+    lastContentAt?: string | null;
+    last_content_at?: string | null;
+}
+
+export interface KnowledgeBaseRow {
+    id: string;
+    name: string | null;
+    documentCount: number | null;
+    lastContentAt: string | null;
+    readable: boolean;
+}
+
+/** Een rij van `GET /api/datatables`. */
+export interface DatatableSource extends Identified {
+    name?: unknown;
+}
+
+export interface DatatableRow {
+    id: string;
+    name: string | null;
+    scope: DatatableScope;
+    columns: string[] | '*';
+    grantsNothing: boolean;
+    readable: boolean;
+}
+
+/** Een skill zoals de skill-routes hem geven. */
+export interface SkillSource extends Identified {
+    name?: unknown;
+    icon?: unknown;
+    steps?: unknown;
+    rulesV2?: unknown;
+}
+
+export interface SkillRow {
+    id: string;
+    name: string | null;
+    icon: string | null;
+    stepCount: number | null;
+    ruleCount: number | null;
+    otherAgents: number | null;
+    readable: boolean;
+}
+
 /** Spiegelt toolPolicy.js — hoger telt de runtime niet mee. */
 export const MAX_DATATABLE_GRANTS = 25;
 
 /** Spiegelt toolPolicy.js: `scope` is een TOEGANGSvraag, dus onbekend ⇒ de smalle. */
-const DATATABLE_SCOPES = Object.freeze(['own', 'all']);
+const DATATABLE_SCOPES: readonly unknown[] = Object.freeze(['own', 'all']);
 
 /** Sleutels die een gewoon object niet veilig kan dragen (toolPolicy.js). */
-const UNSAFE_OBJECT_KEYS = Object.freeze(new Set(['__proto__', 'constructor', 'prototype']));
+const UNSAFE_OBJECT_KEYS: ReadonlySet<string> = Object.freeze(new Set(['__proto__', 'constructor', 'prototype']));
 
-function isPlainObject(v) {
+function isPlainObject(v: unknown): v is Record<string, unknown> {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
@@ -59,7 +131,7 @@ function isPlainObject(v) {
  * functie hoort tegen te houden: een ontbrekende teller die als "nul
  * documenten" op het scherm komt.
  */
-export function countOrNull(value) {
+export function countOrNull(value?: unknown): number | null {
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
@@ -70,11 +142,11 @@ export function countOrNull(value) {
  * `_datatableColumns` in toolPolicy.js. Onleesbaar ⇒ `[]`, en `[]` betekent
  * daar "geen kolommen", niet "alle".
  */
-export function datatableColumnsOf(raw) {
+export function datatableColumnsOf(raw?: unknown): string[] | '*' {
     if (raw === undefined || raw === null || raw === '*') return '*';
     if (!Array.isArray(raw)) return [];
     const seen = new Set();
-    const out = [];
+    const out: string[] = [];
     for (const c of raw) {
         if (typeof c !== 'string' || !c || seen.has(c)) continue;
         seen.add(c);
@@ -86,24 +158,21 @@ export function datatableColumnsOf(raw) {
 /**
  * De gegunde tabellen uit `config.tools`, als `[{ id, scope, columns }]` in
  * configvolgorde. Nooit een exception: dit draait in een render.
- *
- * @returns {{grants: Array<{id: string, scope: 'own'|'all', columns: string[]|'*'}>, truncated: number}}
- *   `truncated` is het aantal grants dat de runtime NIET meer meeneemt.
  */
-export function datatableGrantsOf(toolsConfig) {
-    const empty = { grants: [], truncated: 0 };
+export function datatableGrantsOf(toolsConfig?: unknown): DatatableGrants {
+    const empty: DatatableGrants = { grants: [], truncated: 0 };
     try {
         if (!isPlainObject(toolsConfig) || !isPlainObject(toolsConfig.datatables)) return empty;
         const allIds = Object.keys(toolsConfig.datatables).filter(id => !UNSAFE_OBJECT_KEYS.has(id));
         const ids = allIds.slice(0, MAX_DATATABLE_GRANTS);
-        const grants = ids.map((id) => {
-            const raw = toolsConfig.datatables[id];
+        const grants = ids.map((id): DatatableGrant => {
+            const raw = (toolsConfig.datatables as Record<string, unknown>)[id];
             // Geen object ⇒ smalst mogelijk, net als de server: de tabel blijft
             // staan (het id is de leesbare helft) maar levert niets.
             if (!isPlainObject(raw)) return { id, scope: 'own', columns: [] };
             return {
                 id,
-                scope: DATATABLE_SCOPES.includes(raw.scope) ? raw.scope : 'own',
+                scope: DATATABLE_SCOPES.includes(raw.scope) ? raw.scope as DatatableScope : 'own',
                 columns: datatableColumnsOf(raw.columns),
             };
         });
@@ -120,9 +189,9 @@ export function datatableGrantsOf(toolsConfig) {
  * levert een LEGE map plus `false` — de aanroeper weet daarmee dat hij niets
  * heeft kunnen indexeren en mag dat niet als "er is niets" lezen.
  */
-function indexById(list) {
+function indexById<T extends Identified>(list: (T | null | undefined)[] | null | undefined): Map<string, T | null | undefined> | null {
     if (!Array.isArray(list)) return null;
-    const map = new Map();
+    const map = new Map<string, T | null | undefined>();
     for (const row of list) {
         const id = row && (row.id ?? row.ID);
         if (typeof id === 'string' && id) map.set(id, row);
@@ -131,9 +200,9 @@ function indexById(list) {
 }
 
 /** Uniek, in volgorde, alleen niet-lege strings. */
-function uniqueIds(ids) {
-    const seen = new Set();
-    const out = [];
+function uniqueIds(ids: unknown): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
     for (const id of Array.isArray(ids) ? ids : []) {
         if (typeof id !== 'string' || !id || seen.has(id)) continue;
         seen.add(id);
@@ -151,10 +220,12 @@ function uniqueIds(ids) {
  * worden gelezen. Een ontbrekende teller wordt `null` en NOOIT 0: "nul
  * documenten" is een bewering over een kennisbank die je dan niet gemeten
  * hebt.
- *
- * @param {{ids: string[], kbs: Array|null, state: string}} p
  */
-export function knowledgeBaseRows({ ids, kbs, state = READ.OK }) {
+export function knowledgeBaseRows({ ids, kbs, state = READ.OK }: {
+    ids?: readonly string[] | null;
+    kbs?: (KnowledgeBaseSource | null | undefined)[] | null;
+    state?: ReadState;
+}): KnowledgeBaseRow[] {
     const linked = uniqueIds(ids);
     const index = state === READ.OK ? indexById(kbs) : null;
     return linked.map((id) => {
@@ -174,10 +245,12 @@ export function knowledgeBaseRows({ ids, kbs, state = READ.OK }) {
  * De tabelrijen: de grants uit de agentconfig, aangevuld met de naam uit
  * `GET /api/datatables` — een route die achter de automations-module hangt,
  * dus de naam ontbreekt geregeld terwijl de grant er wel degelijk is.
- *
- * @param {{toolsConfig: object|null, tables: Array|null, state: string}} p
  */
-export function datatableRows({ toolsConfig, tables, state = READ.OK }) {
+export function datatableRows({ toolsConfig, tables, state = READ.OK }: {
+    toolsConfig?: unknown;
+    tables?: (DatatableSource | null | undefined)[] | null;
+    state?: ReadState;
+}): { rows: DatatableRow[]; truncated: number } {
     const { grants, truncated } = datatableGrantsOf(toolsConfig);
     const index = state === READ.OK ? indexById(tables) : null;
     const rows = grants.map((g) => {
@@ -204,7 +277,7 @@ export function datatableRows({ toolsConfig, tables, state = READ.OK }) {
  * er één af. Onbekend blijft `null`, want een teller die niet gelezen is mag
  * niet als 0 ("verder gebruikt niemand dit") gelezen worden.
  */
-export function otherAgentUsers(count, selfCounted) {
+export function otherAgentUsers(count?: unknown, selfCounted?: boolean): number | null {
     const n = countOrNull(count);
     if (n === null) return null;
     return Math.max(0, n - (selfCounted ? 1 : 0));
@@ -218,12 +291,16 @@ export function otherAgentUsers(count, selfCounted) {
  * (skillStore.mapRow presenteert NULL als `[]`), dus 0 stappen is hier een
  * echte 0 en geen gemis. `usage` is een aparte lezing met een eigen toestand:
  * die kan mislukken terwijl de skills zelf prima gelezen zijn.
- *
- * @param {{ids: string[], skills: Array|null, state: string,
- *          usage: object|null, usageState: string,
- *          savedSkillIds: string[], agentSaved: boolean}} p
  */
-export function skillRows({ ids, skills, state = READ.OK, usage, usageState = READ.OK, savedSkillIds, agentSaved = false }) {
+export function skillRows({ ids, skills, state = READ.OK, usage, usageState = READ.OK, savedSkillIds, agentSaved = false }: {
+    ids?: readonly string[] | null;
+    skills?: (SkillSource | null | undefined)[] | null;
+    state?: ReadState;
+    usage?: unknown;
+    usageState?: ReadState;
+    savedSkillIds?: readonly string[] | null;
+    agentSaved?: boolean;
+}): SkillRow[] {
     const attached = uniqueIds(ids);
     const index = state === READ.OK ? indexById(skills) : null;
     const saved = new Set(uniqueIds(savedSkillIds));
@@ -257,13 +334,13 @@ export function skillRows({ ids, skills, state = READ.OK, usage, usageState = RE
  * Alleen als élke bron gelezen ís én geen enkele rij opleverde. Eén bron die
  * nog laadt of stukging maakt het antwoord onbekend, en onbekend is geen leeg.
  */
-export function isTrulyEmpty(states, rowCounts) {
+export function isTrulyEmpty(states?: ReadState[] | null, rowCounts?: number[] | null): boolean {
     const allRead = (Array.isArray(states) ? states : []).every(s => s === READ.OK);
     const noRows = (Array.isArray(rowCounts) ? rowCounts : []).every(n => n === 0);
     return allRead && noRows;
 }
 
 /** Heeft minstens één van deze bronnen gefaald? */
-export function anyFailed(states) {
+export function anyFailed(states?: ReadState[] | null): boolean {
     return (Array.isArray(states) ? states : []).some(s => s === READ.ERROR);
 }

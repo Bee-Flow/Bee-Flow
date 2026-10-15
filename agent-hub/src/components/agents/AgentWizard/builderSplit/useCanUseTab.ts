@@ -10,6 +10,7 @@ import { useCallback, useMemo } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { useLinkedAutomationIds } from '../../../../api/queries/automation/agentBindings';
 import { INTEGRATION_CATALOG } from '../../AgentDesigner/integrations';
+import type { ReadState } from '../canUse/canUseFacts';
 import { READ, datatableGrantsOf, datatableRows, knowledgeBaseRows, skillRows } from '../canUse/canUseFacts';
 import { CHOOSER_SECTION } from '../canUse/toolChooser';
 import { automationGrantsOf, automationRows, keepRequiresGrantApps, setAppActAs, setAppConfirm, toolRows } from '../canUse/toolGrants';
@@ -36,7 +37,7 @@ export interface CanUseTabDeps {
     attachedSkillIds: Loose[];
     knowledgeBaseIds: Loose[];
     allKbs: Loose;
-    kbsState: string;
+    kbsState: ReadState;
     allSkills: Loose[] | null;
     automations: Loose[];
     stateRef: MutableRefObject<Loose>;
@@ -130,7 +131,7 @@ function useOpenChooser(d: CanUseTabDeps) {
     }, []);
 }
 
-/** The rows of the knowledge and skills cards: pure, see canUse/canUseFacts.js. */
+/** The rows of the knowledge and skills cards: pure, see canUse/canUseFacts.ts. */
 function knowledgeAndSkillRows(d: CanUseTabDeps, tables: Loose, tablesState: Loose, usage: { skillUsage: Loose; skillUsageState: Loose }) {
     const { agent, toolsConfig, allSkills } = d;
     // The LINK comes from the config and is always known; the NAMES come from

@@ -1,7 +1,8 @@
 /**
  * Studio object kinds: the ONE place a kind becomes a colour, a glyph and a
- * tile shape. Port of agent-hub/src/components/shared/kindColors.js, pinned to
- * it by kinds.lockstep.test.ts (keys, rail order, tokens, glyphs, aliases).
+ * tile shape. Port of agent-hub/src/components/shared/kindColors.ts, pinned to
+ * it by kinds.lockstep.test.ts (tokens, glyphs); the keys and aliases are the
+ * web's own table, generated into mirror/kindKeys.ts (npm run gen:shared).
  *
  * A kind is a thing you MAKE in Studio — automation, table, app, webpage,
  * document, form, agent, skill, knowledge base, meeting note, playbook,
@@ -19,16 +20,11 @@
 import type { Theme } from '@/core/theme/ThemeProvider';
 
 import type { IconName } from './icons/Icon';
+import { KIND_ALIASES, KIND_KEYS } from './mirror/kindKeys';
+import type { KindKey } from './mirror/kindKeys';
 
-/** The thirteen kinds, in rail order: build, AI, bundle — then the one area you administer. */
-export const KIND_KEYS = [
-    'automation', 'datatable', 'app', 'webpage', 'document', 'form',
-    'agent', 'skill', 'kb', 'meeting',
-    'playbook', 'solution',
-    'compliance',
-] as const;
-
-export type KindKey = (typeof KIND_KEYS)[number];
+export { KIND_ALIASES, KIND_KEYS };
+export type { KindKey };
 
 /** The web's CSS variable per kind (kindColors.js KIND_VAR, without the `var()`). */
 export const KIND_TOKEN: Record<KindKey, string> = {
@@ -63,24 +59,6 @@ export const KIND_ICON: Record<KindKey, IconName> = {
     playbook: 'Clapperboard',
     solution: 'Package',
     compliance: 'Scale',
-};
-
-/** The names the rest of the product uses for these objects, folded onto the keys. */
-export const KIND_ALIASES: Readonly<Record<string, KindKey>> = {
-    automations: 'automation', automation: 'automation', flow: 'automation',
-    datatables: 'datatable', table: 'datatable', tables: 'datatable', data_table: 'datatable',
-    apps: 'app', application: 'app',
-    webpages: 'webpage', web: 'webpage', page: 'webpage', pages: 'webpage', website: 'webpage',
-    documents: 'document', doc: 'document', invoice: 'document', quote: 'document', letter: 'document',
-    forms: 'form', form_page: 'form',
-    agents: 'agent', assistant: 'agent',
-    skills: 'skill',
-    kbs: 'kb', knowledge: 'kb', knowledge_base: 'kb', knowledge_bases: 'kb', knowledgebase: 'kb',
-    meetings: 'meeting', meet: 'meeting', meeting_note: 'meeting', meeting_notes: 'meeting',
-    transcription: 'meeting', transcriptions: 'meeting',
-    playbooks: 'playbook', recipe: 'playbook',
-    solutions: 'solution', bundle: 'solution',
-    compliance_hub: 'compliance', gdpr: 'compliance', privacy: 'compliance',
 };
 
 export type KindInput =

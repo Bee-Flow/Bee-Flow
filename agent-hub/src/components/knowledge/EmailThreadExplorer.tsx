@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import type { AuthFetchOptions } from '../../utils/helpers';
 import { API_BASE } from '../../utils/helpers';
 import { ChevronDown, ChevronRight, Mail } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -17,7 +18,7 @@ export interface EmailThreadDoc {
 
 interface EmailThreadExplorerProps {
     kbId: string;
-    authFetch: (url: string, init?: RequestInit) => Promise<Response>;
+    authFetch: (url: string, init?: AuthFetchOptions) => Promise<Response>;
     onOpenDoc?: (doc: EmailThreadDoc) => void;
 }
 

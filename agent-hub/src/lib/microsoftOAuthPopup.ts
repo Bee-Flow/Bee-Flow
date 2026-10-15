@@ -6,6 +6,8 @@
 //   { type: 'microsoft-callback', success: boolean }
 // to window.opener and closes itself.
 
+import type { AuthFetchOptions } from '../utils/helpers';
+
 const POPUP_NAME = 'microsoft-oauth';
 const POPUP_WIDTH = 600;
 const POPUP_HEIGHT = 700;
@@ -32,7 +34,7 @@ interface AuthFetchResponse {
 }
 
 export interface OpenMicrosoftOAuthPopupOptions {
-    authFetch: (url: string, init?: RequestInit) => Promise<AuthFetchResponse>;
+    authFetch: (url: string, init?: AuthFetchOptions) => Promise<AuthFetchResponse>;
     apiBase: string;
     onDone?: (result: MicrosoftOAuthResult) => void;
     onOpened?: () => void;
