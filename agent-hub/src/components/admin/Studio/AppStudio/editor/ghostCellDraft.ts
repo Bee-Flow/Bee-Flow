@@ -54,7 +54,7 @@ export interface GhostCell {
 const KINDS_ON_CANVAS = new Set(['component']);
 
 function sectionIdsOf(screen: AppScreen | null | undefined): Set<string> {
-    return new Set((screen && Array.isArray(screen.sections) ? screen.sections : []).map((s) => s && s.id).filter((id): id is string => Boolean(id)));
+    return new Set((screen && Array.isArray(screen.sections) ? screen.sections : []).map((s) => s && s.id).filter(Boolean) as string[]);
 }
 
 /**
@@ -66,13 +66,12 @@ function ghostSectionFor(parent: string | null | undefined, definition: AppDefin
         if (found && found.screen && found.section) return found.screen.id === screen.id ? found.section.id : null;
         if (findSection(definition, parent)) return null; // a section of another screen
     }
-    const screenSections = screen.sections as AppSection[];
-    return screenSections[screenSections.length - 1].id as string;
+    return (screen.sections as AppSection[])[(screen.sections as AppSection[]).length - 1].id as string;
 }
 
 export function projectGhostCell(toolDraft: ToolDraft | null | undefined, definition: AppDefinition | null | undefined, activeScreenId: string | null | undefined, t: TranslateFn | null = null): GhostCell | null {
     if (!toolDraft || toolDraft.name !== 'app_add_components') return null;
-    const items: ToolDraftItem[] = Array.isArray(toolDraft.items) ? toolDraft.items.filter((i): i is ToolDraftItem => !!i && KINDS_ON_CANVAS.has(i.kind as string)) : [];
+    const items: ToolDraftItem[] = Array.isArray(toolDraft.items) ? (toolDraft.items.filter((i) => i && KINDS_ON_CANVAS.has(i.kind as string)) as ToolDraftItem[]) : [];
     if (!items.length) return null;
     const screen = findScreen(definition, activeScreenId);
     if (!screen) return null;
@@ -90,9 +89,8 @@ export function projectGhostCell(toolDraft: ToolDraft | null | undefined, defini
     if (!sectionId) return null;
 
     const last = items[items.length - 1];
-    const registry = APP_COMPONENT_TYPES as Record<string, ComponentEntry | undefined>;
-    const type = typeof last.type === 'string' && registry[last.type] ? last.type : null;
-    const entry = type ? registry[type] : null;
+    const type = typeof last.type === 'string' && (APP_COMPONENT_TYPES as Record<string, ComponentEntry | undefined>)[last.type] ? last.type : null;
+    const entry = type ? (APP_COMPONENT_TYPES as Record<string, ComponentEntry | undefined>)[type] : null;
     const typeLabel = entry ? (entry.label || type) : (t ? t('app_studio.builder.draft.component', 'Component') : 'Component');
     const span = entry && entry.defaultStyle && Number.isFinite(entry.defaultStyle.span) ? (entry.defaultStyle.span as number) : 12;
     const index = items.length;

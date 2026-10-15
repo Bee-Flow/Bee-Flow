@@ -148,8 +148,7 @@ export function bannerState(cue: CueView | null | undefined, prev: BannerState |
     if (cue && cue.running) return { kind: 'live', cue, endedAt: null, farewell: null };
     if (prev && prev.kind === 'live') {
         // The build just ended: freeze what it was into the farewell.
-        const was = prev.cue as CueView;
-        return { kind: 'farewell', cue: null, endedAt: now, farewell: { startedAt: was.startedAt, finalized: !!(cue && cue.finalized), stopped: !!(cue && cue.stopped), componentCount: cue ? cue.componentCount : was.componentCount, screenCount: cue ? cue.screenCount : was.screenCount } };
+        return { kind: 'farewell', cue: null, endedAt: now, farewell: { startedAt: (prev.cue as CueView).startedAt, finalized: !!(cue && cue.finalized), stopped: !!(cue && cue.stopped), componentCount: cue ? cue.componentCount : (prev.cue as CueView).componentCount, screenCount: cue ? cue.screenCount : (prev.cue as CueView).screenCount } };
     }
     if (prev && prev.kind === 'farewell' && now - (prev.endedAt as number) < FAREWELL_MS) return prev;
     return { kind: 'none', cue: null, endedAt: null, farewell: null };

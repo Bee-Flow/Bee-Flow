@@ -229,7 +229,7 @@ function roleMappingOf(model: AccessModel | null | undefined): { fallback: strin
 function groupNamer(groups: AccessGroup[] | null | undefined, t: Translate | null): (ids: unknown[]) => string {
     const byId = new Map((Array.isArray(groups) ? groups : []).map((g): [string, string | undefined] => [String(g?.id), g?.name]));
     return (ids) => {
-        const named = ids.map((id) => byId.get(String(id))).filter((n): n is string => Boolean(n));
+        const named = ids.map((id) => byId.get(String(id))).filter(Boolean) as string[];
         // The group directory needs org-admin rights the owner may not hold.
         return named.length > 0 ? joinNames(named, t) : tr(t, 'studio_apps_edit.access_summary.a_group', 'a group you gave a role');
     };

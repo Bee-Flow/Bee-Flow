@@ -54,7 +54,7 @@ function typingTarget(definition: AppDefinition, toolDraft: BuildScreenCue['tool
 
 function addedScreenTarget(definition: AppDefinition, lastCall: BuildScreenCue['lastCall'], reveal: BuildScreenCue['reveal']): string | null {
     const added = lastCall && Array.isArray(lastCall.added) ? lastCall.added : [];
-    const screenAdded = added.find((a): a is { type?: string; id: string } => !!a && a.type === 'screen' && typeof a.id === 'string');
+    const screenAdded = added.find((a) => a && a.type === 'screen' && typeof a.id === 'string') as { id: string } | undefined;
     if (screenAdded && findScreen(definition, screenAdded.id)) return screenAdded.id;
     const planScreens = reveal && reveal.plan && Array.isArray(reveal.plan.screens) ? reveal.plan.screens : [];
     return planScreens.find((id) => findScreen(definition, id)) || null;

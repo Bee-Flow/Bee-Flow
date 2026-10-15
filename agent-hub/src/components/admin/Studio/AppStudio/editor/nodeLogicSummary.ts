@@ -58,7 +58,7 @@ export interface LogicMark {
  * fills the {placeholders} in, so a summary reads exactly as it did before
  * this module learned to translate.
  */
-const EN_ONLY: Translate = (_key, en, params) => (params && typeof params === 'object'
+const EN_ONLY: Translate = (key, en, params) => (params && typeof params === 'object'
     ? Object.entries(params).reduce(
         (out, [k, v]) => out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v)),
         String(en),

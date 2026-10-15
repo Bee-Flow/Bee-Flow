@@ -27,12 +27,12 @@ export interface SaveNotice {
  * the list the save pill shows. Server entries are { code, path, message, hint? };
  * repairs carry no hint. Entries without a message have nothing to say.
  */
+type Notices = { errors?: unknown; warnings?: unknown; repairs?: unknown };
+
 export function toSaveNotices(payload: unknown): SaveNotice[] {
-    const notices = payload as { errors?: unknown; warnings?: unknown; repairs?: unknown } | null | undefined;
     const out: SaveNotice[] = [];
     const take = (list: unknown, kind: SaveNotice['kind']) => {
-        const items: unknown[] = Array.isArray(list) ? list : [];
-        for (const raw of items) {
+        for (const raw of (Array.isArray(list) ? list : []) as unknown[]) {
             const entry = (typeof raw === 'string' ? { message: raw } : (raw || {})) as { message?: unknown; hint?: unknown; path?: unknown; code?: unknown };
             const message = typeof entry.message === 'string' ? entry.message.trim() : '';
             const hint = typeof entry.hint === 'string' ? entry.hint.trim() : '';
@@ -52,9 +52,9 @@ export function toSaveNotices(payload: unknown): SaveNotice[] {
             });
         }
     };
-    take(notices?.errors, 'error');
-    take(notices?.warnings, 'warning');
-    take(notices?.repairs, 'repair');
+    take((payload as Notices | null | undefined)?.errors, 'error');
+    take((payload as Notices | null | undefined)?.warnings, 'warning');
+    take((payload as Notices | null | undefined)?.repairs, 'repair');
     return out;
 }
 

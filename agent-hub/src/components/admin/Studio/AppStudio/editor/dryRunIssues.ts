@@ -63,7 +63,7 @@ interface DryRunEntry {
  * learned to translate. The sibling editor/nodeLogicSummary.js carries the same
  * stand-in, for the same reason.
  */
-const EN_ONLY: Translate = (_key, en, params) => (params && typeof params === 'object'
+const EN_ONLY: Translate = (key, en, params) => (params && typeof params === 'object'
     ? Object.entries(params).reduce(
         (out, [k, v]) => out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v)),
         String(en),
@@ -181,9 +181,9 @@ export default function dryRunIssues(result: DryRunResult | null | undefined, de
 }
 
 function asList<T extends object>(v: unknown): T[] {
-    return Array.isArray(v) ? v.filter((x): x is T => !!x && typeof x === 'object') : [];
+    return Array.isArray(v) ? (v.filter((x) => x && typeof x === 'object') as T[]) : [];
 }
 
 function reasons(v: unknown): string {
-    return (Array.isArray(v) ? v : []).filter((s): s is string => typeof s === 'string' && s.trim() !== '').join('; ');
+    return (Array.isArray(v) ? v : []).filter((s) => typeof s === 'string' && s.trim()).join('; ');
 }

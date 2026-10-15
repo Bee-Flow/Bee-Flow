@@ -52,9 +52,8 @@ interface HotkeyContext {
  */
 
 function isTyping(target: EventTarget | null): boolean {
-    const el = target as HTMLElement | null;
-    const tag = el?.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!el?.isContentEditable;
+    const tag = (target as HTMLElement | null)?.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!(target as HTMLElement | null)?.isContentEditable;
 }
 
 export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlush, onCommit, onCommandPalette, onTogglePresenter }: {

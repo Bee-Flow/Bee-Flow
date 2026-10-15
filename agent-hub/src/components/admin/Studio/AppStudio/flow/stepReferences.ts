@@ -83,8 +83,8 @@ export function referenceText(entry: RefText | null | undefined, t: Translate | 
  * still has holes to fill, and the alternative is opening both in another tab.
  */
 export function documentOptions(documents: Array<DocLike | null | undefined> | null | undefined, t: Translate | null = null): RefOption[] {
-    return (Array.isArray(documents) ? documents : [])
-        .filter((d): d is DocLike => !!d && typeof d.id === 'string')
+    return ((Array.isArray(documents) ? documents : [])
+        .filter((d) => !!d && typeof d.id === 'string') as DocLike[])
         .map((d) => ({
             id: d.id as string,
             label: d.placeholders?.length
@@ -127,46 +127,47 @@ interface WalkNode {
     children?: WalkNode[];
 }
 
+type TitleProps = { title?: unknown; heading?: unknown; label?: unknown };
+
 /** A dialog's own title, falling back to its id so it stays identifiable. */
 function modalLabel(node: WalkNode | null | undefined): string {
-    const props = node?.props as { title?: unknown; heading?: unknown; label?: unknown } | undefined;
-    const title = props?.title || props?.heading || props?.label;
-    return (typeof title === 'string' && title.trim()) ? title.trim() : node?.id as string;
+    const title = (node?.props as TitleProps | undefined)?.title || (node?.props as TitleProps | undefined)?.heading || (node?.props as TitleProps | undefined)?.label;
+    return (typeof title === 'string' && title.trim()) ? title.trim() : (node as WalkNode).id as string;
 }
 
 /** Screens as { id, label } — `name` is what the author typed on the tab. */
 export function screenOptions(screens: Array<{ id?: unknown; name?: string } | null | undefined> | null | undefined): RefOption[] {
-    return (Array.isArray(screens) ? screens : [])
-        .filter((s) => s && typeof s.id === 'string')
-        .map((s) => ({ id: (s as { id: string }).id, label: (s?.name || s?.id) as string }));
+    return ((Array.isArray(screens) ? screens : [])
+        .filter((s) => s && typeof s.id === 'string') as Array<{ id: string; name?: string }>)
+        .map((s) => ({ id: s.id, label: s.name || s.id }));
 }
 
 /** Tables as { id, label }. The data model calls the human name `name`. */
 export function tableOptions(tables: Array<{ id?: string; key?: string; name?: string; label?: string } | null | undefined> | null | undefined): RefOption[] {
-    return (Array.isArray(tables) ? tables : [])
-        .filter((t) => t && (typeof t.id === 'string' || typeof t.key === 'string'))
-        .map((t) => ({ id: (t?.id ?? t?.key) as string, label: (t?.name || t?.label || t?.key || t?.id) as string }));
+    return ((Array.isArray(tables) ? tables : [])
+        .filter((t) => t && (typeof t.id === 'string' || typeof t.key === 'string')) as Array<{ id: string; key: string; name?: string; label?: string }>)
+        .map((t) => ({ id: t.id ?? t.key, label: t.name || t.label || t.key || t.id }));
 }
 
 /** Saved datasets as { id, label }. */
 export function datasetOptions(datasets: Array<{ id?: string; name?: string; title?: string } | null | undefined> | null | undefined): RefOption[] {
-    return (Array.isArray(datasets) ? datasets : [])
-        .filter((d) => d && typeof d.id === 'string')
-        .map((d) => ({ id: (d as { id: string }).id, label: (d?.name || d?.title || d?.id) as string }));
+    return ((Array.isArray(datasets) ? datasets : [])
+        .filter((d) => d && typeof d.id === 'string') as Array<{ id: string; name?: string; title?: string }>)
+        .map((d) => ({ id: d.id, label: d.name || d.title || d.id }));
 }
 
 /** Automations as { id, label }. */
 export function automationOptions(automations: Array<{ id?: string; title?: string; name?: string } | null | undefined> | null | undefined): RefOption[] {
-    return (Array.isArray(automations) ? automations : [])
-        .filter((a) => a && typeof a.id === 'string')
-        .map((a) => ({ id: a?.id as string, label: (a?.title || a?.name || a?.id) as string }));
+    return ((Array.isArray(automations) ? automations : [])
+        .filter((a) => a && typeof a.id === 'string') as Array<{ id: string; title?: string; name?: string }>)
+        .map((a) => ({ id: a.id, label: a.title || a.name || a.id }));
 }
 
 /** Connectors as { id, label }. */
 export function connectorOptions(connectors: Array<{ id?: string; name?: string; kind?: string } | null | undefined> | null | undefined): RefOption[] {
-    return (Array.isArray(connectors) ? connectors : [])
-        .filter((c) => c && typeof c.id === 'string')
-        .map((c) => ({ id: c?.id as string, label: (c?.name || c?.kind || c?.id) as string }));
+    return ((Array.isArray(connectors) ? connectors : [])
+        .filter((c) => c && typeof c.id === 'string') as Array<{ id: string; name?: string; kind?: string }>)
+        .map((c) => ({ id: c.id, label: c.name || c.kind || c.id }));
 }
 
 /**
@@ -202,12 +203,12 @@ export function isDanglingRef(options: RefOption[] | null | undefined, id: strin
  * must emit while showing `name`.
  */
 export function columnOptions(fields: Array<{ key?: string; name?: string; type?: string | null; required?: boolean } | null | undefined> | null | undefined): Array<{ key: string; label: string; type: string | null; required: boolean }> {
-    return (Array.isArray(fields) ? fields : [])
-        .filter((f) => f && typeof f.key === 'string')
+    return ((Array.isArray(fields) ? fields : [])
+        .filter((f) => f && typeof f.key === 'string') as Array<{ key: string; name?: string; type?: string | null; required?: boolean }>)
         .map((f) => ({
-            key: f?.key as string,
-            label: (f?.name || f?.key) as string,
-            type: (f as { type?: string | null }).type || null,
-            required: !!(f as { required?: boolean }).required,
+            key: f.key,
+            label: f.name || f.key,
+            type: f.type || null,
+            required: !!f.required,
         }));
 }
