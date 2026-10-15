@@ -14,7 +14,7 @@ export default function ArrangeMenu({ onArrange }: { onArrange?: ((mode: string)
     const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (!open) return undefined;
-        const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+        const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node | null)) setOpen(false); };
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         document.addEventListener('mousedown', onDoc, true);
         document.addEventListener('keydown', onKey);

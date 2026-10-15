@@ -19,7 +19,7 @@ export const EDGE_COLOR_KEYS = Object.keys(STATUS_COLORS);
 /** Palette key -> hex; anything else (typos, legacy junk, null) -> null. */
 export function resolveEdgeColor(key: unknown): string | null {
     if (typeof key !== 'string') return null;
-    return (STATUS_COLORS as Record<string, string>)[key] ?? null;
+    return (STATUS_COLORS as Record<string, string | undefined>)[key] ?? null;
 }
 
 /**

@@ -275,7 +275,7 @@ function AppsTree({ categories, onAdd }: { categories: AppCategory[]; onAdd: Add
     );
 }
 
-function AppRow({ app, isOpen, onToggle, onAdd }: { app: RibbonApp & { connected?: boolean }; isOpen: boolean; onToggle: () => void; onAdd: AddFn }) {
+function AppRow({ app, isOpen, onToggle, onAdd }: { app: RibbonApp; isOpen: boolean; onToggle: () => void; onAdd: AddFn }) {
     const { t } = useTranslation();
     const notConnected = app.connected === false;
     const primary = app.actions[0];

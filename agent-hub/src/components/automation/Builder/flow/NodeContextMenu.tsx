@@ -38,7 +38,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
 
     // Dismiss on outside click, Escape, scroll, or canvas pan.
     useEffect(() => {
-        const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) onClose(); };
+        const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node | null)) onClose(); };
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
         document.addEventListener('mousedown', onDown);
         document.addEventListener('keydown', onKey);

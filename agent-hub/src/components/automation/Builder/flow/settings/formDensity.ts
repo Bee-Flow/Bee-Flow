@@ -44,6 +44,9 @@ export const FORM_MODES = ['simple', 'advanced'];
 
 export type FormMode = 'simple' | 'advanced';
 
+/** How BIG the drawer is. */
+export type FormDensity = 'quick' | 'full';
+
 /** What the sections read from the drawer: the gesture's density, the user's mode, the host's counters. */
 export interface FormDensityValue {
     /** 'quick' or 'full' (anything else resolves like 'full'). */
@@ -74,7 +77,7 @@ export function resolveMode({ mode, density }: FormDensityValue = {}): FormMode 
  * rule — that fallback is the documented default, not an omission.
  */
 export function hiddenInSimple(stepType: string, sectionKey: string): boolean {
-    const simple = (NODE_DEFS as Record<string, { simpleSections?: string[] } | undefined>)[stepType]?.simpleSections;
+    const simple = (NODE_DEFS as Record<string, { simpleSections?: string[]; [key: string]: unknown } | undefined>)[stepType]?.simpleSections;
     if (Array.isArray(simple)) return !simple.includes(sectionKey);
     return isAdvancedSection(sectionKey);
 }
@@ -90,7 +93,7 @@ export function hiddenInSimple(stepType: string, sectionKey: string): boolean {
  * the memory (the Incoming / Continues-on states were already remembered),
  * and a double click still forces the full view.
  */
-export function densityForOpen(requested?: string | null, remembered: string | null = null): 'quick' | 'full' {
+export function densityForOpen(requested?: string | null, remembered: string | null = null): FormDensity {
     if (requested === 'full') return 'full';
     return remembered === 'full' ? 'full' : 'quick';
 }

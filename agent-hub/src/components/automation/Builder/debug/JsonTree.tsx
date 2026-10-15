@@ -42,7 +42,7 @@ interface JsonTreeProps {
     value?: unknown;
     basePath?: string;
     searchable?: boolean;
-    onCopyPath?: (path: string) => void;
+    onCopyPath?: ((path: string) => void) | null;
     maxInitialDepth?: number;
     emptyMessage?: string;
 }
@@ -200,7 +200,7 @@ interface TreeNodeProps {
     nodeKey: string;
     depth: number;
     maxInitialDepth: number;
-    onCopyPath?: (path: string) => void;
+    onCopyPath?: ((path: string) => void) | null;
     matches: Set<string> | null;
 }
 

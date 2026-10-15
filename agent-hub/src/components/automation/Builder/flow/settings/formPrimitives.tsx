@@ -8,6 +8,7 @@
 import React, { useEffect, useId, useRef, type ReactNode } from 'react';
 import { AlertTriangle, Info } from 'lucide-react';
 import FieldHint from '../FieldHint';
+import type { StepIssue } from '../nodes/nodeProps';
 import { humanizeIssueText } from '../displayHelpers';
 import { FormRowLabelContext } from '../../mapping/FormRowLabelContext';
 import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
@@ -37,13 +38,7 @@ interface FormRowProps {
 }
 
 /** One validation record as the drawer prints it; saved ones may lack any member. */
-interface ValidationLineRecord {
-    severity?: string;
-    message?: string;
-    hint?: string | null;
-    code?: string | null;
-    [key: string]: unknown;
-}
+type ValidationLineRecord = Partial<StepIssue> & { severity?: string; hint?: string | null };
 
 /**
  * Labelled field row.

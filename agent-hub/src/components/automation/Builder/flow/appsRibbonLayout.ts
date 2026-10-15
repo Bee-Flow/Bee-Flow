@@ -11,6 +11,8 @@
  * categories stand on the row one by one, under their full names.
  */
 
+import type { AppCategory } from './ribbon/ribbonCategories';
+
 /** A category with this many apps is a suite: one pill of its own. */
 export const SUITE_MIN_APPS = 3;
 
@@ -22,12 +24,6 @@ export const SUITE_MIN_APPS = 3;
  */
 export const OTHER_CATEGORY = 'Other';
 
-/** An orderedAppCategories() entry. */
-export interface CategoryGroup {
-    category: string;
-    apps: object[];
-}
-
-export function isSuite(group?: Partial<CategoryGroup> | null): boolean {
+export function isSuite(group?: Partial<AppCategory> | null): boolean {
     return group?.category !== OTHER_CATEGORY && (group?.apps || []).length >= SUITE_MIN_APPS;
 }
