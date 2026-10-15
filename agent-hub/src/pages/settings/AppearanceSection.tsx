@@ -5,6 +5,7 @@ import PresetCard from '../../components/appearance/studio/shared/PresetCard';
 import WallpaperPresets from '../../components/appearance/WallpaperPresets';
 import { toast } from '../../components/shared/Toast';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { ThemeSettings } from '../../components/appearance/ThemeContext.types';
 
 /**
  * AppearanceSection — user-facing theme overrides. End users pick a theme
@@ -54,7 +55,7 @@ export default function AppearanceSection() {
 
     const isGlassPreset = theme.preset === 'glass' || theme.preset === 'glass-dark';
 
-    const apply = async (patch: Record<string, unknown>, message?: string) => {
+    const apply = async (patch: Partial<ThemeSettings>, message?: string) => {
         setBusy(true);
         try {
             await theme.setUserOverride(patch);

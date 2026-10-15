@@ -24,7 +24,7 @@ export interface TextStyleInput {
  * It is applied as `text-align` directly on the text element, so each
  * field aligns independently of any block-level wrapper.
  */
-export function inlineTextStyle(style: TextStyleInput | null | undefined, align?: string | null): CSSProperties | undefined {
+export function inlineTextStyle(style: TextStyleInput | null | undefined, align?: string): CSSProperties | undefined {
     const out: CSSProperties = {};
     if (style && typeof style === 'object') {
         if (typeof style.fontFamily === 'string' && style.fontFamily.trim()) {
