@@ -2,17 +2,37 @@
 // verbatim from ChatModelTiersConfig.jsx; all bindings are threaded in as
 // props.
 import React from 'react';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { TierConfig, CustomTier, StatusMessage } from './tierTypes';
+import type { ClaudeSettingsState } from './useClaudeSettings';
+import type { CustomTiersState } from './useCustomTiers';
+import type { TierConfigsState } from './useTierConfigs';
 import { TIERS } from './constants';
 import CustomTierEuRow from './CustomTierEuRow';
 import TierCard from './TierCard';
 import { useTranslation } from '../../../../hooks/useTranslation';
+
+interface EuTiersSectionProps extends ModelPickerSource {
+    euConfig: TierConfig;
+    customTiers: CustomTier[];
+    euSaving: boolean;
+    euMessage: StatusMessage | null;
+    saveEu: TierConfigsState['saveEu'];
+    updateEuTier: TierConfigsState['updateEuTier'];
+    expandedTier: TierConfigsState['expandedTier'];
+    setExpandedTier: TierConfigsState['setExpandedTier'];
+    isLocal: (id: string) => boolean;
+    reasoningCapable: (id: string) => boolean;
+    applyClaudeRecommendedForTier: ClaudeSettingsState['applyClaudeRecommendedForTier'];
+    updateCustomTier: CustomTiersState['updateCustomTier'];
+}
 
 export default function EuTiersSection({
     euConfig, customTiers, euSaving, euMessage, saveEu, updateEuTier,
     expandedTier, setExpandedTier, chatModels, byProvider,
     hiddenModelIds, toggleHiddenModel, isLocal, reasoningCapable,
     applyClaudeRecommendedForTier, updateCustomTier,
-}) {
+}: EuTiersSectionProps) {
     const { t } = useTranslation();
     return (
             <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>

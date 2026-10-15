@@ -15,7 +15,17 @@
 
 import React, { useState } from 'react';
 
-const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow, className = 'relative flex-1' }) => {
+interface SecretInputProps {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    onEnter?: () => void;
+    show?: boolean;
+    onToggleShow?: (show: boolean) => void;
+    className?: string;
+}
+
+const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow, className = 'relative flex-1' }: SecretInputProps) => {
     const [internalShow, setInternalShow] = useState(false);
     const isControlled = show !== undefined;
     const visible = isControlled ? show : internalShow;
@@ -30,11 +40,11 @@ const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow
             <input
                 type={visible ? 'text' : 'password'}
                 value={value}
-                onChange={e => onChange(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
                 placeholder={placeholder}
                 className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm pr-10"
                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
-                onKeyDown={onEnter ? (e => e.key === 'Enter' && onEnter()) : undefined}
+                onKeyDown={onEnter ? ((e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && onEnter()) : undefined}
             />
             <button
                 type="button"

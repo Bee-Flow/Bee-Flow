@@ -1,8 +1,10 @@
 // Bundled model metadata + capability detectors for the chat-model-tier admin
 // panel. Moved verbatim from ChatModelTiersConfig.jsx; only the `export`
 // keywords are new.
+import type { ModelMeta } from '../../../../utils/modelMeta';
+
 // Reuse model metadata from AIConfigPanel
-export const getModelMeta = (id) => {
+export const getModelMeta = (id: string): ModelMeta | null => {
     const meta = MODEL_META[id];
     if (meta) return meta;
     const prefixes = Object.keys(MODEL_META).sort((a, b) => b.length - a.length);
@@ -15,7 +17,7 @@ export const getModelMeta = (id) => {
 };
 
 // Detect models that support OpenAI reasoning settings
-export const isReasoningCapable = (modelId) => {
+export const isReasoningCapable = (modelId: string | null | undefined) => {
     if (!modelId) return false;
     if (/^o\d/.test(modelId)) return true;                          // o1, o3, o4-mini, etc.
     if (/^gpt-[5-9]/.test(modelId)) return true;                    // GPT-5, 5.6, 6 and later
@@ -26,7 +28,7 @@ export const isReasoningCapable = (modelId) => {
 };
 
 // Detect Claude models specifically (they use adaptive thinking with effort levels)
-export const isClaudeReasoning = (modelId) => {
+export const isClaudeReasoning = (modelId: string | null | undefined) => {
     if (!modelId) return false;
     if (/^claude-haiku-4-5/.test(modelId)) return false;
     return /^claude-(opus|sonnet)-[45]/.test(modelId) || /^claude-(fable|mythos)/.test(modelId);
@@ -43,24 +45,24 @@ export const isClaudeReasoning = (modelId) => {
 // reason — the old pattern spelled the Opus generation as `4-[78]`, which no
 // 5-series id can match. Kept in sync with
 // server/core/providers/claudeModels.js (describeClaudeModel().adaptiveOnly).
-export const isClaudeAdaptiveOnly = (modelId) =>
+export const isClaudeAdaptiveOnly = (modelId: string | null | undefined) =>
     /^claude-(opus-(4-[78]|[5-9])|sonnet-[5-9]|fable|mythos)/.test(modelId || '');
 
 // Any Claude model (used to show Claude-specific tier settings inline)
-export const isClaudeModel = (modelId) => /^claude-/.test(modelId || '');
+export const isClaudeModel = (modelId: string | null | undefined) => /^claude-/.test(modelId || '');
 
 // OpenAI reasoning models (o-series + GPT-5 and later)
-export const isOpenAIReasoning = (modelId) => /^gpt-[5-9]|^o\d/.test(modelId || '');
+export const isOpenAIReasoning = (modelId: string | null | undefined) => /^gpt-[5-9]|^o\d/.test(modelId || '');
 // The GPT-5.0–5.5 line: the only one with a 'minimal' tier and a verbosity knob.
-export const isGpt5 = (modelId) => /^gpt-5/.test(modelId || '') && !isGpt56Plus(modelId);
+export const isGpt5 = (modelId: string | null | undefined) => /^gpt-5/.test(modelId || '') && !isGpt56Plus(modelId);
 // Pro models reason at 'high' only (gpt-5-pro, gpt-5.2-pro, gpt-5.4-pro, …)
-export const isGpt5Pro = (modelId) => /^gpt-\d(\.\d+)?-pro$/.test(modelId || '');
+export const isGpt5Pro = (modelId: string | null | undefined) => /^gpt-\d(\.\d+)?-pro$/.test(modelId || '');
 // Only codex-max accepts the 'xhigh' effort tier, on the pre-5.6 line
-export const isCodexMax = (modelId) => /codex-max/.test(modelId || '');
+export const isCodexMax = (modelId: string | null | undefined) => /codex-max/.test(modelId || '');
 
 // gpt-5.6 and everything after it. A separate generation, not a point release:
 // 'minimal' is gone, 'xhigh'/'max' are general, and there is no verbosity knob.
-export const isGpt56Plus = (modelId) => {
+export const isGpt56Plus = (modelId: string | null | undefined) => {
     const m = /^gpt-(\d+)(?:\.(\d+))?/.exec(modelId || '');
     if (!m) return false;
     const major = Number(m[1]);
@@ -69,12 +71,12 @@ export const isGpt56Plus = (modelId) => {
 };
 
 // gpt-6 and later drop the 'none' effort entirely — asking for it is a 400.
-export const hasNoneEffort = (modelId) => !/^gpt-[6-9]/.test(modelId || '');
+export const hasNoneEffort = (modelId: string | null | undefined) => !/^gpt-[6-9]/.test(modelId || '');
 
 // Labels for an effort vocabulary the server stamped on a model (`efforts`
 // in its /models entry — Mistral's none/high). The server maps any other
 // value onto the nearest of these, so the panel offers exactly these.
-const EFFORT_LABELS = {
+const EFFORT_LABELS: Record<string, string> = {
     none: 'None: answers straight away',
     minimal: 'Minimal',
     low: 'Low: quick tasks',
@@ -83,20 +85,20 @@ const EFFORT_LABELS = {
     xhigh: 'xHigh: extended exploration',
     max: 'Max: deepest reasoning',
 };
-const EFFORT_RANK = { none: 0, minimal: 1, low: 2, medium: 3, high: 4, xhigh: 5, max: 6 };
+const EFFORT_RANK: Record<string, number> = { none: 0, minimal: 1, low: 2, medium: 3, high: 4, xhigh: 5, max: 6 };
 
 // The effort the server uses for a tier nobody set (server/core/llm/
 // modelResolver.js TIER_DEFAULTS). `fast` has none there; on a model with a
 // stamped vocabulary the adapter then sends `none`.
-const TIER_DEFAULT_EFFORT = {
+const TIER_DEFAULT_EFFORT: Record<string, string> = {
     fast: 'none', standard: 'low', swarm: 'low', thinking: 'medium',
     writer: 'low', deep_thinking: 'high', smart: 'medium', pro: 'low',
 };
-export const defaultTierEffort = (tierKey) => TIER_DEFAULT_EFFORT[tierKey] || 'none';
+export const defaultTierEffort = (tierKey: string) => TIER_DEFAULT_EFFORT[tierKey] || 'none';
 
 /** `[value, label]` pairs for a server-stamped effort list. */
-export const stampedEffortOptions = (efforts) =>
-    (Array.isArray(efforts) ? efforts : []).map(value => [value, EFFORT_LABELS[value] || value]);
+export const stampedEffortOptions = (efforts: string[] | null | undefined) =>
+    (Array.isArray(efforts) ? efforts : []).map((value): [string, string] => [value, EFFORT_LABELS[value] || value]);
 
 /**
  * The value the server will actually send for `value`: the nearest one in
@@ -104,7 +106,7 @@ export const stampedEffortOptions = (efforts) =>
  * server/core/providers/mistralModels.js, so a tier stored as 'medium' shows
  * as the 'high' Mistral really gets.
  */
-export const clampToEfforts = (value, efforts) => {
+export const clampToEfforts = (value: string, efforts: string[] | null | undefined) => {
     if (!Array.isArray(efforts) || efforts.length === 0) return value;
     if (efforts.includes(value)) return value;
     const want = EFFORT_RANK[value];
@@ -132,10 +134,10 @@ export const clampToEfforts = (value, efforts) => {
  * rejects is worse, and until the tier UI reads its metadata from the server
  * this is where the vocabulary has to live.
  */
-export const openAIEffortOptions = (modelId) => {
+export const openAIEffortOptions = (modelId: string | null | undefined): [string, string][] => {
     if (isGpt5Pro(modelId)) return [['high', 'High — pro models reason at high only']];
 
-    const opts = [];
+    const opts: [string, string][] = [];
     if (hasNoneEffort(modelId)) opts.push(['none', 'None (disabled)']);
     if (isGpt5(modelId)) opts.push(['minimal', 'Minimal — fastest, lightest reasoning']);
     opts.push(['low', 'Low — quick tasks']);
@@ -148,7 +150,7 @@ export const openAIEffortOptions = (modelId) => {
     return opts;
 };
 
-export const MODEL_META = {
+export const MODEL_META: Record<string, ModelMeta> = {
     // Mistral — the current line-up (server/core/providers/mistralModels.js).
     // Magistral, Pixtral and Devstral are retired on La Plateforme; reasoning
     // is now a switch on Small 4 and Medium 3.5.
