@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchCoworkSchedules } from '../../../../api/agentEditor';
 import { useCan } from '../../../licensing/Gate';
 
-interface Schedule { agentId?: string | number | null; [key: string]: unknown }
+export interface Schedule { agentId?: string | number | null; [key: string]: unknown }
 
 export default function useAgentSchedules(agentId: string | number | null | undefined) {
     const [agentSchedules, setAgentSchedules] = useState<Schedule[]>([]);

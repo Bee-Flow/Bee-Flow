@@ -9,6 +9,12 @@ import Toggle from '../../../shared/Toggle';
 import AppsPicker from '../pickers/AppsPicker';
 import { SchedulesPicker } from '../pickers/SchedulePickers';
 import SkillPicker from '../pickers/SkillPicker';
+import { messageOf } from '../../../../utils/caughtError';
+import type { ComponentProps, Dispatch, Ref, SetStateAction } from 'react';
+import type { ModelTierMap } from '../../../../api/queries/modelTiers';
+import type { Skill } from '../../../../api/queries/skills';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { Schedule } from './useAgentSchedules';
 
 /**
  * De ROL-tab van de agent-editor: de actiepillen-balk met haar popovers en de
@@ -21,6 +27,57 @@ import SkillPicker from '../pickers/SkillPicker';
  * tekent alleen nog wat ONDER de heldere identiteit hoort — en alles komt nog
  * steeds via props binnen; er staat hier geen state.
  */
+type OpenSetter = Dispatch<SetStateAction<boolean>>;
+
+export interface BuilderConfigPanelProps {
+    ro?: boolean;
+    t: TranslateFn;
+    agent?: { id?: string | null } | null;
+    flushNow: () => void;
+    actionBarRef: Ref<HTMLDivElement>;
+    tiers?: ModelTierMap | null;
+    selectedTier?: string;
+    updateModel: (tier: string) => void;
+    enabledIntegrationCount?: number | null;
+    appsPickerOpen: boolean;
+    setAppsPickerOpen: OpenSetter;
+    uploadDocCount?: number | null;
+    setKnowledgeOpen: (open: boolean) => void;
+    strictKnowledge?: boolean;
+    onStrictKnowledgeChange?: (next: boolean) => void;
+    attachedSkillIds: string[];
+    skillPickerOpen: boolean;
+    setSkillPickerOpen: OpenSetter;
+    schedulesAllowed?: boolean;
+    agentSchedules: Schedule[];
+    schedulesPickerOpen: boolean;
+    setSchedulesPickerOpen: OpenSetter;
+    advancedOpen?: boolean;
+    setAdvancedOpen: (open: boolean) => void;
+    memoryEnabled?: boolean;
+    embedEnabled?: boolean;
+    refreshAgentSchedules: () => Promise<unknown> | void;
+    setScheduleModal: (modal: { mode: 'create' } | { mode: 'edit'; schedule: Schedule }) => void;
+    setScheduleDeleteTarget: (target: Schedule) => void;
+    allSkills: Skill[] | null;
+    setAllSkills: Dispatch<SetStateAction<Skill[] | null>>;
+    automations: ComponentProps<typeof SkillPicker>['automations'];
+    skillSearch: string;
+    setSkillSearch: (value: string) => void;
+    toggleSkill: (id: string) => void;
+    setAttachedSkillIds: (ids: string[]) => void;
+    patchConfig: (patch: Record<string, unknown>) => void;
+    availableIntegrations: ComponentProps<typeof AppsPicker>['items'];
+    enabledIntegrations?: string[] | null;
+    toggleIntegration: (id: string, items: ComponentProps<typeof AppsPicker>['items']) => void;
+    refining?: boolean;
+    instructionsEditing?: boolean;
+    setInstructionsEditing: (editing: boolean) => void;
+    instructionsTextareaRef: Ref<HTMLTextAreaElement>;
+    instructions?: string;
+    updateInstructions: (value: string) => void;
+}
+
 export default function BuilderConfigPanel({
     ro, t, agent,
     flushNow,
@@ -37,7 +94,7 @@ export default function BuilderConfigPanel({
     availableIntegrations, enabledIntegrations, toggleIntegration,
     refining, instructionsEditing, setInstructionsEditing,
     instructionsTextareaRef, instructions, updateInstructions,
-}) {
+}: BuilderConfigPanelProps) {
     return (
         <div className="max-w-4xl mx-auto px-10 pt-6 pb-12">
             {/* `inert` (React 19 native) blokkeert muis én toetsenbord voor de
@@ -105,20 +162,20 @@ export default function BuilderConfigPanel({
                         schedules={agentSchedules}
                         onClose={() => setSchedulesPickerOpen(false)}
                         onCreate={() => { setSchedulesPickerOpen(false); setScheduleModal({ mode: 'create' }); }}
-                        onEdit={(r) => { setSchedulesPickerOpen(false); setScheduleModal({ mode: 'edit', schedule: r }); }}
-                        onToggle={async (r) => {
+                        onEdit={(r: Schedule) => { setSchedulesPickerOpen(false); setScheduleModal({ mode: 'edit', schedule: r }); }}
+                        onToggle={async (r: Schedule) => {
                             try {
                                 await authFetch(`${API_BASE}/api/cowork/${r.id}/toggle`, { method: 'POST' });
                                 await refreshAgentSchedules();
                             } catch (_) { /* non-fatal */ }
                         }}
-                        onRunNow={async (r) => {
+                        onRunNow={async (r: Schedule) => {
                             try {
                                 await authFetch(`${API_BASE}/api/cowork/${r.id}/run-now`, { method: 'POST' });
                                 await refreshAgentSchedules();
                             } catch (_) { /* non-fatal */ }
                         }}
-                        onDelete={(r) => {
+                        onDelete={(r: Schedule) => {
                             // Route through the in-app modal so the styling,
                             // focus management and i18n match the rest of the
                             // studio. window.confirm can also be disabled by
@@ -163,7 +220,7 @@ export default function BuilderConfigPanel({
                                 return created;
                             } catch (err) {
                                 console.error('Create skill failed:', err);
-                                toast.error(err.message);
+                                toast.error(messageOf(err, 'Failed to create skill'));
                                 return null;
                             }
                         }}
