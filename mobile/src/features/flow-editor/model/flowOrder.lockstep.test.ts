@@ -17,7 +17,7 @@ const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 const REPO = path.resolve(__dirname, '../../../../..');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webOrder = require(`${FLOW}/flowOrder.js`);
-const webLoop = require(`${FLOW}/loopBodyEdges.js`);
+const webLoop = require(`${FLOW}/loopBodyEdges.ts`);
 const webTerminal = require(`${FLOW}/terminalSteps.js`);
 const serverConstants = require(path.join(REPO, 'server/automation/validate/constants.js'));
 const TEMPLATES_JS = path.join(REPO, 'server/automation/templates.js');

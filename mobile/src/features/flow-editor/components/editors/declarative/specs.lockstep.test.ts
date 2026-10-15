@@ -46,7 +46,7 @@ const REPO = path.resolve(__dirname, '../../../../../../..');
 const BUILDER = path.join(REPO, 'agent-hub/src/components/automation/Builder');
 const read = (rel: string) => fs.readFileSync(path.join(BUILDER, rel), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const webPrivacy = require(path.join(BUILDER, 'flow/privacyModel.js'));
+const webPrivacy = require(path.join(BUILDER, 'flow/privacyModel.ts'));
 
 /** The web files each spec stands in for. */
 const WEB: Record<string, string[]> = {

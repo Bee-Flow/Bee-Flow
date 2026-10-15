@@ -17,7 +17,7 @@ const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/compone
 const src = fs.readFileSync(path.join(FLOW, 'settings/fieldDesigner.jsx'), 'utf8');
 const editors = fs.readFileSync(path.join(FLOW, 'settings/triggerEditors.jsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const renameHelpers = require(path.join(FLOW, 'renameFormField.js'));
+const renameHelpers = require(path.join(FLOW, 'renameFormField.ts'));
 
 function cut(name: string): string {
     const at = src.indexOf(`function ${name}(`);

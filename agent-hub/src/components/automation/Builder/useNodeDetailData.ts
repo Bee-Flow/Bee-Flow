@@ -5,6 +5,7 @@ import { stepNumbers } from './flow/flowOrder';
 import { stepPayload } from './flow/stepPayload';
 import { isInlineId, parseInlineId } from './flow/inlineFlowlets';
 import { matchValidationToStep } from './flow/matchValidationToStep';
+import type { Validation } from './flow/matchValidationToStep';
 import { routeContextOf, routeSummaryOf } from './output/routeNote';
 import { routeFollowOf, wholeRunNoticeOf, type RouteFollow, type WholeRunNotice } from './flow/routeFollowNotes';
 import type { DataSummary, FlowDefinition, FlowEdge, FlowStep, RunStepRow } from './flow/types';
@@ -102,7 +103,7 @@ export interface UseNodeDetailDataOptions {
     definition: FlowDefinition | null | undefined;
     /** The whole document, when `definition` is a flowlet. */
     rootDefinition?: FlowDefinition | null;
-    validation?: { errors?: unknown[]; warnings?: unknown[] } | null;
+    validation?: Validation | null;
     /** The owner's catalog copy; absent on stand-alone mounts, which fetch one. */
     catalog?: ToolCatalog | null;
     realOutputById?: ReadonlyMap<string, unknown> | null;

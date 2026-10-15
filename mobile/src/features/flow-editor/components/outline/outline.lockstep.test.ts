@@ -81,7 +81,7 @@ describe('the run result chip', () => {
 });
 
 describe('the card glyphs', () => {
-    const nodeTypes = read('nodeTypes.js');
+    const nodeTypes = read('nodeTypes.ts');
     const componentFor = (type: string) => new RegExp(`^\\s+${type}:\\s+(\\w+),`, 'm').exec(nodeTypes)?.[1];
 
     /** The `icon={…}` line StepNodeBase is handed (a note is no step card: its import says it). */
@@ -114,7 +114,7 @@ describe('the card glyphs', () => {
         const trigger = read('nodes/TriggerNode.jsx');
         for (const [kind, icon] of Object.entries(TRIGGER_ICON)) expect(trigger).toMatch(new RegExp(`${kind}:\\s+${icon},`));
         for (const [event, icon] of Object.entries(APP_EVENT_ICON)) expect(trigger).toMatch(new RegExp(`'${event.replace(/\./g, '\\.')}':\\s+${icon},`));
-        expect(read('nodes/FormPageNode.jsx')).toMatch(/isEnding \? <CheckCircle2/);
+        expect(read('nodes/FormPageNode.tsx')).toMatch(/isEnding \? <CheckCircle2/);
     });
 
     it('can draw every one of them', () => {
@@ -125,11 +125,11 @@ describe('the card glyphs', () => {
 
 describe('the lane words', () => {
     it('are the port labels on the web cards', () => {
-        expect(read('nodes/ConditionNode.jsx')).toMatch(
+        expect(read('nodes/ConditionNode.tsx')).toMatch(
             /\{ id: 'then', label: t\('condition_node\.port\.match', 'Match'\)[^}]*\},\s*\{ id: 'else', label: t\('condition_node\.otherwise\.label', 'Otherwise'\)/,
         );
         expect(read('nodes/GuardNode.jsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
-        expect(read('nodes/SwitchNode.jsx')).toMatch(/\{ id: 'case:default', label: t\('condition_node\.otherwise\.label', 'Otherwise'\)/);
+        expect(read('nodes/SwitchNode.tsx')).toMatch(/\{ id: 'case:default', label: t\('condition_node\.otherwise\.label', 'Otherwise'\)/);
         expect(read('nodes/LoopNode.jsx')).toMatch(/t\('automations\.canvas\.loop_port_on_error', 'On error'\)/);
     });
 });

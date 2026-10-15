@@ -140,15 +140,15 @@ describe('line colours', () => {
 
 describe('what only the web components say', () => {
     it('places two ports at thirds and more on 22px rows (StepNodeBase)', () => {
-        const base = read('flow/nodes/StepNodeBase.jsx');
+        const base = read('flow/nodes/StepNodeBase.tsx');
         expect(base).toContain('? PORT_PAD + PORT_PITCH * (i + 0.5)');
         expect(base).toContain(': `${((i + 1) / (branchHandles.length + 1)) * 100}%`');
     });
 
     it('names the handles the edge model reports', () => {
-        expect(read('flow/nodes/ConditionNode.jsx')).toMatch(/\{ id: 'then'[^}]*\},\s*\{ id: 'else'/);
+        expect(read('flow/nodes/ConditionNode.tsx')).toMatch(/\{ id: 'then'[^}]*\},\s*\{ id: 'else'/);
         expect(read('flow/nodes/GuardNode.jsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
-        expect(read('flow/nodes/SwitchNode.jsx')).toContain("{ id: 'case:default', label: t('condition_node.otherwise.label', 'Otherwise'), tone: 'default' }");
+        expect(read('flow/nodes/SwitchNode.tsx')).toContain("{ id: 'case:default', label: t('condition_node.otherwise.label', 'Otherwise'), tone: 'default' }");
         const loop = read('flow/nodes/LoopNode.jsx');
         expect(loop).toMatch(/\{ id: 'done', label: t\('automations\.canvas\.loop_port_done', 'Done'\), tone: 'then' \},\s*\{ id: 'on_error', label: t\('automations\.canvas\.loop_port_on_error', 'On error'\), tone: 'error' \}/);
         // An open loop keeps its ports on its header strip.
