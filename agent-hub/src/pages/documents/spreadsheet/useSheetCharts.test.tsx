@@ -59,7 +59,7 @@ describe('useSheetCharts', () => {
         expect(savedCharts().map((c) => c.id)).toEqual(['a', 'from-chat', 'b']);
         expect(result.current.charts.map((c) => c.id)).toEqual(['a', 'from-chat', 'b']);
         await act(() => result.current.removeChart('a'));
-        expect(savedCharts(1).map((c) => c.id)).toEqual(['from-chat'], 'a removal also works on the stored list');
+        expect(savedCharts(1).map((c) => c.id)).toEqual(['from-chat']);
     });
 
     it('after a tab delete, reload drops its charts and an Add does not bring them back', async () => {
