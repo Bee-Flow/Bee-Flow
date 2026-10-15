@@ -133,3 +133,32 @@ test('palette colours per series, own colours, pie slices, number formats, data 
     assert.match(chartXml({ ...base, type: 'area', dataRange: 'B2:B3', format: 'percent' }, 'Main', values), /formatCode="0\.0%" sourceLinked="0"/);
     for (const x of [two, own, pie, byCat]) assert.strictEqual(XMLValidator.validate(x), true);
 });
+
+test('number formats follow the data: no decimals for whole numbers, two otherwise', () => {
+    const frac = { ...values, B2: { value: 10.5, display: '10.5' } };
+    const fmt = (format, v, extra = {}) => chartXml({ ...base, type: 'bar', dataRange: 'B2:B3', format, ...extra }, 'Main', v).match(/<c:valAx>[\s\S]*?formatCode="([^"]*)"/)[1];
+    assert.strictEqual(fmt('number', values), '#,##0');
+    assert.strictEqual(fmt('number', frac), '#,##0.00');
+    assert.strictEqual(fmt('currency', frac, { currency: 'USD' }), '&quot;$ &quot;#,##0.00');
+    assert.strictEqual(fmt('currency', values, { currency: 'CHF' }), '&quot;CHF &quot;#,##0');
+    assert.strictEqual(fmt('percent', frac), '0.0%');
+    assert.strictEqual(fmt(undefined, frac), 'General');
+});
+
+test('scatter keeps its x axis plain; hbar lists the categories top-down like the editor', () => {
+    const sc = chartXml({ ...base, type: 'scatter', dataRange: 'B2:B3', categoriesRange: 'D2:D3', format: 'currency' }, 'Main', values);
+    const axes = sc.match(/<c:valAx>[\s\S]*?<\/c:valAx>/g);
+    assert.match(axes[0], /<c:axPos val="b"\/>[\s\S]*formatCode="General" sourceLinked="1"/);
+    assert.match(axes[1], /formatCode="&quot;€ &quot;#,##0" sourceLinked="0"/);
+    const h = chartXml({ ...base, type: 'hbar', dataRange: 'B2:B3', categoriesRange: 'A2:A3' }, 'Main', values);
+    assert.match(h, /<c:catAx>[\s\S]*?<c:orientation val="maxMin"\/>/);
+    assert.match(h, /<c:valAx>[\s\S]*?<c:crosses val="max"\/>/);
+    const b = chartXml({ ...base, type: 'bar', dataRange: 'B2:B3' }, 'Main', values);
+    assert.match(b, /<c:catAx>[\s\S]*?<c:orientation val="minMax"\/>/);
+    assert.doesNotMatch(b, /<c:crosses val="max"\/>/);
+});
+
+test('a chart stored without a size gets the editor default (6 x 14 cells)', async () => {
+    const p = await unzip(await buildXlsxWorkbook([{ name: 'A', matrix: [['x']], charts: [{ type: 'bar', dataRange: 'B2:B3', anchor: 'F2' }], values }]));
+    assert.match(p['xl/drawings/drawing1.xml'], new RegExp(`<xdr:ext cx="${672 * 9525}" cy="${392 * 9525}"/>`));
+});

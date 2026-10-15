@@ -26,7 +26,7 @@
 
 const { xmlEscape, colLetter } = require('./xlsxXml');
 const { parseRange } = require('../sheetAssist/sheetRefs');
-const { CHART_PALETTE } = require('../sheetChartFields');
+const { CHART_PALETTE, sizeInPx } = require('../sheetChartFields');
 
 const NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
 const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
@@ -59,22 +59,36 @@ function strCache(labels) {
 
 const CURRENCY_SYMBOLS = { EUR: '€ ', USD: '$ ', GBP: '£ ' };
 
-/** The Excel number format of a chart's `format` (General when none). */
-function formatCode(chart) {
+/**
+ * The Excel number format of a chart's `format` (General when none), close to
+ * what the editor shows (sheetChartFormat.ts: up to 2 decimals). Excel has no
+ * "up to 2 decimals" without a dangling separator ("12."), so the decimals
+ * follow the data: none when every value is whole, else 2.
+ * @param {any} chart
+ * @param {boolean} [whole]  every charted value is an integer
+ */
+function formatCode(chart, whole = false) {
+    const decimals = whole ? '' : '.00';
     if (chart.format === 'percent') return '0.0%';
-    if (chart.format === 'currency') return `"${CURRENCY_SYMBOLS[chart.currency || 'EUR'] || `${chart.currency} `}"#,##0`;
-    if (chart.format === 'number') return '#,##0.##';
+    if (chart.format === 'currency') {
+        const symbol = CURRENCY_SYMBOLS[chart.currency || 'EUR'] || `${String(chart.currency).replace(/[^A-Z]/g, '')} `;
+        return `"${symbol}"#,##0${decimals}`;
+    }
+    if (chart.format === 'number') return `#,##0${decimals}`;
     return 'General';
 }
+
+/** Every number the chart's series hold is an integer. */
+const allWhole = (data) => data.series.every((s) => s.values.every((v) => v === null || Number.isInteger(v)));
 
 const colorOf = (chart, i) => String((chart.colors && chart.colors.length ? chart.colors : CHART_PALETTE)[i % (chart.colors?.length || CHART_PALETTE.length)]).replace('#', '').toUpperCase();
 const fill = (hex) => `<a:solidFill><a:srgbClr val="${hex}"/></a:solidFill>`;
 const GRID = '<c:majorGridlines><c:spPr><a:ln w="6350"><a:solidFill><a:srgbClr val="E5E7EB"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>';
 
 /** Data labels (showValues): the value, in the chart's number format. */
-function labelsXml(chart) {
+function labelsXml(chart, whole) {
     if (!chart.showValues) return '';
-    const fmt = chart.format ? `<c:numFmt formatCode="${xmlEscape(formatCode(chart))}" sourceLinked="0"/>` : '';
+    const fmt = chart.format ? `<c:numFmt formatCode="${xmlEscape(formatCode(chart, whole))}" sourceLinked="0"/>` : '';
     return `<c:dLbls>${fmt}<c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls>`;
 }
 
@@ -121,7 +135,7 @@ function serXml(chart, data, s, i) {
     const val = `<c:val>${numRef(s.ref, s.values)}</c:val>`;
     const cat = data.catRef ? `<c:cat>${strRef(data.catRef, data.labels)}</c:cat>` : '';
     const hex = colorOf(chart, i);
-    const lbl = labelsXml(chart);
+    const lbl = labelsXml(chart, allWhole(data));
     switch (chart.type) {
         case 'line': return `<c:ser>${head}<c:spPr><a:ln w="28575" cap="rnd">${fill(hex)}<a:round/></a:ln></c:spPr><c:marker><c:symbol val="none"/></c:marker>${lbl}${cat}${val}<c:smooth val="0"/></c:ser>`;
         case 'area': return `<c:ser>${head}<c:spPr>${fill(hex)}</c:spPr>${lbl}${cat}${val}</c:ser>`;
@@ -139,21 +153,28 @@ function serXml(chart, data, s, i) {
 const AX_IDS = ['111111111', '222222222'];
 const axIds = `<c:axId val="${AX_IDS[0]}"/><c:axId val="${AX_IDS[1]}"/>`;
 
-/** The plot-area body for one type: the chart group plus its axes. */
-function plotXml(chart, sers) {
+/**
+ * The plot-area body for one type: the chart group plus its axes.
+ * hbar lists its categories top-down as the editor does: Excel draws a bar
+ * chart's first category at the bottom, so the category axis runs maxMin and
+ * the value axis crosses it at the far end, which keeps it at the bottom.
+ */
+function plotXml(chart, sers, whole) {
     const t = chart.type;
-    const catAx = (pos) => `<c:catAx><c:axId val="${AX_IDS[0]}"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>`
+    const reversed = t === 'hbar';
+    const catAx = (pos) => `<c:catAx><c:axId val="${AX_IDS[0]}"/><c:scaling><c:orientation val="${reversed ? 'maxMin' : 'minMax'}"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>`
         + '<c:numFmt formatCode="General" sourceLinked="1"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>'
         + `<c:crossAx val="${AX_IDS[1]}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>`;
-    const code = xmlEscape(formatCode(chart));
-    const valAx = (id, cross, pos, between, grid = true) => `<c:valAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>`
-        + `${grid ? GRID : ''}<c:numFmt formatCode="${code}" sourceLinked="${chart.format ? 0 : 1}"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>`
-        + `<c:crossAx val="${cross}"/><c:crosses val="autoZero"/><c:crossBetween val="${between}"/></c:valAx>`;
+    const code = xmlEscape(formatCode(chart, whole));
+    // `plain`: the x axis of a scatter chart holds the categories' numbers, not the chart's format
+    const valAx = (id, cross, pos, between, grid = true, plain = false) => `<c:valAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>`
+        + `${grid ? GRID : ''}<c:numFmt formatCode="${plain ? 'General' : code}" sourceLinked="${chart.format && !plain ? 0 : 1}"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>`
+        + `<c:crossAx val="${cross}"/><c:crosses val="${reversed ? 'max' : 'autoZero'}"/><c:crossBetween val="${between}"/></c:valAx>`;
     if (t === 'pie') return `<c:pieChart><c:varyColors val="1"/>${sers}<c:firstSliceAng val="0"/></c:pieChart>`;
     if (t === 'doughnut') return `<c:doughnutChart><c:varyColors val="1"/>${sers}<c:firstSliceAng val="0"/><c:holeSize val="50"/></c:doughnutChart>`;
     if (t === 'scatter') {
         return `<c:scatterChart><c:scatterStyle val="lineMarker"/><c:varyColors val="0"/>${sers}${axIds}</c:scatterChart>`
-            + valAx(AX_IDS[0], AX_IDS[1], 'b', 'midCat', false) + valAx(AX_IDS[1], AX_IDS[0], 'l', 'midCat');
+            + valAx(AX_IDS[0], AX_IDS[1], 'b', 'midCat', false, true) + valAx(AX_IDS[1], AX_IDS[0], 'l', 'midCat');
     }
     if (t === 'line') return `<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>${sers}<c:marker val="1"/>${axIds}</c:lineChart>${catAx('b')}${valAx(AX_IDS[1], AX_IDS[0], 'l', 'between')}`;
     if (t === 'area') return `<c:areaChart><c:grouping val="standard"/><c:varyColors val="0"/>${sers}${axIds}</c:areaChart>${catAx('b')}${valAx(AX_IDS[1], AX_IDS[0], 'l', 'midCat')}`;
@@ -182,14 +203,16 @@ function chartXml(chart, sheet, values) {
     const legend = data.series.length > 1 || chart.type === 'pie' || chart.type === 'doughnut'
         ? '<c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend>' : '';
     return `${XML_HEAD}<c:chartSpace xmlns:c="${NS_C}" xmlns:a="${NS_A}" xmlns:r="${NS_R}"><c:roundedCorners val="0"/><c:chart>${title}`
-        + `<c:autoTitleDeleted val="${chart.title ? 0 : 1}"/><c:plotArea><c:layout/>${plotXml(chart, sers)}</c:plotArea>${legend}`
+        + `<c:autoTitleDeleted val="${chart.title ? 0 : 1}"/><c:plotArea><c:layout/>${plotXml(chart, sers, allWhole(data))}</c:plotArea>${legend}`
         + '<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>';
 }
 
 function anchorXml(chart, rId, n) {
     const a = parseRange(chart.anchor) || { c0: 0, r0: 0 };
-    const cx = Math.round((Number(chart.width) || 320) * EMU_PER_PX);
-    const cy = Math.round((Number(chart.height) || 220) * EMU_PER_PX);
+    // the editor's size, or its default (6 x 14 cells) for a chart stored without one
+    const { width, height } = sizeInPx(chart);
+    const cx = Math.round(width * EMU_PER_PX);
+    const cy = Math.round(height * EMU_PER_PX);
     return `<xdr:oneCellAnchor><xdr:from><xdr:col>${a.c0}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${a.r0}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>`
         + `<xdr:ext cx="${cx}" cy="${cy}"/><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${n + 1}" name="Chart ${n}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>`
         + '<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm>'
