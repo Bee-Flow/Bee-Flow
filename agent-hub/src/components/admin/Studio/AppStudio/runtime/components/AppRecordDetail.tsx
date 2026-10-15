@@ -41,6 +41,7 @@ function isHttpUrl(value: unknown): boolean {
     return v.startsWith('https://') || v.startsWith('http://');
 }
 
+// Narrower than the runtime: a record can hold other shapes here, which fall through to displayValue.
 /** Format one field value — mirrors the data_grid cell formats + datetime/markdown. */
 export function FieldValue({ value, format }: {
     value: string | number | Date | null | undefined;

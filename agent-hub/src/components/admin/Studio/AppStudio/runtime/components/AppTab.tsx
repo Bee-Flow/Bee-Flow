@@ -1,4 +1,5 @@
 import { fillRowTemplate, isFill, spaceSteps } from '../styleResolver';
+import type { NodeStyle } from '../../inspector/appDefinition';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -12,8 +13,8 @@ import type { NodeProps } from './appNode.types';
  */
 
 export default function AppTab({ node, children }: NodeProps) {
-    const gap = Number.isFinite(node.style?.gap) ? node.style.gap as number : 3;
-    const padding = Number.isFinite(node.style?.padding) ? node.style.padding as number : 0;
+    const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap as number : 3;
+    const padding = Number.isFinite(node.style?.padding) ? (node.style as NodeStyle).padding as number : 0;
     const fill = isFill(node);
     return (
         <div

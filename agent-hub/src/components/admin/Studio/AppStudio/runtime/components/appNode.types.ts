@@ -1,26 +1,7 @@
 import type { ReactNode } from 'react';
+import type { AppNode } from '../../inspector/appDefinition';
 
-/** Shared types of the App Studio runtime components. */
-
-/** The style knobs a node carries (spec: server/appStudio/componentSpecs.js). */
-export interface NodeStyle {
-    span?: number;
-    gap?: number;
-    padding?: number;
-    height?: number | string;
-    size?: string;
-}
-
-/** A canonical app node as the runtime renders it; `P` is the shape of its props. */
-export interface AppNode<P = Record<string, unknown>> {
-    id: string;
-    type?: string;
-    props: P;
-    style: NodeStyle;
-    children?: AppNode[];
-}
-
-/** The props every runtime component receives. */
+/** The props every runtime component receives; `P` is the shape of its node's props. */
 export interface NodeProps<P = Record<string, unknown>> {
     node: AppNode<P>;
     children?: ReactNode;

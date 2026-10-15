@@ -1,4 +1,5 @@
 import { spaceSteps } from '../styleResolver';
+import type { NodeStyle } from '../../inspector/appDefinition';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -20,7 +21,7 @@ import type { NodeProps } from './appNode.types';
  */
 export default function AppPane({ node, children }: NodeProps<{ direction?: string; scroll?: string }>) {
     const { direction = 'vertical', scroll = 'none' } = node.props || {};
-    const gap = Number.isFinite(node.style?.gap) ? node.style.gap as number : 3;
+    const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap as number : 3;
     const horizontal = direction === 'horizontal';
 
     return (
