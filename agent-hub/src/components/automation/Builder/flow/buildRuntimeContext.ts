@@ -15,13 +15,13 @@ export interface RuntimeContextInputs {
     editingStepId: StepId | null;
     editable: boolean;
     structuralEditsBlocked: boolean;
-    onExecuteStep: unknown;
+    onExecuteStep: ((stepId: StepId, opts?: { mode: string }) => void) | null | undefined;
     executingStepId: StepId | null;
     runInFlight: boolean;
-    onOpenLayer: unknown;
-    layerSummaries: Record<string, unknown> | null | undefined;
+    onOpenLayer: ((layerKey: string) => void) | null | undefined;
+    layerSummaries: Record<string, string> | null | undefined;
     highlightedStepId: StepId | null;
-    onToggleInline: unknown;
+    onToggleInline: ((nodeId: StepId, layerKey: string | null) => void) | null | undefined;
     layerRefCounts: Record<string, number>;
     onPinNode: StepCallback;
     onDeleteNode: StepCallback;
@@ -80,7 +80,7 @@ export function buildRuntimeContext({
         ...(definition?.triggers || []).map(t => t?.id),
         ...inlineTriggerIds,
     ].filter(Boolean));
-    const typeGroupById = new Map<StepId, unknown>();
+    const typeGroupById = new Map<StepId, string | null>();
     const stepTypeById = new Map<StepId, string>();
     for (const st of everyNode) {
         const type = triggerIdSet.has(st.id) ? 'trigger' : (st.type || 'integration_action');

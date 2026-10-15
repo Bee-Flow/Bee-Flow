@@ -10,7 +10,7 @@ import path from 'node:path';
 
 import { fieldNameTaken, isValidFieldName, renameFieldPath, renameFormField } from './renameField';
 
-const WEB = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/renameFormField.js');
+const WEB = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/renameFormField.ts');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const web = require(WEB);
 

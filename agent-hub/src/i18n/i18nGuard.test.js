@@ -418,7 +418,7 @@ const KEY_TABLE_FILES = [
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
     'components/admin/compliance/pages/settings/settingsFields.js',
-    'components/automation/Builder/flow/nodeTypeColors.js',
+    'components/automation/Builder/flow/nodeTypeColors.ts',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
     // DATA — `line(tt, entry)` roept t() met een variabele aan — dus geen enkele

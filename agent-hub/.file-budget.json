@@ -129,7 +129,7 @@
     "src/components/automation/Builder/flow/inlineFlowlets.js": 730,
     "src/components/automation/Builder/flow/layout.js": 422,
     "src/components/automation/Builder/flow/nodeDefs.js": 739,
-    "src/components/automation/Builder/flow/nodes/StepNodeBase.jsx": 728,
+    "src/components/automation/Builder/flow/nodes/StepNodeBase.tsx": 728,
     "src/components/automation/Builder/flow/settings/approvalEditors.jsx": 708,
     "src/components/automation/Builder/flow/settings/collectionEditors.jsx": 752,
     "src/components/automation/Builder/flow/settings/datatableEditors.jsx": 427,
