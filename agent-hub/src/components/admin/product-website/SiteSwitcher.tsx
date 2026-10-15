@@ -5,6 +5,17 @@ import AppIcon from '../../icons/AppIcon';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { CmsSiteListEntry } from './panel/cmsPanelTypes';
 
+interface SiteSwitcherProps {
+    sites: CmsSiteListEntry[];
+    activeSiteId?: string | null;
+    liveSiteId?: string | null;
+    onSelect: (siteId: string) => void;
+    onCreate: (name: string) => Promise<{ id?: string } | null> | void;
+    onRename: (siteId: string, name: string) => Promise<unknown> | void;
+    onDelete: (site: CmsSiteListEntry) => Promise<unknown> | void;
+    embedded?: boolean;
+}
+
 /**
  * Site/project switcher.
  *
@@ -19,17 +30,6 @@ import type { CmsSiteListEntry } from './panel/cmsPanelTypes';
  * confirmed here — `onDelete(site)` receives the full site object and the
  * parent asks for confirmation (one dialog system shell-wide).
  */
-interface SiteSwitcherProps {
-    sites: CmsSiteListEntry[];
-    activeSiteId?: string | null;
-    liveSiteId?: string | null;
-    onSelect: (siteId: string) => void;
-    onCreate: (name: string) => Promise<{ id?: string } | null | undefined | void> | void;
-    onRename: (siteId: string, name: string) => Promise<unknown> | void;
-    onDelete: (site: CmsSiteListEntry) => Promise<unknown> | void;
-    embedded?: boolean;
-}
-
 export default function SiteSwitcher({
     sites,
     activeSiteId,

@@ -4,6 +4,11 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
 
+interface DomainMessage {
+    type: 'success' | 'error';
+    text: string;
+}
+
 /**
  * FreeEmailDomainsPanel — super-admin editor for the free/public email-provider
  * blocklist. Domains on this list can never auto-bind a user to an organisation
@@ -12,11 +17,6 @@ import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck }
  * The built-in floor (gmail.com, …) is shown read-only and can never be removed;
  * admins add extra domains, persisted via PUT /auth/free-email-domains.
  */
-interface DomainMessage {
-    type: 'success' | 'error';
-    text: string;
-}
-
 export default function FreeEmailDomainsPanel() {
     const { t } = useTranslation();
     const [builtin, setBuiltin] = useState<string[]>([]);
@@ -81,6 +81,7 @@ export default function FreeEmailDomainsPanel() {
     const addDomain = async () => {
         const raw = newDomain.trim().toLowerCase();
         if (!raw) return;
+        // split() always returns ≥1 element, so pop() is a string.
         const domain = raw.includes('@') ? raw.split('@').pop() as string : raw;
         if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
             notify('error', t('admin.fed_invalid', 'Not a valid domain: "{domain}"').replace('{domain}', domain));

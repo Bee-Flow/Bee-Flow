@@ -29,10 +29,10 @@ interface ReleaseNoteEntry {
     id: string;
     version?: string | null;
     status?: string;
-    services?: string;
+    services?: string | null;
     title?: string;
     lead?: string;
-    items?: ReleaseNoteItem[];
+    items?: Array<ReleaseNoteItem | null>;
     publishedAt?: string | null;
 }
 
@@ -198,7 +198,8 @@ export default function ReleaseNotesPanel() {
                             />
 
                             {KIND_ORDER.map(kind => {
-                                const items = (entry.items || []).filter((i) => i && i.kind === kind);
+                                // The filter drops the null elements the wire may carry.
+                                const items = (entry.items || []).filter(i => i && i.kind === kind) as ReleaseNoteItem[];
                                 if (!items.length) return null;
                                 return (
                                     <div key={kind} className="mb-2">

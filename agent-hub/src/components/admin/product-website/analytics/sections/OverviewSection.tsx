@@ -163,13 +163,6 @@ export default function OverviewSection({ scope, onDrill }: SectionProps) {
     );
 }
 
-/**
- * Devices, browsers, OS and countries as four composition bars in ONE card.
- *
- * They were four cards (two of them donuts) showing the same handful of
- * numbers. A donut spends 160px of height to say "67% laptop", carries identity
- * in a colour-only legend, and cannot be scanned against its neighbours.
- */
 /** One composition bar of the "Who visited" card. */
 interface CompositionStrip {
     key: string;
@@ -178,6 +171,13 @@ interface CompositionStrip {
     rows?: XYRow[];
 }
 
+/**
+ * Devices, browsers, OS and countries as four composition bars in ONE card.
+ *
+ * They were four cards (two of them donuts) showing the same handful of
+ * numbers. A donut spends 160px of height to say "67% laptop", carries identity
+ * in a colour-only legend, and cannot be scanned against its neighbours.
+ */
 function Composition({ overview, onDrill }: { overview: NonNullable<AnalyticsResponse>; onDrill?: DrillHandler }) {
     const { t } = useTranslation();
     const strips = [

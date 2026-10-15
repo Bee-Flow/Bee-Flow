@@ -11,7 +11,8 @@ import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { ACCENT, fmt } from '../ui';
 
-/** One minute of the strip: `t` is the bucket start (ms); `overlay` is the second measure (0 when there is none). */
+/** One minute of the strip: `t` is the bucket start (ms); `overlay` is the second measure (0 when there is none).
+ * Required: `toMinuteStrip` always fills it; the `!= null` at the tooltip predates the type. */
 export interface MinuteBucket {
     t: number;
     value: number;

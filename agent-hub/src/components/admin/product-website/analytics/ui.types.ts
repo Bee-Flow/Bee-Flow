@@ -18,20 +18,6 @@ export type BreakdownRow =
     | { label: string; isBlank: false; count: number; _key: string }
     | { label: null; isBlank: true; count: number; _key: string };
 
-/** The metrics `pivot()` (model.js) puts on every `/report/breakdown` row. */
-export interface PivotMetrics {
-    views: number;
-    visitors: number;
-    visits: number;
-    bounces: number;
-    totaltime: number;
-    bounceRate: number | null;
-    avgTime: number | null;
-}
-
-/** A pivoted breakdown row: the metrics plus one value per requested field (null when absent). */
-export type PivotRow<F extends string> = PivotMetrics & Record<F, string | null>;
-
 /** The dashboard-wide drill-down: add the filter `dim = value`. */
 export type DrillHandler = (dim: string, value?: string | null) => void;
 

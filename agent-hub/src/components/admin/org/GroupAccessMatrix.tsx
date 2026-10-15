@@ -35,9 +35,6 @@ const EMERALD = '#10b981';
 const BLUE = '#3b82f6';
 const EVERYONE = '__everyone__';
 
-// `hideHeading`: for a caller whose page already titles the matrix (Settings →
-// Organisation → Integrations, whose h2 and selected tab name it). The intro
-// line and the save status stay.
 interface GroupAccessMatrixProps {
     orgId?: string | null;
     kinds?: string[] | null;
@@ -47,6 +44,9 @@ interface GroupAccessMatrixProps {
     hideHeading?: boolean;
 }
 
+// `hideHeading`: for a caller whose page already titles the matrix (Settings →
+// Organisation → Integrations, whose h2 and selected tab name it). The intro
+// line and the save status stay.
 export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = null, hideLocked = false, heading, subtitle, hideHeading = false }: GroupAccessMatrixProps) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);

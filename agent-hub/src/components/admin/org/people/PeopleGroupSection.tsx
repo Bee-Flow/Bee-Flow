@@ -22,6 +22,7 @@ const ORG_STATUS_CHIP: Record<string, string> = {
     suspended: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/40',
     archived: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-default)]',
 };
+
 interface PeopleSectionBase {
     key: string;
     title: string;

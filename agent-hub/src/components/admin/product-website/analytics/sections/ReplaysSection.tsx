@@ -44,7 +44,7 @@ interface SessionRecord {
     screen?: string | null;
     country?: string | null;
     /** Number of custom events in the session. */
-    events?: number;
+    events?: unknown;
 }
 
 /** One Umami replay (recording) row. */
@@ -86,7 +86,7 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
     const rows = useMemo(() => {
         const list: SessionRecord[] = Array.isArray(sessions.payload?.data) ? sessions.payload.data : [];
         const replayList: ReplayRecord[] = Array.isArray(replays.payload?.data) ? replays.payload.data : [];
-        const bySession = new Map();
+        const bySession = new Map<string, ReplayRecord & { _span: number }>();
         for (const r of replayList) {
             // Keep the longest recording per session — a session can produce
             // several chunks and only one is worth linking to.
@@ -97,7 +97,8 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
         return list
             .map(s => {
                 const replay = bySession.get(s.id) || null;
-                return { session: s, replay, ...sessionSignals(s, { events: Number(s.events) || 0, replay, t }) };
+                // model.js is untyped: sessionSignals' `replay` infers as null from its default, but it only tests truthiness.
+                return { session: s, replay, ...sessionSignals(s, { events: Number(s.events) || 0, replay, t } as { events: number; replay: null; t: typeof t }) };
             })
             .sort((a, b) => b.score - a.score || Date.parse(b.session.lastAt) - Date.parse(a.session.lastAt));
     }, [sessions.payload, replays.payload, t]);

@@ -6,6 +6,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import type { Organization } from './useOrgDirectory';
+import type { AdminCurrentUser } from './userManagement/types';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
@@ -26,7 +27,7 @@ const EMERALD = '#10b981';
 const BLUE = '#3b82f6';
 
 interface AccessPermissionsPanelProps {
-    user?: { isAdmin?: boolean; role?: string; permissions?: string[] } | null;
+    user?: AdminCurrentUser | null;
     activeSection?: string;
     onNavigate?: (path: string) => void;
 }

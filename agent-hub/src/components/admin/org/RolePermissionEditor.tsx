@@ -6,6 +6,14 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import { errorMessage } from '../../../utils/caughtError';
 import type { OrgRolePermissions } from './useOrgDirectory';
 
+interface RolePermissionEditorProps {
+    role: { id: string; color: string };
+    mapping: OrgRolePermissions[];
+    editablePermissions?: string[];
+    canEdit: boolean;
+    onSaved: (roleId: string, permissions: string[]) => void;
+}
+
 /**
  * The expanded panel under one Organisation Role: what it may use, and — for an
  * org admin — which of those the organisation switches on or off.
@@ -22,14 +30,6 @@ import type { OrgRolePermissions } from './useOrgDirectory';
  * Saving is per role and sends the FULL editable choice, not a delta, so two
  * admins editing different roles cannot interleave into a state neither picked.
  */
-interface RolePermissionEditorProps {
-    role: { id: string; color: string };
-    mapping: OrgRolePermissions[];
-    editablePermissions?: string[];
-    canEdit: boolean;
-    onSaved: (roleId: string, permissions: string[]) => void;
-}
-
 const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onSaved }: RolePermissionEditorProps) => {
     const { t } = useTranslation();
     const [draft, setDraft] = useState<string[] | null>(null);   // null = untouched, mirrors `mapping`

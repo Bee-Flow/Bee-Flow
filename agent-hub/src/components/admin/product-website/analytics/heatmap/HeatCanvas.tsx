@@ -56,13 +56,6 @@ function buildLut() {
 }
 const LUT = buildLut();
 
-/**
- * @param points  [{ x, y, count }] in PAGE coordinates (same space as width/height)
- * @param width   page width the points were captured at
- * @param height  full page height
- * @param radius  blob radius in page px
- * @param opacity overall layer opacity
- */
 interface HeatCanvasProps {
     points?: Array<{ x: number; y: number; count: number }>;
     width: number;
@@ -71,6 +64,13 @@ interface HeatCanvasProps {
     opacity?: number;
 }
 
+/**
+ * @param points  [{ x, y, count }] in PAGE coordinates (same space as width/height)
+ * @param width   page width the points were captured at
+ * @param height  full page height
+ * @param radius  blob radius in page px
+ * @param opacity overall layer opacity
+ */
 export default function HeatCanvas({ points, width, height, radius = 28, opacity = 0.72 }: HeatCanvasProps) {
     const ref = useRef<HTMLCanvasElement | null>(null);
 

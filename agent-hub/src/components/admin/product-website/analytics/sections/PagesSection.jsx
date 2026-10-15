@@ -12,7 +12,6 @@
  */
 import { FileText, Compass } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { pivot } from '../model';
 import { rich } from '../rich';
@@ -20,31 +19,17 @@ import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SortableTable, ShareBar,
     BreakdownTable, fmt, fmtDurationSec, rateColor, maxOf,
 } from '../ui';
-import type { PivotRow, SectionProps } from '../ui.types';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
-/** One page of the `/report/breakdown` pivot (`fields: ['path']`). */
-type PageRow = PivotRow<'path'>;
-
-type SortKey = 'views' | 'visitors' | 'bounceRate' | 'avgTime';
-
-interface PageColumn {
-    key: string;
-    label: string;
-    width: string;
-    align?: string;
-    render: (r: PageRow) => ReactNode;
-}
-
-export default function PagesSection({ scope, onDrill }: SectionProps) {
+export default function PagesSection({ scope, onDrill }) {
     const { t } = useTranslation();
-    const [sortKey, setSortKey] = useState<SortKey>('views');
+    const [sortKey, setSortKey] = useState('views');
 
     const breakdown = useAnalyticsQuery('report', 'breakdown', scope, { body: { fields: ['path'] } });
     const titles = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'title', limit: 15 } });
 
-    const rows = useMemo<PageRow[]>(() => {
-        const p = pivot(breakdown.payload, ['path']) as PageRow[];
+    const rows = useMemo(() => {
+        const p = pivot(breakdown.payload, ['path']);
         return p
             .filter(r => r.path)
             .sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
@@ -63,7 +48,7 @@ export default function PagesSection({ scope, onDrill }: SectionProps) {
     }
     if (breakdown.error) return <ErrorNote message={breakdown.error} onRetry={breakdown.reload} />;
 
-    const columns: PageColumn[] = [
+    const columns = [
         {
             key: 'path', label: t('cms_site.analytics.pages.page', 'Page'), width: '2fr',
             render: (r) => (
@@ -112,10 +97,10 @@ export default function PagesSection({ scope, onDrill }: SectionProps) {
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                     <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.pages.rank_by', 'rank by')}</span>
                     {[
-                        { k: 'views' as const, l: t('cms_site.analytics.pages.views', 'Views') },
-                        { k: 'visitors' as const, l: t('cms_site.analytics.pages.visitors', 'Visitors') },
-                        { k: 'bounceRate' as const, l: t('cms_site.analytics.pages.bounce', 'Bounce') },
-                        { k: 'avgTime' as const, l: t('cms_site.analytics.pages.time', 'Time') },
+                        { k: 'views', l: t('cms_site.analytics.pages.views', 'Views') },
+                        { k: 'visitors', l: t('cms_site.analytics.pages.visitors', 'Visitors') },
+                        { k: 'bounceRate', l: t('cms_site.analytics.pages.bounce', 'Bounce') },
+                        { k: 'avgTime', l: t('cms_site.analytics.pages.time', 'Time') },
                     ].map(o => (
                         <button key={o.k} onClick={() => setSortKey(o.k)} style={{
                             fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
@@ -133,7 +118,7 @@ export default function PagesSection({ scope, onDrill }: SectionProps) {
                         <SortableTable
                             columns={columns} data={rows.map((r, i) => ({ ...r, _key: `${i}-${r.path}` }))}
                             maxRows={25} emptyText={t('cms_site.analytics.pages.no_pageviews', 'No pageviews in this period.')}
-                            onRowClick={(r: PageRow) => onDrill('path', r.path)}
+                            onRowClick={(r) => onDrill('path', r.path)}
                         />
                         <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'var(--text-muted, #888)' }}>
                             <span>{rich(t('cms_site.analytics.pages.pages_visited', '{n} pages visited'), { n: <strong style={{ color: 'var(--text-primary, #fff)' }}>{fmt(rows.length)}</strong> })}</span>
@@ -177,10 +162,10 @@ export default function PagesSection({ scope, onDrill }: SectionProps) {
  * a page with far more views than visits is one they navigate to. Presented as
  * exactly that ratio rather than pretending to be a true entry report.
  */
-function EntryPages({ scope, onDrill }: SectionProps) {
+function EntryPages({ scope, onDrill }) {
     const { t } = useTranslation();
     const breakdown = useAnalyticsQuery('report', 'breakdown', scope, { body: { fields: ['path'] } });
-    const rows = useMemo(() => (pivot(breakdown.payload, ['path']) as PageRow[])
+    const rows = useMemo(() => pivot(breakdown.payload, ['path'])
         .filter(r => r.path && r.visits > 0)
         .sort((a, b) => b.visits - a.visits)
         .slice(0, 10), [breakdown.payload]);

@@ -203,16 +203,16 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
 
 // ── helpers ────────────────────────────────────────────────────────
 
-// The v2 knobs (columns / reveal / glow) — rendered only for block types
-// whose capability flag is on (controls/styleCapabilities; all OFF until
-// WS1-P5 renderer support lands). Columns rides at the end of the Layout
-// section; Motion gets its own divider.
 interface CapabilityKnobsProps {
     caps: ReturnType<typeof getCapabilities>;
     style: BlockStyle;
     onChange: (style: BlockStyle) => void;
 }
 
+// The v2 knobs (columns / reveal / glow) — rendered only for block types
+// whose capability flag is on (controls/styleCapabilities; all OFF until
+// WS1-P5 renderer support lands). Columns rides at the end of the Layout
+// section; Motion gets its own divider.
 function CapabilityKnobs({ caps, style: s, onChange }: CapabilityKnobsProps) {
     const { t } = useTranslation();
     const setColumns = (v: number | '') => {

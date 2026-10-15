@@ -3,6 +3,15 @@ import AppIcon from '../../icons/AppIcon';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { CmsSiteListEntry } from './panel/cmsPanelTypes';
 
+interface VersionSwitcherProps {
+    versions: CmsSiteListEntry[];
+    activeSiteId?: string | null;
+    liveSiteId?: string | null;
+    onSelect: (siteId: string) => void;
+    onSetLive: (siteId: string) => void;
+    onDuplicate: () => Promise<unknown> | void;
+}
+
 /**
  * Version switcher — lists every version (site) that shares the active
  * site's versionGroupId. Sits directly under the SiteSwitcher in the
@@ -17,15 +26,6 @@ import type { CmsSiteListEntry } from './panel/cmsPanelTypes';
  * All API calls are owned by ProductWebsitePanel — this component only
  * renders and dispatches handler props.
  */
-interface VersionSwitcherProps {
-    versions: CmsSiteListEntry[];
-    activeSiteId?: string | null;
-    liveSiteId?: string | null;
-    onSelect: (siteId: string) => void;
-    onSetLive: (siteId: string) => void;
-    onDuplicate: () => Promise<unknown> | void;
-}
-
 export default function VersionSwitcher({
     versions,
     activeSiteId,

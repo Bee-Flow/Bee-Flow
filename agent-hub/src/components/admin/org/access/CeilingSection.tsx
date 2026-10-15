@@ -4,6 +4,14 @@ import CloudCeilingEditor from './CloudCeilingEditor';
 import OrgAccessEditor from './OrgAccessEditor';
 import SelfHostedCeilingEditor from './SelfHostedCeilingEditor';
 
+interface CeilingSectionProps {
+    mode?: string;
+    isSuperAdmin?: boolean;
+    orgId?: string | null;
+    orgName?: string | null;
+    onCeilingChanged?: () => void;
+}
+
 /**
  * CeilingSection — routes the ceiling surface by role + deployment mode:
  *   - org-admin (any mode)        → read-only view of the org's access
@@ -14,14 +22,6 @@ import SelfHostedCeilingEditor from './SelfHostedCeilingEditor';
  * the per-org "Organisation access" menu — which of that max THIS org may use.
  * The grant layer (Grants section) then distributes within that menu.
  */
-interface CeilingSectionProps {
-    mode?: string;
-    isSuperAdmin?: boolean;
-    orgId?: string | null;
-    orgName?: string | null;
-    onCeilingChanged?: () => void;
-}
-
 export default function CeilingSection({ mode, isSuperAdmin, orgId, orgName, onCeilingChanged }: CeilingSectionProps) {
     if (!isSuperAdmin) return <CeilingReadOnly orgId={orgId} />;
 

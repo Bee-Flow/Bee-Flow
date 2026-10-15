@@ -22,7 +22,7 @@ vi.mock('../../../utils/helpers', () => ({
     }),
 }));
 
-import RolePermissionEditor from './RolePermissionEditor.jsx';
+import RolePermissionEditor from './RolePermissionEditor';
 
 const ROLE = { id: 'member', name: 'Member', color: '#6b7280' };
 const EDITABLE = ['manage_agents', 'use_approvals', 'use_forms', 'use_notebooks'];

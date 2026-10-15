@@ -12,6 +12,18 @@ import PeopleGroupSection from './PeopleGroupSection';
 import type { PeopleUser } from './PeopleRow';
 import { GROUP_BY, useUserDirectory } from './useUserDirectory';
 
+interface PeopleDirectoryProps {
+    users?: PeopleUser[];
+    groups?: AdminGroup[];
+    organizations?: AdminOrganization[];
+    loading?: boolean;
+    canManageUsers?: boolean;
+    onAddUser: () => void;
+    onEditUser?: (user: PeopleUser) => void;
+    onResetMfa?: (user: PeopleUser) => void;
+    onDeleteUser?: (user: PeopleUser) => void;
+}
+
 /**
  * The Security → People directory: everyone the caller may see, grouped by
  * organisation (and within it by group), filterable across six axes.
@@ -25,18 +37,6 @@ import { GROUP_BY, useUserDirectory } from './useUserDirectory';
  * the mutation modals stay there and call loadData() on save. A second cache
  * here would be a second thing to invalidate.
  */
-interface PeopleDirectoryProps {
-    users?: PeopleUser[];
-    groups?: AdminGroup[];
-    organizations?: AdminOrganization[];
-    loading?: boolean;
-    canManageUsers?: boolean;
-    onAddUser: () => void;
-    onEditUser?: (user: PeopleUser) => void;
-    onResetMfa?: (user: PeopleUser) => void;
-    onDeleteUser?: (user: PeopleUser) => void;
-}
-
 export default function PeopleDirectory({
     users = [],
     groups = [],
