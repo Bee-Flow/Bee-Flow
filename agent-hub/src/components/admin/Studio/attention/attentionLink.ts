@@ -1,5 +1,12 @@
 import { studioAppForKind } from '../studioNav';
 
+/** The part of an attention row the link reads. */
+interface AttentionLinkItem {
+    deepLink?: unknown;
+    kind?: string | null;
+    finding?: { targetId?: string | null } | null;
+}
+
 /**
  * Where an attention row's "show me" goes.
  *
@@ -14,7 +21,7 @@ import { studioAppForKind } from '../studioNav';
  * needs the same answer, and two walks over STUDIO_APPS are two answers to
  * "where does Show me go".
  */
-const segmentForKind = (kind) => studioAppForKind(kind)?.urlSegment || null;
+const segmentForKind = (kind: string | null | undefined) => studioAppForKind(kind)?.urlSegment || null;
 
 /** The prefix of an in-app Studio link; anything else is not ours to open. */
 const IN_APP_PREFIX = '/app/studio/';
@@ -41,7 +48,7 @@ const IN_APP_PREFIX = '/app/studio/';
  * is worse than a row that does not navigate, which is the rule deepLinkFor
  * keeps too.
  */
-export function attentionPath(item) {
+export function attentionPath(item?: AttentionLinkItem | null): string | null {
     const link = item?.deepLink;
     if (typeof link === 'string' && link.startsWith(IN_APP_PREFIX)) return link.slice('/app/'.length);
     const segment = segmentForKind(item?.kind);

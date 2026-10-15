@@ -9,7 +9,39 @@ import ProbeResult from './ProbeResult';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from '../shared/ProviderCardShell';
 
-const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
+/** One entry of GET /ai/local-runtimes. */
+interface RuntimeInfo {
+    type?: string;
+    label?: string;
+    defaultUrl?: string;
+    docsUrl?: string;
+    description?: string;
+}
+
+/** What "Test connection" answers. */
+interface ProbeData {
+    ok: boolean;
+    error?: string;
+    version?: string;
+    modelCount?: number;
+    models?: { id: string; cat?: string }[];
+}
+
+/** What the form hands to onConnect. */
+interface ConnectRequest {
+    type?: string;
+    name?: string;
+    url?: string;
+    apiKey?: string;
+}
+
+interface AddRuntimeFormProps {
+    runtimes: RuntimeInfo[];
+    saving: boolean;
+    onConnect: (request: ConnectRequest) => void;
+}
+
+const AddRuntimeForm = ({ runtimes, saving, onConnect }: AddRuntimeFormProps) => {
     const { t } = useTranslation();
     const first = runtimes[0] || {};
     const [form, setForm] = useState({
@@ -18,13 +50,13 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
         url: first.defaultUrl || '',
         apiKey: '',
     });
-    const [probe, setProbe] = useState(null);
+    const [probe, setProbe] = useState<ProbeData | null>(null);
     const [testing, setTesting] = useState(false);
 
-    const runtimeFor = (type) => runtimes.find(r => r.type === type) || {};
+    const runtimeFor = (type: string | undefined) => runtimes.find((r: RuntimeInfo) => r.type === type) || {};
     const current = runtimeFor(form.type);
 
-    const changeType = (type) => {
+    const changeType = (type: string) => {
         const next = runtimeFor(type);
         const prev = runtimeFor(form.type);
         setProbe(null);
@@ -49,16 +81,16 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <select
                     value={form.type}
-                    onChange={e => changeType(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => changeType(e.target.value)}
                     className={PROVIDER_INPUT_CLS}
                     style={PROVIDER_INPUT_STYLE}
                 >
-                    {runtimes.map(r => <option key={r.type} value={r.type}>{r.label}</option>)}
+                    {runtimes.map((r: RuntimeInfo) => <option key={r.type} value={r.type}>{r.label}</option>)}
                 </select>
                 <input
                     type="text"
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder={t('admin_ai_config.add_name_placeholder', 'Display name (e.g. GPU box)')}
                     className={PROVIDER_INPUT_CLS}
                     style={PROVIDER_INPUT_STYLE}
@@ -70,7 +102,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
             <input
                 type="text"
                 value={form.url}
-                onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, url: e.target.value }))}
                 placeholder={current.defaultUrl || 'http://localhost:8000/v1'}
                 className={PROVIDER_INPUT_CLS}
                 style={PROVIDER_INPUT_STYLE}
@@ -78,7 +110,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
             <input
                 type="password"
                 value={form.apiKey}
-                onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, apiKey: e.target.value }))}
                 placeholder={t('admin_ai_config.add_key_placeholder', 'API key: only if you started the server with one (optional)')}
                 className={PROVIDER_INPUT_CLS}
                 style={PROVIDER_INPUT_STYLE}

@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { authFetch } from '../../../../utils/helpers';
 
+export type RemoteStatus = 'idle' | 'loading' | 'ok' | 'error';
+
+export interface RemoteState {
+    status: RemoteStatus;
+    data: unknown;
+}
+
+interface KeyedRemoteState extends RemoteState {
+    key: string | null;
+}
+
 /**
  * One remote list, with the difference between "none" and "could not read"
  * kept.
@@ -21,12 +32,12 @@ import { authFetch } from '../../../../utils/helpers';
  * (`data` is the parsed body), `error` (asked and it did not work — `data`
  * stays null so a caller cannot accidentally render a half-answer).
  */
-export async function readJson(res) {
+export async function readJson(res: Response): Promise<unknown> {
     try { return await res.json(); } catch { return null; }
 }
 
-export default function useRemote(url, enabled) {
-    const [state, setState] = useState({ key: null, status: 'idle', data: null });
+export default function useRemote(url: string | null | undefined, enabled?: boolean): RemoteState {
+    const [state, setState] = useState<KeyedRemoteState>({ key: null, status: 'idle', data: null });
     useEffect(() => {
         if (!enabled || !url) return undefined;
         let stopped = false;

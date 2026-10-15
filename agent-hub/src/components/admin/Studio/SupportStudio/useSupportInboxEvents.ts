@@ -7,7 +7,7 @@ import { API_BASE, isDemoMode } from '../../../../utils/helpers';
  * Pass a STABLE onEvent (useCallback) — it's a dependency, so a new identity
  * reconnects the stream.
  */
-export default function useSupportInboxEvents(onEvent) {
+export default function useSupportInboxEvents(onEvent?: ((type: string, data: unknown) => void) | null): void {
     useEffect(() => {
         // An EventSource is not a fetch, so the public demo's transport cannot
         // intercept it — this opened a real, long-lived connection to the API
@@ -15,12 +15,12 @@ export default function useSupportInboxEvents(onEvent) {
         // nothing to stream in a demo anyway: the fixture state only changes
         // when the visitor changes it, and that already re-renders.
         if (isDemoMode()) return undefined;
-        let es;
+        let es: EventSource;
         try {
             es = new EventSource(`${API_BASE}/api/support-inbox/stream`, { withCredentials: true });
         } catch (_) { return undefined; }
-        const handle = (e) => {
-            try { onEvent?.(e.type, JSON.parse(e.data)); } catch (_) { /* ignore */ }
+        const handle = (e: Event) => {
+            try { onEvent?.(e.type, JSON.parse((e as MessageEvent<string>).data)); } catch (_) { /* ignore */ }
         };
         es.addEventListener('thread_created', handle);
         es.addEventListener('thread_updated', handle);

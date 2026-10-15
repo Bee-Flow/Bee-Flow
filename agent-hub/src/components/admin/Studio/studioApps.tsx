@@ -15,13 +15,14 @@
 //
 // Same import discipline as the registry: this file is in the main chunk, so
 // the API module is import()ed at call time, never re-exported statically.
+import type { AutomationDraftCtx, AutomationDraftOptions } from '../../../api/queries/automation/createDraft';
 export { STUDIO_APPS, STUDIO_ICONS, default } from './studioRegistry';
 export {
     makeCanUse, STUDIO_CATEGORIES, DEFAULT_STUDIO_CATEGORY, groupStudioApps, resolveStudioNav,
     studioPermissionHeld, firstOpenStudioSection, studioLockHint, studioTrainingArea, createFormAutomation,
 } from './studioGates';
 
-export async function createAutomationDraft(ctx, options) {
+export async function createAutomationDraft(ctx: AutomationDraftCtx, options?: AutomationDraftOptions) {
     const { createAutomationDraft: create } = await import('../../../api/queries/automation/createDraft');
     return create(ctx, options);
 }

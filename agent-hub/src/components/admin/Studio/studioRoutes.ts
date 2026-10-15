@@ -2,6 +2,26 @@ import { STUDIO_APPS } from './studioApps';
 import { STUDIO_START } from './studioStart';
 import { getRuntimeStudioApps } from '../../../moduleRuntime/registry';
 
+/** A parsed `app:<appId>:<screenId>:<nodeId>` reference. */
+export interface AppRef {
+    appId: string;
+    screenId: string;
+    nodeId: string;
+}
+
+/** The automation the Studio shell keeps `from` pinned to. */
+export interface StickyFrom {
+    automationId?: string | null;
+    token: string | null;
+}
+
+interface StudioSearchParts {
+    view?: string | null;
+    runId?: string | null;
+    stepId?: string | null;
+    from?: string | null;
+}
+
 // URL segment ↔ Studio section maps, derived from the app registry so a new
 // Studio app only has to declare its slug once. Consumed by App.jsx (URL
 // parsing + the navigateToPage 'studio/...' handler) and kept free of any
@@ -19,7 +39,7 @@ import { getRuntimeStudioApps } from '../../../moduleRuntime/registry';
 // Start is not in STUDIO_APPS (see studioStart.js) but IS a built-in segment,
 // so it joins the static maps here rather than being special-cased in every
 // lookup below.
-export const SEG_TO_SECTION = Object.fromEntries(
+export const SEG_TO_SECTION: Record<string, string> = Object.fromEntries(
     [...STUDIO_APPS, STUDIO_START].flatMap((app) => [
         [app.urlSegment, app.id],
         [app.id, app.id],
@@ -27,7 +47,7 @@ export const SEG_TO_SECTION = Object.fromEntries(
     ])
 );
 
-export const SECTION_TO_SEG = Object.fromEntries(
+export const SECTION_TO_SEG: Record<string, string> = Object.fromEntries(
     [...STUDIO_APPS, STUDIO_START].map((app) => [app.id, app.urlSegment])
 );
 
@@ -43,7 +63,7 @@ export const SECTION_TO_SEG = Object.fromEntries(
 //   asked for.
 //
 // Built-in segments resolve first; then the live runtime module list.
-export function sectionFromRaw(raw) {
+export function sectionFromRaw(raw: string | null | undefined): string {
     if (!raw) return STUDIO_START.id;
     if (SEG_TO_SECTION[raw]) return SEG_TO_SECTION[raw];
     for (const app of getRuntimeStudioApps()) {
@@ -54,7 +74,7 @@ export function sectionFromRaw(raw) {
     return 'agents';
 }
 
-export function segmentForSection(section) {
+export function segmentForSection(section: string): string {
     if (SECTION_TO_SEG[section]) return SECTION_TO_SEG[section];
     const app = getRuntimeStudioApps().find((a) => a.id === section);
     return app ? app.urlSegment : section;
@@ -68,7 +88,7 @@ export function segmentForSection(section) {
 // files were skipped" is a link somebody can send. Automations already consumed
 // the same slot for a reusable step's flowlet, which is why the reserved
 // "steps" branch below shifts everything one segment along.
-export function parseStudioUrl(pathname) {
+export function parseStudioUrl(pathname: string) {
     // Legacy /app/webpages[/<id>] paths route into Studio's Webpages section.
     const wp = pathname.match(/^\/app\/webpages(?:\/([^/]+))?/);
     if (wp) return { section: 'webpages', id: wp[1] || null, sub: null, subId: null, automationKind: null };
@@ -98,7 +118,7 @@ export function parseStudioUrl(pathname) {
     // The literal "steps" id segment is reserved (no automation can use it).
     // 'routines' / 'ai-tasks' are the slugs this tab used before it was named
     // after the one thing it holds; both still parse.
-    let automationKind = null;
+    let automationKind: string | null = null;
     if ((seg === 'automations' || seg === 'routines' || seg === 'ai-tasks') && id === 'steps') {
         automationKind = 'step';
         id = m?.[3] || null;
@@ -121,7 +141,7 @@ export function parseStudioUrl(pathname) {
 // dozen call sites). Map at the edges, never rename the id.
 
 /** Parse a location.search string → { view, runId, stepId, from } (nulls when absent). */
-export function parseStudioQuery(search) {
+export function parseStudioQuery(search: unknown) {
     const q = new URLSearchParams(String(search || '').replace(/^\?/, ''));
     return {
         view: q.get('view') || null,
@@ -136,7 +156,7 @@ export function parseStudioQuery(search) {
  * `view` when it is the default Editor ('build'), and returns '' when
  * nothing needs saying — so plain automation URLs stay exactly as they were.
  */
-export function buildStudioSearch({ view = null, runId = null, stepId = null, from = null } = {}) {
+export function buildStudioSearch({ view = null, runId = null, stepId = null, from = null }: StudioSearchParts = {}): string {
     const q = new URLSearchParams();
     if (view && view !== 'build') q.set('view', view);
     if (runId) q.set('run', runId);
@@ -179,7 +199,7 @@ const APP_REF_NODE_ID_RE = /^(scr|sec|cmp|act)_[a-z0-9]{4,12}$/;
  * number of parts, or an id that does not match its format. Half a reference
  * is not a reference.
  */
-export function parseAppRefParam(from) {
+export function parseAppRefParam(from: unknown): AppRef | null {
     const raw = String(from || '');
     if (!raw.startsWith(APP_REF_PREFIX)) return null;
     const parts = raw.slice(APP_REF_PREFIX.length).split(':');
@@ -214,7 +234,7 @@ export function parseAppRefParam(from) {
  * @param {string|null} automationId  the automation open right now
  * @returns the same object when nothing changed, so callers can `!==`-check.
  */
-export function stickyFrom(prev, automationId) {
+export function stickyFrom(prev: StickyFrom | null | undefined, automationId?: string | null) {
     if (!prev || !prev.token) return prev;
     if (prev.automationId == null && automationId) return { automationId, token: prev.token };
     if (automationId && automationId !== prev.automationId) return { automationId, token: null };
@@ -225,7 +245,7 @@ export function stickyFrom(prev, automationId) {
  * Build the `from` token for an app reference, or null when the reference is
  * not complete enough to be one. Round-trips with parseAppRefParam.
  */
-export function appRefParam(ref) {
+export function appRefParam(ref: AppRef | null | undefined): string | null {
     if (!ref) return null;
     const token = `${APP_REF_PREFIX}${ref.appId}:${ref.screenId}:${ref.nodeId}`;
     return parseAppRefParam(token) ? token : null;

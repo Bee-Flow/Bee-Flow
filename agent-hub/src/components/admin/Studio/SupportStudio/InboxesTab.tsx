@@ -10,6 +10,31 @@ import IconButton from '../../../shared/IconButton';
 import Section from '../../../shared/Section';
 import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
+import type { SupportAgent, SupportInbox, SupportKb } from './supportStudio.types';
+
+interface InboxesTabProps {
+    inboxes?: SupportInbox[];
+    agents?: SupportAgent[];
+    kbs?: SupportKb[];
+    selectedInboxId?: string | null;
+    onSelectInbox?: (id: string) => void;
+    onChanged?: () => void;
+}
+
+interface InboxCardProps {
+    inbox: SupportInbox;
+    agents: SupportAgent[];
+    kbs: SupportKb[];
+    selected: boolean;
+    onSelect: () => void;
+    onChanged?: () => void;
+}
+
+interface InboxForm {
+    display_name: string;
+    default_agent_id: string;
+    kb_ids: string[];
+}
 
 /**
  * InboxesTab — connect/disconnect mailboxes and edit each inbox's identity
@@ -17,7 +42,7 @@ import useConfirm from '../../../shared/useConfirm';
  * provider + name; everything else has a sensible default so a new inbox works
  * the moment OAuth completes.
  */
-export default function InboxesTab({ inboxes = [], agents = [], kbs = [], selectedInboxId, onSelectInbox, onChanged }) {
+export default function InboxesTab({ inboxes = [], agents = [], kbs = [], selectedInboxId, onSelectInbox, onChanged }: InboxesTabProps) {
     const { t } = useTranslation();
     const [creating, setCreating] = useState(false);
     const [newProvider, setNewProvider] = useState('gmail');
@@ -44,11 +69,11 @@ export default function InboxesTab({ inboxes = [], agents = [], kbs = [], select
             {creating && (
                 <Section padded>
                     <div className="flex flex-wrap gap-3 items-center">
-                        <select value={newProvider} onChange={e => setNewProvider(e.target.value)} className={`${INPUT_FIELD} w-auto`}>
+                        <select value={newProvider} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewProvider(e.target.value)} className={`${INPUT_FIELD} w-auto`}>
                             <option value="gmail">Gmail</option>
                             <option value="outlook">Outlook</option>
                         </select>
-                        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('support.settings.display_name_placeholder', 'Display name (e.g. Support)')}
+                        <input value={newName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewName(e.target.value)} placeholder={t('support.settings.display_name_placeholder', 'Display name (e.g. Support)')}
                             className={`${INPUT_FIELD} flex-1 min-w-[12rem]`} />
                         <button onClick={createInbox} className={PRIMARY_BTN} style={PRIMARY_BTN_STYLE}>{t('support.common.create', 'Create')}</button>
                     </div>
@@ -70,26 +95,26 @@ export default function InboxesTab({ inboxes = [], agents = [], kbs = [], select
     );
 }
 
-function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }) {
+function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }: InboxCardProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const orgKbs = kbs.filter(kb => !kb.organization_id || !inbox.organization_id || kb.organization_id === inbox.organization_id);
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<InboxForm>({
         display_name: inbox.display_name || '',
         default_agent_id: inbox.default_agent_id || '',
         kb_ids: Array.isArray(inbox.kb_ids) ? inbox.kb_ids : [],
     });
     const [saving, setSaving] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
-    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-    const toggleKb = (id) => set('kb_ids', form.kb_ids.includes(id) ? form.kb_ids.filter(x => x !== id) : [...form.kb_ids, id]);
+    const set = (k: keyof InboxForm, v: string | string[]) => setForm(f => ({ ...f, [k]: v }));
+    const toggleKb = (id: string) => set('kb_ids', form.kb_ids.includes(id) ? form.kb_ids.filter(x => x !== id) : [...form.kb_ids, id]);
 
     const connect = useCallback(async () => {
         const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}/oauth/start`);
         const d = await res.json().catch(() => ({}));
         if (!res.ok || !d.url) { toast.error(d.error || t('support.settings.connect_failed', 'Could not connect')); return; }
         const popup = window.open(d.url, 'support-mailbox-oauth', 'width=520,height=680');
-        const onMsg = (ev) => {
+        const onMsg = (ev: MessageEvent) => {
             if (!isTrustedOAuthOrigin(ev.origin, API_BASE)) return;
             if (ev?.data && typeof ev.data === 'string' && ev.data.includes('support-mailbox-oauth')) {
                 window.removeEventListener('message', onMsg);
@@ -172,10 +197,10 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }) {
             <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <FormField label={t('support.settings.display_name', 'Display name')}>
-                        <input value={form.display_name} onChange={e => set('display_name', e.target.value)} className={INPUT_FIELD} />
+                        <input value={form.display_name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set('display_name', e.target.value)} className={INPUT_FIELD} />
                     </FormField>
                     <FormField label={t('support.settings.reply_agent', 'Reply agent')}>
-                        <select value={form.default_agent_id} onChange={e => set('default_agent_id', e.target.value)} className={INPUT_FIELD}>
+                        <select value={form.default_agent_id} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set('default_agent_id', e.target.value)} className={INPUT_FIELD}>
                             <option value="">{t('support.common.none', '— none —')}</option>
                             {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                         </select>

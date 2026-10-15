@@ -2,6 +2,18 @@ import React, { useEffect, useState, useCallback } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { metaFor } from './auditMeta';
+import type { SupportTeammate } from './supportStudio.types';
+
+interface TimelineEvent {
+    id?: string;
+    actor_user_id?: string | null;
+    created_at: string;
+}
+
+interface TicketTimelineProps {
+    threadId: string;
+    teammates?: SupportTeammate[];
+}
 
 /**
  * TicketTimeline — the per-ticket audit trail. Reads the unified audit feed
@@ -9,12 +21,12 @@ import { metaFor } from './auditMeta';
  * / requester precisely, and renders each as an icon + coloured category chip +
  * human label + payload summary. Newest-first.
  */
-export default function TicketTimeline({ threadId, teammates = [] }) {
+export default function TicketTimeline({ threadId, teammates = [] }: TicketTimelineProps) {
     const { t } = useTranslation();
-    const [events, setEvents] = useState([]);
+    const [events, setEvents] = useState<TimelineEvent[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const nameFor = useCallback((id) => {
+    const nameFor = useCallback((id?: string | null) => {
         if (!id) return '';
         const tm = teammates.find(x => x.id === id);
         return tm ? (tm.name || tm.email || id) : id;

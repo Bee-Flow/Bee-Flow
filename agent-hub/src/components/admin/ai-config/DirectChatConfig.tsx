@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { StatusMessage } from './chatModelTiers/tierTypes';
 
 const DirectChatConfig = () => {
     const { t } = useTranslation();
     const [systemPrompt, setSystemPrompt] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState(null);
+    const [message, setMessage] = useState<StatusMessage | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -72,7 +73,7 @@ const DirectChatConfig = () => {
                     <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.direct_prompt_label', 'System Prompt')}</label>
                     <textarea
                         value={systemPrompt}
-                        onChange={e => setSystemPrompt(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSystemPrompt(e.target.value)}
                         placeholder={t('admin_ai_config.direct_prompt_placeholder', 'You are a helpful AI assistant. Respond thoughtfully and concisely.')}
                         rows={8}
                         className="w-full px-4 py-3 rounded-lg border outline-none focus:border-[var(--accent-primary)] resize-y font-mono text-sm leading-relaxed"
