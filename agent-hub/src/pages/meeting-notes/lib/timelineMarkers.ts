@@ -11,6 +11,9 @@
  * are testable without a canvas or an <audio> element.
  */
 
+import type { TimelineMarker } from '../detail/player/player.types';
+import type { MeetingActionItem } from '../detail/meetingDetailTypes';
+
 /** Marks closer together than this would overlap into an unclickable smear. */
 const MIN_SEPARATION_FRACTION = 0.006;
 
@@ -25,7 +28,7 @@ const MIN_SEPARATION_FRACTION = 0.006;
  *
  * Exported: playerData.js applies the same honesty rule to chapter timestamps.
  */
-export function toSeconds(stamp) {
+export function toSeconds(stamp: unknown): number | null {
     if (typeof stamp === 'number') return Number.isFinite(stamp) ? stamp : null;
     if (typeof stamp !== 'string') return null;
 
@@ -46,20 +49,20 @@ export function toSeconds(stamp) {
  * @returns {Array<{id: string, seconds: number, fraction: number, label: string, assignee: string, done: boolean, count: number}>}
  *          Chronological, de-clustered markers. Empty when nothing is placeable.
  */
-export function buildTimelineMarkers(actionItems, durationSeconds) {
+export function buildTimelineMarkers(actionItems: Array<MeetingActionItem | null | undefined>, durationSeconds: number | undefined): TimelineMarker[] {
     const duration = Number(durationSeconds) || 0;
     if (!duration || !Array.isArray(actionItems)) return [];
 
-    const placed = actionItems
+    const placed = (actionItems
         .map((item) => toMarker(item, duration))
-        .filter(Boolean)
+        .filter(Boolean) as TimelineMarker[])
         .sort((a, b) => a.seconds - b.seconds);
 
     return collapseNearby(placed);
 }
 
 /** One moment → a marker, or null when it can't be placed honestly. */
-function toMarker(item, duration) {
+function toMarker(item: MeetingActionItem | null | undefined, duration: number): TimelineMarker | null {
     if (!item) return null;
     const seconds = toSeconds(item.timestamp);
     // Drop anything unreadable or past the end of the audio rather than pinning
@@ -91,7 +94,7 @@ function toMarker(item, duration) {
  * @param {Array<{seconds: number, speakerId: string, text: string}>} mentions
  * @param {number | undefined} durationSeconds
  */
-export function buildMentionMarkers(mentions, durationSeconds) {
+export function buildMentionMarkers(mentions: Array<{ seconds: number; speakerId: string; text: string }>, durationSeconds: number | undefined): TimelineMarker[] {
     const duration = Number(durationSeconds) || 0;
     if (!duration || !Array.isArray(mentions)) return [];
 
@@ -118,8 +121,8 @@ export function buildMentionMarkers(mentions, durationSeconds) {
  * separately they overlap into a blob that can't be clicked, and each one
  * seeks to the same second anyway.
  */
-function collapseNearby(placed) {
-    const merged = [];
+function collapseNearby(placed: TimelineMarker[]): TimelineMarker[] {
+    const merged: TimelineMarker[] = [];
     for (const marker of placed) {
         const last = merged[merged.length - 1];
         if (last && marker.fraction - last.fraction < MIN_SEPARATION_FRACTION) {

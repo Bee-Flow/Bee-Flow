@@ -16,8 +16,28 @@ import useMediaQuery from '../hooks/useMediaQuery';
 import useNextcloudConnected from '../hooks/useNextcloudConnected';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
 import { useTeamsNotesUserSettings } from '../../../api/queries/teamsMeetingNotes';
+import type { ComponentType } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { CaptureMode } from './CaptureContext';
 
-const PANELS = {
+interface CaptureText {
+    title: string;
+    description: string;
+}
+
+interface SourceTile {
+    key: CaptureMode;
+    icon: LucideIcon;
+    title: string;
+    description: string;
+    accent: string;
+    requiresNextcloud?: boolean;
+    requiresGoogleMeet?: boolean;
+    requiresTeams?: boolean;
+}
+
+const PANELS: Record<CaptureMode, ComponentType<{ onComplete?: () => void }>> = {
     record: RecordPanel,
     upload: UploadPanel,
     talk: TalkImportPanel,
@@ -34,7 +54,7 @@ const PANELS = {
  * `--success`), plus the meeting kind's own colour for "record" so the tile
  * matches the rail row it produces.
  */
-function captureText(t) {
+function captureText(t: TranslateFn): Record<CaptureMode, CaptureText> {
     return {
         record: { title: t('meetings.capture_record_title', 'Record audio'), description: t('meetings.capture_record_desc', 'Capture from your microphone.') },
         upload: { title: t('meetings.capture_upload_title', 'Upload a recording'), description: t('meetings.capture_upload_desc', 'Drop a file from your computer.') },
@@ -44,7 +64,7 @@ function captureText(t) {
     };
 }
 
-function sourceTiles(t) {
+function sourceTiles(t: TranslateFn): SourceTile[] {
     return [
         { key: 'record', icon: Mic, title: t('meetings.capture_record_title', 'Record audio'), description: t('meetings.capture_tile_record_desc', 'Capture live from your microphone.'), accent: 'var(--kind-meet)' },
         { key: 'upload', icon: Upload, title: t('meetings.capture_tile_upload_title', 'Upload a file'), description: t('meetings.capture_tile_upload_desc', 'Drop a .mp3, .wav, .m4a or .mp4.'), accent: 'var(--accent-primary)' },

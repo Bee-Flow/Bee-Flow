@@ -5,6 +5,42 @@ import useTranslation from '../../../hooks/useTranslation';
 // an unreadable model timestamp must lose its chip, not seek to 0:00.
 import { toSeconds } from '../lib/timelineMarkers';
 import DestinationPicker from './DestinationPicker';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { DestinationRecord } from '../lib/actionDestinations';
+import type { MeetingActionItem, MeetingNote } from './meetingDetailTypes';
+
+interface ActionItemsListProps {
+    items?: MeetingActionItem[];
+    meeting?: MeetingNote | null;
+    onToggle?: (id: string) => void;
+    onEdit?: (id: string, text: string) => void;
+    onSeek?: (seconds: number) => void;
+    onSetDestination?: (id: string, destination: DestinationRecord | null) => void;
+}
+
+interface ActionItemRowProps {
+    item: MeetingActionItem;
+    editing: boolean;
+    draft: string;
+    onDraftChange: (draft: string) => void;
+    onToggle: () => void;
+    onStartEdit: () => void;
+    onCommit: () => void;
+    onCancel: () => void;
+    onSeek?: (seconds: number) => void;
+    canEdit: boolean;
+    meeting: MeetingNote | null;
+    onSetDestination?: (id: string, destination: DestinationRecord | null) => void;
+    t: TranslateFn;
+}
+
+interface ActionItemMetaProps {
+    item: MeetingActionItem;
+    onSeek?: (seconds: number) => void;
+    meeting: MeetingNote | null;
+    onSetDestination?: (id: string, destination: DestinationRecord | null) => void;
+    t: TranslateFn;
+}
 
 /**
  * The action cards (Meeting Notes artboard 1a, right column).
@@ -18,9 +54,9 @@ import DestinationPicker from './DestinationPicker';
  * `redactForeign` withholds the title of anything owned by someone else: the
  * existence of a link is not what needs hiding, the NAME is.
  */
-export default function ActionItemsList({ items = [], meeting = null, onToggle, onEdit, onSeek, onSetDestination }) {
+export default function ActionItemsList({ items = [], meeting = null, onToggle, onEdit, onSeek, onSetDestination }: ActionItemsListProps) {
     const { t } = useTranslation();
-    const [editingId, setEditingId] = useState(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [draft, setDraft] = useState('');
 
     // When any item carries a spoken deadline, dated items float up in due
@@ -33,7 +69,7 @@ export default function ActionItemsList({ items = [], meeting = null, onToggle, 
             : a.due ? -1 : b.due ? 1 : 0));
     }, [items]);
 
-    const startEdit = (item) => {
+    const startEdit = (item: MeetingActionItem) => {
         if (!onEdit) return;
         setEditingId(item.id);
         setDraft(item.text || '');
@@ -44,7 +80,7 @@ export default function ActionItemsList({ items = [], meeting = null, onToggle, 
         setDraft('');
     };
 
-    const commitEdit = (item) => {
+    const commitEdit = (item: MeetingActionItem) => {
         const trimmed = draft.trim();
         if (trimmed && trimmed !== item.text) {
             onEdit?.(item.id, trimmed);
@@ -93,8 +129,8 @@ export default function ActionItemsList({ items = [], meeting = null, onToggle, 
     );
 }
 
-function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartEdit, onCommit, onCancel, onSeek, canEdit, meeting, onSetDestination, t }) {
-    const inputRef = useRef(null);
+function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartEdit, onCommit, onCancel, onSeek, canEdit, meeting, onSetDestination, t }: ActionItemRowProps) {
+    const inputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         if (editing && inputRef.current) {
             inputRef.current.focus();
@@ -157,7 +193,7 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
 }
 
 /** The line under the sentence: who, when, by when — and where it went. */
-function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }) {
+function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }: ActionItemMetaProps) {
     return (
         <div className="flex items-center gap-2 mt-1 text-[11px] text-[var(--text-muted)]">
             {item.assignee && (
@@ -171,7 +207,7 @@ function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }) {
             {onSeek && toSeconds(item.timestamp) !== null && (
                 <button
                     type="button"
-                    onClick={() => onSeek(toSeconds(item.timestamp))}
+                    onClick={() => onSeek(toSeconds(item.timestamp) as number)}
                     className="inline-flex items-center gap-1 hover:text-[var(--accent-primary)] transition-colors"
                 >
                     <Clock className="w-3 h-3" aria-hidden="true" />
@@ -186,7 +222,7 @@ function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }) {
                 <DestinationPicker
                     item={item}
                     meeting={meeting}
-                    onPicked={(destination) => onSetDestination(item.id, destination)}
+                    onPicked={(destination: DestinationRecord | null) => onSetDestination(item.id, destination)}
                 />
             )}
         </div>
@@ -203,7 +239,7 @@ function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }) {
  * staan — en dan moet de kaart dat ZEGGEN, anders beweert hij dat de AI dit
  * zojuist heeft opgeleverd.
  */
-function KeptChip({ t }) {
+function KeptChip({ t }: { t: TranslateFn }) {
     return (
         <span
             className="inline-flex items-center gap-1 text-[var(--warning)]"
@@ -216,7 +252,7 @@ function KeptChip({ t }) {
 }
 
 /** Spoken deadline ("YYYY-MM-DD"); --error once it's past and the item isn't done. */
-function DueChip({ due, done, t }) {
+function DueChip({ due, done, t }: { due: string; done?: boolean; t: TranslateFn }) {
     // Compare against the viewer's LOCAL date. toISOString() is UTC, which in
     // CEST turns an item due today into "overdue" for the first two hours
     // after midnight.
@@ -237,6 +273,6 @@ function DueChip({ due, done, t }) {
 /** Today as "YYYY-MM-DD" in the viewer's timezone. */
 function localToday() {
     const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
+    const pad = (n: number) => String(n).padStart(2, '0');
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }

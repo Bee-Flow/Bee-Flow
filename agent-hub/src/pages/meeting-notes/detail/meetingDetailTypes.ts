@@ -1,11 +1,15 @@
+import type { DestinationRecord } from '../lib/actionDestinations';
+
 /** One item of a meeting's action list (core/meetingNotes/actionItems.js). */
 export interface MeetingActionItem {
-    id?: string;
+    id: string;
     text?: string;
     assignee?: string;
     timestamp?: string;
     done?: boolean;
     orphaned?: boolean;
+    due?: string;
+    destination?: DestinationRecord | null;
     [key: string]: unknown;
 }
 

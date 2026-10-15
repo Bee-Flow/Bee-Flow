@@ -8,6 +8,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import TagRow from '../detail/TagRow';
 import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../lib/transcriptionsApi';
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices } from '../lib/upcomingMeta';
+import type { TranscriptionsApiError, DateBlockProps, GmeetData, GmeetMeeting, ProviderChipProps, SourceState, StatusChipProps, TalkData, TalkMeeting, TeamsData, TeamsMeeting, ToggleProps, UpcomingMeetingRowProps, UpcomingMeetingsProps, UpcomingRow } from './UpcomingMeetings.types';
 
 /**
  * "Upcoming" (Gepland): the calendar meetings with a Talk room or a Meet
@@ -48,7 +49,7 @@ import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStat
  * disabled instead of a switch that cannot do anything.
  */
 
-const Toggle = ({ on, onClick, disabled, label, title }) => (
+const Toggle = ({ on, onClick, disabled, label, title }: ToggleProps) => (
     <button
         type="button" onClick={onClick} disabled={disabled} aria-pressed={on} aria-label={label} title={title}
         className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
@@ -59,7 +60,7 @@ const Toggle = ({ on, onClick, disabled, label, title }) => (
     </button>
 );
 
-function StatusChip({ status, onOpenNote, t }) {
+function StatusChip({ status, onOpenNote, t }: StatusChipProps) {
     const base = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium';
     const meetTint = { background: kindTint('meeting', 14), color: kindColorVar('meeting') };
     const muted = { background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' };
@@ -110,7 +111,7 @@ function StatusChip({ status, onOpenNote, t }) {
  * provider gebruikt (Talk: audio of video, uit `recordingMode`; Meet: video),
  * zodat die informatie niet wegvalt nu het datumblok de tegel links inneemt.
  */
-function ProviderChip({ provider, icon: Icon }) {
+function ProviderChip({ provider, icon: Icon }: ProviderChipProps) {
     return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
             style={{ background: kindTint('meeting', 12), color: kindColorVar('meeting') }}>
@@ -123,7 +124,7 @@ function ProviderChip({ provider, icon: Icon }) {
 // Chip status for a Meet row, derived locally so the optimistic exclusion
 // toggle updates the chip without a round-trip (mirrors the server's status
 // logic, plus the host-controls-recording refinement).
-function gmeetChipStatus(m, autoImport) {
+function gmeetChipStatus(m: GmeetMeeting, autoImport: boolean) {
     if (m.status === 'not_organizer') return 'not_organizer';
     if (m.importedNoteId || m.status === 'imported') return 'recorded';
     if (m.excluded || !autoImport) return 'upcoming';
@@ -133,7 +134,7 @@ function gmeetChipStatus(m, autoImport) {
 // Chip status for a Teams row. Only the organizer can import, and Teams'
 // "record automatically" is switched on for them when the settings allow it;
 // otherwise the organizer starts the recording in Teams.
-function teamsChipStatus(m, autoImport, autoRecordArmed) {
+function teamsChipStatus(m: TeamsMeeting, autoImport: boolean, autoRecordArmed: boolean) {
     if (m.status === 'organizer_only') return 'not_organizer';
     if (m.importedNoteId) return 'recorded';
     if (m.excluded || !autoImport) return 'upcoming';
@@ -144,7 +145,7 @@ function teamsChipStatus(m, autoImport, autoRecordArmed) {
  * Het datumblok. Zonder begintijd (talkCalendar geeft `start: ev.dtstart || null`)
  * staat er een agendaglyph met uitleg, geen verzonnen datum.
  */
-function DateBlock({ start, t }) {
+function DateBlock({ start, t }: DateBlockProps) {
     const parts = dateBlockParts(start);
     const tile = { background: kindTint('meeting', 16), color: kindColorVar('meeting') };
     if (!parts) {
@@ -164,7 +165,7 @@ function DateBlock({ start, t }) {
     );
 }
 
-function UpcomingMeetingRow({ provider, icon: Icon, meeting, status, noteId, onOpenNote, record, toggleDisabled, onToggle, error, overridden, t }) {
+function UpcomingMeetingRow({ provider, icon: Icon, meeting, status, noteId, onOpenNote, record, toggleDisabled, onToggle, error, overridden, t }: UpcomingMeetingRowProps) {
     const segments = metaSegments(meeting, t);
     const tags = meetingTags(meeting);
     const title = meeting.title || t('meetings.untitled', 'Untitled meeting');
@@ -215,7 +216,6 @@ function UpcomingMeetingRow({ provider, icon: Icon, meeting, status, noteId, onO
         </div>
     );
 }
-
 const WARN_BANNER = {
     background: 'color-mix(in srgb, var(--warning) 8%, var(--bg-secondary))',
     borderColor: 'var(--warning)',
@@ -227,35 +227,35 @@ const ERROR_BANNER = {
     color: 'var(--text-primary)',
 };
 
-export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
+export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingMeetingsProps) {
     const { t } = useTranslation();
-    const [talk, setTalk] = useState({ loading: true, error: null, data: null }); // { recordingEnabled, recordingMode, meetings }
-    const [gmeet, setGmeet] = useState({ loading: true, error: null, data: null }); // { connection, autoImport, meetings }
-    const [teams, setTeams] = useState({ loading: true, error: null, data: null }); // { connection, autoImport, autoRecordConfig, meetings }
-    const [busyKey, setBusyKey] = useState(null);
-    const [gmeetRowErrors, setGmeetRowErrors] = useState({}); // eventId → message
-    const [teamsRowErrors, setTeamsRowErrors] = useState({}); // eventId → message
+    const [talk, setTalk] = useState<SourceState<TalkData>>({ loading: true, error: null, data: null }); // { recordingEnabled, recordingMode, meetings }
+    const [gmeet, setGmeet] = useState<SourceState<GmeetData>>({ loading: true, error: null, data: null }); // { connection, autoImport, meetings }
+    const [teams, setTeams] = useState<SourceState<TeamsData>>({ loading: true, error: null, data: null }); // { connection, autoImport, autoRecordConfig, meetings }
+    const [busyKey, setBusyKey] = useState<string | null>(null);
+    const [gmeetRowErrors, setGmeetRowErrors] = useState<Record<string, string>>({}); // eventId → message
+    const [teamsRowErrors, setTeamsRowErrors] = useState<Record<string, string>>({}); // eventId → message
     // rowKey → true zodra de server meldde dat een BREDERE regel de keuze van
     // deze gebruiker overruled (org-breed, of de hele serie). Alleen dán krijgt
     // `opted_out` een uitleg: bij een eigen klik is die overbodig.
-    const [overridden, setOverridden] = useState({});
+    const [overridden, setOverridden] = useState<Record<string, boolean>>({});
     const [reconnecting, setReconnecting] = useState(false);
     const [reconnectingMs, setReconnectingMs] = useState(false);
 
     const loadTalk = async () => {
         setTalk(s => ({ ...s, loading: true, error: null }));
         try { setTalk({ loading: false, error: null, data: await listTalkMeetings() }); }
-        catch (err) { setTalk(s => ({ ...s, loading: false, error: err })); }
+        catch (err) { setTalk(s => ({ ...s, loading: false, error: err as TranscriptionsApiError })); }
     };
     const loadGmeet = async () => {
         setGmeet(s => ({ ...s, loading: true, error: null }));
         try { setGmeet({ loading: false, error: null, data: await listGoogleMeetMeetings() }); }
-        catch (err) { setGmeet(s => ({ ...s, loading: false, error: err })); }
+        catch (err) { setGmeet(s => ({ ...s, loading: false, error: err as TranscriptionsApiError })); }
     };
     const loadTeams = async () => {
         setTeams(s => ({ ...s, loading: true, error: null }));
         try { setTeams({ loading: false, error: null, data: await listTeamsMeetings() }); }
-        catch (err) { setTeams(s => ({ ...s, loading: false, error: err })); }
+        catch (err) { setTeams(s => ({ ...s, loading: false, error: err as TranscriptionsApiError })); }
     };
     const load = () => { setGmeetRowErrors({}); setTeamsRowErrors({}); setOverridden({}); loadTalk(); loadGmeet(); loadTeams(); };
     useEffect(() => { load(); }, []);
@@ -280,10 +280,10 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
     // De EFFECTIEVE chipstatus reist mee in de rij: de voetregel hangt eraan,
     // en die mag niet op `!excluded` afgaan — dat is de stand van de schakelaar,
     // niet de uitkomst (zie attendeeNotices).
-    const rows = [
-        ...talkMeetings.map(m => ({ provider: 'talk', key: `talk:${m.uid || ''}:${m.talkToken}`, start: m.start, m, status: m.status })),
-        ...gmeetMeetings.map(m => ({ provider: 'gmeet', key: `gmeet:${m.eventId}`, start: m.start, m, status: gmeetChipStatus(m, autoImport) })),
-        ...teamsMeetings.map(m => ({ provider: 'teams', key: `teams:${m.eventId}`, start: m.start, m, status: teamsChipStatus(m, teamsAutoImport, teamsAutoRecordArmed) })),
+    const rows: UpcomingRow[] = [
+        ...talkMeetings.map(m => ({ provider: 'talk' as const, key: `talk:${m.uid || ''}:${m.talkToken}`, start: m.start, m, status: m.status })),
+        ...gmeetMeetings.map(m => ({ provider: 'gmeet' as const, key: `gmeet:${m.eventId}`, start: m.start, m, status: gmeetChipStatus(m, autoImport) })),
+        ...teamsMeetings.map(m => ({ provider: 'teams' as const, key: `teams:${m.eventId}`, start: m.start, m, status: teamsChipStatus(m, teamsAutoImport, teamsAutoRecordArmed) })),
     ].sort((a, b) => new Date(a.start || 0).getTime() - new Date(b.start || 0).getTime());
 
     // Report the count once both sources have answered; while loading the
@@ -315,7 +315,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
      * gezegd waarom. Nu neemt de rij het antwoord van de server over en krijgt
      * de toggle een uitleg (`overridden` → recordReasonHint).
      */
-    const toggleTalk = async (m) => {
+    const toggleTalk = async (m: TalkMeeting) => {
         const nextRecord = m.excluded; // excluded → turning ON; else turning OFF
         setBusyKey(`talk:${m.talkToken}`);
         // optimistic
@@ -341,7 +341,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
         }
     };
 
-    const toggleGmeet = async (m) => {
+    const toggleGmeet = async (m: GmeetMeeting) => {
         const nextRecord = m.excluded;
         setBusyKey(`gmeet:${m.eventId}`);
         setGmeetRowErrors(prev => {
@@ -364,7 +364,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                 },
             } : s);
         } catch (err) {
-            if (err?.code) setGmeetRowErrors(prev => ({ ...prev, [m.eventId]: err.message || t('meetings.upcoming_update_failed', "Couldn't update this meeting.") }));
+            if ((err as TranscriptionsApiError)?.code) setGmeetRowErrors(prev => ({ ...prev, [m.eventId]: (err as TranscriptionsApiError).message || t('meetings.upcoming_update_failed', "Couldn't update this meeting.") }));
             // revert by reloading the Meet slice
             await loadGmeet();
         } finally {
@@ -372,7 +372,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
         }
     };
 
-    const toggleTeams = async (m) => {
+    const toggleTeams = async (m: TeamsMeeting) => {
         const nextRecord = m.excluded;
         setBusyKey(`teams:${m.eventId}`);
         setTeamsRowErrors(prev => {
@@ -394,7 +394,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                 },
             } : s);
         } catch (err) {
-            if (err?.code) setTeamsRowErrors(prev => ({ ...prev, [m.eventId]: err.message || t('meetings.upcoming_update_failed', "Couldn't update this meeting.") }));
+            if ((err as TranscriptionsApiError)?.code) setTeamsRowErrors(prev => ({ ...prev, [m.eventId]: (err as TranscriptionsApiError).message || t('meetings.upcoming_update_failed', "Couldn't update this meeting.") }));
             await loadTeams();
         } finally {
             setBusyKey(null);

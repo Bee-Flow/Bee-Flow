@@ -1,13 +1,22 @@
 import React from 'react';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { BarRow, EmptyState, MetricRow, TabHeading } from './primitives';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { InsightsModel, SeekFn } from './insights.types';
+
+interface TopicsTabProps {
+    model: InsightsModel;
+    colorFor: (speakerId: string) => string;
+    onSeek?: SeekFn;
+    t: TranslateFn;
+}
 
 /**
  * Where the hour went. The stacked bar and the per-chapter durations are
  * meeting-level facts and stay visible with the per-person gate off; the
  * "driven by / opened by" columns are stripped from the model in that case.
  */
-export default function TopicsTab({ model, colorFor, onSeek, t }) {
+export default function TopicsTab({ model, colorFor, onSeek, t }: TopicsTabProps) {
     const { blocks, tags } = model.topics;
 
     if (!blocks.length && !tags.length) {
@@ -101,7 +110,7 @@ export default function TopicsTab({ model, colorFor, onSeek, t }) {
                             key={tag.tag}
                             label={tag.tag}
                             value={`${tag.count}×`}
-                            onClick={tag.firstSeconds != null && onSeek ? () => onSeek(tag.firstSeconds) : undefined}
+                            onClick={tag.firstSeconds != null && onSeek ? () => onSeek(tag.firstSeconds as number) : undefined}
                             title={t('meeting_notes.insights_first_mention', 'Jump to the first mention')}
                         />
                     ))}

@@ -5,6 +5,20 @@ import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 import { listNextcloudTalkRecordings } from '../lib/transcriptionsApi';
 
+interface TalkRecording {
+    path: string;
+    name: string;
+    kind: 'video' | 'audio';
+    size: number | null;
+    lastModified: string | null;
+}
+
+interface TalkRoom {
+    token: string;
+    name?: string;
+    recordings: TalkRecording[];
+}
+
 /**
  * Talk keeps its blue, but as the THEME's blue — the same token the source
  * chip on a row uses (lib/sourceMeta.js), never the Nextcloud brand hex the
@@ -12,26 +26,26 @@ import { listNextcloudTalkRecordings } from '../lib/transcriptionsApi';
  */
 const NC_BLUE = 'var(--type-ai)';
 
-function fmtSize(bytes) {
+function fmtSize(bytes: number | null) {
     if (!bytes && bytes !== 0) return '';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function fmtDate(s) {
+function fmtDate(s: string | null) {
     if (!s) return '';
     const d = new Date(s);
     return isNaN(d.getTime()) ? '' : d.toLocaleString();
 }
 
-export default function TalkImportPanel({ onComplete }) {
+export default function TalkImportPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
     const { uploadFromNextcloud, uploading, uploadStage, uploadError, clearError } = useRecorder();
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [rooms, setRooms] = useState([]);
-    const [busyPath, setBusyPath] = useState(null);
+    const [error, setError] = useState<Error | null>(null);
+    const [rooms, setRooms] = useState<TalkRoom[]>([]);
+    const [busyPath, setBusyPath] = useState<string | null>(null);
 
     const load = async () => {
         setLoading(true);
@@ -40,7 +54,7 @@ export default function TalkImportPanel({ onComplete }) {
             const data = await listNextcloudTalkRecordings();
             setRooms(Array.isArray(data?.rooms) ? data.rooms : []);
         } catch (err) {
-            setError(err);
+            setError(err as Error);
         } finally {
             setLoading(false);
         }
@@ -48,7 +62,7 @@ export default function TalkImportPanel({ onComplete }) {
 
     useEffect(() => { load(); }, []);
 
-    const handleImport = async (rec) => {
+    const handleImport = async (rec: TalkRecording) => {
         clearError();
         setBusyPath(rec.path);
         try {
