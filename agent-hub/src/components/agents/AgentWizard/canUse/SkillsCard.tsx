@@ -4,6 +4,9 @@ import CanUseCard, { CanUseRow, EmptyRow, LinkButton, UnreadableNotice } from '.
 import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
 import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { ReadState } from '../agentEditor.types';
+import type { skillRows } from './canUseFacts';
 
 /**
  * De Skills-kaart van de tab "Kan gebruiken" — de werkwijzen die de agent
@@ -27,12 +30,25 @@ import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
  * gewoon, en ontbreekt alleen de bijzin. Eén gedeelde "er ging iets mis" zou
  * feiten weggooien die we wél hebben.
  */
+/** One attached skill, as `canUseFacts.skillRows` builds it. */
+export type SkillCardRow = ReturnType<typeof skillRows>[number];
+
+export interface SkillsCardProps {
+    t: TranslateFn;
+    ro?: boolean;
+    rows?: SkillCardRow[];
+    state?: ReadState;
+    onRetry?: () => void;
+    usageState?: ReadState;
+    onOpenChooser?: (request: ReturnType<typeof chooserRequest>) => void;
+}
+
 export default function SkillsCard({
     t, ro = false,
     rows = [], state = READ.OK, onRetry,
     usageState = READ.OK,
     onOpenChooser,
-}) {
+}: SkillsCardProps) {
     // "Nog niet gelezen" is geen "niet te lezen": tijdens het laden staat er
     // geen waarschuwing bij een rij waarvan de naam simpelweg nog onderweg is.
     const pending = state === READ.LOADING;

@@ -5,6 +5,10 @@ import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
 import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
 import Toggle from '../../../shared/Toggle';
+import type { ReactNode } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { ReadState } from '../agentEditor.types';
+import type { datatableRows, knowledgeBaseRows } from './canUseFacts';
 
 /**
  * De Kennis-kaart van de tab "Kan gebruiken" — waarin de agent zoekt vóór hij
@@ -38,8 +42,13 @@ import Toggle from '../../../shared/Toggle';
  * want dan zou de kaart beweren dat de agent die kennis niet heeft.
  */
 
+/** One linked knowledge base, as `canUseFacts.knowledgeBaseRows` builds it. */
+export type KbCardRow = ReturnType<typeof knowledgeBaseRows>[number];
+/** One table grant, as `canUseFacts.datatableRows` builds it. */
+export type TableCardRow = ReturnType<typeof datatableRows>['rows'][number];
+
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */
-function RowWarning({ children }) {
+function RowWarning({ children }: { children?: ReactNode }) {
     return <div className="text-[12px] text-[var(--warning)]">{children}</div>;
 }
 
@@ -49,7 +58,7 @@ function RowWarning({ children }) {
  * Een deel dat niemand gemeten heeft valt weg — geen "0 documenten" voor een
  * kennisbank waarvan de teller ontbrak, en geen "bijgewerkt" zonder datum.
  */
-function KbRow({ t, rel, row, pending = false }) {
+function KbRow({ t, rel, row, pending = false }: { t: TranslateFn; rel: (when: string) => string; row: KbCardRow; pending?: boolean }) {
     return (
         <CanUseRow
             testId="agent-knowledge-kb-row"
@@ -83,7 +92,7 @@ function KbRow({ t, rel, row, pending = false }) {
  * en dat is precies wat `datatable_query` afdwingt, aan beide kanten
  * (server/core/tools/datatableTools.js).
  */
-function TableRow({ t, row, pending = false }) {
+function TableRow({ t, row, pending = false }: { t: TranslateFn; row: TableCardRow; pending?: boolean }) {
     return (
         <CanUseRow
             testId="agent-knowledge-table-row"
@@ -121,7 +130,7 @@ function TableRow({ t, row, pending = false }) {
  * deze kaart kan doen is de weg wijzen. Zonder `onNavigate` staat er geen knop
  * — een knop die niets doet is erger dan geen knop.
  */
-function MeetingTip({ t, onNavigate, tipKbId }) {
+function MeetingTip({ t, onNavigate, tipKbId }: { t: TranslateFn; onNavigate?: ((path: string) => void) | null; tipKbId?: string | null }) {
     return (
         <CanUseRow
             testId="agent-knowledge-tip"
@@ -147,7 +156,7 @@ function MeetingTip({ t, onNavigate, tipKbId }) {
 }
 
 /** Het ⋯-menu: één schakelaar, over de ANTWOORDEN die deze kennis oplevert. */
-function KnowledgeMenu({ t, ro, includeSourceReferences, onIncludeSourceReferencesChange }) {
+function KnowledgeMenu({ t, ro, includeSourceReferences, onIncludeSourceReferencesChange }: { t: TranslateFn; ro?: boolean; includeSourceReferences?: boolean; onIncludeSourceReferencesChange?: (next: boolean) => void }) {
     const [open, setOpen] = useState(false);
     return (
         <CardMenu
@@ -168,6 +177,24 @@ function KnowledgeMenu({ t, ro, includeSourceReferences, onIncludeSourceReferenc
     );
 }
 
+export interface KnowledgeCardProps {
+    t: TranslateFn;
+    ro?: boolean;
+    rel?: (when: string) => string;
+    kbRows?: KbCardRow[];
+    kbState?: ReadState;
+    onRetryKbs?: () => void;
+    tableRows?: TableCardRow[];
+    tableState?: ReadState;
+    tableTruncated?: number;
+    onRetryTables?: () => void;
+    includeSourceReferences?: boolean;
+    onIncludeSourceReferencesChange?: (next: boolean) => void;
+    onOpenChooser?: (request: ReturnType<typeof chooserRequest>) => void;
+    onNavigate?: ((path: string) => void) | null;
+    tipKbId?: string | null;
+}
+
 export default function KnowledgeCard({
     t, ro = false, rel = () => '',
     kbRows = [], kbState = READ.OK, onRetryKbs,
@@ -175,7 +202,7 @@ export default function KnowledgeCard({
     includeSourceReferences = false, onIncludeSourceReferencesChange,
     onOpenChooser,
     onNavigate = null, tipKbId = null,
-}) {
+}: KnowledgeCardProps) {
     /**
      * "Niets gekoppeld" is een CONFIG-vraag, geen lezing.
      *

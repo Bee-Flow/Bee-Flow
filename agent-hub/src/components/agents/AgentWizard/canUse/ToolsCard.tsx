@@ -10,6 +10,11 @@ import { actionLabelMap } from '../../../automation/Builder/flow/appLabels';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
 import SegmentedControl from '../../../shared/SegmentedControl';
 import { SECTION_LBL } from '../../../shell/sidebar/sidebarTokens';
+import type { ReactNode } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { ReadState } from '../agentEditor.types';
+import type { ToolApp } from './toolCatalogTypes';
+import type { automationRows } from './toolGrants';
 
 /**
  * De Tools-kaart van de tab "Kan gebruiken" — wat de agent in ándere systemen
@@ -60,8 +65,37 @@ import { SECTION_LBL } from '../../../shell/sidebar/sidebarTokens';
  * erger dan een ontbrekende rij.
  */
 
+/** One app row, as `toolGrants.toolRows` builds it (that module is JavaScript, so the shape is stated here). */
+export interface ToolCardRow {
+    appId: string;
+    label: string;
+    granted: '*' | string[];
+    grantedNames: string[] | null;
+    grantedCount: number | null;
+    totalActions: number | null;
+    actionsKnown: boolean;
+    available: boolean | null;
+    availabilityKind: string | null;
+    availabilityKinds: string[];
+    sends: boolean | null;
+    narrowedBy: string[];
+    confirm: 'direct' | 'ask';
+    confirmLocked: boolean;
+    actAsKind: 'user' | 'platform' | 'unknown';
+    actAs: 'viewer' | 'owner';
+    canActAsOwner: boolean;
+    ownerRefused: boolean;
+    ownerLendsUncurated: boolean;
+    ownerLendingUnset: boolean;
+}
+/** One automation grant, as `toolGrants.automationRows` builds it. */
+export type AutomationCardRow = ReturnType<typeof automationRows>[number];
+type OpenChooser = (request: ReturnType<typeof chooserRequest>) => void;
+type ChangeConfirm = (appId: string, next: string) => void;
+type ChangeActAs = (appId: string, next: string) => void;
+
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */
-function RowWarning({ children, testId }) {
+function RowWarning({ children, testId }: { children?: ReactNode; testId?: string }) {
     return <div data-testid={testId} className="text-[12px] text-[var(--warning)]">{children}</div>;
 }
 
@@ -82,7 +116,7 @@ function RowWarning({ children, testId }) {
  * SignRequest) noemde de kaart een menu-item dat er niet is en dat normalisatie
  * sowieso terugdraait.
  */
-function LendingNotice({ t, row }) {
+function LendingNotice({ t, row }: { t: TranslateFn; row: ToolCardRow }) {
     if (row.ownerLendingUnset) {
         return (
             <RowWarning testId="agent-tool-lending-unset">
@@ -116,7 +150,7 @@ const MAX_VERBS = 4;
  * Diezelfde functie hergebruiken in plaats van hier opnieuw te knippen is de
  * hele reden dat die module bestaat.
  */
-function useVerbs(row, app) {
+function useVerbs(row: ToolCardRow, app: ToolApp | null) {
     return useMemo(() => {
         if (!app || !Array.isArray(app.actions) || !Array.isArray(row.grantedNames)) return null;
         const labels = actionLabelMap(app.actions.map(a => ({ tool: a.name, label: a.label })));
@@ -132,9 +166,9 @@ function useVerbs(row, app) {
  * geen `actAs` opgeslagen: een keuze die niets stuurt is precies de opgeslagen
  * belofte zonder handhaving die toolPolicy.js verbiedt.
  */
-function ActAsCapsule({ t, row, ro, onChange }) {
+function ActAsCapsule({ t, row, ro, onChange }: { t: TranslateFn; row: ToolCardRow; ro?: boolean; onChange?: (next: string) => void }) {
     const [open, setOpen] = useState(false);
-    const anchorRef = useRef(null);
+    const anchorRef = useRef<HTMLButtonElement>(null);
 
     if (row.actAsKind === ACT_AS_KIND.PLATFORM) {
         return (
@@ -223,7 +257,10 @@ function ActAsCapsule({ t, row, ro, onChange }) {
 }
 
 /** Eén app-rij. Grid `1fr 1fr 220px 32px`, zoals het artboard hem tekent. */
-function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChooser }) {
+function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChooser }: {
+    t: TranslateFn; ro?: boolean; row: ToolCardRow; app: ToolApp | null;
+    onChangeConfirm?: ChangeConfirm; onChangeActAs?: ChangeActAs; onOpenChooser?: OpenChooser;
+}) {
     const verbs = useVerbs(row, app);
     const shownVerbs = verbs ? verbs.slice(0, MAX_VERBS) : null;
     const restVerbs = verbs ? verbs.length - (shownVerbs?.length || 0) : 0;
@@ -348,7 +385,7 @@ function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChoose
  * waaruit `automationToTool` de tool-signatuur rendert. Wat hier staat is dus
  * letterlijk wat het model moet invullen, niet een parafrase ervan.
  */
-function AutomationRow({ t, row }) {
+function AutomationRow({ t, row }: { t: TranslateFn; row: AutomationCardRow }) {
     return (
         <div data-testid="agent-automation-row" className="flex items-start gap-3 px-4 py-3">
             <span className="mt-0.5 flex-shrink-0 text-[var(--text-tertiary)]" aria-hidden="true">
@@ -408,6 +445,23 @@ function AutomationRow({ t, row }) {
     );
 }
 
+export interface ToolsCardProps {
+    t: TranslateFn;
+    ro?: boolean;
+    rows?: ToolCardRow[];
+    apps?: ToolApp[] | null;
+    catalogState?: ReadState;
+    catalogDegraded?: boolean;
+    onRetryCatalog?: () => void;
+    lentState?: ReadState;
+    onRetryLent?: () => void;
+    automationRows?: AutomationCardRow[];
+    automationsState?: ReadState;
+    onChangeConfirm?: ChangeConfirm;
+    onChangeActAs?: ChangeActAs;
+    onOpenChooser?: OpenChooser;
+}
+
 export default function ToolsCard({
     t, ro = false,
     rows = [],
@@ -420,9 +474,9 @@ export default function ToolsCard({
     automationRows: autoRows = [],
     automationsState = READ.OK,
     onChangeConfirm, onChangeActAs, onOpenChooser,
-}) {
+}: ToolsCardProps) {
     const appById = useMemo(() => {
-        const map = new Map();
+        const map = new Map<string, ToolApp>();
         for (const app of Array.isArray(apps) ? apps : []) if (app && app.id) map.set(app.id, app);
         return map;
     }, [apps]);
