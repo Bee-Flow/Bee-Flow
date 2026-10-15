@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
 
+/** The slice of useAutomationApi() this hook reads. */
+interface FormPagesApi {
+    listFormPages: (id: string) => Promise<{ forms?: Array<{ url?: string } | null> | null } | null | undefined>;
+}
+
 /**
  * The automation's public form page, fetched ONLY once a run is actually parked
  * on a form (design 1d's "Open the form" action on the run banner).
@@ -13,17 +18,17 @@ import { useEffect, useState } from 'react';
  * has no address to open, and creating one as a side effect of watching a run
  * would mint a public URL nobody asked for. The banner simply omits the button.
  *
- * @param {object} api          useAutomationApi()
- * @param {string} automationId the saved automation's id (null before first save)
- * @param {boolean} waiting     a run is parked on a form right now
- * @returns {string|null} the form's URL, or null
+ * api          useAutomationApi()
+ * automationId the saved automation's id (null before first save)
+ * waiting     a run is parked on a form right now
+ * Returns the form's URL, or null.
  */
-export default function useWaitingFormUrl(api, automationId, waiting) {
-    const [url, setUrl] = useState(null);
+export default function useWaitingFormUrl(api: FormPagesApi | null | undefined, automationId: string | null, waiting: boolean): string | null {
+    const [url, setUrl] = useState<string | null>(null);
 
     // The id the current `url` belongs to. A different automation must not
     // inherit the previous one's form link for a render.
-    const [forId, setForId] = useState(null);
+    const [forId, setForId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!waiting || !automationId || !api?.listFormPages) return undefined;

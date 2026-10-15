@@ -15,19 +15,20 @@
 import { scanTemplate } from '@shared/expr/path.mjs';
 import { classifyRef, scanExprPaths } from './refTokens';
 import { canonicalRefPath, detectTemplate, isCleanPath } from '../../../../utils/bindingHelpers';
+import type { Binding } from './itemRefs';
 
 const USE_ROOTS = ['steps', 'trigger', 'loop'];
 
 /** A reference to an upstream value (not the bare `trigger` root), canonical; null otherwise. */
-function referenceOf(path) {
+function referenceOf(path: string): string | null {
     const ref = classifyRef(path);
     if (!ref || (ref.source === 'trigger' && !/^\s*trigger\s*(?:\.\s*output|\[)/.test(path))) return null;
     return canonicalRefPath(path);
 }
 
 /** Every reference one string holds: a template's placeholders, a whole path, or the paths in a formula. */
-function referencesIn(text, out) {
-    const add = (p) => { const c = referenceOf(p); if (c) out.add(c); };
+function referencesIn(text: string, out: Set<string>): void {
+    const add = (p: string) => { const c = referenceOf(p); if (c) out.add(c); };
     if (detectTemplate(text)) {
         for (const part of scanTemplate(text)) if (part.type === 'ref') add(part.inner);
         return;
@@ -37,14 +38,14 @@ function referencesIn(text, out) {
 }
 
 /** Every reference path written anywhere in `step` (excluding its id/position/label). */
-export function usedPathsIn(step) {
-    const out = new Set();
+export function usedPathsIn(step: Record<string, unknown> | null | undefined): Set<string> {
+    const out = new Set<string>();
     if (!step || typeof step !== 'object') return out;
     // Keep the position and identity out: they never hold a reference, and a
     // step whose label happens to read "steps.x.output" is not a binding.
     const { id, position, label, ...rest } = step;
-    const seen = new WeakSet();
-    const walk = (v) => {
+    const seen = new WeakSet<object>();
+    const walk = (v: unknown): void => {
         if (typeof v === 'string') { referencesIn(v, out); return; }
         if (!v || typeof v !== 'object' || seen.has(v)) return;
         seen.add(v);
@@ -55,7 +56,7 @@ export function usedPathsIn(step) {
 }
 
 /** Is `path` (or one of its parents) among the used paths? Spelling-agnostic. */
-export function pathInUse(path, used) {
+export function pathInUse(path: string, used: Set<string> | null | undefined): boolean {
     if (!used || !path) return false;
     if (used.has(path)) return true;
     const c = canonicalRefPath(path);
@@ -66,7 +67,7 @@ export function pathInUse(path, used) {
 }
 
 /** How many of a group's fields (top level) this step already uses. */
-export function countInUse(fields, used) {
+export function countInUse(fields: ReadonlyArray<{ path?: string } | null | undefined> | null | undefined, used: Set<string> | null | undefined): number {
     if (!used || !used.size) return 0;
     let n = 0;
     for (const f of fields || []) if (f?.path && pathInUse(f.path, used)) n += 1;
@@ -81,12 +82,12 @@ const SLOT_MAPS = ['inputs', 'fields'];
  * empty-slot note and the footer's "still empty" count read, so a slot cannot
  * look filled in one place and empty in another.
  */
-export function isEmptyValue(b) {
+export function isEmptyValue(b: unknown): boolean {
     if (b == null) return true;
     if (typeof b !== 'object') return String(b).trim() === '';
-    if (b.kind === 'literal') return b.value == null || String(b.value).trim() === '';
-    if (b.kind === 'ref') return !String(b.path || '').trim();
-    if (b.kind === 'template' || b.kind === 'expr') return !String(b.value || '').trim();
+    if ((b as Binding).kind === 'literal') return (b as Binding).value == null || String((b as Binding).value).trim() === '';
+    if ((b as Binding).kind === 'ref') return !String((b as Binding).path || '').trim();
+    if ((b as Binding).kind === 'template' || (b as Binding).kind === 'expr') return !String((b as Binding).value || '').trim();
     return false;
 }
 
@@ -124,8 +125,11 @@ export function isEmptyValue(b) {
  *        it. Default true: a step that declares no tool has nothing to miss.
  * @returns {{ declared: number, empty: number, keys: string[], unknown: boolean }}
  */
-export function emptySlotsIn(step, { inputSchema = null, schemaKnown = true } = {}) {
-    const keys = [];
+export function emptySlotsIn(
+    step: Record<string, unknown> | null | undefined,
+    { inputSchema = null, schemaKnown = true }: { inputSchema?: { required?: string[] } | null; schemaKnown?: boolean } = {},
+): { declared: number; empty: number; keys: string[]; unknown: boolean } {
+    const keys: string[] = [];
     let declared = 0;
     const seen = new Set();
     for (const map of SLOT_MAPS) {

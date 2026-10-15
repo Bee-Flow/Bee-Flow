@@ -20,13 +20,13 @@ export function ExpressionHelpBody() {
     return (
         <div className="rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-2 space-y-1 text-[10px] text-[var(--text-secondary)]">
             <div className="font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.expression_help.functions', 'Functions')}</div>
-            {EXPR_FUNCTIONS.map(f => (
+            {EXPR_FUNCTIONS.map((f: { name: string; signature: string; description: string }) => (
                 <div key={f.name}>
                     <code className="text-[var(--text-primary)]">{f.signature}</code> — {f.description}
                 </div>
             ))}
             <div className="font-semibold uppercase tracking-wide text-[var(--text-tertiary)] pt-1">{t('automations.expression_help.operators', 'Operators')}</div>
-            {EXPR_OPERATOR_GROUPS.map(g => (
+            {EXPR_OPERATOR_GROUPS.map((g: { label: string; ops: string }) => (
                 <div key={g.label}>
                     <span className="text-[var(--text-tertiary)]">{g.label}:</span>{' '}
                     <code className="text-[var(--text-primary)]">{g.ops}</code>
@@ -36,19 +36,23 @@ export function ExpressionHelpBody() {
     );
 }
 
+interface ExpressionHelpProps {
+    defaultOpen?: boolean;
+}
+
 /**
  * The help body behind its own disclosure toggle. Use this where there is no
  * existing toggle to hang the body off (ConditionBuilder has its own, so it
  * renders `ExpressionHelpBody` directly).
  */
-export default function ExpressionHelp({ defaultOpen = false }) {
+export default function ExpressionHelp({ defaultOpen = false }: ExpressionHelpProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(defaultOpen);
     return (
         <div className="space-y-1">
             <button
                 type="button"
-                onClick={() => setOpen(o => !o)}
+                onClick={() => setOpen((o: boolean) => !o)}
                 aria-expanded={open}
                 className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
             >

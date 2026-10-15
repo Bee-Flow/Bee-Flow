@@ -60,7 +60,7 @@ const PINNED = {
     results: [record('1a10f4ea7f6d46a2', 'Factuur 1'), record('1a0eb272a8c8478c', 'Factuur 2'), record('19f0', 'Factuur 3'), record('19e1', 'Factuur 4')],
 };
 
-type Step = { id: string; type: string; tool?: string; inputs?: Record<string, unknown>; forEach?: object; pinnedOutput?: unknown };
+type Step = { id: string; type: string; tool?: string; inputs?: Record<string, unknown>; forEach?: object; pinnedOutput?: unknown; autoMapped?: string[] };
 
 /** trigger → <steps…> in a chain; the last one is mapped. */
 function chain(steps: Step[]) {
@@ -92,7 +92,7 @@ describe('a list input gets a column of an upstream list', () => {
         const { definition, mappedKeys, forEachEnabled } = applyAutoMapToStep(def, 'many', CATALOG, { realOutputById: buildRealOutputMap(def, []) });
         expect(mappedKeys).toEqual(['messageIds']);
         expect(forEachEnabled).toBe(false);
-        const step = definition.steps.find((s: Step) => s.id === 'many');
+        const step = definition.steps.find((s: Step) => s.id === 'many') as Step;
         expect(step.inputs).toEqual({ messageIds: ref('steps.search.output.results[*].id') });
         expect(step.forEach).toBeUndefined();
         expect(step.autoMapped).toEqual(['messageIds']);
@@ -189,7 +189,7 @@ describe('the one-value rules stay', () => {
     it('a one-value input below a list still runs per item on connect', () => {
         const def = chain([search, { id: 'rd', type: 'integration_action', tool: 'gmail_read' }]);
         const { definition } = applyAutoMapToStep(def, 'rd', CATALOG, { realOutputById: buildRealOutputMap(def, []) });
-        const step = definition.steps.find((s: Step) => s.id === 'rd');
+        const step = definition.steps.find((s: Step) => s.id === 'rd') as Step;
         expect(step.inputs).toEqual({ messageId: ref('loop.result.id') });
         expect(step.forEach).toEqual({ overRef: 'steps.search.output.results', itemVar: 'result', maxIterations: 100 });
     });
@@ -227,7 +227,7 @@ function connect(output: unknown, inputSchema: { properties: Record<string, obje
     };
     const def = chain([{ id: 'x', type: 'integration_action', tool: 'source' }, { id: 'y', type: 'integration_action', tool: 'target' }]);
     const { definition, forEachEnabled } = applyAutoMapToStep(def, 'y', catalog, { realOutputById: buildRealOutputMap(def, []) });
-    const step = definition.steps.find((s: Step) => s.id === 'y');
+    const step = definition.steps.find((s: Step) => s.id === 'y') as Step;
     return { inputs: (step.inputs || {}) as Record<string, { path?: string }>, forEach: step.forEach, forEachEnabled };
 }
 const columns = (inputs: Record<string, { path?: string }>) => Object.keys(inputs).filter(k => String(inputs[k]?.path || '').includes('[*]'));

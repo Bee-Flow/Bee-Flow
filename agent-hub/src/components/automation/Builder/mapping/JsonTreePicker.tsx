@@ -29,7 +29,24 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // up emitting `body.content-type` — a path this picker previews and the
 // server resolves to undefined.
 
-export default function JsonTreePicker({ value, onPick, maxDepth = 20, maxChildren = 200 }) {
+interface JsonTreePickerProps {
+    value: unknown;
+    onPick: (path: string) => void;
+    maxDepth?: number;
+    maxChildren?: number;
+}
+
+interface TreeProps {
+    value: unknown;
+    path: string;
+    depth: number;
+    onPick: (path: string) => void;
+    maxDepth: number;
+    maxChildren: number;
+    pickable?: boolean;
+}
+
+export default function JsonTreePicker({ value, onPick, maxDepth = 20, maxChildren = 200 }: JsonTreePickerProps) {
     const { t } = useTranslation();
     if (value === null || typeof value !== 'object') {
         return (
@@ -46,7 +63,7 @@ export default function JsonTreePicker({ value, onPick, maxDepth = 20, maxChildr
 }
 
 /** Rows for the members of one object/array value. */
-function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable = true }) {
+function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable = true }: TreeProps) {
     const { t } = useTranslation();
     // One toggle per ARRAY node: pick from the first item ([0]) or from each
     // item ([*], flattens). "Each item" shows the UNION of the elements' keys
@@ -60,7 +77,7 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
             return <div className="pl-5 text-[11px] italic text-[var(--text-tertiary)]">{t('automations.json_tree_picker.empty_list', 'empty list')}</div>;
         }
         const idx = each ? '*' : '0';
-        const chip = (label, isEach) => (
+        const chip = (label: string, isEach: boolean) => (
             <button
                 type="button"
                 onClick={() => setEach(isEach)}
@@ -91,11 +108,11 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
         );
     }
 
-    const entries = Object.entries(value);
+    const entries = Object.entries(value as Record<string, unknown>);
     const shown = entries.slice(0, maxChildren);
     return (
         <>
-            {shown.map(([k, v]) => (
+            {shown.map(([k, v]: [string, unknown]) => (
                 <TreeNode
                     key={k}
                     nodeKey={k}
@@ -117,12 +134,12 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
     );
 }
 
-function TreeNode({ nodeKey, value, path, depth, onPick, maxDepth, maxChildren, pickable = true }) {
+function TreeNode({ nodeKey, value, path, depth, onPick, maxDepth, maxChildren, pickable = true }: TreeProps & { nodeKey: string }) {
     const { t } = useTranslation();
     const isObj = value !== null && typeof value === 'object';
     const hasChildren = isObj
         && depth < maxDepth
-        && (Array.isArray(value) ? value.length > 0 : Object.keys(value).length > 0);
+        && (Array.isArray(value) ? value.length > 0 : Object.keys(value as object).length > 0);
     // Collapsed by default beyond depth 2 so huge payloads open readable.
     const [open, setOpen] = useState(depth < 2);
 
@@ -132,7 +149,7 @@ function TreeNode({ nodeKey, value, path, depth, onPick, maxDepth, maxChildren, 
                 {hasChildren ? (
                     <button
                         type="button"
-                        onClick={() => setOpen(o => !o)}
+                        onClick={() => setOpen((o: boolean) => !o)}
                         aria-label={`Toggle ${nodeKey}`}
                         className="shrink-0 p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >

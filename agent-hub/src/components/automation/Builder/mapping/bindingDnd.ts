@@ -12,14 +12,14 @@ const BINDING_MIME = 'application/x-binding-path';
  * VariablePicker popover is a drag source too, and pulling a React component
  * module in for a four-line DOM helper is the wrong dependency direction.
  */
-export function startPathDrag(e, path) {
+export function startPathDrag(e: React.DragEvent, path: string): void {
     e.dataTransfer.setData('text/plain', path);
     e.dataTransfer.setData(BINDING_MIME, path);
     e.dataTransfer.effectAllowed = 'copy';
 }
 
 /** dragover handler: accept binding drags and show the copy cursor. */
-export function onBindingDragOver(e) {
+export function onBindingDragOver(e: React.DragEvent): void {
     if (e.dataTransfer?.types?.includes(BINDING_MIME)) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
@@ -30,7 +30,7 @@ export function onBindingDragOver(e) {
  * Read the dropped binding path, calling preventDefault when present.
  * Returns the path string, or null when the drop carries no path.
  */
-export function getBindingDropPath(e) {
+export function getBindingDropPath(e: React.DragEvent): string | null {
     const path = e.dataTransfer.getData(BINDING_MIME) || e.dataTransfer.getData('text/plain');
     if (!path) return null;
     e.preventDefault();

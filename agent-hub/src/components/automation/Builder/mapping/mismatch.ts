@@ -17,9 +17,14 @@
  */
 import { appendKey, appendWildcard, parsePath } from '@shared/expr/path.mjs';
 import { isScalarKind, kindOfValue, KIND_WORD } from './fieldKinds';
+import type { FieldKind } from './fieldKinds';
 import { bindingsForList, forEachPickFor, pathListShape, previewForEachPick } from './listShape';
 import { canonicalRefPath, previewValue, walkPath } from '../../../../utils/bindingHelpers';
 import { humanizeFieldKey } from '../flow/displayHelpers';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
+import type { Binding, ForEachConfig } from './itemRefs';
+import type { ListShape } from './listShape';
+import type { Remedy, Remedies, Mismatch, SlotOptions } from './mismatch.types';
 
 export const NEWLINE = '\n';
 
@@ -37,7 +42,7 @@ export const NEWLINE = '\n';
  *
  * @returns {null | { code: 'list_into_one' | 'table_into_one' | 'group_into_one', actual, expected }}
  */
-export function detectMismatch({ actualKind, expectedKind }) {
+export function detectMismatch({ actualKind, expectedKind }: { actualKind?: string | null; expectedKind?: string | null }): Mismatch | null {
     if (!expectedKind || expectedKind === 'unknown' || !actualKind || actualKind === 'unknown') return null;
     if (!isScalarKind(expectedKind)) return null;
     if (actualKind === 'list') return { code: 'list_into_one', actual: actualKind, expected: expectedKind };
@@ -65,7 +70,11 @@ export function detectMismatch({ actualKind, expectedKind }) {
  * @param {object} sampleRoot   the merged sample root (for previews)
  * @param {object} opts         { allowForEach, itemVar, actualKind }
  */
-export function remediesFor(path, sampleRoot, { allowForEach = false, itemVar = undefined, actualKind = undefined } = {}) {
+export function remediesFor(
+    path: unknown,
+    sampleRoot: unknown,
+    { allowForEach = false, itemVar = undefined, actualKind = undefined }: { allowForEach?: boolean; itemVar?: string; actualKind?: string } = {},
+): Remedies {
     // Canonical: every remedy is a formula over this path (`join(p, …)`), and
     // the engine only reads the canonical spelling as the same path.
     const p = canonicalRefPath(String(path || '').trim());
@@ -76,14 +85,14 @@ export function remediesFor(path, sampleRoot, { allowForEach = false, itemVar = 
     const list = (() => { const v = walkPath(p, sampleRoot); return Array.isArray(v) ? v : []; })();
     const b = bindingsForList(p, { separator: NEWLINE });
     const joined = bindingsForList(p, { separator: ', ' });
-    const show = (v) => previewValue(v, 40);
+    const show = (v: unknown) => previewValue(v, 40);
     const n = shape?.count ?? list.length;
 
-    const primary = [
+    const primary: Remedy[] = [
         {
             id: 'join', binding: b.join,
             labelKey: 'automations.mismatch.choice_lines', labelEn: 'All of them, one per line',
-            preview: list.length ? show(list.slice(0, 3).map(v => (typeof v === 'object' ? '…' : String(v))).join(' / ')) + (list.length > 3 ? '…' : '') : null,
+            preview: list.length ? show(list.slice(0, 3).map((v: unknown) => (typeof v === 'object' ? '…' : String(v))).join(' / ')) + (list.length > 3 ? '…' : '') : null,
         },
         {
             id: 'first', binding: b.first,
@@ -105,11 +114,11 @@ export function remediesFor(path, sampleRoot, { allowForEach = false, itemVar = 
             preview: shape?.rowScopedListTail ? null : show(previewForEachPick(p, sampleRoot)),
         });
     }
-    const more = [
+    const more: Remedy[] = [
         {
             id: 'join_comma', binding: joined.join,
             labelKey: 'automations.mismatch.choice_comma', labelEn: 'All of them, comma separated',
-            preview: list.length ? show(list.slice(0, 3).map(v => (typeof v === 'object' ? '…' : String(v))).join(', ')) : null,
+            preview: list.length ? show(list.slice(0, 3).map((v: unknown) => (typeof v === 'object' ? '…' : String(v))).join(', ')) : null,
         },
         {
             id: 'last', binding: b.last,
@@ -142,7 +151,7 @@ const GROUP_PRIMARY_FIELDS = 3;
  * Nested groups and lists inside are offered too; their preview says what they
  * are, so nobody binds `[object Object]` by accident.
  */
-function groupRemedies(p, sampleRoot) {
+function groupRemedies(p: string, sampleRoot: unknown): Remedies {
     const value = walkPath(p, sampleRoot);
     const obj = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
     // The keys are the payload's, not ours, and the payload this box exists
@@ -154,20 +163,20 @@ function groupRemedies(p, sampleRoot) {
     // all resolve to that key. A dotted `content-type` would be a subtraction
     // the moment the field is touched in a formula.
     const keys = Object.keys(obj);
-    const show = (v) => previewValue(v, 40);
-    const fieldRemedy = (key) => ({
+    const show = (v: unknown) => previewValue(v, 40);
+    const fieldRemedy = (key: string): Remedy => ({
         id: `field:${key}`,
         binding: { kind: 'ref', path: appendKey(p, key) },
         labelKey: 'automations.mismatch.choice_field', labelEn: '{field}', labelParams: { field: humanizeFieldKey(key) || key },
         preview: show(obj[key]),
     });
-    const summary = {
+    const summary: Remedy = {
         id: 'summary',
         binding: { kind: 'expr', value: `groupSummary(${p})` },
         labelKey: 'automations.mismatch.choice_summary', labelEn: 'The whole group, as a readable summary',
         preview: keys.length ? `${humanizeFieldKey(keys[0]) || keys[0]}: ${show(obj[keys[0]])}…` : null,
     };
-    const whole = {
+    const whole: Remedy = {
         id: 'each',
         binding: { kind: 'ref', path: p },
         labelKey: 'automations.mismatch.choice_whole_group', labelEn: 'Use the whole group as it is',
@@ -188,19 +197,19 @@ function groupRemedies(p, sampleRoot) {
  * actually read — so that is the default, and join/first/last (the list menu)
  * are simply the wrong questions here: joining rows gives "[object Object]".
  */
-function tableRemedies(p, sampleRoot, { allowForEach, itemVar }) {
+function tableRemedies(p: string, sampleRoot: unknown, { allowForEach, itemVar }: { allowForEach: boolean; itemVar?: string }): Remedies {
     const shape = pathListShape(p, sampleRoot);
     const rows = (() => { const v = walkPath(p, sampleRoot); return Array.isArray(v) ? v : []; })();
     const n = shape?.count ?? rows.length;
     const cols = (() => {
-        const first = rows.find(r => r && typeof r === 'object' && !Array.isArray(r));
+        const first = rows.find((r: unknown) => r && typeof r === 'object' && !Array.isArray(r));
         return first ? Object.keys(first) : [];
     })();
-    const primary = [
+    const primary: Remedy[] = [
         {
             id: 'table', binding: { kind: 'expr', value: `asTable(${p})` },
             labelKey: 'automations.mismatch.choice_as_table', labelEn: 'As a table',
-            preview: cols.length ? cols.slice(0, 4).map(c => humanizeFieldKey(c) || c).join(' | ') : null,
+            preview: cols.length ? cols.slice(0, 4).map((c: string) => humanizeFieldKey(c) || c).join(' | ') : null,
         },
         {
             id: 'count', binding: bindingsForList(p).count,
@@ -217,7 +226,7 @@ function tableRemedies(p, sampleRoot, { allowForEach, itemVar }) {
             preview: shape?.rowScopedListTail ? null : previewValue(previewForEachPick(p, sampleRoot), 40),
         });
     }
-    const more = [
+    const more: Remedy[] = [
         {
             id: 'first', binding: bindingsForList(p).first,
             labelKey: 'automations.mismatch.choice_first_row', labelEn: 'Only the first row',
@@ -241,8 +250,8 @@ function tableRemedies(p, sampleRoot, { allowForEach, itemVar }) {
  * The sentence above the choices: "<field> is a list of 3, this needs one
  * text. What do you want?" — words, never types. `t` optional.
  */
-export function mismatchSentence({ actualKind, expectedKind, count }, t = null) {
-    const tr = (key, en, params) => (t ? t(key, en, params) : String(en).replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
+export function mismatchSentence({ actualKind, expectedKind, count }: { actualKind: string; expectedKind: string; count?: number | null }, t: TranslateFn | null = null): string {
+    const tr = (key: string, en: string, params?: TranslateParams) => (t ? t(key, en, params) : String(en).replace(/\{(\w+)\}/g, (m: string, k: string) => (params && k in params ? String(params[k]) : m)));
     const actualWord = tr(KIND_WORD[actualKind]?.key || KIND_WORD.unknown.key, KIND_WORD[actualKind]?.en || KIND_WORD.unknown.en);
     const expectedWord = tr(KIND_WORD[expectedKind]?.key || KIND_WORD.text.key, KIND_WORD[expectedKind]?.en || 'text');
     if (actualKind === 'group') {
@@ -269,9 +278,9 @@ export function mismatchSentence({ actualKind, expectedKind, count }, t = null) 
  * directly (`lines`), the column goes through `[*]`. Decided on the sample,
  * which is where the table was seen. Keys are written canonically.
  */
-export function columnPath(path, key, sampleRoot) {
+export function columnPath(path: unknown, key: string, sampleRoot: unknown): string {
     const p = canonicalRefPath(String(path || '').trim());
-    if ((parsePath(p) || []).some(t => t.type === 'wild')) {
+    if ((parsePath(p) || []).some((t: { type: string }) => t.type === 'wild')) {
         const direct = appendKey(p, key);
         const v = walkPath(direct, sampleRoot);
         if (Array.isArray(v) && v.length) return direct;
@@ -280,7 +289,7 @@ export function columnPath(path, key, sampleRoot) {
 }
 
 /** The kind a picked path resolves to right now (for the gate). */
-export function kindAtPath(path, sampleRoot) {
+export function kindAtPath(path: unknown, sampleRoot: unknown): FieldKind {
     if (!path || !sampleRoot) return 'unknown';
     return kindOfValue(walkPath(String(path), sampleRoot));
 }
@@ -294,26 +303,26 @@ export function kindAtPath(path, sampleRoot) {
  * `email` takes `email` — then a lone column of the wanted kind. null when it
  * is not clear: the table stays what it was.
  */
-export function columnForSlot(path, sampleRoot, { slot = null, expectedKind = 'text' } = {}) {
+export function columnForSlot(path: unknown, sampleRoot: unknown, { slot = null, expectedKind = 'text' }: SlotOptions = {}): string | null {
     if (!path) return null;
     const rows = walkPath(String(path), sampleRoot);
-    const first = Array.isArray(rows) ? rows.find(r => r && typeof r === 'object' && !Array.isArray(r)) : null;
+    const first = Array.isArray(rows) ? rows.find((r: unknown) => r && typeof r === 'object' && !Array.isArray(r)) : null;
     if (!first) return null;
     const cols = Object.keys(first);
-    const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const norm = (x: unknown) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const want = norm(slot);
-    const pickPath = (c) => columnPath(path, c, sampleRoot);
+    const pickPath = (c: string) => columnPath(path, c, sampleRoot);
     if (want) {
-        const exact = cols.find(c => norm(c) === want);
+        const exact = cols.find((c: string) => norm(c) === want);
         if (exact) return pickPath(exact);
         // accountId → id, recipientEmail → email: the longest column the slot ends with.
-        const tail = cols.filter(c => norm(c) && want.endsWith(norm(c))).sort((a, b) => norm(b).length - norm(a).length)[0];
+        const tail = cols.filter((c: string) => norm(c) && want.endsWith(norm(c))).sort((a: string, b: string) => norm(b).length - norm(a).length)[0];
         if (tail) return pickPath(tail);
     }
     // Without a name to go on, only a typed slot picks by kind: in a text slot
     // the table itself (as a table) is the better answer.
     if (!expectedKind || expectedKind === 'text' || expectedKind === 'unknown') return null;
-    const ofKind = cols.filter(c => kindOfValue(first[c]) === expectedKind);
+    const ofKind = cols.filter((c: string) => kindOfValue(first[c]) === expectedKind);
     return ofKind.length === 1 ? pickPath(ofKind[0]) : null;
 }
 
@@ -326,27 +335,27 @@ export function columnForSlot(path, sampleRoot, { slot = null, expectedKind = 't
  * in as its readable summary, which is right for a body or a description.
  */
 const HEADLINE_KEYS = ['name', 'title', 'subject', 'displayName', 'label', 'filename', 'fileName'];
-export function fieldForSlot(path, sampleRoot, { slot = null, expectedKind = 'text' } = {}) {
+export function fieldForSlot(path: unknown, sampleRoot: unknown, { slot = null, expectedKind = 'text' }: SlotOptions = {}): string | null {
     if (!path) return null;
     const rec = walkPath(String(path), sampleRoot);
     if (!rec || typeof rec !== 'object' || Array.isArray(rec)) return null;
-    const keys = Object.keys(rec).filter(k => rec[k] == null || typeof rec[k] !== 'object');
+    const keys = Object.keys(rec).filter((k: string) => rec[k] == null || typeof rec[k] !== 'object');
     if (!keys.length) return null;
-    const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const norm = (x: unknown) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const want = norm(slot);
-    const pick = (k) => appendKey(canonicalRefPath(String(path)), k);
+    const pick = (k: string) => appendKey(canonicalRefPath(String(path)), k);
     if (want) {
-        const exact = keys.find(k => norm(k) === want);
+        const exact = keys.find((k: string) => norm(k) === want);
         if (exact) return pick(exact);
-        const tail = keys.filter(k => norm(k).length > 1 && want.endsWith(norm(k))).sort((a, b) => norm(b).length - norm(a).length)[0];
+        const tail = keys.filter((k: string) => norm(k).length > 1 && want.endsWith(norm(k))).sort((a: string, b: string) => norm(b).length - norm(a).length)[0];
         if (tail) return pick(tail);
         if (/(title|name|subject|label|heading)$/.test(want)) {
-            const head = HEADLINE_KEYS.find(h => keys.includes(h) && typeof rec[h] === 'string');
+            const head = HEADLINE_KEYS.find((h: string) => keys.includes(h) && typeof rec[h] === 'string');
             if (head) return pick(head);
         }
     }
     if (!expectedKind || expectedKind === 'text' || expectedKind === 'unknown') return null;
-    const ofKind = keys.filter(k => kindOfValue(rec[k]) === expectedKind);
+    const ofKind = keys.filter((k: string) => kindOfValue(rec[k]) === expectedKind);
     return ofKind.length === 1 ? pick(ofKind[0]) : null;
 }
 
@@ -372,8 +381,8 @@ export function fieldForSlot(path, sampleRoot, { slot = null, expectedKind = 'te
  * @param {{ path: string, actualKind: string, expectedKind: string }} ctx
  * @returns {string}
  */
-export function quietDefaultId(remedies, { path, actualKind, expectedKind }) {
-    const has = (id) => [...(remedies?.primary || []), ...(remedies?.more || [])].some(r => r.id === id && !r.disabled);
+export function quietDefaultId(remedies: Remedies | null | undefined, { path, actualKind, expectedKind }: { path?: unknown; actualKind?: string | null; expectedKind?: string | null }): string | undefined {
+    const has = (id: string) => [...(remedies?.primary || []), ...(remedies?.more || [])].some((r: Remedy) => r.id === id && !r.disabled);
     const isColumn = String(path || '').includes('[*]');
     if (actualKind === 'list' || actualKind === 'table') {
         if (isColumn && has('foreach')) return 'foreach';

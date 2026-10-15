@@ -48,7 +48,7 @@ function insertCondition(base: Obj, sourceId: string, targetId: string, payload:
     next = { ...next, edges: spliceStepIntoEdge(withoutAuto, inserted.id, sourceId, targetId, branchFromHandle(null), firstPort) };
     const runSteps = Object.entries(MAIL_CONDITION_STEP_RESULTS).map(([stepId, r]) => ({ stepId, status: 'success', output: r.output }));
     const realOutputById = buildRealOutputMap(next, runSteps);
-    const mapped = applyAutoMapToStep(next, inserted.id, { apps: [], steps: [] }, { realOutputById }) as { definition: Obj };
+    const mapped = applyAutoMapToStep(next, inserted.id, { apps: [] }, { realOutputById }) as { definition: Obj };
     return { id: inserted.id as string, ...followAfterAdd(mapped.definition as never, inserted.id, t) };
 }
 

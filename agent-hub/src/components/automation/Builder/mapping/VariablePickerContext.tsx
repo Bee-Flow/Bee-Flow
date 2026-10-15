@@ -1,4 +1,23 @@
 import React, { createContext, useContext } from 'react';
+import type { FlowDefinition } from '../flow/types';
+import type { UpstreamGroup } from './deepFields';
+
+export interface VariablePickerValue {
+    groups: UpstreamGroup[];
+    previewSample: unknown;
+    stepLabelById: Map<string, string>;
+    stepTypeById: Map<string, string>;
+    definition: FlowDefinition | null;
+}
+
+interface VariablePickerProviderProps {
+    groups?: UpstreamGroup[] | null;
+    previewSample?: unknown;
+    stepLabelById?: Map<string, string> | null;
+    stepTypeById?: Map<string, string> | null;
+    definition?: FlowDefinition | null;
+    children?: React.ReactNode;
+}
 
 /**
  * Carries the upstream variable groups + merged sample-root tree from the
@@ -10,9 +29,9 @@ import React, { createContext, useContext } from 'react';
  * Default empty so the fields render a graceful "no upstream variables
  * yet" message when used outside a provider.
  */
-const VariablePickerContext = createContext({ groups: [], previewSample: null, stepLabelById: new Map(), stepTypeById: new Map(), definition: null });
+const VariablePickerContext = createContext<VariablePickerValue>({ groups: [], previewSample: null, stepLabelById: new Map(), stepTypeById: new Map(), definition: null });
 
-export function VariablePickerProvider({ groups, previewSample, stepLabelById, stepTypeById, definition = null, children }) {
+export function VariablePickerProvider({ groups, previewSample, stepLabelById, stepTypeById, definition = null, children }: VariablePickerProviderProps) {
     const value = React.useMemo(
         () => ({
             groups: groups || [],
@@ -35,6 +54,6 @@ export function VariablePickerProvider({ groups, previewSample, stepLabelById, s
     );
 }
 
-export function useVariablePickerContext() {
+export function useVariablePickerContext(): VariablePickerValue {
     return useContext(VariablePickerContext);
 }

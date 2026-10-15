@@ -1,4 +1,5 @@
 import { useStore } from '@xyflow/react';
+import type { ReactFlowState } from '@xyflow/react';
 import { useContext } from 'react';
 import { PresenterContext } from './PresenterContext';
 
@@ -35,7 +36,14 @@ export const LOD_BREAKS = Object.freeze({ far: 0.45, mid: 0.80 });
 /** The same breaks for a projector: names at 30%, the whole card at 55%. */
 export const PRESENTER_LOD_BREAKS = Object.freeze({ far: 0.30, mid: 0.55 });
 
-export function lodForZoom(zoom, breaks = LOD_BREAKS) {
+export type Lod = typeof LOD_FAR | typeof LOD_MID | typeof LOD_NEAR;
+
+export interface LodBreaks {
+    far: number;
+    mid: number;
+}
+
+export function lodForZoom(zoom: number, breaks: LodBreaks = LOD_BREAKS): Lod {
     const z = Number.isFinite(zoom) ? zoom : 1;
     if (z < breaks.far) return LOD_FAR;
     if (z < breaks.mid) return LOD_MID;
@@ -44,10 +52,10 @@ export function lodForZoom(zoom, breaks = LOD_BREAKS) {
 
 // One stable selector function per mode, so the store subscription is not
 // re-created on every render of every card.
-const selectLod = (s) => lodForZoom(s?.transform?.[2]);
-const selectPresenterLod = (s) => lodForZoom(s?.transform?.[2], PRESENTER_LOD_BREAKS);
+const selectLod = (s: ReactFlowState) => lodForZoom(s?.transform?.[2]);
+const selectPresenterLod = (s: ReactFlowState) => lodForZoom(s?.transform?.[2], PRESENTER_LOD_BREAKS);
 
-export function useZoomLod() {
+export function useZoomLod(): Lod {
     const presenter = useContext(PresenterContext);
     return useStore(presenter ? selectPresenterLod : selectLod);
 }

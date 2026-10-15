@@ -7,9 +7,62 @@ import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue } from '../../../../utils/bindingHelpers';
 import { AMBER_NOTE, INLINE_LINK, denseInputClass } from '../flow/settings/formStyles';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { UpstreamGroup } from './deepFields';
+import type { ForEachParent } from './itemRefs';
+import type { LoopListChoice } from './loopLists';
+
+/** What a list change did to the fields (see pickLoopList). */
+interface ListNote {
+    item: string;
+    kept: string | null;
+    moved: string[];
+    orphans: string[];
+}
+
+/** The step's iteration settings a pick writes back. */
+interface LoopPatch {
+    overRef: string;
+    itemVar: string;
+    parents?: ForEachParent[];
+}
+
+interface LoopOverPickerProps {
+    overRef?: string;
+    itemVar?: string;
+    parents?: ForEachParent[];
+    onChange?: (patch: LoopPatch) => void;
+    groups?: UpstreamGroup[];
+    onFocusField?: (field: { id: string; label: string; insert: (path: string) => void }) => void;
+    bindings?: unknown;
+    onRebind?: ((bindings: unknown) => void) | null;
+    container?: boolean;
+}
+
+interface ListChoiceProps {
+    choice: LoopListChoice;
+    selected: boolean;
+    onPick: (path: string, sample: unknown) => void;
+    previewSample: unknown;
+    stepLabelById: Map<string, string>;
+    stepTypeById: Map<string, string>;
+    t: TranslateFn;
+}
+
+interface ListPickOptions {
+    overRef: string;
+    itemVar: string;
+    parents?: ForEachParent[];
+    bindings: unknown;
+    onRebind: ((bindings: unknown) => void) | null;
+    container: boolean;
+    onChange?: (patch: LoopPatch) => void;
+    previewSample: unknown;
+    definition: unknown;
+}
 
 /** What the last pick changed, with Undo. */
-function ListChangeNote({ note, onUndo, t }) {
+function ListChangeNote({ note, onUndo, t }: { note: ListNote; onUndo: () => void; t: TranslateFn }) {
     return (
         <div role="status" className={`${AMBER_NOTE} text-[11px] space-y-0.5`}>
             <div>{t('automations.builder.list_changed_runs', 'Now runs once per {item}.', { item: note.item })}</div>
@@ -22,7 +75,7 @@ function ListChangeNote({ note, onUndo, t }) {
 }
 
 /** One list to repeat over: its name in words, how many items it holds. */
-function ListChoice({ choice, selected, onPick, previewSample, stepLabelById, stepTypeById, t }) {
+function ListChoice({ choice, selected, onPick, previewSample, stepLabelById, stepTypeById, t }: ListChoiceProps) {
     // Counts resolve through the runtime's walker — a [*] path's sample is the
     // first ELEMENT, so its length was the first row's size, not the list's.
     const resolved = previewSample ? getPath(previewSample, choice.path) : undefined;
@@ -63,14 +116,14 @@ function ListChoice({ choice, selected, onPick, previewSample, stepLabelById, st
  *   by name, plain strings too, and it keeps no outer items)
  */
 /** Picking a list, its note and its Undo (the fields follow when they are given). */
-function useListPick({ overRef, itemVar, parents, bindings, onRebind, container, onChange, previewSample, definition }) {
+function useListPick({ overRef, itemVar, parents, bindings, onRebind, container, onChange, previewSample, definition }: ListPickOptions) {
     // What the last pick changed, for its note and Undo.
-    const [note, setNote] = useState(null);
+    const [note, setNote] = useState<(ListNote & { undo: { overRef: string; itemVar: string; parents?: ForEachParent[]; bindings: unknown } }) | null>(null);
     const canRebind = !!onRebind && bindings !== undefined;
-    const pick = (path, sample) => {
+    const pick = (path: string, sample: unknown) => {
         const r = pickLoopList({ overRef, itemVar, parents }, { path, sample }, { previewSample, bindings: canRebind ? bindings : undefined, container, definition });
         onChange?.(r.patch);
-        if (r.bindings !== undefined) onRebind(r.bindings);
+        if (r.bindings !== undefined) (onRebind as (bindings: unknown) => void)(r.bindings);
         setNote(r.note ? { ...r.note, undo: { overRef, itemVar, parents, bindings } } : null);
     };
     const undo = () => {
@@ -78,7 +131,7 @@ function useListPick({ overRef, itemVar, parents, bindings, onRebind, container,
         setNote(null);
         if (!u) return;
         onChange?.({ overRef: u.overRef, itemVar: u.itemVar, parents: u.parents });
-        if (canRebind) onRebind(u.bindings);
+        if (canRebind) (onRebind as (bindings: unknown) => void)(u.bindings);
     };
     return { note, pick, undo };
 }
@@ -93,14 +146,14 @@ export default function LoopOverPicker({
     bindings,
     onRebind = null,
     container = false,
-}) {
+}: LoopOverPickerProps) {
     const { stepLabelById, stepTypeById, previewSample, definition } = useVariablePickerContext();
     const { t } = useTranslation();
     const arrayFields = useMemo(() => loopListChoices(groups, previewSample), [groups, previewSample]);
     const [advanced, setAdvanced] = useState(false);
     const { note, pick, undo } = useListPick({ overRef, itemVar, parents, bindings, onRebind, container, onChange, previewSample, definition });
-    const onTypedPath = (e) => onChange?.({ overRef: e.target.value, itemVar });
-    const onTypedVar = (e) => onChange?.({ overRef, itemVar: e.target.value.replace(/[^A-Za-z0-9_]/g, '') || 'item' });
+    const onTypedPath = (e: React.ChangeEvent<HTMLInputElement>) => onChange?.({ overRef: e.target.value, itemVar });
+    const onTypedVar = (e: React.ChangeEvent<HTMLInputElement>) => onChange?.({ overRef, itemVar: e.target.value.replace(/[^A-Za-z0-9_]/g, '') || 'item' });
 
     // The chosen list reads like the choices below it, never as a path.
     const friendlyOver = overRef ? listPathLabel(overRef, stepLabelById, t, { stepTypeById }) : '';
@@ -124,7 +177,7 @@ export default function LoopOverPicker({
                         <div className="px-2 py-1 text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)]">
                             {t('automations.builder.lists_to_repeat_over', 'Lists you can repeat over')}
                         </div>
-                        {arrayFields.map(f => (
+                        {arrayFields.map((f: LoopListChoice) => (
                             <ListChoice key={f.path} choice={f} selected={overRef === f.path} onPick={pick} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById} t={t} />
                         ))}
                     </div>
@@ -157,7 +210,7 @@ export default function LoopOverPicker({
 
             <button
                 type="button"
-                onClick={() => setAdvanced(a => !a)}
+                onClick={() => setAdvanced((a: boolean) => !a)}
                 className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
             >
                 {advanced ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {t('automations.builder.advanced', 'Advanced')}
@@ -169,7 +222,7 @@ export default function LoopOverPicker({
                         type="text"
                         value={overRef}
                         onChange={onTypedPath}
-                        onFocus={() => onFocusField?.({ id: 'overRef', label: 'iterate over', insert: (path) => onChange?.({ overRef: path, itemVar }) })}
+                        onFocus={() => onFocusField?.({ id: 'overRef', label: 'iterate over', insert: (path: string) => onChange?.({ overRef: path, itemVar }) })}
                         placeholder="steps.s1.output.results"
                         className={denseInputClass('w-full font-mono')}
                     />

@@ -34,8 +34,40 @@ import { lastPathKey } from './upstream/fieldTree';
 import { describeDataPath, escapeExprString } from './valueParts';
 import { walkPath, walkRelativePath } from '../../../../utils/bindingHelpers';
 import { summariseData } from '../flow/dataSummary';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
+import type { Binding } from './itemRefs';
 
 const WILDCARD = '[*]';
+
+/** The one-sentence description of a list value (see pathListShape). */
+export interface ListShape {
+    kind: 'list' | 'column';
+    count: number | null;
+    rows: number | null;
+    of: string;
+    elementSample: unknown;
+    rowScopedListTail: boolean;
+    badgeKey: string;
+    badgeParams: TranslateParams;
+    badgeEn: string;
+    explainKey: string;
+    explainParams: TranslateParams;
+    explainEn: string;
+}
+
+/** A picker field row, as far as the list helpers read it. */
+export interface ListShapeField {
+    key?: string;
+    path?: string;
+    sample?: unknown;
+}
+
+/** What `forEachPickFor` writes: the step's forEach and the field's per-row binding. */
+export interface ForEachPick {
+    forEach: { overRef: string; itemVar: string; maxIterations: number };
+    binding: { kind: 'ref'; path: string };
+    itemVar: string;
+}
 
 /**
  * Split a column path on its FIRST `[*]`.
@@ -47,11 +79,11 @@ const WILDCARD = '[*]';
  * `]`) is not mistaken for one; a path the grammar cannot read falls back to
  * the text.
  */
-export function splitColumnPath(path) {
+export function splitColumnPath(path: unknown): { arrayPath: string; tail: string } {
     const s = String(path || '');
     const tokens = parsePath(s);
     if (tokens) {
-        const i = tokens.findIndex(t => t.type === 'wild');
+        const i = tokens.findIndex((t: { type: string }) => t.type === 'wild');
         if (i < 0) return { arrayPath: s, tail: '' };
         const arrayPath = formatPath(tokens.slice(0, i));
         const head = `${arrayPath}${WILDCARD}`;
@@ -66,11 +98,11 @@ export function splitColumnPath(path) {
 }
 
 /** The tail relative to ONE row (for walkRelativePath): drop a leading dot. */
-function rowTail(tail) {
+function rowTail(tail: unknown): string {
     return String(tail || '').replace(/^\./, '');
 }
 
-function ofKind(arr) {
+function ofKind(arr: unknown): 'records' | 'values' {
     const s = summariseData(arr);
     return s?.kind === 'records' ? 'records' : 'values';
 }
@@ -91,7 +123,7 @@ function ofKind(arr) {
  *   badgeKey/badgeParams/badgeEn        the short pill
  *   explainKey/explainParams/explainEn  the tooltip sentence
  */
-export function pathListShape(path, sampleRoot) {
+export function pathListShape(path: unknown, sampleRoot: unknown): ListShape | null {
     const raw = String(path || '').trim();
     if (!raw || sampleRoot == null) return null;
     const isColumn = raw.includes(WILDCARD);
@@ -121,7 +153,7 @@ export function pathListShape(path, sampleRoot) {
     const rows = Array.isArray(baseRows) ? baseRows.length : null;
     // Does one ROW still hold a list here? Checked against a row element, not
     // the flattened result — the flatten is exactly what hides this.
-    const firstRow = Array.isArray(baseRows) ? baseRows.find(r => r != null) : undefined;
+    const firstRow = Array.isArray(baseRows) ? baseRows.find((r: unknown) => r != null) : undefined;
     const perRow = firstRow === undefined ? undefined : walkRelativePath(rowTail(tail), firstRow);
     const rowScopedListTail = Array.isArray(perRow);
 
@@ -144,7 +176,7 @@ export function pathListShape(path, sampleRoot) {
  * field's own design-time sample when the path doesn't resolve in the merged
  * sample root (no run yet, curated samples only).
  */
-export function fieldListShape(field, sampleRoot) {
+export function fieldListShape(field: ListShapeField | null | undefined, sampleRoot: unknown): ListShape | null {
     if (!field?.path) return null;
     const live = pathListShape(field.path, sampleRoot);
     if (live) return live;
@@ -174,7 +206,7 @@ export function fieldListShape(field, sampleRoot) {
  *            (`loop.<var>` + the tail verbatim, so seg() quoting survives).
  *   list:    forEach over the list itself; the field gets the whole item.
  */
-export function forEachPickFor(path, sampleRoot, { itemVar } = {}) {
+export function forEachPickFor(path: unknown, sampleRoot: unknown, { itemVar }: { itemVar?: string } = {}): ForEachPick {
     const raw = String(path || '').trim();
     const { arrayPath, tail } = splitColumnPath(raw);
     const lastSeg = lastPathKey(arrayPath) || 'item';
@@ -190,7 +222,7 @@ export function forEachPickFor(path, sampleRoot, { itemVar } = {}) {
  * The non-iterating choices, each as a stored binding. Only whitelisted
  * engine functions — everything here runs on the server as written.
  */
-export function bindingsForList(path, { separator = ', ' } = {}) {
+export function bindingsForList(path: unknown, { separator = ', ' }: { separator?: string } = {}): Record<'each' | 'first' | 'last' | 'join' | 'count', Binding> {
     const p = String(path || '').trim();
     return {
         each: { kind: 'ref', path: p },
@@ -205,11 +237,11 @@ export function bindingsForList(path, { separator = ', ' } = {}) {
  * What the FIRST iteration of a foreach pick would see — previewBinding
  * cannot answer this (there is no loop scope until the step runs).
  */
-export function previewForEachPick(path, sampleRoot) {
+export function previewForEachPick(path: unknown, sampleRoot: unknown): unknown {
     const { arrayPath, tail } = splitColumnPath(String(path || '').trim());
     const arr = walkPath(arrayPath, sampleRoot);
     if (!Array.isArray(arr) || !arr.length) return undefined;
-    const first = arr.find(r => r != null);
+    const first = arr.find((r: unknown) => r != null);
     if (first === undefined) return undefined;
     return tail ? walkRelativePath(rowTail(tail), first) : first;
 }
@@ -219,7 +251,7 @@ export function previewForEachPick(path, sampleRoot) {
  * row)" for a column, "gmail search ▸ Results" for a plain list. Internal
  * step ids never appear; the raw path belongs in a title attribute.
  */
-export function describeListPath(path, stepLabelById = null, t = null) {
+export function describeListPath(path: unknown, stepLabelById: Map<string, string> | null = null, t: TranslateFn | null = null): string {
     const raw = String(path || '').trim();
     const { arrayPath, tail } = splitColumnPath(raw);
     const isColumn = raw.includes(WILDCARD);
@@ -236,10 +268,10 @@ export function describeListPath(path, stepLabelById = null, t = null) {
  * vocabulary for the chooser gate. 'unknown' (no schema: custom rows, App
  * Studio surfaces) means the chooser never fires and behaviour is unchanged.
  */
-export function expectedShapeFor(schemaProp) {
+export function expectedShapeFor(schemaProp: { type?: unknown } | null | undefined): 'list' | 'scalar' | 'unknown' {
     if (!schemaProp || typeof schemaProp !== 'object') return 'unknown';
     let type = schemaProp.type;
-    if (Array.isArray(type)) type = type.find(x => x !== 'null') || type[0];
+    if (Array.isArray(type)) type = type.find((x: string) => x !== 'null') || type[0];
     if (type === 'array') return 'list';
     if (type === 'string' || type === 'number' || type === 'integer' || type === 'boolean') return 'scalar';
     return 'unknown';

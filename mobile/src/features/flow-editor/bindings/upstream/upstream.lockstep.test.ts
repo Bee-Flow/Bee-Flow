@@ -46,7 +46,7 @@ describe('computeUpstreamGroups over the whole fixture', () => {
             { stepId: 'gone', output: { a: 1 } },
         ];
         const real = buildRealOutputMap(def, runSteps);
-        const webReal = requireWeb(`${BUILDER}/mapping/realOutputs.js`).buildRealOutputMap?.(def, runSteps);
+        const webReal = requireWeb(`${BUILDER}/mapping/realOutputs.ts`).buildRealOutputMap?.(def, runSteps);
         expect(real).toStrictEqual(webReal);
         for (const id of ['read', 'loop', 'setList', 'agg', 'last']) {
             expect(up.computeUpstreamGroups(def, id, CATALOG, real)).toStrictEqual(

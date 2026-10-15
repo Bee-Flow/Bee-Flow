@@ -9,8 +9,19 @@
  */
 import { outputFields } from './fieldTree';
 import { sampleToFields } from './sampleFields';
+import type { Group } from './upstream.types';
 
-export function describeIntegration(node, meta) {
+/** The members of a step node these describers read. */
+interface ActionNode {
+    id: string;
+    label?: string;
+    tool?: string;
+    parseResponse?: unknown;
+    title?: string;
+    body?: unknown;
+}
+
+export function describeIntegration(node: ActionNode, meta: { sample?: unknown } | null | undefined): Group {
     const sample = meta?.sample || {};
     return {
         id: node.id,
@@ -26,7 +37,7 @@ export function describeIntegration(node, meta) {
 
 // Mirrors execHttpRequest's actual return shape (server/core/automationRunner/
 // engine.js) — status/ok/headers/body/truncated, regardless of method.
-export function describeHttpRequest(node) {
+export function describeHttpRequest(node: ActionNode): Group {
     // `data` is the parsed body when the response is JSON — the field to bind a
     // list to, since `body` is a string and arrayRef/repeat_for_each both need
     // a real array. A placeholder here is enough: overlayGroupWithReal replaces
@@ -48,7 +59,7 @@ export function describeHttpRequest(node) {
     };
 }
 
-export function describeCode(node) {
+export function describeCode(node: ActionNode): Group {
     // The code can return ANYTHING — a string, a record, a list — so the shape
     // is not known before a run. `null` is the codebase's "not seen yet" sample
     // (a switch's `value` does the same): the UI says so instead of claiming a
@@ -65,7 +76,7 @@ export function describeCode(node) {
     };
 }
 
-export function describeNotification(node) {
+export function describeNotification(node: ActionNode): Group {
     // Mirrors execNotification's real output — `{ delivered: { title, body,
     // channels } }`. The old `{ sent: true }` field has never existed at run
     // time (C22).
@@ -81,7 +92,7 @@ export function describeNotification(node) {
 }
 
 /** Mirrors execGuard's output — the branch plus what it found. */
-export function describeGuard(node) {
+export function describeGuard(node: ActionNode): Group {
     const sample = {
         branch: 'then', hasPii: true, count: 2,
         categories: { Person: 1, Email: 1 },
@@ -102,7 +113,7 @@ export function describeGuard(node) {
  * Mirrors execTokenize's output. `text` leads because it is the whole point of
  * the step — the value every downstream node should bind to.
  */
-export function describeTokenize(node) {
+export function describeTokenize(node: ActionNode): Group {
     const sample = {
         text: 'mail [person_1] at [email_1]',
         count: 2,
@@ -121,7 +132,7 @@ export function describeTokenize(node) {
 }
 
 /** Mirrors execUntokenize's output, including what it could NOT resolve. */
-export function describeUntokenize(node) {
+export function describeUntokenize(node: ActionNode): Group {
     const sample = {
         text: 'mail Jan de Vries at jan@acme.nl',
         value: 'mail Jan de Vries at jan@acme.nl',

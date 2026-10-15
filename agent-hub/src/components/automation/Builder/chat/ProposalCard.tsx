@@ -61,8 +61,8 @@ export default function ProposalCard({ proposal, running, applying = false, onAp
                 {proposalFields(c).map((field: FieldChange) => {
                     const key = `${c.scope}:${c.id}:${field.path.join('.')}`;
                     const value = (binding: Binding | undefined) => binding === undefined ? '—' : binding?.kind ? binding.path || String(binding.value ?? '') : typeof binding === 'string' ? binding : JSON.stringify(binding);
-                    const oldSample = (field.before as Binding)?.kind && previewBinding(field.before, samples, { raw: false });
-                    const newSample = (field.after as Binding)?.kind && previewBinding(field.after, samples, { raw: false });
+                    const oldSample = (field.before as Binding)?.kind && previewBinding(field.before as Binding, samples, { raw: false });
+                    const newSample = (field.after as Binding)?.kind && previewBinding(field.after as Binding, samples, { raw: false });
                     return <label key={key} className="flex gap-2 mt-2 rounded-lg bg-[var(--bg-secondary)] p-2 cursor-pointer">
                         <input type="checkbox" checked={!excluded.has(key)} onChange={() => setExcluded(previous => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next; })} aria-label={field.path.join('.')} className="mt-0.5" />
                         <span className="min-w-0 flex-1 break-words"><span className="block font-medium">{field.path.slice(1).join(' › ')}</span><span className="block text-[var(--text-tertiary)]">{value(field.before as Binding)}</span>{oldSample && <span className="block text-[var(--text-tertiary)]">↳ {oldSample}</span>}<span className="block text-[var(--type-ai)]">→ {value(field.after as Binding)}</span>{newSample && <span className="block">↳ {newSample}</span>}</span>
