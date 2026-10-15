@@ -84,7 +84,7 @@ export function referenceText(entry: RefText | null | undefined, t: Translate | 
  */
 export function documentOptions(documents: Array<DocLike | null | undefined> | null | undefined, t: Translate | null = null): RefOption[] {
     return ((Array.isArray(documents) ? documents : [])
-        .filter((d) => !!d && typeof d.id === 'string') as DocLike[])
+        .filter((d) => d && typeof d.id === 'string') as DocLike[])
         .map((d) => ({
             id: d.id as string,
             label: d.placeholders?.length
