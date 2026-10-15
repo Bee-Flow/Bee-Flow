@@ -65,13 +65,6 @@ const defaultAction = defaultActionForKind as (
     definition: AppDefinition | null | undefined,
     formFields?: FormFieldRef[],
 ) => AppAction;
-const labelFor = describeAction as (
-    id: string,
-    action: AppAction,
-    definition: AppDefinition | null | undefined,
-    titleFor?: ((automationId?: string) => string | null) | null,
-    t?: (key: string, fallback: string, params?: Record<string, string | number>) => string,
-) => string;
 const builderHref = automationHref as (
     automationId: string,
     appRef?: AppRef | null,
@@ -270,7 +263,7 @@ export default function useEventWiring({
         let suffix = '';
         if (others === 1) suffix = ` ${t('studio_apps_insp.wiring.also_used_one', '(also used by {count} other component)', { count: others })}`;
         else if (others) suffix = ` ${t('studio_apps_insp.wiring.also_used_many', '(also used by {count} other components)', { count: others })}`;
-        return { id, label: `${labelFor(id, a, definition, titleFor, t)}${suffix}` };
+        return { id, label: `${describeAction(id, a, definition, titleFor, t)}${suffix}` };
     }), [actions, definition, node?.id, titleFor, t]);
 
     const commitAction = (nextAction: AppAction) => {

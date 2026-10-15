@@ -68,7 +68,7 @@ export interface PickSpec {
 }
 
 /** The expression-scope root the formulas read. */
-export type Scope = Record<string, unknown> | undefined;
+export type Scope = Record<string, unknown> | null | undefined;
 
 export type ActionMap = Record<string, ActionEntry | undefined>;
 export type DataMap = Record<string, DataEntry | undefined>;

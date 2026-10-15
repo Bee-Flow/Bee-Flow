@@ -11,8 +11,8 @@ import { loadWebModule, webFileExists } from '@/shared/testing/webModule';
 import { buildImportRows, coerceCell, parseDateish, parseNumberish, parsePasted, suggestMapping } from './csvImport';
 import type { Column } from './types';
 
-const PASTE = 'components/admin/Studio/AppStudio/tables/spreadsheetPaste.js';
-const ROW_VALUES = 'components/admin/Studio/AppStudio/tables/rowValues.js';
+const PASTE = 'components/admin/Studio/AppStudio/tables/spreadsheetPaste.ts';
+const ROW_VALUES = 'components/admin/Studio/AppStudio/tables/rowValues.ts';
 const describeIfWeb = webFileExists(PASTE) && webFileExists(ROW_VALUES) ? describe : describe.skip;
 
 type Web = {
