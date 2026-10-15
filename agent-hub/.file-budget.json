@@ -224,10 +224,10 @@
     "src/pages/webpages/WebpageActionsPanel.jsx": 428,
     "src/pages/webpages/WebpageAppsPanel.jsx": 588,
     "src/pages/webpages/WebpageAudiencePanel.jsx": 762,
-    "src/pages/webpages/WebpageDbViewer.jsx": 827,
+    "src/pages/webpages/WebpageDbViewer.tsx": 827,
     "src/utils/bfElementsRuntime.js": 799,
-    "src/utils/bindingHelpers.js": 653,
+    "src/utils/bindingHelpers.ts": 653,
     "src/utils/helpers.js": 457,
-    "src/utils/integrationLogos.jsx": 600
+    "src/utils/integrationLogos.tsx": 600
   }
 }

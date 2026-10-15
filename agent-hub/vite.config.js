@@ -274,7 +274,7 @@ export default defineConfig(({ mode }) => {
             // this is not a narrowed `include`. Unset (local runs), vitest's
             // own sequencer applies and everything runs.
             ...(ShardListSequencer ? { sequence: { sequencer: ShardListSequencer } } : {}),
-            setupFiles: ['./src/test/setup.js'],
+            setupFiles: ['./src/test/setup.ts'],
             css: false,
             // 'forks' (vitest's default) launches worker processes whose IPC
             // paths get URL-encoded; with a workspace path that contains

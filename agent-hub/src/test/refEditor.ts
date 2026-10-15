@@ -1,6 +1,9 @@
 import { fireEvent } from '@testing-library/react';
 import { serializeHost } from '../components/automation/Builder/mapping/refEditorDom';
 
+/** A container, or a testing-library queries object carrying one. */
+type EditorScope = (ParentNode & { container?: ParentNode; baseElement?: ParentNode }) | null | undefined;
+
 /**
  * Driving a RefTokenInput from a test.
  *
@@ -20,23 +23,23 @@ import { serializeHost } from '../components/automation/Builder/mapping/refEdito
  */
 
 /** The editable host inside `scope` (a container or a queries object). */
-export function editor(scope, { index = 0 } = {}) {
+export function editor(scope: EditorScope, { index = 0 }: { index?: number } = {}): HTMLElement | null {
     const root = scope?.container || scope?.baseElement || scope || document.body;
-    const found = root.querySelectorAll('[data-ref-editor]');
+    const found = root.querySelectorAll<HTMLElement>('[data-ref-editor]');
     return found[index] || null;
 }
 
 /** All editable hosts inside `scope`, in document order. */
-export function editors(scope) {
+export function editors(scope: EditorScope): HTMLElement[] {
     const root = scope?.container || scope?.baseElement || scope || document.body;
-    return Array.from(root.querySelectorAll('[data-ref-editor]'));
+    return Array.from(root.querySelectorAll<HTMLElement>('[data-ref-editor]'));
 }
 
 /**
  * Type `text` into the editor, replacing whatever was there — the contenteditable
  * equivalent of `fireEvent.change(input, { target: { value: text } })`.
  */
-export function typeInEditor(el, text) {
+export function typeInEditor(el: HTMLElement | null, text: unknown): HTMLElement {
     if (!el) throw new Error('typeInEditor: no editor element');
     el.textContent = '';
     for (const [i, line] of String(text ?? '').split('\n').entries()) {
@@ -59,7 +62,7 @@ export function typeInEditor(el, text) {
 }
 
 /** The value the field would store — the raw paths, not the pill labels. */
-export function editorValue(el) {
+export function editorValue(el: HTMLElement | null) {
     return el ? serializeHost(el) : '';
 }
 
@@ -68,12 +71,12 @@ export function editorValue(el) {
  * `getByDisplayValue`. Throws with the values it did find, so a failure names
  * the mismatch instead of just saying "null".
  */
-export function editorWithValue(scope, value) {
+export function editorWithValue(scope: EditorScope, value: string): HTMLElement {
     const all = editors(scope);
-    const hit = all.find(el => serializeHost(el) === value);
+    const hit = all.find((el: HTMLElement) => serializeHost(el) === value);
     if (hit) return hit;
     throw new Error(
         `No ref editor holds ${JSON.stringify(value)}. Found: ${
-            all.map(el => JSON.stringify(serializeHost(el))).join(', ') || '(none)'}`,
+            all.map((el: HTMLElement) => JSON.stringify(serializeHost(el))).join(', ') || '(none)'}`,
     );
 }

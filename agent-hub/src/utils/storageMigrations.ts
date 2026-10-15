@@ -69,15 +69,15 @@ export const ICONPACK_CACHE_PREFIX = 'beeflow_iconpack_';
    these. Private mode, a blocked third-party context or a full quota must
    degrade to "no stored value", never to a crash. */
 
-export function readDeviceItem(key) {
+export function readDeviceItem(key: string): string | null {
     try { return localStorage.getItem(key); } catch { return null; }
 }
 
-export function writeDeviceItem(key, value) {
+export function writeDeviceItem(key: string, value: string) {
     try { localStorage.setItem(key, value); } catch { /* quota / blocked */ }
 }
 
-export function removeDeviceItem(key) {
+export function removeDeviceItem(key: string) {
     try { localStorage.removeItem(key); } catch { /* blocked */ }
 }
 
@@ -88,13 +88,15 @@ export function removeDeviceItem(key) {
  * JSON.parse only proves the text was JSON, not that it has the shape the
  * caller is about to index into.
  */
-export function readDeviceJSON(key, fallback = null, validate = null) {
+export function readDeviceJSON<T>(key: string, fallback: T, validate?: ((parsed: unknown) => T | undefined) | null): T;
+export function readDeviceJSON<T = unknown>(key: string, fallback?: null, validate?: ((parsed: unknown) => T | undefined) | null): T | null;
+export function readDeviceJSON(key: string, fallback: unknown = null, validate: ((parsed: unknown) => unknown) | null = null): unknown {
     const raw = readDeviceItem(key);
     if (raw === null) return fallback;
-    let parsed;
+    let parsed: unknown;
     try { parsed = JSON.parse(raw); } catch { return fallback; }
     if (typeof validate === 'function') {
-        let cleaned;
+        let cleaned: unknown;
         try { cleaned = validate(parsed); } catch { return fallback; }
         return cleaned === undefined ? fallback : cleaned;
     }
@@ -102,7 +104,7 @@ export function readDeviceJSON(key, fallback = null, validate = null) {
 }
 
 function allDeviceKeys() {
-    const keys = [];
+    const keys: string[] = [];
     try {
         for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
@@ -113,7 +115,7 @@ function allDeviceKeys() {
 }
 
 /** Build-stamped cache key: `<prefix><id>_<sha>` — cold after every deploy. */
-export function buildStampedCacheKey(prefix, id, sha = APP_BUILD_SHA) {
+export function buildStampedCacheKey(prefix: string, id: string | number, sha = APP_BUILD_SHA): string {
     return `${prefix}${id}_${sha}`;
 }
 
@@ -146,7 +148,7 @@ export function sweepStaleBuildCaches(sha = APP_BUILD_SHA) {
  * before the version could ever have been raised — and is normalised back so
  * the newer build re-runs its own steps when it returns.
  */
-function readSchemaVersion(markerKey) {
+function readSchemaVersion(markerKey: string): number {
     const raw = readDeviceItem(markerKey);
     if (raw === null) return 0;
     const n = Number.parseInt(raw, 10);
@@ -168,7 +170,7 @@ const DEAD_DEVICE_KEYS = [
     'reasoningEffort',
 ];
 
-function applyDeviceMigrations(fromVersion) {
+function applyDeviceMigrations(fromVersion: number) {
     if (fromVersion < 1) {
         for (const key of DEAD_DEVICE_KEYS) removeDeviceItem(key);
     }
@@ -233,7 +235,7 @@ const LEGACY_USER_KEYS = [
 // only land here once nothing in src/ reads or writes it any more.
 const RETIRED_USER_KEYS = ['reasoningEffort'];
 
-function applyUserMigrations(userId, fromVersion) {
+function applyUserMigrations(userId: string, fromVersion: number) {
     if (fromVersion < 1) {
         for (const key of LEGACY_USER_KEYS) {
             const bare = readDeviceItem(key);
@@ -262,7 +264,7 @@ function applyUserMigrations(userId, fromVersion) {
  * the user's scoped namespace, so logout's clearUser removes it and a later
  * login simply re-runs the (by then no-op) ladder.
  */
-export function runUserStorageMigrations(userId) {
+export function runUserStorageMigrations(userId?: string | null) {
     if (!userId) return;
     try {
         const markerKey = scopedKey(userId, USER_SCHEMA_KEY);

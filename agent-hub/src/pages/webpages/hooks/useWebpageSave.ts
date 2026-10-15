@@ -1,4 +1,27 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import type { MutableRefObject } from 'react';
+import type { ExtraContents, PrimaryContent } from '../webpageEditorTypes';
+
+/** The /api/webpages client, as far as saving needs it. */
+type SaveApi = (path: string, opts?: { method?: string; body?: string }) => Promise<unknown>;
+
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+interface UseWebpageSaveOpts {
+    webpageId: string;
+    /** live primary-slot content */
+    html: string;
+    css: string;
+    js: string;
+    /** live extra-file contents (persist reads the text ones it is asked to save) */
+    extraContentsRef: MutableRefObject<ExtraContents>;
+    /** the /api/webpages client */
+    api: SaveApi;
+    /** called after a fully successful save */
+    onSaved?: (webpageId: string) => void;
+    /** defaults to SAVE_DEBOUNCE_MS */
+    debounceMs?: number;
+}
 
 /**
  * useWebpageSave — the save discipline of the webpage editor (Track W0).
@@ -33,17 +56,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  * refactor drop that key, a changed `webpageId` re-baselines onto the
  * incoming content and drops the previous page's dirty markers (rule 6)
  * rather than writing them to the new page.
- *
- * @param {object} opts
- * @param {string} opts.webpageId
- * @param {string} opts.html  live primary-slot content
- * @param {string} opts.css
- * @param {string} opts.js
- * @param {React.MutableRefObject<Record<string,{isText:boolean,content?:string}>>} opts.extraContentsRef
- *        live extra-file contents (persist reads the text ones it is asked to save)
- * @param {(path:string, opts?:object)=>Promise<any>} opts.api  the /api/webpages client
- * @param {(webpageId:string)=>void} [opts.onSaved]  called after a fully successful save
- * @param {number} [opts.debounceMs=1500]
  */
 export const SAVE_DEBOUNCE_MS = 1500;
 export const CHAT_SAVE_DEBOUNCE_MS = 800;
@@ -55,18 +67,18 @@ export default function useWebpageSave({
     api,
     onSaved,
     debounceMs = SAVE_DEBOUNCE_MS,
-}) {
-    const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
-    const [lastSavedAt, setLastSavedAt] = useState(null);
+}: UseWebpageSaveOpts) {
+    const [saveState, setSaveState] = useState<SaveState>('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
     // Per-tab dirty markers for the EditorTabs dot indicator. Keys: 'html' |
     // 'css' | 'js' | 'extra:<path>'. Mirrors dirtyExtrasRef + primary-snapshot
     // diff but lives in state so the tabs re-render when it changes.
-    const [dirtyFiles, setDirtyFiles] = useState({});
+    const [dirtyFiles, setDirtyFiles] = useState<Record<string, boolean>>({});
 
     // Refs that mirror html/css/js so persist() can be stable (no content in
     // its deps) — read the live value at call time. Synced via useEffect so
     // the ref tracks state regardless of which code path mutates it.
-    const contentRef = useRef({ html, css, js });
+    const contentRef = useRef<PrimaryContent>({ html, css, js });
     useEffect(() => { contentRef.current = { html, css, js }; }, [html, css, js]);
 
     const activeIdRef = useRef(webpageId);
@@ -79,17 +91,17 @@ export default function useWebpageSave({
     const onSavedRef = useRef(onSaved);
     useEffect(() => { onSavedRef.current = onSaved; }, [onSaved]);
 
-    const timerRef = useRef(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // The loaded content is already saved — that is the baseline every
     // subsequent persist() diffs against.
-    const lastSavedSnapshotRef = useRef({ html, css, js });
+    const lastSavedSnapshotRef = useRef<PrimaryContent>({ html, css, js });
     // The first content effect after mount is the load itself, not an edit.
     const skipNextSaveRef = useRef(true);
     // Dirty extras — paths whose user-typed content hasn't been persisted yet.
     // persist() walks this set and PUTs each one alongside the primary slots.
-    const dirtyExtrasRef = useRef(new Set());
+    const dirtyExtrasRef = useRef<Set<string>>(new Set());
 
-    const isCurrent = useCallback((id) => mountedRef.current && activeIdRef.current === id, []);
+    const isCurrent = useCallback((id: string) => mountedRef.current && activeIdRef.current === id, []);
 
     const persist = useCallback(async () => {
         // Capture the webpage we're saving against. If the user switches
@@ -107,8 +119,8 @@ export default function useWebpageSave({
         if (!primaryDirty && extraPaths.length === 0) return;
         setSaveState('saving');
         let primarySucceeded = !primaryDirty;
-        const failedExtras = [];
-        const savedExtras = [];
+        const failedExtras: string[] = [];
+        const savedExtras: string[] = [];
         try {
             if (primaryDirty) {
                 await api(`/${targetWebpageId}`, { method: 'PUT', body: JSON.stringify(snapshot) });
@@ -148,7 +160,7 @@ export default function useWebpageSave({
         for (const p of failedExtras) dirtyExtrasRef.current.add(p);
         // Clear dirty markers for everything that successfully saved.
         if (primarySucceeded || savedExtras.length > 0) {
-            setDirtyFiles(prev => {
+            setDirtyFiles((prev: Record<string, boolean>) => {
                 const next = { ...prev };
                 if (primarySucceeded && primaryDirty) {
                     delete next.html; delete next.css; delete next.js;
@@ -228,24 +240,24 @@ export default function useWebpageSave({
     // Mark a primary slot dirty when the user types into Monaco. SSE-driven
     // updates (AI edits) bypass this so they don't mark already-saved content
     // as dirty — the content effect above still schedules the save.
-    const markPrimaryDirty = useCallback((slot) => {
-        setDirtyFiles(prev => prev[slot] ? prev : { ...prev, [slot]: true });
+    const markPrimaryDirty = useCallback((slot: string) => {
+        setDirtyFiles((prev: Record<string, boolean>) => prev[slot] ? prev : { ...prev, [slot]: true });
     }, []);
 
     // User-initiated edit of an extra text file: mark the path dirty and
     // schedule a save. SSE-driven extra updates are already persisted
     // server-side and must NOT go through here.
-    const markExtraDirty = useCallback((path) => {
+    const markExtraDirty = useCallback((path: string) => {
         dirtyExtrasRef.current.add(path);
         const key = `extra:${path}`;
-        setDirtyFiles(prev => prev[key] ? prev : { ...prev, [key]: true });
+        setDirtyFiles((prev: Record<string, boolean>) => prev[key] ? prev : { ...prev, [key]: true });
         scheduleSave();
     }, [scheduleSave]);
 
     // The server just handed us content that IS the saved state (a restored
     // version). Re-baseline and skip the content effect that the caller's
     // setHtml/setCss/setJs is about to trigger.
-    const acceptServerSnapshot = useCallback((files) => {
+    const acceptServerSnapshot = useCallback((files?: Partial<PrimaryContent> | null) => {
         lastSavedSnapshotRef.current = {
             html: files?.html || '', css: files?.css || '', js: files?.js || '',
         };
@@ -278,9 +290,17 @@ export default function useWebpageSave({
  * Returns `{ markSaved, clearOnServer }`; `clearOnServer` is "New chat":
  * one DELETE with no trailing PUT (the empty array is marked saved first).
  */
-export function useWebpageChatPersistence({ webpageId, chatMessages, chatLoading, api, debounceMs = CHAT_SAVE_DEBOUNCE_MS }) {
+interface ChatPersistenceOpts {
+    webpageId?: string | null;
+    chatMessages?: unknown[] | null;
+    chatLoading?: boolean;
+    api: SaveApi;
+    debounceMs?: number;
+}
+
+export function useWebpageChatPersistence({ webpageId, chatMessages, chatLoading, api, debounceMs = CHAT_SAVE_DEBOUNCE_MS }: ChatPersistenceOpts) {
     const lastSavedChatRef = useRef('[]');
-    const timerRef = useRef(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (!webpageId) return undefined;
@@ -300,7 +320,7 @@ export function useWebpageChatPersistence({ webpageId, chatMessages, chatLoading
                 });
                 lastSavedChatRef.current = serialized;
             } catch (err) {
-                console.warn('[Webpages] Chat save failed:', err.message);
+                console.warn('[Webpages] Chat save failed:', (err as Error).message);
             }
         }, debounceMs);
         return () => {
@@ -311,7 +331,7 @@ export function useWebpageChatPersistence({ webpageId, chatMessages, chatLoading
         };
     }, [chatMessages, chatLoading, webpageId, api, debounceMs]);
 
-    const markSaved = useCallback((messages) => {
+    const markSaved = useCallback((messages: unknown) => {
         lastSavedChatRef.current = JSON.stringify(Array.isArray(messages) ? messages : []);
     }, []);
 
@@ -323,7 +343,7 @@ export function useWebpageChatPersistence({ webpageId, chatMessages, chatLoading
         try {
             await api(`/${webpageId}/chat`, { method: 'DELETE' });
         } catch (err) {
-            console.warn('[Webpages] Chat clear failed:', err.message);
+            console.warn('[Webpages] Chat clear failed:', (err as Error).message);
         }
     }, [api, webpageId, markSaved]);
 

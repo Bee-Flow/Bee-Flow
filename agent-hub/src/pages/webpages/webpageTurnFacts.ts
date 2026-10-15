@@ -28,6 +28,20 @@
  * so the card that renders them and the tests that pin them share one truth.
  */
 
+/** One entry of `msg.toolHistory`. */
+export interface ToolEvent {
+    name: string;
+    args?: Record<string, unknown> | null;
+    status?: string;
+    startTime?: number;
+    endTime?: number;
+}
+
+/** The slice of a chat message these readers look at. */
+export interface TurnMessage {
+    toolHistory?: ToolEvent[] | null;
+}
+
 /** The three tools that write a bridge grant (server/integrations/webpageBridgeTools.js). */
 export const GRANT_TOOL_RX = /^webpage_grant_[a-z]+$/;
 
@@ -35,18 +49,18 @@ export const GRANT_TOOL_RX = /^webpage_grant_[a-z]+$/;
  * Table tools that CONNECT something. `webpage_db_exec` creates or alters the
  * page's tables; the other two only read, and a read is not a link.
  */
-export const TABLE_LINK_TOOLS = Object.freeze(['webpage_db_exec']);
+export const TABLE_LINK_TOOLS: readonly string[] = Object.freeze(['webpage_db_exec']);
 
 /** Tools that never represent work worth showing (the model thinking aloud). */
 const HIDDEN_TOOLS = new Set(['sequentialthinking']);
 
-function completedTools(msg) {
+function completedTools(msg?: TurnMessage | null): ToolEvent[] {
     const history = Array.isArray(msg?.toolHistory) ? msg.toolHistory : [];
-    return history.filter(t => t && t.status === 'done' && !HIDDEN_TOOLS.has(t.name));
+    return history.filter((t: ToolEvent) => t && t.status === 'done' && !HIDDEN_TOOLS.has(t.name));
 }
 
 /** Is this tool name one that adds a link? */
-export function isLinkTool(name) {
+export function isLinkTool(name: unknown): boolean {
     if (typeof name !== 'string') return false;
     return GRANT_TOOL_RX.test(name) || TABLE_LINK_TOOLS.includes(name);
 }
@@ -55,9 +69,9 @@ export function isLinkTool(name) {
  * The distinct link-adding tools this turn completed, in the order they ran.
  * Returns [] when the turn added none — the card is then not rendered at all.
  */
-export function linksAddedIn(msg) {
-    const seen = new Set();
-    const out = [];
+export function linksAddedIn(msg?: TurnMessage | null) {
+    const seen = new Set<string>();
+    const out: { name: string; args: Record<string, unknown> | null }[] = [];
     for (const tool of completedTools(msg)) {
         if (!isLinkTool(tool.name) || seen.has(tool.name)) continue;
         seen.add(tool.name);
@@ -71,7 +85,7 @@ export function linksAddedIn(msg) {
  * ran no visible tool. `seconds` is null when any counted step lacks a
  * timestamp — the count is still true, the duration would not be.
  */
-export function stepSummary(msg) {
+export function stepSummary(msg?: TurnMessage | null): { steps: number; seconds: number | null } | null {
     const tools = completedTools(msg);
     if (tools.length === 0) return null;
     let total = 0;

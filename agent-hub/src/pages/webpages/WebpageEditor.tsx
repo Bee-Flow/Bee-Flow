@@ -1,4 +1,6 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import type { Monaco } from '@monaco-editor/react';
+import type { editor as MonacoNs } from 'monaco-editor';
 import { useTranslation } from '../../hooks/useTranslation';
 import { lazy } from '../../utils/lazyWithReload';
 
@@ -28,8 +30,12 @@ const MonacoEditor = lazy(() =>
  * kosten, nooit de editor zelf — de auteur moet kunnen blijven typen, ook als
  * er niets te tinten valt.
  */
-function useDecorations(editorRef, decorations, monacoFailed) {
-    const collectionRef = useRef(null);
+function useDecorations(
+    editorRef: React.RefObject<MonacoNs.IStandaloneCodeEditor | null>,
+    decorations: unknown,
+    monacoFailed: boolean,
+) {
+    const collectionRef = useRef<MonacoNs.IEditorDecorationsCollection | null>(null);
 
     const apply = useCallback((fresh = false) => {
         const editor = editorRef.current;
@@ -58,6 +64,16 @@ function useDecorations(editorRef, decorations, monacoFailed) {
     return apply;
 }
 
+interface WebpageEditorProps {
+    value?: string;
+    language?: string;
+    onChange?: (value: string) => void;
+    readOnly?: boolean;
+    theme?: string;
+    onCursorChange?: (cursor: { line: number; col: number }) => void;
+    decorations?: unknown;
+}
+
 /**
  * Generic Monaco editor for any text file in the webpage project. Caller
  * resolves the file → value + language; the editor doesn't know about
@@ -68,17 +84,6 @@ function useDecorations(editorRef, decorations, monacoFailed) {
  * van de server (`core/webpages/webpageBindings.js`) en wordt door
  * `WebpageCodeStrip.fileDecorations` in deze vorm gebracht. Zo hoeft hier geen
  * tweede lezing van het vocabulaire te bestaan.
- *
- * @typedef {object} WebpageEditorProps
- * @property {string} [value]
- * @property {string} [language]
- * @property {(value: string) => void} [onChange]
- * @property {boolean} [readOnly]
- * @property {string} [theme]
- * @property {(cursor: { line: number, col: number }) => void} [onCursorChange]
- * @property {unknown} [decorations]
- *
- * @param {WebpageEditorProps} props
  */
 export default function WebpageEditor({
     value = '',
@@ -88,14 +93,14 @@ export default function WebpageEditor({
     theme = 'light',
     onCursorChange,
     decorations = null,
-}) {
+}: WebpageEditorProps) {
     const { t } = useTranslation();
-    const editorRef = useRef(null);
+    const editorRef = useRef<MonacoNs.IStandaloneCodeEditor | null>(null);
     const [monacoFailed, setMonacoFailed] = useState(false);
 
     const applyDecorations = useDecorations(editorRef, decorations, monacoFailed);
 
-    const handleMount = (editor, monaco) => {
+    const handleMount = (editor: MonacoNs.IStandaloneCodeEditor, monaco: Monaco) => {
         if (!editor) { setMonacoFailed(true); return; }
         editorRef.current = editor;
         // De editor is er nu pas; wat er al aan markeringen klaarlag, hoort er
@@ -114,7 +119,7 @@ export default function WebpageEditor({
             });
         } catch (_) {}
         if (onCursorChange) {
-            editor.onDidChangeCursorPosition(e => {
+            editor.onDidChangeCursorPosition((e: MonacoNs.ICursorPositionChangedEvent) => {
                 onCursorChange({ line: e.position.lineNumber, col: e.position.column });
             });
         }
@@ -129,7 +134,7 @@ export default function WebpageEditor({
                         style={{ background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
                         value={value}
                         readOnly={readOnly}
-                        onChange={(e) => onChange?.(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange?.(e.target.value)}
                         spellCheck={false}
                     />
                 ) : (
@@ -138,8 +143,8 @@ export default function WebpageEditor({
                             height="100%"
                             language={language}
                             value={value}
-                            onChange={(v) => onChange?.(v ?? '')}
-                            onMount={(editor, monaco) => {
+                            onChange={(v: string | undefined) => onChange?.(v ?? '')}
+                            onMount={(editor: MonacoNs.IStandaloneCodeEditor, monaco: Monaco) => {
                                 if (!editor) { setMonacoFailed(true); return; }
                                 handleMount(editor, monaco);
                             }}

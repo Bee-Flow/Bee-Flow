@@ -19,7 +19,7 @@ const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/compone
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const webOps = require(path.join(FLOW, 'setOperations.js'));
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const bindingHelpers = require(path.resolve(FLOW, '../../../../utils/bindingHelpers.js'));
+const bindingHelpers = require(path.resolve(FLOW, '../../../../utils/bindingHelpers.ts'));
 const parseJsonSrc = fs.readFileSync(path.join(FLOW, 'settings/ParseJsonFields.jsx'), 'utf8');
 
 function cut(src: string, name: string): string {

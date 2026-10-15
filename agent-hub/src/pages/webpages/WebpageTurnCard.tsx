@@ -1,7 +1,10 @@
 import { Check, Code2, Link2, Undo2, Wrench } from 'lucide-react';
 import React from 'react';
+import type { ComponentType } from 'react';
 import { linksAddedIn, stepSummary } from './webpageTurnFacts';
+import type { TurnMessage } from './webpageTurnFacts';
 import useTranslation from '../../hooks/useTranslation';
+import type { TranslateFn } from '../../hooks/useTranslation';
 
 /**
  * What sits under one assistant turn in the webpage chat (plan W2):
@@ -31,7 +34,12 @@ import useTranslation from '../../hooks/useTranslation';
  *   onShowInCode(file)  open that file in the Code section
  */
 
-function LinkAddedCard({ links, t }) {
+interface LinkAddedCardProps {
+    links: { name: string }[];
+    t: TranslateFn;
+}
+
+function LinkAddedCard({ links, t }: LinkAddedCardProps) {
     return (
         <div
             data-testid="webpage-link-added"
@@ -50,14 +58,21 @@ function LinkAddedCard({ links, t }) {
                     {t('webpages.chat.link_added', 'Link added')}
                 </div>
                 <div className="text-[11px] truncate text-[var(--text-primary)]">
-                    {links.map(l => l.name).join(', ')}
+                    {links.map((l: { name: string }) => l.name).join(', ')}
                 </div>
             </div>
         </div>
     );
 }
 
-function Chip({ icon, label, onClick, testId }) {
+interface ChipProps {
+    icon: ComponentType<{ size?: number; 'aria-hidden'?: boolean | 'true' | 'false' }>;
+    label: string;
+    onClick?: () => void;
+    testId: string;
+}
+
+function Chip({ icon, label, onClick, testId }: ChipProps) {
     const Icon = icon;
     return (
         <button
@@ -73,7 +88,12 @@ function Chip({ icon, label, onClick, testId }) {
 }
 
 /** "How I did this · 3 steps · 1.4s" — count always, time only when known. */
-function HowIDidThis({ summary, t }) {
+interface HowIDidThisProps {
+    summary: { steps: number; seconds: number | null };
+    t: TranslateFn;
+}
+
+function HowIDidThis({ summary, t }: HowIDidThisProps) {
     const stepText = summary.steps === 1
         ? t('webpages.chat.steps', '{count} step', { count: summary.steps })
         : t('webpages.chat.steps_plural', '{count} steps', { count: summary.steps });
@@ -91,7 +111,16 @@ function HowIDidThis({ summary, t }) {
 }
 
 /** Keep · Undo · Change in code — the three next steps for a fresh edit. */
-function EditChips({ t, canUndo, lastFile, onKeep, onUndo, onShowInCode }) {
+interface EditChipsProps {
+    t: TranslateFn;
+    canUndo: boolean;
+    lastFile?: string;
+    onKeep?: () => void;
+    onUndo?: () => void;
+    onShowInCode?: (file?: string) => void;
+}
+
+function EditChips({ t, canUndo, lastFile, onKeep, onUndo, onShowInCode }: EditChipsProps) {
     return (
         <>
             <Chip icon={Check} testId="webpage-chip-keep" label={t('webpages.chat.keep', 'Keep')} onClick={onKeep} />
@@ -108,10 +137,20 @@ function EditChips({ t, canUndo, lastFile, onKeep, onUndo, onShowInCode }) {
     );
 }
 
+interface Props {
+    msg?: (TurnMessage & { webpageEdits?: { file?: string }[] }) | null;
+    canUndo?: boolean;
+    undone?: boolean;
+    kept?: boolean;
+    onKeep?: () => void;
+    onUndo?: () => void;
+    onShowInCode?: (file?: string) => void;
+}
+
 export default function WebpageTurnCard({
     msg, canUndo = false, undone = false, kept = false,
     onKeep, onUndo, onShowInCode,
-}) {
+}: Props) {
     const { t } = useTranslation();
     const links = linksAddedIn(msg);
     const summary = stepSummary(msg);

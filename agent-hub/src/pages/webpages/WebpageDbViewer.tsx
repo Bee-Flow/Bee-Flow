@@ -2,11 +2,13 @@ import {
     Database, Table2, Play, RefreshCw, Plus, Trash2, AlertTriangle,
     ChevronLeft, ChevronRight, Loader2, KeyRound, X,
 } from 'lucide-react';
+import type { BrowseTabProps, ColumnDraft, DbColumn, DbRow, DbSchema, DbTable, EditState, Props, SchemaTabProps, SqlResult, SqlTabProps, TabDef } from './WebpageDbViewer.types';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { nOf, pluralKey } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import type { ApiOptions } from './webpagesApi';
 
 /**
  * WebpageDbViewer — three-tab UI on top of the per-webpage SQLite DB.
@@ -14,28 +16,24 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  *   Schema  list tables + their columns (click + new-table form)
  *   Browse  pick a table, page through rows, edit/insert/delete
  *   SQL     free-form editor; auto-routes SELECT → /db/query, else → /db/exec
- *
- * Endpoints (server/routes/webpages.js):
- *   GET    /api/webpages/:id/db/schema
- *   POST   /api/webpages/:id/db/query  { sql, params? }
- *   POST   /api/webpages/:id/db/exec   { sql, params? }
- *   DELETE /api/webpages/:id/db
+ * Endpoints (server/routes/webpages.js): GET /api/webpages/:id/db/schema,
+ * POST .../db/query and .../db/exec ({ sql, params? }), DELETE .../db
  */
 
 const PAGE_SIZE = 50;
 
-function quoteIdent(name) {
+function quoteIdent(name: unknown): string {
     // SQLite identifier — double-quotes; embedded quotes become two double-quotes.
     return `"${String(name).replace(/"/g, '""')}"`;
 }
 
-function formatCell(v) {
+function formatCell(v: unknown): string {
     if (v === null || v === undefined) return '';
     if (typeof v === 'object') return JSON.stringify(v);
     return String(v);
 }
 
-function api(webpageId, path, opts = {}) {
+function api(webpageId: string | undefined, path: string, opts: ApiOptions = {}) {
     const url = `${API_BASE}/api/webpages/${webpageId}${path}`;
     const headers = opts.body ? { 'Content-Type': 'application/json', ...opts.headers } : opts.headers;
     return authFetch(url, { ...opts, headers });
@@ -43,28 +41,28 @@ function api(webpageId, path, opts = {}) {
 
 // ─── Schema tab ─────────────────────────────────────────────────────
 
-function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = false }) {
+function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = false }: SchemaTabProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const [creating, setCreating] = useState(false);
     const [name, setName] = useState('');
-    const [cols, setCols] = useState([{ name: 'id', type: 'INTEGER', pk: true, notnull: true }]);
+    const [cols, setCols] = useState<ColumnDraft[]>([{ name: 'id', type: 'INTEGER', pk: true, notnull: true }]);
     const [submitting, setSubmitting] = useState(false);
-    const [selected, setSelected] = useState(null);
+    const [selected, setSelected] = useState<string | null>(null);
 
     useEffect(() => {
         if (!selected && schema?.tables?.length) setSelected(schema.tables[0].name);
     }, [schema, selected]);
 
-    const addCol = () => setCols(cs => [...cs, { name: '', type: 'TEXT', pk: false, notnull: false }]);
-    const updateCol = (i, patch) => setCols(cs => cs.map((c, idx) => idx === i ? { ...c, ...patch } : c));
-    const removeCol = (i) => setCols(cs => cs.filter((_, idx) => idx !== i));
+    const addCol = () => setCols((cs: ColumnDraft[]) => [...cs, { name: '', type: 'TEXT', pk: false, notnull: false }]);
+    const updateCol = (i: number, patch: Partial<ColumnDraft>) => setCols((cs: ColumnDraft[]) => cs.map((c: ColumnDraft, idx: number) => idx === i ? { ...c, ...patch } : c));
+    const removeCol = (i: number) => setCols((cs: ColumnDraft[]) => cs.filter((_: ColumnDraft, idx: number) => idx !== i));
 
     const handleCreate = async () => {
         if (!name.trim()) return;
-        const validCols = cols.filter(c => c.name.trim());
+        const validCols = cols.filter((c: ColumnDraft) => c.name.trim());
         if (validCols.length === 0) { onError(t('webpages.db.err_no_columns', 'Add at least one column')); return; }
-        const colSql = validCols.map(c => {
+        const colSql = validCols.map((c: ColumnDraft) => {
             let s = `${quoteIdent(c.name.trim())} ${c.type || 'TEXT'}`;
             if (c.pk) s += ' PRIMARY KEY';
             if (c.notnull && !c.pk) s += ' NOT NULL';
@@ -80,13 +78,13 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
             setCols([{ name: 'id', type: 'INTEGER', pk: true, notnull: true }]);
             onRefresh();
         } catch (e) {
-            onError(e.message);
+            onError((e as Error).message);
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleDropTable = async (tname) => {
+    const handleDropTable = async (tname: string) => {
         if (!(await confirm({ title: t('webpages.db.confirm_drop', 'Drop table "{name}"? This cannot be undone.', { name: tname }), confirmLabel: t('common.delete', 'Delete'), destructive: true }))) return;
         try {
             const r = await api(webpageId, '/db/exec', { method: 'POST', body: JSON.stringify({ sql: `DROP TABLE ${quoteIdent(tname)};` }) });
@@ -94,12 +92,12 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
             if (selected === tname) setSelected(null);
             onRefresh();
         } catch (e) {
-            onError(e.message);
+            onError((e as Error).message);
         }
     };
 
     const tables = schema?.tables || [];
-    const sel = tables.find(tbl => tbl.name === selected);
+    const sel = tables.find((tbl: DbTable) => tbl.name === selected);
 
     return (
         <div className="flex h-full text-[var(--vsc-fg)]">
@@ -112,7 +110,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             : t('webpages.db.tables_count', 'Tables ({count})', { count: tables.length })}
                     </span>
                     <button
-                        onClick={() => setCreating(c => !c)}
+                        onClick={() => setCreating((c: boolean) => !c)}
                         title={t('webpages.db.new_table', 'New table')}
                         className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
                     >
@@ -133,7 +131,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             : t('webpages.db.no_tables', 'No tables yet — click + to create one, or use the SQL tab for a custom CREATE.')}
                     </div>
                 ) : (
-                    tables.map(tbl => (
+                    tables.map((tbl: DbTable) => (
                         <button
                             key={tbl.name}
                             onClick={() => setSelected(tbl.name)}
@@ -164,25 +162,25 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                         </div>
                         <input
                             value={name}
-                            onChange={e => setName(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                             placeholder={t('webpages.db.ph_table_name', 'table_name')}
                             className="w-full px-2 py-1.5 mb-3 text-[12px] rounded border outline-none"
                             style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
                         />
                         <div className="text-[11px] uppercase tracking-wider mb-1 text-[var(--vsc-fg-muted)]">{t('webpages.db.columns', 'Columns')}</div>
                         <div className="space-y-1.5 mb-3">
-                            {cols.map((c, i) => (
+                            {cols.map((c: ColumnDraft, i: number) => (
                                 <div key={i} className="flex items-center gap-1.5">
                                     <input
                                         value={c.name}
-                                        onChange={e => updateCol(i, { name: e.target.value })}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCol(i, { name: e.target.value })}
                                         placeholder={t('webpages.db.ph_column_name', 'name')}
                                         className="flex-1 px-2 py-1 text-[12px] rounded border outline-none"
                                         style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
                                     />
                                     <select
                                         value={c.type}
-                                        onChange={e => updateCol(i, { type: e.target.value })}
+                                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCol(i, { type: e.target.value })}
                                         className="px-2 py-1 text-[12px] rounded border outline-none"
                                         style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
                                     >
@@ -193,10 +191,10 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                                         <option>NUMERIC</option>
                                     </select>
                                     <label className="flex items-center gap-1 text-[11px] text-[var(--vsc-fg-muted)]">
-                                        <input type="checkbox" checked={!!c.pk} onChange={e => updateCol(i, { pk: e.target.checked })} /> {t('webpages.db.pk', 'PK')}
+                                        <input type="checkbox" checked={!!c.pk} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCol(i, { pk: e.target.checked })} /> {t('webpages.db.pk', 'PK')}
                                     </label>
                                     <label className="flex items-center gap-1 text-[11px] text-[var(--vsc-fg-muted)]">
-                                        <input type="checkbox" checked={!!c.notnull} onChange={e => updateCol(i, { notnull: e.target.checked })} /> {t('webpages.db.not_null', 'NOT NULL')}
+                                        <input type="checkbox" checked={!!c.notnull} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCol(i, { notnull: e.target.checked })} /> {t('webpages.db.not_null', 'NOT NULL')}
                                     </label>
                                     <button onClick={() => removeCol(i)} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('common.remove', 'Remove')}><Trash2 size={12} /></button>
                                 </div>
@@ -241,7 +239,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                                 </tr>
                             </thead>
                             <tbody>
-                                {sel.columns.map(c => (
+                                {sel.columns.map((c: DbColumn) => (
                                     <tr key={c.name} style={{ borderBottom: '1px solid var(--vsc-border)' }}>
                                         <td className="py-1.5 pr-3 font-mono">
                                             {c.primaryKey && <KeyRound size={11} className="inline mr-1" style={{ color: '#eab308' }} />}
@@ -270,7 +268,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
 
 // ─── Browse tab ─────────────────────────────────────────────────────
 
-function BrowseTab({ webpageId, schema, onError }) {
+function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     // t via een ref in de lader: t is zonder TranslationProvider bij elke
@@ -279,21 +277,21 @@ function BrowseTab({ webpageId, schema, onError }) {
     const tRef = useRef(t);
     tRef.current = t;
     const tables = schema?.tables || [];
-    const [tableName, setTableName] = useState(null);
+    const [tableName, setTableName] = useState<string | null>(null);
     const [page, setPage] = useState(0);
-    const [rows, setRows] = useState([]);
-    const [columns, setColumns] = useState([]);
+    const [rows, setRows] = useState<DbRow[]>([]);
+    const [columns, setColumns] = useState<string[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [editing, setEditing] = useState(null); // { rowidx, col, value }
+    const [editing, setEditing] = useState<EditState | null>(null); // { rowidx, col, value }
     const [inserting, setInserting] = useState(false);
-    const [insertValues, setInsertValues] = useState({});
+    const [insertValues, setInsertValues] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (!tableName && tables.length) setTableName(tables[0].name);
     }, [tables, tableName]);
 
-    const tableMeta = tables.find(tbl => tbl.name === tableName);
+    const tableMeta = tables.find((tbl: DbTable) => tbl.name === tableName);
 
     const load = useCallback(async () => {
         if (!tableName) return;
@@ -321,7 +319,7 @@ function BrowseTab({ webpageId, schema, onError }) {
                 setTotal((data.rows || []).length);
             }
         } catch (e) {
-            onError(e.message);
+            onError((e as Error).message);
         } finally {
             setLoading(false);
         }
@@ -330,9 +328,9 @@ function BrowseTab({ webpageId, schema, onError }) {
     useEffect(() => { load(); }, [load]);
     useEffect(() => { setPage(0); }, [tableName]);
 
-    const dataColumns = columns.filter(c => c !== 'rowid');
+    const dataColumns = columns.filter((c: string) => c !== 'rowid');
 
-    const startEdit = (rowidx, col, value) => {
+    const startEdit = (rowidx: number, col: string, value: unknown) => {
         // Don't allow editing rowid itself.
         if (col === 'rowid') return;
         setEditing({ rowidx, col, value: value === null ? '' : formatCell(value), wasNull: value === null });
@@ -357,11 +355,11 @@ function BrowseTab({ webpageId, schema, onError }) {
             setEditing(null);
             await load();
         } catch (e) {
-            onError(e.message);
+            onError((e as Error).message);
         }
     };
 
-    const deleteRow = async (rowidx) => {
+    const deleteRow = async (rowidx: number) => {
         const row = rows[rowidx];
         if (!row || row.rowid === undefined) return;
         if (!(await confirm({ title: t('webpages.db.confirm_delete_row', 'Delete row rowid={rowid}?', { rowid: row.rowid }), confirmLabel: t('common.delete', 'Delete'), destructive: true }))) return;
@@ -372,19 +370,19 @@ function BrowseTab({ webpageId, schema, onError }) {
             if (!r.ok) { onError(data.error || t('webpages.db.err_delete', 'Delete failed')); return; }
             await load();
         } catch (e) {
-            onError(e.message);
+            onError((e as Error).message);
         }
     };
 
     const handleInsert = async () => {
         if (!tableMeta) return;
         const cols = tableMeta.columns;
-        const values = cols.map(c => insertValues[c.name]);
-        const colNames = cols.map(c => quoteIdent(c.name)).join(', ');
+        const values = cols.map((c: DbColumn) => insertValues[c.name]);
+        const colNames = cols.map((c: DbColumn) => quoteIdent(c.name)).join(', ');
         const placeholders = cols.map(() => '?').join(', ');
         const sql = `INSERT INTO ${quoteIdent(tableName)} (${colNames}) VALUES (${placeholders})`;
         // Convert blank strings on integer/real columns to null so the user gets default behaviour.
-        const params = cols.map((c, i) => {
+        const params = cols.map((c: DbColumn, i: number) => {
             const v = values[i];
             if (v === undefined || v === '') return null;
             if (/^(INT|REAL|NUM)/i.test(c.type || '')) {
@@ -401,7 +399,7 @@ function BrowseTab({ webpageId, schema, onError }) {
             setInsertValues({});
             await load();
         } catch (e) {
-            onError(e.message);
+            onError((e as Error).message);
         }
     };
 
@@ -413,12 +411,12 @@ function BrowseTab({ webpageId, schema, onError }) {
                 <Table2 size={14} style={{ color: 'var(--vsc-fg-muted)' }} />
                 <select
                     value={tableName || ''}
-                    onChange={e => setTableName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTableName(e.target.value)}
                     className="px-2 py-1 text-[12px] rounded border outline-none"
                     style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
                 >
                     {tables.length === 0 && <option value="">{t('webpages.db.no_tables_option', '— no tables —')}</option>}
-                    {tables.map(tbl => <option key={tbl.name} value={tbl.name}>{tbl.name}</option>)}
+                    {tables.map((tbl: DbTable) => <option key={tbl.name} value={tbl.name}>{tbl.name}</option>)}
                 </select>
                 <button onClick={load} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('webpages.refresh', 'Refresh')}>
                     <RefreshCw size={13} />
@@ -428,7 +426,7 @@ function BrowseTab({ webpageId, schema, onError }) {
                     {nOf(t, 'webpages.db.rows', total, '{count} row', '{count} rows')}
                 </span>
                 <button
-                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    onClick={() => setPage((p: number) => Math.max(0, p - 1))}
                     disabled={page === 0}
                     className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] disabled:opacity-40"
                     title={t('webpages.db.prev_page', 'Previous page')}
@@ -439,7 +437,7 @@ function BrowseTab({ webpageId, schema, onError }) {
                     {page + 1} / {totalPages}
                 </span>
                 <button
-                    onClick={() => setPage(p => p + 1 < totalPages ? p + 1 : p)}
+                    onClick={() => setPage((p: number) => p + 1 < totalPages ? p + 1 : p)}
                     disabled={page + 1 >= totalPages}
                     className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] disabled:opacity-40"
                     title={t('webpages.db.next_page', 'Next page')}
@@ -463,14 +461,14 @@ function BrowseTab({ webpageId, schema, onError }) {
                         <button onClick={() => setInserting(false)} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"><X size={12} /></button>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mb-2">
-                        {tableMeta.columns.map(c => (
+                        {tableMeta.columns.map((c: DbColumn) => (
                             <div key={c.name} className="flex flex-col">
                                 <label className="text-[10px] mb-0.5 text-[var(--vsc-fg-muted)]">
                                     {c.name} <span className="font-mono">{c.type}</span>{c.primaryKey ? ` · ${t('webpages.db.pk', 'PK')}` : ''}{c.notNull ? ` · ${t('webpages.db.not_null', 'NOT NULL')}` : ''}
                                 </label>
                                 <input
                                     value={insertValues[c.name] ?? ''}
-                                    onChange={e => setInsertValues(v => ({ ...v, [c.name]: e.target.value }))}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInsertValues((v: Record<string, string>) => ({ ...v, [c.name]: e.target.value }))}
                                     placeholder={c.defaultValue ?? (c.notNull ? t('webpages.db.required', 'required') : 'NULL')}
                                     className="px-2 py-1 text-[12px] rounded border outline-none"
                                     style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
@@ -500,17 +498,17 @@ function BrowseTab({ webpageId, schema, onError }) {
                         <thead style={{ position: 'sticky', top: 0, background: 'var(--vsc-sidebar-bg)' }}>
                             <tr style={{ borderBottom: '1px solid var(--vsc-border)' }}>
                                 <th className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">rowid</th>
-                                {dataColumns.map(c => (
+                                {dataColumns.map((c: string) => (
                                     <th key={c} className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">{c}</th>
                                 ))}
                                 <th style={{ width: 32 }}></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {rows.map((row, rowidx) => (
+                            {rows.map((row: DbRow, rowidx: number) => (
                                 <tr key={row.rowid ?? rowidx} className="hover:bg-[var(--vsc-hover-bg)]" style={{ borderBottom: '1px solid var(--vsc-border)' }}>
                                     <td className="px-2 py-1 font-mono text-[var(--vsc-fg-muted)]">{row.rowid}</td>
-                                    {dataColumns.map(c => {
+                                    {dataColumns.map((c: string) => {
                                         const isEditing = editing && editing.rowidx === rowidx && editing.col === c;
                                         const v = row[c];
                                         return (
@@ -519,9 +517,9 @@ function BrowseTab({ webpageId, schema, onError }) {
                                                     <input
                                                         autoFocus
                                                         value={editing.value}
-                                                        onChange={e => setEditing(s => ({ ...s, value: e.target.value }))}
+                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditing((s: EditState | null) => ({ ...s, value: e.target.value }) as EditState)}
                                                         onBlur={commitEdit}
-                                                        onKeyDown={e => {
+                                                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                                                             if (e.key === 'Enter') commitEdit();
                                                             else if (e.key === 'Escape') setEditing(null);
                                                         }}
@@ -558,12 +556,12 @@ function BrowseTab({ webpageId, schema, onError }) {
 
 // ─── SQL tab ────────────────────────────────────────────────────────
 
-function SqlTab({ webpageId, onError, onSchemaChanged }) {
+function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const [sql, setSql] = useState('SELECT name FROM sqlite_master WHERE type=\'table\' ORDER BY name;');
     const [running, setRunning] = useState(false);
-    const [result, setResult] = useState(null);
+    const [result, setResult] = useState<SqlResult | null>(null);
     const [resetting, setResetting] = useState(false);
 
     const isSelect = useMemo(() => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql), [sql]);
@@ -585,7 +583,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
                     onSchemaChanged?.();
             }
         } catch (e) {
-            setResult({ error: e.message });
+            setResult({ error: (e as Error).message });
         } finally {
             setRunning(false);
         }
@@ -603,7 +601,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
                     onSchemaChanged?.();
             }
         } catch (e) {
-            onError(e.message);
+            onError((e as Error).message);
         } finally {
             setResetting(false);
         }
@@ -627,8 +625,8 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
             </div>
             <textarea
                 value={sql}
-                onChange={e => setSql(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) run(); }}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSql(e.target.value)}
+                onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) run(); }}
                 spellCheck={false}
                 className="shrink-0 w-full px-3 py-2 text-[12px] font-mono outline-none resize-none border-b"
                 style={{ height: 140, borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
@@ -666,26 +664,26 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
                                    i18n-guard leest een helper-aanroep met /nOf\(([^()]*)\)/ — met
                                    haakjes in het argument ziet hij de sleutel niet, en dan reist
                                    `…_plural` ongecontroleerd. */
-                                ? t(pluralKey('webpages.db.rows_truncated', result.rows.length),
-                                    result.rows.length === 1
+                                ? t(pluralKey('webpages.db.rows_truncated', (result.rows as DbRow[]).length),
+                                    (result.rows as DbRow[]).length === 1
                                         ? '{count} row (truncated at 10000)'
                                         : '{count} rows (truncated at 10000)',
-                                    { count: result.rows.length })
-                                : nOf(t, 'webpages.db.rows', result.rows.length, '{count} row', '{count} rows')}
+                                    { count: (result.rows as DbRow[]).length })
+                                : nOf(t, 'webpages.db.rows', (result.rows as DbRow[]).length, '{count} row', '{count} rows')}
                         </div>
-                        {result.rows.length > 0 ? (
+                        {(result.rows as DbRow[]).length > 0 ? (
                             <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                                 <thead style={{ position: 'sticky', top: 0, background: 'var(--vsc-sidebar-bg)' }}>
                                     <tr style={{ borderBottom: '1px solid var(--vsc-border)' }}>
-                                        {result.columns.map(c => (
+                                        {(result.columns as string[]).map((c: string) => (
                                             <th key={c} className="text-left px-2 py-1 font-mono text-[var(--vsc-fg-muted)]">{c}</th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {result.rows.map((row, i) => (
+                                    {(result.rows as DbRow[]).map((row: DbRow, i: number) => (
                                         <tr key={i} style={{ borderBottom: '1px solid var(--vsc-border)' }}>
-                                            {result.columns.map(c => (
+                                            {(result.columns as string[]).map((c: string) => (
                                                 <td key={c} className="px-2 py-1 font-mono">
                                                     {row[c] === null || row[c] === undefined
                                                         ? <span style={{ color: 'var(--vsc-fg-muted)', fontStyle: 'italic' }}>NULL</span>
@@ -723,16 +721,16 @@ function SqlTab({ webpageId, onError, onSchemaChanged }) {
 
 // ─── Top-level viewer ───────────────────────────────────────────────
 
-export default function WebpageDbViewer({ webpageId }) {
+export default function WebpageDbViewer({ webpageId }: Props) {
     const { t } = useTranslation();
     const tRef = useRef(t);
     tRef.current = t;
     const [tab, setTab] = useState('schema'); // 'schema' | 'browse' | 'sql'
-    const [schema, setSchema] = useState(null);
+    const [schema, setSchema] = useState<DbSchema | null>(null);
     // "De scan is omgevallen" — een andere stand dan "er zijn geen tabellen".
     const [unreadable, setUnreadable] = useState(false);
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     const loadSchema = useCallback(async () => {
         if (!webpageId) return;
@@ -752,7 +750,7 @@ export default function WebpageDbViewer({ webpageId }) {
                 setUnreadable(false);
             }
         } catch (e) {
-            setError(e.message);
+            setError((e as Error).message);
             setUnreadable(true);
         } finally {
             setBusy(false);
@@ -771,7 +769,7 @@ export default function WebpageDbViewer({ webpageId }) {
 
     // Geen { key, en }-tabel: de sleutels staan hier als letterlijke t()-aanroep,
     // zodat de i18n-guard ze ziet zonder dat dit bestand op KEY_TABLE_FILES moet.
-    const TABS = [
+    const TABS: TabDef[] = [
         { id: 'schema', label: t('webpages.db.tab_schema', 'Schema'), Icon: Database },
         { id: 'browse', label: t('webpages.db.tab_browse', 'Browse'), Icon: Table2 },
         { id: 'sql', label: t('webpages.db.tab_sql', 'SQL'), Icon: Play },
@@ -780,7 +778,7 @@ export default function WebpageDbViewer({ webpageId }) {
     return (
         <div className="flex flex-col h-full bg-[var(--vsc-editor-bg)] text-[var(--vsc-fg)]">
             <div className="flex items-center shrink-0 border-b border-[var(--vsc-border)] bg-[var(--vsc-sidebar-bg)]">
-                {TABS.map(({ id, label, Icon }) => (
+                {TABS.map(({ id, label, Icon }: TabDef) => (
                     <button
                         key={id}
                         onClick={() => setTab(id)}

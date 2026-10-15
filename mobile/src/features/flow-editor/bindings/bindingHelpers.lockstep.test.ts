@@ -1,5 +1,5 @@
 /**
- * DIFFERENTIAL lockstep: agent-hub `utils/bindingHelpers.js` and its port run
+ * DIFFERENTIAL lockstep: agent-hub `utils/bindingHelpers.ts` and its port run
  * the same inputs and must agree. When this fails the web side changed —
  * update the port, don't loosen the test.
  */
@@ -9,7 +9,7 @@ import * as cond from './conditionText';
 import { requireWeb } from './testing/web';
 import * as walk from './walkPath';
 
-const web = requireWeb('utils/bindingHelpers.js');
+const web = requireWeb('utils/bindingHelpers.ts');
 
 const ROOT = {
     trigger: { output: { subject: 'Hi', n: 3, 'content-type': 'json', list: [{ a: 1 }, { a: 2 }] } },

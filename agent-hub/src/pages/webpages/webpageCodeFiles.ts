@@ -34,6 +34,55 @@
  * onvolledig is. Anders leest een niet-geladen bestand als een leeg bestand.
  */
 
+/** Een markering zoals de server hem teruggeeft; de strip leest alleen waar hij staat. */
+export interface CodeMark {
+    slot?: string;
+    source?: string;
+}
+
+/** Een extra bestand zoals de server het beschrijft: `{ path, size, isText, mimeType }`. */
+export interface CodeExtraFile {
+    path: string;
+    size?: number;
+    isText?: boolean;
+    mimeType?: string;
+}
+
+/** Een extra bestand zoals de editor het houdt: `{ isText, content }`. */
+export interface CodeExtraContent {
+    isText?: boolean;
+    content?: string;
+}
+
+/** Eén bestand in de strip. */
+export interface CodeFileEntry {
+    key: string;
+    name: string;
+    kind: string;
+    bytes: number | null;
+    isText: boolean;
+    loaded: boolean;
+    marks: number;
+    openable: boolean;
+}
+
+/** De strip, met het totaal eronder. */
+export interface CodeFiles {
+    files: CodeFileEntry[];
+    totalBytes: number;
+    bytesComplete: boolean;
+}
+
+interface BuildCodeFilesArgs {
+    framework?: string;
+    html?: string;
+    css?: string;
+    js?: string;
+    extraFiles?: CodeExtraFile[] | null;
+    extraContents?: Record<string, CodeExtraContent> | null;
+    marks?: CodeMark[] | null;
+}
+
 /** De drie slots, met de namen die overal in het product gelden. */
 export const PRIMARY_SLOTS = Object.freeze([
     Object.freeze({ slot: 'html', name: 'index.html' }),
@@ -61,7 +110,7 @@ export const SLOT_LANGUAGE = Object.freeze({ html: 'html', css: 'css', js: 'java
  * `String.length` telt UTF-16-eenheden en zou een é of een emoji te klein
  * maken; dit is dezelfde maat als de server op schijf zet.
  */
-export function utf8Bytes(text) {
+export function utf8Bytes(text: unknown): number | null {
     if (typeof text !== 'string') return null;
     try {
         return new TextEncoder().encode(text).length;
@@ -73,7 +122,7 @@ export function utf8Bytes(text) {
 }
 
 /** `1.2 KB` — of `null` als de grootte onbekend is. Nooit "0 B" bij twijfel. */
-export function formatBytes(bytes) {
+export function formatBytes(bytes: unknown): string | null {
     if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes < 0) return null;
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -86,7 +135,7 @@ export function formatBytes(bytes) {
  * Op `slot` en niet op de bestandsnaam, want dan zou de client een tweede
  * naamlijst bijhouden naast die van de server.
  */
-export function markFileKey(mark) {
+export function markFileKey(mark?: CodeMark | null): string | null {
     if (!mark) return null;
     if (mark.slot === 'html' || mark.slot === 'css' || mark.slot === 'js') return mark.slot;
     if (typeof mark.source === 'string' && mark.source) return `extra:${mark.source}`;
@@ -94,19 +143,19 @@ export function markFileKey(mark) {
 }
 
 /** Markeringen gegroepeerd op editor-sleutel, in de volgorde waarin ze binnenkwamen. */
-export function marksByFile(marks) {
-    const out = new Map();
+export function marksByFile(marks?: CodeMark[] | null): Map<string, CodeMark[]> {
+    const out = new Map<string, CodeMark[]>();
     for (const mark of (Array.isArray(marks) ? marks : [])) {
         const key = markFileKey(mark);
         if (!key) continue;
         if (!out.has(key)) out.set(key, []);
-        out.get(key).push(mark);
+        (out.get(key) as CodeMark[]).push(mark);
     }
     return out;
 }
 
 /** Wat de strip van één extra bestand kan weten. */
-function extraEntry(meta, extraContents, marks) {
+function extraEntry(meta: CodeExtraFile, extraContents: Record<string, CodeExtraContent> | null | undefined, marks: CodeMark[]): CodeFileEntry {
     const path = String(meta.path);
     const content = extraContents ? extraContents[path] : null;
     const live = content && content.isText ? utf8Bytes(content.content || '') : null;
@@ -134,8 +183,12 @@ function extraEntry(meta, extraContents, marks) {
  * gegenereerd, css en js worden niet gebruikt. Bij vanilla ZIJN de drie slots
  * het project, ook een lege — daar hoort een leeg `script.js` gewoon in beeld.
  */
-function slotEntries({ framework, text, byFile }) {
-    const out = [];
+function slotEntries({ framework, text, byFile }: {
+    framework: string;
+    text: { html: string; css: string; js: string };
+    byFile: Map<string, CodeMark[]>;
+}): CodeFileEntry[] {
+    const out: CodeFileEntry[] = [];
     for (const { slot, name } of PRIMARY_SLOTS) {
         const value = typeof text[slot] === 'string' ? text[slot] : '';
         if (!value && framework === 'react-mui') continue;
@@ -154,8 +207,13 @@ function slotEntries({ framework, text, byFile }) {
 }
 
 /** Elk extra bestand, tekst én binair: verzwijgen is hier de fout. */
-function extraEntries(extraFiles, extraContents, byFile, seen) {
-    const out = [];
+function extraEntries(
+    extraFiles: CodeExtraFile[] | null | undefined,
+    extraContents: Record<string, CodeExtraContent> | null | undefined,
+    byFile: Map<string, CodeMark[]>,
+    seen: Set<string>,
+): CodeFileEntry[] {
+    const out: CodeFileEntry[] = [];
     for (const meta of (Array.isArray(extraFiles) ? extraFiles : [])) {
         if (!meta || !meta.path) continue;
         const entry = extraEntry(meta, extraContents, byFile.get(`extra:${meta.path}`) || []);
@@ -172,8 +230,8 @@ function extraEntries(extraFiles, extraContents, byFile, seen) {
  * een bestand dat er niet lijkt te zijn, is precies de stilte die deze tab
  * moet vermijden.
  */
-function serverOnlyEntries(byFile, seen) {
-    const out = [];
+function serverOnlyEntries(byFile: Map<string, CodeMark[]>, seen: Set<string>): CodeFileEntry[] {
+    const out: CodeFileEntry[] = [];
     for (const [key, group] of byFile) {
         if (seen.has(key)) continue;
         seen.add(key);
@@ -194,13 +252,8 @@ function serverOnlyEntries(byFile, seen) {
 /**
  * De strip.
  *
- * @param {object} args
- * @param {string} [args.framework]  'vanilla' | 'react-mui' | …
- * @param {string} [args.html] @param {string} [args.css] @param {string} [args.js]
- * @param {Array} [args.extraFiles]     `{ path, size, isText, mimeType }` van de server
- * @param {object} [args.extraContents] pad → `{ isText, content }` zoals de editor het houdt
- * @param {Array} [args.marks]          markeringen uit GET /:id/bindings
- * @returns {{files:Array, totalBytes:number, bytesComplete:boolean}}
+ * `framework` is 'vanilla' | 'react-mui' | …; `extraContents` gaat van pad naar
+ * de inhoud zoals de editor het houdt; `marks` komt uit GET /:id/bindings.
  */
 export function buildCodeFiles({
     framework = 'vanilla',
@@ -208,18 +261,18 @@ export function buildCodeFiles({
     extraFiles = [],
     extraContents = {},
     marks = [],
-} = {}) {
+} : BuildCodeFilesArgs = {}): CodeFiles {
     const byFile = marksByFile(marks);
     const files = slotEntries({ framework, text: { html, css, js }, byFile });
 
-    const seen = new Set(files.map(f => f.key));
+    const seen = new Set(files.map((f: CodeFileEntry) => f.key));
     for (const entry of extraEntries(extraFiles, extraContents, byFile, seen)) files.push(entry);
     for (const entry of serverOnlyEntries(byFile, seen)) files.push(entry);
 
-    const known = files.filter(f => typeof f.bytes === 'number');
+    const known = files.filter((f: CodeFileEntry): f is CodeFileEntry & { bytes: number } => typeof f.bytes === 'number');
     return {
         files,
-        totalBytes: known.reduce((sum, f) => sum + f.bytes, 0),
+        totalBytes: known.reduce((sum: number, f) => sum + f.bytes, 0),
         bytesComplete: known.length === files.length,
     };
 }

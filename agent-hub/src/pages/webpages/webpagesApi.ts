@@ -1,4 +1,16 @@
 import { API_BASE, authFetch } from '../../utils/helpers';
+import type { ExtraContent, ExtraFileMeta } from './webpageEditorTypes';
+
+export interface ApiOptions extends Omit<RequestInit, 'headers'> {
+    headers?: Record<string, string>;
+}
+
+/** The error `api` throws: the message is unchanged, the rest rides along. */
+interface ApiError extends Error {
+    status: number;
+    code: string | null;
+    body: unknown;
+}
 
 /**
  * Thin JSON client for `/api/webpages`. Shared by the list shell
@@ -24,7 +36,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  * at all. `.message` is unchanged, so every existing caller reads the same
  * sentence it did before.
  */
-export async function api(path, opts = {}) {
+export async function api(path: string, opts: ApiOptions = {}) {
     const url = `${API_BASE}/api/webpages${path === '/' ? '' : path}`;
     const res = await authFetch(url, {
         headers: opts.body && typeof opts.body === 'string' ? { 'Content-Type': 'application/json', ...opts.headers } : opts.headers,
@@ -32,7 +44,7 @@ export async function api(path, opts = {}) {
     });
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        const err = new Error(data?.error || `API ${res.status}`);
+        const err = new Error(data?.error || `API ${res.status}`) as ApiError;
         err.status = res.status;
         err.code = data?.code || null;
         err.body = data;
@@ -52,7 +64,7 @@ export async function api(path, opts = {}) {
  * that gets past the guard, and the server then skips the scan rather than
  * running it again.
  */
-export async function deleteWebpage(id, { confirmedBreaking = false } = {}) {
+export async function deleteWebpage(id: string | number, { confirmedBreaking = false }: { confirmedBreaking?: boolean } = {}) {
     return api(`/${id}${confirmedBreaking ? '?confirm=1' : ''}`, { method: 'DELETE' });
 }
 
@@ -61,7 +73,7 @@ export async function deleteWebpage(id, { confirmedBreaking = false } = {}) {
  * `extraContents[path]`: `{ mimeType, isText, content }` for text files,
  * `{ mimeType, isText: false, dataUrl }` for binaries.
  */
-export async function fetchExtraContent(webpageId, meta) {
+export async function fetchExtraContent(webpageId: string | number, meta: ExtraFileMeta): Promise<ExtraContent> {
     const r = await api(`/${webpageId}/files?path=${encodeURIComponent(meta.path)}`);
     if (r?.contentBase64) {
         return { mimeType: meta.mimeType, isText: false, dataUrl: `data:${meta.mimeType};base64,${r.contentBase64}` };
@@ -79,14 +91,14 @@ export async function fetchExtraContent(webpageId, meta) {
  * editor mounts once per bundle (keyed on `webpage.id`) so its save
  * discipline starts from a clean, "already saved" snapshot.
  */
-export async function fetchWebpageBundle(id) {
+export async function fetchWebpageBundle(id: string | number) {
     const { webpage: row, sources, files, chatMessages, extraFiles, managed } = await api(`/${id}`);
     // The GET carries `managed` beside the row; every holder of the row (the
     // header, the IDE) reads it from the row.
     const webpage = managed !== undefined && row ? { ...row, managed } : row;
     const extrasList = Array.isArray(extraFiles) ? extraFiles : [];
-    const extraContents = {};
-    await Promise.all(extrasList.map(async (meta) => {
+    const extraContents: Record<string, ExtraContent> = {};
+    await Promise.all(extrasList.map(async (meta: ExtraFileMeta) => {
         try {
             extraContents[meta.path] = await fetchExtraContent(id, meta);
         } catch { /* ignore single-file failures */ }

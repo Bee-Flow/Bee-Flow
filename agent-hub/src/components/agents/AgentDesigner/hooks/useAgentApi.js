@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
 import { mutate } from '../../../../api/mutate';
 import { logger } from '../../../../utils/logger';
-import { filterVisibleModels, fetchAllowedModelsByAgentType } from '../../../../utils/modelMeta.js';
+import { filterVisibleModels, fetchAllowedModelsByAgentType } from '../../../../utils/modelMeta';
 import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
 

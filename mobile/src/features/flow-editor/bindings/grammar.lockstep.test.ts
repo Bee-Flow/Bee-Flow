@@ -18,7 +18,7 @@ import { BUILDER, requireWeb } from './testing/web';
 import * as vp from './valueParts';
 import { pathLabelParts } from './walkPath';
 
-const web = requireWeb('utils/bindingHelpers.js');
+const web = requireWeb('utils/bindingHelpers.ts');
 const m = (name: string) => requireWeb(`${BUILDER}/mapping/${name}.js`);
 const webPick = requireWeb(`${BUILDER}/mapping/proposePick.ts`);
 

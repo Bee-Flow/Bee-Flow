@@ -13,7 +13,12 @@
  * title-case fallback, so the pricing block never shows raw snake_case.
  */
 
-export const FEATURE_CATALOG = [
+export interface FeatureOption {
+    id: string;
+    label: string;
+}
+
+export const FEATURE_CATALOG: FeatureOption[] = [
     { id: 'chat',           label: 'Chat' },
     { id: 'agents',         label: 'Agents' },
     { id: 'knowledge_base', label: 'Knowledge Base' },
@@ -34,14 +39,14 @@ const LABEL_BY_ID = Object.fromEntries(FEATURE_CATALOG.map(f => [f.id, f.label])
 
 // Title-case a raw id as a fallback: "web_search" → "Web Search". Ensures
 // unknown / integration feature ids never render as snake_case.
-function prettify(id) {
+function prettify(id: string | number): string {
     return String(id)
         .replace(/[_-]+/g, ' ')
         .replace(/\b\w/g, c => c.toUpperCase())
         .trim();
 }
 
-export function featureLabel(id) {
+export function featureLabel(id: string | null | undefined): string {
     if (id === null || id === undefined) return '';
     return LABEL_BY_ID[id] || prettify(id);
 }

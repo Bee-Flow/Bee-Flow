@@ -2,7 +2,7 @@
  * The flow editor's binding layer: what a step can bind to (the variable
  * picker's groups), what a value means (the visual value model, chips,
  * previews), and the auto-mapper. Ports of agent-hub's
- * `Builder/mapping/*` and `utils/bindingHelpers.js`, each pinned by a
+ * `Builder/mapping/*` and `utils/bindingHelpers.ts`, each pinned by a
  * lockstep test beside it; none of them renders, fetches or holds state.
  *
  * The types here are a READ view of a definition (types.ts): model/types.ts's

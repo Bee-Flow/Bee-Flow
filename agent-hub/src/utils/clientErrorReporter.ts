@@ -20,6 +20,45 @@
 
 import { APP_BUILD_SHA } from './appVersion';
 
+declare global {
+    interface Window {
+        __APP_DIAGNOSTICS__?: {
+            userRole?: string;
+            featureFlags?: Record<string, unknown>;
+        };
+    }
+}
+
+/** What a caught error looks like to the reporter: an Error, or anything shaped like one. */
+interface ErrorLike {
+    message?: string;
+    stack?: string;
+}
+
+/** The React error-boundary info passed alongside the error. */
+interface ErrorInfo {
+    componentStack?: string | null;
+}
+
+/** The body POSTed to `/api/client-errors`. */
+interface ErrorPayload {
+    label: string;
+    message: string;
+    stack: string;
+    componentStack: string;
+    url: string;
+    userAgent: string;
+    at: string;
+    buildSha: string;
+    userRole: string;
+    featureFlags: Record<string, unknown>;
+}
+
+/** A queued report as IndexedDB returns it: the payload plus its auto-increment key. */
+interface StoredReport extends ErrorPayload {
+    id: number;
+}
+
 const ENDPOINT = '/api/client-errors';
 const DB_NAME = 'bf-error-queue';
 const STORE_NAME = 'reports';
@@ -40,17 +79,19 @@ const BEARER_RE = /\b[Bb]earer\s+[A-Za-z0-9._-]{8,}/g;
 // strings the previous passes have already replaced with `[REDACTED]`.
 const KV_RE = /(token|key|secret|password|api[-_]?key)([=:\s]+)[^\s,"'<>[\]]{4,}/gi;
 
-export function redactSecrets(input) {
+export function redactSecrets(input: string): string;
+export function redactSecrets<T>(input: T): T;
+export function redactSecrets(input: unknown): unknown {
     if (typeof input !== 'string' || input.length === 0) return input;
     return input
         .replace(JWT_RE, '[REDACTED_JWT]')
         .replace(BEARER_RE, 'Bearer [REDACTED]')
-        .replace(KV_RE, (_, k, sep) => `${k}${sep}[REDACTED]`);
+        .replace(KV_RE, (_: string, k: string, sep: string) => `${k}${sep}[REDACTED]`);
 }
 
 // ── Payload construction ──────────────────────────────────────────────
 
-function buildPayload(label, error, info) {
+function buildPayload(label: string, error?: ErrorLike | null, info?: ErrorInfo | null): ErrorPayload {
     const diag = (typeof window !== 'undefined' && window.__APP_DIAGNOSTICS__) || {};
     return {
         label,
@@ -72,7 +113,7 @@ function buildPayload(label, error, info) {
 // the surface is small enough to inline.
 
 function openDb() {
-    return new Promise((resolve, reject) => {
+    return new Promise<IDBDatabase>((resolve, reject) => {
         if (typeof indexedDB === 'undefined') {
             reject(new Error('IndexedDB unavailable'));
             return;
@@ -89,10 +130,10 @@ function openDb() {
     });
 }
 
-async function enqueue(payload) {
+async function enqueue(payload: ErrorPayload) {
     try {
         const db = await openDb();
-        await new Promise((resolve, reject) => {
+        await new Promise<unknown>((resolve, reject) => {
             const tx = db.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
             store.add(payload);
@@ -109,8 +150,8 @@ async function enqueue(payload) {
     }
 }
 
-async function trim(db) {
-    return new Promise((resolve) => {
+async function trim(db: IDBDatabase) {
+    return new Promise<void>((resolve) => {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         const countReq = store.count();
@@ -138,7 +179,7 @@ async function trim(db) {
 async function readAll() {
     try {
         const db = await openDb();
-        const items = await new Promise((resolve, reject) => {
+        const items = await new Promise<StoredReport[]>((resolve, reject) => {
             const tx = db.transaction(STORE_NAME, 'readonly');
             const req = tx.objectStore(STORE_NAME).getAll();
             req.onsuccess = () => resolve(req.result || []);
@@ -151,14 +192,14 @@ async function readAll() {
     }
 }
 
-async function removeIds(ids) {
+async function removeIds(ids: number[]) {
     if (!ids.length) return;
     try {
         const db = await openDb();
-        await new Promise((resolve) => {
+        await new Promise<unknown>((resolve) => {
             const tx = db.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
-            ids.forEach((id) => store.delete(id));
+            ids.forEach((id: number) => store.delete(id));
             tx.oncomplete = resolve;
             tx.onerror = resolve;
         });
@@ -168,7 +209,7 @@ async function removeIds(ids) {
 
 // ── Network send ──────────────────────────────────────────────────────
 
-async function postOnce(payload, { keepalive = true } = {}) {
+async function postOnce(payload: ErrorPayload, { keepalive = true }: { keepalive?: boolean } = {}) {
     if (typeof fetch !== 'function') throw new Error('fetch unavailable');
     const r = await fetch(ENDPOINT, {
         method: 'POST',
@@ -182,7 +223,7 @@ async function postOnce(payload, { keepalive = true } = {}) {
 
 // ── Public API ────────────────────────────────────────────────────────
 
-export async function reportClientError(label, error, info) {
+export async function reportClientError(label: string, error?: ErrorLike | null, info?: ErrorInfo | null) {
     try { console.error(`[ErrorBoundary:${label}]`, error, info?.componentStack || ''); }
     catch { /* console may be sandboxed */ }
     const payload = buildPayload(label, error, info);
@@ -202,7 +243,7 @@ export async function reportClientError(label, error, info) {
 export async function drainErrorQueue() {
     const items = await readAll();
     if (items.length === 0) return 0;
-    const drainedIds = [];
+    const drainedIds: number[] = [];
     for (const item of items) {
         const { id, ...payload } = item;
         try {

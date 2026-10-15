@@ -19,7 +19,7 @@ const webRoute = require(`${BUILDER}/flow/routeModel.js`);
 const webRouteEdges = require(`${BUILDER}/flow/routeEdges.js`);
 const webSwitch = require(`${BUILDER}/flow/switchCaseOps.js`);
 const webCond = require(`${BUILDER}/utils/conditionModel.js`);
-const webBinding = require('../../../../../agent-hub/src/utils/bindingHelpers.js');
+const webBinding = require('../../../../../agent-hub/src/utils/bindingHelpers.ts');
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const ROUTE_STEPS: Record<string, unknown>[] = [

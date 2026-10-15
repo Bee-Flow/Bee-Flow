@@ -32,7 +32,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '../../..');
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 
-const SOURCE = read('agent-hub/src/telemetry/openobserve.js');
+const SOURCE = read('agent-hub/src/telemetry/openobserve.ts');
 
 describe('telemetry is opt-in', () => {
     it('defaults to OFF when nothing says otherwise', () => {
