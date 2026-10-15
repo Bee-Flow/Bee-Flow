@@ -4,7 +4,7 @@ import { markdownToAst } from '../serialization/mdToAst.js';
 import { astToMarkdown } from '../serialization/astToMd.js';
 import { createState, applyTransform } from './state.js';
 import { textSelection, pos } from './selection.js';
-import { insertText } from './transforms.js';
+import { insertText, setMarkAttrs } from './transforms.js';
 import { runInputRules } from './inputRules.js';
 
 // Simulate typing a trigger char: insertText then runInputRules.
@@ -74,7 +74,6 @@ describe('input rules', () => {
   });
 
   it('collapsed setColor stores the mark for the next typed text', () => {
-    const { setMarkAttrs, insertText } = require('./transforms.js');
     let s = start('', 0);
     s = applyTransform(s, (x) => setMarkAttrs(x, 'textStyle', { color: '#ef4444' }));
     s = applyTransform(s, (x) => insertText(x, 'red'));

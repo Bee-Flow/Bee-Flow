@@ -12,6 +12,7 @@
  * the saved context and which is closest to the original block.
  */
 import { isText, isCollapsed, selRange } from '../engine/selection.js';
+import type { Selection } from '../engine/selection.js';
 import { buildTextIndex, offsetOfPos, offsetOfTopBlock, posAtOffset, type ModelPos, type TextIndex } from '../engine/textIndex';
 
 export interface CommentAnchor {
@@ -38,7 +39,7 @@ export const QUOTE_MAX = 2000;
 export const CONTEXT_CHARS = 32;
 
 /** The anchor for a non-empty text selection, or null. */
-export function anchorFromSelection(doc: AnyNode, selection: unknown, resolver?: RelResolver | null): CommentAnchor | null {
+export function anchorFromSelection(doc: AnyNode, selection: Selection | null | undefined, resolver?: RelResolver | null): CommentAnchor | null {
     if (!isText(selection) || isCollapsed(selection)) return null;
     const { from, to } = selRange(selection) as { from: ModelPos; to: ModelPos };
     const index = buildTextIndex(doc);

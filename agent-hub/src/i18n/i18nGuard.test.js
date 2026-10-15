@@ -435,7 +435,7 @@ const KEY_TABLE_FILES = [
     // De vier grafiektypen van de notitieblok-editor. Hier heette `key` eerst
     // het CHARTTYPE ('bar'|'line'|…) en stond het label er kaal naast; de tabel
     // is naar `{ id, key, en }` gebracht zodat `key` weer een sleutel is.
-    'editor/react/ChartConfigModal.jsx',
+    'editor/react/ChartConfigModal.tsx',
     'pages/settings/usage/OverviewTab.jsx',
     'pages/settings/usage/RangeControl.jsx',
 ];
