@@ -29,6 +29,8 @@ export interface FlowEdge {
     to?: string;
     caseName?: string | null;
     label?: string;
+    /** A palette key ('blue' | 'red' | …), never a raw hex (flow/edgeColors.js). */
+    color?: string | null;
     [key: string]: unknown;
 }
 
@@ -45,6 +47,8 @@ export interface FlowDefinition {
     edges?: FlowEdge[];
     /** Root-only map of flowlets, keyed by LAYER_KEY_RE (flow/flowletScope.js). */
     layers?: Record<string, FlowDefinition>;
+    /** PII group → palette key overrides for the line colours (flow/edgeColorOps.js). */
+    piiLineColors?: Record<string, string>;
     [key: string]: unknown;
 }
 

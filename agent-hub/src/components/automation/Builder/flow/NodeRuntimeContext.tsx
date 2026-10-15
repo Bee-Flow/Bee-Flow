@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { NodeRuntime } from './nodes/StepNodeBase.types';
 
 /**
  * Per-node runtime state surfaced to every step-node via context so we
@@ -61,7 +62,7 @@ import { createContext, useContext } from 'react';
  * Defaults give read-only inspector contexts (executions drawer) sane
  * behaviour without provider wiring.
  */
-export const NodeRuntimeContext = createContext({
+export const NodeRuntimeContext = createContext<NodeRuntime>({
     pinnedById: new Set(),
     disabledById: new Set(),
     onExecuteStep: null,
@@ -94,6 +95,6 @@ export const NodeRuntimeContext = createContext({
     frontierId: null,
 });
 
-export function useNodeRuntime() {
+export function useNodeRuntime(): NodeRuntime {
     return useContext(NodeRuntimeContext);
 }

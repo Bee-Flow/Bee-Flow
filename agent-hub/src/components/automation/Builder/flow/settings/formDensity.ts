@@ -35,19 +35,30 @@ export const ADVANCED_SECTION_KEYS = new Set([
 ]);
 
 /** Is this section hidden at the given density? */
-export function isAdvancedSection(sectionKey) {
+export function isAdvancedSection(sectionKey: string): boolean {
     return ADVANCED_SECTION_KEYS.has(sectionKey);
 }
 
 /** The two user-facing form modes. Persisted values are validated against this. */
 export const FORM_MODES = ['simple', 'advanced'];
 
+export type FormMode = 'simple' | 'advanced';
+
+/** What the sections read from the drawer: the gesture's density, the user's mode, the host's counters. */
+export interface FormDensityValue {
+    /** 'quick' or 'full' (anything else resolves like 'full'). */
+    density?: string | null;
+    mode?: FormMode | null;
+    onHiddenSection?: ((key: string) => void) | null;
+    onShownSection?: ((key: string) => void) | null;
+}
+
 /**
  * Which mode a form effectively renders in. The user's explicit choice wins;
  * with no choice stored (mode null/undefined) the gesture decides, exactly as
  * before the toggle existed.
  */
-export function resolveMode({ mode, density } = {}) {
+export function resolveMode({ mode, density }: FormDensityValue = {}): FormMode {
     return mode === 'simple' || mode === 'advanced'
         ? mode
         : (density === 'quick' ? 'simple' : 'advanced');
@@ -62,8 +73,8 @@ export function resolveMode({ mode, density } = {}) {
  * only types, anything new) fall through to the global ADVANCED_SECTION_KEYS
  * rule — that fallback is the documented default, not an omission.
  */
-export function hiddenInSimple(stepType, sectionKey) {
-    const simple = NODE_DEFS[stepType]?.simpleSections;
+export function hiddenInSimple(stepType: string, sectionKey: string): boolean {
+    const simple = (NODE_DEFS as Record<string, { simpleSections?: string[] } | undefined>)[stepType]?.simpleSections;
     if (Array.isArray(simple)) return !simple.includes(sectionKey);
     return isAdvancedSection(sectionKey);
 }
@@ -79,7 +90,7 @@ export function hiddenInSimple(stepType, sectionKey) {
  * the memory (the Incoming / Continues-on states were already remembered),
  * and a double click still forces the full view.
  */
-export function densityForOpen(requested, remembered = null) {
+export function densityForOpen(requested?: string | null, remembered: string | null = null): 'quick' | 'full' {
     if (requested === 'full') return 'full';
     return remembered === 'full' ? 'full' : 'quick';
 }
@@ -92,15 +103,15 @@ export function densityForOpen(requested, remembered = null) {
  * when a previously-hidden section becomes visible, so the count can go DOWN
  * as well as up.
  */
-export const FormDensityContext = createContext({
+export const FormDensityContext = createContext<FormDensityValue>({
     density: 'full', mode: null, onHiddenSection: null, onShownSection: null,
 });
 
-export function useFormDensity() {
+export function useFormDensity(): FormDensityValue {
     return useContext(FormDensityContext);
 }
 
 /** The RESOLVED mode for the current form. */
-export function useFormMode() {
+export function useFormMode(): FormMode {
     return resolveMode(useContext(FormDensityContext));
 }
