@@ -38,10 +38,37 @@ export const DAYS_WINDOW_MS = 7 * DAY_MS;
  */
 export const OVERDUE_IN_DAYS_AFTER_MS = 48 * HOUR_MS;
 
-export const CLOCK_STATES = Object.freeze(['ok', 'urgent', 'overdue', 'done', 'none']);
+export type ClockState = 'ok' | 'urgent' | 'overdue' | 'done' | 'none';
+export type ClockUnit = 'days' | 'hours';
+
+/** Anything `toMs` reads: a Date, epoch ms or an ISO string. */
+export type TimeInput = Date | number | string | null | undefined;
+
+export interface ClockInput {
+    dueAt?: TimeInput;
+    startedAt?: TimeInput;
+    now?: TimeInput;
+    /** Urgent from this much time left; anything but a finite number above 0 means "never urgent". */
+    urgentBelowMs?: number | null;
+    doneAt?: TimeInput;
+    /** Overrides the unit rule below. */
+    unit?: ClockUnit;
+}
+
+export interface Clock {
+    state: ClockState;
+    pct: number;
+    remainingMs: number | null;
+    unit: ClockUnit | null;
+    value: number | null;
+    overdueValue: number;
+    completedInDays: number | null;
+}
+
+export const CLOCK_STATES: readonly unknown[] = Object.freeze(['ok', 'urgent', 'overdue', 'done', 'none']);
 
 /** Date | epoch ms | ISO string → epoch ms, or null for anything unreadable. */
-export function toMs(value) {
+export function toMs(value?: TimeInput): number | null {
     if (value === null || value === undefined || value === '') return null;
     const ms = value instanceof Date ? value.getTime() : typeof value === 'number' ? value : new Date(value).getTime();
     return Number.isFinite(ms) ? ms : null;
@@ -57,7 +84,7 @@ export function toMs(value) {
  * `+ INTERVAL '1 month'`) gives the same date, so a client fallback never
  * disagrees with the `due_at` the server stores.
  */
-export function addCalendarMonths(value, months) {
+export function addCalendarMonths(value?: TimeInput, months?: number | null): number | null {
     const ms = toMs(value);
     if (ms === null || typeof months !== 'number' || !Number.isInteger(months)) return null;
     const d = new Date(ms);
@@ -69,11 +96,11 @@ export function addCalendarMonths(value, months) {
     return d.getTime();
 }
 
-function ceilUnits(ms, unitMs) {
+function ceilUnits(ms: number, unitMs: number): number {
     return Math.ceil(Math.abs(ms) / unitMs);
 }
 
-function clamp01(n) {
+function clamp01(n: number): number {
     if (!Number.isFinite(n)) return 0;
     return Math.min(1, Math.max(0, n));
 }
@@ -100,7 +127,7 @@ function clamp01(n) {
  * No dueAt → 'none' (a register with nothing open). doneAt → 'done', whatever
  * the due date says: a closed clock stops ticking.
  */
-export function clockState({ dueAt, startedAt, now, urgentBelowMs, doneAt, unit: unitOverride } = {}) {
+export function clockState({ dueAt, startedAt, now, urgentBelowMs, doneAt, unit: unitOverride }: ClockInput = {}): Clock {
     const due = toMs(dueAt);
     const start = toMs(startedAt);
     const done = toMs(doneAt);
@@ -133,7 +160,7 @@ export function clockState({ dueAt, startedAt, now, urgentBelowMs, doneAt, unit:
     const overdue = remainingMs < 0;
     const urgent = !overdue && typeof urgentBelowMs === 'number' && Number.isFinite(urgentBelowMs) && urgentBelowMs > 0 && remainingMs <= urgentBelowMs;
 
-    let pct;
+    let pct: number;
     if (overdue) pct = 1;
     else if (start !== null && due > start) pct = clamp01((nowMs - start) / (due - start));
     else pct = 0;
@@ -154,14 +181,14 @@ export function clockState({ dueAt, startedAt, now, urgentBelowMs, doneAt, unit:
  * deadline whose start is unknown is a date on a calendar, not a stopwatch
  * (a training due date, an obligation) — days.
  */
-function resolveUnit(override, start, due) {
+function resolveUnit(override: ClockUnit | undefined, start: number | null, due: number | null): ClockUnit {
     if (override === 'days' || override === 'hours') return override;
     if (start !== null && due !== null && due > start) return due - start >= DAYS_WINDOW_MS ? 'days' : 'hours';
     return 'days';
 }
 
 /** `pct` from the server (0..1, or 0..100 from a lax producer) → 0..1, or null when unusable. */
-export function normalisePct(pct) {
+export function normalisePct(pct?: number | string | null): number | null {
     if (pct === null || pct === undefined) return null;
     const n = Number(pct);
     if (!Number.isFinite(n)) return null;
@@ -169,6 +196,6 @@ export function normalisePct(pct) {
 }
 
 /** A `state` from the server is only trusted when it is one of ours. */
-export function isClockState(state) {
+export function isClockState(state?: unknown): state is ClockState {
     return CLOCK_STATES.includes(state);
 }

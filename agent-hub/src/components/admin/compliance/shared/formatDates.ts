@@ -41,8 +41,8 @@ function isDayOnly(value: DateLike): boolean {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** "19 Aug", or "3 Mar 2025" when the year is not the current one. */
-export function formatDay(value: DateLike, locale = 'en', now: number | Date = Date.now()): string {
+/** "19 Aug", or "3 Mar 2025" when the year is not the current one; '' for any value that is not a date (parseDay reads anything). */
+export function formatDay(value: unknown, locale = 'en', now: number | Date = Date.now()): string {
     const day = parseDay(value);
     if (day === null) return '';
     const nowMs = resolveNow(now);

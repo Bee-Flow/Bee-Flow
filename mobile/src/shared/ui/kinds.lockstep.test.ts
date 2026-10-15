@@ -10,13 +10,13 @@ import path from 'node:path';
 
 import { KIND_ALIASES, KIND_ICON, KIND_KEYS, KIND_TOKEN } from './kinds';
 
-const WEB = path.resolve(__dirname, '../../../../agent-hub/src/components/shared/kindColors.js');
+const WEB = path.resolve(__dirname, '../../../../agent-hub/src/components/shared/kindColors.ts');
 const src = fs.readFileSync(WEB, 'utf8');
 
 /** The body of `export const NAME = Object.freeze(…)` / `const NAME = Object.freeze({…})`. */
 function block(name: string): string {
-    const m = new RegExp(`const ${name} = Object\\.freeze\\(([\\s\\S]*?)\\);`).exec(src);
-    if (!m) throw new Error(`kindColors.js has no ${name}`);
+    const m = new RegExp(`const ${name}(?::[^=]+)? = Object\\.freeze\\(([\\s\\S]*?)\\);`).exec(src);
+    if (!m) throw new Error(`kindColors.ts has no ${name}`);
     return m[1] as string;
 }
 
@@ -30,7 +30,7 @@ function pairs(body: string, value: RegExp): Record<string, string> {
     return out;
 }
 
-describe('kinds.ts against the web kindColors.js', () => {
+describe('kinds.ts against the web kindColors.ts', () => {
     it('has the same kinds in the same rail order', () => {
         const web = [...block('KIND_KEYS').matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
         expect([...KIND_KEYS]).toEqual(web);

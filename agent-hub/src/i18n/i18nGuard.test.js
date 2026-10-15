@@ -399,7 +399,7 @@ const KEY_TABLE_FILES = [
     // De statustabellen van de ISMS-registers (AUDIT_STATUS, FINDING_SEVERITY,
     // NC_STATUS, NC_SEVERITY, NC_SOURCE, OBJ_STATUS) — de opvolger van de
     // { key, en }-tabellen uit de oude AuditPage.jsx.
-    'components/admin/compliance/pages/audits/auditForms.js',
+    'components/admin/compliance/pages/audits/auditForms.ts',
     // The access log's event labels (ACTION_META), moved out of
     // AccessAuditPage.jsx. The same { key, en } shape has slipped past the
     // guard four times (labelKey in O4 and W5, the studio.ai.err_* table in
@@ -473,8 +473,8 @@ const TEXT_HELPERS = [
     { rel: 'components/projects/relativeTime.ts', pending: 'PRJ — the same five sentences, copied' },
     { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.js', pending: 'RUN — times, durations, expiry and the day buckets' },
     { rel: 'components/automation/taskFormatters.ts', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
-    { rel: 'pages/meeting-notes/lib/format.js', pending: 'MTG — the same ladder again' },
-    { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
+    { rel: 'pages/meeting-notes/lib/format.ts', pending: 'MTG — the same ladder again' },
+    { rel: 'utils/helpers.ts', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
     { rel: 'utils/dateFormatters.ts', pending: 'shared — durations and byte sizes; the unit suffix is copy too' },
     { rel: 'pages/settings/usage/format.ts', pending: 'USE — billing-period ranges, browser locale' },
     { rel: 'components/cowork/coworkSchedule.ts', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },

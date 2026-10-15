@@ -1,4 +1,4 @@
-export function formatDuration(seconds) {
+export function formatDuration(seconds?: number | null): string {
     // `Infinity` reaches here from `<audio>.duration` on containers with no
     // duration in the header (MediaRecorder WebM), and rendered literally as
     // "Infinity:NaN:NaN" in the player's time row.
@@ -10,7 +10,7 @@ export function formatDuration(seconds) {
     return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export function formatRelativeDate(input) {
+export function formatRelativeDate(input?: Date | string | number | null): string {
     if (!input) return '';
     const d = new Date(input);
     if (Number.isNaN(d.getTime())) return '';
@@ -28,7 +28,7 @@ export function formatRelativeDate(input) {
     });
 }
 
-export function parseTimestampToSeconds(str) {
+export function parseTimestampToSeconds(str?: string | number | null): number {
     if (typeof str === 'number') return str;
     if (!str) return 0;
     const parts = String(str).split(':').map(Number);
@@ -38,14 +38,14 @@ export function parseTimestampToSeconds(str) {
     return parts[0] || 0;
 }
 
-export function formatSpeakerLabel(id) {
+export function formatSpeakerLabel(id?: string | number | null): string {
     if (!id) return 'Speaker';
     const cleaned = String(id).replace(/^speaker[_\s-]?/i, '');
     if (/^\d+$/.test(cleaned)) return `Speaker ${cleaned}`;
     return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
-export function generateAutoTitle() {
+export function generateAutoTitle(): string {
     const now = new Date();
     const date = now.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     const time = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });

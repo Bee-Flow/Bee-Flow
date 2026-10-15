@@ -1,4 +1,6 @@
+import type { CSSProperties, Key, KeyboardEvent, ReactNode, SyntheticEvent } from 'react';
 import React from 'react';
+import type { Tone } from './statusTone';
 import { TONES } from './statusTone';
 import useContainerWidth from './useContainerWidth';
 
@@ -49,6 +51,83 @@ import useContainerWidth from './useContainerWidth';
  * a column but cannot swap a row for a card.
  */
 
+export type TableAlign = 'left' | 'right' | 'center';
+
+/** One column of the table: the header, the grid track and, when it folds, the width it folds at. */
+export interface TableColumn {
+    id: string;
+    label?: ReactNode;
+    /** A grid track: '1fr', '120px'. */
+    width?: string;
+    align?: TableAlign;
+    /** Hide the column (and its grid track) when the card is narrower than this. */
+    foldBelow?: number;
+    ariaSort?: 'ascending' | 'descending';
+}
+
+/** The three custom properties TABLE_GRID reads. */
+type GridVars = CSSProperties & Record<`--${string}`, string>;
+
+/** What renderRow / renderCard get next to the row. */
+export interface DataTableContext {
+    columns: TableColumn[];
+    isMobile: boolean;
+    gridTemplateColumns: string;
+    index: number;
+}
+
+/** The row shape DataTable itself reads: only the default key uses it. */
+export interface RowLike {
+    id?: Key | null;
+}
+
+export interface TableCellProps {
+    column?: TableColumn | null;
+    children?: ReactNode;
+    className?: string;
+    align?: TableAlign;
+    testId?: string;
+}
+
+export interface TableHeaderProps {
+    columns?: TableColumn[];
+    className?: string;
+    testId?: string;
+}
+
+export interface TableRowProps {
+    accent?: Tone | 'kind' | null;
+    selected?: boolean;
+    expanded?: boolean;
+    onClick?: ((e: SyntheticEvent<HTMLDivElement>) => void) | null;
+    ariaExpanded?: boolean;
+    columns?: TableColumn[];
+    children?: ReactNode;
+    className?: string;
+    testId?: string;
+    style?: CSSProperties;
+}
+
+export interface DataTableProps<Row> {
+    columns?: TableColumn[];
+    rows?: Row[];
+    rowKey?: (row: Row, index: number) => Key;
+    renderRow: (row: Row, ctx: DataTableContext) => ReactNode;
+    renderCard?: ((row: Row, ctx: DataTableContext) => ReactNode) | null;
+    isMobile?: boolean;
+    /** Render the cards (renderCard) whenever the card is narrower than this many px. */
+    cardsBelow?: number;
+    loading?: boolean;
+    skeletonRows?: number;
+    /** Shown inside the table when `rows` is empty. */
+    empty?: ReactNode;
+    footer?: ReactNode;
+    containerName?: string;
+    className?: string;
+    ariaLabel?: string;
+    testId?: string;
+}
+
 export const TABLE_CONTAINER = 'ctable';
 
 /**
@@ -74,7 +153,7 @@ export const TABLE_GRID = '[grid-template-columns:var(--ct-cols)] @max-[1180px]/
 /** The fold tiers, widest first. A column folds in every tier at or below its own. */
 const FOLD_TIERS = Object.freeze([1180, 900]);
 
-function foldsAt(column, tier) {
+function foldsAt(column: TableColumn | null | undefined, tier: number): boolean {
     const fold = column?.foldBelow;
     return typeof fold === 'number' && FOLD_TIERS.includes(fold) && fold >= tier;
 }
@@ -84,13 +163,13 @@ function foldsAt(column, tier) {
  * With a `tier` (1180 or 900) the columns that are folded at that width
  * leave no track behind.
  */
-export function gridTemplate(columns = [], tier = null) {
-    const kept = tier ? columns.filter((c) => !foldsAt(c, tier)) : columns;
-    return kept.map((c) => c?.width || '1fr').join(' ') || '1fr';
+export function gridTemplate(columns: TableColumn[] = [], tier: number | null = null): string {
+    const kept = tier ? columns.filter((c: TableColumn) => !foldsAt(c, tier)) : columns;
+    return kept.map((c: TableColumn) => c?.width || '1fr').join(' ') || '1fr';
 }
 
 /** The three custom properties TABLE_GRID reads, for a header's or row's style. */
-function gridVars(columns = []) {
+function gridVars(columns: TableColumn[] = []): GridVars {
     return {
         '--ct-cols': gridTemplate(columns),
         '--ct-cols-1180': gridTemplate(columns, 1180),
@@ -98,26 +177,26 @@ function gridVars(columns = []) {
     };
 }
 
-function foldClass(column) {
+function foldClass(column?: TableColumn | null): string {
     if (column?.foldBelow === 1180) return TABLE_FOLD;
     if (column?.foldBelow === 900) return TABLE_FOLD_NARROW;
     return '';
 }
 
-function alignClass(align) {
+function alignClass(align?: TableAlign): string {
     if (align === 'right') return 'text-right justify-end';
     if (align === 'center') return 'text-center justify-center';
     return '';
 }
 
 /** The stripe colour for a row: status tone raw, or the area's teal for 'kind'. */
-export function accentColor(accent) {
+export function accentColor(accent?: string | null): string | null {
     if (accent === 'kind') return 'var(--kind-compliance)';
     return (accent == null ? undefined : TONES[accent])?.raw ?? null;
 }
 
 /** A body cell: min-w-0 so long text truncates, the fold class when its column folds. */
-export function TableCell({ column = null, children = null, className = '', align = undefined, testId = undefined }) {
+export function TableCell({ column = null, children = null, className = '', align = undefined, testId = undefined }: TableCellProps) {
     return (
         <div
             role="cell"
@@ -130,7 +209,7 @@ export function TableCell({ column = null, children = null, className = '', alig
 }
 
 /** The header row. A column's `ariaSort` ('ascending' | 'descending') marks the column the rows are sorted by. */
-export function TableHeader({ columns = [], className = '', testId = undefined }) {
+export function TableHeader({ columns = [], className = '', testId = undefined }: TableHeaderProps) {
     return (
         <div
             role="row"
@@ -138,7 +217,7 @@ export function TableHeader({ columns = [], className = '', testId = undefined }
             className={`grid ${TABLE_GRID} gap-3 px-3.5 py-2 border-b border-[var(--border-default)] text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)] ${className}`.trim()}
             style={gridVars(columns)}
         >
-            {columns.map((c) => (
+            {columns.map((c: TableColumn) => (
                 <span
                     key={c.id}
                     role="columnheader"
@@ -172,7 +251,7 @@ export function TableRow({
     className = '',
     testId = undefined,
     style = undefined,
-}) {
+}: TableRowProps) {
     const clickable = typeof onClick === 'function';
     // The selected row wears the area's colour: it is the row the drawer is
     // about, and its status is written in the drawer's own clock block.
@@ -187,7 +266,7 @@ export function TableRow({
     const interactive = clickable ? {
         tabIndex: 0,
         onClick,
-        onKeyDown: (e) => {
+        onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
             if (e.target !== e.currentTarget) return;
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); }
         },
@@ -220,7 +299,7 @@ export function TableRow({
     );
 }
 
-function SkeletonRows({ columns, count }) {
+function SkeletonRows({ columns, count }: { columns: TableColumn[]; count: number }) {
     return Array.from({ length: count }).map((_, i) => (
         <div
             key={i}
@@ -230,17 +309,17 @@ function SkeletonRows({ columns, count }) {
             className={`grid ${TABLE_GRID} gap-3 items-center px-3.5 py-2.5 border-b border-[var(--border-default)] animate-pulse`}
             style={gridVars(columns)}
         >
-            {columns.map((c) => (
+            {columns.map((c: TableColumn) => (
                 <span key={c.id} className={`block h-2.5 rounded bg-[var(--bg-tertiary)] ${foldClass(c)}`.trim()} style={{ width: c.width === '1fr' ? '60%' : '80%' }} />
             ))}
         </div>
     ));
 }
 
-export default function DataTable({
+export default function DataTable<Row extends RowLike = RowLike>({
     columns = [],
     rows = [],
-    rowKey = (row, i) => row?.id ?? i,
+    rowKey = (row: Row, i: number) => row?.id ?? i,
     renderRow,
     renderCard = null,
     isMobile = false,
@@ -253,7 +332,7 @@ export default function DataTable({
     className = '',
     ariaLabel = undefined,
     testId = undefined,
-}) {
+}: DataTableProps<Row>) {
     // The card list on a phone, and on any device while the card is
     // narrower than `cardsBelow` (unknown width = the table).
     const observe = cardsBelow > 0 && typeof renderCard === 'function';
@@ -267,7 +346,7 @@ export default function DataTable({
     const ctx = { columns, isMobile: cards, gridTemplateColumns: gridTemplate(columns) };
     const list = Array.isArray(rows) ? rows : [];
 
-    let body;
+    let body: ReactNode;
     if (loading) {
         body = cards
             ? <div role="list" aria-busy="true" className="flex flex-col"><SkeletonRows columns={columns.slice(0, 1)} count={Math.min(skeletonRows, 4)} /></div>
@@ -277,7 +356,7 @@ export default function DataTable({
     } else if (cards) {
         body = (
             <div role="list" className="flex flex-col">
-                {list.map((row, i) => (
+                {list.map((row: Row, i: number) => (
                     <div key={rowKey(row, i)} role="listitem" className="min-h-[44px] flex items-center px-3.5 py-2.5 border-b border-[var(--border-default)] last:border-b-0">
                         {renderCard(row, { ...ctx, index: i })}
                     </div>
@@ -285,7 +364,7 @@ export default function DataTable({
             </div>
         );
     } else {
-        body = list.map((row, i) => (
+        body = list.map((row: Row, i: number) => (
             <React.Fragment key={rowKey(row, i)}>{renderRow(row, { ...ctx, index: i })}</React.Fragment>
         ));
     }

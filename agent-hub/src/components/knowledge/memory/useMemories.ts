@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { AuthFetchOptions } from '../../../utils/helpers';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import type {
     Memory, MemorySort, MemoryScope, MemoryStats, MemoryType, MemoryView,
@@ -41,7 +42,7 @@ const failure = (err: unknown): WriteResult => (err instanceof MemoryHttpError
 
 const BASE = `${API_BASE}/agents/memory`;
 
-async function request(path: string, init?: RequestInit): Promise<Response> {
+async function request(path: string, init?: AuthFetchOptions): Promise<Response> {
     const res = await authFetch(`${BASE}${path}`, init);
     if (!res.ok) {
         const body = (await res.json?.().catch(() => null)) as { code?: unknown } | null;
@@ -50,7 +51,7 @@ async function request(path: string, init?: RequestInit): Promise<Response> {
     return res;
 }
 
-const jsonInit = (method: string, body?: unknown): RequestInit => ({
+const jsonInit = (method: string, body?: unknown): AuthFetchOptions => ({
     method,
     headers: { 'Content-Type': 'application/json' },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

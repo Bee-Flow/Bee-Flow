@@ -1,7 +1,11 @@
 import { Timer } from 'lucide-react';
+import type { ReactNode } from 'react';
 import React, { useEffect, useState } from 'react';
+import type { Clock, TimeInput } from './deadlineMath';
 import { clockState, isClockState, normalisePct } from './deadlineMath';
+import type { ToneTokens } from './statusTone';
 import { TONES, toneOfClock } from './statusTone';
+import type { TranslateFn } from '../../hooks/useTranslation';
 import useTranslation from '../../hooks/useTranslation';
 
 /**
@@ -46,11 +50,36 @@ import useTranslation from '../../hooks/useTranslation';
  * that still said "41 hours left" an hour later would be lying.
  */
 
+/** The parts of a resolved clock the label functions read. */
+export type ClockLabelInput = Partial<Pick<Clock, 'state' | 'unit' | 'value' | 'completedInDays'>>;
+
+export interface ResolveClockInput {
+    dueAt?: TimeInput;
+    startedAt?: TimeInput;
+    doneAt?: TimeInput;
+    /** The server's verdict; only trusted when it is one of ours. */
+    state?: unknown;
+    /** The server's elapsed share, 0..1 (or 0..100). */
+    pct?: number | string | null;
+    urgentBelowMs?: number | null;
+    now?: TimeInput;
+}
+
+export interface DeadlineClockProps extends Omit<ResolveClockInput, 'now'> {
+    /** A clock still further away than this draws in neutral ink. */
+    quietUntilMs?: number | null;
+    variant?: 'row' | 'block' | 'inline' | 'rail';
+    doneLabel?: string | null;
+    className?: string;
+    testId?: string;
+    children?: ReactNode;
+}
+
 /** A quiet clock: readable neutral ink, a bar that does not shout. */
-const QUIET = Object.freeze({ raw: 'var(--text-tertiary)', ink: 'var(--text-secondary)' });
+const QUIET: Readonly<ToneTokens> = Object.freeze({ raw: 'var(--text-tertiary)', ink: 'var(--text-secondary)' });
 
 /** The wall clock, re-read every `intervalMs` (0 or less: read once). */
-export function useNow(intervalMs = 60_000) {
+export function useNow(intervalMs = 60_000): number {
     const [now, setNow] = useState(() => Date.now());
     useEffect(() => {
         if (!(intervalMs > 0)) return undefined;
@@ -64,7 +93,7 @@ export function useNow(intervalMs = 60_000) {
  * The sentence for a resolved clock. Exported so a host that has no room for
  * the component (a `title`, a toast) can still say the same thing.
  */
-export function clockLabel(t, { state, unit, value, completedInDays }, doneLabel) {
+export function clockLabel(t: TranslateFn, { state, unit, value, completedInDays }: ClockLabelInput, doneLabel?: string | null): string {
     if (state === 'none') return t('compliance.clock_none', 'no open deadline');
     if (state === 'done') {
         if (doneLabel) return doneLabel;
@@ -98,7 +127,7 @@ export function clockLabel(t, { state, unit, value, completedInDays }, doneLabel
 }
 
 /** The row's compact form for an OPEN clock: "3 d left", "31 d overdue", "5 h left". */
-export function clockRowLabel(t, { state, unit, value }) {
+export function clockRowLabel(t: TranslateFn, { state, unit, value }: ClockLabelInput): string {
     const n = value ?? 0;
     if (state === 'overdue') {
         return unit === 'hours'
@@ -111,7 +140,7 @@ export function clockRowLabel(t, { state, unit, value }) {
 }
 
 /** The rail's short form: a bare day count, or "{n} h". */
-export function clockShortLabel(t, { unit, value }) {
+export function clockShortLabel(t: TranslateFn, { unit, value }: ClockLabelInput): string {
     const n = value ?? 0;
     return unit === 'hours'
         ? t('compliance.clock_short_hours', '{hours} h', { hours: n })
@@ -119,7 +148,7 @@ export function clockShortLabel(t, { unit, value }) {
 }
 
 /** Local math + the server's verdict, merged: state/pct from the server when it sent one. */
-export function resolveClock({ dueAt, startedAt, doneAt, state, pct, urgentBelowMs, now }) {
+export function resolveClock({ dueAt, startedAt, doneAt, state, pct, urgentBelowMs, now }: ResolveClockInput): Clock {
     const math = clockState({ dueAt, startedAt, doneAt, now, urgentBelowMs });
     const serverPct = normalisePct(pct);
     const resolvedState = isClockState(state) ? state : math.state;
@@ -146,7 +175,7 @@ export default function DeadlineClock({
     className = '',
     testId = undefined,
     children = null,
-}) {
+}: DeadlineClockProps) {
     const { t } = useTranslation();
     const now = useNow();
     const clock = resolveClock({ dueAt, startedAt, doneAt, state, pct, urgentBelowMs, now });

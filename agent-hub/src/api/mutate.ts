@@ -14,6 +14,7 @@
 // the call sites that still ignore the answer. `API_BASE` and `authFetch` are
 // re-exported so a converted caller can keep a single HTTP import.
 
+import type { AuthFetchOptions } from '../utils/helpers';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { ApiError } from './client';
 
@@ -33,7 +34,7 @@ async function errorText(res: Response): Promise<{ message: string; body: unknow
     return { message: fromBody || `HTTP ${res.status}`, body };
 }
 
-export async function mutate(url: string, init: RequestInit = {}): Promise<Response> {
+export async function mutate(url: string, init: AuthFetchOptions = {}): Promise<Response> {
     const res: Response = await authFetch(url, init);
     if (res.ok) return res;
     const { message, body } = await errorText(res);
