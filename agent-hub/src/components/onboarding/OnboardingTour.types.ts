@@ -1,21 +1,16 @@
 import type { ReactNode } from 'react';
+import type { StepAdvanceOn } from './lessons.types';
 
 // What a tour step may wait for before it advances on its own.
-export interface TourAdvanceOn {
-    input?: { minLength?: number };
-    event?: string;
-    predicate?: (detail: unknown) => boolean;
-    timeoutMs?: number;
-    targetGone?: boolean;
-}
+export type TourAdvanceOn = StepAdvanceOn;
 
 export interface TourStep {
     id: string;
     target?: string;
-    titleKey: string;
-    titleFallback: string;
-    bodyKey: string;
-    bodyFallback: string;
+    titleKey?: string;
+    titleFallback?: string;
+    bodyKey?: string;
+    bodyFallback?: string;
     actionHintKey?: string;
     actionHintFallback?: string;
     interactive?: boolean;

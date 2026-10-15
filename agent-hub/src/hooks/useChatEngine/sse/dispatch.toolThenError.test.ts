@@ -21,7 +21,7 @@ import type { TranslateFn } from '../../useTranslation';
 const ID = 'assistant-1';
 const ERR = 'Chat error: API error 400: invalid_request_error';
 
-const t: TranslateFn = (key, fallbackOrParams, paramsArg) => {
+const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const hasStringFallback = typeof fallbackOrParams === 'string';
     const params = hasStringFallback ? paramsArg : fallbackOrParams;
     const value = (EN_DEFAULTS as Record<string, unknown>)[key];

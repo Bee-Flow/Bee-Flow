@@ -29,7 +29,7 @@ export default function LessonPlayerHost({ user, onNavigate }: LessonPlayerHostP
     const { t } = useTranslation();
     const { hasFeature } = useLicenseContext();
     const [active, setActive] = useState<ActiveLesson | null>(null); // { lessonId, courseId, layout }
-    const beforeBadgesRef = useRef<Set<string>>(new Set());
+    const beforeBadgesRef = useRef<Set<string | undefined>>(new Set());
     const beforeXpRef = useRef(0);
     const activeRef = useRef<ActiveLesson | null>(null);
     useEffect(() => { activeRef.current = active; }, [active]);

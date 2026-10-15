@@ -5,7 +5,7 @@ import type { Finding } from '../shieldFindings';
 import { findingCopy } from './findingCopy';
 
 /** The English fallback with its {placeholders} filled, like the real t(). */
-const t: TranslateFn = (_key, fallback, params) => {
+const t: TranslateFn = (_key: string, fallback, params) => {
     let out = typeof fallback === 'string' ? fallback : _key;
     for (const [k, v] of Object.entries(params || {})) out = out.replaceAll(`{${k}}`, String(v));
     return out;

@@ -12,7 +12,7 @@ import type { Posture, PostureRow, PostureValue, Tone } from './types';
  * wording fits which state, and which rows sit on which step card.
  */
 
-const t: TranslateFn = (key, fallbackOrParams, paramsArg) => {
+const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const hasFallback = typeof fallbackOrParams === 'string';
     const params = hasFallback ? paramsArg : fallbackOrParams;
     let out = hasFallback ? (fallbackOrParams as string) : key;
