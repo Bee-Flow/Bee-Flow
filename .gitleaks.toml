@@ -105,7 +105,7 @@ description = "Redaction-test fixtures: jwt.io placeholder payload, truncated PE
 targetRules = ["jwt", "private-key"]
 condition = "AND"
 paths = [
-  '''(^|/)server/automation/runLogRedaction\.test\.js$''',
+  '''(^|/)server/core/automationModel/runLogRedaction\.test\.js$''',
   '''(^|/)agent-hub/src/components/admin/security/guardrails/patterns/starterSets\.test\.js$''',
 ]
 regexes = [
