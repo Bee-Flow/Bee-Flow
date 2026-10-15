@@ -37,6 +37,9 @@
   moduleActions (nullable `installing.name`; `.status`/`.body` on a typed Error), MarketplaceTab (`.body.details.detail` beyond
   the catch recipe; BASE's body.detail follow-up untouched).
 - Review: `reviews/S2-compliance.md` (both CHANGES REQUIRED, small; all required + recommended applied in one fix commit).
+- Full gate at the merge (push 1): check:fast 39/39; server typecheck 0; duplication 15375 ≤ 15419; gitleaks clean; agent-hub
+  typecheck 0, vitest 1836 files / 21619 tests pass; mobile jest 762 suites / 13430 pass, tsc 0; server npm test 28933 pass,
+  0 fail (28964 tests, 2584 files, no HUNG).
 - Watch at merge: the mobile `src/features/compliance/model/lockstep.test.ts` reads `settingsFields.ts` now; new
   `settingsFields.types.ts`; `.file-budget.json` key renames; `i18nGuard.test.js` path edit; `OrgUser` has 4 definitions
   across the tree (unify later); b13 types commit c2698ab9 alone does not typecheck (QuestionnaireImport), fixed by 4768fda3.
