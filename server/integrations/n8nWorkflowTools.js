@@ -299,301 +299,374 @@ const N8N_WORKFLOW_TOOLS = [
     },
 ];
 
-// ─── JSON Parse Helper ─────────────────────────────────────────
-// Dual-accept shim: accepts real arrays/objects (the new contract), falls back
-// to parsing stringified JSON with a one-off deprecation warning per process.
-const _deprecationWarned = new Set();
-function parseJsonParam(value, paramName, toolName = '') {
-    if (value === undefined || value === null || value === '') return undefined;
-    if (typeof value === 'object') return value; // already real JSON
-    if (typeof value === 'string') {
-        const key = `${toolName}:${paramName}`;
-        if (!_deprecationWarned.has(key)) {
-            _deprecationWarned.add(key);
-            log.warn(`[n8n-workflow] DEPRECATION: tool "${toolName}" received stringified JSON for "${paramName}". Pass a real JSON array/object instead. Stringified inputs will be rejected in a future release.`);
-        }
-        try {
-            return JSON.parse(value);
-        } catch (e) {
-            throw new Error(`Invalid JSON for "${paramName}": ${e.message}`);
-        }
-    }
-    throw new Error(`"${paramName}" must be a JSON array/object or a JSON string.`);
-}
+const {
+    parseJsonParam,
+    deepMerge,
+    applyNodeOperations,
+    assertConnectionsIntegrity,
+    summarizeWorkflow,
+    filterNodes,
+    summarizeExecution,
+    buildExecutionDetail,
+    sanitiseSettings,
+    stripReadOnly,
+    SETTINGS_WHITELIST,
+} = require('./n8nWorkflowHelpers');
 
-// ─── Deep-merge helper (objects merge recursively; arrays replace; primitives overwrite) ──
-function isPlainObject(x) {
-    return x !== null && typeof x === 'object' && !Array.isArray(x);
-}
-function deepMerge(target, source) {
-    if (!isPlainObject(source)) return source; // arrays/primitives replace
-    if (!isPlainObject(target)) target = {};
-    const out = { ...target };
-    for (const [k, v] of Object.entries(source)) {
-        if (isPlainObject(v) && isPlainObject(out[k])) {
-            out[k] = deepMerge(out[k], v);
-        } else {
-            out[k] = v;
-        }
-    }
-    return out;
-}
+// ─── Tool Execution ────────────────────────────────────────────
 
-// ─── node_operations applier ───────────────────────────────────
-// Applies add/update/remove ops to a nodes+connections snapshot and returns a new one.
-// On remove, also prunes every connection reference to the removed node (source and target).
-function applyNodeOperations(current, ops, toolName) {
-    let nodes = Array.isArray(current.nodes) ? [...current.nodes] : [];
-    let connections = current.connections && typeof current.connections === 'object'
-        ? JSON.parse(JSON.stringify(current.connections))
-        : {};
-
-    for (const op of ops) {
-        if (!op || !op.action) {
-            throw new Error('Each node_operation must have an "action".');
-        }
-        const action = op.action;
-        const nodeData = parseJsonParam(op.node_data, 'node_data', toolName);
-
-        if (action === 'add') {
-            if (!nodeData || typeof nodeData !== 'object') {
-                throw new Error('node_operations: "add" requires node_data with a full node object.');
-            }
-            const name = op.node_name || nodeData.name;
-            if (!name) throw new Error('node_operations: "add" requires node_name (or node_data.name).');
-            if (nodes.some(n => n.name === name)) {
-                throw new Error(`node_operations: "add" failed — a node named "${name}" already exists.`);
-            }
-            nodes.push({ ...nodeData, name });
-            continue;
-        }
-
-        if (action === 'update') {
-            const name = op.node_name;
-            if (!name) throw new Error('node_operations: "update" requires node_name.');
-            const idx = nodes.findIndex(n => n.name === name);
-            if (idx === -1) throw new Error(`node_operations: node "${name}" not found.`);
-            if (!nodeData || typeof nodeData !== 'object') {
-                throw new Error('node_operations: "update" requires node_data with fields to merge.');
-            }
-            // Guard: do not allow renaming via update — it would silently break connections.
-            if (nodeData.name && nodeData.name !== name) {
-                throw new Error(`node_operations: cannot rename "${name}" via update — connections key on node name. Remove and re-add instead.`);
-            }
-            nodes[idx] = deepMerge(nodes[idx], nodeData);
-            continue;
-        }
-
-        if (action === 'remove') {
-            const name = op.node_name;
-            if (!name) throw new Error('node_operations: "remove" requires node_name.');
-            const before = nodes.length;
-            nodes = nodes.filter(n => n.name !== name);
-            if (nodes.length === before) {
-                throw new Error(`node_operations: node "${name}" not found.`);
-            }
-            // Prune connections referencing the removed node.
-            delete connections[name]; // source-side entry
-            for (const src of Object.keys(connections)) {
-                const outputsByType = connections[src];
-                for (const outputType of Object.keys(outputsByType)) {
-                    const sockets = outputsByType[outputType]; // array of arrays
-                    outputsByType[outputType] = sockets.map(socket =>
-                        (socket || []).filter(target => target && target.node !== name)
-                    );
-                }
-            }
-            continue;
-        }
-
-        throw new Error(`node_operations: unknown action "${action}" (expected add | update | remove).`);
-    }
-
-    return { nodes, connections };
-}
-
-// ─── Connection integrity check ────────────────────────────────
-// Post-condition: every source key and target reference in `connections` must
-// exist in `nodes[]`. Catches drift from partial updates or renames.
-function assertConnectionsIntegrity(nodes, connections) {
-    if (!connections || typeof connections !== 'object') return;
-    const names = new Set(nodes.map(n => n.name));
-    const orphans = [];
-    for (const src of Object.keys(connections)) {
-        if (!names.has(src)) { orphans.push(`source "${src}"`); continue; }
-        const outputsByType = connections[src];
-        if (!outputsByType || typeof outputsByType !== 'object') continue;
-        for (const outputType of Object.keys(outputsByType)) {
-            const sockets = outputsByType[outputType];
-            if (!Array.isArray(sockets)) continue;
-            for (const socket of sockets) {
-                if (!Array.isArray(socket)) continue;
-                for (const target of socket) {
-                    if (target && target.node && !names.has(target.node)) {
-                        orphans.push(`target "${target.node}" (from "${src}")`);
-                    }
-                }
-            }
-        }
-    }
-    if (orphans.length) {
-        throw new Error(`Connection integrity check failed — ${orphans.length} orphaned reference(s): ${orphans.slice(0, 5).join(', ')}${orphans.length > 5 ? ', ...' : ''}`);
-    }
-}
-
-// ─── Workflow Summary Helper ───────────────────────────────────
-
-function summarizeWorkflow(wf) {
-    const nodes = (wf.nodes || []).filter(n => n.type !== 'n8n-nodes-base.stickyNote');
+async function workflowList(args, { orgId }) {
+    const { active, limit = 50, tags } = args;
+    const cap = Math.min(Math.max(limit || 50, 1), 250);
+    let q = `limit=${cap}`;
+    if (active !== undefined) q += `&active=${active}`;
+    if (tags) q += `&tags=${encodeURIComponent(tags)}`;
+    const data = await n8nApiFetch(orgId, `/workflows?${q}`);
+    const workflows = data.data ?? data;
     return {
+        total: Array.isArray(workflows) ? workflows.length : 0,
+        workflows: (Array.isArray(workflows) ? workflows : []).map(summarizeWorkflow),
+    };
+}
+
+// ── Get Workflow ────────────────────────────────────
+async function workflowGet(args, { orgId }) {
+    const { workflow_id, full = false } = args;
+    if (!workflow_id) return { error: 'workflow_id is required' };
+    const wf = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
+    const result = {
         id: wf.id,
         name: wf.name,
         active: wf.active,
-        nodeCount: nodes.length,
-        nodeTypes: [...new Set(nodes.map(n => n.type))],
         tags: (wf.tags || []).map(t => typeof t === 'string' ? t : t.name).filter(Boolean),
         createdAt: wf.createdAt,
         updatedAt: wf.updatedAt,
+        settings: wf.settings || {},
+        nodes: (wf.nodes || []).map(n => ({
+            name: n.name,
+            type: n.type,
+            typeVersion: n.typeVersion,
+            position: n.position,
+            parameters: n.parameters || {},
+            disabled: n.disabled || false,
+            credentials: n.credentials,
+        })),
+        connections: wf.connections || {},
     };
-}
-
-// ─── Node filter helpers ───────────────────────────────────────
-
-function getByPath(obj, path) {
-    if (!obj || !path) return undefined;
-    const parts = path.split('.');
-    let cur = obj;
-    for (const p of parts) {
-        if (cur === null || cur === undefined) return undefined;
-        cur = cur[p];
-    }
-    return cur;
-}
-
-function filterNodes(workflow, { node_type_pattern, node_names, has_param }) {
-    const nodes = workflow.nodes || [];
-    const hasAny = !!(node_type_pattern || (node_names && node_names.length) || has_param);
-    if (!hasAny) return []; // require at least one filter
-
-    const typeRe = node_type_pattern ? new RegExp(node_type_pattern, 'i') : null;
-    const nameSet = Array.isArray(node_names) && node_names.length ? new Set(node_names) : null;
-
-    return nodes.filter(n => {
-        if (typeRe && !typeRe.test(n.type || '')) return false;
-        if (nameSet && !nameSet.has(n.name)) return false;
-        if (has_param) {
-            const val = getByPath(n.parameters || {}, has_param);
-            if (val === undefined || val === null) return false;
-        }
-        return true;
-    });
-}
-
-// ─── Execution summary helpers ─────────────────────────────────
-
-function summarizeExecution(exec) {
-    if (!exec) return null;
-    return {
-        id: exec.id,
-        workflow_id: exec.workflowId || exec.workflow_id,
-        status: exec.status || (exec.finished ? (exec.data?.resultData?.error ? 'error' : 'success') : 'running'),
-        mode: exec.mode,
-        started_at: exec.startedAt,
-        stopped_at: exec.stoppedAt,
-        finished: !!exec.finished,
-        retryOf: exec.retryOf || null,
-    };
-}
-
-function buildExecutionDetail(exec) {
-    const nodes = exec?.data?.resultData?.runData || {};
-    const nodeDetails = {};
-    for (const [nodeName, runs] of Object.entries(nodes)) {
-        // runs is an array of per-run results; we take the last run for each node
-        const last = runs[runs.length - 1];
-        if (!last) continue;
-        const entry = {
-            executionTime: last.executionTime,
-            startTime: last.startTime,
-            // Output data — capped at 5 items per node to keep context small
-            output: [],
-            error: null,
+    const json = JSON.stringify(result);
+    // Threshold bumped to ~200KB per the manual (§3.2). Older cap was 30KB.
+    if (json.length > 200000 && !full) {
+        return {
+            ...summarizeWorkflow(wf),
+            _note: `Full workflow JSON is ${json.length} chars. Auto-summarised — pass full:true to override, or use n8n_workflow_nodes_find to grab just the nodes you need.`,
+            settings: wf.settings || {},
+            nodeDetails: (wf.nodes || []).map(n => ({ name: n.name, type: n.type, disabled: n.disabled || false })),
         };
-        if (last.error) {
-            entry.error = {
-                message: last.error.message,
-                name: last.error.name,
-                stack: typeof last.error.stack === 'string' ? last.error.stack.slice(0, 2000) : undefined,
-                description: last.error.description,
+    }
+    return result;
+}
+
+// ── Find Nodes (filtered subset) ────────────────────
+async function workflowNodesFind(args, { orgId, toolName }) {
+    const { workflow_id, node_type_pattern, node_names, has_param } = args;
+    if (!workflow_id) return { error: 'workflow_id is required' };
+    if (!node_type_pattern && (!node_names || !node_names.length) && !has_param) {
+        return { error: 'At least one filter is required (node_type_pattern, node_names, or has_param).' };
+    }
+    // node_names may arrive stringified from older models — dual-accept
+    const parsedNames = typeof node_names === 'string' ? parseJsonParam(node_names, 'node_names', toolName) : node_names;
+    const wf = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
+    const matched = filterNodes(wf, { node_type_pattern, node_names: parsedNames, has_param });
+    return {
+        workflow_id: wf.id,
+        workflow_name: wf.name,
+        match_count: matched.length,
+        matched_nodes: matched.map(n => ({
+            name: n.name,
+            type: n.type,
+            typeVersion: n.typeVersion,
+            position: n.position,
+            parameters: n.parameters || {},
+            disabled: n.disabled || false,
+            credentials: n.credentials,
+        })),
+        _note: matched.length === 0 ? 'No nodes matched. Check your filter; remember node_type_pattern is a case-insensitive substring match on node.type.' : undefined,
+    };
+}
+
+// ── Create Workflow ─────────────────────────────────
+async function workflowCreate(args, { orgId, toolName }) {
+    const { name, active = false } = args;
+    if (!name) return { error: 'name is required' };
+    const nodes = parseJsonParam(args.nodes, 'nodes', toolName);
+    const connections = parseJsonParam(args.connections, 'connections', toolName);
+    const settings = parseJsonParam(args.settings, 'settings', toolName);
+    if (!Array.isArray(nodes)) return { error: 'nodes must be a JSON array of node objects' };
+    if (!connections || typeof connections !== 'object' || Array.isArray(connections)) {
+        return { error: 'connections must be a JSON object' };
+    }
+    assertConnectionsIntegrity(nodes, connections);
+
+    // n8n's POST /workflows rejects `active`, `tags`, `id`, `pinData`, etc.
+    // Reuse the same hygiene as PUT: stripReadOnly drops forbidden top-level
+    // keys and filters settings to n8n's accepted whitelist.
+    const body = stripReadOnly({
+        name,
+        nodes,
+        connections,
+        settings: settings || {},
+    });
+
+    const created = await n8nApiFetch(orgId, '/workflows', {
+        method: 'POST',
+        body: JSON.stringify(body),
+    });
+
+    // Activation is a separate endpoint on the public API.
+    if (active) {
+        try {
+            await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(created.id)}/activate`, { method: 'POST' });
+            created.active = true;
+        } catch (e) {
+            return {
+                success: true,
+                message: `Workflow "${created.name}" created but activation failed: ${e.message}`,
+                ...summarizeWorkflow(created),
             };
         }
-        const mainOut = last.data?.main;
-        if (Array.isArray(mainOut) && mainOut.length > 0) {
-            // mainOut is an array of branches; each branch is an array of items
-            for (const branch of mainOut) {
-                if (!Array.isArray(branch)) continue;
-                entry.output.push(...branch.slice(0, 5).map(item => item?.json ?? item));
-                if (entry.output.length >= 5) { entry.output = entry.output.slice(0, 5); break; }
-            }
-        }
-        nodeDetails[nodeName] = entry;
     }
 
-    const topError = exec?.data?.resultData?.error;
+    return { success: true, message: `Workflow "${created.name}" created${active ? ' and activated' : ''}.`, ...summarizeWorkflow(created) };
+}
+
+// ── Full Update (PUT) ───────────────────────────────
+async function workflowUpdate(args, { orgId, toolName }) {
+    const { workflow_id, name, active } = args;
+    if (!workflow_id) return { error: 'workflow_id is required' };
+    if (!name) return { error: 'name is required for full update' };
+    const nodes = parseJsonParam(args.nodes, 'nodes', toolName);
+    const connections = parseJsonParam(args.connections, 'connections', toolName);
+    const settings = parseJsonParam(args.settings, 'settings', toolName);
+    if (!Array.isArray(nodes)) return { error: 'nodes must be a JSON array' };
+    if (!connections || typeof connections !== 'object' || Array.isArray(connections)) {
+        return { error: 'connections must be a JSON object' };
+    }
+    assertConnectionsIntegrity(nodes, connections);
+    const body = { name, nodes, connections };
+    if (settings) body.settings = settings;
+    if (active !== undefined) body.active = !!active;
+    const updated = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(stripReadOnly(body)),
+    });
+    return { success: true, message: `Workflow "${updated.name}" fully updated.`, ...summarizeWorkflow(updated) };
+}
+
+// ── Patch (Partial, with node_operations) ───────────
+async function workflowPatch(args, { orgId, toolName }) {
+    const { workflow_id, name, active } = args;
+    if (!workflow_id) return { error: 'workflow_id is required' };
+
+    // Fetch current workflow
+    const current = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
+
+    let mergedNodes = Array.isArray(current.nodes) ? [...current.nodes] : [];
+    let mergedConnections = current.connections && typeof current.connections === 'object'
+        ? current.connections
+        : {};
+    let mergedSettings = current.settings || {};
+    let mergedName = name !== undefined ? name : current.name;
+
+    // Apply node_operations first (surgical), then allow wholesale overrides.
+    if (args.node_operations) {
+        const ops = Array.isArray(args.node_operations)
+            ? args.node_operations
+            : parseJsonParam(args.node_operations, 'node_operations', toolName);
+        if (!Array.isArray(ops)) return { error: 'node_operations must be a JSON array' };
+        const result = applyNodeOperations(
+            { nodes: mergedNodes, connections: mergedConnections },
+            ops,
+            toolName
+        );
+        mergedNodes = result.nodes;
+        mergedConnections = result.connections;
+    }
+
+    // Wholesale overrides (documented as full-replace per manual §7.4)
+    if (args.nodes !== undefined) {
+        const parsed = parseJsonParam(args.nodes, 'nodes', toolName);
+        if (!Array.isArray(parsed)) return { error: 'nodes must be a JSON array' };
+        mergedNodes = parsed;
+    }
+    if (args.connections !== undefined) {
+        const parsed = parseJsonParam(args.connections, 'connections', toolName);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return { error: 'connections must be a JSON object' };
+        }
+        mergedConnections = parsed;
+    }
+    if (args.settings !== undefined) {
+        const parsed = parseJsonParam(args.settings, 'settings', toolName);
+        if (parsed && typeof parsed === 'object') mergedSettings = { ...mergedSettings, ...parsed };
+    }
+
+    // Post-condition: refuse to save an internally inconsistent workflow.
+    assertConnectionsIntegrity(mergedNodes, mergedConnections);
+
+    const body = {
+        name: mergedName,
+        nodes: mergedNodes,
+        connections: mergedConnections,
+        settings: mergedSettings,
+    };
+    if (active !== undefined) body.active = !!active;
+
+    const updated = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(stripReadOnly(body)),
+    });
     return {
-        ...summarizeExecution(exec),
-        error: topError ? {
-            message: topError.message,
-            node: topError.node?.name,
-            stack: typeof topError.stack === 'string' ? topError.stack.slice(0, 2000) : undefined,
-        } : null,
-        nodes: nodeDetails,
+        success: true,
+        message: `Workflow "${updated.name}" patched.`,
+        ...summarizeWorkflow(updated),
     };
 }
 
-// ─── Strip read-only fields before PUT (n8n rejects some) ──────
-const READ_ONLY_WORKFLOW_FIELDS = [
-    'active', 'id', 'createdAt', 'updatedAt', 'versionId', 'hash', 'meta',
-    'shared', 'homeProject', 'tags', 'usedCredentials', 'pinnedData', 'triggerCount',
-];
-
-// n8n's PUT /workflows/:id validates `settings` with `additionalProperties: false`,
-// so ANY key outside this whitelist makes the whole request 400. The current
-// workflow's settings object (returned from GET) often contains keys n8n itself
-// added that are NOT in the PUT schema (like `executionTimeout`, internal flags,
-// or legacy keys from older versions). If we blindly round-trip settings we get
-// "request/body/settings must NOT have additional properties".
-// Solution: filter settings to only the keys n8n currently accepts on PUT.
-const SETTINGS_WHITELIST = new Set([
-    'executionOrder',
-    'saveManualExecutions',
-    'saveDataErrorExecution',
-    'saveDataSuccessExecution',
-    'saveExecutionProgress',
-    'timezone',
-    'errorWorkflow',
-    'callerPolicy',
-    'executionTimeout',
-    'maxExecutionTimeout',
-]);
-function sanitiseSettings(settings) {
-    if (!settings || typeof settings !== 'object') return {};
-    const out = {};
-    for (const [k, v] of Object.entries(settings)) {
-        if (SETTINGS_WHITELIST.has(k) && v !== null && v !== undefined) out[k] = v;
+// ── Delete (permanent) ──────────────────────────────
+async function workflowDelete(args, { orgId }) {
+    const { workflow_id, confirm } = args;
+    if (!workflow_id) return { error: 'workflow_id is required' };
+    if (confirm !== true) {
+        return { error: 'Delete requires confirm:true. Confirm with the user before calling this tool.' };
     }
-    return out;
+    await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`, { method: 'DELETE' });
+    return { success: true, message: `Workflow ${workflow_id} deleted.` };
 }
 
-function stripReadOnly(wf) {
-    const out = { ...wf };
-    for (const k of READ_ONLY_WORKFLOW_FIELDS) delete out[k];
-    // Filter settings to n8n's PUT schema — prevents the common 400 error.
-    if ('settings' in out) out.settings = sanitiseSettings(out.settings);
-    return out;
+// ── Activate / Deactivate ───────────────────────────
+async function workflowActivate(args, { orgId }) {
+    const { workflow_id } = args;
+    if (!workflow_id) return { error: 'workflow_id is required' };
+    const result = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}/activate`, { method: 'POST' });
+    return { success: true, message: `Workflow "${result.name || workflow_id}" activated.`, id: result.id || workflow_id, name: result.name, active: true };
 }
 
-// ─── Tool Execution ────────────────────────────────────────────
+async function workflowDeactivate(args, { orgId }) {
+    const { workflow_id } = args;
+    if (!workflow_id) return { error: 'workflow_id is required' };
+    const result = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}/deactivate`, { method: 'POST' });
+    return { success: true, message: `Workflow "${result.name || workflow_id}" deactivated.`, id: result.id || workflow_id, name: result.name, active: false };
+}
+
+// ── Execute (async-poll) ────────────────────────────
+async function workflowExecute(args, { orgId }) {
+    const { workflow_id, timeout_seconds = 120 } = args;
+    if (!workflow_id) return { error: 'workflow_id is required' };
+    const timeoutMs = Math.min(Math.max(timeout_seconds, 1), 300) * 1000;
+
+    // Webhook-triggered workflows: surface a diagnostic — execute won't start them.
+    try {
+        const wf = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
+        const triggers = (wf.nodes || []).filter(n => /trigger|webhook/i.test(n.type || ''));
+        const onlyWebhook = triggers.length > 0 && triggers.every(n => /webhook/i.test(n.type || ''));
+        if (onlyWebhook) {
+            return { error: 'This workflow is webhook-triggered. Trigger it by calling its webhook URL directly, or temporarily swap in a Manual Trigger.', workflow_id };
+        }
+    } catch (_) { /* fall through — let the execute attempt surface the real error */ }
+
+    // Kick off the run. n8n's POST /workflows/:id/execute returns an execution record.
+    const start = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}/execute`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+    });
+    const execId = start?.data?.executionId || start?.executionId || start?.id;
+    if (!execId) {
+        return { success: false, _note: 'n8n accepted the execute request but did not return an execution ID.', raw: start };
+    }
+
+    // Poll /executions/:id
+    const deadline = Date.now() + timeoutMs;
+    let lastExec = null;
+    while (Date.now() < deadline) {
+        try {
+            lastExec = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execId)}?includeData=true`);
+            if (lastExec?.finished) break;
+        } catch (e) { /* transient — keep polling */ }
+        await new Promise(r => setTimeout(r, 1000));
+    }
+
+    if (!lastExec?.finished) {
+        return {
+            status: 'running',
+            execution_id: execId,
+            workflow_id,
+            _note: `Timed out after ${timeout_seconds}s. Follow up with n8n_execution_get_detail using execution_id=${execId}.`,
+        };
+    }
+
+    return buildExecutionDetail(lastExec);
+}
+
+// ── Execution: list / get / detail / retry / stop ───
+async function executionList(args, { orgId }) {
+    const { workflow_id, status, limit = 20 } = args;
+    const cap = Math.min(Math.max(limit || 20, 1), 100);
+    const qp = [`limit=${cap}`];
+    if (workflow_id) qp.push(`workflowId=${encodeURIComponent(workflow_id)}`);
+    if (status) qp.push(`status=${encodeURIComponent(status)}`);
+    const data = await n8nApiFetch(orgId, `/executions?${qp.join('&')}`);
+    const execs = data.data ?? data;
+    return {
+        total: Array.isArray(execs) ? execs.length : 0,
+        executions: (Array.isArray(execs) ? execs : []).map(summarizeExecution),
+    };
+}
+
+async function executionGet(args, { orgId }) {
+    const { execution_id } = args;
+    if (!execution_id) return { error: 'execution_id is required' };
+    const exec = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execution_id)}`);
+    return summarizeExecution(exec);
+}
+
+async function executionGetDetail(args, { orgId }) {
+    const { execution_id } = args;
+    if (!execution_id) return { error: 'execution_id is required' };
+    const exec = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execution_id)}?includeData=true`);
+    return buildExecutionDetail(exec);
+}
+
+async function executionRetry(args, { orgId }) {
+    const { execution_id } = args;
+    if (!execution_id) return { error: 'execution_id is required' };
+    const result = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execution_id)}/retry`, { method: 'POST' });
+    return { success: true, message: `Retry started for execution ${execution_id}.`, ...summarizeExecution(result) };
+}
+
+async function executionStop(args, { orgId }) {
+    const { execution_id } = args;
+    if (!execution_id) return { error: 'execution_id is required' };
+    const result = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execution_id)}/stop`, { method: 'POST' });
+    return { success: true, message: `Stop signal sent to execution ${execution_id}.`, ...summarizeExecution(result) };
+}
+
+const HANDLERS = {
+    n8n_workflow_list: workflowList,
+    n8n_workflow_get: workflowGet,
+    n8n_workflow_nodes_find: workflowNodesFind,
+    n8n_workflow_create: workflowCreate,
+    n8n_workflow_update: workflowUpdate,
+    n8n_workflow_patch: workflowPatch,
+    n8n_workflow_delete: workflowDelete,
+    n8n_workflow_activate: workflowActivate,
+    n8n_workflow_deactivate: workflowDeactivate,
+    n8n_workflow_execute: workflowExecute,
+    n8n_execution_list: executionList,
+    n8n_execution_get: executionGet,
+    n8n_execution_get_detail: executionGetDetail,
+    n8n_execution_retry: executionRetry,
+    n8n_execution_stop: executionStop,
+};
 
 async function executeN8nWorkflowTool(toolName, args, orgId) {
     if (!orgId) {
@@ -601,341 +674,9 @@ async function executeN8nWorkflowTool(toolName, args, orgId) {
     }
 
     try {
-        switch (toolName) {
-            // ── List Workflows ──────────────────────────────────
-            case 'n8n_workflow_list': {
-                const { active, limit = 50, tags } = args;
-                const cap = Math.min(Math.max(limit || 50, 1), 250);
-                let q = `limit=${cap}`;
-                if (active !== undefined) q += `&active=${active}`;
-                if (tags) q += `&tags=${encodeURIComponent(tags)}`;
-                const data = await n8nApiFetch(orgId, `/workflows?${q}`);
-                const workflows = data.data ?? data;
-                return {
-                    total: Array.isArray(workflows) ? workflows.length : 0,
-                    workflows: (Array.isArray(workflows) ? workflows : []).map(summarizeWorkflow),
-                };
-            }
-
-            // ── Get Workflow ────────────────────────────────────
-            case 'n8n_workflow_get': {
-                const { workflow_id, full = false } = args;
-                if (!workflow_id) return { error: 'workflow_id is required' };
-                const wf = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
-                const result = {
-                    id: wf.id,
-                    name: wf.name,
-                    active: wf.active,
-                    tags: (wf.tags || []).map(t => typeof t === 'string' ? t : t.name).filter(Boolean),
-                    createdAt: wf.createdAt,
-                    updatedAt: wf.updatedAt,
-                    settings: wf.settings || {},
-                    nodes: (wf.nodes || []).map(n => ({
-                        name: n.name,
-                        type: n.type,
-                        typeVersion: n.typeVersion,
-                        position: n.position,
-                        parameters: n.parameters || {},
-                        disabled: n.disabled || false,
-                        credentials: n.credentials,
-                    })),
-                    connections: wf.connections || {},
-                };
-                const json = JSON.stringify(result);
-                // Threshold bumped to ~200KB per the manual (§3.2). Older cap was 30KB.
-                if (json.length > 200000 && !full) {
-                    return {
-                        ...summarizeWorkflow(wf),
-                        _note: `Full workflow JSON is ${json.length} chars. Auto-summarised — pass full:true to override, or use n8n_workflow_nodes_find to grab just the nodes you need.`,
-                        settings: wf.settings || {},
-                        nodeDetails: (wf.nodes || []).map(n => ({ name: n.name, type: n.type, disabled: n.disabled || false })),
-                    };
-                }
-                return result;
-            }
-
-            // ── Find Nodes (filtered subset) ────────────────────
-            case 'n8n_workflow_nodes_find': {
-                const { workflow_id, node_type_pattern, node_names, has_param } = args;
-                if (!workflow_id) return { error: 'workflow_id is required' };
-                if (!node_type_pattern && (!node_names || !node_names.length) && !has_param) {
-                    return { error: 'At least one filter is required (node_type_pattern, node_names, or has_param).' };
-                }
-                // node_names may arrive stringified from older models — dual-accept
-                const parsedNames = typeof node_names === 'string' ? parseJsonParam(node_names, 'node_names', toolName) : node_names;
-                const wf = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
-                const matched = filterNodes(wf, { node_type_pattern, node_names: parsedNames, has_param });
-                return {
-                    workflow_id: wf.id,
-                    workflow_name: wf.name,
-                    match_count: matched.length,
-                    matched_nodes: matched.map(n => ({
-                        name: n.name,
-                        type: n.type,
-                        typeVersion: n.typeVersion,
-                        position: n.position,
-                        parameters: n.parameters || {},
-                        disabled: n.disabled || false,
-                        credentials: n.credentials,
-                    })),
-                    _note: matched.length === 0 ? 'No nodes matched. Check your filter; remember node_type_pattern is a case-insensitive substring match on node.type.' : undefined,
-                };
-            }
-
-            // ── Create Workflow ─────────────────────────────────
-            case 'n8n_workflow_create': {
-                const { name, active = false } = args;
-                if (!name) return { error: 'name is required' };
-                const nodes = parseJsonParam(args.nodes, 'nodes', toolName);
-                const connections = parseJsonParam(args.connections, 'connections', toolName);
-                const settings = parseJsonParam(args.settings, 'settings', toolName);
-                if (!Array.isArray(nodes)) return { error: 'nodes must be a JSON array of node objects' };
-                if (!connections || typeof connections !== 'object' || Array.isArray(connections)) {
-                    return { error: 'connections must be a JSON object' };
-                }
-                assertConnectionsIntegrity(nodes, connections);
-
-                // n8n's POST /workflows rejects `active`, `tags`, `id`, `pinData`, etc.
-                // Reuse the same hygiene as PUT: stripReadOnly drops forbidden top-level
-                // keys and filters settings to n8n's accepted whitelist.
-                const body = stripReadOnly({
-                    name,
-                    nodes,
-                    connections,
-                    settings: settings || {},
-                });
-
-                const created = await n8nApiFetch(orgId, '/workflows', {
-                    method: 'POST',
-                    body: JSON.stringify(body),
-                });
-
-                // Activation is a separate endpoint on the public API.
-                if (active) {
-                    try {
-                        await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(created.id)}/activate`, { method: 'POST' });
-                        created.active = true;
-                    } catch (e) {
-                        return {
-                            success: true,
-                            message: `Workflow "${created.name}" created but activation failed: ${e.message}`,
-                            ...summarizeWorkflow(created),
-                        };
-                    }
-                }
-
-                return { success: true, message: `Workflow "${created.name}" created${active ? ' and activated' : ''}.`, ...summarizeWorkflow(created) };
-            }
-
-            // ── Full Update (PUT) ───────────────────────────────
-            case 'n8n_workflow_update': {
-                const { workflow_id, name, active } = args;
-                if (!workflow_id) return { error: 'workflow_id is required' };
-                if (!name) return { error: 'name is required for full update' };
-                const nodes = parseJsonParam(args.nodes, 'nodes', toolName);
-                const connections = parseJsonParam(args.connections, 'connections', toolName);
-                const settings = parseJsonParam(args.settings, 'settings', toolName);
-                if (!Array.isArray(nodes)) return { error: 'nodes must be a JSON array' };
-                if (!connections || typeof connections !== 'object' || Array.isArray(connections)) {
-                    return { error: 'connections must be a JSON object' };
-                }
-                assertConnectionsIntegrity(nodes, connections);
-                const body = { name, nodes, connections };
-                if (settings) body.settings = settings;
-                if (active !== undefined) body.active = !!active;
-                const updated = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(stripReadOnly(body)),
-                });
-                return { success: true, message: `Workflow "${updated.name}" fully updated.`, ...summarizeWorkflow(updated) };
-            }
-
-            // ── Patch (Partial, with node_operations) ───────────
-            case 'n8n_workflow_patch': {
-                const { workflow_id, name, active } = args;
-                if (!workflow_id) return { error: 'workflow_id is required' };
-
-                // Fetch current workflow
-                const current = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
-
-                let mergedNodes = Array.isArray(current.nodes) ? [...current.nodes] : [];
-                let mergedConnections = current.connections && typeof current.connections === 'object'
-                    ? current.connections
-                    : {};
-                let mergedSettings = current.settings || {};
-                let mergedName = name !== undefined ? name : current.name;
-
-                // Apply node_operations first (surgical), then allow wholesale overrides.
-                if (args.node_operations) {
-                    const ops = Array.isArray(args.node_operations)
-                        ? args.node_operations
-                        : parseJsonParam(args.node_operations, 'node_operations', toolName);
-                    if (!Array.isArray(ops)) return { error: 'node_operations must be a JSON array' };
-                    const result = applyNodeOperations(
-                        { nodes: mergedNodes, connections: mergedConnections },
-                        ops,
-                        toolName
-                    );
-                    mergedNodes = result.nodes;
-                    mergedConnections = result.connections;
-                }
-
-                // Wholesale overrides (documented as full-replace per manual §7.4)
-                if (args.nodes !== undefined) {
-                    const parsed = parseJsonParam(args.nodes, 'nodes', toolName);
-                    if (!Array.isArray(parsed)) return { error: 'nodes must be a JSON array' };
-                    mergedNodes = parsed;
-                }
-                if (args.connections !== undefined) {
-                    const parsed = parseJsonParam(args.connections, 'connections', toolName);
-                    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-                        return { error: 'connections must be a JSON object' };
-                    }
-                    mergedConnections = parsed;
-                }
-                if (args.settings !== undefined) {
-                    const parsed = parseJsonParam(args.settings, 'settings', toolName);
-                    if (parsed && typeof parsed === 'object') mergedSettings = { ...mergedSettings, ...parsed };
-                }
-
-                // Post-condition: refuse to save an internally inconsistent workflow.
-                assertConnectionsIntegrity(mergedNodes, mergedConnections);
-
-                const body = {
-                    name: mergedName,
-                    nodes: mergedNodes,
-                    connections: mergedConnections,
-                    settings: mergedSettings,
-                };
-                if (active !== undefined) body.active = !!active;
-
-                const updated = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(stripReadOnly(body)),
-                });
-                return {
-                    success: true,
-                    message: `Workflow "${updated.name}" patched.`,
-                    ...summarizeWorkflow(updated),
-                };
-            }
-
-            // ── Delete (permanent) ──────────────────────────────
-            case 'n8n_workflow_delete': {
-                const { workflow_id, confirm } = args;
-                if (!workflow_id) return { error: 'workflow_id is required' };
-                if (confirm !== true) {
-                    return { error: 'Delete requires confirm:true. Confirm with the user before calling this tool.' };
-                }
-                await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`, { method: 'DELETE' });
-                return { success: true, message: `Workflow ${workflow_id} deleted.` };
-            }
-
-            // ── Activate / Deactivate ───────────────────────────
-            case 'n8n_workflow_activate': {
-                const { workflow_id } = args;
-                if (!workflow_id) return { error: 'workflow_id is required' };
-                const result = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}/activate`, { method: 'POST' });
-                return { success: true, message: `Workflow "${result.name || workflow_id}" activated.`, id: result.id || workflow_id, name: result.name, active: true };
-            }
-            case 'n8n_workflow_deactivate': {
-                const { workflow_id } = args;
-                if (!workflow_id) return { error: 'workflow_id is required' };
-                const result = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}/deactivate`, { method: 'POST' });
-                return { success: true, message: `Workflow "${result.name || workflow_id}" deactivated.`, id: result.id || workflow_id, name: result.name, active: false };
-            }
-
-            // ── Execute (async-poll) ────────────────────────────
-            case 'n8n_workflow_execute': {
-                const { workflow_id, timeout_seconds = 120 } = args;
-                if (!workflow_id) return { error: 'workflow_id is required' };
-                const timeoutMs = Math.min(Math.max(timeout_seconds, 1), 300) * 1000;
-
-                // Webhook-triggered workflows: surface a diagnostic — execute won't start them.
-                try {
-                    const wf = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
-                    const triggers = (wf.nodes || []).filter(n => /trigger|webhook/i.test(n.type || ''));
-                    const onlyWebhook = triggers.length > 0 && triggers.every(n => /webhook/i.test(n.type || ''));
-                    if (onlyWebhook) {
-                        return { error: 'This workflow is webhook-triggered. Trigger it by calling its webhook URL directly, or temporarily swap in a Manual Trigger.', workflow_id };
-                    }
-                } catch (_) { /* fall through — let the execute attempt surface the real error */ }
-
-                // Kick off the run. n8n's POST /workflows/:id/execute returns an execution record.
-                const start = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}/execute`, {
-                    method: 'POST',
-                    body: JSON.stringify({}),
-                });
-                const execId = start?.data?.executionId || start?.executionId || start?.id;
-                if (!execId) {
-                    return { success: false, _note: 'n8n accepted the execute request but did not return an execution ID.', raw: start };
-                }
-
-                // Poll /executions/:id
-                const deadline = Date.now() + timeoutMs;
-                let lastExec = null;
-                while (Date.now() < deadline) {
-                    try {
-                        lastExec = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execId)}?includeData=true`);
-                        if (lastExec?.finished) break;
-                    } catch (e) { /* transient — keep polling */ }
-                    await new Promise(r => setTimeout(r, 1000));
-                }
-
-                if (!lastExec?.finished) {
-                    return {
-                        status: 'running',
-                        execution_id: execId,
-                        workflow_id,
-                        _note: `Timed out after ${timeout_seconds}s. Follow up with n8n_execution_get_detail using execution_id=${execId}.`,
-                    };
-                }
-
-                return buildExecutionDetail(lastExec);
-            }
-
-            // ── Execution: list / get / detail / retry / stop ───
-            case 'n8n_execution_list': {
-                const { workflow_id, status, limit = 20 } = args;
-                const cap = Math.min(Math.max(limit || 20, 1), 100);
-                const qp = [`limit=${cap}`];
-                if (workflow_id) qp.push(`workflowId=${encodeURIComponent(workflow_id)}`);
-                if (status) qp.push(`status=${encodeURIComponent(status)}`);
-                const data = await n8nApiFetch(orgId, `/executions?${qp.join('&')}`);
-                const execs = data.data ?? data;
-                return {
-                    total: Array.isArray(execs) ? execs.length : 0,
-                    executions: (Array.isArray(execs) ? execs : []).map(summarizeExecution),
-                };
-            }
-            case 'n8n_execution_get': {
-                const { execution_id } = args;
-                if (!execution_id) return { error: 'execution_id is required' };
-                const exec = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execution_id)}`);
-                return summarizeExecution(exec);
-            }
-            case 'n8n_execution_get_detail': {
-                const { execution_id } = args;
-                if (!execution_id) return { error: 'execution_id is required' };
-                const exec = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execution_id)}?includeData=true`);
-                return buildExecutionDetail(exec);
-            }
-            case 'n8n_execution_retry': {
-                const { execution_id } = args;
-                if (!execution_id) return { error: 'execution_id is required' };
-                const result = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execution_id)}/retry`, { method: 'POST' });
-                return { success: true, message: `Retry started for execution ${execution_id}.`, ...summarizeExecution(result) };
-            }
-            case 'n8n_execution_stop': {
-                const { execution_id } = args;
-                if (!execution_id) return { error: 'execution_id is required' };
-                const result = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execution_id)}/stop`, { method: 'POST' });
-                return { success: true, message: `Stop signal sent to execution ${execution_id}.`, ...summarizeExecution(result) };
-            }
-
-            default:
-                return { error: `Unknown n8n workflow tool: ${toolName}` };
-        }
+        const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+        if (!handler) return { error: `Unknown n8n workflow tool: ${toolName}` };
+        return await handler(args, { orgId, toolName });
     } catch (err) {
         log.error(`[n8n-workflow] ${toolName} error:`, err.message);
         return { error: `n8n operation failed: ${err.message}` };
