@@ -13,11 +13,40 @@ import { walkPath } from './resolveBinding';
  * truncation are the parts worth testing, and none of them need a DOM.
  */
 
+export type PeekRow = Record<string, unknown>;
+
+export interface PeekGroupLabel {
+    value?: unknown;
+    label?: string | null;
+    tone?: string | null;
+}
+
+export interface PeekGroup {
+    value: string;
+    label: string | null;
+    tone: string | null;
+    count: number;
+    rows: PeekRow[];
+}
+
+export interface PeekEntry {
+    count: number;
+    rows: PeekRow[];
+    groups: PeekGroup[];
+}
+
+export interface PeekIndexOptions {
+    matchKey?: string | null;
+    countKey?: string | null;
+    groupKey?: string | null;
+    groupLabelMap?: PeekGroupLabel[];
+}
+
 /**
  * The join value, as a string. Both sides go through this, so a numeric id on
  * one side and its text form on the other still meet.
  */
-export const peekKey = (v) => (v == null ? '' : String(v));
+export const peekKey = (v: unknown): string => (v == null ? '' : String(v));
 
 const norm = peekKey;
 
@@ -33,13 +62,13 @@ const norm = peekKey;
  * under "": they match no list row, and a bucket nothing can reach is only a
  * way to make the totals wrong.
  */
-export function buildPeekIndex(rows, { matchKey, countKey = null, groupKey = null, groupLabelMap = [] } = {}) {
-    const index = new Map();
+export function buildPeekIndex(rows: PeekRow[] | null | undefined, { matchKey, countKey = null, groupKey = null, groupLabelMap = [] }: PeekIndexOptions = {}) {
+    const index = new Map<string, PeekEntry>();
     if (!Array.isArray(rows) || !matchKey) return index;
-    const labels = new Map(
+    const labels = new Map<string, PeekGroupLabel>(
         (Array.isArray(groupLabelMap) ? groupLabelMap : [])
-            .filter((m) => m && m.value != null)
-            .map((m) => [String(m.value), m]),
+            .filter((m: PeekGroupLabel) => m && m.value != null)
+            .map((m: PeekGroupLabel): [string, PeekGroupLabel] => [String(m.value), m]),
     );
     for (const row of rows) {
         if (!row || typeof row !== 'object') continue;
@@ -56,7 +85,7 @@ export function buildPeekIndex(rows, { matchKey, countKey = null, groupKey = nul
         entry.rows.push(row);
         if (groupKey) {
             const value = norm(walkPath(row, groupKey));
-            let group = entry.groups.find((g) => g.value === value);
+            let group = entry.groups.find((g: PeekGroup) => g.value === value);
             if (!group) {
                 const mapped = labels.get(value);
                 const label = mapped && mapped.label != null && mapped.label !== '' ? mapped.label : value;
@@ -69,7 +98,7 @@ export function buildPeekIndex(rows, { matchKey, countKey = null, groupKey = nul
     }
     // Biggest group first. It is the one whose label goes in the badge, and the
     // one worth reading first in the panel.
-    for (const entry of index.values()) entry.groups.sort((a, b) => b.count - a.count);
+    for (const entry of index.values()) entry.groups.sort((a: PeekGroup, b: PeekGroup) => b.count - a.count);
     return index;
 }
 
@@ -84,7 +113,7 @@ export function buildPeekIndex(rows, { matchKey, countKey = null, groupKey = nul
  * A row with nothing related keeps its plain badge: zero is not news, and
  * "0 controleren" on every finished row is noise on the rows that are fine.
  */
-export function peekBadgeLabel(entry, fallback) {
+export function peekBadgeLabel(entry: PeekEntry | null | undefined, fallback: string | null | undefined) {
     if (!entry || !entry.count) return fallback;
     const word = entry.groups.length ? entry.groups[0].label : fallback;
     return word ? `${entry.count} ${word}` : String(entry.count);
@@ -95,7 +124,7 @@ export function peekBadgeLabel(entry, fallback) {
  * group's, if the author gave it one. Null keeps the row's own tone, which is
  * the identity answer for every peek configured without tones.
  */
-export function peekBadgeTone(entry) {
+export function peekBadgeTone(entry: PeekEntry | null | undefined) {
     if (!entry || !entry.count || !entry.groups.length) return null;
     return entry.groups[0].tone || null;
 }
@@ -108,7 +137,7 @@ export function peekBadgeTone(entry) {
  * taller than the screen, and a panel that runs off the bottom is worse than
  * one that says "+ 81 meer" and leaves the full list to the tab that owns it.
  */
-export function peekSections(entry, limit) {
+export function peekSections(entry: PeekEntry | null | undefined, limit: number) {
     const cap = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 6;
     if (!entry || !entry.rows.length) return { sections: [], more: 0 };
     const groups = entry.groups.length

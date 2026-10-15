@@ -22,7 +22,7 @@ import { useRuntime } from './RuntimeContext';
  *    should not be: the field's own default is what an empty state looks like.
  *  • The first resolved value pushes too, so a field can be pre-filled.
  */
-export default function useValueFrom(node, setValue) {
+export default function useValueFrom(node: { props?: { valueFrom?: unknown } } | null | undefined, setValue: (value: unknown) => void) {
     const { actionState, dataState, scope } = useRuntime();
     const binding = node?.props?.valueFrom;
     const { value } = resolveBinding(binding, { actionState, dataState, scope });
@@ -32,11 +32,11 @@ export default function useValueFrom(node, setValue) {
     //
     // The ref is only ever written INSIDE the effect (writing one during
     // render is what breaks concurrent rendering).
-    const lastRef = useRef(undefined);
+    const lastRef = useRef<string | undefined>(undefined);
 
     useEffect(() => {
         if (value === undefined || value === null) return;
-        let token;
+        let token: string | undefined;
         try { token = JSON.stringify(value); } catch { token = String(value); }
         if (token === lastRef.current) return;
         lastRef.current = token;

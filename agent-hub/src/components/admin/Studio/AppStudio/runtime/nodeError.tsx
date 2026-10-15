@@ -31,7 +31,7 @@ const MAX_ERROR_CHARS = 160;
  * the real sentence, which is better still — "Too many re-renders. React limits
  * the number of renders…" says more than "#301" ever could.
  */
-export function describeNodeError(error) {
+export function describeNodeError(error: string | { message?: string } | null | undefined) {
     if (error == null) return null;
     const raw = typeof error === 'string' ? error : (error.message || String(error));
     const text = String(raw).trim();
@@ -39,6 +39,22 @@ export function describeNodeError(error) {
     const minified = text.match(/(?:Minified React error #|invariant=)(\d+)/);
     const message = minified ? `React error #${minified[1]}` : text;
     return message.length > MAX_ERROR_CHARS ? `${message.slice(0, MAX_ERROR_CHARS - 1)}…` : message;
+}
+
+interface NodeErrorBoundaryProps {
+    signature?: string;
+    scope?: unknown;
+    type?: string | null;
+    mode?: string;
+    children?: React.ReactNode;
+}
+
+interface NodeErrorBoundaryState {
+    failed: boolean;
+    detail: string | null;
+    signature?: string;
+    scope?: unknown;
+    scopeRetries: number;
 }
 
 /**
@@ -52,8 +68,8 @@ export function describeNodeError(error) {
  * frame because the form values or query rows it reads did not exist yet used
  * to stay dead for the whole session, with no way back short of a reload.
  */
-export default class NodeErrorBoundary extends React.Component {
-    constructor(props) {
+export default class NodeErrorBoundary extends React.Component<NodeErrorBoundaryProps, NodeErrorBoundaryState> {
+    constructor(props: NodeErrorBoundaryProps) {
         super(props);
         this.state = {
             failed: false,
@@ -64,11 +80,11 @@ export default class NodeErrorBoundary extends React.Component {
         };
     }
 
-    static getDerivedStateFromError(error) {
+    static getDerivedStateFromError(error: string | { message?: string } | null | undefined) {
         return { failed: true, detail: describeNodeError(error) };
     }
 
-    static getDerivedStateFromProps(props, state) {
+    static getDerivedStateFromProps(props: NodeErrorBoundaryProps, state: NodeErrorBoundaryState) {
         // The wrapped node's content changed (e.g. the inspector corrected a
         // bad prop) — clear a prior failure so it re-renders instead of showing
         // the failure card forever. A node that is still broken throws again on
@@ -86,7 +102,7 @@ export default class NodeErrorBoundary extends React.Component {
         return { failed: false, detail: null, scope: props.scope, scopeRetries: state.scopeRetries + 1 };
     }
 
-    componentDidCatch(error) {
+    componentDidCatch(error: Error) {
         console.error(`[AppStudio] component '${this.props.type}' crashed:`, error);
     }
 

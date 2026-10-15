@@ -2,6 +2,61 @@ import React, { useState } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { boolValue, dateInputValue, listValue, optionPairs } from './rowValues';
 import { importableFields } from './spreadsheetPaste';
+import type { ImportField } from './spreadsheetPaste';
+import type { OptionPair } from './rowValues';
+
+/** The members of a model field a cell editor reads. */
+export interface CellField extends ImportField {
+    type: string;
+}
+
+/** A row of the table a relation points at. */
+type RelationRow = Record<string, unknown>;
+
+interface RelationTable {
+    fields?: ImportField[];
+}
+
+interface ChoiceCellProps {
+    field: CellField;
+    value: unknown;
+    onCommit: (value: string | null) => void;
+    disabled: boolean;
+    autoFocus: boolean;
+    ariaLabel: string;
+}
+
+interface MultiChoiceCellProps {
+    field: CellField;
+    value: unknown;
+    onChange?: ((picked: string[]) => void) | null;
+    onDone?: ((picked: string[]) => void) | null;
+    disabled: boolean;
+    ariaLabel: string;
+}
+
+interface TypedCellProps {
+    field: CellField;
+    value: string | number | null | undefined;
+    onCommit: (value: string | number | null) => void;
+    onCancel?: (() => void) | null;
+    disabled: boolean;
+    live: boolean;
+    autoFocus: boolean;
+    label: string;
+}
+
+export interface RowCellEditorProps {
+    field: CellField;
+    value: unknown;
+    onCommit: (value: unknown) => void;
+    onCancel?: (() => void) | null;
+    relationRows?: RelationRow[] | null;
+    relationTable?: RelationTable | null;
+    disabled?: boolean;
+    live?: boolean;
+    autoFocus?: boolean;
+}
 
 /**
  * App Studio — the editor for ONE cell of ONE row, chosen by the column's type.
@@ -18,22 +73,22 @@ const CELL_CLS = 'w-full rounded-md px-2 py-1 text-sm border bg-[var(--bg-primar
     + 'border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] '
     + 'focus:border-[var(--accent-primary)]';
 
-const INPUT_TYPE = { number: 'number', date: 'date', datetime: 'datetime-local' };
+const INPUT_TYPE: Record<string, string> = { number: 'number', date: 'date', datetime: 'datetime-local' };
 
 /** The label a relation cell shows for a row of the table it points at. */
-function relationLabel(record, targetTable) {
+function relationLabel(record: RelationRow, targetTable: RelationTable | null | undefined) {
     const textField = importableFields(targetTable?.fields)
-        .find((f) => (f.type === 'text' || f.type === 'select') && record?.[f.key]);
+        .find((f: ImportField) => (f.type === 'text' || f.type === 'select') && record?.[f.key]);
     if (textField) return String(record[textField.key]);
     return String(record?.id ?? '');
 }
 
-function ChoiceCell({ field, value, onCommit, disabled, autoFocus, ariaLabel }) {
+function ChoiceCell({ field, value, onCommit, disabled, autoFocus, ariaLabel }: ChoiceCellProps) {
     const options = optionPairs(field);
     const current = value == null ? '' : String(value);
     // A value that is no longer among the choices stays visible instead of
     // silently resetting to blank the next time the cell is touched.
-    const extra = current && !options.some((o) => o.value === current) ? [{ value: current, label: current }] : [];
+    const extra = current && !options.some((o: OptionPair) => o.value === current) ? [{ value: current, label: current }] : [];
     return (
         <select
             className={CELL_CLS}
@@ -41,10 +96,10 @@ function ChoiceCell({ field, value, onCommit, disabled, autoFocus, ariaLabel }) 
             autoFocus={autoFocus}
             disabled={disabled}
             aria-label={ariaLabel}
-            onChange={(e) => onCommit(e.target.value === '' ? null : e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onCommit(e.target.value === '' ? null : e.target.value)}
         >
             <option value="">—</option>
-            {[...options, ...extra].map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {[...options, ...extra].map((o: OptionPair) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
     );
 }
@@ -54,12 +109,12 @@ function ChoiceCell({ field, value, onCommit, disabled, autoFocus, ariaLabel }) 
  * choices locally and hands the whole list over at once (onDone), unless the
  * caller wants every tick (onChange, the draft row).
  */
-function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }) {
+function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }: MultiChoiceCellProps) {
     const { t } = useTranslation();
     const options = optionPairs(field);
     const [picked, setPicked] = useState(() => listValue(value).map(String));
-    const toggle = (v) => {
-        const next = picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v];
+    const toggle = (v: string) => {
+        const next = picked.includes(v) ? picked.filter((x: string) => x !== v) : [...picked, v];
         setPicked(next);
         onChange?.(next);
     };
@@ -71,7 +126,7 @@ function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }
         >
             {options.length === 0 ? (
                 <span className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_tables.cell.no_choices', 'This column has no choices yet.')}</span>
-            ) : options.map((o) => (
+            ) : options.map((o: OptionPair) => (
                 <label key={o.value} className="inline-flex items-center gap-1.5 text-xs cursor-pointer text-[var(--text-primary)]">
                     <input
                         type="checkbox"
@@ -96,17 +151,17 @@ function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }
     );
 }
 
-function TypedCell({ field, value, onCommit, onCancel, disabled, live, autoFocus, label }) {
-    const [draft, setDraft] = useState(() => (field.type === 'date' || field.type === 'datetime'
+function TypedCell({ field, value, onCommit, onCancel, disabled, live, autoFocus, label }: TypedCellProps) {
+    const [draft, setDraft] = useState<string | number>(() => (field.type === 'date' || field.type === 'datetime'
         ? dateInputValue(value, field.type)
         : (value ?? '')));
 
-    const numeric = (raw) => {
+    const numeric = (raw: string | number | null) => {
         if (raw === '' || raw == null) return null;
         const n = Number(raw);
         return Number.isFinite(n) ? n : null;
     };
-    const emit = (raw) => onCommit(field.type === 'number' ? numeric(raw) : (raw === '' ? null : raw));
+    const emit = (raw: string | number | null) => onCommit(field.type === 'number' ? numeric(raw) : (raw === '' ? null : raw));
 
     return (
         <input
@@ -117,12 +172,12 @@ function TypedCell({ field, value, onCommit, onCancel, disabled, live, autoFocus
             disabled={disabled}
             aria-label={label}
             spellCheck={false}
-            onChange={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 setDraft(e.target.value);
                 if (live) emit(e.target.value);
             }}
             onBlur={live ? undefined : () => emit(draft)}
-            onKeyDown={(e) => {
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                 if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
                 if (e.key === 'Escape') { e.preventDefault(); onCancel?.(); }
             }}
@@ -133,7 +188,7 @@ function TypedCell({ field, value, onCommit, onCancel, disabled, live, autoFocus
 export default function RowCellEditor({
     field, value, onCommit, onCancel, relationRows, relationTable,
     disabled = false, live = false, autoFocus = false,
-}) {
+}: RowCellEditorProps) {
     const label = `${field.name || field.key}`;
 
     if (field.type === 'bool') {
@@ -144,7 +199,7 @@ export default function RowCellEditor({
                 checked={boolValue(value)}
                 disabled={disabled}
                 aria-label={label}
-                onChange={(e) => onCommit(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCommit(e.target.checked)}
             />
         );
     }
@@ -164,7 +219,7 @@ export default function RowCellEditor({
         );
     }
     if (field.type === 'relation') {
-        const choices = (relationRows || []).map((r) => ({ value: String(r.id), label: relationLabel(r, relationTable) }));
+        const choices = (relationRows || []).map((r: RelationRow) => ({ value: String(r.id), label: relationLabel(r, relationTable) }));
         return (
             <ChoiceCell
                 field={{ ...field, options: choices }}
@@ -179,7 +234,7 @@ export default function RowCellEditor({
     return (
         <TypedCell
             field={field}
-            value={value}
+            value={value as string | number | null | undefined}
             onCommit={onCommit}
             onCancel={onCancel}
             disabled={disabled}

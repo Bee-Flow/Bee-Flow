@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 /**
  * App Studio runtime — the "small markdown subset" (bold / italic / links)
  * that `markdown`-typed props support per componentSpecs.js.
@@ -9,13 +11,13 @@
  * restricted to http(s) and always open in a new tab with rel=noopener.
  */
 
-function isSafeHref(url) {
+function isSafeHref(url: string) {
     const u = String(url || '').trim().toLowerCase();
     return u.startsWith('https://') || u.startsWith('http://');
 }
 
-function parse(text, keyPrefix) {
-    const out = [];
+function parse(text: string, keyPrefix: string): ReactNode[] {
+    const out: ReactNode[] = [];
     let buf = '';
     let i = 0;
     const flush = () => {
@@ -84,7 +86,7 @@ function parse(text, keyPrefix) {
 }
 
 /** Render a markdown-subset string to an array of React nodes. */
-export function renderInlineMarkdown(text) {
+export function renderInlineMarkdown(text: unknown) {
     if (text == null) return null;
     return parse(String(text), 'md');
 }

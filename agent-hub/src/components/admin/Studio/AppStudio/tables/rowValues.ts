@@ -1,4 +1,24 @@
 import { displayValue } from '../runtime/uiBits';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+
+/** A choice as the screen renders it. */
+export interface OptionPair {
+    value: string;
+    label: string;
+}
+
+/** A choice stored as an object. */
+interface OptionObject {
+    value?: unknown;
+    label?: unknown;
+}
+
+/** The members of a model field the row editor reads. */
+export interface RowField {
+    type?: string;
+    options?: unknown[];
+    [key: string]: unknown;
+}
 
 /**
  * App Studio — how ONE cell value travels between the record endpoints and an
@@ -12,22 +32,22 @@ import { displayValue } from '../runtime/uiBits';
  */
 
 /** A choice as the model stores it — options are strings OR { value, label }. */
-export function optionPair(option) {
+export function optionPair(option: unknown): OptionPair {
     if (option && typeof option === 'object') {
-        const value = option.value ?? option.label ?? '';
-        return { value: String(value), label: String(option.label ?? value) };
+        const value = (option as OptionObject).value ?? (option as OptionObject).label ?? '';
+        return { value: String(value), label: String((option as OptionObject).label ?? value) };
     }
     return { value: String(option ?? ''), label: String(option ?? '') };
 }
 
 /** The usable choices of a select/multi-select field (blank placeholders drop). */
-export function optionPairs(field) {
+export function optionPairs(field: RowField | null | undefined) {
     const raw = Array.isArray(field?.options) ? field.options : [];
-    return raw.map(optionPair).filter((o) => o.value !== '');
+    return raw.map(optionPair).filter((o: OptionPair) => o.value !== '');
 }
 
 /** Multi-select/file values arrive as a JSON string; a single value as itself. */
-export function listValue(value) {
+export function listValue(value: unknown): unknown[] {
     if (Array.isArray(value)) return value;
     if (typeof value === 'string' && value.trim().startsWith('[')) {
         try {
@@ -39,7 +59,7 @@ export function listValue(value) {
 }
 
 /** SQLite has no boolean: 0/1 (and their text forms) mean no/yes. */
-export function boolValue(value) {
+export function boolValue(value: unknown) {
     if (typeof value === 'boolean') return value;
     if (typeof value === 'number') return value !== 0;
     const t = String(value ?? '').trim().toLowerCase();
@@ -51,28 +71,28 @@ export function boolValue(value) {
  * being localised: '2026-03-14' has no time zone, so formatting it through
  * Date would shift the day for every viewer west of Greenwich.
  */
-export function cellText(value, field, t) {
+export function cellText(value: unknown, field: RowField | null | undefined, t?: TranslateFn | null) {
     const type = field?.type || 'text';
     if (type === 'bool') return boolValue(value)
         ? (t ? t('studio_apps_tables.cell.yes', 'Yes') : 'Yes')
         : (t ? t('studio_apps_tables.cell.no', 'No') : 'No');
     if (type === 'multiselect' || type === 'file') {
         const list = listValue(value);
-        return list.length ? list.map((v) => optionPair(v).label).join(', ') : displayValue(null);
+        return list.length ? list.map((v: unknown) => optionPair(v).label).join(', ') : displayValue(null);
     }
     if (type === 'date' || type === 'datetime') {
         const text = String(value ?? '').replace('T', ' ');
         return text || displayValue(null);
     }
     if (type === 'select') {
-        const match = optionPairs(field).find((o) => o.value === String(value ?? ''));
+        const match = optionPairs(field).find((o: OptionPair) => o.value === String(value ?? ''));
         return match ? match.label : displayValue(value);
     }
     return displayValue(value);
 }
 
 /** What a date/datetime input needs: it only accepts 'YYYY-MM-DD[THH:mm]'. */
-export function dateInputValue(value, type) {
+export function dateInputValue(value: unknown, type: string | undefined) {
     const text = String(value ?? '').trim();
     if (!text) return '';
     return type === 'datetime' ? text.replace(' ', 'T').slice(0, 16) : text.slice(0, 10);

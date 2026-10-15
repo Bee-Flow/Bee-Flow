@@ -19,15 +19,15 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
  * Unmount aborts the in-flight fetch; the server-side upload stays 'uploading'
  * and can be resumed by a later visit (same sequential contract) or deleted.
  */
-export default function useDatasetUpload(appId) {
+export default function useDatasetUpload(appId: string | null | undefined) {
     const { t } = useTranslation();
     const tRef = useRef(t);
     tRef.current = t;
-    const abortRef = useRef(null);
+    const abortRef = useRef<AbortController | null>(null);
 
     useEffect(() => () => { abortRef.current?.abort(); }, []);
 
-    const upload = useCallback(async (file, { onProgress } = {}) => {
+    const upload = useCallback(async (file: File, { onProgress }: { onProgress?: (percent: number) => void } = {}) => {
         if (!appId || !file) throw new Error(tRef.current('studio_apps_runtime.dataset_upload.nothing', 'Nothing to upload'));
         const ac = new AbortController();
         abortRef.current = ac;
@@ -49,7 +49,7 @@ export default function useDatasetUpload(appId) {
         let n = 0;
         while (n < partsTotal) {
             const blob = file.slice(n * partSize, Math.min((n + 1) * partSize, file.size));
-            let lastError = null;
+            let lastError: unknown = null;
             let sent = false;
             for (let attempt = 0; attempt < 3 && !sent; attempt++) {
                 try {

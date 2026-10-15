@@ -26,9 +26,36 @@ export const CLIPBOARD_KIND = 'appstudio/nodes';
 // In-memory clipboard buffer
 // ---------------------------------------------------------------------------
 
-let buffer = null;
+/** A node as a copy captures it. */
+export interface ClipboardNode {
+    id: string;
+    type: string;
+    children?: ClipboardNode[];
+    [key: string]: unknown;
+}
 
-export function setClipboard(payload) {
+/** What a copy puts on the clipboard. */
+export interface ClipboardPayload {
+    kind: string;
+    version: number;
+    nodes: ClipboardNode[];
+}
+
+/** The part of a definition the paste targets read. */
+interface ClipboardDefinition {
+    screens?: Array<{ id?: string; sections?: Array<{ id: string }> }>;
+}
+
+/** Where a paste should land; every member is optional. */
+interface PasteTarget {
+    screenId?: string;
+    sectionId?: string;
+    index?: number;
+}
+
+let buffer: ClipboardPayload | null = null;
+
+export function setClipboard(payload: ClipboardPayload | null | undefined) {
     buffer = payload && Array.isArray(payload.nodes) && payload.nodes.length ? payload : null;
 }
 export function getClipboard() {
@@ -47,7 +74,7 @@ export function hasClipboard() {
  * another selected id (so a subtree is copied once, not once per selected
  * descendant). Preserves the input order.
  */
-function topLevelIds(def, ids) {
+function topLevelIds(def: ClipboardDefinition | null | undefined, ids: Set<string> | string[] | null | undefined) {
     const list = ids instanceof Set ? [...ids] : (Array.isArray(ids) ? ids : []);
     const found = list
         .map((id) => ({ id, node: findNode(def, id)?.node }))
@@ -58,7 +85,7 @@ function topLevelIds(def, ids) {
         .map((x) => x.id);
 }
 
-function resolveTargetSection(def, { screenId, sectionId } = {}) {
+function resolveTargetSection(def: ClipboardDefinition | null | undefined, { screenId, sectionId }: PasteTarget = {}) {
     const screens = def?.screens || [];
     if (sectionId) {
         for (const screen of screens) {
@@ -72,7 +99,7 @@ function resolveTargetSection(def, { screenId, sectionId } = {}) {
     return screens[0]?.sections?.[0]?.id || null;
 }
 
-function payloadNodes(payload) {
+function payloadNodes(payload: Partial<ClipboardPayload> | null | undefined): ClipboardNode[] {
     if (!payload || payload.kind !== CLIPBOARD_KIND || !Array.isArray(payload.nodes)) return [];
     return payload.nodes.filter((n) => n && typeof n === 'object' && typeof n.type === 'string');
 }
@@ -82,7 +109,7 @@ function payloadNodes(payload) {
 // ---------------------------------------------------------------------------
 
 /** Capture the selected nodes (top-level subtrees) into a portable payload. */
-export function serializeNodes(def, ids) {
+export function serializeNodes(def: ClipboardDefinition | null | undefined, ids: Set<string> | string[] | null | undefined) {
     const roots = topLevelIds(def, ids);
     const nodes = roots
         .map((id) => findNode(def, id)?.node)
@@ -95,7 +122,7 @@ export function serializeNodes(def, ids) {
  * Paste a payload into a section. Returns { def, newIds } — the same def
  * reference + empty ids when nothing valid was pasted (never throws).
  */
-export function pasteNodes(def, payload, { screenId, sectionId, index } = {}) {
+export function pasteNodes(def: ClipboardDefinition | null | undefined, payload: Partial<ClipboardPayload> | null | undefined, { screenId, sectionId, index }: PasteTarget = {}) {
     const nodes = payloadNodes(payload);
     if (!nodes.length) return { def, newIds: [] };
     const target = resolveTargetSection(def, { screenId, sectionId });

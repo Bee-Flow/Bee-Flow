@@ -14,8 +14,10 @@
  * whole app for no change at all. Publishing identical values is now free.
  */
 
+type FormValues = Record<string, unknown>;
+
 /** Same keys, same values by ===. Form values are flat name → scalar maps. */
-function shallowEqual(a, b) {
+function shallowEqual(a: FormValues | null | undefined, b: FormValues | null | undefined): boolean {
     if (a === b) return true;
     if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
     const keysA = Object.keys(a);
@@ -30,7 +32,7 @@ function shallowEqual(a, b) {
  * Fold one form's values into the `forms` root.
  * Returns `prev` UNCHANGED when nothing actually moved, so React bails out.
  */
-export function mergeFormValues(prev, formName, values) {
+export function mergeFormValues(prev: Record<string, FormValues> | null | undefined, formName: string | null | undefined, values: FormValues | null | undefined) {
     if (!formName) return prev;
     const base = prev || {};
     const next = values || {};

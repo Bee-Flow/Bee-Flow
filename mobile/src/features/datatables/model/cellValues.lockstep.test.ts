@@ -11,7 +11,7 @@ import { AGENT_HUB_SRC, loadWebFunctions, loadWebModule, webFileExists } from '@
 import { boolValue, cellText, dateInputValue, displayValue, listValue, optionPairs } from './cellValues';
 import type { Column } from './types';
 
-const ROW_VALUES = 'components/admin/Studio/AppStudio/tables/rowValues.js';
+const ROW_VALUES = 'components/admin/Studio/AppStudio/tables/rowValues.ts';
 const UI_BITS = 'components/admin/Studio/AppStudio/runtime/uiBits.jsx';
 const describeIfWeb = webFileExists(ROW_VALUES) && webFileExists(UI_BITS) ? describe : describe.skip;
 
