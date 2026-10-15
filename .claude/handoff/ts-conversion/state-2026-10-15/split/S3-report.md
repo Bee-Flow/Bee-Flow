@@ -26,3 +26,8 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 - Ratchet budgets NOT lowered here (rule): server long-function 109 → measured 104; `.file-budget.json` ceilings for auth/connectorJwt.js (717 → 403 lines), automation/formQueue.js (507), routes/automation/catalog.js (499), routes/transcriptions/upload.js (585) can come down in §5.
 - Comments outside S3 scope name the old writer: mobile/src/features/notifications/model/routeOrg.ts:69, route.test.ts:33, agent-hub/src/authedApp/appRoutes.test.js:194 say `auth/connectorJwt.js` (pending-user notification now lives in auth/connectorJwtProvision.js). Cosmetic.
 - Source-reading tests repointed by S3: server/auth/suppressSessionPersistence.test.js, sessionShapes.contract test (→ connectorJwtPhases.js / all three files), server/routes/transcriptions.mount.test.js (NOT_ROUTERS), server/automation/validate.knowledgeWrite.test.js (KNOWLEDGE_WRITE_STRATEGIES from catalogPickers.js), mobile/src/core/api/serverContract.test.ts (app/action keys from catalogApps.js `buildApps`).
+
+## Push log
+| Pushed commit | Verified at | check:fast | server typecheck | duplication (prod / test) | gitleaks | agent-hub tsc | agent-hub vitest | mobile jest | mobile tsc | server npm test |
+|---|---|---|---|---|---|---|---|---|---|---|
+| this commit (docs-only on top) | 83c6f167 | 39/39 | 0 errors | 15358 ≤ 15383 / 26228 ≤ 26228 | clean | 0 errors | 1836 files, 21619 pass | 762 suites, 13430 pass | 0 errors | 29058 pass, 0 fail, 0 HUNG |
