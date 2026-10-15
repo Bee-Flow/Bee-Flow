@@ -27,8 +27,8 @@ import type { Msg } from '../declarative/spec';
 const BUILDER = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder');
 const read = (rel: string) => fs.readFileSync(path.join(BUILDER, rel), 'utf8');
 const client = readDict(CLIENT_DICT);
-const editors = read('flow/settings/triggerEditors.jsx');
-const filters = read('flow/settings/triggerFilters.jsx');
+const editors = read('flow/settings/triggerEditors.tsx');
+const filters = read('flow/settings/triggerFilters.tsx');
 
 /** `t('key', 'English')` as the web writes it: the pair, with the English unescaped. */
 const T = String.raw`t\(\s*'([a-z0-9_.]+)'\s*,\s*'((?:[^'\\]|\\.)*)'`;
@@ -67,14 +67,14 @@ describe('the trigger kinds', () => {
     });
 
     it('knows the web’s legacy provider names', () => {
-        const block = /const LEGACY_PROVIDER_LABELS = \{([\s\S]*?)\};/.exec(editors)?.[1] ?? '';
+        const block = /const LEGACY_PROVIDER_LABELS(?:: [^=]+)? = \{([\s\S]*?)\};/.exec(editors)?.[1] ?? '';
         const web = Object.fromEntries([...block.matchAll(/'([^']+)': '([^']+)'/g)].map((m) => [m[1], m[2]]));
         expect(LEGACY_PROVIDER_LABELS).toEqual(web);
     });
 });
 
 describe('the app-event filters', () => {
-    const map = /export const FILTER_FORM_BY_KEY = \{([\s\S]*?)\};/.exec(filters)?.[1] ?? '';
+    const map = /export const FILTER_FORM_BY_KEY(?:: [^=]+)? = \{([\s\S]*?)\};/.exec(filters)?.[1] ?? '';
     const webMap = [...map.matchAll(/'([^']+)': (\w+),/g)].map((m) => [m[1] as string, m[2] as string] as [string, string]);
 
     it('maps the same events, in the same order', () => {

@@ -147,9 +147,9 @@ describe('what only the web components say', () => {
 
     it('names the handles the edge model reports', () => {
         expect(read('flow/nodes/ConditionNode.tsx')).toMatch(/\{ id: 'then'[^}]*\},\s*\{ id: 'else'/);
-        expect(read('flow/nodes/GuardNode.jsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
+        expect(read('flow/nodes/GuardNode.tsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
         expect(read('flow/nodes/SwitchNode.tsx')).toContain("{ id: 'case:default', label: t('condition_node.otherwise.label', 'Otherwise'), tone: 'default' }");
-        const loop = read('flow/nodes/LoopNode.jsx');
+        const loop = read('flow/nodes/LoopNode.tsx');
         expect(loop).toMatch(/\{ id: 'done', label: t\('automations\.canvas\.loop_port_done', 'Done'\), tone: 'then' \},\s*\{ id: 'on_error', label: t\('automations\.canvas\.loop_port_on_error', 'On error'\), tone: 'error' \}/);
         // An open loop keeps its ports on its header strip.
         expect(loop).toContain('id="done"\n                style={{ top: CONTAINER_HEADER / 2 - 8 }}');

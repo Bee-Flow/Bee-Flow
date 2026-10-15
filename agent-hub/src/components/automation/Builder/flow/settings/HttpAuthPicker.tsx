@@ -2,8 +2,21 @@ import { Loader2, Plus } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { inputClass, FormRow } from './formPrimitives';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import type { HttpConnection } from '../../../../../hooks/useAutomationApi.types';
 import { HTTP_AUTH_TYPES, HTTP_AUTH_TYPE_BY_ID, httpKindName, splitHttpAuthValues, missingHttpAuthFields } from '../../../../../utils/httpCredentialTypes';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import { messageOf } from '../../../../../utils/caughtError';
+
+interface HttpAuthPickerProps {
+    value?: string;
+    onChange: (next: string | null) => void;
+}
+
+interface InlineCredentialFormProps {
+    api: ReturnType<typeof useAutomationApi>;
+    onCreated: (connection: HttpConnection) => void;
+    onCancel: () => void;
+}
 
 /**
  * Credential picker for the http_request step's Authentication section.
@@ -15,18 +28,18 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
  * `value` is the selected connectionId (or ''); `onChange` receives the new
  * id, or null when "None" is picked.
  */
-export default function HttpAuthPicker({ value, onChange }) {
+export default function HttpAuthPicker({ value, onChange }: HttpAuthPickerProps) {
     const { t } = useTranslation();
     const api = useAutomationApi();
-    const [conns, setConns] = useState(null); // null = loading; array = loaded
-    const [error, setError] = useState(null);
+    const [conns, setConns] = useState<HttpConnection[] | null>(null); // null = loading; array = loaded
+    const [error, setError] = useState<string | null>(null);
     const [adding, setAdding] = useState(false);
 
     useEffect(() => {
         let alive = true;
         api.listHttpConnections()
             .then(d => { if (alive) setConns(d.connections || []); })
-            .catch(e => { if (alive) setError(e.message || 'Failed to load credentials'); });
+            .catch(e => { if (alive) setError(messageOf(e, 'Failed to load credentials')); });
         return () => { alive = false; };
     }, [api]);
 
@@ -106,13 +119,13 @@ export default function HttpAuthPicker({ value, onChange }) {
     );
 }
 
-function InlineCredentialForm({ api, onCreated, onCancel }) {
+function InlineCredentialForm({ api, onCreated, onCancel }: InlineCredentialFormProps) {
     const { t } = useTranslation();
     const [label, setLabel] = useState('');
     const [typeId, setTypeId] = useState(HTTP_AUTH_TYPES[0].id);
-    const [values, setValues] = useState({});
+    const [values, setValues] = useState<Record<string, string>>({});
     const [busy, setBusy] = useState(false);
-    const [err, setErr] = useState(null);
+    const [err, setErr] = useState<string | null>(null);
 
     const authType = HTTP_AUTH_TYPE_BY_ID[typeId];
 
@@ -124,12 +137,12 @@ function InlineCredentialForm({ api, onCreated, onCancel }) {
         setBusy(true); setErr(null);
         try {
             const { secret, secretMeta } = splitHttpAuthValues(authType, values);
-            const body = { provider: 'http', kind: authType.kind, label: label.trim() || authType.name, secret };
+            const body: Record<string, unknown> = { provider: 'http', kind: authType.kind, label: label.trim() || authType.name, secret };
             if (Object.keys(secretMeta).length > 0) body.secretMeta = secretMeta;
             const d = await api.createHttpConnection(body);
             onCreated(d.connection);
         } catch (e) {
-            setErr(e.message || 'Could not create credential');
+            setErr(messageOf(e, 'Could not create credential'));
             setBusy(false);
         }
     };

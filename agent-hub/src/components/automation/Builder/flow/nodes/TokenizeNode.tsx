@@ -3,6 +3,7 @@ import { VenetianMask } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase from './StepNodeBase';
 import { humanizeExpression } from '../displayHelpers';
+import type { HumanizeExpression, StepNodeProps } from './nodeProps';
 
 /**
  * "Hide personal data" on the canvas.
@@ -11,9 +12,9 @@ import { humanizeExpression } from '../displayHelpers';
  * restore step to wire — the real values come back on their own wherever the
  * run uses them again.
  */
-export default function TokenizeNode({ id, data }) {
+export default function TokenizeNode({ id, data }: StepNodeProps) {
     const { step, runStep, issues, onAddAfter, stepLabelById } = data;
-    const source = humanizeExpression(step.sourceRef || '', stepLabelById);
+    const source = (humanizeExpression as HumanizeExpression)(step.sourceRef || '', stepLabelById);
     const hidden = runStep?.output?.count;
     const outcome = Number.isInteger(hidden)
         ? (hidden === 0 ? 'nothing found' : `${hidden} value${hidden === 1 ? '' : 's'} hidden`)

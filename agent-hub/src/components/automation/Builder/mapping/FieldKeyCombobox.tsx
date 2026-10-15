@@ -1,12 +1,27 @@
 import { pathKeys } from '@shared/expr/path.mjs';
 import { ChevronDown } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
+import type { OnFocusField } from './focusField.types';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
 import { useFormRowLabel } from './FormRowLabelContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue } from '../../../../utils/bindingHelpers';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
 import { denseInputClass } from '../flow/settings/formStyles';
+
+export interface FieldKeyOption {
+    key: string;
+    sample?: unknown;
+}
+
+interface FieldKeyComboboxProps {
+    value?: string | null;
+    onChange?: (next: string) => void;
+    options?: FieldKeyOption[];
+    placeholder?: string;
+    label?: string;
+    onFocusField?: OnFocusField | null;
+}
 
 /**
  * FieldKeyCombobox — a field-NAME picker for the collection ops (Dedupe
@@ -30,17 +45,17 @@ export default function FieldKeyCombobox({
     placeholder = 'field name',
     label,
     onFocusField,
-}) {
+}: FieldKeyComboboxProps) {
     const rowLabel = useFormRowLabel();
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const inputRef = useRef(null);
-    const anchorRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const anchorRef = useRef<HTMLDivElement>(null);
     const close = useCallback(() => setOpen(false), []);
 
     // The last KEY of a dropped path, read as the runtime reads it:
     // `…items[*]["first-name"]` gives `first-name`, not `items[*]["first-name"]`.
-    const lastSegment = (path) => {
+    const lastSegment = (path: string | null | undefined): string => {
         const keys = pathKeys(String(path || '').trim());
         if (keys) return keys.filter(k => typeof k === 'string' && k !== '*').pop() || '';
         const cleaned = String(path || '').trim().replace(/\[(?:\*|\d+)\]$/, '');
@@ -48,14 +63,14 @@ export default function FieldKeyCombobox({
         return seg.replace(/\[(?:\*|\d+)\]$/, '');
     };
 
-    const emit = (next) => onChange?.(next);
+    const emit = (next: string) => onChange?.(next);
 
     const onFocus = () => {
         setOpen(true);
         onFocusField?.({
             id: label || placeholder || 'field',
             label: label || rowLabel || '',
-            insert: (path) => emit(lastSegment(path)),
+            insert: (path: string) => emit(lastSegment(path)),
         });
     };
     // Deliberately NOT closed on blur any more. The old `onBlur` + 150 ms
@@ -65,14 +80,14 @@ export default function FieldKeyCombobox({
     // that is not a scrollbar, or Escape.
 
     const onDragOver = onBindingDragOver;
-    const onDrop = (e) => {
+    const onDrop = (e: React.DragEvent) => {
         const path = getBindingDropPath(e);
         if (!path) return;
         emit(lastSegment(path));
     };
 
     const trimmed = String(value || '').trim();
-    let warning = null;
+    let warning: string | null = null;
     if (/\./.test(trimmed)) {
         warning = t('automations.builder.field_key_dot', "Nested paths aren't supported here — pick a top-level field of each item.");
     } else if (trimmed && options.length > 0 && !options.some(o => o.key === trimmed)) {
