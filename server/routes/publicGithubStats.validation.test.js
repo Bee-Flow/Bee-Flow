@@ -165,7 +165,9 @@ test('without any copy, a recent failure is still a 503 without asking again', a
     now += 60 * 1000;
     const second = await dispatch(router, '/github-stats');
     assert.strictEqual(second.statusCode, 503);
-    assert.deepStrictEqual(second.body, { error: 'github_unavailable' });
+    assert.strictEqual(second.body.error, 'github_unavailable');
+    assert.strictEqual(second.body.code, 'github_unavailable');
+    assert.ok(second.body.correlationId);
     assert.deepStrictEqual(upstream, []);
 });
 

@@ -54,6 +54,7 @@ const { coerceDraft, KIND_HEADINGS, MAX_TITLE_LEN, MAX_ITEMS } = require('../cor
 const { requireAdmin } = require('./cmsShared');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { unavailable } = require('../core/http/errors');
 
 const text = (message) => z.string({ error: typeError({ invalid: message }) });
 /** git lines: one text the CI joins with newlines, or a list. normaliseLines reads both. */
@@ -111,7 +112,7 @@ function _authorized(req) {
 
 function _requireIngestToken(req, res, next) {
     if (!process.env.RELEASE_NOTES_TOKEN) {
-        return res.status(503).json({ error: 'release_notes_ingest_disabled' });
+        return next(unavailable('release_notes_ingest_disabled', 'release_notes_ingest_disabled'));
     }
     if (!_authorized(req)) return res.status(401).json({ error: 'unauthorized' });
     next();
@@ -205,7 +206,7 @@ router.get('/public', async (req, res) => {
             return res.json({ entries: _cache.data });
         }
         if (!_cache.data && now - _failedAt < PUBLIC_FAILURE_TTL_MS) {
-            return res.status(503).json({ error: 'unavailable' });
+            throw unavailable('unavailable', 'unavailable');
         }
         if (!_inFlight) {
             _inFlight = _loadPublished()
@@ -219,7 +220,7 @@ router.get('/public', async (req, res) => {
         // A stale cache still beats an empty changelog.
         if (_cache.data) return res.json({ entries: _cache.data });
         log.warn('[ReleaseNotes] public read failed:', err.message);
-        res.status(503).json({ error: 'unavailable' });
+        throw unavailable('unavailable', 'unavailable');
     }
 });
 
