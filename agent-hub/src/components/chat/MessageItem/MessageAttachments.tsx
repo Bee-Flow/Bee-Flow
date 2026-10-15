@@ -4,7 +4,7 @@ import { openLibraryDocument } from './openLibraryDocument';
 import useTranslation from '../../../hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
 
-interface Attachment { type?: string; url?: string; content?: string; name?: string }
+interface Attachment { type?: string; url?: string; content?: string; name?: string; documentId?: string }
 
 /**
  * The attachment chips under a message bubble. Lifted verbatim out of
@@ -33,7 +33,7 @@ const MessageAttachments = ({ msg, isUser, setLightboxImage }: { msg: ChatMessag
                     {typeof att.documentId === 'string' && att.documentId && (
                         <button
                             type="button"
-                            onClick={() => openLibraryDocument(att.documentId)}
+                            onClick={() => openLibraryDocument(att.documentId as string)}
                             className="flex items-center gap-1 px-2 py-1.5 font-medium hover:underline flex-shrink-0"
                         >
                             <ExternalLink size={12} aria-hidden="true" />

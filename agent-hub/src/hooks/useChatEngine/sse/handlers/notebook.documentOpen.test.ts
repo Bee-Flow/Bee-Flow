@@ -2,8 +2,28 @@ import { describe, it, expect, vi } from 'vitest';
 import { dispatchSSEEvent } from '../dispatch';
 import type { SseDispatchContext, SseDispatchIds, SseEventData } from '../../types';
 
-const ids = { assistantMsgId: 'a', activeIdRef: { current: 'a' } } as unknown as SseDispatchIds;
-const ctx = { setMessages: () => {} } as unknown as SseDispatchContext;
+const noop = () => {};
+const ids: SseDispatchIds = {
+    assistantMsgId: 'a',
+    userMsgId: 'u',
+    activeIdRef: { current: 'a' },
+    contentRef: { current: '' },
+    flusher: { schedule: noop, flushNow: noop, cancel: noop },
+    workRef: { current: null },
+};
+const ctx: SseDispatchContext = {
+    setMessages: noop,
+    tRef: { current: (key) => key },
+    onGammaPreviewRef: { current: undefined },
+    onNotebookDocUpdateRef: { current: undefined },
+    onNotebookSourceAddedRef: { current: undefined },
+    onHistoryLockedRef: { current: undefined },
+    onNotebookThemeUpdateRef: { current: undefined },
+    onWebpageDocUpdateRef: { current: undefined },
+    onWebpageSourceAddedRef: { current: undefined },
+    onWebpageExtraUpdateRef: { current: undefined },
+    onWebpageExtraDeletedRef: { current: undefined },
+};
 const send = (data: Record<string, unknown>) => dispatchSSEEvent(ctx, 'document_open', data as SseEventData, ids);
 const detailOf = (fn: ReturnType<typeof vi.fn>) => (fn.mock.calls[0][0] as CustomEvent<{ id: string }>).detail;
 
