@@ -116,7 +116,7 @@ export default function useEditorViewLifecycle(s: EditorShared, props: BeeEditor
       facadeRef.current = null;
       setViewInst(null);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- the ProseMirror view is created once per mount; later prop changes are applied by the effects below
+  // Deliberately no deps (the ProseMirror view is created once per mount; later prop changes are applied by the effects below)
   }, []);
 
   /* external content changes (e.g. switching notebooks) */

@@ -2,7 +2,8 @@
  * Characterisation of PageRenderer: one page definition that exercises every
  * element type of the renderer, pinned as DOM output, plus the button overlay.
  */
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../hooks/useTranslation', () => ({
@@ -55,14 +56,15 @@ describe('PageRenderer', () => {
         expect(screen.getByText('Invalid page definition. Expected JSON format.')).toBeTruthy();
     });
 
-    it('button click calls onAction and opens/closes the overlay', () => {
+    it('button click calls onAction and opens/closes the overlay', async () => {
+        const user = userEvent.setup();
         const onAction = vi.fn();
         render(<PageRenderer code={PAGE} onAction={onAction} />);
-        fireEvent.click(screen.getByText('Go'));
+        await user.click(screen.getByText('Go'));
         expect(onAction).toHaveBeenCalledWith({ type: 'button', action: 'run', data: undefined });
         expect(screen.getByText('Overlay body')).toBeTruthy();
         expect(screen.getByText('Open Link →').getAttribute('href')).toBe('https://example.test/x');
-        fireEvent.click(screen.getByText('Close'));
+        await user.click(screen.getByText('Close'));
         expect(screen.queryByText('Overlay body')).toBeNull();
     });
 });
