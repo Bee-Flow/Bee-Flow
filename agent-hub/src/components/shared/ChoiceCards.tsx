@@ -11,7 +11,7 @@ import React, { useRef } from 'react';
  *
  * ── Why a shared component rather than a fourth copy ──────────────────────
  * There were already two prior arts — `admin/subscriptions/ui/Choice.jsx` and
- * `appearance-studio/shared/PresetCard.jsx` — and NEITHER has radio semantics.
+ * `appearance-studio/shared/PresetCard.tsx` — and NEITHER has radio semantics.
  * They render plain buttons whose only selected-state signal is colour, so a
  * screen-reader user is told "button, Tokenize & round-trip" with no way to
  * know it is the current choice, or even that the options are mutually

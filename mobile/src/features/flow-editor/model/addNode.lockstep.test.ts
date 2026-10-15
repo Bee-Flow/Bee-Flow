@@ -45,7 +45,7 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/setti
 );
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const web = require('../../../../../agent-hub/src/components/automation/Builder/applyAddNode.js');
+const web = require('../../../../../agent-hub/src/components/automation/Builder/applyAddNode.ts');
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);
 /* eslint-enable @typescript-eslint/no-require-imports */
