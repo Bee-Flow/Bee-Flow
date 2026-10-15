@@ -13,7 +13,7 @@ import useTranslation from '../../../../../hooks/useTranslation';
  * loaded we say so — and offer the reload rather than forcing one, because
  * yanking the app out from under someone mid-form is its own bug.
  */
-export default function AppVersionBanner({ onReload }) {
+export default function AppVersionBanner({ onReload }: { onReload: () => void }) {
     const { t } = useTranslation();
     return (
         <div

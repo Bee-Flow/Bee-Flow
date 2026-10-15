@@ -5,6 +5,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
+import type { RuntimeNode } from '../RuntimeContext';
 import { parseSseStream } from '../sseStream';
 
 /**
@@ -24,7 +25,27 @@ import { parseSseStream } from '../sseStream';
  * In edit mode the component renders an inert preview.
  */
 
-export default function AppAiChat({ node }) {
+interface AiChatProps {
+    mode?: string;
+    starters?: string[];
+    greeting?: string;
+    placeholder?: string;
+}
+
+/** One turn of the transcript. */
+interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
+/** One event of the answer stream. */
+interface ChatStreamEvent {
+    type?: string;
+    text?: string;
+    error?: string;
+}
+
+export default function AppAiChat({ node }: { node: RuntimeNode<AiChatProps> }) {
     const { t } = useTranslation();
     const { mode } = useRuntime();
     // `draft` picks which definition the server resolves this node against —
@@ -35,24 +56,24 @@ export default function AppAiChat({ node }) {
     const singleTurn = props.mode === 'assistant';
     const starters = Array.isArray(props.starters) ? props.starters.filter(Boolean) : [];
 
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
-    const listRef = useRef(null);
+    const [error, setError] = useState<string | null>(null);
+    const listRef = useRef<HTMLDivElement>(null);
     const live = mode === 'run' && !!appId;
 
     useEffect(() => {
         if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
     }, [messages]);
 
-    const send = async (text) => {
+    const send = async (text: unknown) => {
         const content = String(text ?? '').trim();
         if (!content || busy || !live) return;
         setError(null);
         setInput('');
         // An assistant-mode turn starts fresh; a chat-mode turn carries history.
-        const outgoing = [...(singleTurn ? [] : messages), { role: 'user', content }];
+        const outgoing: ChatMessage[] = [...(singleTurn ? [] : messages), { role: 'user', content }];
         setMessages([...outgoing, { role: 'assistant', content: '' }]);
         setBusy(true);
         try {
@@ -63,13 +84,13 @@ export default function AppAiChat({ node }) {
                 body: JSON.stringify({ nodeId: node.id, messages: outgoing }),
             });
             if (!res.ok || !res.body) {
-                let body = null;
+                let body: { error?: string } | null = null;
                 try { body = await res.json(); } catch { /* not JSON */ }
                 throw new Error(body?.error || t('studio_apps_runtime.ai_chat.unavailable', 'The assistant is unavailable ({status})', { status: res.status }));
             }
 
             let answer = '';
-            await parseSseStream(res, (evt) => {
+            await parseSseStream(res, (evt: ChatStreamEvent) => {
                 if (evt.type === 'text') {
                     answer += evt.text || '';
                     setMessages((m) => {
@@ -89,7 +110,7 @@ export default function AppAiChat({ node }) {
                 });
             }
         } catch (e) {
-            setError(e?.message || t('studio_apps_runtime.ai_chat.failed', 'The assistant failed to respond.'));
+            setError((e as Error)?.message || t('studio_apps_runtime.ai_chat.failed', 'The assistant failed to respond.'));
             setMessages((m) => m.slice(0, -1)); // drop the pending assistant bubble
         } finally {
             setBusy(false);

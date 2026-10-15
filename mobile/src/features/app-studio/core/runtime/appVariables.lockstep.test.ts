@@ -8,7 +8,7 @@ import * as port from './appVariables';
 import { loadWeb } from '../testing/loadWeb';
 
 type AnyFn = (...args: unknown[]) => unknown;
-const web = loadWeb<Record<string, unknown>>('runtime/appVariables.js');
+const web = loadWeb<Record<string, unknown>>('runtime/appVariables.ts');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const server = require('../../../../../../server/appStudio/componentSpecs/variables.js') as Record<string, unknown>;
 

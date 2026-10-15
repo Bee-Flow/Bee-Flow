@@ -1,4 +1,5 @@
 import { parseExpr } from '@shared/expr/engine.mjs';
+import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
 
 /**
  * App Studio RBAC — client mirror of the server's row-filter subset validator.
@@ -28,11 +29,34 @@ const LOGIC = new Set(['&&', '||']);
  * Translate with `t` when the caller has one; otherwise the English default
  * (tests and non-React callers), interpolated the same way.
  */
-const tr = (t, key, en, params) => (t
+const tr = (t: TranslateFn | null | undefined, key: string, en: string, params?: TranslateParams) => (t
     ? t(key, en, params)
-    : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
+    : en.replace(/\{(\w+)\}/g, (m: string, k: string) => (params && k in params ? String(params[k]) : m)));
 
-function fieldKeySet(table) {
+/** The slice of a data-model table the validator reads. */
+export interface RowFilterTable {
+    fields?: Array<{ key?: unknown; type?: string; computed?: { stored?: boolean } | null } | null>;
+}
+
+/** One step of a parsed `record.status` path. */
+interface PathSegment {
+    kind: string;
+    v: string;
+}
+
+/** A node of the shared-expr AST, as far as the subset check reads it. */
+export interface ExprNode {
+    kind: string;
+    /** Operator of a binop / unop node. */
+    op: string;
+    a?: ExprNode;
+    b?: ExprNode;
+    /** The literal of a str / num / bool node; the other kinds carry none. */
+    v: string | number | boolean;
+    segments?: PathSegment[];
+}
+
+function fieldKeySet(table: RowFilterTable | null | undefined): Set<string> {
     const set = new Set(SYSTEM_COLUMNS);
     const fields = Array.isArray(table?.fields) ? table.fields : [];
     for (const f of fields) {
@@ -44,7 +68,7 @@ function fieldKeySet(table) {
     return set;
 }
 
-function checkPath(node, fieldKeys, t) {
+function checkPath(node: ExprNode, fieldKeys: Set<string>, t: TranslateFn | null | undefined) {
     const segs = node.segments;
     if (!Array.isArray(segs) || segs.length !== 2) {
         throw new Error(tr(t, 'studio_apps_edit.row_filter.path_shape', 'Write record.<column> for the row, or viewer.id / viewer.role / viewer.organizationId for the person opening the app.'));
@@ -61,7 +85,7 @@ function checkPath(node, fieldKeys, t) {
     throw new Error(tr(t, 'studio_apps_edit.row_filter.unknown_root', 'There is nothing called "{name}" here — a row rule can only use record.<column> and viewer.<attribute>.', { name: root.v }));
 }
 
-function checkOperand(node, fieldKeys, t) {
+function checkOperand(node: ExprNode | null | undefined, fieldKeys: Set<string>, t: TranslateFn | null | undefined) {
     if (!node || typeof node !== 'object') throw new Error(tr(t, 'studio_apps_edit.row_filter.operand_missing', 'Something is missing on one side of a comparison.'));
     switch (node.kind) {
         case 'num':
@@ -75,7 +99,7 @@ function checkOperand(node, fieldKeys, t) {
     }
 }
 
-function checkNode(node, fieldKeys, t) {
+function checkNode(node: ExprNode | null | undefined, fieldKeys: Set<string>, t: TranslateFn | null | undefined) {
     if (!node || typeof node !== 'object') throw new Error(tr(t, 'studio_apps_edit.row_filter.rule_empty', 'This rule is empty.'));
     switch (node.kind) {
         case 'binop':
@@ -103,7 +127,7 @@ function checkNode(node, fieldKeys, t) {
     }
 }
 
-function describeKind(kind, t) {
+function describeKind(kind: string, t: TranslateFn | null | undefined): string {
     switch (kind) {
         case 'call': return tr(t, 'studio_apps_edit.row_filter.kind_call', 'function call');
         case 'ternary': return tr(t, 'studio_apps_edit.row_filter.kind_ternary', 'conditional (a ? b : c)');
@@ -115,24 +139,23 @@ function describeKind(kind, t) {
 
 /**
  * Validate a row-filter expression string against the supported subset.
- * @param {string} expr the raw expression (empty = "no rule", always valid)
- * @param {object} [table] the data-model table (for record.<field> resolution)
- * @returns {{ ok: boolean, error: string|null }}
+ * @param expr the raw expression (empty = "no rule", always valid)
+ * @param table the data-model table (for record.<field> resolution)
  */
-export function validateRowFilterExpr(expr, table, t = null) {
+export function validateRowFilterExpr(expr: unknown, table?: RowFilterTable | null, t: TranslateFn | null = null): { ok: boolean; error: string | null } {
     const src = String(expr ?? '').trim();
     if (!src) return { ok: true, error: null };
     let ast;
     try {
         ast = parseExpr(src);
     } catch (e) {
-        return { ok: false, error: tr(t, 'studio_apps_edit.row_filter.unreadable', 'This rule could not be read — {detail}', { detail: e?.message || tr(t, 'studio_apps_edit.row_filter.unreadable_hint', 'check the spelling and the brackets.') }) };
+        return { ok: false, error: tr(t, 'studio_apps_edit.row_filter.unreadable', 'This rule could not be read — {detail}', { detail: (e as Error)?.message || tr(t, 'studio_apps_edit.row_filter.unreadable_hint', 'check the spelling and the brackets.') }) };
     }
     try {
         checkNode(ast, fieldKeySet(table), t);
         return { ok: true, error: null };
     } catch (e) {
-        return { ok: false, error: e.message };
+        return { ok: false, error: (e as Error).message };
     }
 }
 

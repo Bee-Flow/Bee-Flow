@@ -1,5 +1,8 @@
 import { parseExpr } from '@shared/expr/engine.mjs';
 import { validateRowFilterExpr } from './rowFilterSubset';
+import type { ExprNode } from './rowFilterSubset';
+import type { AccessEntry, AccessOutcomeArgs, AccessPerm, ParsedRowRule, RowRule, RuleCondition, RuleField, RuleTable } from './rowRuleModel.types';
+import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
 
 /**
  * App Studio RBAC — the picker model behind the row-rule builder.
@@ -30,7 +33,7 @@ import { validateRowFilterExpr } from './rowFilterSubset';
 // org_id is stamped from the APP's organisation on every row (queryCompiler
 // compileInsert), never from whoever added it — the name says so, otherwise a
 // rule on it reads like a per-person check while it is the same for all rows.
-const SYSTEM_FIELDS = [
+const SYSTEM_FIELDS: Array<{ key: string; name: string; nameKey: string; type: string }> = [
     { key: 'created_by', name: 'Who added the row', nameKey: 'studio_apps_edit.row_rule.sys_created_by', type: 'text' },
     { key: 'created_at', name: 'When it was added', nameKey: 'studio_apps_edit.row_rule.sys_created_at', type: 'datetime' },
     { key: 'updated_at', name: 'When it was last changed', nameKey: 'studio_apps_edit.row_rule.sys_updated_at', type: 'datetime' },
@@ -42,22 +45,22 @@ const SYSTEM_FIELDS = [
  * Translate with `t` when the caller has one; otherwise the English default
  * (tests and non-React callers), interpolated the same way.
  */
-const tr = (t, key, en, params) => (t
+const tr = (t: TranslateFn | null | undefined, key: string, en: string, params?: TranslateParams) => (t
     ? t(key, en, params)
-    : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
+    : en.replace(/\{(\w+)\}/g, (m: string, k: string) => (params && k in params ? String(params[k]) : m)));
 
 /** The runtime values a rule may compare against, named the way a person says them. */
-export const COMPARE_SOURCES = [
+export const COMPARE_SOURCES: Array<{ id: string; label: string; labelKey: string }> = [
     { id: 'value', label: 'a value I type', labelKey: 'studio_apps_edit.row_rule.src_value' },
     { id: 'viewer.id', label: 'the person opening the app', labelKey: 'studio_apps_edit.row_rule.src_viewer_id' },
     { id: 'viewer.organizationId', label: 'their organisation', labelKey: 'studio_apps_edit.row_rule.src_viewer_org' },
     { id: 'viewer.role', label: 'their role', labelKey: 'studio_apps_edit.row_rule.src_viewer_role' },
 ];
 
-const SOURCE_LABEL = new Map(COMPARE_SOURCES.map((s) => [s.id, s.label]));
+const SOURCE_LABEL = new Map(COMPARE_SOURCES.map((s): [string, string] => [s.id, s.label]));
 
 /** A compare source's name, translated when `t` is given. */
-export function compareSourceLabel(id, t = null) {
+export function compareSourceLabel(id: string, t: TranslateFn | null = null) {
     const source = COMPARE_SOURCES.find((s) => s.id === id);
     return source ? tr(t, source.labelKey, source.label) : id;
 }
@@ -67,14 +70,14 @@ export function compareSourceLabel(id, t = null) {
  * the label names the writing too — describeAccessOutcome then spells out the
  * exact same entry scopeToEntry writes.
  */
-export const BASE_SCOPES = [
+export const BASE_SCOPES: Array<{ value: string; label: string; labelKey: string }> = [
     { value: 'all', label: 'See, change and delete every row', labelKey: 'studio_apps_edit.row_rule.scope_all' },
     { value: 'own', label: 'Only the rows they added', labelKey: 'studio_apps_edit.row_rule.scope_own' },
     { value: 'none', label: 'No access', labelKey: 'studio_apps_edit.row_rule.scope_none' },
 ];
 
 /** The access entry a base scope writes — read/add/edit/delete, all four. */
-export function scopeToEntry(scope) {
+export function scopeToEntry(scope: string): AccessEntry {
     switch (scope) {
         case 'own': return { read: 'own', create: true, update: 'own', delete: 'own' };
         case 'none': return { read: 'none', create: false, update: 'none', delete: 'none' };
@@ -85,11 +88,11 @@ export function scopeToEntry(scope) {
 
 // ── The access a role already has ───────────────────────────────────
 
-const ACCESS_MODES = ['app', 'owner', 'role', 'none'];
+const ACCESS_MODES: Array<string | undefined> = ['app', 'owner', 'role', 'none'];
 const ACTIONS = ['read', 'create', 'update', 'delete'];
-const READ_WRITE_SCOPES = ['none', 'own', 'all'];
+const READ_WRITE_SCOPES: AccessPerm[] = ['none', 'own', 'all'];
 
-function normalizePerm(value, action) {
+function normalizePerm(value: AccessPerm, action: string): AccessPerm {
     if (action === 'create') return value === true || value === 'all' || value === 'own';
     if (READ_WRITE_SCOPES.includes(value)) return value;
     if (value === true) return 'all';
@@ -97,7 +100,7 @@ function normalizePerm(value, action) {
     return 'none';
 }
 
-function defaultPerm(mode, action) {
+function defaultPerm(mode: string | undefined, action: string): AccessPerm {
     switch (mode) {
         case 'app': return action === 'create' ? true : 'all';
         case 'owner': return action === 'create' ? true : 'own';
@@ -118,14 +121,14 @@ function defaultPerm(mode, action) {
  * in that way when it stores the model, and understating what a role has would
  * be the more dangerous mistake here.
  */
-export function resolveAccessEntry(table, roleKey) {
-    const access = (table && typeof table.access === 'object' && table.access) ? table.access : {};
+export function resolveAccessEntry(table: RuleTable | null | undefined, roleKey?: string | null): AccessEntry {
+    const access: NonNullable<RuleTable['access']> = (table && typeof table.access === 'object' && table.access) ? table.access : {};
     const roles = (access.roles && typeof access.roles === 'object') ? access.roles : {};
     const entry = (roleKey && Object.hasOwn(roles, roleKey) && roles[roleKey] && typeof roles[roleKey] === 'object')
         ? roles[roleKey]
         : null;
     const mode = ACCESS_MODES.includes(access.default) ? access.default : 'app';
-    const out = {};
+    const out: AccessEntry = {};
     for (const action of ACTIONS) {
         out[action] = (entry && Object.hasOwn(entry, action))
             ? normalizePerm(entry[action], action)
@@ -135,7 +138,7 @@ export function resolveAccessEntry(table, roleKey) {
 }
 
 /** Which preset an access entry IS, or null when it is a mix of its own. */
-export function matchBaseScope(entry) {
+export function matchBaseScope(entry: AccessEntry | null | undefined) {
     const found = BASE_SCOPES.find((s) => {
         const preset = scopeToEntry(s.value);
         return ACTIONS.every((a) => preset[a] === entry?.[a]);
@@ -146,7 +149,7 @@ export function matchBaseScope(entry) {
 // ── Fields ──────────────────────────────────────────────────────────
 
 /** Every column a rule may name, in picker order: the table's own, then the built-ins. */
-export function ruleFields(table, t = null) {
+export function ruleFields(table: RuleTable | null | undefined, t: TranslateFn | null = null): RuleField[] {
     const own = (Array.isArray(table?.fields) ? table.fields : [])
         // Read-time computed fields have no stored column — the server rejects them.
         .filter((f) => f && typeof f.key === 'string'
@@ -156,12 +159,12 @@ export function ruleFields(table, t = null) {
     return [...own, ...SYSTEM_FIELDS.filter((f) => !taken.has(f.key)).map(({ nameKey, ...f }) => ({ ...f, name: tr(t, nameKey, f.name) }))];
 }
 
-export function findRuleField(table, key, t = null) {
+export function findRuleField(table: RuleTable | null | undefined, key: string, t: TranslateFn | null = null) {
     return ruleFields(table, t).find((f) => f.key === key) || null;
 }
 
 /** Which control the value side needs. */
-export function valueKindOf(field) {
+export function valueKindOf(field?: { type?: string } | null) {
     switch (field?.type) {
         case 'bool': return 'yesno';
         case 'number': return 'number';
@@ -174,7 +177,7 @@ export function valueKindOf(field) {
 
 // ── Operators ───────────────────────────────────────────────────────
 
-const OPS_BY_KIND = {
+const OPS_BY_KIND: Record<string, string[]> = {
     yesno: ['==', '!='],
     number: ['==', '!=', '>', '>=', '<', '<='],
     // No blank check on a date/number column: the subset spells it `== ""`, which
@@ -185,7 +188,7 @@ const OPS_BY_KIND = {
     text: ['==', '!=', 'empty', 'notEmpty'],
 };
 
-const OP_LABELS = {
+const OP_LABELS: Record<string, [string, string]> = {
     '==': ['studio_apps_edit.row_rule.op_eq', 'is'],
     '!=': ['studio_apps_edit.row_rule.op_ne', 'is not'],
     '>': ['studio_apps_edit.row_rule.op_gt', 'is more than'],
@@ -198,14 +201,14 @@ const OP_LABELS = {
     notEmpty: ['studio_apps_edit.row_rule.op_not_blank', 'is not blank'],
 };
 
-const DATE_OP_LABELS = {
+const DATE_OP_LABELS: Record<string, [string, string]> = {
     '>': ['studio_apps_edit.row_rule.op_after', 'is after'],
     '>=': ['studio_apps_edit.row_rule.op_on_or_after', 'is on or after'],
     '<': ['studio_apps_edit.row_rule.op_before', 'is before'],
     '<=': ['studio_apps_edit.row_rule.op_on_or_before', 'is on or before'],
 };
 
-export function operatorLabel(op, kind, t = null) {
+export function operatorLabel(op: string, kind: string, t: TranslateFn | null = null) {
     const entry = ((kind === 'date' || kind === 'datetime') && DATE_OP_LABELS[op]) || OP_LABELS[op];
     return entry ? tr(t, entry[0], entry[1]) : op;
 }
@@ -215,7 +218,7 @@ export function operatorLabel(op, kind, t = null) {
  * was typed by hand (e.g. `>` on a text column) keeps its own operator in the
  * dropdown rather than snapping to another one.
  */
-export function operatorsForField(field, keepOp = null, t = null) {
+export function operatorsForField(field: RuleField | null | undefined, keepOp: string | null = null, t: TranslateFn | null = null) {
     const kind = valueKindOf(field);
     const ops = [...(OPS_BY_KIND[kind] || OPS_BY_KIND.text)];
     if (keepOp && !ops.includes(keepOp)) ops.push(keepOp);
@@ -227,7 +230,7 @@ export function operatorsForField(field, keepOp = null, t = null) {
 let conditionSeq = 0;
 function nextId() { conditionSeq += 1; return `cond_${conditionSeq}`; }
 
-export function blankCondition(table) {
+export function blankCondition(table: RuleTable | null | undefined): RuleCondition {
     const first = ruleFields(table)[0];
     return {
         id: nextId(),
@@ -241,12 +244,12 @@ export function blankCondition(table) {
 }
 
 /** "Only rows they added themselves", as a condition instead of typed text. */
-export function ownRowsCondition() {
+export function ownRowsCondition(): RuleCondition {
     return { id: nextId(), field: 'created_by', op: '==', source: 'viewer.id', value: '', valueType: 'string' };
 }
 
 /** Re-type the value side after the field changed, keeping what still fits. */
-export function retypeCondition(condition, field) {
+export function retypeCondition(condition: RuleCondition, field: RuleField): RuleCondition {
     const kind = valueKindOf(field);
     const ops = (OPS_BY_KIND[kind] || OPS_BY_KIND.text);
     const op = ops.includes(condition.op) ? condition.op : '==';
@@ -261,7 +264,7 @@ export function retypeCondition(condition, field) {
  * Why this condition cannot be written yet, in words, or null when it is ready.
  * A rule with an unfinished condition is never saved half-applied.
  */
-export function conditionProblem(condition, table, t = null) {
+export function conditionProblem(condition: RuleCondition, table: RuleTable | null | undefined, t: TranslateFn | null = null) {
     if (!condition.field) return tr(t, 'studio_apps_edit.row_rule.problem_pick_column', 'Pick a column.');
     if (!findRuleField(table, condition.field)) return tr(t, 'studio_apps_edit.row_rule.problem_column_gone', 'This column is no longer in the table — pick another one.');
     if (condition.op === 'empty' || condition.op === 'notEmpty') return null;
@@ -277,11 +280,11 @@ export function conditionProblem(condition, table, t = null) {
     return String(condition.value ?? '') === '' ? tr(t, 'studio_apps_edit.row_rule.problem_value', 'Fill in the value.') : null;
 }
 
-function quote(s) {
+function quote(s: unknown) {
     return `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
-function serializeValue(condition) {
+function serializeValue(condition: RuleCondition) {
     if (condition.source && condition.source !== 'value') return condition.source;
     if (condition.valueType === 'bool') {
         return (condition.value === true || condition.value === 'true') ? 'true' : 'false';
@@ -294,7 +297,7 @@ function serializeValue(condition) {
     return s === '' ? null : quote(s);
 }
 
-export function serializeCondition(condition) {
+export function serializeCondition(condition: RuleCondition | null | undefined) {
     if (!condition || !condition.field) return null;
     const left = `record.${condition.field}`;
     if (condition.op === 'empty') return `${left} == ""`;
@@ -304,7 +307,7 @@ export function serializeCondition(condition) {
 }
 
 /** The conditions, joined, as the one expression string the server stores. */
-export function buildRowRule({ join = 'and', conditions = [] } = {}) {
+export function buildRowRule({ join = 'and', conditions = [] }: RowRule = {}) {
     const parts = conditions.map(serializeCondition).filter((p) => p != null);
     return parts.join(join === 'or' ? ' || ' : ' && ');
 }
@@ -312,12 +315,12 @@ export function buildRowRule({ join = 'and', conditions = [] } = {}) {
 // ── Reading an existing rule back into pickers ──────────────────────
 
 const CMP = new Set(['==', '!=', '>', '>=', '<', '<=']);
-const CANON = { '===': '==', '!==': '!=' };
-const MIRROR = { '<': '>', '<=': '>=', '>': '<', '>=': '<=', '==': '==', '!=': '!=' };
+const CANON: Record<string, string> = { '===': '==', '!==': '!=' };
+const MIRROR: Record<string, string> = { '<': '>', '<=': '>=', '>': '<', '>=': '<=', '==': '==', '!=': '!=' };
 
-const NOT_PICKABLE = { ok: false, join: 'and', conditions: [] };
+const NOT_PICKABLE: ParsedRowRule = { ok: false, join: 'and', conditions: [] };
 
-function flattenLogic(node, ops, out) {
+function flattenLogic(node: ExprNode | undefined, ops: Set<string>, out: Array<ExprNode | undefined>) {
     if (node && node.kind === 'binop' && (node.op === '&&' || node.op === '||')) {
         ops.add(node.op);
         flattenLogic(node.a, ops, out);
@@ -328,7 +331,7 @@ function flattenLogic(node, ops, out) {
 }
 
 // A two-segment path → { root, leaf }, or null for anything else.
-function readPath(node) {
+function readPath(node: ExprNode | null | undefined) {
     if (!node || node.kind !== 'path') return null;
     const segs = node.segments;
     if (!Array.isArray(segs) || segs.length !== 2) return null;
@@ -336,7 +339,7 @@ function readPath(node) {
     return { root: segs[0].v, leaf: segs[1].v };
 }
 
-function readLiteral(node) {
+function readLiteral(node: ExprNode | null | undefined) {
     if (!node || typeof node !== 'object') return null;
     if (node.kind === 'str') return { value: node.v, valueType: 'string' };
     if (node.kind === 'num') return { value: String(node.v), valueType: 'number' };
@@ -344,15 +347,15 @@ function readLiteral(node) {
     return null;
 }
 
-function leafToCondition(node, table) {
+function leafToCondition(node: ExprNode | undefined, table: RuleTable | null | undefined): RuleCondition | null {
     if (!node || node.kind !== 'binop') return null;
     const op = CANON[node.op] || node.op;
     if (!CMP.has(op)) return null;
 
     const leftPath = readPath(node.a);
     const rightPath = readPath(node.b);
-    let column = null;
-    let other = null;
+    let column: string | null = null;
+    let other: ExprNode | null | undefined = null;
     let effectiveOp = op;
     if (leftPath && leftPath.root === 'record') { column = leftPath.leaf; other = node.b; }
     else if (rightPath && rightPath.root === 'record') { column = rightPath.leaf; other = node.a; effectiveOp = MIRROR[op]; }
@@ -377,11 +380,10 @@ function leafToCondition(node, table) {
 }
 
 /**
- * Read an expression back into pickable conditions.
- * @returns {{ ok: boolean, join: 'and'|'or', conditions: object[] }} — ok:false
- *          means "keep this as text", never "throw it away".
+ * Read an expression back into pickable conditions. ok:false means "keep this
+ * as text", never "throw it away".
  */
-export function parseRowRule(expr, table) {
+export function parseRowRule(expr: unknown, table: RuleTable | null | undefined): ParsedRowRule {
     const src = String(expr ?? '').trim();
     if (!src) return { ok: true, join: 'and', conditions: [] };
     if (!validateRowFilterExpr(src, table).ok) return NOT_PICKABLE;
@@ -389,12 +391,12 @@ export function parseRowRule(expr, table) {
     let ast;
     try { ast = parseExpr(src); } catch { return NOT_PICKABLE; }
 
-    const ops = new Set();
-    const leaves = [];
+    const ops = new Set<string>();
+    const leaves: Array<ExprNode | undefined> = [];
     flattenLogic(ast, ops, leaves);
     if (ops.size > 1) return NOT_PICKABLE; // mixed and/or needs brackets the pickers can't show
 
-    const conditions = [];
+    const conditions: RuleCondition[] = [];
     for (const leaf of leaves) {
         const condition = leafToCondition(leaf, table);
         if (!condition) return NOT_PICKABLE;
@@ -405,14 +407,14 @@ export function parseRowRule(expr, table) {
 
 // ── Plain-language summary ──────────────────────────────────────────
 
-function describeValue(condition, t = null) {
+function describeValue(condition: RuleCondition, t: TranslateFn | null = null) {
     if (condition.source && condition.source !== 'value') return SOURCE_LABEL.has(condition.source) ? compareSourceLabel(condition.source, t) : condition.source;
     if (condition.valueType === 'bool') return (condition.value === true || condition.value === 'true') ? tr(t, 'studio_apps_edit.row_rule.yes', 'yes') : tr(t, 'studio_apps_edit.row_rule.no', 'no');
     if (condition.valueType === 'number') return String(condition.value);
     return `“${condition.value}”`;
 }
 
-export function describeCondition(condition, table, t = null) {
+export function describeCondition(condition: RuleCondition, table: RuleTable | null | undefined, t: TranslateFn | null = null) {
     const field = findRuleField(table, condition.field, t);
     const name = field ? field.name : condition.field;
     const kind = valueKindOf(field);
@@ -422,7 +424,7 @@ export function describeCondition(condition, table, t = null) {
 }
 
 /** e.g. `Owner is the person opening the app and Status is “open”`. */
-export function describeRowRule({ join = 'and', conditions = [] } = {}, table, t = null) {
+export function describeRowRule({ join = 'and', conditions = [] }: RowRule = {}, table?: RuleTable | null, t: TranslateFn | null = null) {
     const usable = conditions.filter((c) => serializeCondition(c) != null);
     if (usable.length === 0) return '';
     return usable.map((c) => describeCondition(c, table, t)).reduce((acc, part) => (join === 'or'
@@ -431,30 +433,30 @@ export function describeRowRule({ join = 'and', conditions = [] } = {}, table, t
 }
 
 /** True when any condition compares a never-filled-in column against empty. */
-export function hasEmptyCheck({ conditions = [] } = {}) {
+export function hasEmptyCheck({ conditions = [] }: RowRule = {}) {
     return conditions.some((c) => c.op === 'empty' || c.op === 'notEmpty');
 }
 
-function joinAnd(parts, t) {
+function joinAnd(parts: string[], t: TranslateFn | null) {
     if (parts.length <= 1) return parts[0] || '';
     return tr(t, 'studio_apps_edit.row_rule.list_and', '{head}, and {last}', { head: parts.slice(0, -1).join(', '), last: parts[parts.length - 1] });
 }
 
-function joinOr(parts, t) {
+function joinOr(parts: string[], t: TranslateFn | null) {
     if (parts.length <= 1) return parts[0] || '';
     return tr(t, 'studio_apps_edit.row_rule.list_or', '{head} or {last}', { head: parts.slice(0, -1).join(', '), last: parts[parts.length - 1] });
 }
 
-const rowsOf = (scope, t) => (scope === 'own'
+const rowsOf = (scope: AccessPerm, t: TranslateFn | null) => (scope === 'own'
     ? tr(t, 'studio_apps_edit.row_rule.rows_added', 'the rows they added')
     : tr(t, 'studio_apps_edit.row_rule.rows_visible', 'every row they can see'));
 
 /** The adding, changing and deleting an access entry hands out, in one sentence. */
-function describeWrites(entry, t) {
+function describeWrites(entry: AccessEntry, t: TranslateFn | null) {
     const edits = entry.update !== 'none';
     const deletes = entry.delete !== 'none';
 
-    const can = [];
+    const can: string[] = [];
     if (entry.create) can.push(tr(t, 'studio_apps_edit.row_rule.can_add', 'add new rows'));
     if (edits && deletes && entry.update === entry.delete) can.push(tr(t, 'studio_apps_edit.row_rule.can_change_delete', 'change or delete {rows}', { rows: rowsOf(entry.update, t) }));
     else {
@@ -462,7 +464,7 @@ function describeWrites(entry, t) {
         if (deletes) can.push(tr(t, 'studio_apps_edit.row_rule.can_delete', 'delete {rows}', { rows: rowsOf(entry.delete, t) }));
     }
 
-    const missing = [];
+    const missing: string[] = [];
     if (!entry.create) missing.push(tr(t, 'studio_apps_edit.row_rule.verb_add', 'add'));
     if (!edits) missing.push(tr(t, 'studio_apps_edit.row_rule.verb_change', 'change'));
     if (!deletes) missing.push(tr(t, 'studio_apps_edit.row_rule.verb_delete', 'delete'));
@@ -476,7 +478,7 @@ function describeWrites(entry, t) {
 
 // Adding is gated on its own, so a role that sees nothing can still be allowed
 // to add rows it will never be able to open again.
-function describeNoRows(entry, roleLabel, tableName, t) {
+function describeNoRows(entry: AccessEntry, roleLabel: string, tableName: string, t: TranslateFn | null): { sees: string; writes: string | null } {
     if (entry.create) {
         return {
             sees: tr(t, 'studio_apps_edit.row_rule.none_can_add', '{role} sees no rows in {table} at all. A row rule changes nothing here.', { role: roleLabel, table: tableName }),
@@ -499,8 +501,6 @@ function describeNoRows(entry, roleLabel, tableName, t) {
  * never a preset assumed from the read scope. `ruleSummary` is describeRowRule's
  * words, or '' when the rule is hand-written text this module cannot read back
  * into pickers.
- *
- * @returns {{ sees: string, writes: string|null, owner: string }}
  */
 export function describeAccessOutcome({
     entry = null,
@@ -509,7 +509,7 @@ export function describeAccessOutcome({
     tableName = tr(t, 'studio_apps_edit.row_rule.default_table', 'this table'),
     hasRule = false,
     ruleSummary = '',
-} = {}) {
+}: AccessOutcomeArgs = {}): { sees: string; writes: string | null; owner: string } {
     const grant = entry || scopeToEntry('all');
     const owner = tr(t, 'studio_apps_edit.row_rule.owner_note', 'You own this app, so you always see and change every row yourself — a row rule never applies to you.');
     const who = { role: roleLabel, table: tableName };

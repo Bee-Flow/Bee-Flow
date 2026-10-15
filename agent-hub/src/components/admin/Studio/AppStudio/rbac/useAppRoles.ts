@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import type { AccessPerm, RuleTable } from './rowRuleModel.types';
 
 /**
  * App Studio RBAC — the authoring hooks for the per-app role model.
@@ -29,10 +30,88 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
  * edit never clobbers roles.
  */
 
+/** One role of the app's vocabulary. */
+export interface AppRole {
+    key: string;
+    label?: string;
+    [key: string]: unknown;
+}
+
+/** Which role a viewer lands in when nothing more specific applies. */
+export interface RoleMapping {
+    default?: string;
+    byGroup?: Record<string, string>;
+    [key: string]: unknown;
+}
+
+/** A table of the data model, with the access block the roles edit. */
+export interface DataModelTable extends RuleTable {
+    id?: string;
+    key?: string;
+    name?: string;
+    access?: AccessBlock;
+    [key: string]: unknown;
+}
+
+/** The whole data model, as the schema endpoint returns and accepts it. */
+export interface DataModel {
+    modelVersion?: number;
+    tables?: DataModelTable[];
+    roles?: AppRole[];
+    roleMapping?: RoleMapping;
+    [key: string]: unknown;
+}
+
+/** A table's access block: the default mode, per-role entries, per-role row filters. */
+export interface AccessBlock {
+    default?: string;
+    roles?: Record<string, Record<string, AccessPerm>>;
+    rowFilters?: Record<string, string>;
+}
+
+/** An access change: a `null` role entry or row filter removes that key. */
+export interface AccessPatch {
+    default?: string;
+    roles?: Record<string, Record<string, AccessPerm> | null>;
+    rowFilters?: Record<string, string | null>;
+}
+
+/** A person who holds a role in the app. */
+export interface AppMember {
+    userId?: string;
+    roleKey?: string;
+    role_key?: string;
+    [key: string]: unknown;
+}
+
+/** An organisation group or user, as the directory endpoints list them. */
+export interface DirectoryEntry {
+    id: string;
+    name?: string;
+    [key: string]: unknown;
+}
+
+/** The JSON the studio-apps endpoints answer with. */
+interface ApiBody {
+    error?: string;
+    model?: DataModel;
+    modelVersion?: number;
+    currentVersion?: number;
+    members?: AppMember[];
+    [key: string]: unknown;
+}
+
+/** An Error that carries the response it came from. */
+interface ApiError extends Error {
+    status?: number;
+    body?: ApiBody | null;
+    conflict?: boolean;
+}
+
 const enc = encodeURIComponent;
 const base = `${API_BASE}/api/studio-apps`;
 
-async function request(url, options = {}) {
+async function request(url: string, options: RequestInit = {}): Promise<ApiBody | null> {
     const res = await authFetch(url, {
         headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
         ...options,
@@ -41,10 +120,10 @@ async function request(url, options = {}) {
     // mean "no authoring surface here", so a GET degrades to null.
     const isGet = !options.method || options.method === 'GET';
     if (isGet && (res.status === 404 || res.status === 403)) return null;
-    let body = null;
+    let body: ApiBody | null = null;
     try { body = await res.json(); } catch { body = null; }
     if (!res.ok) {
-        const err = new Error(body?.error || `Request failed (${res.status})`);
+        const err: ApiError = new Error(body?.error || `Request failed (${res.status})`);
         err.status = res.status;
         err.body = body;
         throw err;
@@ -57,20 +136,20 @@ function emptyModel() {
     return { modelVersion: 1, tables: [], roles: [], roleMapping: { default: 'app', byGroup: {} } };
 }
 
-export const APP_SCHEMA_KEY = (appId) => ['studio-app-schema', appId];
-export const APP_MEMBERS_KEY = (appId) => ['studio-app-members', appId];
+export const APP_SCHEMA_KEY = (appId: string) => ['studio-app-schema', appId];
+export const APP_MEMBERS_KEY = (appId: string) => ['studio-app-members', appId];
 
 /**
  * The primary RBAC hook. Exposes the model's roles/roleMapping/tables, the
  * membership list, and the merge-aware writers. `appId` may be null (the hook
  * simply stays idle).
  */
-export default function useAppRoles(appId) {
+export default function useAppRoles(appId: string) {
     const { t } = useTranslation();
     const qc = useQueryClient();
     // The model version the SERVER last reported, kept out of the cached data so
     // it is never confused with one the client made up. null = not known yet.
-    const serverVersionRef = useRef(null);
+    const serverVersionRef = useRef<number | null>(null);
     const schemaKey = APP_SCHEMA_KEY(appId);
     const membersKey = APP_MEMBERS_KEY(appId);
 
@@ -82,7 +161,7 @@ export default function useAppRoles(appId) {
             // version — not whatever `modelVersion` the stored model happens to
             // carry. Held apart from the data so it can never be confused with
             // one the client invented.
-            serverVersionRef.current = Number.isInteger(body?.modelVersion) ? body.modelVersion : null;
+            serverVersionRef.current = Number.isInteger(body?.modelVersion) ? (body as ApiBody).modelVersion as number : null;
             return body && body.model && typeof body.model === 'object' ? body.model : null;
         },
         enabled: !!appId,
@@ -111,8 +190,8 @@ export default function useAppRoles(appId) {
 
     // The freshest model to merge into: the react-query cache wins (it may hold
     // a just-saved value the local `model` closure hasn't re-rendered with yet).
-    const currentModel = () => {
-        const cached = qc.getQueryData(schemaKey);
+    const currentModel = (): DataModel => {
+        const cached = qc.getQueryData<DataModel>(schemaKey);
         return (cached && typeof cached === 'object') ? cached : (model || emptyModel());
     };
 
@@ -130,7 +209,7 @@ export default function useAppRoles(appId) {
      * version — an app with no data model yet is at version 0, and inventing a
      * number for it would make the very first save conflict with nothing.
      */
-    const putModel = async (nextModel) => {
+    const putModel = async (nextModel: DataModel) => {
         const expected = serverVersionRef.current;
         let body;
         try {
@@ -142,22 +221,22 @@ export default function useAppRoles(appId) {
                 }),
             });
         } catch (err) {
-            if (err.status === 409) {
-                serverVersionRef.current = Number.isInteger(err.body?.currentVersion)
-                    ? err.body.currentVersion
+            if ((err as ApiError).status === 409) {
+                serverVersionRef.current = Number.isInteger((err as ApiError).body?.currentVersion)
+                    ? ((err as ApiError).body as ApiBody).currentVersion as number
                     : null;
-                if (err.body?.model && typeof err.body.model === 'object') {
-                    qc.setQueryData(schemaKey, err.body.model);
+                if ((err as ApiError).body?.model && typeof ((err as ApiError).body as ApiBody).model === 'object') {
+                    qc.setQueryData(schemaKey, ((err as ApiError).body as ApiBody).model);
                 }
                 qc.invalidateQueries({ queryKey: schemaKey });
-                const conflict = new Error(t('studio_apps_edit.roles_api.conflict', "The app's data changed somewhere else while this panel was open — it has been reloaded, so try again."));
+                const conflict: ApiError = new Error(t('studio_apps_edit.roles_api.conflict', "The app's data changed somewhere else while this panel was open — it has been reloaded, so try again."));
                 conflict.status = 409;
                 conflict.conflict = true;
                 throw conflict;
             }
             throw err;
         }
-        if (Number.isInteger(body?.modelVersion)) serverVersionRef.current = body.modelVersion;
+        if (Number.isInteger(body?.modelVersion)) serverVersionRef.current = (body as ApiBody).modelVersion as number;
         // Optimistically adopt the model we just persisted, then refetch to pick
         // up the server's canonical version.
         qc.setQueryData(schemaKey, nextModel);
@@ -170,7 +249,11 @@ export default function useAppRoles(appId) {
         // a row rule. The rule lives on the table, the role in `roles`, and
         // saving them in two writes leaves a window in which the role exists
         // and sees everything. One model, one PUT.
-        mutationFn: async ({ roles: nextRoles, roleMapping: nextMapping, tables: nextTables }) => {
+        mutationFn: async ({ roles: nextRoles, roleMapping: nextMapping, tables: nextTables }: {
+            roles?: AppRole[];
+            roleMapping?: RoleMapping;
+            tables?: DataModelTable[];
+        }) => {
             const cur = currentModel();
             const next = {
                 ...cur,
@@ -185,9 +268,9 @@ export default function useAppRoles(appId) {
     });
 
     const saveTableAccessMutation = useMutation({
-        mutationFn: async ({ tableId, access: patch }) => {
+        mutationFn: async ({ tableId, access: patch }: { tableId: string; access: AccessPatch }) => {
             const cur = currentModel();
-            const nextTables = (Array.isArray(cur.tables) ? cur.tables : []).map((t) => {
+            const nextTables = (Array.isArray(cur.tables) ? cur.tables : []).map((t: DataModelTable) => {
                 if (!t || (t.id !== tableId && t.key !== tableId)) return t;
                 const curAccess = (t.access && typeof t.access === 'object') ? t.access : {};
                 return { ...t, access: mergeAccess(curAccess, patch) };
@@ -197,7 +280,7 @@ export default function useAppRoles(appId) {
     });
 
     const addMemberMutation = useMutation({
-        mutationFn: ({ userId, roleKey }) => request(`${base}/${enc(appId)}/members`, {
+        mutationFn: ({ userId, roleKey }: { userId: string; roleKey: string }) => request(`${base}/${enc(appId)}/members`, {
             method: 'POST',
             body: JSON.stringify({ userId, roleKey }),
         }),
@@ -205,7 +288,7 @@ export default function useAppRoles(appId) {
     });
 
     const removeMemberMutation = useMutation({
-        mutationFn: (userId) => request(`${base}/${enc(appId)}/members/${enc(userId)}`, { method: 'DELETE' }),
+        mutationFn: (userId: string) => request(`${base}/${enc(appId)}/members/${enc(userId)}`, { method: 'DELETE' }),
         onSuccess: () => qc.invalidateQueries({ queryKey: membersKey }),
     });
 
@@ -223,17 +306,17 @@ export default function useAppRoles(appId) {
         hasModel: !!model,
         refetch: () => { schemaQuery.refetch(); membersQuery.refetch(); },
         // writers (promises)
-        saveRoles: (nextRoles, nextMapping, nextTables) => saveRolesMutation.mutateAsync({ roles: nextRoles, roleMapping: nextMapping, tables: nextTables }),
-        saveTableAccess: (tableId, patch) => saveTableAccessMutation.mutateAsync({ tableId, access: patch }),
-        saveRowFilter: (tableId, roleKey, expr) => {
+        saveRoles: (nextRoles?: AppRole[], nextMapping?: RoleMapping, nextTables?: DataModelTable[]) => saveRolesMutation.mutateAsync({ roles: nextRoles, roleMapping: nextMapping, tables: nextTables }),
+        saveTableAccess: (tableId: string, patch: AccessPatch) => saveTableAccessMutation.mutateAsync({ tableId, access: patch }),
+        saveRowFilter: (tableId: string, roleKey: string, expr: unknown) => {
             const trimmed = typeof expr === 'string' ? expr.trim() : '';
             return saveTableAccessMutation.mutateAsync({
                 tableId,
                 access: { rowFilters: { [roleKey]: trimmed || null } },
             });
         },
-        assignMember: (userId, roleKey) => addMemberMutation.mutateAsync({ userId, roleKey }),
-        removeMember: (userId) => removeMemberMutation.mutateAsync(userId),
+        assignMember: (userId: string, roleKey: string) => addMemberMutation.mutateAsync({ userId, roleKey }),
+        removeMember: (userId: string) => removeMemberMutation.mutateAsync(userId),
         savingRoles: saveRolesMutation.isPending,
         savingAccess: saveTableAccessMutation.isPending,
         savingMember: addMemberMutation.isPending || removeMemberMutation.isPending,
@@ -245,8 +328,8 @@ export default function useAppRoles(appId) {
  * are merged key-by-key; a `null` rowFilter/role entry DELETES that key (so
  * clearing a rule doesn't leave a dangling empty string the gateway rejects).
  */
-export function mergeAccess(current, patch) {
-    const out = {
+export function mergeAccess(current: AccessBlock, patch?: AccessPatch | null) {
+    const out: Required<Omit<AccessBlock, 'default'>> & { default?: string } = {
         default: current.default,
         roles: { ...(current.roles && typeof current.roles === 'object' ? current.roles : {}) },
         rowFilters: { ...(current.rowFilters && typeof current.rowFilters === 'object' ? current.rowFilters : {}) },
@@ -277,7 +360,7 @@ export function useOrgDirectory(enabled = true) {
         queryKey: ['org-directory-groups'],
         queryFn: async () => {
             const body = await request(`${API_BASE}/auth/groups`);
-            return Array.isArray(body) ? body : [];
+            return Array.isArray(body) ? body as DirectoryEntry[] : [];
         },
         enabled: !!enabled,
         staleTime: 60_000,
@@ -287,7 +370,7 @@ export function useOrgDirectory(enabled = true) {
         queryKey: ['org-directory-users'],
         queryFn: async () => {
             const body = await request(`${API_BASE}/auth/users`);
-            return Array.isArray(body) ? body : [];
+            return Array.isArray(body) ? body as DirectoryEntry[] : [];
         },
         enabled: !!enabled,
         staleTime: 60_000,

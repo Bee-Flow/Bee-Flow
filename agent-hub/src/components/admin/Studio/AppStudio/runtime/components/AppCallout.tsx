@@ -1,21 +1,34 @@
 import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
+import type { RuntimeNode } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver';
 
 /** App Studio runtime — 'callout'. Spec: server/appStudio/componentSpecs.js. */
 
 // The tone hexes are ROLE_COLORS (styleResolver) — the same house hexes the
 // file used to duplicate, so the rendering stays byte-identical.
-const TONES = {
+const TONES: Record<string, { color: string; Icon: LucideIcon }> = {
     info: { color: ROLE_COLORS.info, Icon: Info },
     success: { color: ROLE_COLORS.success, Icon: CheckCircle2 },
     warning: { color: ROLE_COLORS.warning, Icon: AlertTriangle },
     danger: { color: ROLE_COLORS.danger, Icon: AlertCircle },
 };
 
-export default function AppCallout({ node }) {
+interface CalloutProps {
+    title?: string | null;
+    text?: string;
+    tone?: string;
+    meta?: string | null;
+    textFrom?: unknown;
+    toneFrom?: unknown;
+    metaFrom?: unknown;
+    collapsible?: boolean;
+}
+
+export default function AppCallout({ node }: { node: RuntimeNode<CalloutProps> }) {
     const { actionState, dataState, scope } = useRuntime();
     const { title = null, text = '', tone = 'info', meta = null } = node.props || {};
     const bag = { actionState, dataState, scope };

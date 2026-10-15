@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * App Studio runtime — the live-browse frame store.
@@ -15,7 +16,36 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
  * the browser_view wired to an action shows exactly that action's browse.
  */
 
-const BrowserRunContext = createContext(null);
+/** One wire event of an ai_browse step. */
+interface BrowseEvent {
+    type: string;
+    queuePosition?: number | null;
+    url?: string;
+    task?: string;
+    /** The base64 screenshot of a `frame` event. */
+    b64?: string;
+    summary?: string;
+    tool?: string;
+}
+
+/** What a browser_view shows for one action: the latest frame and state, nothing older. */
+interface BrowserPreview {
+    active?: boolean;
+    ended?: boolean;
+    queued?: boolean;
+    queuePosition?: number | null;
+    url?: string;
+    task?: string;
+    frame?: string;
+    action?: string | null;
+}
+
+interface BrowserRunStore {
+    previews: Record<string, BrowserPreview>;
+    publish: (actionId: string, evt: BrowseEvent) => void;
+}
+
+const BrowserRunContext = createContext<BrowserRunStore | null>(null);
 
 const EMPTY = Object.freeze({});
 
@@ -25,11 +55,11 @@ const EMPTY = Object.freeze({});
  * that action's preview and triggers a render.
  */
 export function useBrowserRunStore() {
-    const ref = useRef({});
+    const ref = useRef<Record<string, BrowserPreview>>({});
     const [, bump] = useState(0);
     const rerender = useCallback(() => bump((n) => (n + 1) % 1_000_000), []);
 
-    const publish = useCallback((actionId, evt) => {
+    const publish = useCallback((actionId: string, evt: BrowseEvent) => {
         if (!actionId || !evt || typeof evt.type !== 'string') return;
         const cur = ref.current[actionId] || {};
         let next = cur;
@@ -63,7 +93,7 @@ export function useBrowserRunStore() {
     return useMemo(() => ({ previews: ref.current, publish }), [publish, ref.current]);
 }
 
-export function BrowserRunProvider({ value, children }) {
+export function BrowserRunProvider({ value, children }: { value: BrowserRunStore; children?: ReactNode }) {
     return <BrowserRunContext.Provider value={value}>{children}</BrowserRunContext.Provider>;
 }
 

@@ -64,7 +64,7 @@
     "src/components/admin/Studio/AppStudio/inspector/ThemePanel.jsx": 470,
     "src/components/admin/Studio/AppStudio/inspector/useEventWiring.ts": 539,
     "src/components/admin/Studio/AppStudio/rbac/RolesManager.jsx": 528,
-    "src/components/admin/Studio/AppStudio/rbac/rowRuleModel.js": 533,
+    "src/components/admin/Studio/AppStudio/rbac/rowRuleModel.ts": 533,
     "src/components/admin/Studio/AppStudio/runtime/AppRenderer.jsx": 548,
     "src/components/admin/Studio/AppStudio/runtime/componentRegistry.jsx": 513,
     "src/components/admin/Studio/AppStudio/runtime/components/AppChart.jsx": 557,
