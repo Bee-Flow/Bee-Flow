@@ -18,7 +18,7 @@ const {
     TABLE_SOURCE_MODES,
     WRITABLE_TABLE_SOURCE_MODE,
 } = require('../dataModel');
-const { isObject } = require('./shared');
+const { isObject, pushDataRef } = require('./shared');
 const { validateFormula } = require('./formulas');
 
 // Table / dataset references mirror run_automation.automationId: an UNSET
@@ -42,12 +42,6 @@ function checkRef(id, path, ctx, { label, known, codeUnset, codeInvalid, codeMis
     }
 }
 
-// Data-reference finding — an error normally (publish), demoted to a warning
-// when the caller opted in via opts.dataRefsAsWarnings (human draft saves).
-function pushDataRef(ctx, rec) {
-    if (ctx.dataRefsAsWarnings) ctx.pushW({ ...rec, severity: 'warning' });
-    else ctx.pushE(rec);
-}
 
 function checkTableRef(tableId, path, ctx, label, codePrefix = 'binding') {
     // Data-model mode (opts.dataModel supplied): resolve the id against the

@@ -43,23 +43,18 @@
 
 const {
     ID_RE,
-    SCHEMA_VERSION_CURRENT,
-    LIMITS,
     expandStyleKnobs,
     sectionHeightIsDefinite,
+    SCREEN_SPEC,
+    SECTION_STYLE_KNOBS,
+    SCHEMA_VERSION_CURRENT,
+    LIMITS,
     VARIABLE_TYPES,
     VARIABLE_NAME_RE,
     RESERVED_VARIABLE_NAMES,
     coerceVariableDefault,
-    SCREEN_SPEC,
-    SECTION_STYLE_KNOBS,
-    DESIGN_SPEC,
-    NAV_STYLES,
-    MAX_NAV_GROUPS,
-    MAX_NAV_GROUP_LABEL,
 } = require('./componentSpecs');
 const { collectVariableWrites } = require('./collectVariableRefs');
-const { validateTheme } = require('../core/cms/themeSpec');
 const { isObject } = require('./validate/shared');
 const {
     validateRoleRefs,
@@ -67,6 +62,7 @@ const {
     validateNode,
     collectReferencedActions,
 } = require('./validate/nodes');
+const { checkDesignAndNav, checkPublicAccess } = require('./validate/designChecks');
 const { validateAction, DATASET_QUERY_OUTPUTS } = require('./validate/actions');
 
 const ID_HINT = 'Ids must match <prefix>_<4-12 lowercase alphanumerics> with prefix scr/sec/cmp/act. Use newId() from componentSpecs.';
@@ -292,6 +288,164 @@ function validateVariablesAndCollect(def, pushE) {
     return declared;
 }
 
+/** Deep walk: screens → sections → nodes. */
+function walkScreens(screens, ctx) {
+    const { pushE } = ctx;
+    screens.forEach((screen, si) => {
+        const sp = `screens[${si}]`;
+        if (!isObject(screen)) {
+            pushE({ code: 'screen.not_object', severity: 'error', path: sp, message: 'Each screen must be an object.', hint: 'Remove the malformed entry.' });
+            return;
+        }
+        if (typeof screen.name !== 'string' || !screen.name.trim()) {
+            pushE({ code: 'screen.name_missing', severity: 'error', path: `${sp}.name`, message: 'Screen needs a non-empty name.', hint: 'It labels the nav entry.' });
+        }
+        if (screen.kind !== undefined && screen.kind !== null && !SCREEN_SPEC.kind.values.includes(screen.kind)) {
+            pushE({ code: 'screen.kind_invalid', severity: 'error', path: `${sp}.kind`, message: `screen.kind ${JSON.stringify(screen.kind)} is not legal.`, hint: `Use ${SCREEN_SPEC.kind.values.filter((v) => v).map((v) => JSON.stringify(v)).join(', ')} or omit it.` });
+        }
+        if (screen.visibleToRoles !== undefined) validateRoleRefs(screen.visibleToRoles, `${sp}.visibleToRoles`, ctx);
+        if (!Array.isArray(screen.sections)) {
+            pushE({ code: 'screen.sections_invalid', severity: 'error', path: `${sp}.sections`, message: '`sections` must be an array.', hint: 'Every screen is a vertical stack of sections.' });
+            return;
+        }
+        screen.sections.forEach((section, ci) => {
+            const secPath = `${sp}.sections[${ci}]`;
+            if (!isObject(section)) {
+                pushE({ code: 'section.not_object', severity: 'error', path: secPath, message: 'Each section must be an object.', hint: 'Remove the malformed entry.' });
+                return;
+            }
+            if (!Array.isArray(section.children)) {
+                pushE({ code: 'section.children_invalid', severity: 'error', path: `${secPath}.children`, message: 'Section `children` must be an array.', hint: 'Use [] for an empty section.' });
+                return;
+            }
+            // A section's own sizing, then what it hands its children. The
+            // section knob list has no `span`, so only the height pair applies.
+            const sectionKnobs = expandStyleKnobs(SECTION_STYLE_KNOBS);
+            if (isObject(section.style)) {
+                validateAdvancedSizing(section.style, `${secPath}.style`, ctx, {
+                    what: 'the section', allowedKnobs: sectionKnobs,
+                    parentHeightDefinite: false, parentLabel: 'screen', isSection: true,
+                });
+            }
+            // A section IS the grid its children sit in — no wrapper in
+            // between — so its own height is what they measure against, and
+            // 'fill' counts here (the screen grows the full-height chain above
+            // a fill section). 'always' is therefore the right route: whatever
+            // height a section has, its children get.
+            const sectionParent = {
+                label: 'section',
+                heightDefinite: sectionHeightIsDefinite(section.style),
+                heightRoute: 'always',
+            };
+            section.children.forEach((node, ni) => validateNode(node, `${secPath}.children[${ni}]`, 2, null, ctx, sectionParent));
+        });
+    });
+}
+
+/** Actions (after the walk — mapping checks need the input names), then the variable warnings. */
+function checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, ctx) {
+    const { pushW } = ctx;
+    // ── Actions (after the walk — mapping checks need the input names) ────
+    if (actionsObj) {
+        for (const [id, action] of Object.entries(actionsObj)) {
+            validateAction(id, action, `actions.${id}`, ctx);
+        }
+
+        // An action nothing can reach. Not an error — an app may keep one around
+        // while it is being wired up — but it is invisible, and "the button that
+        // was never added" looks exactly like "the feature that does not work".
+        // The support desk shipped with an assign action wired to nothing, so
+        // its "My queue" screen was permanently empty and there was no way to
+        // put anything in it.
+        const reached = collectReferencedActions(screens);
+        for (const id of Object.keys(actionsObj)) {
+            if (reached.has(id)) continue;
+            pushW({
+                code: 'action.unreachable', severity: 'warning', path: `actions.${id}`,
+                message: `Action "${id}" is not wired to anything — no button, row or event can run it.`,
+                hint: 'Wire it to a component event (onClick / onRowClick / onSubmit) or a row action, or remove it.',
+            });
+        }
+    }
+
+    // A write to a name no formula can read. `set_variable.name = "my var"`
+    // lands in vars["my var"], while `vars.my var` is a parse error — so the
+    // value is computed, stored, and never arrives anywhere. A WARNING, never
+    // an error: published apps may already contain such a name, and they must
+    // keep publishing.
+    for (const { name, path, kind } of varWrites.invalid) {
+        pushW({
+            code: 'variable.write_unreferenceable', severity: 'warning', path,
+            message: `${kind} writes "${name}", which no formula can read (vars.${name} is not a valid expression).`,
+            hint: 'Use a single word: a letter or _ first, then letters, digits or _.',
+        });
+    }
+
+    // Declared, but nothing reads it and nothing writes it. Same family as
+    // action.unreachable: a thing that exists and does nothing reads as a
+    // feature that is broken rather than one that was never finished.
+    for (const [name] of declaredVars) {
+        if (ctx.varReads.has(name) || varWrites.names.has(name)) continue;
+        pushW({
+            code: 'variable.unused', severity: 'warning', path: 'variables',
+            message: `Variable "${name}" is declared but nothing reads or writes it.`,
+            hint: 'Use it in a formula or a "Set a variable" step, or remove it.',
+        });
+    }
+}
+
+/** The shared context every phase of the walk reads (and the finding sinks). */
+function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds, roleIds, knownVars }) {
+    return {
+        pushE,
+        pushW,
+        actionIds,
+        screenIds,
+        roleIds,
+        knownVars,
+        knownVarList: knownVars ? [...knownVars].filter((n) => n !== 'true' && n !== 'false' && n !== 'null').sort() : null,
+        varReads: new Set(),
+        modalIds: new Set(),
+        formIds: new Set(),
+        inputNamesByForm: new Map(),
+        allInputNames: new Set(),
+        ownedAutomations: normalizeOwnedAutomations(opts.ownedAutomations),
+        // The OWNER's designed documents, for a fill_document step's id. Same
+        // three-way meaning as ownedAutomations: null = the caller could not
+        // tell (draft; references are not checked), a map = check against it.
+        ownedDocuments: normalizeOwnedDocuments(opts.ownedDocuments),
+        knownTables: normalizeIdSet(opts.knownTables),
+        knownDatasets: normalizeIdSet(opts.knownDatasets),
+        // Data-model mode (opts.dataModel !== undefined): tableId → Set of
+        // field keys, plus the known dataset ids. null model = "no model yet"
+        // (every table/dataset reference is unknown). See the module header.
+        dataTables: buildDataTables(opts.dataModel),
+        // De tweede tabelsoort: tableId → model.tables[].source. Leeg voor een
+        // app waarvan elke tabel haar eigen opslag heeft, en dat is de enige
+        // vorm die vandaag bestaat — vandaar dat niets aan de bestaande soort
+        // verandert.
+        dataTableSources: buildTableSources(opts.dataModel),
+        // De Studio-datatabellen die de EIGENAAR heeft. Anders dan opts.datasets
+        // krijgt deze GEEN lege verzameling als hij ontbreekt: "geen lijst" en
+        // "een lege lijst" zijn verschillende antwoorden, en de tweede zou elke
+        // gekoppelde tabel afkeuren van een aanroeper die de vraag niet eens
+        // gesteld heeft. Zonder lijst meldt checkTableSource de id bij naam als
+        // waarschuwing; mét lijst is het een harde fout.
+        knownDatatables: normalizeIdSet(opts.datatables),
+        dataDatasets: opts.dataModel !== undefined ? (normalizeIdSet(opts.datasets) || new Set()) : null,
+        // Connector ids ride on the data model itself (model.connectors[]), so
+        // the publish gate — which already passes opts.dataModel — verifies them
+        // with no extra plumbing. binding.unknown_connector mirrors dataset.
+        dataConnectors: buildConnectorIds(opts.dataModel),
+        dataMailboxConnectors: buildMailboxConnectorIds(opts.dataModel),
+        dataRefsAsWarnings: !!opts.dataRefsAsWarnings,
+        // The per-app AI-browsing opt-in (HUMAN-set — see canonicalize).
+        // Consulted per ai_browse step: a step in an app whose flag is off is
+        // an authoring error the builder must surface, not a runtime surprise.
+        aiBrowsingEnabled: def.aiBrowsing?.enabled === true,
+    };
+}
+
 function validateAppDefinition(def, opts = {}) {
     const errors = [];
     const warnings = [];
@@ -400,60 +554,7 @@ function validateAppDefinition(def, opts = {}) {
         pushE({ code: 'home.unresolved', severity: 'error', path: 'homeScreenId', message: `homeScreenId ${JSON.stringify(def.homeScreenId)} does not resolve to a screen.`, hint: 'Point it at one of the screen ids.' });
     }
 
-    // ── design / nav (App Design v2 — OPTIONAL top-level keys) ────────────
-    // Canonicalize already normalizes these; validation here is the defensive
-    // gate for canonical bytes handed in directly, mirroring the theme checks.
-    if (def.design !== undefined) {
-        if (!isObject(def.design)) {
-            pushE({ code: 'design.invalid', severity: 'error', path: 'design', message: 'design must be an object.', hint: `Use the keys: ${Object.keys(DESIGN_SPEC).join(', ')}.` });
-        } else {
-            for (const [key, value] of Object.entries(def.design)) {
-                const spec = DESIGN_SPEC[key];
-                if (!spec) {
-                    pushE({ code: 'design.unknown_key', severity: 'error', path: `design.${key}`, message: `Unknown design key "${key}".`, hint: `Use one of: ${Object.keys(DESIGN_SPEC).join(', ')}.` });
-                } else if (spec.type === 'enum' && !spec.values.includes(value)) {
-                    pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} must be one of ${spec.values.join(', ')}.`, hint: `Got ${JSON.stringify(value)}.` });
-                } else if (spec.type === 'url' && value !== null
-                    && (typeof value !== 'string' || !/^https:\/\//.test(value) || value.length > spec.maxLen)) {
-                    pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} must be null or an https:// URL of at most ${spec.maxLen} characters.`, hint: 'Upload the logo somewhere reachable and paste its https URL.' });
-                }
-            }
-        }
-    }
-    if (def.nav !== undefined) {
-        if (!isObject(def.nav)) {
-            pushE({ code: 'nav.invalid', severity: 'error', path: 'nav', message: 'nav must be an object.', hint: 'Use { style, groups? }.' });
-        } else {
-            if (!NAV_STYLES.includes(def.nav.style)) {
-                pushE({ code: 'nav.value_invalid', severity: 'error', path: 'nav.style', message: `nav.style must be one of ${NAV_STYLES.join(', ')}.`, hint: `Got ${JSON.stringify(def.nav.style)}.` });
-            }
-            if (def.nav.groups !== undefined) {
-                if (!Array.isArray(def.nav.groups) || def.nav.groups.length > MAX_NAV_GROUPS) {
-                    pushE({ code: 'nav.groups_invalid', severity: 'error', path: 'nav.groups', message: `nav.groups must be an array of at most ${MAX_NAV_GROUPS} groups.`, hint: 'Each group is { id, label, icon, screens }.' });
-                } else {
-                    const screenByIdForNav = new Map(screens.filter(isObject).map((s) => [s.id, s]));
-                    def.nav.groups.forEach((g, i) => {
-                        const p = `nav.groups[${i}]`;
-                        if (!isObject(g) || typeof g.label !== 'string' || !g.label
-                            || g.label.length > MAX_NAV_GROUP_LABEL || !Array.isArray(g.screens)) {
-                            pushE({ code: 'nav.group_invalid', severity: 'error', path: p, message: `Nav group must be { id, label (≤${MAX_NAV_GROUP_LABEL} chars), icon, screens[] }.`, hint: 'Give the group a short label and at least one screen.' });
-                            return;
-                        }
-                        g.screens.forEach((sid) => {
-                            const target = screenByIdForNav.get(sid);
-                            if (!target) {
-                                pushE({ code: 'nav.screen_unresolved', severity: 'error', path: `${p}.screens`, message: `Nav group "${g.label}" references unknown screen ${JSON.stringify(sid)}.`, hint: 'Point it at one of the screen ids.' });
-                            } else if (target.showInNav === false) {
-                                // Presentation contradiction, not a breakage: the
-                                // group names a screen the nav is told to hide.
-                                pushW({ code: 'nav.group_screen_hidden', severity: 'warning', path: `${p}.screens`, message: `Nav group "${g.label}" lists screen "${target.name || sid}", which has showInNav: false.`, hint: 'Either show the screen in navigation or drop it from the group.' });
-                            }
-                        });
-                    });
-                }
-            }
-        }
-    }
+    checkDesignAndNav(def, screens, pushE, pushW);
 
     // ── Roles (v2 — key list; refs elsewhere resolve against these) ───────
     const roleIds = validateRolesAndCollect(def, pushE);
@@ -467,207 +568,13 @@ function validateAppDefinition(def, opts = {}) {
         ? new Set([...declaredVars.keys(), ...varWrites.names, ...RESERVED_VARIABLE_NAMES])
         : null;
 
-    // ── Deep walk: screens → sections → nodes ─────────────────────────────
-    const ctx = {
-        pushE,
-        pushW,
-        actionIds,
-        screenIds,
-        roleIds,
-        knownVars,
-        knownVarList: knownVars ? [...knownVars].filter((n) => n !== 'true' && n !== 'false' && n !== 'null').sort() : null,
-        varReads: new Set(),
-        modalIds: new Set(),
-        formIds: new Set(),
-        inputNamesByForm: new Map(),
-        allInputNames: new Set(),
-        ownedAutomations: normalizeOwnedAutomations(opts.ownedAutomations),
-        // The OWNER's designed documents, for a fill_document step's id. Same
-        // three-way meaning as ownedAutomations: null = the caller could not
-        // tell (draft; references are not checked), a map = check against it.
-        ownedDocuments: normalizeOwnedDocuments(opts.ownedDocuments),
-        knownTables: normalizeIdSet(opts.knownTables),
-        knownDatasets: normalizeIdSet(opts.knownDatasets),
-        // Data-model mode (opts.dataModel !== undefined): tableId → Set of
-        // field keys, plus the known dataset ids. null model = "no model yet"
-        // (every table/dataset reference is unknown). See the module header.
-        dataTables: buildDataTables(opts.dataModel),
-        // De tweede tabelsoort: tableId → model.tables[].source. Leeg voor een
-        // app waarvan elke tabel haar eigen opslag heeft, en dat is de enige
-        // vorm die vandaag bestaat — vandaar dat niets aan de bestaande soort
-        // verandert.
-        dataTableSources: buildTableSources(opts.dataModel),
-        // De Studio-datatabellen die de EIGENAAR heeft. Anders dan opts.datasets
-        // krijgt deze GEEN lege verzameling als hij ontbreekt: "geen lijst" en
-        // "een lege lijst" zijn verschillende antwoorden, en de tweede zou elke
-        // gekoppelde tabel afkeuren van een aanroeper die de vraag niet eens
-        // gesteld heeft. Zonder lijst meldt checkTableSource de id bij naam als
-        // waarschuwing; mét lijst is het een harde fout.
-        knownDatatables: normalizeIdSet(opts.datatables),
-        dataDatasets: opts.dataModel !== undefined ? (normalizeIdSet(opts.datasets) || new Set()) : null,
-        // Connector ids ride on the data model itself (model.connectors[]), so
-        // the publish gate — which already passes opts.dataModel — verifies them
-        // with no extra plumbing. binding.unknown_connector mirrors dataset.
-        dataConnectors: buildConnectorIds(opts.dataModel),
-        dataMailboxConnectors: buildMailboxConnectorIds(opts.dataModel),
-        dataRefsAsWarnings: !!opts.dataRefsAsWarnings,
-        // The per-app AI-browsing opt-in (HUMAN-set — see canonicalize).
-        // Consulted per ai_browse step: a step in an app whose flag is off is
-        // an authoring error the builder must surface, not a runtime surprise.
-        aiBrowsingEnabled: def.aiBrowsing?.enabled === true,
-    };
+    const ctx = buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds, roleIds, knownVars });
 
-    screens.forEach((screen, si) => {
-        const sp = `screens[${si}]`;
-        if (!isObject(screen)) {
-            pushE({ code: 'screen.not_object', severity: 'error', path: sp, message: 'Each screen must be an object.', hint: 'Remove the malformed entry.' });
-            return;
-        }
-        if (typeof screen.name !== 'string' || !screen.name.trim()) {
-            pushE({ code: 'screen.name_missing', severity: 'error', path: `${sp}.name`, message: 'Screen needs a non-empty name.', hint: 'It labels the nav entry.' });
-        }
-        if (screen.kind !== undefined && screen.kind !== null && !SCREEN_SPEC.kind.values.includes(screen.kind)) {
-            pushE({ code: 'screen.kind_invalid', severity: 'error', path: `${sp}.kind`, message: `screen.kind ${JSON.stringify(screen.kind)} is not legal.`, hint: `Use ${SCREEN_SPEC.kind.values.filter((v) => v).map((v) => JSON.stringify(v)).join(', ')} or omit it.` });
-        }
-        if (screen.visibleToRoles !== undefined) validateRoleRefs(screen.visibleToRoles, `${sp}.visibleToRoles`, ctx);
-        if (!Array.isArray(screen.sections)) {
-            pushE({ code: 'screen.sections_invalid', severity: 'error', path: `${sp}.sections`, message: '`sections` must be an array.', hint: 'Every screen is a vertical stack of sections.' });
-            return;
-        }
-        screen.sections.forEach((section, ci) => {
-            const secPath = `${sp}.sections[${ci}]`;
-            if (!isObject(section)) {
-                pushE({ code: 'section.not_object', severity: 'error', path: secPath, message: 'Each section must be an object.', hint: 'Remove the malformed entry.' });
-                return;
-            }
-            if (!Array.isArray(section.children)) {
-                pushE({ code: 'section.children_invalid', severity: 'error', path: `${secPath}.children`, message: 'Section `children` must be an array.', hint: 'Use [] for an empty section.' });
-                return;
-            }
-            // A section's own sizing, then what it hands its children. The
-            // section knob list has no `span`, so only the height pair applies.
-            const sectionKnobs = expandStyleKnobs(SECTION_STYLE_KNOBS);
-            if (isObject(section.style)) {
-                validateAdvancedSizing(section.style, `${secPath}.style`, ctx, {
-                    what: 'the section', allowedKnobs: sectionKnobs,
-                    parentHeightDefinite: false, parentLabel: 'screen', isSection: true,
-                });
-            }
-            // A section IS the grid its children sit in — no wrapper in
-            // between — so its own height is what they measure against, and
-            // 'fill' counts here (the screen grows the full-height chain above
-            // a fill section). 'always' is therefore the right route: whatever
-            // height a section has, its children get.
-            const sectionParent = {
-                label: 'section',
-                heightDefinite: sectionHeightIsDefinite(section.style),
-                heightRoute: 'always',
-            };
-            section.children.forEach((node, ni) => validateNode(node, `${secPath}.children[${ni}]`, 2, null, ctx, sectionParent));
-        });
-    });
+    walkScreens(screens, ctx);
 
-    // ── Actions (after the walk — mapping checks need the input names) ────
-    if (actionsObj) {
-        for (const [id, action] of Object.entries(actionsObj)) {
-            validateAction(id, action, `actions.${id}`, ctx);
-        }
+    checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, ctx);
 
-        // An action nothing can reach. Not an error — an app may keep one around
-        // while it is being wired up — but it is invisible, and "the button that
-        // was never added" looks exactly like "the feature that does not work".
-        // The support desk shipped with an assign action wired to nothing, so
-        // its "My queue" screen was permanently empty and there was no way to
-        // put anything in it.
-        const reached = collectReferencedActions(screens);
-        for (const id of Object.keys(actionsObj)) {
-            if (reached.has(id)) continue;
-            pushW({
-                code: 'action.unreachable', severity: 'warning', path: `actions.${id}`,
-                message: `Action "${id}" is not wired to anything — no button, row or event can run it.`,
-                hint: 'Wire it to a component event (onClick / onRowClick / onSubmit) or a row action, or remove it.',
-            });
-        }
-    }
-
-    // A write to a name no formula can read. `set_variable.name = "my var"`
-    // lands in vars["my var"], while `vars.my var` is a parse error — so the
-    // value is computed, stored, and never arrives anywhere. A WARNING, never
-    // an error: published apps may already contain such a name, and they must
-    // keep publishing.
-    for (const { name, path, kind } of varWrites.invalid) {
-        pushW({
-            code: 'variable.write_unreferenceable', severity: 'warning', path,
-            message: `${kind} writes "${name}", which no formula can read (vars.${name} is not a valid expression).`,
-            hint: 'Use a single word: a letter or _ first, then letters, digits or _.',
-        });
-    }
-
-    // Declared, but nothing reads it and nothing writes it. Same family as
-    // action.unreachable: a thing that exists and does nothing reads as a
-    // feature that is broken rather than one that was never finished.
-    for (const [name] of declaredVars) {
-        if (ctx.varReads.has(name) || varWrites.names.has(name)) continue;
-        pushW({
-            code: 'variable.unused', severity: 'warning', path: 'variables',
-            message: `Variable "${name}" is declared but nothing reads or writes it.`,
-            hint: 'Use it in a formula or a "Set a variable" step, or remove it.',
-        });
-    }
-
-    // ── approval_list on a publicly shared screen (warning) ──────────────
-    // Not a leak — the component shows anonymous visitors a static sign-in
-    // wall and performs no fetch, and the API behind it is session-authed
-    // with canView scoping. It IS a UX trap: a decide surface placed where
-    // the audience can never decide. Say so at author time.
-    if (isObject(def.publicAccess)) {
-        // The page's own look (publicAccess.theme / .design) speaks the app
-        // theme's and design's vocabulary, so it gets their checks — partial
-        // by design, and never `preset` (provenance, not a knob).
-        const pa = def.publicAccess;
-        if (pa.theme !== undefined) {
-            if (!isObject(pa.theme)) {
-                pushE({ code: 'publicAccess.theme_invalid', severity: 'error', path: 'publicAccess.theme', message: 'publicAccess.theme must be an object of theme knobs.', hint: 'e.g. { canvas: "#ffda00", accent: "#009b3e" } — name only what differs from the app theme.' });
-            } else {
-                for (const issue of validateTheme(pa.theme, 'publicAccess.theme')) {
-                    pushE({ code: `publicAccess.${issue.code}`, severity: 'error', path: issue.path, message: issue.message, hint: issue.hint });
-                }
-            }
-        }
-        if (pa.design !== undefined) {
-            if (!isObject(pa.design)) {
-                pushE({ code: 'publicAccess.design_invalid', severity: 'error', path: 'publicAccess.design', message: 'publicAccess.design must be an object of design knobs.', hint: `Use the keys: ${Object.keys(DESIGN_SPEC).filter((k) => k !== 'preset').join(', ')}.` });
-            } else {
-                for (const [key, value] of Object.entries(pa.design)) {
-                    const spec = key === 'preset' ? null : DESIGN_SPEC[key];
-                    if (!spec) {
-                        pushE({ code: 'publicAccess.design_unknown_key', severity: 'error', path: `publicAccess.design.${key}`, message: `Unknown design key "${key}" on the public page.`, hint: `Use one of: ${Object.keys(DESIGN_SPEC).filter((k) => k !== 'preset').join(', ')}.` });
-                    } else if (value === null) {
-                        continue; // "no override for this knob"
-                    } else if (spec.type === 'enum' && !spec.values.includes(value)) {
-                        pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} must be one of ${spec.values.join(', ')}.`, hint: `Got ${JSON.stringify(value)}.` });
-                    } else if (spec.type === 'url' && !(typeof value === 'string' && /^https:\/\//.test(value) && value.length <= spec.maxLen)) {
-                        pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} must be an https:// URL of at most ${spec.maxLen} characters.`, hint: 'Upload the logo somewhere reachable and paste its https URL.' });
-                    }
-                }
-            }
-        }
-        const publicIds = new Set(
-            [def.publicAccess.entryScreenId, ...(Array.isArray(def.publicAccess.screenIds) ? def.publicAccess.screenIds : [])]
-                .filter((id) => typeof id === 'string' && id));
-        const holdsApprovalList = (nodes) => (Array.isArray(nodes) ? nodes : []).some(
-            (n) => isObject(n) && (n.type === 'approval_list' || holdsApprovalList(n.children)));
-        for (const screen of (Array.isArray(def.screens) ? def.screens : [])) {
-            if (!isObject(screen) || !publicIds.has(screen.id)) continue;
-            if ((Array.isArray(screen.sections) ? screen.sections : []).some((s) => isObject(s) && holdsApprovalList(s.children))) {
-                pushW({
-                    code: 'publicAccess.approval_list_walled', severity: 'warning', path: `screens.${screen.id}`,
-                    message: `Screen "${screen.name || screen.id}" is publicly shared but contains an Approvals component — anonymous visitors only ever see a sign-in wall there.`,
-                    hint: 'Move the component to a members-only screen, or drop the screen from publicAccess.screenIds.',
-                });
-            }
-        }
-    }
+    if (isObject(def.publicAccess)) checkPublicAccess(def, pushE, pushW);
 
     return { ok: errors.length === 0, errors, warnings };
 }
