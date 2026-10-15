@@ -1,6 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
 
+/** How the updates are arriving: SSE, the 5 s polling fallback, or not at all. */
+export type RunStreamState = 'live' | 'polling' | 'paused';
+
+/** What the polling fallback reads from a recent run. */
+interface PolledRun {
+    id: string;
+    status: string;
+    automationId?: string;
+    triggerKind?: string | null;
+    automationTitle?: string | null;
+    automationKind?: string | null;
+    startedAt?: string | null;
+    durationMs?: number | null;
+}
+
+interface UseRunStreamOptions {
+    enabled?: boolean;
+    automationId?: string | null;
+    onEvent?: (type: string, data: unknown) => void;
+}
+
 /**
  * Live run-lifecycle subscription for the executions UI.
  *
@@ -19,28 +40,28 @@ import useAutomationApi from '../../../../hooks/useAutomationApi';
  *
  * Owns nothing visual; the caller merges events into its own state.
  */
-export default function useRunStream({ enabled = true, automationId = null, onEvent }) {
+export default function useRunStream({ enabled = true, automationId = null, onEvent }: UseRunStreamOptions) {
     const api = useAutomationApi();
     const onEventRef = useRef(onEvent);
     onEventRef.current = onEvent;
     // How the updates are actually arriving right now — the filter bar's
     // indicator reads this instead of showing a hard-coded green dot.
     // 'live' = SSE, 'polling' = 5s fallback, 'paused' = hidden tab / disabled.
-    const [state, setState] = useState(enabled ? 'live' : 'paused');
+    const [state, setState] = useState<RunStreamState>(enabled ? 'live' : 'paused');
 
     useEffect(() => {
         if (!enabled) { setState('paused'); return undefined; }
         setState('live');
         let stopped = false;
-        let controller = null;
-        let timer = null;
+        let controller: AbortController | null = null;
+        let timer: ReturnType<typeof setTimeout> | null = null;
         let failures = 0;
         let backoff = 1000;
         let polling = false;
-        const lastSeen = new Map(); // runId -> last status (poll diffing)
+        const lastSeen = new Map<string, string>(); // runId -> last status (poll diffing)
         let firstPoll = true;
 
-        const emit = (type, data) => { if (!stopped) onEventRef.current?.(type, data); };
+        const emit = (type: string, data: unknown) => { if (!stopped) onEventRef.current?.(type, data); };
 
         const clearTimer = () => { if (timer) { clearTimeout(timer); timer = null; } };
 
@@ -48,7 +69,7 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
         const pollTick = async () => {
             if (stopped) return;
             try {
-                const res = await api.listRecentRuns({ limit: 25, automationId: automationId || undefined });
+                const res = await api.listRecentRuns({ limit: 25, automationId: automationId || undefined }) as { runs?: PolledRun[] };
                 for (const r of (res.runs || [])) {
                     const prev = lastSeen.get(r.id);
                     lastSeen.set(r.id, r.status);
@@ -89,7 +110,7 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
                 await api.streamRuns({
                     automationId,
                     signal: controller.signal,
-                    onEvent: (type, data) => { failures = 0; backoff = 1000; emit(type, data); },
+                    onEvent: (type: string, data: unknown) => { failures = 0; backoff = 1000; emit(type, data); },
                 });
                 // Server closed the stream — reconnect after a short beat.
                 if (!stopped) scheduleReconnect();

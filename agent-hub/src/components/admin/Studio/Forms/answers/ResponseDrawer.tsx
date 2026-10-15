@@ -5,18 +5,29 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import Modal from '../../../../shared/Modal';
 import { cellText } from '../../Datatables/datatableDisplay';
 import { datatablesApi } from '../../Datatables/datatablesApi';
+import type { AnswersQuestion, AnswersRecent } from './useAnswersSummary';
 
 const BTN = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors hover:bg-[var(--bg-tertiary)]';
+
+interface ResponseDrawerProps {
+    datatableId: string;
+    response: AnswersRecent | null;
+    questions: AnswersQuestion[];
+    mine?: boolean;
+    automationId?: string | null;
+    onNavigate?: ((path: string) => void) | null;
+    onClose: () => void;
+}
 
 /**
  * One response, every question → answer, in the form's order (retired
  * last, flagged). Reads the row itself (the summary carries a preview only).
  */
-export default function ResponseDrawer({ datatableId, response, questions, mine, automationId, onNavigate, onClose }) {
+export default function ResponseDrawer({ datatableId, response, questions, mine, automationId, onNavigate, onClose }: ResponseDrawerProps) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
-    const [row, setRow] = useState(null);
-    const [error, setError] = useState(null);
+    const [row, setRow] = useState<Record<string, unknown> | null>(null);
+    const [error, setError] = useState<Error | null>(null);
     useEffect(() => {
         let alive = true;
         setRow(null);

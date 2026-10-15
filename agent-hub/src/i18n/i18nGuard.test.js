@@ -385,7 +385,7 @@ function unknownTableKeys(rels, srcOf) {
 // holds React list keys, node ids and localStorage names (`new-chat`,
 // `my-organization`, `sample-a`).
 const KEY_TABLE_FILES = [
-    'components/admin/Studio/Executions/runLanguage.js',
+    'components/admin/Studio/Executions/runLanguage.ts',
     'components/admin/Studio/KnowledgeStudio/SourceDetail.jsx',
     'components/admin/Studio/KnowledgeStudio/freshness.js',
     'components/admin/Studio/KnowledgeStudio/sourceKinds.js',

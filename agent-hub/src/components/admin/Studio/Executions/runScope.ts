@@ -40,14 +40,16 @@
  *    say is not permission.
  */
 
+export type RunScope = 'mine' | 'org';
+
 /** The two values, in the order the switch renders them. */
-export const RUN_SCOPES = Object.freeze(['mine', 'org']);
+export const RUN_SCOPES = Object.freeze<RunScope[]>(['mine', 'org']);
 
 /**
  * Anything at all → 'mine' | 'org'. The only input that yields 'org' is the
  * exact string 'org'; see rule 1.
  */
-export function normaliseRunScope(value) {
+export function normaliseRunScope(value: unknown): RunScope {
     return value === 'org' ? 'org' : 'mine';
 }
 
@@ -56,7 +58,7 @@ export function normaliseRunScope(value) {
  * executions view only (rule 2). `scope` is the surface's own
  * 'global' | 'automation' | 'step'.
  */
-export function effectiveRunScope(scope, runScope) {
+export function effectiveRunScope(scope: string, runScope: unknown): RunScope {
     return scope === 'global' ? normaliseRunScope(runScope) : 'mine';
 }
 
@@ -65,7 +67,7 @@ export function effectiveRunScope(scope, runScope) {
  * the caller's own; in the personal scope every row, because the endpoint
  * that produced it returned nothing else (rule 3).
  */
-export function canOpenRun(run, runScope) {
+export function canOpenRun(run: { mine?: boolean } | null | undefined, runScope: unknown): boolean {
     if (normaliseRunScope(runScope) !== 'org') return true;
     return run?.mine === true;
 }
@@ -80,6 +82,6 @@ export function canOpenRun(run, runScope) {
  * frozen: a half-live list that looks live, which is worse than one that
  * plainly is not. So the stream stands down, and the surface says so.
  */
-export function runStreamEnabled(runScope) {
+export function runStreamEnabled(runScope: unknown): boolean {
     return normaliseRunScope(runScope) !== 'org';
 }

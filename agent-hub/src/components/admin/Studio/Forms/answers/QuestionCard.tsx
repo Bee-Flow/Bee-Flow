@@ -1,9 +1,17 @@
 import React from 'react';
 import { breakdownFor } from './QuestionBreakdowns';
 import DashCard from '../../../../shared/dashboard/DashCard';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { AnswersQuestion } from './useAnswersSummary';
+
+interface QuestionCardProps {
+    t: TranslateFn;
+    q: AnswersQuestion;
+    onSeeAll?: ((q: AnswersQuestion) => void) | null;
+}
 
 /** One question: its label, answered/skipped, and the breakdown its type earns. */
-export default function QuestionCard({ t, q, onSeeAll }) {
+export default function QuestionCard({ t, q, onSeeAll }: QuestionCardProps) {
     const Breakdown = breakdownFor(q);
     const meta = [
         t('forms.answers.q_answered', '{n} answered', { n: q.answered }),

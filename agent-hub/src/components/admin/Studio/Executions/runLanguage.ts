@@ -6,7 +6,35 @@
  * React caller it passes the `en` through t() with the paired key; pure
  * callers (tests, tooltips) read the English directly.
  */
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { tokenFor } from '../../../shared/statusTokens';
+
+/** The fields of a run row the sentences below read. */
+export interface RunLanguageRow {
+    id?: string;
+    status?: string | null;
+    mode?: string | null;
+    startedAt?: string | null;
+    error?: string | null;
+    errorClass?: string | null;
+    summary?: string | null;
+    handledErrorCount?: number | null;
+    rootStepId?: string | null;
+    rootTriggerLabel?: string | null;
+}
+
+/** The "What happened" cell: a translation key, its params, the English, and a tone. */
+export interface WhatHappened {
+    key: string;
+    params: Record<string, unknown>;
+    en: string;
+    tone: 'warn' | 'error' | 'neutral';
+}
+
+/** The trigger nodes of a definition, as far as the entry-point label reads them. */
+export interface RunDefinitionLike {
+    triggers?: Array<{ id?: string; label?: string; kind?: string; appEvent?: { event?: string } | null }>;
+}
 
 /**
  * One word for how the run ended — the table's Outcome column, as the same
@@ -18,17 +46,17 @@ import { tokenFor } from '../../../shared/statusTokens';
  * interpolated this into `automations.runs.status_plain` ("{status}"), and the
  * interpolated value never passed through t().
  */
-export function outcomeLabel(run) {
+export function outcomeLabel(run: RunLanguageRow | null | undefined): { key: string; en: string } {
     const token = tokenFor(run?.status);
     return { key: token.labelKey, en: token.labelEn };
 }
 
 /** The trigger kind as a person reads it — the "Started by" column. */
-const TRIGGER_SCHEDULE = ['studio_misc.runlang.trigger_schedule', 'On a schedule'];
-const TRIGGER_MANUAL = ['studio_misc.runlang.trigger_manual', 'Started by hand'];
-const TRIGGER_FORM = ['studio_misc.runlang.trigger_form', 'Someone filled in the form'];
-const TRIGGER_CHAT = ['studio_misc.runlang.trigger_chat', 'Asked from chat'];
-const TRIGGER_LABELS = {
+const TRIGGER_SCHEDULE: [string, string] = ['studio_misc.runlang.trigger_schedule', 'On a schedule'];
+const TRIGGER_MANUAL: [string, string] = ['studio_misc.runlang.trigger_manual', 'Started by hand'];
+const TRIGGER_FORM: [string, string] = ['studio_misc.runlang.trigger_form', 'Someone filled in the form'];
+const TRIGGER_CHAT: [string, string] = ['studio_misc.runlang.trigger_chat', 'Asked from chat'];
+const TRIGGER_LABELS: Record<string, [string, string]> = {
     schedule: TRIGGER_SCHEDULE,
     cron: TRIGGER_SCHEDULE,
     manual: TRIGGER_MANUAL,
@@ -42,7 +70,7 @@ const TRIGGER_LABELS = {
     webhook: ['studio_misc.runlang.trigger_webhook', 'A webhook — another system called this'],
 };
 /** The trigger kind in words; pass `t` for the translated text, English otherwise. */
-export function triggerLabel(kind, t) {
+export function triggerLabel(kind: string | null | undefined, t?: TranslateFn): string {
     if (!kind) return '—';
     const hit = TRIGGER_LABELS[String(kind).toLowerCase()];
     if (!hit) return String(kind).replace(/_/g, ' ');
@@ -50,8 +78,8 @@ export function triggerLabel(kind, t) {
 }
 
 /** The typed error class, in plain words (null for classes we cannot name). */
-const ERR_UNREACHABLE = ['studio_misc.runlang.err_connection', 'a connected app could not be reached'];
-const ERROR_CLASS_LABELS = {
+const ERR_UNREACHABLE: [string, string] = ['studio_misc.runlang.err_connection', 'a connected app could not be reached'];
+const ERROR_CLASS_LABELS: Record<string, [string, string]> = {
     auth: ['studio_misc.runlang.err_auth', 'a connection is no longer signed in'],
     connection: ERR_UNREACHABLE,
     network: ERR_UNREACHABLE,
@@ -62,7 +90,7 @@ const ERROR_CLASS_LABELS = {
     cancelled: ['studio_misc.runlang.err_cancelled', 'someone stopped it'],
 };
 /** The error class in plain words; pass `t` for the translated text, English otherwise. */
-export function errorClassLabel(errorClass, t) {
+export function errorClassLabel(errorClass: string | null | undefined, t?: TranslateFn): string | null {
     if (!errorClass) return null;
     const hit = ERROR_CLASS_LABELS[String(errorClass).toLowerCase()];
     if (!hit) return null;
@@ -70,7 +98,7 @@ export function errorClassLabel(errorClass, t) {
 }
 
 /** Trim server error text to one legible sentence for a table cell. */
-function firstSentence(text, max = 140) {
+function firstSentence(text: unknown, max = 140): string {
     const s = String(text || '').replace(/\s+/g, ' ').trim();
     if (!s) return '';
     const cut = s.length > max ? `${s.slice(0, max - 1)}…` : s;
@@ -81,7 +109,7 @@ function firstSentence(text, max = 140) {
  * The table's "What happened" cell: { key, params, en, tone }.
  * Failures lead with the reason, not the word "error"; successes stay quiet.
  */
-export function whatHappened(run) {
+export function whatHappened(run: RunLanguageRow | null | undefined): WhatHappened {
     const status = String(run?.status || '').toLowerCase();
     if (status === 'error' || status === 'failed') {
         // A rejection is a decision someone made on purpose, not a fault.
@@ -141,15 +169,11 @@ export function whatHappened(run) {
 /**
  * A run's display name — "Run of 12 Aug 2026, 14:03 · test". Replaces the
  * truncated hex id nobody could read. The raw id stays available in ⋯.
- *
- * @param {object} run
- * @param {string} [locale]
- * @param {any} [t] the useTranslation `t`
  */
-export function runTitle(run, locale = undefined, t = undefined) {
-    const tr = (key, en, params) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
+export function runTitle(run: RunLanguageRow | null | undefined, locale: string | undefined = undefined, t: TranslateFn | undefined = undefined): string {
+    const tr = (key: string, en: string, params?: Record<string, unknown>): string => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
     if (!run?.startedAt) return run?.id ? tr('studio_misc.runlang.run_with_id', 'Run {id}', { id: String(run.id).slice(0, 8) }) : tr('studio_misc.runlang.run', 'Run');
-    let stamp;
+    let stamp: string;
     try {
         stamp = new Date(run.startedAt).toLocaleString(locale, {
             day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -166,7 +190,7 @@ export function runTitle(run, locale = undefined, t = undefined) {
  * Pull a run id out of pasted text — a full deep link (?run=<id>), a URL with
  * the id in the path, or a bare id. Null when nothing id-shaped is found.
  */
-export function runIdFromText(text) {
+export function runIdFromText(text: unknown): string | null {
     const s = String(text || '').trim();
     if (!s) return null;
     const fromQuery = /[?&]run=([A-Za-z0-9_-]{6,})/.exec(s);
@@ -187,7 +211,7 @@ export function runIdFromText(text) {
  * definition; an open run resolves it against the versioned snapshot that
  * actually ran, so a trigger renamed since still reads as it was.
  */
-export function enteredTriggerLabel(run, definition = null) {
+export function enteredTriggerLabel(run: RunLanguageRow | null | undefined, definition: RunDefinitionLike | null = null): string | null {
     if (!run?.rootStepId) return null;
     const node = (Array.isArray(definition?.triggers) ? definition.triggers : []).find(t => t?.id === run.rootStepId);
     if (node) return String(node.label || node.appEvent?.event || node.kind || run.rootStepId);

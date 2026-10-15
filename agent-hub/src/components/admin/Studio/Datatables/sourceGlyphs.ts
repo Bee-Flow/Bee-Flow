@@ -23,7 +23,7 @@ export const SOURCE_GLYPHS = Object.freeze({
 });
 
 /** The component for a table's source glyph, or null for "the kind's own icon". */
-export function sourceGlyphOf(table) {
+export function sourceGlyphOf(table: { managedKind?: string | null } | null | undefined) {
     const name = tableIconOf(table);
     return name ? SOURCE_GLYPHS[name] || null : null;
 }

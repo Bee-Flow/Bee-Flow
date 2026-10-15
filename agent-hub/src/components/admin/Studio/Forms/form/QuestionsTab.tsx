@@ -6,6 +6,7 @@ import DashCard from '../../../../shared/dashboard/DashCard';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { nOf } from '../../KnowledgeStudio/plural';
 import { takeSeed } from '../../studioAi/handoff';
+import type { FormDetail, FormDraft } from './useFormDetail';
 
 // The builder's own form editor — title, intro, questions, button text,
 // thank-you message, theme, preview. Lazy: it drags the builder chunk.
@@ -13,12 +14,25 @@ const FormBuilderFields = lazy(() => import('../../../../automation/Builder/flow
 
 const BTN = 'px-3 py-2 rounded-[10px] text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 disabled:opacity-50';
 
+interface QuestionsTabProps {
+    detail: FormDetail;
+    draft: FormDraft | null;
+    setDraft: (next: FormDraft | null) => void;
+    dirty: boolean;
+    save: () => void | Promise<void>;
+    discard: () => void;
+    saving: boolean;
+    saveError: { message?: string } | null;
+    onNavigate?: ((path: string) => void) | null;
+    readOnly?: boolean;
+}
+
 /**
  * The Questions tab: the trigger's form, editable without the automation
  * builder. Pages after page one stay in the builder (a note says so); the
  * answers table follows every save (the columns note says that).
  */
-export default function QuestionsTab({ detail, draft, setDraft, dirty, save, discard, saving, saveError, onNavigate, readOnly = false }) {
+export default function QuestionsTab({ detail, draft, setDraft, dirty, save, discard, saving, saveError, onNavigate, readOnly = false }: QuestionsTabProps) {
     const { t } = useTranslation();
     const pages = Array.isArray(detail?.pages) ? detail.pages : [];
     const collecting = !!detail?.answers?.collecting;
@@ -29,7 +43,7 @@ export default function QuestionsTab({ detail, draft, setDraft, dirty, save, dis
     return (
         <div className="space-y-4" data-testid="form-questions">
             {draft && (
-                <AiDraftPanel form={draft} onApply={(next) => setDraft(next)} seed={seed} />
+                <AiDraftPanel form={draft} onApply={(next: FormDraft) => setDraft(next)} seed={seed} />
             )}
             {pages.length > 0 && (
                 <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)]" data-testid="form-pages-note">

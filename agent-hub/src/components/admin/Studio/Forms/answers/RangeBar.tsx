@@ -1,14 +1,21 @@
 import React from 'react';
 import { PRESETS } from './answersRange';
+import type { AnswersRange, RangePreset } from './answersRange';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 
 const INPUT = 'px-2 py-1 rounded-lg text-xs border outline-none focus:ring-2';
 
+interface RangeBarProps {
+    range: AnswersRange;
+    onChange: (range: AnswersRange) => void;
+    updatedLabel?: string | null;
+}
+
 /** The period presets, plus two date fields when "custom" is chosen. */
-export default function RangeBar({ range, onChange, updatedLabel = null }) {
+export default function RangeBar({ range, onChange, updatedLabel = null }: RangeBarProps) {
     const { t } = useTranslation();
-    const labels = {
+    const labels: Record<RangePreset, string> = {
         today: t('forms.answers.range_today', 'Today'),
         '7d': t('forms.answers.range_7d', '7 days'),
         '30d': t('forms.answers.range_30d', '30 days'),
@@ -23,7 +30,7 @@ export default function RangeBar({ range, onChange, updatedLabel = null }) {
                 size="sm"
                 ariaLabel={t('forms.answers.range_label', 'Period')}
                 value={range.preset}
-                onChange={(preset) => onChange({ ...range, preset })}
+                onChange={(preset: RangePreset) => onChange({ ...range, preset })}
                 options={PRESETS.map(p => ({ value: p, label: labels[p] }))}
             />
             {range.preset === 'custom' && (
