@@ -431,7 +431,7 @@ const KEY_TABLE_FILES = [
     // De vier filterkoppen van de skills-grid (`{ id, key, en }`, gerenderd als
     // `{t(f.key, f.en)}`). Precies de bewaakte vorm, en tot nu toe niet op deze
     // lijst: een verzonnen sleutel in die tabel liet de guard groen.
-    'components/skills/SkillsGrid.jsx',
+    'components/skills/SkillsGrid.tsx',
     // De vier grafiektypen van de notitieblok-editor. Hier heette `key` eerst
     // het CHARTTYPE ('bar'|'line'|…) en stond het label er kaal naast; de tabel
     // is naar `{ id, key, en }` gebracht zodat `key` weer een sleutel is.
