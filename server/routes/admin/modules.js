@@ -35,6 +35,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 
 const modules = require('../../modules');
+const { importModule, removeModule } = require('../../modules/moduleLifecycle');
 const hubClient = require('../../modules/hubClient');
 const remoteCatalog = require('../../modules/remoteCatalog');
 const packageLoader = require('../../modules/packageLoader');
@@ -64,7 +65,6 @@ const { worded } = require('../../core/http/schemaParts');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
-
 const one = (name, what) => worded(`${name} is ${what}.`).trim().optional();
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
@@ -334,7 +334,7 @@ router.post('/entitlements/refresh', requireSuperAdmin, async (req, res, next) =
 });
 
 router.post('/:id/import', requireSuperAdmin, async (req, res) => {
-    const result = await modules.importModule(req.params.id, { actorId: req.session.user?.id || null });
+    const result = await importModule(req.params.id, { actorId: req.session.user?.id || null });
     if (!result.ok) {
         if (result.error === 'not_found') return res.status(404).json({ error: 'not_found' });
         if (result.error === 'module_unavailable') return res.status(409).json({ error: 'module_unavailable' });
@@ -345,7 +345,7 @@ router.post('/:id/import', requireSuperAdmin, async (req, res) => {
 });
 
 router.post('/:id/remove', requireSuperAdmin, async (req, res) => {
-    const result = await modules.removeModule(req.params.id, { actorId: req.session.user?.id || null });
+    const result = await removeModule(req.params.id, { actorId: req.session.user?.id || null });
     if (!result.ok) {
         if (result.error === 'not_found') return res.status(404).json({ error: 'not_found' });
         return res.status(500).json({ error: result.error });
