@@ -23,14 +23,14 @@ describe('sources ↔ the web and the server', () => {
 
     it('knows the kinds the server creates', () => {
         const server = read(path.join(REPO, 'server/routes/knowledgeBases/sourcePolicy.js')).match(/const CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
-        const web = read(path.join(STUDIO, 'sourceKinds.js')).match(/CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
+        const web = read(path.join(STUDIO, 'sourceKinds.ts')).match(/CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
         const parse = (m: RegExpMatchArray | null) => (m?.[1] ?? '').split(',').map((s) => s.trim().replace(/'/g, '')).filter(Boolean);
         expect([...CREATABLE_KINDS]).toEqual(parse(server));
         expect([...CREATABLE_KINDS]).toEqual(parse(web));
     });
 
     it('labels every kind the web labels, with the web’s English', () => {
-        const src = read(path.join(STUDIO, 'sourceKinds.js'));
+        const src = read(path.join(STUDIO, 'sourceKinds.ts'));
         for (const m of src.matchAll(/labelKey: '(knowledge\.kind\.(\w+))', labelFallback: '([^']+)'/g)) {
             expect(sourceKindLabel(t, m[2] as string)).toBe(m[3]);
         }

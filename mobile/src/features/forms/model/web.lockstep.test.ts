@@ -36,8 +36,8 @@ function cut(rel: string, names: string[], prelude = ''): Record<string, Fn> {
     return new Function(js)() as Record<string, Fn>;
 }
 
-describe('answersRange.js', () => {
-    const web = requireWeb<{ PRESETS: readonly string[]; defaultRange: Fn; rangeToQuery: Fn }>(`${FORMS}/answers/answersRange.js`);
+describe('answersRange.ts', () => {
+    const web = requireWeb<{ PRESETS: readonly string[]; defaultRange: Fn; rangeToQuery: Fn }>(`${FORMS}/answers/answersRange.ts`);
     const NOW = [new Date(2026, 8, 25, 14, 30), new Date(2026, 0, 1, 0, 5), new Date(2024, 1, 29, 23, 59)];
     const RANGES: Partial<AnswersRange>[] = [
         ...PRESETS.map((preset) => ({ preset, from: '', to: '' })),

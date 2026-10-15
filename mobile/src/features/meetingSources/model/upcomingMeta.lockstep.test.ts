@@ -22,7 +22,7 @@ import * as when from './when';
 
 const LIB = path.resolve(__dirname, '../../../../../agent-hub/src');
 /** The web module's two imports: its own when-helpers (pinned by when.lockstep) and `nOf`. */
-const plural = loadWebModule<Record<string, unknown>>(`${LIB}/components/admin/Studio/KnowledgeStudio/plural.js`);
+const plural = loadWebModule<Record<string, unknown>>(`${LIB}/components/admin/Studio/KnowledgeStudio/plural.ts`);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const web: any = loadWebModule(`${LIB}/pages/meeting-notes/lib/upcomingMeta.ts`, { ...when, nOf: plural.nOf });
 
