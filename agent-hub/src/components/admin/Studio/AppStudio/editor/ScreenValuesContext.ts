@@ -35,17 +35,27 @@ import { mergeFormValues } from '../runtime/formValues';
  * inspector/testPayload.js.
  */
 
-export const ScreenValuesContext = createContext(null);
+/** `{ [formName]: { [field]: value } }` — what is on the screen right now. */
+export type ScreenForms = Record<string, Record<string, unknown>>;
+
+/** The store: stable over the shell's whole life. */
+export interface ScreenValuesStore {
+    publish: (formName: string, values: unknown) => void;
+    read: () => ScreenForms;
+    readForm: (formName: string | null | undefined) => Record<string, unknown> | null;
+}
+
+export const ScreenValuesContext = createContext<ScreenValuesStore | null>(null);
 
 /**
  * De store zelf. Eén per editor-shell; de waarde is stabiel over de hele
  * levensduur, zodat consumenten hem gerust als dependency mogen gebruiken.
  */
-export function useScreenValuesStore() {
-    const ref = useRef({});
+export function useScreenValuesStore(): ScreenValuesStore {
+    const ref = useRef<ScreenForms>({});
     return useMemo(() => ({
         /** Zelfde vouw als de canvas-scope (mergeFormValues) — één bron, één vorm. */
-        publish(formName, values) {
+        publish(formName: string, values: unknown) {
             ref.current = mergeFormValues(ref.current, formName, values);
         },
         /** Alle formulieren, `{ [formName]: { [field]: value } }`. */
@@ -58,7 +68,7 @@ export function useScreenValuesStore() {
          * is "dit formulier staat niet op het scherm", {} is "het staat er en
          * is leeg". De testknop meldt die twee ook anders.
          */
-        readForm(formName) {
+        readForm(formName: string | null | undefined) {
             if (!formName) return null;
             const all = ref.current || {};
             return Object.prototype.hasOwnProperty.call(all, formName) ? all[formName] : null;
@@ -67,6 +77,6 @@ export function useScreenValuesStore() {
 }
 
 /** De store, of null buiten de editor (de run-pagina heeft geen inspector). */
-export function useScreenValues() {
+export function useScreenValues(): ScreenValuesStore | null {
     return useContext(ScreenValuesContext);
 }

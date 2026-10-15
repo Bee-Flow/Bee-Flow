@@ -14,16 +14,39 @@
 // dropped rather than shown, since it means nothing to the person reading it.
 const INTERNAL_TOKEN_RE = /__[A-Za-z0-9_]+__/;
 
+/** One server entry: { code, path, message, hint? }, or just the message. */
+interface RawNotice {
+    message?: unknown;
+    hint?: unknown;
+    path?: unknown;
+    code?: unknown;
+}
+
+/** One reply: errors and warnings from a refused save, warnings and repairs from a kept one. */
+export interface SavePayload {
+    errors?: unknown;
+    warnings?: unknown;
+    repairs?: unknown;
+}
+
+export interface SaveNotice {
+    kind: 'error' | 'warning' | 'repair';
+    message: string;
+    hint: string;
+    path: string;
+    code: string;
+}
+
 /**
  * Flatten one save reply — { warnings, repairs } or { errors, warnings } — into
  * the list the save pill shows. Server entries are { code, path, message, hint? };
  * repairs carry no hint. Entries without a message have nothing to say.
  */
-export function toSaveNotices(payload) {
-    const out = [];
-    const take = (list, kind) => {
+export function toSaveNotices(payload: SavePayload | null | undefined): SaveNotice[] {
+    const out: SaveNotice[] = [];
+    const take = (list: unknown, kind: SaveNotice['kind']) => {
         for (const raw of Array.isArray(list) ? list : []) {
-            const entry = typeof raw === 'string' ? { message: raw } : (raw || {});
+            const entry: RawNotice = typeof raw === 'string' ? { message: raw } : (raw || {});
             const message = typeof entry.message === 'string' ? entry.message.trim() : '';
             const hint = typeof entry.hint === 'string' ? entry.hint.trim() : '';
             if (!message) continue;

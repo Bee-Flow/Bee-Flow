@@ -1,4 +1,5 @@
 import { closestCorners, pointerWithin, rectIntersection } from '@dnd-kit/core';
+import type { CollisionDetection } from '@dnd-kit/core';
 
 /**
  * App Studio editor — which droppable a drag is aiming at.
@@ -43,13 +44,21 @@ import { closestCorners, pointerWithin, rectIntersection } from '@dnd-kit/core';
  * a zero-area box — so only the fallbacks need the guard.
  */
 
+interface RectLike {
+    width: number;
+    height: number;
+}
+
+/** What `measurable` reads: a droppable's rect ref, or a bare rect. */
+type Measurable = { rect?: { current?: RectLike | null } | (RectLike & { current?: undefined }) | null } | null | undefined;
+
 /** A droppable that occupies no space cannot be aimed at. */
-function measurable(entry) {
-    const rect = entry?.rect?.current || entry?.rect;
+function measurable(entry: Measurable): boolean {
+    const rect = (entry?.rect?.current || entry?.rect) as RectLike | null | undefined;
     return !!rect && rect.width > 0 && rect.height > 0;
 }
 
-export function canvasCollision(args) {
+export function canvasCollision(args: Parameters<CollisionDetection>[0]): ReturnType<CollisionDetection> {
     const hits = pointerWithin(args);
     if (hits.length) return hits;
 

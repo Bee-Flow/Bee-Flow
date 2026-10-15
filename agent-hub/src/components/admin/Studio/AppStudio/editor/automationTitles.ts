@@ -1,6 +1,18 @@
 import { useEffect, useState } from 'react';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 
+/** One automation, as the list endpoint returns it. */
+export interface AutomationRow {
+    id?: string;
+    title?: string;
+    [key: string]: unknown;
+}
+
+type AutomationRows = Record<string, AutomationRow>;
+
+/** The one call the loader makes. */
+type AutomationLister = Pick<ReturnType<typeof useAutomationApi>, 'listAutomations'>;
+
 /**
  * Automation id → title, for the canvas pill (Studio artboard 1b: "start
  * automation · Offerte berekenen").
@@ -22,18 +34,18 @@ import useAutomationApi from '../../../../../hooks/useAutomationApi';
 const TTL_MS = 60_000;
 
 /** { at, rows } — the last successful load, id → the whole automation row. */
-let cache = null;
+let cache: { at: number; rows: AutomationRows } | null = null;
 /** The in-flight promise, so N simultaneous callers make ONE request. */
-let inflight = null;
+let inflight: Promise<AutomationRows> | null = null;
 
 /** The cached row map when it is still fresh, else null. */
-function freshRows() {
+function freshRows(): AutomationRows | null {
     return cache && Date.now() - cache.at < TTL_MS ? cache.rows : null;
 }
 
 /** id → title, derived. The rows are the cache; titles are a view of it. */
-function titlesOf(rows) {
-    const titles = {};
+function titlesOf(rows: AutomationRows | null | undefined): Record<string, string> {
+    const titles: Record<string, string> = {};
     for (const [id, row] of Object.entries(rows || {})) {
         if (row?.title) titles[id] = row.title;
     }
@@ -41,7 +53,7 @@ function titlesOf(rows) {
 }
 
 /** The cached titles when the load is still fresh, else null. */
-function fresh() {
+function fresh(): Record<string, string> | null {
     const rows = freshRows();
     return rows ? titlesOf(rows) : null;
 }
@@ -50,14 +62,14 @@ function fresh() {
  * Resolve the id→title map, from cache when fresh. Never rejects.
  * Exported for tests and for any caller that wants it outside React.
  */
-export function loadAutomationRows(api) {
+export function loadAutomationRows(api: AutomationLister): Promise<AutomationRows> {
     const hit = freshRows();
     if (hit) return Promise.resolve(hit);
     if (inflight) return inflight;
     inflight = Promise.resolve()
-        .then(() => api.listAutomations())
+        .then(() => api.listAutomations<{ automations?: AutomationRow[] }>())
         .then((res) => {
-            const rows = {};
+            const rows: AutomationRows = {};
             for (const row of res?.automations || []) {
                 if (row?.id) rows[row.id] = row;
             }
@@ -70,12 +82,12 @@ export function loadAutomationRows(api) {
 }
 
 /** id → title. A thin view over loadAutomationRows — still ONE request. */
-export function loadAutomationTitles(api) {
+export function loadAutomationTitles(api: AutomationLister): Promise<Record<string, string>> {
     return loadAutomationRows(api).then(titlesOf);
 }
 
 /** Drop the cache — for tests, and for a caller that just renamed an automation. */
-export function clearAutomationTitles() {
+export function clearAutomationTitles(): void {
     cache = null;
     inflight = null;
 }
@@ -85,9 +97,9 @@ export function clearAutomationTitles() {
  * shared cache when it is warm (so the pill has its name on the very first
  * render after the first fetch of the session).
  */
-export default function useAutomationTitles(enabled) {
+export default function useAutomationTitles(enabled: boolean): Record<string, string> | null {
     const api = useAutomationApi();
-    const [titles, setTitles] = useState(fresh);
+    const [titles, setTitles] = useState<Record<string, string> | null>(fresh);
     useEffect(() => {
         if (!enabled) return undefined;
         let alive = true;
@@ -110,9 +122,9 @@ export default function useAutomationTitles(enabled) {
  * the automation still shows the automation, and no part of an inspector is worth an
  * error dialog.
  */
-export function useAutomationRows(enabled) {
+export function useAutomationRows(enabled: boolean): AutomationRows | null {
     const api = useAutomationApi();
-    const [rows, setRows] = useState(freshRows);
+    const [rows, setRows] = useState<AutomationRows | null>(freshRows);
     useEffect(() => {
         if (!enabled) return undefined;
         let alive = true;

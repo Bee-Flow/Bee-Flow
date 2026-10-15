@@ -1,4 +1,10 @@
 import { createContext, useContext } from 'react';
+import type { EditorChrome } from '../chat/builderPaneModel';
+
+/** The shell's handles: the chat pane's set, plus the app the editor is open on. */
+export interface EditorChromeValue extends EditorChrome {
+    appId?: string | null;
+}
 
 /**
  * App Studio editor — the shell's editing handles for the AI chat pane.
@@ -31,8 +37,8 @@ import { createContext, useContext } from 'react';
  * Kept in its own module so BuilderChatPane can consume it without importing
  * the (heavy) shell. Returns null outside the shell — callers must guard.
  */
-export const EditorChromeContext = createContext(null);
+export const EditorChromeContext = createContext<EditorChromeValue | null>(null);
 
-export function useEditorChrome() {
+export function useEditorChrome(): EditorChromeValue | null {
     return useContext(EditorChromeContext);
 }

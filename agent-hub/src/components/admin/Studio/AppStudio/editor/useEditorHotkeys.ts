@@ -1,7 +1,29 @@
 import { useEffect, useRef } from 'react';
+import type { AppDefinition } from '../inspector/appDefinition';
 import { getClipboard, hasClipboard, pasteNodes, serializeNodes, setClipboard } from '../state/clipboard';
 import { useAppEditor } from '../state/AppEditorContext';
+import type { AppEditorValue } from '../state/appEditorState';
 import { duplicateNode, findNode, moveNode, removeNode } from '../state/definitionOps';
+
+interface HotkeyHandlers {
+    enabled?: boolean;
+    onUndo?: () => void;
+    onRedo?: () => void;
+    onFlush?: () => unknown;
+    onCommit?: (def: AppDefinition | null) => void;
+    onCommandPalette?: () => void;
+    onTogglePresenter?: () => void;
+}
+
+/** What the key handler reads: the handlers plus the editor state, refreshed every render. */
+type HotkeyContext = HotkeyHandlers & Pick<AppEditorValue, 'definition' | 'selectedNodeId' | 'selectedNodeIds' | 'screenId' | 'mode' | 'streamLock' | 'dispatch'>;
+
+/** Where a paste lands: the active screen, or right after the anchor in its section. */
+interface PasteTarget {
+    screenId?: string | null;
+    sectionId?: string;
+    index?: number;
+}
 
 /**
  * App Studio editor — window-level keyboard shortcuts.
@@ -32,19 +54,19 @@ import { duplicateNode, findNode, moveNode, removeNode } from '../state/definiti
  * pause under streamLock and require edit mode.
  */
 
-function isTyping(target) {
+function isTyping(target: HTMLElement | null | undefined): boolean {
     const tag = target?.tagName;
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!target?.isContentEditable;
 }
 
-export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlush, onCommit, onCommandPalette, onTogglePresenter }) {
+export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlush, onCommit, onCommandPalette, onTogglePresenter }: HotkeyHandlers) {
     const {
         definition, selectedNodeId, selectedNodeIds, screenId, mode, streamLock, dispatch,
-    } = useAppEditor();
+    } = useAppEditor() as AppEditorValue;
 
     // One listener for the component's lifetime; reads everything via a ref
     // refreshed after every render (key events always fire after effects).
-    const ctxRef = useRef(null);
+    const ctxRef = useRef<HotkeyContext | null>(null);
     useEffect(() => {
         ctxRef.current = {
             enabled, onUndo, onRedo, onFlush, onCommit, onCommandPalette, onTogglePresenter,
@@ -53,7 +75,7 @@ export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlu
     });
 
     useEffect(() => {
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             const c = ctxRef.current;
             if (!c || !c.enabled) return;
             const meta = e.metaKey || e.ctrlKey;
@@ -63,7 +85,7 @@ export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlu
             // Presenter mode (Shift+P) — BEFORE the streamLock bail: presenting
             // is exactly what you do during a build. Never while typing, and
             // plain P stays free.
-            if (!meta && e.shiftKey && lower === 'p' && c.onTogglePresenter && !isTyping(e.target)) {
+            if (!meta && e.shiftKey && lower === 'p' && c.onTogglePresenter && !isTyping(e.target as HTMLElement | null)) {
                 e.preventDefault();
                 c.onTogglePresenter();
                 return;
@@ -93,7 +115,7 @@ export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlu
             }
 
             // Selection-scoped shortcuts — never while typing.
-            if (isTyping(e.target)) return;
+            if (isTyping(e.target as HTMLElement | null)) return;
 
             // Clipboard (edit mode only; typing already excluded above).
             const selIds = c.selectedNodeIds instanceof Set ? c.selectedNodeIds : null;
@@ -120,7 +142,7 @@ export default function useEditorHotkeys({ enabled = true, onUndo, onRedo, onFlu
                 // Paste AFTER the anchor when it's a direct child of a section,
                 // else append to the anchor's section, else the current screen's
                 // first section (pasteNodes resolves the target).
-                let target = { screenId: c.screenId };
+                let target: PasteTarget = { screenId: c.screenId };
                 if (c.selectedNodeId) {
                     const found = findNode(c.definition, c.selectedNodeId);
                     // ...but only when the anchor is on the screen being
