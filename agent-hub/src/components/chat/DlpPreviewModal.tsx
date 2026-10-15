@@ -16,6 +16,7 @@
 import { ShieldAlert, Eye, X, Send, Lock } from 'lucide-react';
 import React, { useMemo } from 'react';
 import DlpReviewShell from './dlpReview/DlpReviewShell';
+import type { DlpReviewPending } from './dlpReview/DlpReviewShell';
 import useDlpDecision from '../../hooks/useDlpDecision';
 import type { DlpChoice, DlpPending, DlpSubmitOptions } from '../../hooks/useDlpDecision';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -176,7 +177,7 @@ export default function DlpPreviewModal() {
     // reviewText is only present on the rich payload (this change) — its
     // absence means an older server build, not a message with empty text.
     if (typeof pending.reviewText === 'string') {
-        return <DlpReviewShell pending={pending} onSubmit={submit} submitting={submitting} error={error} />;
+        return <DlpReviewShell pending={pending as DlpReviewPending} onSubmit={submit} submitting={submitting} error={error} />;
     }
     return <LegacyDlpPreview pending={pending} submit={submit} submitting={submitting} error={error} />;
 }

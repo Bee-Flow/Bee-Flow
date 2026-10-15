@@ -15,7 +15,7 @@ import Modal from '../../shared/Modal';
 import type { DlpChoice, DlpPending } from '../../../hooks/useDlpDecision';
 import type { DlpSpan, ManualSpan } from './dlpFindingsState';
 
-interface DlpReviewPending {
+export interface DlpReviewPending {
     findings: DlpSpan[];
     provider?: { displayName?: string; isExternal?: boolean };
     kind: DlpPending['kind'];

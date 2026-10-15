@@ -24,7 +24,7 @@ export interface SettingsDropdownOption {
 interface SettingsDropdownProps {
     label: string;
     options: SettingsDropdownOption[];
-    value: string;
+    value: unknown;
     onChange: (value: string) => void;
     accentColor?: string;
 }

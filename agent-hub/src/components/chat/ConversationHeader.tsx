@@ -39,6 +39,7 @@ import { headerKbState, headerShieldState } from './conversationHeaderClaims';
 import useShieldStatus from '../../hooks/useShieldStatus';
 import useTranslation from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
+import type { KbRow } from './knowledgeBaseClaim';
 import { kindColorVar, kindIcon } from '../shared/kindColors';
 
 const BookIcon = kindIcon('kb');
@@ -131,7 +132,7 @@ interface Props {
     user?: object | null;
     isMobile?: boolean;
     shieldApplies?: boolean;
-    availableKBs?: unknown[] | null;
+    availableKBs?: KbRow[] | null;
     selectedKBIds?: string[] | null;
     onToNotebook?: (() => void) | null;
     notebookOpen?: boolean;
