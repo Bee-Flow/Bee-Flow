@@ -33,21 +33,36 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 
 const COMPACT_ACTIVITY = 8;
 
+interface ApprovalLike { status?: string }
+type SectionItems = ApprovalLike[] | null | undefined;
+type Resources = Record<string, SectionItems>;
+
+interface ActiveRun {
+    runId: string;
+    automationTitle?: string;
+}
+
+interface ActivityItem {
+    id: string | number;
+    action?: string;
+    createdAt?: string;
+}
+
 const ICON = 'w-4 h-4 flex-shrink-0 ';
 const TILE = 'flex flex-col gap-1 px-3 py-3 min-h-[44px] text-left bg-[var(--bg-card)] border border-[var(--border-subtle)] border-l-[3px] rounded-[var(--radius-md)] transition-colors duration-150 hover:bg-[var(--bg-card-hover)] hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]';
 
 /** null = the store could not be reached, and must not render as 0. */
-function countOf(items) {
+function countOf(items: SectionItems): number | null {
     return (items === null || items === undefined) ? null : items.length;
 }
 
 /** Approvals count what is still waiting, not how many ever existed. */
-function pendingCount(items) {
+function pendingCount(items: SectionItems): number | null {
     if (items === null || items === undefined) return null;
-    return items.filter(a => (a.status || 'pending') === 'pending').length;
+    return items.filter((a: ApprovalLike) => (a.status || 'pending') === 'pending').length;
 }
 
-function CountTiles({ resources, onOpenTab }) {
+function CountTiles({ resources, onOpenTab }: { resources?: Resources | null; onOpenTab?: (tab: string) => void }) {
     const { t } = useTranslation();
     return (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
@@ -74,13 +89,13 @@ function CountTiles({ resources, onOpenTab }) {
     );
 }
 
-function RunningNow({ runs }) {
+function RunningNow({ runs }: { runs: ActiveRun[] }) {
     const { t } = useTranslation();
     if (runs.length === 0) return null;
     return (
         <TabCard title={t('projects.running_now', 'Running now')} icon={PlayCircle}>
             <div className="space-y-1.5">
-                {runs.map(run => (
+                {runs.map((run: ActiveRun) => (
                     <div key={run.runId} className={`flex items-center gap-3 px-3 py-2.5 ${ROW}`}>
                         <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none flex-shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
                         <span className="flex-1 min-w-0 text-sm truncate text-[var(--text-primary)]">
@@ -93,7 +108,13 @@ function RunningNow({ runs }) {
     );
 }
 
-function Recent({ activity, formatActivity, formatRelative }) {
+interface RecentProps {
+    activity: ActivityItem[] | null;
+    formatActivity?: (item: ActivityItem) => string;
+    formatRelative?: (iso?: string) => string;
+}
+
+function Recent({ activity, formatActivity, formatRelative }: RecentProps) {
     const { t } = useTranslation();
     return (
         <TabCard title={t('projects.recent_activity', 'Recent activity')} icon={Activity}>
@@ -103,7 +124,7 @@ function Recent({ activity, formatActivity, formatRelative }) {
                 <TabNote>{t('projects.section_empty', 'Nothing here yet.')}</TabNote>
             ) : (
                 <ul className="space-y-1.5">
-                    {activity.slice(0, COMPACT_ACTIVITY).map(item => (
+                    {activity.slice(0, COMPACT_ACTIVITY).map((item: ActivityItem) => (
                         <li key={item.id} className={`px-3 py-2 ${ROW}`}>
                             <p className="text-sm truncate text-[var(--text-primary)]">
                                 {formatActivity ? formatActivity(item) : item.action}
@@ -119,10 +140,20 @@ function Recent({ activity, formatActivity, formatRelative }) {
     );
 }
 
+interface ProjectOverviewTabProps {
+    resources?: Resources | null;
+    loading?: boolean;
+    activity?: ActivityItem[] | null;
+    activeRuns?: Record<string, ActiveRun>;
+    onOpenTab?: (tab: string) => void;
+    formatActivity?: (item: ActivityItem) => string;
+    formatRelative?: (iso?: string) => string;
+}
+
 export default function ProjectOverviewTab({
     resources, loading, activity = [], activeRuns = {},
     onOpenTab, formatActivity, formatRelative,
-}) {
+}: ProjectOverviewTabProps) {
     if (loading && !resources) {
         return <TabSpinner />;
     }

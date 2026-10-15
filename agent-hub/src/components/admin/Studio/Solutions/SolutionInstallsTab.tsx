@@ -55,7 +55,7 @@ import { nOf } from '../KnowledgeStudio/plural';
  * wél welke van de twee het is. Dezelfde vorm als `controlBadge` hiernaast, dat een lege
  * bevindingenlijst ook geen "0" geeft.
  */
-export function installsBadge(remote) {
+export function installsBadge(remote: RemoteRead | null | undefined) {
     const { state, here, elsewhere } = readInstalls(remote);
     if (state !== 'ok') return { count: undefined };
     // Eén onbekende helft maakt het TOTAAL onbekend: optellen alsof de andere
@@ -66,7 +66,19 @@ export function installsBadge(remote) {
 }
 
 /** Eén helft van de telling: een grote kaart met getal, of de mededeling dat het er niet is. */
-function Half({ count, label, unknownPhrase, testId }) {
+interface HalfProps {
+    count: number | null;
+    label: string;
+    unknownPhrase: string;
+    testId: string;
+}
+
+interface RemoteRead {
+    status?: string;
+    data?: unknown;
+}
+
+function Half({ count, label, unknownPhrase, testId }: HalfProps) {
     const known = count !== null;
     return (
         <li className="flex flex-col gap-1 px-4 py-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
@@ -82,7 +94,7 @@ function Half({ count, label, unknownPhrase, testId }) {
     );
 }
 
-export default function SolutionInstallsTab({ remote }) {
+export default function SolutionInstallsTab({ remote }: { remote?: RemoteRead | null }) {
     const { t } = useTranslation();
     const { state, here, elsewhere } = useMemo(() => readInstalls(remote), [remote]);
 

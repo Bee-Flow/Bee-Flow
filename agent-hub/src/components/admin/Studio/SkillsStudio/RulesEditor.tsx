@@ -1,7 +1,14 @@
 import { Ban, Check, Plus, Trash2 } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '../../../../hooks/useTranslation';
 import { newLocalId } from './skillModel';
+import type { Rule } from './skillModel.types';
+
+interface RulesEditorProps {
+    rules?: Rule[] | null;
+    onChange: (rules: Rule[]) => void;
+    readOnly?: boolean;
+}
 
 /**
  * "Rules" — what holds regardless of the question (Skills artboard 1a,
@@ -24,12 +31,12 @@ import { newLocalId } from './skillModel';
  * is this repo's `--success` (recorded deviation, plan "Waar ik het ontwerp
  * niet volg").
  */
-export default function RulesEditor({ rules, onChange, readOnly = false }) {
+export default function RulesEditor({ rules, onChange, readOnly = false }: RulesEditorProps) {
     const { t } = useTranslation();
     const rows = Array.isArray(rules) ? rules : [];
 
-    const patch = (id, next) => onChange(rows.map(r => (r.id === id ? { ...r, ...next } : r)));
-    const remove = (id) => onChange(rows.filter(r => r.id !== id));
+    const patch = (id: string, next: Partial<Rule>) => onChange(rows.map(r => (r.id === id ? { ...r, ...next } : r)));
+    const remove = (id: string) => onChange(rows.filter(r => r.id !== id));
     const add = () => onChange([...rows, { id: newLocalId('rule'), polarity: 'must', text: '' }]);
 
     return (
@@ -55,7 +62,7 @@ export default function RulesEditor({ rules, onChange, readOnly = false }) {
                         key={rule.id}
                         rule={rule}
                         readOnly={readOnly}
-                        onText={(text) => patch(rule.id, { text })}
+                        onText={(text: string) => patch(rule.id, { text })}
                         onFlip={() => patch(rule.id, { polarity: rule.polarity === 'never' ? 'must' : 'never' })}
                         onRemove={() => remove(rule.id)}
                         t={t}
@@ -78,7 +85,16 @@ export default function RulesEditor({ rules, onChange, readOnly = false }) {
     );
 }
 
-function RuleRow({ rule, readOnly, onText, onFlip, onRemove, t }) {
+interface RuleRowProps {
+    rule: Rule;
+    readOnly: boolean;
+    onText: (text: string) => void;
+    onFlip: () => void;
+    onRemove: () => void;
+    t: TranslateFn;
+}
+
+function RuleRow({ rule, readOnly, onText, onFlip, onRemove, t }: RuleRowProps) {
     const never = rule.polarity === 'never';
     const Icon = never ? Ban : Check;
     const color = never ? 'var(--error)' : 'var(--success)';
@@ -109,7 +125,7 @@ function RuleRow({ rule, readOnly, onText, onFlip, onRemove, t }) {
             </button>
             <input
                 value={rule.text}
-                onChange={(e) => onText(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onText(e.target.value)}
                 readOnly={readOnly}
                 aria-label={t('skills_studio.rules.text', 'Rule')}
                 placeholder={t('skills_studio.rules.placeholder', 'One sentence — what always holds?')}

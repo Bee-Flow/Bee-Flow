@@ -4,6 +4,30 @@ import Notice from './Notice';
 import { CARD, ROW, TabCard } from './TabParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+interface BlueprintReport {
+    counts?: { automations?: number; apps?: number; webpages?: number };
+    warnings?: string[];
+}
+
+interface BlueprintRequirement {
+    count: number;
+    kind: string;
+}
+
+interface Manifest {
+    solution?: {
+        report?: BlueprintReport;
+        requires?: BlueprintRequirement[];
+    };
+}
+
+interface ExportErrorBody {
+    error?: string;
+    required?: string;
+    current?: string;
+}
 
 /**
  * Package this Solution as a Blueprint.
@@ -23,7 +47,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  * installs it. So every one of those is listed, in words, before the download.
  */
 
-function humanError(status, body, t) {
+function humanError(status: number, body: ExportErrorBody | null | undefined, t: TranslateFn): string {
     if (body?.error === 'feature_locked') {
         return t('studio_misc.blueprint.err_locked', 'Packaging a Solution is part of the {required} plan. This organisation is on {current}.', { required: body.required, current: body.current });
     }
@@ -32,7 +56,7 @@ function humanError(status, body, t) {
     return body?.error || t('studio_misc.blueprint.err_export', 'The export failed.');
 }
 
-function download(manifest, name) {
+function download(manifest: Manifest, name: string): void {
     const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -44,12 +68,18 @@ function download(manifest, name) {
     URL.revokeObjectURL(url);
 }
 
-function Listed({ title, items, render }) {
+interface ListedProps<T> {
+    title: string;
+    items?: T[] | null;
+    render: (item: T) => React.ReactNode;
+}
+
+function Listed<T>({ title, items, render }: ListedProps<T>) {
     if (!items || items.length === 0) return null;
     return (
         <TabCard title={title}>
             <ul className="space-y-1">
-                {items.map((item, i) => (
+                {items.map((item: T, i: number) => (
                     <li key={i} className={`flex items-start gap-2 px-3 py-2 ${ROW} text-sm text-[var(--text-secondary)]`}>
                         {render(item)}
                     </li>
@@ -59,7 +89,7 @@ function Listed({ title, items, render }) {
     );
 }
 
-function Result({ manifest, projectName }) {
+function Result({ manifest, projectName }: { manifest: Manifest; projectName: string }) {
     const { t } = useTranslation();
     const report = manifest?.solution?.report;
     const counts = report?.counts || {};
@@ -81,7 +111,7 @@ function Result({ manifest, projectName }) {
             <Listed
                 title={t('projects.blueprint_requires', 'Whoever installs it has to supply')}
                 items={manifest?.solution?.requires || []}
-                render={(r) => <span>{r.count} × {r.kind}</span>}
+                render={(r: BlueprintRequirement) => <span>{r.count} × {r.kind}</span>}
             />
 
             {/* The point of this screen. A Blueprint that quietly left something
@@ -89,7 +119,7 @@ function Result({ manifest, projectName }) {
             <Listed
                 title={t('projects.blueprint_left_behind', 'What this Blueprint does not carry')}
                 items={report?.warnings || []}
-                render={(w) => (
+                render={(w: string) => (
                     <>
                         <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--warning)]" aria-hidden="true" />
                         {w}
@@ -108,14 +138,21 @@ function Result({ manifest, projectName }) {
  * every caller that predates the dialog — the screen behaves exactly as before:
  * off by default, and the user's own decision.
  */
-export default function ProjectBlueprintTab({ projectId, projectName, role, forceKeepHere = false }) {
+interface ProjectBlueprintTabProps {
+    projectId: string;
+    projectName: string;
+    role: string;
+    forceKeepHere?: boolean;
+}
+
+export default function ProjectBlueprintTab({ projectId, projectName, role, forceKeepHere = false }: ProjectBlueprintTabProps) {
     const { t } = useTranslation();
-    const [busy, setBusy] = useState(false);
-    const [manifest, setManifest] = useState(null);
-    const [error, setError] = useState('');
+    const [busy, setBusy] = useState<boolean>(false);
+    const [manifest, setManifest] = useState<Manifest | null>(null);
+    const [error, setError] = useState<string>('');
     // Off by default: a download is the more private choice, and only what is
     // kept on the instance is subject to the size ceiling.
-    const [keepHereChoice, setKeepHere] = useState(false);
+    const [keepHereChoice, setKeepHere] = useState<boolean>(false);
     const keepHere = forceKeepHere || keepHereChoice;
 
     const isOwner = role === 'owner';
@@ -151,7 +188,7 @@ export default function ProjectBlueprintTab({ projectId, projectName, role, forc
                 </p>
 
                 <label className="flex items-start gap-3 min-h-[44px] sm:min-h-0 text-sm text-[var(--text-secondary)]">
-                    <input type="checkbox" checked={keepHere} onChange={(e) => setKeepHere(e.target.checked)}
+                    <input type="checkbox" checked={keepHere} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKeepHere(e.target.checked)}
                            disabled={!isOwner || forceKeepHere}
                            className="mt-0.5 w-4 h-4 flex-shrink-0 accent-[var(--accent-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]" />
                     {t('projects.blueprint_keep_here',

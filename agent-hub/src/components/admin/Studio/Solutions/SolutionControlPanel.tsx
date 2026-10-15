@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, Info, Loader2 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import ControlFindingGroup, { isBlocking } from './ControlFindingGroup';
+import ControlFindingGroup, { isBlocking, type ControlFinding } from './ControlFindingGroup';
 import { Strip, sectionNames } from './solutionNotices';
 
 /**
@@ -40,7 +40,21 @@ import { Strip, sectionNames } from './solutionNotices';
 
 export { isBlocking };
 
-export default function SolutionControlPanel({ completeness, loading, error, onOpen, readOnly = false }) {
+interface ControlCompleteness {
+    findings?: ControlFinding[];
+    complete?: boolean;
+    unavailable?: unknown;
+}
+
+interface SolutionControlPanelProps {
+    completeness?: ControlCompleteness | null;
+    loading?: boolean;
+    error?: unknown;
+    onOpen?: (link: unknown) => void;
+    readOnly?: boolean;
+}
+
+export default function SolutionControlPanel({ completeness, loading, error, onOpen, readOnly = false }: SolutionControlPanelProps) {
     const { t } = useTranslation();
 
     if (loading && !completeness) {
@@ -64,7 +78,7 @@ export default function SolutionControlPanel({ completeness, loading, error, onO
 
     const findings = Array.isArray(completeness.findings) ? completeness.findings : [];
     const blocking = findings.filter(isBlocking);
-    const advice = findings.filter(f => !isBlocking(f));
+    const advice = findings.filter((f: ControlFinding) => !isBlocking(f));
     const gaps = sectionNames(completeness.unavailable, t);
 
     const summary = findings.length === 0

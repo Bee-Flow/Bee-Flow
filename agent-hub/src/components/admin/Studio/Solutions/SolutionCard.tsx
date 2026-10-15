@@ -3,6 +3,20 @@ import { CountChips, HealthChip, RunLine, StageTrack, SubLine, UpdateChip } from
 import { healthOf, updateOf } from './solutionOverviewModel';
 import { kindTileStyle } from '../../../shared/kindColors';
 
+type SolutionCardRow = {
+    id?: string;
+    name?: string;
+    icon?: string;
+    description?: string;
+    stages?: unknown;
+    [field: string]: unknown;
+};
+
+interface SolutionCardProps {
+    row: SolutionCardRow;
+    onOpen?: (row: SolutionCardRow) => void;
+}
+
 /**
  * One Solution, as a card on the overview. The whole card is ONE button (no
  * nested interactive elements); every decision on it was made in
@@ -10,7 +24,7 @@ import { kindTileStyle } from '../../../shared/kindColors';
  * Layout: icon + name + role, health chip; description; stage track; count
  * chips; footer with runs and the Blueprint-update chip.
  */
-export default function SolutionCard({ row, onOpen }) {
+export default function SolutionCard({ row, onOpen }: SolutionCardProps) {
     const health = healthOf(row);
     const update = updateOf(row);
     const tile = kindTileStyle('solution', 36);

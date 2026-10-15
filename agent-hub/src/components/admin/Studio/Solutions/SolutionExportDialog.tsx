@@ -4,6 +4,35 @@ import ProjectBlueprintTab from './ProjectBlueprintTab';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import Modal from '../../../shared/Modal';
 import { Strip } from './solutionNotices';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+/** One typed requirement from the completeness endpoint's preview. */
+interface RequirementItem {
+    kind: string;
+    externalId?: string;
+    stepId?: string;
+    automationTitle?: string;
+    datatableKey?: string;
+}
+
+interface Requires {
+    items?: RequirementItem[];
+}
+
+export interface ExportCompleteness {
+    complete?: boolean;
+    requires?: Requires | null;
+}
+
+interface SolutionExportDialogProps {
+    open: boolean;
+    onClose: () => void;
+    projectId: string;
+    projectName: string;
+    role: string;
+    mode?: 'export' | 'publish';
+    completeness?: ExportCompleteness | null;
+}
 
 /**
  * Packaging this Solution, as a dialog rather than a tab.
@@ -44,7 +73,7 @@ import { Strip } from './solutionNotices';
  */
 
 /** One typed requirement as a sentence. Never a person, never a credential. */
-function requirementLine(item, t) {
+function requirementLine(item: RequirementItem, t: TranslateFn): string {
     if (item.externalId) {
         return t('solutions.requires_external', '{kind} outside this Solution ({id})')
             .replace('{kind}', item.kind).replace('{id}', item.externalId);
@@ -73,7 +102,7 @@ function requirementLine(item, t) {
     return [item.kind, where, inAutomation].filter(Boolean).join(' · ');
 }
 
-export function RequirementsPreview({ requires }) {
+export function RequirementsPreview({ requires }: { requires?: Requires | null }) {
     const { t } = useTranslation();
     const items = requires?.items;
     if (!Array.isArray(items) || items.length === 0) return null;
@@ -83,7 +112,7 @@ export function RequirementsPreview({ requires }) {
                 {t('projects.blueprint_requires', 'Whoever installs it has to supply')}
             </h3>
             <ul className="space-y-1">
-                {items.map((item, i) => (
+                {items.map((item: RequirementItem, i: number) => (
                     <li key={`${item.kind}-${item.stepId || item.externalId || i}`}
                         className="px-3 py-2 rounded-[var(--radius-md)] text-[13px] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                         {requirementLine(item, t)}
@@ -102,7 +131,7 @@ export default function SolutionExportDialog({
     role,
     mode = 'export',
     completeness,
-}) {
+}: SolutionExportDialogProps) {
     const { t } = useTranslation();
     const publishing = mode === 'publish';
 

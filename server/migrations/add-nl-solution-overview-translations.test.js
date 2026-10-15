@@ -35,9 +35,9 @@ const HUB = path.join(__dirname, '..', '..', 'agent-hub', 'src', 'components');
 
 /** The files the overview is made of (the screen and the card each split into a Parts file). */
 const SCREEN_FILES = [
-    path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionsOverview.jsx'),
+    path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionsOverview.tsx'),
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionsOverviewParts.tsx'),
-    path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionCard.jsx'),
+    path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionCard.tsx'),
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionCardParts.tsx'),
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'solutionCounts.js'),
 ];

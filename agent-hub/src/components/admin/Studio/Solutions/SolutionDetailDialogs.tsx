@@ -1,6 +1,6 @@
 import React from 'react';
 import SolutionAccessDialog, { type SolutionRole } from './SolutionAccessDialog';
-import SolutionExportDialog from './SolutionExportDialog';
+import SolutionExportDialog, { type ExportCompleteness } from './SolutionExportDialog';
 import UpgradeDialog from './upgradeClient';
 
 /**
@@ -18,7 +18,7 @@ export interface SolutionDetailDialogsProps {
     name: string;
     role: SolutionRole;
     currentUserId?: string | null;
-    completeness: unknown;
+    completeness: ExportCompleteness | null | undefined;
     availability: { blueprintId?: string | null; latestVersion?: number | string | null };
     onBack: () => void;
     refresh: Record<'fetchMembers' | 'fetchBlueprints' | 'fetchReleases' | 'fetchResources' | 'fetchGraph' | 'fetchCompleteness', () => void>;
