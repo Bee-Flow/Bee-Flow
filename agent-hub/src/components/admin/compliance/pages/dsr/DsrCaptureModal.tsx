@@ -4,6 +4,7 @@
  * explicit allow-list of fields: type, e-mail, channel, received-at, notes.
  */
 import React, { useEffect, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import Modal from '../../../../shared/Modal';
@@ -16,17 +17,37 @@ const LABEL = 'text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** The form as the modal holds it; every field is the string the input shows. */
+export interface CaptureForm {
+    request_type: string;
+    subject_email: string;
+    channel: string;
+    received_at: string;
+    notes: string;
+}
+
+/** The allow-listed body POST /api/dsr/requests/manual takes. */
+export interface CapturePayload {
+    request_type: string;
+    subject_email: string;
+    channel: string;
+    received_at: string;
+    notes?: string;
+}
+
+type FieldEvent = ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
+
 /** `datetime-local` value for a Date (local wall time, minute precision). */
-export function toLocalInputValue(date) {
+export function toLocalInputValue(date: Date | string | number): string {
     const d = date instanceof Date ? date : new Date(date);
     if (!Number.isFinite(d.getTime())) return '';
-    const pad = (n) => String(n).padStart(2, '0');
+    const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 /** Pure validation → { field: messageKey } (English fallback resolved by the caller). */
-export function validateCapture({ request_type, subject_email, channel, received_at }, now = Date.now()) {
-    const errors = {};
+export function validateCapture({ request_type, subject_email, channel, received_at }: CaptureForm, now = Date.now()): Record<string, string> {
+    const errors: Record<string, string> = {};
     if (!DSR_TYPES.includes(request_type)) errors.request_type = 'type';
     if (!EMAIL_RE.test(String(subject_email || '').trim())) errors.subject_email = 'email';
     if (!CAPTURE_CHANNELS.includes(channel)) errors.channel = 'channel';
@@ -40,8 +61,8 @@ export function validateCapture({ request_type, subject_email, channel, received
  * The allow-listed payload — nothing else from the form state reaches the
  * server. The channel goes out in the server's spelling (`email_dpo`, …).
  */
-export function capturePayload({ request_type, subject_email, channel, received_at, notes }) {
-    const body = {
+export function capturePayload({ request_type, subject_email, channel, received_at, notes }: CaptureForm): CapturePayload {
+    const body: CapturePayload = {
         request_type,
         subject_email: String(subject_email || '').trim(),
         channel: CHANNEL_WIRE[channel] ?? channel,
@@ -52,7 +73,7 @@ export function capturePayload({ request_type, subject_email, channel, received_
     return body;
 }
 
-const ERROR_TEXT = {
+const ERROR_TEXT: Record<string, [string, string]> = {
     type: ['compliance.dsr_capture_err_type', 'Choose the kind of request.'],
     email: ['compliance.dsr_capture_err_email', 'Enter the data subject’s e-mail address.'],
     channel: ['compliance.dsr_capture_err_channel', 'Choose how the request arrived.'],
@@ -60,10 +81,18 @@ const ERROR_TEXT = {
     future: ['compliance.dsr_capture_err_future', 'The receipt date cannot be in the future.'],
 };
 
-export default function DsrCaptureModal({ open = false, onClose, onCapture, busy = false, testId = 'dsr-capture' }) {
+export interface DsrCaptureModalProps {
+    open?: boolean;
+    onClose: () => void;
+    onCapture?: (payload: CapturePayload) => unknown;
+    busy?: boolean;
+    testId?: string;
+}
+
+export default function DsrCaptureModal({ open = false, onClose, onCapture, busy = false, testId = 'dsr-capture' }: DsrCaptureModalProps) {
     const { t } = useTranslation();
-    const [form, setForm] = useState(() => ({ request_type: 'access', subject_email: '', channel: 'email', received_at: toLocalInputValue(new Date()), notes: '' }));
-    const [errors, setErrors] = useState({});
+    const [form, setForm] = useState<CaptureForm>(() => ({ request_type: 'access', subject_email: '', channel: 'email', received_at: toLocalInputValue(new Date()), notes: '' }));
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [touched, setTouched] = useState(false);
 
     useEffect(() => {
@@ -73,13 +102,13 @@ export default function DsrCaptureModal({ open = false, onClose, onCapture, busy
         }
     }, [open]);
 
-    const set = (k) => (e) => {
-        const value = e?.target ? e.target.value : e;
+    const set = (k: keyof CaptureForm) => (e: FieldEvent | string) => {
+        const value = (e as Partial<FieldEvent> | null | undefined)?.target ? (e as FieldEvent).target.value : (e as string);
         setForm(f => ({ ...f, [k]: value }));
         if (touched) setErrors(validateCapture({ ...form, [k]: value }));
     };
 
-    const submit = (e) => {
+    const submit = (e?: { preventDefault?: () => void }) => {
         e?.preventDefault?.();
         const errs = validateCapture(form);
         setTouched(true);
@@ -88,8 +117,8 @@ export default function DsrCaptureModal({ open = false, onClose, onCapture, busy
         onCapture?.(capturePayload(form));
     };
 
-    const err = (k) => errors[k] ? t(...ERROR_TEXT[errors[k]]) : null;
-    const Err = ({ k }) => err(k) ? <span className="text-[11px] text-[var(--error-ink)]" role="alert" data-testid={`${testId}-err-${k}`}>{err(k)}</span> : null;
+    const err = (k: string): string | null => errors[k] ? t(...ERROR_TEXT[errors[k]]) : null;
+    const Err = ({ k }: { k: string }) => err(k) ? <span className="text-[11px] text-[var(--error-ink)]" role="alert" data-testid={`${testId}-err-${k}`}>{err(k)}</span> : null;
 
     return (
         <Modal

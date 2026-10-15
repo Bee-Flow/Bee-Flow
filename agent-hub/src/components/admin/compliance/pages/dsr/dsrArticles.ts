@@ -11,8 +11,36 @@
  */
 import { addCalendarMonths, DAY_MS } from '../../../../shared/deadlineMath';
 
+/** A date as the server or a caller hands it over. */
+type DateValue = string | number | Date | null | undefined;
+
+/** One DSR row, as the list carries it (the old and the BE-2 column names). */
+export interface DsrRow {
+    id?: string | number | null;
+    request_type?: string | null;
+    notes?: string | null;
+    result_summary?: string | null;
+    status?: string | null;
+    state?: string | null;
+    channel?: string | null;
+    identity_status?: string | null;
+    identity_verified_at?: string | null;
+    received_at?: DateValue;
+    created_at?: DateValue;
+    due_at?: DateValue;
+    extended_until?: DateValue;
+    completed_at?: DateValue;
+    resolved_at?: DateValue;
+    fulfilled_at?: DateValue;
+    updated_at?: DateValue;
+    [key: string]: unknown;
+}
+
+/** True when `v` is a string and `list` holds it. */
+const isWord = (list: readonly string[], v: string | null | undefined): v is string => typeof v === 'string' && list.includes(v);
+
 /** Request type → GDPR article. `deletion` is the stored word, `erasure` the legal one — both map. */
-export const DSR_ARTICLE = Object.freeze({
+export const DSR_ARTICLE: Record<string, string> = Object.freeze({
     access: '15',
     rectification: '16',
     deletion: '17',
@@ -23,7 +51,7 @@ export const DSR_ARTICLE = Object.freeze({
 });
 
 /** Existing `compliance.dsr_type_*` keys (DsrInboxPage's TYPE_LABEL_KEY, kept verbatim). */
-export const DSR_TYPE_KEY = Object.freeze({
+export const DSR_TYPE_KEY: Record<string, string> = Object.freeze({
     access: 'compliance.dsr_type_access',
     rectification: 'compliance.dsr_type_rectification',
     deletion: 'compliance.dsr_type_deletion',
@@ -44,8 +72,8 @@ export const DSR_TYPES = Object.freeze(['access', 'rectification', 'deletion', '
 export const DSR_CHANNELS = Object.freeze(['form', 'email', 'phone', 'letter', 'other']);
 /** What a DPO can pick when recording a request by hand (the form records itself). */
 export const CAPTURE_CHANNELS = Object.freeze(['email', 'phone', 'letter', 'other']);
-export const CHANNEL_WIRE = Object.freeze({ form: 'public_form', email: 'email_dpo', phone: 'phone', letter: 'letter', other: 'other' });
-const CHANNEL_ALIAS = Object.freeze({ public_form: 'form', dsr_form: 'form', web: 'form', email_dpo: 'email', mail: 'email', dpo_email: 'email', post: 'letter', telephone: 'phone' });
+export const CHANNEL_WIRE: Record<string, string> = Object.freeze({ form: 'public_form', email: 'email_dpo', phone: 'phone', letter: 'letter', other: 'other' });
+const CHANNEL_ALIAS: Record<string, string> = Object.freeze({ public_form: 'form', dsr_form: 'form', web: 'form', email_dpo: 'email', mail: 'email', dpo_email: 'email', post: 'letter', telephone: 'phone' });
 
 export const DSR_STATES = Object.freeze(['pending', 'in_progress', 'fulfilled', 'rejected']);
 export const OPEN_STATES = Object.freeze(['pending', 'in_progress']);
@@ -61,11 +89,11 @@ export const DSR_EXTENSION_MONTHS = 2;
 /** The clock turns urgent under five days — regulation-driven, passed to DeadlineClock by the host. */
 export const DSR_URGENT_BELOW_MS = 5 * DAY_MS;
 
-export function articleOf(requestType) {
+export function articleOf(requestType: string | null | undefined): string | null {
     return DSR_ARTICLE[String(requestType || '').toLowerCase()] ?? null;
 }
 
-export function typeKeyOf(requestType) {
+export function typeKeyOf(requestType: string | null | undefined): string | null {
     return DSR_TYPE_KEY[String(requestType || '').toLowerCase()] ?? null;
 }
 
@@ -76,21 +104,23 @@ export function typeKeyOf(requestType) {
  * first turned every request into 'pending'. `state` still counts when it
  * holds a lifecycle word (older rows); the clock is the clock helpers' job.
  */
-export function stateOf(row) {
-    if (DSR_STATES.includes(row?.status)) return row.status;
-    if (DSR_STATES.includes(row?.state)) return row.state;
+export function stateOf(row: DsrRow | null | undefined): string {
+    const status = row?.status;
+    if (isWord(DSR_STATES, status)) return status;
+    const state = row?.state;
+    if (isWord(DSR_STATES, state)) return state;
     return 'pending';
 }
 
-export function isOpen(row) {
+export function isOpen(row: DsrRow | null | undefined): boolean {
     return OPEN_STATES.includes(stateOf(row));
 }
 
-export function isClosed(row) {
+export function isClosed(row: DsrRow | null | undefined): boolean {
     return CLOSED_STATES.includes(stateOf(row));
 }
 
-export function channelOf(row) {
+export function channelOf(row: DsrRow | null | undefined): string {
     const raw = String(row?.channel || 'form').toLowerCase();
     const c = CHANNEL_ALIAS[raw] ?? raw;
     return DSR_CHANNELS.includes(c) ? c : 'other';
@@ -103,7 +133,7 @@ export const IDENTITY_STATES = Object.freeze(['verified_link', 'verified_manual'
  * unverified`), else `identity_verified_at`, else unknown. Anything that
  * starts with "verified" counts as confirmed.
  */
-export function identityOf(row) {
+export function identityOf(row: DsrRow | null | undefined): string {
     const s = String(row?.identity_status || '').toLowerCase();
     if (s === 'verified_email_link' || s === 'verified_link' || s === 'email_link') return 'verified_link';
     if (s === 'verified_manual' || s === 'manual') return 'verified_manual';
@@ -114,23 +144,23 @@ export function identityOf(row) {
     return 'unknown';
 }
 
-export function isIdentityVerified(row) {
+export function isIdentityVerified(row: DsrRow | null | undefined): boolean {
     return identityOf(row).startsWith('verified');
 }
 
-function ms(value) {
+function ms(value: DateValue): number | null {
     if (value === null || value === undefined || value === '') return null;
     const n = value instanceof Date ? value.getTime() : typeof value === 'number' ? value : new Date(value).getTime();
     return Number.isFinite(n) ? n : null;
 }
 
 /** The clock starts at receipt, not when a handler starts working. */
-export function receivedAtOf(row) {
+export function receivedAtOf(row: DsrRow | null | undefined): number | null {
     return ms(row?.received_at) ?? ms(row?.created_at);
 }
 
 /** `due_at` from the server wins; an extension without a due date is the due date; else receipt + one calendar month. */
-export function dueAtOf(row) {
+export function dueAtOf(row: DsrRow | null | undefined): number | null {
     const due = ms(row?.due_at);
     if (due !== null) return due;
     const extended = ms(row?.extended_until);
@@ -140,13 +170,13 @@ export function dueAtOf(row) {
 }
 
 /** When a closed row was closed — the best column we have, or null. */
-export function completedAtOf(row) {
+export function completedAtOf(row: DsrRow | null | undefined): number | null {
     if (!isClosed(row)) return null;
     return ms(row?.completed_at) ?? ms(row?.resolved_at) ?? ms(row?.fulfilled_at) ?? ms(row?.updated_at);
 }
 
 /** Everything DeadlineClock needs for one row. Closed rows are 'done' whatever the due date says. */
-export function clockPropsOf(row) {
+export function clockPropsOf(row: DsrRow | null | undefined) {
     const closed = isClosed(row);
     return {
         dueAt: dueAtOf(row),
@@ -158,7 +188,7 @@ export function clockPropsOf(row) {
 }
 
 /** True when the row is open and its deadline has passed. */
-export function isOverdue(row, now = Date.now()) {
+export function isOverdue(row: DsrRow | null | undefined, now = Date.now()): boolean {
     if (!isOpen(row)) return false;
     const due = dueAtOf(row);
     return due !== null && due < now;
@@ -167,7 +197,7 @@ export function isOverdue(row, now = Date.now()) {
 /** Filter value → predicate. `open` = pending + in_progress (the artboard's "Lopend"). */
 export const FILTERS = Object.freeze(['open', 'overdue', 'fulfilled', 'rejected']);
 
-export function matchesFilter(row, filter, now = Date.now()) {
+export function matchesFilter(row: DsrRow | null | undefined, filter: string, now = Date.now()): boolean {
     switch (filter) {
         case 'open': return isOpen(row);
         case 'overdue': return isOverdue(row, now);
@@ -177,8 +207,8 @@ export function matchesFilter(row, filter, now = Date.now()) {
     }
 }
 
-export function countByFilter(rows, now = Date.now()) {
-    const out = { open: 0, overdue: 0, fulfilled: 0, rejected: 0 };
+export function countByFilter(rows: DsrRow[] | null | undefined, now = Date.now()): Record<string, number> {
+    const out: Record<string, number> = { open: 0, overdue: 0, fulfilled: 0, rejected: 0 };
     for (const r of rows || []) {
         for (const f of FILTERS) if (matchesFilter(r, f, now)) out[f] += 1;
     }
@@ -189,7 +219,7 @@ export function countByFilter(rows, now = Date.now()) {
  * "By deadline": open rows first (soonest due at the top — overdue rows are the
  * soonest of all), closed rows after, most recently received first.
  */
-export function sortByDeadline(rows) {
+export function sortByDeadline(rows: DsrRow[] | null | undefined): DsrRow[] {
     return [...(rows || [])].sort((a, b) => {
         const ao = isOpen(a), bo = isOpen(b);
         if (ao !== bo) return ao ? -1 : 1;
@@ -203,7 +233,7 @@ export function sortByDeadline(rows) {
  * never holds the full address, so the query is matched against what is shown
  * plus the domain).
  */
-export function matchesQuery(row, query, shownEmail) {
+export function matchesQuery(row: DsrRow | null | undefined, query: string | null | undefined, shownEmail: string | null | undefined): boolean {
     const q = String(query || '').trim().toLowerCase();
     if (!q) return true;
     const num = q.replace(/^#/, '');

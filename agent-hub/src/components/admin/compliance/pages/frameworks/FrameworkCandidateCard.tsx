@@ -1,7 +1,9 @@
 import { ArrowUpRight, Lock, Plus, Sparkles } from 'lucide-react';
 import React, { useLayoutEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { frameworkIcon } from './frameworkIcons';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { TONES } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { daysUntil, formatCalDate, parseDay, SOON_DAYS } from '../../shared/calendarMath';
@@ -17,8 +19,40 @@ import { daysUntil, formatCalDate, parseDay, SOON_DAYS } from '../../shared/cale
  *     lock, relevance: 'relevant'|'not_relevant'|'unknown', relevance_gate, recently_in_force, affects? }
  */
 
+/** One row of `GET /frameworks` (only the fields this card reads). */
+export interface FrameworkRow {
+    id: string;
+    name?: string | null;
+    name_key: string;
+    description_key?: string | null;
+    affects_key?: string | null;
+    affects?: Record<string, unknown> | null;
+    in_force_since?: string | null;
+    in_force_from?: string | null;
+    checks_count?: number | null;
+    registers?: unknown[] | null;
+    registers_count?: number | null;
+    calendar_count?: number | null;
+    enabled?: boolean;
+    locked?: string | null;
+    relevance?: string | null;
+    relevance_gate?: boolean;
+    recently_in_force?: boolean;
+    [key: string]: unknown;
+}
+
+/** The status chip a framework wears: its tone, tint, label copy and the date it shows. */
+export interface StatusChipView {
+    tone: string;
+    tint: number;
+    key: string;
+    fallback: string;
+    date: string;
+    days: number | null;
+}
+
 /** Pure: which status chip a framework wears today. `null` when it has no date at all. */
-export function statusChipOf(framework, now = Date.now()) {
+export function statusChipOf(framework: FrameworkRow | null | undefined, now = Date.now()): StatusChipView | null {
     if (!framework) return null;
     if (framework.in_force_since) {
         return { tone: 'success', tint: 14, key: 'compliance.fw_in_force_since', fallback: 'in force since {date}', date: framework.in_force_since, days: null };
@@ -34,14 +68,14 @@ export function statusChipOf(framework, now = Date.now()) {
 }
 
 /** Pure: does the Enable button wear the primary recipe? (recently in force, or marked relevant) */
-export function enableIsPrimary(framework) {
+export function enableIsPrimary(framework: FrameworkRow | null | undefined): boolean {
     return !!framework && (framework.recently_in_force === true || framework.relevance === 'relevant');
 }
 
 /** Pure: why a framework is recommended — the "Recommended" chip's tooltip. Null when it is not. */
-export function recommendedReason(framework, t) {
+export function recommendedReason(framework: FrameworkRow | null | undefined, t: TranslateFn): string | null {
     if (!enableIsPrimary(framework)) return null;
-    return framework.recently_in_force === true
+    return (framework as FrameworkRow).recently_in_force === true
         ? t('compliance.fw_recommended_recent', 'Recently entered into force')
         : t('compliance.fw_recommended_relevant', 'You marked this framework as relevant');
 }
@@ -51,14 +85,14 @@ export function recommendedReason(framework, t) {
  * `<key>` ('{n} checks'). The plural fallback's own {n} is filled in for the
  * singular's fallback when no `one` text is given.
  */
-export function countLabel(t, key, n, fallback, one) {
+export function countLabel(t: TranslateFn, key: string, n: number, fallback: string, one?: string): string {
     return n === 1
         ? t(`${key}_one`, one ?? fallback.replace('{n}', '1'), { n })
         : t(key, fallback, { n });
 }
 
 /** What an `affects` count counts, plural and singular (the count is printed before the noun). */
-const AFFECTS_NOUN = Object.freeze({
+const AFFECTS_NOUN: Record<string, [string, string]> = Object.freeze({
     automations: ['automations', 'automation'],
     agents: ['agents', 'agent'],
     webpages: ['web pages', 'web page'],
@@ -71,13 +105,14 @@ const CLAMP_CHARS = 160;
 
 const SECONDARY_BUTTON = 'inline-flex items-center gap-1 px-[9px] py-1 rounded-lg border border-[var(--border-default)] text-[12px] font-medium text-[var(--text-primary)] bg-[var(--bg-card)] disabled:opacity-60';
 
-function StatusChip({ chip, t, locale }) {
+function StatusChip({ chip, t, locale }: { chip: StatusChipView | null; t: TranslateFn; locale: string }) {
     if (!chip) return null;
     const date = formatCalDate(chip.date, { locale, year: 'always' });
     const label = t(chip.key, chip.fallback, { date, days: chip.days ?? '' });
     const toned = chip.tone !== 'neutral';
+    const tones = TONES as Record<string, { raw: string; ink: string }>;
     const style = toned
-        ? { background: `color-mix(in srgb, ${TONES[chip.tone].raw} ${chip.tint}%, transparent)`, color: TONES[chip.tone].ink }
+        ? { background: `color-mix(in srgb, ${tones[chip.tone].raw} ${chip.tint}%, transparent)`, color: tones[chip.tone].ink }
         : { border: '1px solid var(--border-default)', color: 'var(--text-secondary)' };
     return (
         <span className="ml-auto text-[11px] px-[7px] py-px rounded-full font-semibold whitespace-nowrap" style={style} data-testid="fw-status-chip" data-tone={chip.tone}>
@@ -86,7 +121,19 @@ function StatusChip({ chip, t, locale }) {
     );
 }
 
-export default function FrameworkCandidateCard({ framework, now, busy = false, onEnable, onDisable, onRelevance, onViewPlan, className = '', testId }) {
+export interface FrameworkCandidateCardProps {
+    framework?: FrameworkRow | null;
+    now?: number;
+    busy?: boolean;
+    onEnable?: (id: string) => void;
+    onDisable?: (id: string) => void;
+    onRelevance?: (id: string, value: string) => void;
+    onViewPlan?: (framework: FrameworkRow) => void;
+    className?: string;
+    testId?: string;
+}
+
+export default function FrameworkCandidateCard({ framework, now, busy = false, onEnable, onDisable, onRelevance, onViewPlan, className = '', testId }: FrameworkCandidateCardProps) {
     const { t, resolvedLocale } = useTranslation();
     if (!framework) return null;
     const Icon = frameworkIcon(framework.id);
@@ -107,12 +154,12 @@ export default function FrameworkCandidateCard({ framework, now, busy = false, o
         registers !== null && registers > 0 ? countLabel(t, 'compliance.fw_meta_registers', registers, '{n} registers', '1 register') : null,
         dates !== null && dates > 0 ? countLabel(t, 'compliance.fw_meta_dates', dates, '{n} calendar dates', '1 calendar date') : null,
     ].filter(Boolean).join(' · ');
-    const affectsNoun = (k, v) => {
+    const affectsNoun = (k: string, v: unknown) => {
         const [many, one] = AFFECTS_NOUN[k] || [k, k];
         return v === 1 ? t(`compliance.fw_affects_${k}_one`, one) : t(`compliance.fw_affects_${k}`, many);
     };
 
-    let footer;
+    let footer: ReactNode;
     if (locked) {
         footer = (
             <>
@@ -223,8 +270,8 @@ export default function FrameworkCandidateCard({ framework, now, busy = false, o
  * longer. Whether it is longer is measured once laid out; without layout (a
  * test, a print preview) the length decides.
  */
-function ClampedText({ text, t, testId }) {
-    const ref = useRef(null);
+function ClampedText({ text, t, testId }: { text: string; t: TranslateFn; testId?: string }) {
+    const ref = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
     const [long, setLong] = useState(() => String(text || '').length > CLAMP_CHARS);
     useLayoutEffect(() => {
@@ -252,7 +299,7 @@ function ClampedText({ text, t, testId }) {
 }
 
 /** The dashed "Own framework" card that closes the grid — a door to the custom-frameworks page. */
-export function OwnFrameworkCard({ onOpen, className = '' }) {
+export function OwnFrameworkCard({ onOpen, className = '' }: { onOpen?: () => void; className?: string }) {
     const { t } = useTranslation();
     return (
         <button
