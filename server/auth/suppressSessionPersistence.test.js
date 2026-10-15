@@ -79,7 +79,7 @@ test('establishSession itself is untouched — cookie flows still persist', asyn
 const read = (rel) => fs.readFileSync(path.join(__dirname, rel), 'utf8');
 
 test('connectorJwt establishes the session in-memory, not via establishSession', () => {
-    const src = read('./connectorJwt.js');
+    const src = read('./connectorJwtPhases.js');
     assert.ok(src.includes('suppressSessionPersistence(req)'),
         'connector-JWT requests must suppress the per-request session INSERT');
     assert.ok(!/establishSession\(req/.test(src),
