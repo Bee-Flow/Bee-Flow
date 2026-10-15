@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as api from '../lib/transcriptionsApi';
 
+/** One row of `GET /api/transcriptions/tags`, as the server may send it. */
+interface RawTagCount {
+    tag: string;
+    count: number | string;
+}
+
+/** A tag with the number of notes carrying it. */
+interface TagCount {
+    tag: string;
+    count: number;
+}
+
 /**
  * The library's tag vocabulary with counts (Meeting Notes artboard 1a:
  * "dataweging 4 · spelersmonitor 3 · +9 tags").
@@ -17,15 +29,15 @@ import * as api from '../lib/transcriptionsApi';
  *
  * Returns `{ tags: [{ tag, count }], fromServer, refetch }`.
  */
-export default function useMeetingTags(meetings, refreshKey = 0) {
-    const [server, setServer] = useState(null); // null → not (yet) answered
+export default function useMeetingTags(meetings: Array<{ tags?: unknown }> | null | undefined, refreshKey: number = 0) {
+    const [server, setServer] = useState<TagCount[] | null>(null); // null → not (yet) answered
 
     const load = useCallback(async () => {
         try {
             const list = await api.listTranscriptionTags();
             return list
-                .filter((r) => r && typeof r.tag === 'string' && r.tag)
-                .map((r) => ({ tag: r.tag, count: Number(r.count) || 0 }));
+                .filter((r: RawTagCount) => r && typeof r.tag === 'string' && r.tag)
+                .map((r: RawTagCount) => ({ tag: r.tag, count: Number(r.count) || 0 }));
         } catch (_) {
             return null;
         }
@@ -33,13 +45,13 @@ export default function useMeetingTags(meetings, refreshKey = 0) {
 
     useEffect(() => {
         let alive = true;
-        load().then((list) => { if (alive) setServer(list); });
+        load().then((list: TagCount[] | null) => { if (alive) setServer(list); });
         return () => { alive = false; };
     }, [load, refreshKey]);
 
     const fromRows = useMemo(() => {
-        const counts = new Map();
-        (meetings || []).forEach((m) => (Array.isArray(m.tags) ? m.tags : []).forEach((t) => {
+        const counts = new Map<string, number>();
+        (meetings || []).forEach((m) => (Array.isArray(m.tags) ? m.tags : []).forEach((t: unknown) => {
             if (typeof t !== 'string' || !t) return;
             counts.set(t, (counts.get(t) || 0) + 1);
         }));

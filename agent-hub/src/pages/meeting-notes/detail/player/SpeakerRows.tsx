@@ -4,6 +4,40 @@ import { NEUTRAL_SPEAKER_COLOR } from '../../../../config/meetingNotesConfig';
 import useTranslation from '../../../../hooks/useTranslation';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { segmentNearTime, segmentSpeakerId, speakerColor } from '../../lib/playerData';
+import type { OthersRow, PlayerSegment, SeekToFn, SpeakerBlock, SpeakerTimelineRow } from './player.types';
+
+type FocusPos = [number, number];
+type FocusBlockFn = (rowIdx: number, blockIdx: number) => void;
+
+interface TrackProps {
+    blocks: SpeakerBlock[];
+    color: string;
+    label: string;
+    rowIdx: number;
+    focusPos: FocusPos;
+    setFocusPos: (pos: FocusPos) => void;
+    onSeekTo: SeekToFn;
+    onHover: (e: React.MouseEvent<HTMLDivElement>) => void;
+    onLeave: () => void;
+}
+
+interface RowsHover {
+    x: number;
+    width: number;
+    time: number;
+    speakerId: string | null;
+    text: string | null | undefined;
+}
+
+interface SpeakerRowsProps {
+    rows?: SpeakerTimelineRow[];
+    others?: OthersRow | null;
+    colorMap?: Record<string, string>;
+    duration?: number;
+    segments?: PlayerSegment[];
+    onSeekTo: SeekToFn;
+    maxRows?: number;
+}
 
 /**
  * Per-speaker timeline rows — the "who spoke when" view that replaced the
@@ -28,7 +62,7 @@ export const TRACK_LEFT_CLASS = 'left-16 sm:left-28';
 export const DEFAULT_MAX_ROWS = 6;
 
 /** Arrow-key navigation for the roving tabindex grid. */
-function rovingKeyDown(e, [r, b], focusBlock) {
+function rovingKeyDown(e: React.KeyboardEvent<HTMLDivElement>, [r, b]: FocusPos, focusBlock: FocusBlockFn) {
     if (e.key === 'ArrowRight') { e.preventDefault(); focusBlock(r, b + 1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); focusBlock(r, b - 1); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); focusBlock(r + 1, 0); }
@@ -38,8 +72,8 @@ function rovingKeyDown(e, [r, b], focusBlock) {
 }
 
 /** One row's block track. Click seeks proportionally inside the block. */
-function Track({ blocks, color, label, rowIdx, focusPos, setFocusPos, onSeekTo, onHover, onLeave }) {
-    const blockClick = (e, block) => {
+function Track({ blocks, color, label, rowIdx, focusPos, setFocusPos, onSeekTo, onHover, onLeave }: TrackProps) {
+    const blockClick = (e: React.MouseEvent<HTMLButtonElement>, block: SpeakerBlock) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const frac = rect.width && e.clientX ? Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) : 0;
         onSeekTo(block.start + frac * (block.end - block.start), { play: true });
@@ -51,7 +85,7 @@ function Track({ blocks, color, label, rowIdx, focusPos, setFocusPos, onSeekTo, 
             onMouseMove={onHover}
             onMouseLeave={onLeave}
         >
-            {blocks.map((b, i) => (
+            {blocks.map((b: SpeakerBlock, i: number) => (
                 <button
                     key={`${b.start}-${i}`}
                     type="button"
@@ -59,7 +93,7 @@ function Track({ blocks, color, label, rowIdx, focusPos, setFocusPos, onSeekTo, 
                     data-block={i}
                     tabIndex={focusPos[0] === rowIdx && focusPos[1] === i ? 0 : -1}
                     aria-label={`Play ${label} at ${formatDuration(b.start)}`}
-                    onClick={(ev) => blockClick(ev, b)}
+                    onClick={(ev: React.MouseEvent<HTMLButtonElement>) => blockClick(ev, b)}
                     onFocus={() => setFocusPos([rowIdx, i])}
                     className="absolute top-0 h-full rounded-[2px] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] outline-none"
                     style={{
@@ -75,7 +109,7 @@ function Track({ blocks, color, label, rowIdx, focusPos, setFocusPos, onSeekTo, 
 }
 
 /** The rows' floating chip: time + who + (matching) spoken text. */
-function RowsHoverChip({ hover, colorMap }) {
+function RowsHoverChip({ hover, colorMap }: { hover: RowsHover | null; colorMap: Record<string, string> }) {
     return (
         <PlayerTooltip x={hover?.x || 0} containerWidth={hover?.width || 0} visible={!!hover}>
             {hover && (
@@ -103,18 +137,18 @@ function RowsHoverChip({ hover, colorMap }) {
     );
 }
 
-function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, segments = [], onSeekTo, maxRows = DEFAULT_MAX_ROWS }) {
+function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, segments = [], onSeekTo, maxRows = DEFAULT_MAX_ROWS }: SpeakerRowsProps) {
     const { t } = useTranslation();
-    const [expanded, setExpanded] = useState(false);
-    const [hover, setHover] = useState(null); // { x, width, time, speakerId, text }
-    const [focusPos, setFocusPos] = useState([0, 0]); // roving tabindex [row, block]
-    const containerRef = useRef(null);
+    const [expanded, setExpanded] = useState<boolean>(false);
+    const [hover, setHover] = useState<RowsHover | null>(null); // { x, width, time, speakerId, text }
+    const [focusPos, setFocusPos] = useState<FocusPos>([0, 0]); // roving tabindex [row, block]
+    const containerRef = useRef<HTMLDivElement>(null);
 
     if (!rows.length || !duration) return null;
 
     const visibleRows = expanded ? rows : rows.slice(0, maxRows);
     const showOthers = !expanded && others;
-    const grid = visibleRows.map((r) => r.blocks.length);
+    const grid = visibleRows.map((r: SpeakerTimelineRow) => r.blocks.length);
     if (showOthers) grid.push(others.blocks.length);
 
     // Positional preview. A named row always announces its own speaker and
@@ -122,12 +156,12 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
     // blocks bridge ≤1s diarizer gaps, so an exact hit can miss while the
     // cursor is visually on the block); the grey aggregate row shows whoever
     // spoke around that instant.
-    const hoverFor = (rowSpeakerId) => (e) => {
+    const hoverFor = (rowSpeakerId: string | null) => (e: React.MouseEvent<HTMLDivElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const container = containerRef.current?.getBoundingClientRect();
         if (!rect.width || !container) return;
         const time = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration;
-        const seg = segmentNearTime(segments, time, { speakerId: rowSpeakerId || null });
+        const seg = segmentNearTime(segments, time, { speakerId: rowSpeakerId || null }) as PlayerSegment | null;
         setHover({
             x: e.clientX - container.left,
             width: container.width,
@@ -138,11 +172,11 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
     };
     const clearHover = () => setHover(null);
 
-    const focusBlock = (rowIdx, blockIdx) => {
+    const focusBlock: FocusBlockFn = (rowIdx, blockIdx) => {
         const row = Math.max(0, Math.min(grid.length - 1, rowIdx));
         const block = Math.max(0, Math.min((grid[row] || 1) - 1, blockIdx));
         setFocusPos([row, block]);
-        containerRef.current?.querySelector(`[data-row="${row}"][data-block="${block}"]`)?.focus();
+        containerRef.current?.querySelector<HTMLElement>(`[data-row="${row}"][data-block="${block}"]`)?.focus();
     };
 
     const trackProps = { focusPos, setFocusPos, onSeekTo, onLeave: clearHover };
@@ -153,10 +187,10 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
             role="group"
             aria-label={t('meeting_notes.timeline_aria', 'Speaker timeline')}
             className="relative flex flex-col gap-[3px]"
-            onKeyDown={(e) => rovingKeyDown(e, focusPos, focusBlock)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => rovingKeyDown(e, focusPos, focusBlock)}
         >
             <div className={`flex flex-col gap-[3px] ${expanded ? 'max-h-[170px] overflow-y-auto pr-0.5' : ''}`}>
-                {visibleRows.map((row, rowIdx) => {
+                {visibleRows.map((row: SpeakerTimelineRow, rowIdx: number) => {
                     const label = formatSpeakerLabel(row.speakerId);
                     return (
                         <div key={row.speakerId} className="flex items-center">

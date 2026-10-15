@@ -2,6 +2,12 @@ import { ArrowRight, History } from 'lucide-react';
 import React from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import { formatRelativeDate } from '../lib/format';
+import type { MeetingActionItem, SeriesPrevious } from './meetingDetailTypes';
+
+interface SeriesPreviousCardProps {
+    previous?: SeriesPrevious | null;
+    onOpenNote?: (id: string) => void;
+}
 
 /**
  * "Previously in this series" — context card for recurring meetings (same
@@ -9,7 +15,7 @@ import { formatRelativeDate } from '../lib/format';
  * still-open action items, with a jump to that note. Renders nothing when
  * there is no earlier note (first meeting of a series, uploads).
  */
-export default function SeriesPreviousCard({ previous, onOpenNote }) {
+export default function SeriesPreviousCard({ previous, onOpenNote }: SeriesPreviousCardProps) {
     const { t } = useTranslation();
     if (!previous) return null;
 
@@ -60,7 +66,7 @@ export default function SeriesPreviousCard({ previous, onOpenNote }) {
                         {t('meeting_notes.series_open_items', 'Still open')}
                         {': '}
                     </span>
-                    {openItems.map((item, i) => (
+                    {openItems.map((item: MeetingActionItem, i: number) => (
                         <span key={item.id || i}>
                             {i > 0 && ' · '}
                             {item.text}

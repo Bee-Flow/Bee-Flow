@@ -48,3 +48,12 @@ export interface ApiError {
     code?: string | null;
     status?: number;
 }
+
+/** The prior note of the same Meet/Talk room (GET /api/transcriptions/:id/series-previous). */
+export interface SeriesPrevious {
+    id: string;
+    title: string;
+    createdAt: string | null;
+    summary: string;
+    openActionItems: MeetingActionItem[];
+}

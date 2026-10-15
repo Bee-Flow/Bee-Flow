@@ -1,6 +1,20 @@
 import React, { memo, useRef, useState } from 'react';
 import PlayerTooltip from './PlayerTooltip';
 import { formatDuration } from '../../lib/format';
+import type { TimelineMarker } from './player.types';
+
+interface MarkerRailProps {
+    markers?: TimelineMarker[];
+    onJump?: (seconds: number) => void;
+    color?: string;
+    ariaLabel?: string;
+}
+
+interface HoveredMarker {
+    marker: TimelineMarker;
+    x: number;
+    width: number;
+}
 
 /**
  * Action-item pins in their own rail above the waveform.
@@ -11,20 +25,20 @@ import { formatDuration } from '../../lib/format';
  * Near-coincident items arrive pre-clustered (timelineMarkers.js) and show a
  * count pill; done items hollow out and mute.
  */
-function MarkerRail({ markers = [], onJump, color = 'var(--accent-primary)', ariaLabel = 'Action item moments' }) {
-    const railRef = useRef(null);
-    const [hovered, setHovered] = useState(null); // marker + x, while a pin is hovered/focused
+function MarkerRail({ markers = [], onJump, color = 'var(--accent-primary)', ariaLabel = 'Action item moments' }: MarkerRailProps) {
+    const railRef = useRef<HTMLDivElement>(null);
+    const [hovered, setHovered] = useState<HoveredMarker | null>(null); // marker + x, while a pin is hovered/focused
 
     if (!markers.length) return null;
 
-    const show = (m) => {
+    const show = (m: TimelineMarker) => {
         const width = railRef.current?.offsetWidth || 0;
         setHovered({ marker: m, x: m.fraction * width, width });
     };
 
     return (
         <div ref={railRef} className="relative h-3" aria-label={ariaLabel} role="group">
-            {markers.map((m) => (
+            {markers.map((m: TimelineMarker) => (
                 <button
                     key={m.id}
                     type="button"

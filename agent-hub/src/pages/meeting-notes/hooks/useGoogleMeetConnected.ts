@@ -20,7 +20,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
  * @returns {{ connected: boolean, needsReconsent: boolean, loading: boolean }}
  *   connection status and whether the probe is still in flight
  */
-export default function useGoogleMeetConnected(enabled = true) {
+export default function useGoogleMeetConnected(enabled: boolean = true) {
     const [state, setState] = useState({ connected: false, needsReconsent: false });
     const [loading, setLoading] = useState(false);
     const probedRef = useRef(false);

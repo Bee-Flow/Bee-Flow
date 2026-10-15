@@ -7,7 +7,7 @@
  * (they span the speaker rows too, and a mousemove shouldn't repaint 600 bars).
  */
 
-export function drawWaveform(canvas, { peaks, progress }) {
+export function drawWaveform(canvas: HTMLCanvasElement | null, { peaks, progress }: { peaks: ArrayLike<number> | null; progress: number }) {
     if (!canvas || !peaks) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -23,7 +23,7 @@ export function drawWaveform(canvas, { peaks, progress }) {
     drawBars(ctx, { peaks, progress, accent, w, h, dpr });
 }
 
-function drawBars(ctx, { peaks, progress, accent, w, h, dpr }) {
+function drawBars(ctx: CanvasRenderingContext2D, { peaks, progress, accent, w, h, dpr }: { peaks: ArrayLike<number>; progress: number; accent: string; w: number; h: number; dpr: number }) {
     const barCount = peaks.length;
     const barWidth = w / barCount;
     const gap = Math.max(1, Math.floor(barWidth * 0.35));
@@ -44,7 +44,7 @@ function drawBars(ctx, { peaks, progress, accent, w, h, dpr }) {
     ctx.globalAlpha = 1;
 }
 
-function roundedBar(ctx, { x, y, w, h, r }) {
+function roundedBar(ctx: CanvasRenderingContext2D, { x, y, w, h, r }: { x: number; y: number; w: number; h: number; r: number }) {
     if (typeof ctx.roundRect === 'function') {
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, r);
@@ -55,7 +55,7 @@ function roundedBar(ctx, { x, y, w, h, r }) {
     }
 }
 
-function getCssVar(name) {
+function getCssVar(name: string) {
     if (typeof window === 'undefined') return null;
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }

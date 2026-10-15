@@ -6,6 +6,47 @@ import { acceptsAdHocRows } from '../../../components/admin/Studio/Datatables/da
 import { datatablesApi } from '../../../components/admin/Studio/Datatables/datatablesApi';
 import knowledgeApi from '../../../components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { ACTION_FIELD_IDS, defaultRowMapping, writableColumns } from '../lib/actionDestinations';
+import type { DatatableField } from '../lib/actionDestinations';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { LucideIcon } from 'lucide-react';
+
+type ViewName = typeof VIEW[keyof typeof VIEW];
+type ThrownError = { message?: string } | null;
+type BranchKey = keyof typeof BRANCH_KIND;
+
+/** One pickable row of a branch list: an automation (`title`), a table or a knowledge base (`name`). */
+interface BranchRow {
+    id: string;
+    title?: string;
+    name?: string;
+}
+
+type BranchLists = Record<BranchKey, BranchRow[] | null>;
+
+/** The table picked in the "Row in a table" branch. */
+interface PickedTable {
+    id: string;
+    name?: string;
+    fields: DatatableField[];
+}
+
+interface AutomationRow {
+    id: string;
+    title?: string;
+    definition?: { trigger?: { kind?: string } };
+}
+
+interface DatatableRow {
+    id: string;
+    name?: string;
+    key?: string;
+    grade: string;
+}
+
+interface KnowledgeBaseRow {
+    id: string;
+    name?: string;
+}
 
 /**
  * THE MENU MACHINERY BEHIND "WHERE DOES THIS GO?" — shared by the destination
@@ -28,7 +69,7 @@ import { ACTION_FIELD_IDS, defaultRowMapping, writableColumns } from '../lib/act
  */
 
 /** Only these two trigger kinds can be started by hand. */
-const AUTOMATION_TRIGGERS = Object.freeze(['manual', 'agent_call']);
+const AUTOMATION_TRIGGERS: readonly (string | undefined)[] = Object.freeze(['manual', 'agent_call']);
 
 export const VIEW = Object.freeze({
     ROOT: 'root', AUTOMATION: 'automation', TABLE: 'table', COLUMNS: 'columns', KB: 'kb',
@@ -40,7 +81,7 @@ export const BRANCH_KIND = Object.freeze({
 });
 
 /** The action's fields, named for the person mapping them onto columns. */
-export function fieldLabels(t) {
+export function fieldLabels(t: TranslateFn): Record<string, string> {
     return {
         text: t('meetings.field_text', 'Action'),
         assignee: t('meetings.field_assignee', 'Owner'),
@@ -52,15 +93,15 @@ export function fieldLabels(t) {
 }
 
 /** Which list a branch loads, and how it narrows what it offers. */
-export async function loadBranch(branch, api) {
+export async function loadBranch(branch: BranchKey, api: ReturnType<typeof useAutomationApi>): Promise<BranchRow[]> {
     if (branch === VIEW.AUTOMATION) {
-        const res = await api.listAutomations();
+        const res = await api.listAutomations<{ automations?: AutomationRow[] }>();
         // `manual`, `agent_call`, `form` and `app_trigger` can only ever be the
         // PRIMARY trigger, so `definition.trigger` is the whole question — the
         // additional `definition.triggers[]` never holds one of these.
         return (res?.automations || [])
-            .filter((a) => AUTOMATION_TRIGGERS.includes(a?.definition?.trigger?.kind))
-            .map((a) => ({ id: a.id, title: a.title || a.id }));
+            .filter((a: AutomationRow) => AUTOMATION_TRIGGERS.includes(a?.definition?.trigger?.kind))
+            .map((a: AutomationRow) => ({ id: a.id, title: a.title || a.id }));
     }
     if (branch === VIEW.TABLE) {
         const res = await datatablesApi.list();
@@ -72,11 +113,11 @@ export async function loadBranch(branch, api) {
         // unless the file is read-only here, when the row would have nowhere
         // to go (`acceptsAdHocRows` reads `source.writable` off the row).
         return (res?.datatables || [])
-            .filter((d) => ['editor', 'owner'].includes(d?.grade) && acceptsAdHocRows(d))
-            .map((d) => ({ id: d.id, name: d.name || d.key || d.id }));
+            .filter((d: DatatableRow) => ['editor', 'owner'].includes(d?.grade) && acceptsAdHocRows(d))
+            .map((d: DatatableRow) => ({ id: d.id, name: d.name || d.key || d.id }));
     }
     const res = await knowledgeApi.list();
-    return (Array.isArray(res) ? res : []).map((kb) => ({ id: kb.id, name: kb.name || kb.id }));
+    return (Array.isArray(res) ? res : []).map((kb: KnowledgeBaseRow) => ({ id: kb.id, name: kb.name || kb.id }));
 }
 
 /**
@@ -91,18 +132,18 @@ export async function loadBranch(branch, api) {
  * resolved, and a failure shows the server's own message inside the menu and
  * records nothing at all.
  */
-export function useDestinationBranches({ t }) {
+export function useDestinationBranches({ t }: { t: TranslateFn }) {
     const api = useAutomationApi();
-    const alive = useRef(true);
+    const alive = useRef<boolean>(true);
     useEffect(() => () => { alive.current = false; }, []);
 
-    const [view, setView] = useState(VIEW.ROOT);
-    const [lists, setLists] = useState({ automation: null, table: null, kb: null });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [busy, setBusy] = useState(false);
-    const [table, setTable] = useState(null);   // { id, name, fields }
-    const [mapping, setMapping] = useState({});
+    const [view, setView] = useState<ViewName>(VIEW.ROOT);
+    const [lists, setLists] = useState<BranchLists>({ automation: null, table: null, kb: null });
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [busy, setBusy] = useState<boolean>(false);
+    const [table, setTable] = useState<PickedTable | null>(null);   // { id, name, fields }
+    const [mapping, setMapping] = useState<Record<string, string>>({});
 
     /** Back to the root of the menu, with nothing half-picked left behind. */
     const reset = useCallback(() => {
@@ -118,21 +159,21 @@ export function useDestinationBranches({ t }) {
      * action card and every transcript line, so an unopened menu must cost
      * nothing — and picking "Row in a table" must not pay for the automations.
      */
-    const openBranch = useCallback(async (branch) => {
+    const openBranch = useCallback(async (branch: BranchKey) => {
         setView(branch); setError('');
         if (lists[branch] !== null) return;
         setLoading(true);
         try {
             const rows = await loadBranch(branch, api);
-            if (alive.current) setLists((prev) => ({ ...prev, [branch]: rows }));
+            if (alive.current) setLists((prev: BranchLists) => ({ ...prev, [branch]: rows }));
         } catch (e) {
-            if (alive.current) setError(e?.message || t('meetings.dest_lists_failed', 'Could not load the list.'));
+            if (alive.current) setError((e as ThrownError)?.message || t('meetings.dest_lists_failed', 'Could not load the list.'));
         } finally {
             if (alive.current) setLoading(false);
         }
     }, [lists, api, t]);
 
-    const pickTable = useCallback(async (row) => {
+    const pickTable = useCallback(async (row: BranchRow) => {
         setError(''); setLoading(true);
         try {
             const schema = await datatablesApi.getSchema(row.id);
@@ -141,20 +182,20 @@ export function useDestinationBranches({ t }) {
             setMapping(defaultRowMapping(schema?.fields || []));
             setView(VIEW.COLUMNS);
         } catch (e) {
-            if (alive.current) setError(e?.message || t('meetings.dest_lists_failed', 'Could not load the list.'));
+            if (alive.current) setError((e as ThrownError)?.message || t('meetings.dest_lists_failed', 'Could not load the list.'));
         } finally {
             if (alive.current) setLoading(false);
         }
     }, [t]);
 
-    const runWrite = useCallback(async (write, onSuccess) => {
+    const runWrite = useCallback(async (write: () => Promise<void>, onSuccess?: () => void) => {
         setBusy(true); setError('');
         try {
             await write();
             if (alive.current) onSuccess?.();
         } catch (e) {
             if (alive.current) {
-                setError(t('meetings.dest_failed', 'Could not send this action: {message}', { message: e?.message || 'error' }));
+                setError(t('meetings.dest_failed', 'Could not send this action: {message}', { message: (e as ThrownError)?.message || 'error' }));
                 setBusy(false);
             }
         }
@@ -167,7 +208,7 @@ export function useDestinationBranches({ t }) {
 }
 
 /** One row of a branch list. */
-export function BranchList({ t, view, lists, loading, onBack, onPick }) {
+export function BranchList({ t, view, lists, loading, onBack, onPick }: { t: TranslateFn; view: BranchKey; lists: BranchLists; loading: boolean; onBack: () => void; onPick: (row: BranchRow) => void }) {
     const rows = lists[view];
     const empty = {
         [VIEW.AUTOMATION]: t('meetings.dest_no_automations', 'No automation here can be started by hand.'),
@@ -179,7 +220,7 @@ export function BranchList({ t, view, lists, loading, onBack, onPick }) {
             <BackRow t={t} onBack={onBack} />
             {loading && <Note>{t('meetings.dest_loading', 'Loading…')}</Note>}
             {!loading && rows && rows.length === 0 && <Note>{empty}</Note>}
-            {!loading && (rows || []).map((row) => (
+            {!loading && (rows || []).map((row: BranchRow) => (
                 <MenuRow key={row.id} kind={BRANCH_KIND[view]} label={row.title || row.name} onClick={() => onPick(row)} />
             ))}
         </>
@@ -195,7 +236,7 @@ export function BranchList({ t, view, lists, loading, onBack, onPick }) {
  * things depending on where the row comes from — an action card's `text` is
  * "Action", a transcript line's is "Quote".
  */
-export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddRow, loading }) {
+export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddRow, loading }: { t: TranslateFn; table: PickedTable | null; mapping: Record<string, string>; labels: Record<string, string>; onMap: (column: string, field: string) => void; onBack: () => void; onAddRow: () => void; loading: boolean }) {
     const columns = writableColumns(table?.fields);
     return (
         <>
@@ -204,7 +245,7 @@ export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddR
             {!loading && columns.length === 0 && (
                 <Note>{t('meetings.dest_no_columns', 'This table has no column that can hold text.')}</Note>
             )}
-            {!loading && columns.map((f) => (
+            {!loading && columns.map((f: DatatableField) => (
                 <label key={f.key} className="flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--text-secondary)]">
                     <span className="flex-1 min-w-0 truncate">{f.label || f.key}</span>
                     <select
@@ -215,7 +256,7 @@ export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddR
                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
                         <option value="">{t('meetings.dest_column_none', 'Leave empty')}</option>
-                        {ACTION_FIELD_IDS.map((id) => <option key={id} value={id}>{labels[id]}</option>)}
+                        {ACTION_FIELD_IDS.map((id: string) => <option key={id} value={id}>{labels[id]}</option>)}
                     </select>
                 </label>
             ))}
@@ -233,7 +274,7 @@ export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddR
     );
 }
 
-export function BackRow({ t, onBack }) {
+export function BackRow({ t, onBack }: { t: TranslateFn; onBack: () => void }) {
     return (
         <button
             type="button"
@@ -247,11 +288,11 @@ export function BackRow({ t, onBack }) {
     );
 }
 
-export function Note({ children }) {
+export function Note({ children }: { children?: React.ReactNode }) {
     return <div className="px-3 py-2 text-xs text-[var(--text-tertiary)]">{children}</div>;
 }
 
-export function MenuRow({ icon: Icon, kind, label, onClick, chevron = false, tone = null }) {
+export function MenuRow({ icon: Icon, kind, label, onClick, chevron = false, tone = null }: { icon?: LucideIcon; kind?: string | null; label: React.ReactNode; onClick?: () => void; chevron?: boolean; tone?: string | null }) {
     return (
         <button
             type="button"

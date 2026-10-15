@@ -5,6 +5,18 @@ import useWaveform from '../hooks/useWaveform';
 import { formatDuration } from '../lib/format';
 import { buildSpeakerRows, buildSpeakerColorMap, normalizeChapters } from '../lib/playerData';
 import TimelineStack from './player/TimelineStack';
+import type { PlayerSegment, TimelineMarker } from './player/player.types';
+
+interface WaveformPlayerProps {
+    audioSrc: string;
+    onReady?: (api: { seek: (seconds: number) => void }) => void;
+    markers?: TimelineMarker[];
+    mentionMarkers?: TimelineMarker[];
+    segments?: PlayerSegment[];
+    speakers?: Array<{ id: string; speakingSeconds?: number }>;
+    chapters?: Array<{ title?: string; start?: string; summary?: string }>;
+    durationSeconds?: number;
+}
 
 /**
  * The meeting player: audio element, transport controls, and the layered
@@ -19,14 +31,14 @@ const RATE_STORAGE_KEY = 'mn-playback-rate';
 
 /** Playback state + media-event wiring, kept out of the component body. */
 /** A duration is only usable if it is a finite, positive number of seconds. */
-function finiteDuration(v) {
+function finiteDuration(v: number) {
     return Number.isFinite(v) && v > 0 ? v : 0;
 }
 
-function useAudioPlayback(audioRef, peakDuration) {
-    const [playing, setPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
+function useAudioPlayback(audioRef: React.RefObject<HTMLAudioElement | null>, peakDuration: number) {
+    const [playing, setPlaying] = useState<boolean>(false);
+    const [currentTime, setCurrentTime] = useState<number>(0);
+    const [duration, setDuration] = useState<number>(0);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -75,8 +87,8 @@ function useAudioPlayback(audioRef, peakDuration) {
  * Keep the listening position (and play state) across an <audio> src swap.
  * Used when the waveform hook's blob URL replaces the streaming URL mid-listen.
  */
-function useAudioSourceSwap(audioRef, src) {
-    const lastSrcRef = useRef(null);
+function useAudioSourceSwap(audioRef: React.RefObject<HTMLAudioElement | null>, src: string) {
+    const lastSrcRef = useRef<string | null>(null);
     useEffect(() => {
         const a = audioRef.current;
         if (!a) return;
@@ -94,9 +106,9 @@ function useAudioSourceSwap(audioRef, src) {
     }, [audioRef, src]);
 }
 
-export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentionMarkers = [], segments = [], speakers = [], chapters = [], durationSeconds = 0 }) {
+export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentionMarkers = [], segments = [], speakers = [], chapters = [], durationSeconds = 0 }: WaveformPlayerProps) {
     const { t } = useTranslation();
-    const audioRef = useRef(null);
+    const audioRef = useRef<HTMLAudioElement>(null);
     const { peaks, duration: peakDuration, loading, objectUrl } = useWaveform(audioSrc, 600);
     const { playing, currentTime, duration } = useAudioPlayback(audioRef, peakDuration);
     // The waveform hook already downloaded the full authenticated audio; its
@@ -108,11 +120,11 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
     useAudioSourceSwap(audioRef, effectiveSrc);
     // On a 100-minute recording the speed control is the most-used one on the
     // player, so the choice sticks across meetings.
-    const [rate, setRate] = useState(() => {
+    const [rate, setRate] = useState<number>(() => {
         const stored = Number(localStorage.getItem(RATE_STORAGE_KEY));
         return RATES.includes(stored) ? stored : 1;
     });
-    const [showRemaining, setShowRemaining] = useState(false);
+    const [showRemaining, setShowRemaining] = useState<boolean>(false);
 
     // Audio metadata can lag or be missing; the stored duration keeps the
     // chapter strip and speaker rows laid out correctly from first paint.
@@ -134,7 +146,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
         if (audioRef.current) audioRef.current.playbackRate = rate;
     }, [rate, effectiveSrc]);
 
-    const seekTo = useCallback((sec, { play = false } = {}) => {
+    const seekTo = useCallback((sec: number, { play = false }: { play?: boolean } = {}) => {
         const audio = audioRef.current;
         if (!audio) return;
         audio.currentTime = Math.max(0, sec);
@@ -142,7 +154,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
     }, []);
 
     useEffect(() => {
-        onReady?.({ seek: (sec) => seekTo(sec, { play: true }) });
+        onReady?.({ seek: (sec: number) => seekTo(sec, { play: true }) });
     }, [onReady, seekTo]);
 
     const togglePlay = () => {
@@ -152,7 +164,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
         else a.pause();
     };
 
-    const skip = (delta) => seekTo((audioRef.current?.currentTime || 0) + delta);
+    const skip = (delta: number) => seekTo((audioRef.current?.currentTime || 0) + delta);
 
     const cycleRate = () => {
         const next = RATES[(RATES.indexOf(rate) + 1) % RATES.length];
@@ -162,7 +174,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
 
     // Keyboard on the player container only — global handlers would steal
     // keystrokes from the transcript search input.
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.target !== e.currentTarget) return;
         if (e.key === ' ') { e.preventDefault(); togglePlay(); }
         else if (e.key === 'ArrowLeft') { e.preventDefault(); skip(-5); }
@@ -197,7 +209,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
                     currentTime={currentTime}
                     duration={effectiveDuration}
                     showRemaining={showRemaining}
-                    onToggle={() => setShowRemaining((v) => !v)}
+                    onToggle={() => setShowRemaining((v: boolean) => !v)}
                 />
             </div>
 
@@ -207,7 +219,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
     );
 }
 
-function Transport({ playing, onToggle, onSkip }) {
+function Transport({ playing, onToggle, onSkip }: { playing: boolean; onToggle: () => void; onSkip: (delta: number) => void }) {
     return (
         <div className="flex items-center gap-1">
             <SkipButton onClick={() => onSkip(-10)} label="Back 10 seconds"><RotateCcw className="w-3.5 h-3.5" /></SkipButton>
@@ -224,7 +236,7 @@ function Transport({ playing, onToggle, onSkip }) {
     );
 }
 
-function TimeRow({ currentTime, duration, showRemaining, onToggle }) {
+function TimeRow({ currentTime, duration, showRemaining, onToggle }: { currentTime: number; duration: number; showRemaining: boolean; onToggle: () => void }) {
     return (
         <div className="flex items-center justify-between text-[11px] mt-1 font-mono text-[var(--text-muted)]">
             <span>{formatDuration(currentTime)}</span>
@@ -240,7 +252,7 @@ function TimeRow({ currentTime, duration, showRemaining, onToggle }) {
     );
 }
 
-function RateChip({ rate, onCycle }) {
+function RateChip({ rate, onCycle }: { rate: number; onCycle: () => void }) {
     return (
         <button
             type="button"
@@ -257,7 +269,7 @@ function RateChip({ rate, onCycle }) {
     );
 }
 
-function SkipButton({ onClick, label, children }) {
+function SkipButton({ onClick, label, children }: { onClick: () => void; label: string; children?: React.ReactNode }) {
     return (
         <button
             type="button"

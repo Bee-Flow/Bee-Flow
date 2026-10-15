@@ -1,3 +1,22 @@
+import type { MeetingActionItem, MeetingNote } from '../detail/meetingDetailTypes';
+
+/** One column of a datatable, as the destination picker reads it. */
+export interface DatatableField {
+    key: string;
+    type: string;
+    label?: string;
+    [key: string]: unknown;
+}
+
+/** The `destination` record an action item stores. */
+interface DestinationRecord {
+    kind: string;
+    ref: string;
+    label: string;
+    at: string;
+    itemRef?: string;
+}
+
 /**
  * Where an action item GOES — the payload builders behind the destination
  * picker (Meeting Notes artboard 1a, plan M3).
@@ -69,12 +88,12 @@ const WRITABLE_COLUMN_TYPES = Object.freeze(['text', 'richtext', 'select', 'date
 const SYSTEM_COLUMNS = Object.freeze(['id', 'created_at', 'updated_at', 'created_by', 'org_id']);
 
 /** A trimmed string, or '' for anything that is not text. */
-function str(value) {
+function str(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
 }
 
 /** The meeting day as "YYYY-MM-DD", or ''. */
-function meetingDate(meeting) {
+function meetingDate(meeting: Partial<MeetingNote> | null | undefined): string {
     const raw = str(meeting?.createdAt);
     return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : '';
 }
@@ -85,7 +104,7 @@ function meetingDate(meeting) {
  * A switch, not a lookup on the item: an id that is not on the list answers
  * '' instead of reaching into the record for a key of that name.
  */
-export function actionFieldValue(fieldId, item, meeting = null) {
+export function actionFieldValue(fieldId: string, item: Partial<MeetingActionItem> | null | undefined, meeting: Partial<MeetingNote> | null = null): string {
     switch (fieldId) {
         case 'text': return str(item?.text);
         case 'assignee': return str(item?.assignee);
@@ -106,7 +125,7 @@ export function actionFieldValue(fieldId, item, meeting = null) {
  * that silently resolves to undefined is the failure BFSF-408 already cost us
  * once.
  */
-export function buildAutomationPayload(item, meeting = null) {
+export function buildAutomationPayload(item: Partial<MeetingActionItem> | null | undefined, meeting: Partial<MeetingNote> | null = null) {
     return {
         source: 'meeting_notes',
         action: {
@@ -131,7 +150,7 @@ export function buildAutomationPayload(item, meeting = null) {
  * a number therefore offers nothing — which is the honest answer, not an
  * option that 500s.
  */
-export function writableColumns(fields) {
+export function writableColumns(fields: DatatableField[] | null | undefined): DatatableField[] {
     if (!Array.isArray(fields)) return [];
     return fields.filter((f) => f
         && typeof f.key === 'string' && f.key
@@ -145,7 +164,7 @@ export function writableColumns(fields) {
  * (an "owner" column, a "due" column) means guessing by column NAME, and a
  * wrong guess writes a person's name into a column other people read.
  */
-export function defaultRowMapping(fields) {
+export function defaultRowMapping(fields: DatatableField[] | null | undefined) {
     const first = writableColumns(fields).find((f) => f.type === 'text' || f.type === 'richtext');
     return first ? { [first.key]: 'text' } : {};
 }
@@ -162,9 +181,9 @@ export function defaultRowMapping(fields) {
  *     into a `date` column is a Postgres error, and an empty cell is what the
  *     person means anyway.
  */
-export function buildRowValues(item, meeting, mapping, fields) {
+export function buildRowValues(item: Partial<MeetingActionItem> | null | undefined, meeting: Partial<MeetingNote> | null | undefined, mapping: Record<string, string> | null | undefined, fields: DatatableField[] | null | undefined) {
     const allowed = new Map(writableColumns(fields).map((f) => [f.key, f]));
-    const values = {};
+    const values: Record<string, string> = {};
     for (const [columnKey, fieldId] of Object.entries(mapping || {})) {
         if (!allowed.has(columnKey)) continue;
         if (!ACTION_FIELD_IDS.includes(fieldId)) continue;
@@ -184,7 +203,7 @@ export function buildRowValues(item, meeting, mapping, fields) {
  * translate. The server refuses a body under three characters, so an action
  * with no text produces `null` here instead of a request that 400s.
  */
-export function buildKbSource(item, meeting, { labels = {} } = {}) {
+export function buildKbSource(item: Partial<MeetingActionItem> | null | undefined, meeting: Partial<MeetingNote> | null | undefined, { labels = {} }: { labels?: Record<string, string> } = {}) {
     const text = actionFieldValue('text', item, meeting);
     if (text.length < 3) return null;
     const lines = [text];
@@ -211,11 +230,11 @@ export function buildKbSource(item, meeting, { labels = {} } = {}) {
  * An unknown kind or a missing ref answers `null`: better no chip than a chip
  * no code can resolve.
  */
-export function destinationRecord(kind, { ref, label = '', itemRef = '' } = {}) {
+export function destinationRecord(kind: string, { ref, label = '', itemRef = '' }: { ref?: unknown; label?: unknown; itemRef?: unknown } = {}): DestinationRecord | null {
     if (!DESTINATION_KINDS.includes(kind)) return null;
     const id = str(ref);
     if (!id) return null;
-    const record = { kind, ref: id, label: str(label), at: new Date().toISOString() };
+    const record: DestinationRecord = { kind, ref: id, label: str(label), at: new Date().toISOString() };
     const item = str(itemRef);
     if (item) record.itemRef = item;
     return record;
@@ -230,7 +249,7 @@ export function destinationRecord(kind, { ref, label = '', itemRef = '' } = {}) 
  * exists to protect. An id that is not in the list changes nothing and still
  * answers the whole list, so a stale card can never truncate it either.
  */
-export function applyDestination(items, itemId, destination) {
+export function applyDestination(items: MeetingActionItem[] | null | undefined, itemId: string, destination: unknown) {
     const list = Array.isArray(items) ? items : [];
     return list.map((item) => {
         if (!item || item.id !== itemId) return item;
