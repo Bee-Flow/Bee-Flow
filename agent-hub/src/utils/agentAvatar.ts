@@ -13,7 +13,8 @@ export const DEFAULT_AGENT_EMOJI = '🤖';
 /** The fields `pickAgentAvatar` reads off an agent. */
 export interface AgentAvatarSource {
     avatar?: string | null;
-    config?: { avatar?: string | null } | null;
+    /** A row that came in raw may still carry the stored JSON string; it has no avatar to read. */
+    config?: { avatar?: string | null } | string | null;
 }
 
 export function isImageAvatar(value?: unknown): boolean {
@@ -36,5 +37,5 @@ export function resolveAvatarSrc(value?: string | null): string {
 // to config so existing pictures don't disappear.
 export function pickAgentAvatar(agent?: AgentAvatarSource | null): string | null {
     if (!agent) return null;
-    return agent.avatar || agent.config?.avatar || null;
+    return agent.avatar || (typeof agent.config === 'object' ? agent.config?.avatar : undefined) || null;
 }
