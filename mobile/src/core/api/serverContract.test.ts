@@ -39,6 +39,11 @@ function read(rel: string): string {
 }
 
 /** Concatenated source of every non-test .js file under a server directory. */
+/** The agent table's DDL: initSchema.js composes the steps in initSchema.base.js and .agents.js. */
+function agentSchema(): string {
+    return ['initSchema.js', 'initSchema.base.js', 'initSchema.agents.js'].map((f) => read(`stores/agent/${f}`)).join('\n');
+}
+
 function readTree(rel: string): string {
     const chunks: string[] = [];
     const walk = (dir: string) => {
@@ -313,7 +318,7 @@ describe('agent rows (server/stores/agent/initSchema.js)', () => {
     // parseStarterPrompts on the phone handles both).
     it('still declares every agent column the phone reads', () => {
         expect(
-            absentTokens(read('stores/agent/initSchema.js'), [
+            absentTokens(agentSchema(), [
                 'name', 'description', 'avatar', 'model', 'owner_id',
                 'is_published', 'starter_prompts', 'threads_enabled',
                 'copy_enabled', 'workspace_enabled', 'embed_enabled', 'config',
@@ -772,7 +777,7 @@ describe('the agent endpoints the phone calls', () => {
         // parseStarterPrompts JSON.parses a string — a column that starts
         // handing back a parsed object instead makes it throw. Both are TEXT
         // today and both mobile readers depend on that staying true.
-        const schema = read('stores/agent/initSchema.js');
+        const schema = agentSchema();
         expect(schema).toContain('avatar TEXT');
         expect(schema).toContain('starter_prompts TEXT');
     });
