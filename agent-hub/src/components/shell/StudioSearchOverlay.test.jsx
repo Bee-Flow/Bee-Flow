@@ -24,7 +24,7 @@ vi.mock('../../hooks/useTranslation', () => {
 });
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 
-import StudioSearchOverlay from './StudioSearchOverlay.jsx';
+import StudioSearchOverlay from './StudioSearchOverlay';
 
 const answer = (body) => { fetchMock.mockResolvedValue({ ok: true, json: async () => body }); };
 
