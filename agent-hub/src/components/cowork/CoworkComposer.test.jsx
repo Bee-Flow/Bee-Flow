@@ -25,7 +25,7 @@ import CoworkComposer, { COWORK_PLACEHOLDER } from './CoworkComposer';
  * read the module that produced it.
  */
 const COMPOSER_SOURCE = fs.readFileSync(
-    path.join(path.dirname(fileURLToPath(import.meta.url)), 'CoworkComposer.jsx'),
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'CoworkComposer.tsx'),
     'utf8',
 );
 
