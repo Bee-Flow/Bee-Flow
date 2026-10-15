@@ -2,6 +2,8 @@
     "$comment": "Generated copies of server/shared code, written by scripts/gen-shared-mirror.mjs (npm run gen:shared) and checked by npm run lint:shared-mirror. Each entry copies the non-test files of `source` into `target`. transform \"none\" (the default) is a byte-for-byte copy without a header; \"cjs-to-esm\" and importRewrite change the text, and then every written file starts with a GENERATED header. include / exclude narrow the file list (paths relative to source); keep lists hand-written files in target that are neither generated nor reported as extra. generatedRoots lists directories that hold only generated targets: --check fails on any non-test file under one that no entry targets.",
     "generatedRoots": [
         "mobile/src/features/flow-editor/bindings/mirror",
+        "mobile/src/features/forms/mirror",
+        "mobile/src/features/runs/mirror",
         "mobile/src/shared/ui/mirror"
     ],
     "entries": [
@@ -244,6 +246,18 @@
                 ]
             ],
             "why": "Which text is a reference path and how it is spelled, binding <-> input text, the formula/condition text, autocomplete tokens, path walking and previews: the web builder and the phone's flow editor read paths and bindings with the same functions. model/pathGrammar.ts, model/route/bindingText.ts, bindings/{walkPath,conditionText,bindingHelpers}.ts re-export it."
+        },
+        {
+            "source": "agent-hub/src/components/admin/Studio/Forms/answers/answersRange.ts",
+            "target": "mobile/src/features/forms/mirror/answersRange.ts",
+            "transform": "none",
+            "why": "The period the answers dashboard looks at (presets, default, the from/to the fetch sends): the web and the phone share one implementation; web.lockstep.test.ts still runs the fixtures; model/answersRange.ts re-exports it."
+        },
+        {
+            "source": "agent-hub/src/components/admin/Studio/Runs/nowRunning.ts",
+            "target": "mobile/src/features/runs/mirror/nowRunning.ts",
+            "transform": "none",
+            "why": "The model behind the Now running strip (rollups, tone, order, hidden count, null-not-empty rule): one implementation for web and phone; nowRunning.lockstep.test.ts still runs the fixtures; model/nowRunning.ts adapts the phone's RunFacets (null) to it."
         },
         {
             "source": "agent-hub/src/components/shared/kindKeys.ts",

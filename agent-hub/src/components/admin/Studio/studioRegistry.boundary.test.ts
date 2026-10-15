@@ -56,11 +56,11 @@ describe('Studio section folders never import the registry', () => {
     it('finds the section folders (the scan is not vacuous)', () => {
         expect(files.length).toBeGreaterThan(50);
         const rel = files.map((f) => path.relative(STUDIO, f).split(path.sep).join('/'));
-        expect(rel).toContain('Playbooks/PhaseRail.jsx');
+        expect(rel).toContain('Playbooks/PhaseRail.tsx');
         expect(rel).toContain('Forms/NewFormDialog.jsx');
         // …and the specifier scan sees the imports that replaced the registry's.
         const gates = path.join(STUDIO, 'studioGates');
-        expect(resolvedImports(path.join(STUDIO, 'Playbooks/PhaseRail.jsx'))).toContain(gates);
+        expect(resolvedImports(path.join(STUDIO, 'Playbooks/PhaseRail.tsx'))).toContain(gates);
         expect(resolvedImports(path.join(STUDIO, 'Forms/NewFormDialog.jsx'))).toContain(gates);
     });
 

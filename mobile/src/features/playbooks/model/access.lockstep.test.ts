@@ -48,7 +48,7 @@ const ROLES = [{ key: 'approver', label: 'Approver' }];
 
 describeIfWeb('the access words match the web', () => {
     const view = () => loadWebModule<Record<string, Fn>>(path.join(DIR, 'accessView.js'));
-    const apply = () => loadWebModule<Record<string, Fn>>(path.join(DIR, 'accessApply.js'));
+    const apply = () => loadWebModule<Record<string, Fn>>(path.join(DIR, 'accessApply.ts'));
 
     it('says where the app stands the same way', () => {
         for (const app of [null, { isPublished: false, sharedGroups: [] }, { isPublished: true, sharedGroups: [] }, { isPublished: true, sharedGroups: ['g1'] }, { isPublished: true, sharedGroups: ['g1', 'g2'] }]) {

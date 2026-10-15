@@ -161,7 +161,7 @@ describe('kindColors — every variable it emits is declared in EVERY theme bloc
 
     it('is a leaf: imports its kind table and lucide-react, nothing else (type-only imports leave no import)', () => {
         const imports = [...SELF.matchAll(/^import (?!type\b).* from '([^']+)';/gm)].map(m => m[1]);
-        expect(imports).toEqual(['./kindKeys', 'lucide-react']);
+        expect(imports).toEqual(['lucide-react', './kindKeys']);
     });
 });
 

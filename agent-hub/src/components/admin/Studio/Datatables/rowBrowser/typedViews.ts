@@ -4,11 +4,10 @@
  * default as null-only, so these name the props and parameters the browser
  * actually passes; the modules themselves are untouched.
  */
-import type { ComponentType, CSSProperties } from 'react';
+import type { ComponentType } from 'react';
 import type { DtColumn, DtTable, RowFilter } from './rowBrowserModel';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import RowCellEditorJs from '../../AppStudio/tables/RowCellEditor';
-import { ColumnKindIcon as ColumnKindIconJs } from '../ColumnKind';
 import { filterDescriptor as filterDescriptorJs, sourceErrorMessage as sourceErrorMessageJs } from '../datatableDisplay';
 
 export const RowCellEditor = RowCellEditorJs as unknown as ComponentType<{
@@ -21,12 +20,7 @@ export const RowCellEditor = RowCellEditorJs as unknown as ComponentType<{
     autoFocus?: boolean;
 }>;
 
-export const ColumnKindIcon = ColumnKindIconJs as unknown as ComponentType<{
-    kind: string;
-    size?: number;
-    style?: CSSProperties;
-    title?: string;
-}>;
+export { ColumnKindIcon } from '../ColumnKind';
 
 /** Every answerable row of a filter draft, as the server's `filters` array. */
 export const filterDescriptor = filterDescriptorJs as unknown as (rows: RowFilter[]) => RowFilter[];
