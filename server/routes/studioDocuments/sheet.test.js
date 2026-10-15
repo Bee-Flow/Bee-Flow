@@ -42,6 +42,7 @@ const router = makeSheetRouter({
         async updateDocument(id, _ctx, { settings }) {
             // Like a plain column write: the settings sent ARE the settings (no merge to lean on).
             state.updates.push([id, settings]);
+            if (id === 'new-doc') return { id, settings, versionId: 'v-copy-2' };
             const doc = DOCS[id];
             if (!doc) return null;
             doc.settings = settings;
@@ -298,6 +299,9 @@ test('a copy carries the charts, with new ids, pinned to the copied tabs', async
     assert.deepStrictEqual(settings.sheet.charts.map((c) => [c.type, c.tab]), [['bar', tabByName.Budget], ['kpi', tabByName.Costs], ['line', undefined]]);
     for (const c of settings.sheet.charts) assert.match(c.id, /^chart-[0-9a-f]{10}$/);
     assert.ok(!settings.sheet.tabs.some((t) => t.id === 't1' || t.id === 't2'), 'the copy has its own tab ids');
+    assert.strictEqual(res.body.document.versionId, 'v-copy-2', 'the answer is the copy as saved, not the first draft');
+    assert.deepStrictEqual(res.body.document.settings.sheet.tabs.map((t) => t.name), ['Budget', 'Costs']);
+    assert.strictEqual(res.body.document.settings.sheet.charts.length, 3);
 });
 
 test('a one-tab copy without charts needs no second save', async () => {

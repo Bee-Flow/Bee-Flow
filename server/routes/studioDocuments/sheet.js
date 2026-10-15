@@ -312,14 +312,16 @@ function makeSheetRouter(deps = {}) {
                 userId: req.session.user.id, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId: null,
                 sheetTableId: newTabs[0].datatableId,
             });
+            let updated = null;
             if (newTabs.length > 1 || charts.length) {
                 const settings = settingsWithTabs(copy.settings, newTabs);
-                await documents().updateDocument(copy.id, actorContext(req), {
+                updated = await documents().updateDocument(copy.id, actorContext(req), {
                     settings: { ...settings, sheet: { ...settings.sheet, ...(charts.length ? { charts } : {}) } },
                     expectedVersionId: copy.versionId,
                 });
             }
-            res.status(201).json({ document: copy });
+            // The copy as stored now: its tabs, its charts and the version after that save.
+            res.status(201).json({ document: updated || copy });
         } catch (e) { throw asHttp(e); }
     }
 
