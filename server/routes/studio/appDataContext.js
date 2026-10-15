@@ -119,7 +119,7 @@ async function loadOwnedApp(req, res) {
 // ── Error handling ──────────────────────────────────────────────────
 // Compile/AccessError carry safe, client-facing validation text with a status;
 // everything else is an internal error → generic 500 (no err.message leak).
-function handleErr(res, err, where) {
+function handleErr(res, err, _where) {
     const status = err && typeof err.status === 'number' ? err.status : null;
     // dataReadRunner marks its own refusals `safe` — the same 'Table not found'
     // / 'Forbidden' text these handlers used to return inline. Nothing else in
@@ -140,8 +140,7 @@ function handleErr(res, err, where) {
     if (status === 422 || status === 400 || status === 403) {
         return res.status(status).json({ error: err.message });
     }
-    log.error(`[StudioAppData/${where}] ${err && err.message}`);
-    return res.status(500).json({ error: 'Data request failed' });
+    throw err;
 }
 
 // ── Shared data context ─────────────────────────────────────────────

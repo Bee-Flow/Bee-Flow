@@ -43,7 +43,6 @@ const { publicCreateLimiter, threadReadLimiter, _emailRateLimitOk } = require('.
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
 // The handler bodies: the steps of creating a ticket, and the staff routes.
 const { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket } = require('./threadCreate');
 const H = require('./threadHandlers');
@@ -265,8 +264,7 @@ async function stream(req, res) {
         res.on('error', cleanup);
     } catch (err) {
         cleanup();
-        log.error('[Support] stream error:', err.message);
-        if (!res.headersSent) res.status(500).json({ error: 'Internal error' });
+        throw err;
     }
 }
 

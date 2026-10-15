@@ -301,6 +301,31 @@ function buildRes() {
             'orphan fallback keeps the legacy ask-your-admin message');
     }
 
+    // ── Legacy arm fails closed: both errors go to the terminal handler as an
+    // HttpError whose message IS the token clients branch on (wire shape is
+    // pinned by routes through routeHarness; here: status, token, no handler).
+    async function legacyRefusal(req) {
+        const res = buildRes();
+        let reached = false, err;
+        await beta.requireBetaFeature('templates')(req, res, (e) => { if (e) err = e; else reached = true; });
+        assert.strictEqual(reached, false, 'a failing feature check never reaches the handler');
+        assert.strictEqual(res.statusCode, null, 'nothing written by the gate itself');
+        return err;
+    }
+    resetMocks();
+    mockResolveThrows = true;
+    {
+        const err = await legacyRefusal({ session: { user: { id: 'u1', organizationId: 'org1' } } });
+        assert.deepStrictEqual([err.status, err.code, err.message, err.expose], [503, 'feature_service_degraded', 'feature_service_degraded', true]);
+        assert.deepStrictEqual(err.details, { message: 'Feature service is temporarily unavailable. Please retry shortly.' });
+    }
+    resetMocks();
+    {
+        const session = { user: { id: 'u1', organizationId: 'org1' }, get isAdmin() { throw new Error('unexpected'); } };
+        const err = await legacyRefusal({ session });
+        assert.deepStrictEqual([err.status, err.code, err.message, err.expose], [500, 'feature_check_failed', 'feature_check_failed', true]);
+    }
+
     console.log('✓ core/betaFeatures.test.js — all assertions passed');
 })().catch(err => {
     console.error('✗ core/betaFeatures.test.js failed:', err);

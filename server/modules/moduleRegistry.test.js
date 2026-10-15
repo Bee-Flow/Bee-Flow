@@ -118,6 +118,7 @@ mock('../auth/sessionCache', {
 });
 
 const modules = require('./index');
+const lifecycle = require('./moduleLifecycle');
 const registry = require('../core/entitlements/capabilityRegistry');
 
 function fakeRes() {
@@ -151,7 +152,7 @@ test('grandfathering: no row + defaultImported:true ⇒ active', async () => {
 
 test('explicit removed row ⇒ inactive; capability lands in the inactive set', async () => {
     stateRows.clear();
-    const r = await modules.removeModule('mod_grand', { actorId: 'admin1' });
+    const r = await lifecycle.removeModule('mod_grand', { actorId: 'admin1' });
     assert.strictEqual(r.ok, true);
     assert.strictEqual(r.module.status, 'removed');
     assert.strictEqual(r.module.source, 'explicit');
@@ -172,7 +173,7 @@ test('explicit removed row ⇒ inactive; capability lands in the inactive set', 
 test('re-import ⇒ active again; runs the store initDB first', async () => {
     // state carried over from the previous test: mod_grand removed
     const callsBefore = initDbCalls;
-    const r = await modules.importModule('mod_grand', { actorId: 'admin1' });
+    const r = await lifecycle.importModule('mod_grand', { actorId: 'admin1' });
     assert.strictEqual(r.ok, true);
     assert.strictEqual(r.module.status, 'imported');
     assert.strictEqual(r.module.source, 'explicit');
@@ -190,7 +191,7 @@ test('re-import ⇒ active again; runs the store initDB first', async () => {
 test('store initDB failure aborts the import (no state write)', async () => {
     stateRows.delete('mod_grand');
     initDbFail = true;
-    await assert.rejects(() => modules.importModule('mod_grand', { actorId: 'admin1' }), /migration boom/);
+    await assert.rejects(() => lifecycle.importModule('mod_grand', { actorId: 'admin1' }), /migration boom/);
     assert.strictEqual(stateRows.has('mod_grand'), false, 'state row must not be written on aborted import');
 });
 
@@ -200,7 +201,7 @@ test('available:false ⇒ never active, never importable', async () => {
     stateRows.set('mod_unavail', { moduleId: 'mod_unavail', status: 'imported', importedAt: new Date().toISOString(), importedBy: 'x' });
     modules.invalidateCache();
     assert.strictEqual(await modules.isModuleActive('mod_unavail'), false);
-    const r = await modules.importModule('mod_unavail', { actorId: 'admin1' });
+    const r = await lifecycle.importModule('mod_unavail', { actorId: 'admin1' });
     assert.deepStrictEqual(r, { ok: false, error: 'module_unavailable' });
     const rows = await modules.listModulesWithStatus();
     assert.strictEqual(rows.find(x => x.id === 'mod_unavail').status, 'unavailable');
@@ -208,8 +209,8 @@ test('available:false ⇒ never active, never importable', async () => {
 });
 
 test('unknown module id ⇒ not_found / factory throw', async () => {
-    assert.deepStrictEqual(await modules.importModule('nope', {}), { ok: false, error: 'not_found' });
-    assert.deepStrictEqual(await modules.removeModule('nope', {}), { ok: false, error: 'not_found' });
+    assert.deepStrictEqual(await lifecycle.importModule('nope', {}), { ok: false, error: 'not_found' });
+    assert.deepStrictEqual(await lifecycle.removeModule('nope', {}), { ok: false, error: 'not_found' });
     assert.throws(() => modules.requireModule('nope'), /unknown module/);
 });
 
@@ -252,7 +253,7 @@ test('requireModule middleware: active ⇒ next(), inactive ⇒ 404 concealment'
     assert.strictEqual(nextCalled, true);
     assert.strictEqual(res.statusCode, null);
 
-    await modules.removeModule('mod_grand', { actorId: 'admin1' });
+    await lifecycle.removeModule('mod_grand', { actorId: 'admin1' });
     nextCalled = false;
     res = fakeRes();
     await gate({}, res, () => { nextCalled = true; });

@@ -22,6 +22,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 const fx = {
     projects: [],
@@ -140,7 +141,7 @@ function dispatch(url, session = { user: { id: 'alice', organizationId: 'org1' }
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
         };
-        router(req, res, (err) => reject(err || new Error(`fell through: GET ${url}`)));
+        router(req, res, (err) => (err ? terminalErrorHandler(err, req, res, reject) : reject(new Error(`fell through: GET ${url}`))));
     });
 }
 
@@ -247,10 +248,12 @@ test('A 500 CARRIES AN EMPTY LIST AND NAMES THE GAP, NOT A BARE ERROR', async ()
     fx.listThrows = true;
     const res = await dispatch('/summary');
     assert.strictEqual(res.statusCode, 500);
-    assert.deepStrictEqual(res.body.projects, []);
-    assert.deepStrictEqual(res.body.unavailable, ['all'],
+    assert.strictEqual(res.body.code, 'summary_failed');
+    assert.ok(res.body.correlationId);
+    assert.deepStrictEqual(res.body.details.projects, []);
+    assert.deepStrictEqual(res.body.details.unavailable, ['all'],
         'a client that renders the body without checking the status shows nothing, not a clean overview');
-    assert.strictEqual(res.body.hasMore, false);
+    assert.strictEqual(res.body.details.hasMore, false);
     assert.ok(!/projects table/.test(JSON.stringify(res.body)), 'and no SQL text reaches the client');
 });
 

@@ -135,7 +135,9 @@ function _composeHandler(entry) {
             }
         };
         if (!gate) return run();
-        return gate(req, res, run); // gate calls next===run on success, else 404
+        // The gate calls next() on success and next(err) on an entitlement outage;
+        // a bare `run` would ignore the error and serve the module anyway.
+        return gate(req, res, (err) => (err ? next(err) : run()));
     };
 }
 
@@ -352,6 +354,7 @@ async function deactivate(moduleId, { actorId = null, persist = true } = {}) {
 
 module.exports = {
     _recordCrash,
+    _composeHandler,
     reactivateModule,
     activate,
     deactivate,

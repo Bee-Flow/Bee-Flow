@@ -1150,7 +1150,7 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         const usage = routeSlice(crud, "router.get('/:id/usage'");
         expect(missingFrom(usage, ['usage', 'canOpen', 'complete'])).toEqual([]);
         // A failed read is an ERROR, never `{ usage: [] }` (lifecycle.ts relies on it).
-        expect(usage).toContain("res.status(500).json({ error: 'usage_unavailable' })");
+        expect(usage).toContain("throw new HttpError(500, 'usage_unavailable', 'usage_unavailable')");
     });
 
     it('the builder turn still reads every key the phone sends, and the session still carries what it reads', () => {

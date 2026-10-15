@@ -137,6 +137,7 @@ const restore = installResolveStub({
 after(restore);
 
 const userStore = require('./userStore');
+require('../projects/erasurePorts'); // deleteUser erases through these ports (real ones, db stubbed above)
 
 const sqlOf = (c) => String(c.sql).replace(/\s+/g, ' ').trim();
 const deletesFrom = (table) => runCalls.filter(c =>

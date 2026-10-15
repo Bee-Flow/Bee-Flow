@@ -21,8 +21,9 @@ const { featureGate } = require('./featureGate');
 async function pass(gate) {
     const res = { statusCode: 200, body: undefined, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
     let nexted = false;
-    await gate({}, res, () => { nexted = true; });
-    return { res, nexted };
+    let err;
+    await gate({}, res, (e) => { nexted = !e; err = e; });
+    return { res, nexted, err };
 }
 
 test.beforeEach(() => { flag = null; readError = null; });
@@ -42,8 +43,9 @@ test('a flag set to false is a 403 that names the feature', async () => {
 
 test('an unreadable flag is a 503, never a pass', async () => {
     readError = new Error('connection refused');
-    const { res, nexted } = await pass(featureGate('projects', 'Projects'));
+    const { res, nexted, err } = await pass(featureGate('projects', 'Projects'));
     assert.strictEqual(nexted, false);
-    assert.strictEqual(res.statusCode, 503);
-    assert.deepStrictEqual(res.body, { error: 'Projects availability could not be determined' });
+    // refused via the terminal handler (wire shape: auth/gates.wire.test.js)
+    assert.strictEqual(res.body, undefined);
+    assert.deepStrictEqual([err.status, err.code, err.message], [503, 'feature_gate_unavailable', 'Projects availability could not be determined']);
 });

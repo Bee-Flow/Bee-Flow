@@ -38,6 +38,9 @@ const { isNotebookWriteTool } = require('./notebookWriteGate');
 const guardrailEventStore = require('../../../stores/guardrailEventStore');
 const configStore = require('../../../stores/configStore');
 const log = require('../../../telemetry/log');
+const {
+    searchGuardText, searchGuardEvent, shieldGuardEvent, buildDispatchOptions, buildUsageRow, buildEgressArgs,
+} = require('./toolExecPayloads');
 
 /**
  * Strip bulky fields from tool results before they become LLM messages.
@@ -153,9 +156,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     try {
         // Web Search Guard — validate agent_search queries
         // read_url is guarded like a search: the URL (+ find) leaves Bee Flow the same way a query does.
-        const _guardText = toolName === 'agent_search' ? toolArgs?.query
-            : toolName === 'read_url' ? [toolArgs?.url, toolArgs?.find].filter(v => typeof v === 'string' && v).join(' ')
-                : null;
+        const _guardText = searchGuardText(toolName, toolArgs);
         if (_guardText) {
             // 1. Regex guardrails on search query
             if (ctx.regexConfig?.enabled) {
@@ -163,17 +164,9 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                 if (qMatches.length > 0) {
                     const ruleNames = qMatches.map(m => m.ruleName).join(', ');
                     log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query BLOCKED by regex: ${ruleNames}`);
-                    guardrailEventStore.logGuardrailEvent({
-                        organization_id: ctx.userOrgId || null,
-                        user_id: ctx.userId,
-                        conversation_id: ctx.convId || null,
-                        violation_type: 'regex',
-                        violation_categories: ruleNames,
-                        direction: 'input',
-                        action_taken: 'search_blocked',
-                        source: 'direct',
-                        model: ctx.getModelId() || null,
-                    }).catch(() => {});
+                    guardrailEventStore.logGuardrailEvent(
+                        searchGuardEvent(ctx, 'regex', ruleNames, 'search_blocked'),
+                    ).catch(() => {});
                     ctx.send('tool_end', { name: toolName, result: '[Web search blocked — query violates content policy]' });
                     return { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: 'Web search blocked — query violates content policy. Please rephrase.' }) };
                 }
@@ -186,17 +179,9 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                     if (piiResult?.hasPii) {
                         const cats = [...new Set(piiResult.entities.map(e => e.label))].join(', ');
                         // Always log PII detection for monitoring
-                        guardrailEventStore.logGuardrailEvent({
-                            organization_id: ctx.userOrgId || null,
-                            user_id: ctx.userId,
-                            conversation_id: ctx.convId || null,
-                            violation_type: 'pii',
-                            violation_categories: cats,
-                            direction: 'input',
-                            action_taken: ctx.webSearchGuardEnabled ? 'search_blocked' : 'pii_detected',
-                            source: 'direct',
-                            model: ctx.getModelId() || null,
-                        }).catch(() => {});
+                        guardrailEventStore.logGuardrailEvent(
+                            searchGuardEvent(ctx, 'pii', cats, ctx.webSearchGuardEnabled ? 'search_blocked' : 'pii_detected'),
+                        ).catch(() => {});
                         // Only block when Web Search Guard is enabled
                         if (ctx.webSearchGuardEnabled) {
                             log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query BLOCKED by PII (${cats})`);
@@ -269,35 +254,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                 const preMeta = resolveIntegrationMeta(toolName, toolArgs || {});
                 if (preMeta?.isLocal) markLocal(preMeta.label || preMeta.integration);
                 try {
-                    return { ok: true, value: await dispatchTool(toolName, toolArgs, {
-                userId: ctx.userId,
-                session: ctx.req.session,
-                userAuth: ctx.userAuth,
-                fixedParams: tierOverrides,
-                agentId: null,
-                conversationId: ctx.convId,
-                orgId: ctx.n8nOrgId,
-                send: ctx.send,
-                imageGenSettings: ctx.imageGenSettings,
-                nanoBananaSettings: ctx.nanoBananaSettings,
-                req: ctx.req,
-                attachments: ctx.attachments,
-                sessionSkills: ctx.sessionSkills,
-                activatedSessionSkillIds: ctx.getActivatedSessionSkillIds(),
-                completedSessionSkillIds: ctx.getCompletedSessionSkillIds(),
-                roundsInCurrentStep: ctx.getRoundsInCurrentStep(),
-                timezone: ctx.timezone || 'Europe/Amsterdam',
-                onImageGenerated: ctx.onImageGenerated,
-                onSkillsActivated: ctx.onSkillsActivated,
-                terminalCtx: {
-                    agentId: `user-${ctx.userId}`,
-                    containerKey: `direct-${ctx.convId}`,
-                    timeout: 60000,
-                    blockedCommands: [],
-                    onEvent: (type, data) => { ctx.send(type, data); },
-                    signal: undefined
-                },
-                }) };
+                    return { ok: true, value: await dispatchTool(toolName, toolArgs, buildDispatchOptions(ctx, tierOverrides)) };
                 } catch (err) {
                     return { ok: false, error: err };
                 }
@@ -345,16 +302,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     // Log tool usage
     try {
         const usageStore = require('../../../stores/usageStore');
-        await usageStore.logUsage({
-            user_id: ctx.userId,
-            agent_name: 'direct-chat',
-            agent_type: 'chat',
-            model: ctx.getModelId(),
-            tool_name: toolName,
-            source: 'direct_chat',
-            organization_id: ctx.userOrgId || null,
-            conversation_id: ctx.convId || null,
-        });
+        await usageStore.logUsage(buildUsageRow(ctx, toolName));
     } catch (e) { /* ignore */ }
 
     // ── Integration Activity Logging (async, non-blocking) ──
@@ -364,22 +312,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     // toolError marks the row status 'error'.
     try {
         const { logToolEgress } = require('../../../core/integrations/integrationLogging');
-        logToolEgress({
-            toolName,
-            toolArgs,
-            result: toolResult,
-            error: toolError,
-            probe: outboundProbe,
-            source: 'direct_chat',
-            model: ctx.getModelId() || null,
-            durationMs: Date.now() - dispatchT0,
-            session: ctx.req?.session || null,
-            ids: {
-                organization_id: ctx.userOrgId || null,
-                user_id: ctx.userId,
-                conversation_id: ctx.convId || null,
-            },
-        });
+        logToolEgress(buildEgressArgs(ctx, { toolName, toolArgs, toolResult, toolError, outboundProbe, dispatchT0 }));
     } catch (e) { /* ignore */ }
 
     // Return raw toolResult so draft dedup can run sequentially after Promise.all.
@@ -443,14 +376,7 @@ async function _stripForModel(content, toolName, ctx) {
 /** Writes a tool block-list guardrail event with this turn's attribution. */
 function _shieldEventLogger(ctx) {
     return (fields) => {
-        guardrailEventStore.logGuardrailEvent({
-            organization_id: ctx.userOrgId || null,
-            user_id: ctx.userId,
-            conversation_id: ctx.convId || null,
-            ...fields,
-            source: 'direct',
-            model: ctx.getModelId() || null,
-        }).catch(() => {});
+        guardrailEventStore.logGuardrailEvent(shieldGuardEvent(ctx, fields)).catch(() => {});
     };
 }
 

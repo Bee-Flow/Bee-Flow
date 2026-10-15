@@ -220,8 +220,8 @@ function refuseReadOnly(res, doc) {
 
 function sendStoreError(res, err, fallback) {
     if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass || (typeof err.code === 'string' ? err.code : undefined), details: err.details, issues: err.issues, conflict: err.conflict });
-    log.error(`[StudioDocuments] ${fallback}:`, err && err.message);
-    return res.status(500).json({ error: fallback });
+    log.error('[StudioDocuments] request failed:', err);
+    throw new HttpError(500, 'document_request_failed', fallback);
 }
 
 /**

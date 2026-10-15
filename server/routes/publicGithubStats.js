@@ -31,6 +31,7 @@
 const express = require('express');
 const { validate } = require('../core/http/validate');
 const { z, onUnknownKeys } = require('../utils/zod');
+const { unavailable } = require('../core/http/errors');
 
 const router = express.Router();
 
@@ -105,7 +106,7 @@ router.get('/github-stats', validate({ query: NO_QUERY }), async (req, res) => {
     if (Date.now() - failedAt < FAILURE_TTL_MS) {
         res.set('Cache-Control', 'public, max-age=600');
         if (cache.data) return res.json(cache.data);
-        return res.status(503).json({ error: 'github_unavailable' });
+        throw unavailable('github_unavailable', 'github_unavailable');
     }
     try {
         if (!inFlight) {
@@ -125,7 +126,7 @@ router.get('/github-stats', validate({ query: NO_QUERY }), async (req, res) => {
             res.set('Cache-Control', 'public, max-age=600');
             return res.json(cache.data);
         }
-        return res.status(503).json({ error: 'github_unavailable' });
+        throw unavailable('github_unavailable', 'github_unavailable');
     }
 });
 

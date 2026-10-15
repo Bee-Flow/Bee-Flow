@@ -337,3 +337,10 @@ test('unconfigured user gets a setup hint, no fetch', async () => {
     assert.match(res.error, /not configured/i);
     assert.strictEqual(fetchCalls.length, 0);
 });
+
+test('an unknown tool name and a prototype key are refused, not dispatched', async () => {
+    for (const name of ['youtrack_nope', 'constructor', '__proto__', 'toString']) {
+        const res = await executeYouTrackTool(name, {}, USER);
+        assert.equal(res.error, `Unknown YouTrack tool: ${name}`);
+    }
+});

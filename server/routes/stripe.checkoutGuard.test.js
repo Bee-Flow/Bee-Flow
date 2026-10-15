@@ -96,6 +96,7 @@ stub('../auth/consentGuards', {
 });
 
 const router = require('./stripe');
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 function dispatch(body) {
     return new Promise((resolve, reject) => {
@@ -124,7 +125,7 @@ function dispatch(body) {
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
         };
-        router(req, res, (err) => reject(err || new Error('fell through router: POST /checkout')));
+        router(req, res, (err) => (err ? terminalErrorHandler(err, req, res, reject) : reject(new Error('fell through router: POST /checkout'))));
     });
 }
 
@@ -316,7 +317,8 @@ test('a failed org lookup fails CLOSED rather than granting the restricted plan'
     const res = await dispatch({ planId: 'plan_NC' });
 
     assert.strictEqual(res.statusCode, 503);
-    assert.strictEqual(res.body.error, 'plan_policy_unavailable');
+    assert.strictEqual(res.body.code, 'plan_policy_unavailable');
+    assert.ok(res.body.correlationId);
     assert.strictEqual(sessionsCreated.length, 0);
 });
 

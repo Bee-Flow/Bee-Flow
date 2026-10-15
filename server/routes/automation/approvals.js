@@ -394,7 +394,7 @@ router.post('/approvals/:id/remind', remindLimiter, async (req, res) => {
     }
 });
 
-router.get('/approvals/:id/files/:fileId', async (req, res) => {
+router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const approval = await automationStore.getApproval(req.params.id);
@@ -433,8 +433,7 @@ router.get('/approvals/:id/files/:fileId', async (req, res) => {
         if (streamed.contentLength != null) res.setHeader('Content-Length', streamed.contentLength);
         streamed.stream.on('error', (e) => {
             log.error(`[automation/approvals] app download stream failed: ${e.message}`);
-            if (!res.headersSent) res.status(500).end();
-            else res.destroy();
+            next(e);
         });
         return streamed.stream.pipe(res);
     }
@@ -464,8 +463,7 @@ router.get('/approvals/:id/files/:fileId', async (req, res) => {
     if (streamed.contentLength != null) res.setHeader('Content-Length', streamed.contentLength);
     streamed.stream.on('error', (e) => {
         log.error(`[automation/approvals] download stream failed: ${e.message}`);
-        if (!res.headersSent) res.status(500).end();
-        else res.destroy();
+        next(e);
     });
     return streamed.stream.pipe(res);
 });

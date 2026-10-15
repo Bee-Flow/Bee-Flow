@@ -7,6 +7,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const fs = require('fs');
 const transcriptionStore = require('../../stores/transcriptionStore');
@@ -76,10 +77,8 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
             // browser: those bytes never existed anywhere else. Say what is
             // actually true, and let the client branch on `code` not on prose.
             if (audioSource.reason === 'storage_unavailable') {
-                return res.status(503).json({
-                    error: 'Audio storage is temporarily unavailable. Try again in a minute.',
-                    code: 'audio_storage_unavailable',
-                });
+                throw new HttpError(503, 'audio_storage_unavailable',
+                    'Audio storage is temporarily unavailable. Try again in a minute.');
             }
             const wasRecorded = transcription.source === 'recording';
             return res.status(410).json({
@@ -349,7 +348,9 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
             reprocessed: true,
         });
     } catch (err) {
+        if (err instanceof HttpError && !transcriptionId) throw err;
         log.error('[Transcriptions] Reprocess error:', err.message);
+        let failure = null;
         try {
             if (transcriptionId) {
                 // Never clobber a good note with a failed rerun: a previously
@@ -368,11 +369,12 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
                     log.warn(`[Transcriptions] Reprocess of ${transcriptionId} failed but the claim was already lost — leaving the note alone`);
                 }
             } else if (!res.headersSent) {
-                res.status(500).json({ error: 'Reprocessing failed' });
+                failure = new HttpError(500, 'reprocess_failed', 'Reprocessing failed');
             }
         } catch (dbErr) {
             log.error('[Transcriptions] Failed to record reprocess failure:', dbErr.message);
         }
+        if (failure) throw failure;
     } finally {
         // Remove the temp file if the audio was streamed from object storage.
         try { audioSource?.cleanup?.(); } catch (_) {}

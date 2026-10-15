@@ -373,8 +373,7 @@ router.get('/query/:resource', async (req, res) => {
         // Umami's failures are schema/validation text, not secrets — collapsing
         // them into a bare "Failed to load analytics" turned a self-describing
         // 400 ("expected one of …") into a guessing game.
-        return res.status(502).json({
-            error: 'Failed to load analytics',
+        throw new HttpError(502, 'analytics_unavailable', 'Failed to load analytics', {
             upstreamStatus: err.status || null,
             reason: String(err.message || '').slice(0, 600),
         });
@@ -707,9 +706,8 @@ async function putRecorderHandler(req, res) {
     if (upstream) {
         log.warn('[CMS] recorder flag not applied upstream:', upstream);
         const recording = !!(await getRecorderMap())[siteId];
-        return res.status(502).json({
+        throw new HttpError(502, 'recorder_not_applied', `Umami rejected the recorder change: ${upstream}`, {
             success: false, siteId, recording,
-            error: `Umami rejected the recorder change: ${upstream}`,
         });
     }
 

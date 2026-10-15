@@ -19,6 +19,7 @@ const { exec, getOne, run } = require('../../db');
 const { tagGate } = require('../../auth/gateMeta');
 const { buildKey } = require('../../utils/buildInfo');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../shared/httpErrors');
 
 // ──────────────────────────────────────────────
 // Beta Feature Registry
@@ -684,13 +685,12 @@ function requireBetaFeature(featureId) {
         } catch (err) {
             if (err instanceof FeatureServiceUnavailableError) {
                 res.set('Retry-After', '10');
-                return res.status(503).json({
-                    error: 'feature_service_degraded',
+                return next(new HttpError(503, 'feature_service_degraded', 'feature_service_degraded', {
                     message: 'Feature service is temporarily unavailable. Please retry shortly.',
-                });
+                }));
             }
             log.error('[BetaFeatures] middleware error:', err);
-            return res.status(500).json({ error: 'feature_check_failed' });
+            return next(new HttpError(500, 'feature_check_failed', 'feature_check_failed'));
         }
     }, { axis: 'capability', id: featureId, kind: 'beta', legacy: true });
 }

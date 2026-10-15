@@ -80,7 +80,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }) {
     // Distinguish "hub down" (502) from "not connected" (a normal 200 payload).
     const hubUnavailable = marketplace.isError
         && (marketplace.error?.status === 502 || marketplace.error?.body?.error === 'hub_unavailable');
-    const hubDetail = marketplace.error?.body?.detail;
+    const hubDetail = marketplace.error?.body?.details?.detail ?? marketplace.error?.body?.detail;
 
     // ── Stripe Checkout return (?purchase=success|cancel&module=<id>) ──
     // Checkout sends the customer back here (URLs built in moduleActions.buy).

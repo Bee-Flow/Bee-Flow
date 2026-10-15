@@ -26,6 +26,7 @@
  *   --dry-run           report what would happen, change nothing
  */
 
+require('../jobs/datatableChangePorts'); // datatable writes notify the refresh/reconcile listeners through these
 const datatableStore = require('../stores/datatableStore');
 const datatableDbStore = require('../stores/datatableDbStore');
 const queryCompiler = require('../core/dataEngine/queryCompiler');

@@ -116,21 +116,21 @@ const COLUMN_LADDERS = [
     { column: 'summary_template_version', table: 'transcriptions', into: 'stores/transcription/schema.js', tag: 'transcriptionStore' },
     // A1c: de persona-editor en de twee testset-tabellen. Alle drie uit
     // stores/agent/initSchema.js, alle drie zonder eigen migratiebestand.
-    { column: 'persona', table: 'agents', into: 'stores/agent/initSchema.js', tag: 'agentSchema' },
-    { table: 'agent_tests', kind: 'table', into: 'stores/agent/initSchema.js', tag: 'agentSchema' },
-    { table: 'agent_test_runs', kind: 'table', into: 'stores/agent/initSchema.js', tag: 'agentSchema' },
+    { column: 'persona', table: 'agents', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
+    { table: 'agent_tests', kind: 'table', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
+    { table: 'agent_test_runs', kind: 'table', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
     // A4 deel D: WIE de verwachting van een test schreef. `written_by` is de
     // per-veld herkomst uit core/agentRuntime/testSuggest.js, `suggested_by`
     // het model dat het voorstel deed. Allebei NULL voor een test die iemand
     // zelf tikte — en dat onderscheid is precies waarom ze een kolom zijn en
     // geen sleutel in `expect`: `expect` is wat de grader leest, en een
     // herkomstveld dat daarin meereist zou een verwachting worden.
-    { column: 'written_by', table: 'agent_tests', into: 'stores/agent/initSchema.js', tag: 'agentSchema' },
-    { column: 'suggested_by', table: 'agent_tests', into: 'stores/agent/initSchema.js', tag: 'agentSchema' },
+    { column: 'written_by', table: 'agent_tests', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
+    { column: 'suggested_by', table: 'agent_tests', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
     // BIJT: de invoegvolgorde-teller die `ran_at DESC` als tiebreaker
     // vervangt (stores/agent/agentTests.js) — runs uit dezelfde milliseconde
     // kwamen anders terug in id-volgorde, willekeurig en soms exact omgekeerd.
-    { column: 'seq', table: 'agent_test_runs', into: 'stores/agent/initSchema.js', tag: 'agentSchema' },
+    { column: 'seq', table: 'agent_test_runs', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
 
     // W4: de versielijst als leesbare geschiedenis. `seq` is het nummer dat de
     // lezer ziet (v14) — created_at kan dat niet zijn, want dat is transactietijd.
@@ -496,14 +496,19 @@ test('een kolom uit COLUMN_LADDERS krijgt géén eigen migratiebestand', () => {
 // drie claims niet uitdrukken, en een claim die je niet kunt opschrijven
 // faalt niet — hij zwijgt. Zodra de drie regels in COLUMN_LADDERS staan dekt
 // de laddertest ze inhoudelijk en pint deze fixture alleen nog de vorm.
-const INIT_SCHEMA = 'stores/agent/initSchema.js';
+// initSchema.js is a facade since LF-S3: the DDL lives in .base.js + .agents.js,
+// run in the same order. The agent_* / persona claims are all in .agents.js.
+const INIT_SCHEMA = 'stores/agent/initSchema.agents.js';
+const INIT_SCHEMA_BASE = 'stores/agent/initSchema.base.js'; // conversation columns, agents CREATE TABLE
+const INIT_SCHEMA_PARTS = [INIT_SCHEMA_BASE, INIT_SCHEMA];
 
 // GEEN tweede kopie: een filter OVER de bewaakte lijst. Als losse fixture was
 // dit een tweede lijst met dezelfde drie claims, en dan verandert er niets aan
 // de uitslag wanneer ze uit COLUMN_LADDERS verdwijnen — de matchertests hier
 // bleven groen op hun eigen kopie terwijl de bewaakte lijst leegliep.
 const A1C_LADDERS = COLUMN_LADDERS.filter((e) => e.into === INIT_SCHEMA);
-const readInitSchema = () => fs.readFileSync(path.join(SERVER, INIT_SCHEMA), 'utf8');
+// The whole DDL module set as one unit, in ladder order (base first, then agents).
+const readInitSchema = () => INIT_SCHEMA_PARTS.map((f) => fs.readFileSync(path.join(SERVER, f), 'utf8')).join('\n');
 
 test('de matcher vindt een kolom in een LATER runDdl-blok met dezelfde tag', () => {
     // De wond: het blok werd afgebakend op de EERSTE `runDdl('<tag>'` in het
@@ -615,13 +620,13 @@ test('een kolomclaim gaat over ÉÉN tabel — een andere tabel in hetzelfde blo
     // twee ANDERE tabellen. Een claim die `pinned` op `agents` legt hoort dus
     // rood te zijn, ook al staat het woord in de ladder.
     const out = ladderProblems({
-        column: 'pinned', table: 'agents', into: INIT_SCHEMA, tag: 'agentSchema',
+        column: 'pinned', table: 'agents', into: INIT_SCHEMA_BASE, tag: 'agentSchema',
     });
     assert.ok(out.some((m) => m.includes('agents')),
         `een kolom van een andere tabel hoort een bezwaar te geven, kreeg: ${JSON.stringify(out)}`);
     // En de tabel waar hij WEL op staat blijft groen.
     assert.deepStrictEqual(ladderProblems({
-        column: 'pinned', table: 'direct_conversations', into: INIT_SCHEMA, tag: 'agentSchema',
+        column: 'pinned', table: 'direct_conversations', into: INIT_SCHEMA_BASE, tag: 'agentSchema',
     }), []);
 });
 
@@ -630,7 +635,7 @@ test('de matcher blijft rood op een kolom buiten elke runDdl-ladder', () => {
     // wat deze claim NIET mag dekken. Verbreden van "eerste blok" naar "elk
     // blok" mag niet doorschieten in "staat ergens in het bestand".
     const out = ladderProblems({
-        column: 'starter_prompts', table: 'agents', into: INIT_SCHEMA, tag: 'agentSchema',
+        column: 'starter_prompts', table: 'agents', into: INIT_SCHEMA_BASE, tag: 'agentSchema',
     });
     assert.ok(out.some((m) => m.includes('buiten het runDdl')),
         `een kolom buiten de ladder hoort een bezwaar te geven, kreeg: ${JSON.stringify(out)}`);

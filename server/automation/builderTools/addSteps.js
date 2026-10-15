@@ -14,11 +14,14 @@ const {
 } = require('./stepBuilders');
 const { applyAddCallLayer } = require('./layers');
 const { validateAndFixBindings } = require('./bindings');
-const { canonicalJson, liftEntryPatch } = require('./suggestedPatch');
+const { canonicalJson } = require('./suggestedPatch');
+const {
+    junkEntriesError, validateEntries, evictRemoved, buildFailure, missingRefMessage, resolveWires,
+} = require('./addStepsSupport');
 
 // ── builder_add_steps: batch append with tempId cross-references ──────────
 
-const { TEMP_ID_RX, rewriteTempRefs, resolveHandlesForResend, resolveAnchor } = require('./tempRefs');
+const { rewriteTempRefs } = require('./tempRefs');
 
 // Stamped on every $handle failure. Without its own hint, applyToolCall's
 // generic matcher saw the word "refers" and labelled these "invalid input
@@ -50,11 +53,6 @@ const TYPE_ALIASES = Object.freeze({
     deck: 'presentation', pptx: 'presentation', powerpoint: 'presentation', slides: 'presentation',
     dia: 'slide',
 });
-
-// A string value carrying JSON punctuation followed by another key is the
-// signature of a batch whose JSON arrived corrupted mid-way — core/llm/
-// partialJsonScan.looksGarbled, shared with the App Studio builder.
-const { looksGarbled } = require('../../core/llm/partialJsonScan');
 
 // The datatable evidence a typeless entry can carry: an addressing field, or
 // an op the datatable step knows — canonical, or one of the aliases
@@ -110,7 +108,7 @@ function normaliseEntry(raw, i, notes) {
         if (shadowed.length) parts.push(`${shadowed.map(k => `"${k}"`).join(', ')} appeared both next to and inside spec — spec's value kept`);
         notes.push(`steps[${i}]: ${parts.join('; ')}. Every step field belongs INSIDE spec; only tempId and type sit beside it.`);
     }
-    if (typeof e.type === 'string' && !ADD_FOR_TYPE[e.type] && e.type !== 'array_op' && TYPE_ALIASES[e.type]) {
+    if (typeof e.type === 'string' && !Object.hasOwn(ADD_FOR_TYPE, e.type) && e.type !== 'array_op' && Object.hasOwn(TYPE_ALIASES, e.type)) {
         notes.push(`steps[${i}]: type "${e.type}" read as "${TYPE_ALIASES[e.type]}".`);
         e.type = TYPE_ALIASES[e.type];
     }
@@ -185,6 +183,20 @@ function comparableInputs(graph, inputs) {
     } catch (_) { return inputs; }
 }
 
+/** Run the builder for one entry; a thrown error becomes { error }. */
+function dispatchEntry(e, spec, { graph, draft, scope, draftWrap }) {
+let res;
+try {
+    if (e.type === 'integration_action') res = applyAddAction(graph, spec, draftWrap);
+    else if (e.type === 'call_layer') res = applyAddCallLayer(draft, spec, { graph, scope });
+    else if (e.type === 'array_op') res = applyAddArrayOp(graph, spec, draftWrap);
+    // draftWrap flows to every builder: the gates read it, and every
+    // binding check reads the shapes a dry run left on it.
+    else res = ADD_FOR_TYPE[e.type](graph, spec, draftWrap);
+} catch (err) { res = { error: err.message }; }
+    return res;
+}
+
 /**
  * builder_add_steps — append several steps in ONE call. Each entry is
  * {tempId?, type, spec} where `spec` is exactly the matching builder_add_<type>
@@ -216,17 +228,8 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
     // one entry's tempId, type and the JSON between them, each as a bare
     // array element. Nothing there is a step; the call was mangled in
     // transit, and that is what the model has to be told.
-    const junk = [];
-    rawEntries.forEach((e, i) => {
-        if (!e || typeof e !== 'object' || Array.isArray(e)) junk.push({ i, v: e });
-    });
-    if (junk.length) {
-        const shown = junk.slice(0, 4).map(({ i, v }) => `steps[${i}] = ${JSON.stringify(typeof v === 'string' && v.length > 40 ? `${v.slice(0, 40)}…` : v)}`).join(', ');
-        return {
-            error: `${shown}${junk.length > 4 ? `, …and ${junk.length - 4} more` : ''} — ${junk.length > 1 ? 'those entries are' : 'that entry is'} not a step object, so the batch JSON arrived corrupted and nothing was applied. Every entry is {tempId?, type, spec}.`,
-            _fixHint: 'Reject reason: corrupted batch JSON. Nothing was applied, so nothing needs undoing. Resend the SAME steps with complete, well-formed JSON — in two smaller batches if the call was long. Do not redesign the steps.',
-        };
-    }
+    const junkErr = junkEntriesError(rawEntries);
+    if (junkErr) return junkErr;
 
     // Repairs ride on the result as warnings — on a partial failure too, so
     // the model sees what happened to the entries that did land.
@@ -243,44 +246,9 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
     // Pre-validate every entry BEFORE mutating anything. A tempId that was
     // already used THIS TURN is not a collision (it is not a node id) — the
     // loop below decides whether it is a resend or a re-use with a new spec.
-    const seen = new Set();
-    for (let i = 0; i < entries.length; i++) {
-        const e = entries[i];
-        if (e.tempId !== undefined) {
-            if (typeof e.tempId !== 'string' || !TEMP_ID_RX.test(e.tempId)) {
-                return { error: `steps[${i}]: tempId "${e.tempId}" must match [A-Za-z][A-Za-z0-9_]* (max 25 chars).` };
-            }
-            if (seen.has(e.tempId)) return { error: `steps[${i}]: duplicate tempId "${e.tempId}" in this call.` };
-            if (require('./draftGraph').isKnownNodeId(graph, e.tempId)) {
-                return { error: `steps[${i}]: tempId "${e.tempId}" collides with an existing step id — pick another handle.` };
-            }
-            seen.add(e.tempId);
-        }
-        if (e.type === 'parse_json') return { error: `steps[${i}]: ${PARSE_JSON_RETIRED_MSG}` };
-        const allowed = `${Object.keys(ADD_FOR_TYPE).join(', ')}, array_op`;
-        if (!e.type) {
-            // "unknown type undefined" named neither the missing key nor the
-            // usual cause. When the entry's own strings carry JSON debris the
-            // batch was mangled in transit — the model needs to know it is
-            // resending, not redesigning.
-            // The debris that proves a mangled batch is often in a SIBLING
-            // entry, not in this one — the entry that lost its `type` is the
-            // one that got cut, and the rest of its JSON landed elsewhere.
-            const garbled = looksGarbled(e) || rawEntries.some(looksGarbled);
-            return {
-                error: `steps[${i}]: has no "type". Every entry is {tempId?, type, spec}. Allowed types: ${allowed}.${garbled
-                    ? ' This entry carries JSON punctuation inside a string value, so the batch JSON arrived corrupted — resend it carefully, in two smaller batches if it is long.'
-                    : ''}`,
-                ...(garbled ? { _fixHint: 'Reject reason: corrupted batch JSON. Nothing was applied. Resend the same steps with complete, well-formed JSON — smaller batches are safer.' } : {}),
-            };
-        }
-        if (!ADD_FOR_TYPE[e.type] && e.type !== 'array_op') {
-            return { error: `steps[${i}]: unknown type "${e.type}". Allowed: ${allowed}.` };
-        }
-        if (!e.spec || typeof e.spec !== 'object' || Array.isArray(e.spec)) {
-            return { error: `steps[${i}]: missing "spec" object — the step's fields go INSIDE spec (same fields as builder_add_${e.type}).` };
-        }
-    }
+    const entryErr = validateEntries(graph, entries, rawEntries, { ADD_FOR_TYPE, PARSE_JSON_RETIRED_MSG });
+    if (entryErr) return entryErr;
+    const seen = new Set(entries.filter((e) => e.tempId !== undefined).map((e) => e.tempId));
 
     const turn = turnState(draftWrap);
     const added = [];
@@ -288,34 +256,7 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
     const note = (line) => { (warnings = warnings || []).push(line); };
     let lastAppliedId = null;
 
-    // A handle whose step left the graph (builder_remove_step earlier this
-    // turn) must not be reused. Measured: the model's remove-and-re-add left
-    // the draft without the step, wired the consumer to the dead id, and was
-    // told to patch a step that no longer existed. Root AND every layer are
-    // checked (not just the scoped `graph`), so a handle minted in another
-    // scope is not evicted by mistake. Every eviction is said once, here,
-    // because the next entry that names the handle is built anew under a
-    // NEW id and the model must not keep the old one.
-    const alive = (id) => !!findStepAnywhere(graph, id)
-        || !!(draft && (findStepAnywhere(draft, id)
-            || Object.values(draft.layers || {}).some(g => g && findStepAnywhere(g, id))));
-    const evicted = new Set();
-    for (const [t, id] of Object.entries(turn._tempIds)) {
-        if (alive(id)) continue;
-        delete turn._tempIds[t];
-        delete turn._rawEntryByHandle[t];
-        evicted.add(id);
-        note(`$${t}: was built earlier this turn as ${id}, but that step has since been removed — the handle is free again and an entry naming it is built anew, under a new id.`);
-    }
-    for (const [fp, v] of [...turn._builtThisTurn]) {
-        if (alive(v.id)) continue;
-        turn._builtThisTurn.delete(fp);
-        if (!evicted.has(v.id)) {
-            evicted.add(v.id);
-            note(`${v.id} (${v.tool || v.type}) was built earlier this turn but has since been removed — an entry with that spec is built anew, not reported as already built.`);
-        }
-    }
-    for (const id of [...turn._mintedThisTurn]) if (!alive(id)) turn._mintedThisTurn.delete(id);
+    evictRemoved(turn, graph, draft, note);
 
     // The call's handle map starts from what this turn already built, so a
     // resend from the failing index still resolves steps.$<built>.
@@ -335,72 +276,7 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
     // 0..i-1 as built — and `resendAs` is the one call that continues the
     // batch: the failing entry, handles already real ids, anchored after the
     // last entry that landed unless it named its own anchor.
-    const fail = (i, spec, error, res) => {
-        // The entry's OWN reason leads (that is what the model must change);
-        // the resend contract follows it. Reversed, the first sentence the
-        // model reads is bookkeeping and the actual defect is buried.
-        const own = res && typeof res._fixHint === 'string' && res._fixHint
-            ? res._fixHint
-            : `Reject reason: entry ${i} was refused — see the error.`;
-        const contract = added.length
-            ? `Entries 0..${i - 1} are built (ids ${added.map(a => a.id).join(', ')}) and stay built. Fix entry ${i} and resend ONLY entries ${i}.. — steps.$<tempId> of the built entries still resolves, and the first resent entry chains after "${lastAppliedId}" unless you set afterStepId. Resending the built entries again is harmless (they are not added twice).`
-            : null;
-        const hint = [own, contract].filter(Boolean).join(' ');
-        // The entry as this result asks for it back: real ids, anchored.
-        //
-        // "Real ids" has to be true of the WHOLE entry, not just the anchor.
-        // The spec body carries the handles the model wrote — including the
-        // bare `steps.foo` form that caused the refusal in the first place —
-        // and an anchor naming a tempId is exactly the dangling reference the
-        // error message warns about. Suggesting either back is suggesting the
-        // same failure; resolve both against what was actually built.
-        // A value nobody can guess back — an id that is not in the catalog,
-        // a name that matches several tables — is DROPPED from the suggestion
-        // rather than repeated. Handing the same invented datatableId back is
-        // handing the same refusal back, and that is a loop the model cannot
-        // break: it reads the suggestion as the corrected call.
-        const anchor = resolveAnchor(spec.afterStepId, idMap) || lastAppliedId;
-        const resendSpec = resolveHandlesForResend(spec, idMap);
-        const rejectedPath = res && typeof res._rejectedPath === 'string' ? res._rejectedPath : null;
-        const dropped = rejectedPath && rejectedPath in resendSpec;
-        if (dropped) delete resendSpec[rejectedPath];
-        const resendEntry = { ...entries[i], spec: { ...resendSpec, ...(anchor ? { afterStepId: anchor } : {}) } };
-        // The patch is signed on BOTH shapes a resend repeats: the RAW entry
-        // (the whole batch again) and `resendEntry` (obeying the contract
-        // below). Measured with a two-entry batch: signed on the raw entry
-        // only, the resend that obeyed resendAs was counted as a repeat but
-        // the patch skipped it, and the repair landed one round late.
-        const patch = res && res._suggestedPatch ? liftEntryPatch(res._suggestedPatch, i, rawEntries[i], resendEntry) : null;
-        const fullHint = [hint, dropped
-            ? (res && res._askArgs
-                // A table the user has not chosen: the value is theirs to give.
-                ? `The entry in resendAs has "${rejectedPath}" REMOVED — it is the value that was refused. Ask the user (builder_ask_questions with _askArgs) and resend with the table they choose; never pick one yourself.`
-                : `The entry in resendAs has "${rejectedPath}" REMOVED — it is the value that was refused. Fill it with one of the options in the error, or ask the user, before resending.`)
-            : null].filter(Boolean).join(' ');
-        return {
-            error,
-            failedIndex: i,
-            added,
-            resendFrom: i,
-            lastAppliedId,
-            idMap: { ...idMap },
-            resendAs: {
-                tool: 'builder_add_steps',
-                args: { steps: [resendEntry] },
-            },
-            ...(patch ? { _suggestedPatch: patch } : {}),
-            ...(res && res._needsInspect ? { _needsInspect: res._needsInspect, toolSchema: res.toolSchema } : {}),
-            // The consent question travels with the refusal: the model passes
-            // _askArgs to builder_ask_questions as the hint says.
-            ...(res && res._askArgs ? { code: res.code, _askArgs: res._askArgs } : {}),
-            // Carry the entry's own hint. Without it applyToolCall stamps
-            // this batch failure with "invalid input binding", so a refusal
-            // that said "that app is not connected" reached the model as
-            // advice to fix a binding it got right.
-            ...(fullHint ? { _fixHint: fullHint } : {}),
-            ...(warnings ? { _warnings: warnings } : {}),
-        };
-    };
+    const fail = (i, spec, error, res) => buildFailure({ added, idMap, lastAppliedId, entries, rawEntries, warnings }, i, spec, error, res);
 
     // An entry this turn already built: reported, not dispatched.
     const reuse = (i, e, id, type, tool, extra) => {
@@ -443,49 +319,8 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
         if (bare) {
             return fail(i, spec, `${at}: "steps.${bare.t}" looks like tempId "${bare.t}" from this batch but is missing the $. Write steps.$${bare.t}… so it resolves — or use the minted id "${bare.real}". A bare tempId is stored verbatim and dangles.`, { _fixHint: TEMP_REF_HINT });
         }
-        if (missing) {
-            // Distinguish "declared later" from "never declared". The old
-            // message said only "not an EARLIER entry", which reads as a typo
-            // report — so a model that had simply ordered its entries wrongly
-            // went looking for a misspelling instead of moving the entry. This
-            // was the most frequent remaining failure in measured builds.
-            const laterAt = entries.findIndex((x, j) => j > i && x && x.tempId === missing);
-            const declaredHere = entries.some(x => x && x.tempId === missing);
-            const known = Object.keys(idMap);
-            const err = laterAt > -1
-                ? `${at}: "steps.$${missing}" refers to tempId "${missing}", which this call declares LATER at steps[${laterAt}]. A step can only reference something built before it — move entry ${laterAt} ahead of entry ${i}.`
-                : declaredHere
-                    ? `${at}: "steps.$${missing}" refers to tempId "${missing}", declared on this same entry. A step cannot reference its own output.`
-                    : (() => {
-                        // The overwhelmingly common case, measured: the model
-                        // references $handle but never put `tempId` on the
-                        // entry it means. "not declared" is true and useless —
-                        // name the entry and the exact field to add, or it
-                        // retries the identical call two to four times.
-                        const anon = entries.findIndex((x, j) => j < i && x && !x.tempId);
-                        if (anon > -1) {
-                            const what = entries[anon].spec?.tool || entries[anon].type || 'that step';
-                            return `${at}: "steps.$${missing}" refers to tempId "${missing}", but no entry declares it — steps[${anon}] (${what}) has NO tempId. Add "tempId": "${missing}" to steps[${anon}], then this reference resolves. A $handle only exists if an earlier entry declares it.`;
-                        }
-                        return `${at}: "steps.$${missing}" refers to tempId "${missing}", which this call never declares. Declared so far: ${known.length ? known.map(k => '$' + k).join(', ') : '(none)'}. For a step that already exists, use its real id instead of a $tempId.`;
-                    })();
-            return fail(i, spec, err, { _fixHint: TEMP_REF_HINT });
-        }
-        let wireErr = null;
-        const resolveWire = (val, field) => {
-            if (typeof val === 'string' && val.startsWith('$')) {
-                const real = idMap[val.slice(1)];
-                if (!real) { wireErr = wireErr || `${at}: ${field} "${val}" is not an EARLIER entry's tempId.`; return val; }
-                return real;
-            }
-            return val;
-        };
-        for (const f of ['afterStepId', 'thenStepId', 'elseStepId']) {
-            if (f in spec) spec[f] = resolveWire(spec[f], f);
-        }
-        if (spec.nextStepIds && typeof spec.nextStepIds === 'object' && !Array.isArray(spec.nextStepIds)) {
-            for (const k of Object.keys(spec.nextStepIds)) spec.nextStepIds[k] = resolveWire(spec.nextStepIds[k], `nextStepIds.${k}`);
-        }
+        if (missing) return fail(i, spec, missingRefMessage(missing, entries, i, at, idMap), { _fixHint: TEMP_REF_HINT });
+        const wireErr = resolveWires(spec, idMap, at);
         if (wireErr) return fail(i, spec, wireErr, { _fixHint: TEMP_REF_HINT });
 
         // Default chaining: no explicit anchor → appendAfter's layerAwareAnchor
@@ -547,15 +382,7 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
         // ── Dispatch, with THIS entry's own snapshot. ──
         const snapSteps = structuredClone(graph.steps);
         const snapEdges = structuredClone(graph.edges);
-        let res;
-        try {
-            if (e.type === 'integration_action') res = applyAddAction(graph, spec, draftWrap);
-            else if (e.type === 'call_layer') res = applyAddCallLayer(draft, spec, { graph, scope });
-            else if (e.type === 'array_op') res = applyAddArrayOp(graph, spec, draftWrap);
-            // draftWrap flows to every builder: the gates read it, and every
-            // binding check reads the shapes a dry run left on it.
-            else res = ADD_FOR_TYPE[e.type](graph, spec, draftWrap);
-        } catch (err) { res = { error: err.message }; }
+        const res = dispatchEntry(e, spec, { graph, draft, scope, draftWrap });
 
         if (!res || res.error) {
             // Only this entry is undone. A builder that mutated before it

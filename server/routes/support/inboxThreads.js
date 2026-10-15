@@ -6,6 +6,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const supportInboxStore = require('../../stores/supportInboxStore');
 const supportStore = require('../../stores/supportStore');
 const access = require('../../support/access');
@@ -127,7 +128,7 @@ async function replyToThread(req, res) {
     } catch (sendErr) {
         log.error('[SupportInbox] send failed:', sendErr.message);
         await supportStore.setMessageEmailStatus(msg.id, { ok: false, error: sendErr.message, at: new Date().toISOString() });
-        res.status(502).json({ error: 'Reply saved but sending failed', messageId: msg.id });
+        throw new HttpError(502, 'reply_send_failed', 'Reply saved but sending failed', { messageId: msg.id });
     }
 }
 

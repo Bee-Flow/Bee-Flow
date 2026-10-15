@@ -24,7 +24,7 @@ function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) 
     if (!stepId) return { error: 'stepId is required.' };
     const newType = typeof args.newType === 'string' ? args.newType : null;
     if (newType === 'parse_json') return { error: PARSE_JSON_RETIRED_MSG };
-    const builder = newType && cycleDeps.ADD_FOR_TYPE[newType];
+    const builder = newType && Object.hasOwn(cycleDeps.ADD_FOR_TYPE, newType) && cycleDeps.ADD_FOR_TYPE[newType];
     if (!builder) return { error: `Cannot replace into type "${newType}". Allowed: ${Object.keys(cycleDeps.ADD_FOR_TYPE).join(', ')}.` };
     const spec = (args.spec && typeof args.spec === 'object' && !Array.isArray(args.spec)) ? args.spec : null;
     if (!spec) return { error: 'spec must be an object with the new step\'s fields (same shape as builder_add_<newType>).' };

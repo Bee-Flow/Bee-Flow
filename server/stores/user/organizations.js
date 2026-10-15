@@ -1,7 +1,6 @@
 // @typecheck
 // Organizations — CRUD, per-org capability/enablement lists, the org-deletion
 // cascade, and the auto-provisioned NC org-name backfill.
-
 const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { dynamicUpdate, parseJSON } = require('./shared');
@@ -444,6 +443,7 @@ async function deleteOrganization(orgId) {
     let step = 'users';
     try {
         const orgUsers = await getAll('SELECT id FROM users WHERE "organizationId" = $1', [orgId]);
+        if (orgUsers.length) require('./erasurePorts').resolveErasurePorts(); // unregistered ports refuse before any user is touched
         // All of them first: deleteUser refuses an account that runs a Solution
         // stage, and the org must not be left half-deleted when the last one does.
         for (const u of orgUsers) await assertNotStageRunAs(u.id);

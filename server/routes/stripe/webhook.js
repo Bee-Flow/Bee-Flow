@@ -34,6 +34,7 @@ const {
     handleSetupIntentSucceeded,
 } = require('./customerEvents');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
 
@@ -153,7 +154,7 @@ router.post('/webhook', async (req, res) => {
         } catch (releaseErr) {
             log.error(`[Stripe Webhook] could not release ledger row ${event.id} — the retry will replay-skip:`, releaseErr.message);
         }
-        return res.status(500).json({ error: 'handler_failed', event_id: event.id });
+        throw new HttpError(500, 'handler_failed', 'handler_failed', { event_id: event.id });
     }
 
     res.json({ received: true });

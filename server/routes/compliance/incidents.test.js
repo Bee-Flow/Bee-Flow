@@ -95,6 +95,7 @@ const app = express();
 app.use(express.json());
 app.use((req, _res, next) => { req.session = currentSession; next(); });
 app.use('/api/compliance', router);
+app.use(require('../../core/http/terminalErrorHandler').terminalErrorHandler);
 let server; let base;
 test.before(async () => {
     await new Promise((resolve) => { server = app.listen(0, resolve); });
@@ -452,7 +453,7 @@ test('notify-recipients: a mail failure is a refusal — 502, no stamp, no evide
     const res = await call('POST', `/incidents/${id}/notify-recipients`, ADMIN_A);
 
     assert.equal(res.status, 502);
-    assert.equal(res.body.error, 'notification_failed');
+    assert.equal(res.body.code, 'notification_failed');
     // An SMTP rejection quotes the address it bounced on. That string is a
     // response body away from the browser and a log line away from the disk.
     const seen = JSON.stringify(res.body);

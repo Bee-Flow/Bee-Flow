@@ -1,5 +1,6 @@
 'use strict';
 const { isMicrosoftLoginSession, isLegacyMicrosoftSession } = require('./microsoftIdentity');
+const { HttpError } = require('../shared/httpErrors');
 const checked = Symbol('Microsoft identity checked for this request');
 
 function createMicrosoftSessionMiddleware({ getIdentityBinding }) {
@@ -10,7 +11,7 @@ function createMicrosoftSessionMiddleware({ getIdentityBinding }) {
         if (!revoked) {
             let binding;
             try { binding = await getIdentityBinding(session.user.id); }
-            catch { return res.status(503).json({ error: 'auth_unavailable' }); }
+            catch { return next(new HttpError(503, 'auth_unavailable', 'auth_unavailable')); }
             const proof = session.microsoftLoginIdentity;
             revoked = !binding || binding.azureTenantId !== proof.azureTenantId
                 || binding.azureUserId !== proof.azureUserId || binding.revision !== proof.revision;

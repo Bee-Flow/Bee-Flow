@@ -9,6 +9,7 @@
 const express = require('express');
 const { executeGammaTool } = require('../../integrations/gammaTools');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
 
 const router = express.Router();
@@ -38,7 +39,7 @@ router.get('/generations/:generationId', requireAuth, validate({ params: Generat
     );
 
     if (result?.error) {
-        return res.status(502).json(result);
+        throw new HttpError(502, 'gamma_error', String(result.error));
     }
 
     res.json(result);

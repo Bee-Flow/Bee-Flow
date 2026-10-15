@@ -561,24 +561,24 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
 
     } catch (err) {
         log.error('[Transcriptions] Transcribe error:', err.message);
+        let failure = null;
         try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) {}
         try {
             if (transcriptionId) {
-                // Already responded 202 — flip the note to 'failed' and stash the
-                // reason in `summary` (a failed note has none) so the UI can show
-                // WHY, since the client only ever received the 202. Saved audio
-                // (savedAudioPath) stays so the note can be reprocessed.
+                // Already responded 202: flip the note to 'failed' with the reason
+                // in `summary`; saved audio stays so it can be reprocessed.
                 await transcriptionStore.updateTranscription(transcriptionId, userId, {
                     status: 'failed',
                     summary: `Transcription failed: ${err.message}`,
                 });
             } else if (!res.headersSent) {
                 // Failed before the processing note / 202 — surface synchronously.
-                res.status(500).json({ error: 'Transcription failed' });
+                failure = new HttpError(500, 'transcription_failed', 'Transcription failed');
             }
         } catch (dbErr) {
             log.error('[Transcriptions] Failed to record transcription failure:', dbErr.message);
         }
+        if (failure) throw failure;
     }
 });
 

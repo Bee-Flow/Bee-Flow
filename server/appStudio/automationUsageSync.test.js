@@ -225,7 +225,7 @@ test('de knoppenloop kent exact dezelfde bedradingsvormen als de validator', () 
  *
  * De test hierboven vergelijkt de SCHERM-loop. De STAPPEN-loop
  * (`automationsInAction`) heeft zijn eigen spiegel: `containsStepKind` in
- * appStudio/validate/actions.js. Die had vijf ingangen — `steps`, `then`,
+ * appStudio/validate/stepKindChecks.js. Die had vijf ingangen — `steps`, `then`,
  * `else`, `cases[].steps` én `default` — en de scan hier had er vier: een
  * automatisering die alleen in de `default`-tak van een switch stond, draaide wel
  * (browser: `execSteps(hit ? hit.steps : step.default)`; server:
@@ -255,9 +255,9 @@ test('de stappen-loop daalt in exact dezelfde takken af als containsStepKind', (
         return found;
     };
     const mine = branchesOf(readSrc('./automationRefs.js'), 'const walkSteps =', 'walkSteps');
-    const validator = branchesOf(readSrc('./validate/actions.js'), 'function containsStepKind', 'containsStepKind');
+    const validator = branchesOf(readSrc('./validate/stepKindChecks.js'), 'function containsStepKind', 'containsStepKind');
     assert.deepStrictEqual([...mine].sort(), [...validator].sort(),
-        'automationRefs.walkSteps en validate/actions.containsStepKind moeten dezelfde takken aflopen — '
+        'automationRefs.walkSteps en validate/stepKindChecks.containsStepKind moeten dezelfde takken aflopen — '
         + 'een tak die de ene wel kent en de andere niet is een automatisering die draait en niet in de index staat');
     assert.ok(mine.has('default'), 'de default-tak van een switch wordt echt uitgevoerd, dus hij telt mee');
 });
