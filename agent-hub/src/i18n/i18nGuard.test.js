@@ -395,7 +395,7 @@ const KEY_TABLE_FILES = [
     // hides a missing one, which is the reason this check exists.
     'components/admin/Studio/AppStudio/inspector/ActionsSection.jsx',
     'components/admin/Studio/SkillsStudio/SkillStepEditor.jsx',
-    'components/admin/Studio/SkillsStudio/SkillsOverview.jsx',
+    'components/admin/Studio/SkillsStudio/SkillsOverview.tsx',
     // De statustabellen van de ISMS-registers (AUDIT_STATUS, FINDING_SEVERITY,
     // NC_STATUS, NC_SEVERITY, NC_SOURCE, OBJ_STATUS) — de opvolger van de
     // { key, en }-tabellen uit de oude AuditPage.jsx.

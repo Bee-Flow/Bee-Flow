@@ -120,8 +120,8 @@ export function CountChips({ row }: { row: Row }) {
                         key={section}
                         data-testid="solution-card-chip"
                         data-section={section}
-                        title={phrase}
-                        aria-label={phrase}
+                        title={phrase ?? undefined}
+                        aria-label={phrase ?? undefined}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium tabular-nums bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                     >
                         {Icon && <Icon className="w-3 h-3" style={{ color: kindColorVar(kind) }} aria-hidden="true" />}
