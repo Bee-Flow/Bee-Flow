@@ -34,6 +34,16 @@ export interface AnalyticsScope extends AnalyticsRequestOpts {
     _token?: number;
 }
 
+/** One CMS site of `/sites` with its Umami tracking state. */
+export interface AnalyticsSite {
+    id: string;
+    name?: string;
+    live?: boolean;
+    tracked?: boolean;
+    websiteId?: string | null;
+    recording?: boolean;
+}
+
 /** Umami `stats` totals; a field is `{ value, prev }` or a bare number depending on the version. */
 export interface AnalyticsTotals {
     visits?: StatField;
@@ -65,6 +75,8 @@ export type AnalyticsResponse = {
     siteId?: string;
     websiteId?: string;
     data?: unknown;
+    /** `/settings`: the Umami base URL (public). */
+    url?: string;
     range?: AnalyticsRange;
     stats?: (AnalyticsTotals & { comparison?: AnalyticsTotals }) | null;
     pageviews?: { pageviews?: SeriesPoint[]; sessions?: SeriesPoint[] } | null;

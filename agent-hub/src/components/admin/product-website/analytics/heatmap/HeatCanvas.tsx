@@ -20,7 +20,7 @@ import React, { useEffect, useRef } from 'react';
 
 // Teal → green → amber → red. No purple/violet/indigo (house rule), and the
 // ramp is monotonic in lightness so it survives greyscale printing.
-const RAMP = [
+const RAMP: Array<{ at: number; rgb: number[] }> = [
     { at: 0.00, rgb: [20, 184, 166] },
     { at: 0.35, rgb: [16, 185, 129] },
     { at: 0.60, rgb: [245, 158, 11] },
@@ -28,7 +28,7 @@ const RAMP = [
     { at: 1.00, rgb: [239, 68, 68] },
 ];
 
-function rampAt(t) {
+function rampAt(t: number): number[] {
     const x = Math.max(0, Math.min(1, t));
     for (let i = 1; i < RAMP.length; i++) {
         if (x <= RAMP[i].at) {
@@ -63,8 +63,16 @@ const LUT = buildLut();
  * @param radius  blob radius in page px
  * @param opacity overall layer opacity
  */
-export default function HeatCanvas({ points, width, height, radius = 28, opacity = 0.72 }) {
-    const ref = useRef(null);
+interface HeatCanvasProps {
+    points?: Array<{ x: number; y: number; count: number }>;
+    width: number;
+    height: number;
+    radius?: number;
+    opacity?: number;
+}
+
+export default function HeatCanvas({ points, width, height, radius = 28, opacity = 0.72 }: HeatCanvasProps) {
+    const ref = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
         const canvas = ref.current;

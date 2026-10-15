@@ -13,7 +13,7 @@ export interface CmsLocale {
 
 export interface CmsBlock {
     id: string;
-    type?: string;
+    type: string;
     enabled?: boolean;
     content?: Record<string, unknown>;
     style?: Record<string, unknown>;

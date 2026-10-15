@@ -17,7 +17,7 @@ interface SiteVersionMenuProps {
     onRenameSite: (id: string, name: string) => void;
     onDeleteSite: (site: CmsSiteListEntry) => void;
     onSetLiveVersion: (id: string) => void;
-    onDuplicateVersion: (id: string, name?: string) => void;
+    onDuplicateVersion: () => Promise<unknown> | void;
     onExportSite: (format: string) => void;
     onImportFile: (file: File) => void;
     ioStatus: SiteIoStatus | null;

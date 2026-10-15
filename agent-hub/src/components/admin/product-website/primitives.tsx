@@ -283,11 +283,11 @@ export function BackgroundCard({ data = {}, onChange, persistKey = null }: Backg
 // Compact joined segmented control. Options: [{ value, label, icon?, hint? }].
 // `icon` renders an AppIcon (with `iconOnly` hiding the label); `hint`
 // becomes the button tooltip (falls back to the label).
-export function SegmentedControl({ options, value, onChange, iconOnly }: SegmentedControlProps) {
+export function SegmentedControl<V extends string | number = string>({ options, value, onChange, iconOnly }: SegmentedControlProps<V>) {
     const { t } = useTranslation();
     return (
         <div className="inline-flex rounded-md border border-[var(--border-default)] bg-[var(--bg-tertiary)] overflow-hidden">
-            {options.map((opt: SegmentedOption) => {
+            {options.map((opt: SegmentedOption<V>) => {
                 const active = opt.value === value;
                 const optLabel = opt.labelKey ? t(opt.labelKey, opt.label) : opt.label;
                 return (

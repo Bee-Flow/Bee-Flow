@@ -2,9 +2,11 @@ import React from 'react';
 import BackgroundControl from './controls/BackgroundControl';
 import ColorControl from './controls/ColorControl';
 import SpacingStepper from './controls/SpacingStepper';
+import type { Spacing } from './controls/SpacingStepper';
 import { getCapabilities } from './controls/styleCapabilities';
 import { FieldRow, Toggle } from './fields';
 import { SectionDivider, SegmentedControl } from './primitives';
+import type { SegmentedOption } from './primitives.types';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
@@ -39,6 +41,20 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * v2 knobs render via getCapabilities().
  */
 
+/** block.style — every key optional; a missing key inherits the site design. */
+export interface BlockStyle {
+    colorOverrides?: Record<string, string>;
+    spacing?: Spacing;
+    backgroundImage?: string | null;
+    backgroundOverlay?: string | null;
+    maxWidth?: string;
+    align?: string;
+    cssClass?: string;
+    columns?: number | '';
+    reveal?: 'on' | 'off';
+    glow?: boolean;
+}
+
 const COLOR_TOKENS = [
     { key: 'primary',       label: 'Primary',        hint: 'CTAs, links, accents',          designKey: 'primary' },
     { key: 'secondary',     label: 'Secondary',      hint: 'Strong contrast / dark blocks', designKey: 'secondary' },
@@ -63,14 +79,23 @@ const ALIGNS = [
 ];
 
 // '' = Auto (removes the key → block's own default grid).
-const COLUMN_OPTIONS = [
+const COLUMN_OPTIONS: SegmentedOption<number | ''>[] = [
     { value: '', label: 'Auto', hint: 'Block default' },
     { value: 2,  label: '2',    hint: '2 columns' },
     { value: 3,  label: '3',    hint: '3 columns' },
     { value: 4,  label: '4',    hint: '4 columns' },
 ];
 
-export default function BlockStyleEditor({ style, enabled = true, design, blockType, onChange, onToggleEnabled }) {
+interface BlockStyleEditorProps {
+    style?: BlockStyle | null;
+    enabled?: boolean;
+    design?: { colors?: Record<string, string> } | null;
+    blockType: string;
+    onChange: (style: BlockStyle) => void;
+    onToggleEnabled: () => void;
+}
+
+export default function BlockStyleEditor({ style, enabled = true, design, blockType, onChange, onToggleEnabled }: BlockStyleEditorProps) {
     const { t } = useTranslation();
     const s = style || {};
     const overrides = s.colorOverrides || {};
@@ -78,17 +103,17 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
     const siteColors = design?.colors || {};
     const caps = getCapabilities(blockType);
 
-    const setOverride = (key, value) => {
+    const setOverride = (key: string, value: string | null | undefined) => {
         const next = { ...overrides };
         if (value === null || value === undefined || value === '') delete next[key];
         else next[key] = value;
         onChange({ ...s, colorOverrides: next });
     };
-    const setBgImage   = (url)  => onChange({ ...s, backgroundImage:   url || null });
-    const setBgOverlay = (rgba) => onChange({ ...s, backgroundOverlay: rgba || null });
-    const setMaxWidth  = (v)    => onChange({ ...s, maxWidth: v });
-    const setAlign     = (v)    => onChange({ ...s, align: v });
-    const setCssClass  = (v)    => onChange({ ...s, cssClass: v });
+    const setBgImage   = (url: string)  => onChange({ ...s, backgroundImage:   url || null });
+    const setBgOverlay = (rgba: string | null) => onChange({ ...s, backgroundOverlay: rgba || null });
+    const setMaxWidth  = (v: string)    => onChange({ ...s, maxWidth: v });
+    const setAlign     = (v: string)    => onChange({ ...s, align: v });
+    const setCssClass  = (v: string)    => onChange({ ...s, cssClass: v });
 
     return (
         <div className="px-4 pt-3 pb-6">
@@ -123,7 +148,7 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
             <SectionDivider label={t('cms_site.site.blockstyle.spacing', 'Spacing')} />
             <SpacingStepper
                 spacing={spacing}
-                onChange={(nextSpacing) => onChange({ ...s, spacing: nextSpacing })}
+                onChange={(nextSpacing: Spacing) => onChange({ ...s, spacing: nextSpacing })}
             />
 
             <SectionDivider label={t('cms_site.site.blockstyle.background', 'Background')} />
@@ -182,16 +207,22 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
 // whose capability flag is on (controls/styleCapabilities; all OFF until
 // WS1-P5 renderer support lands). Columns rides at the end of the Layout
 // section; Motion gets its own divider.
-function CapabilityKnobs({ caps, style: s, onChange }) {
+interface CapabilityKnobsProps {
+    caps: ReturnType<typeof getCapabilities>;
+    style: BlockStyle;
+    onChange: (style: BlockStyle) => void;
+}
+
+function CapabilityKnobs({ caps, style: s, onChange }: CapabilityKnobsProps) {
     const { t } = useTranslation();
-    const setColumns = (v) => {
+    const setColumns = (v: number | '') => {
         const next = { ...s };
         if (!v) delete next.columns;
         else next.columns = v;
         onChange(next);
     };
-    const setReveal = (on) => onChange({ ...s, reveal: on ? 'on' : 'off' });
-    const setGlow = (on) => {
+    const setReveal = (on: boolean) => onChange({ ...s, reveal: on ? 'on' : 'off' });
+    const setGlow = (on: boolean) => {
         const next = { ...s };
         if (on) next.glow = true;
         else delete next.glow;
@@ -215,7 +246,7 @@ function CapabilityKnobs({ caps, style: s, onChange }) {
     );
 }
 
-function hasAnyOverride(s) {
+function hasAnyOverride(s: BlockStyle | null | undefined) {
     if (!s) return false;
     if (s.colorOverrides && Object.keys(s.colorOverrides).length) return true;
     if (s.spacing && Object.keys(s.spacing).length) return true;

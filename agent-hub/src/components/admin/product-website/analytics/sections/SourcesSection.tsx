@@ -15,6 +15,7 @@
  */
 import { Share2, Link2, Copy, Check } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { toChannels, channelLabel, referrerHost, pivot } from '../model';
 import { rich } from '../rich';
@@ -22,9 +23,10 @@ import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SplitBar, ShareBar,
     fmt, fmtDurationSec, rateColor, maxOf,
 } from '../ui';
+import type { DrillHandler, PivotRow, SectionProps } from '../ui.types';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
-export default function SourcesSection({ scope, onDrill }) {
+export default function SourcesSection({ scope, onDrill }: SectionProps) {
     const { t } = useTranslation();
     const referrers = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'referrer', limit: 50 } });
     const stats = useAnalyticsQuery('query', 'stats', scope);
@@ -46,7 +48,7 @@ export default function SourcesSection({ scope, onDrill }) {
 
     const enriched = useMemo(() => {
         const byRef = new Map();
-        for (const r of pivot(quality.payload, ['referrer'])) {
+        for (const r of pivot(quality.payload, ['referrer']) as PivotRow<'referrer'>[]) {
             if (r.referrer) byRef.set(r.referrer, r);
         }
         return rows.filter(r => r.x).map(r => ({
@@ -140,7 +142,7 @@ export default function SourcesSection({ scope, onDrill }) {
     );
 }
 
-const CHANNEL_COLORS = {
+const CHANNEL_COLORS: Record<string, string> = {
     Direct: '#64748b',
     Search: SERIES.secondary,
     Referral: SERIES.primary,
@@ -150,6 +152,15 @@ const CHANNEL_COLORS = {
     Campaign: '#10b981',
     Paid: SERIES.bad,
 };
+
+/** One row of a `/report/utm` list; Umami names the keys differently across versions. */
+interface UtmRow {
+    x?: string | null;
+    y?: number;
+    count?: number;
+    name?: string | null;
+    value?: string | null;
+}
 
 const UTM_FIELDS = [
     { key: 'utm_source', labelKey: 'cms_site.analytics.sources.utm_source', label: 'Source', dim: 'utmSource' },
@@ -166,9 +177,9 @@ const UTM_FIELDS = [
  * than five grey boxes, because the only way to make this card useful is to go
  * and tag a link.
  */
-function CampaignCard({ utm, onDrill }) {
+function CampaignCard({ utm, onDrill }: { utm: ReturnType<typeof useAnalyticsQuery>; onDrill: DrillHandler }) {
     const { t } = useTranslation();
-    const data = utm.payload || {};
+    const data: Record<string, UtmRow[]> = utm.payload || {};
     const present = UTM_FIELDS
         .map(f => ({ ...f, rows: Array.isArray(data[f.key]) ? data[f.key] : [] }))
         .filter(f => f.rows.length > 0);
@@ -293,7 +304,7 @@ function UtmBuilder() {
     );
 }
 
-function Field({ value, onChange, placeholder, label }) {
+function Field({ value, onChange, placeholder, label }: { value: string; onChange: (value: string) => void; placeholder: string; label: ReactNode }) {
     return (
         <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <span style={{ fontSize: 10, color: 'var(--text-muted, #888)' }}>{label}</span>

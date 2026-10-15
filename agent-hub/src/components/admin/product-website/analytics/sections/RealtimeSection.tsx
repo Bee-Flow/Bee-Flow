@@ -19,22 +19,37 @@
  */
 import { Activity, Eye, Globe, FileText, Share2, Zap, Radio } from 'lucide-react';
 import React, { useMemo } from 'react';
+import type { SVGProps } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import MinuteBars from '../charts/MinuteBars';
+import type { MinuteBucket } from '../charts/MinuteBars';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SkeletonGrid,
     StatGrid, StatTile, BarList, mapToRows, fmtAgo, fmt,
 } from '../ui';
+import type { DrillHandler, SectionProps } from '../ui.types';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import { parseBucket, floorTo } from '../window';
+import type { SeriesPoint } from '../window';
 
 const POLL_MS = 5000;
 const WINDOW_MIN = 30;
 
+/** One row of the realtime feed; a row with an `eventName` is a custom event, without one a pageview. */
+interface RealtimeEvent {
+    sessionId?: string;
+    createdAt: number | string;
+    eventName?: string | null;
+    urlPath?: string | null;
+    browser?: string | null;
+    os?: string | null;
+    country?: string | null;
+}
+
 /** Umami's per-minute series → a dense 30-minute strip ending now. */
-function toMinuteStrip(series) {
-    const views = new Map();
-    const visitors = new Map();
+function toMinuteStrip(series: { views?: SeriesPoint[]; visitors?: SeriesPoint[] } | null | undefined): MinuteBucket[] {
+    const views = new Map<number, number>();
+    const visitors = new Map<number, number>();
     for (const p of Array.isArray(series?.views) ? series.views : []) {
         const t = parseBucket(p.x);
         if (Number.isFinite(t)) views.set(floorTo(t, 'minute'), Number(p.y) || 0);
@@ -46,7 +61,7 @@ function toMinuteStrip(series) {
     // Umami's stamps are wall-clock-as-UTC; anchor the strip on the newest
     // bucket it reported so the two agree even if our clock drifts.
     const newest = Math.max(...views.keys(), ...visitors.keys(), floorTo(Date.now(), 'minute'));
-    const out = [];
+    const out: MinuteBucket[] = [];
     for (let i = WINDOW_MIN - 1; i >= 0; i--) {
         const t = newest - i * 60_000;
         out.push({ t, value: views.get(t) || 0, overlay: visitors.get(t) || 0 });
@@ -54,7 +69,7 @@ function toMinuteStrip(series) {
     return out;
 }
 
-export default function RealtimeSection({ scope, onDrill }) {
+export default function RealtimeSection({ scope, onDrill }: SectionProps) {
     const { t } = useTranslation();
     const { payload, loading, error, reload } = useAnalyticsQuery('query', 'realtime', scope, { pollMs: POLL_MS });
     const active = useAnalyticsQuery('query', 'active', scope, { pollMs: POLL_MS });
@@ -73,7 +88,7 @@ export default function RealtimeSection({ scope, onDrill }) {
     if (error) return <ErrorNote message={error} onRetry={reload} />;
 
     const totals = payload?.totals || {};
-    const events = Array.isArray(payload?.events) ? payload.events : [];
+    const events: RealtimeEvent[] = Array.isArray(payload?.events) ? payload.events : [];
     const urls = mapToRows(payload?.urls);
     const referrers = mapToRows(payload?.referrers);
     const countries = mapToRows(payload?.countries);
@@ -142,7 +157,7 @@ export default function RealtimeSection({ scope, onDrill }) {
     );
 }
 
-function ActivityRow({ event: e, onDrill }) {
+function ActivityRow({ event: e, onDrill }: { event: RealtimeEvent; onDrill?: DrillHandler }) {
     const { t } = useTranslation();
     const isEvent = !!e.eventName;
     return (
@@ -192,7 +207,7 @@ function LiveDot() {
 
 // lucide's Users icon under a local name, so the import list stays honest about
 // what each tile shows.
-function Users2(props) {
+function Users2(props: SVGProps<SVGSVGElement>) {
     return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round" {...props}>

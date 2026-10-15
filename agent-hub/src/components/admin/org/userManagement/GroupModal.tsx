@@ -16,7 +16,7 @@ export interface GroupModalProps {
     organizations: AdminOrganization[];
     permissions: AdminPermission[];
     roles: AdminRole[];
-    isFullAdmin: boolean;
+    isFullAdmin: boolean | undefined;
     currentUser?: AdminCurrentUser | null;
     onSubmitAdd: () => void;
     onSubmitUpdate: () => void;

@@ -1,3 +1,5 @@
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
 /**
  * Drill-down filter state for the analytics dashboard.
  *
@@ -7,7 +9,10 @@
  * re-validates against the same list and drops anything else.
  */
 
-export const FILTER_LABELS = {
+/** A flat { dimension: value } filter set. */
+export type AnalyticsFilters = Record<string, string>;
+
+export const FILTER_LABELS: Record<string, string> = {
     path: 'Page',
     referrer: 'Referrer',
     title: 'Page title',
@@ -32,7 +37,7 @@ export const FILTER_LABELS = {
 export const FILTER_KEYS = Object.keys(FILTER_LABELS);
 
 // Catalogue keys for the labels above; FILTER_LABELS stays the English default.
-export const FILTER_LABEL_KEYS = {
+export const FILTER_LABEL_KEYS: Record<string, string> = {
     path: 'cms_site.analytics.filter.path',
     referrer: 'cms_site.analytics.filter.referrer',
     title: 'cms_site.analytics.filter.title',
@@ -55,39 +60,39 @@ export const FILTER_LABEL_KEYS = {
 };
 
 /** Label for a dimension; pass `t` (useTranslation) to get it translated. */
-export function filterLabel(key, t) {
+export function filterLabel(key: string, t?: TranslateFn | null): string {
     const en = FILTER_LABELS[key];
     if (!en) return key;
     return t ? t(FILTER_LABEL_KEYS[key], en) : en;
 }
 
 /** Immutably set one dimension. Unknown dimensions are ignored. */
-export function withFilter(filters, key, value) {
+export function withFilter(filters: AnalyticsFilters, key: string, value: unknown): AnalyticsFilters {
     if (!FILTER_LABELS[key] || value === undefined || value === null || value === '') return filters;
     return { ...filters, [key]: String(value) };
 }
 
 /** Immutably clear one dimension. */
-export function withoutFilter(filters, key) {
+export function withoutFilter(filters: AnalyticsFilters | null | undefined, key: string): AnalyticsFilters | null | undefined {
     if (!(key in (filters || {}))) return filters;
     const next = { ...filters };
     delete next[key];
     return next;
 }
 
-export function filterCount(filters) {
+export function filterCount(filters: AnalyticsFilters | null | undefined): number {
     return Object.keys(filters || {}).length;
 }
 
 /** Serialise for the URL so a filtered view is shareable. */
-export function encodeFilters(filters) {
+export function encodeFilters(filters: AnalyticsFilters | null | undefined): string {
     const entries = Object.entries(filters || {}).filter(([k]) => FILTER_LABELS[k]);
     if (!entries.length) return '';
     return entries.map(([k, v]) => `${k}:${encodeURIComponent(v)}`).join(',');
 }
 
-export function decodeFilters(str) {
-    const out = {};
+export function decodeFilters(str: string | null | undefined): AnalyticsFilters {
+    const out: AnalyticsFilters = {};
     if (!str) return out;
     for (const part of String(str).split(',')) {
         const idx = part.indexOf(':');

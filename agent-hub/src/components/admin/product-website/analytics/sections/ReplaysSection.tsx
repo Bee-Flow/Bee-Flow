@@ -17,13 +17,53 @@
 import { Video, ShieldAlert, ExternalLink, Monitor, Globe, Play, Users } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { AnalyticsResponse, AnalyticsSite } from '../../analyticsApi';
 import { sessionSignals } from '../model';
 import { rich } from '../rich';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, StatGrid, StatTile,
     fmt, fmtDurationMs, fmtAgo,
 } from '../ui';
+import type { DrillHandler, SectionProps } from '../ui.types';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
+
+interface ReplaysSectionProps extends SectionProps {
+    site?: AnalyticsSite | null;
+    settings?: AnalyticsResponse;
+    onOpenSettings: () => void;
+}
+
+/** One Umami session row. */
+interface SessionRecord {
+    id: string;
+    lastAt: string;
+    firstAt?: string;
+    browser?: string | null;
+    os?: string | null;
+    device?: string | null;
+    screen?: string | null;
+    country?: string | null;
+    /** Number of custom events in the session. */
+    events?: number;
+}
+
+/** One Umami replay (recording) row. */
+interface ReplayRecord {
+    id: string;
+    sessionId: string;
+    startedAt: string;
+    endedAt: string;
+}
+
+/** A session with its recording (if any) and the "worth watching" signals. */
+interface SessionRowData {
+    session: SessionRecord;
+    replay: { id: string } | null;
+    reasons: string[];
+    duration: number;
+    views: number;
+    events: number;
+}
 
 const FILTERS = [
     { id: 'all', labelKey: 'cms_site.analytics.replays.filter_all', label: 'All' },
@@ -32,7 +72,7 @@ const FILTERS = [
     { id: 'bounced', labelKey: 'cms_site.analytics.replays.filter_bounced', label: 'Bounced' },
 ];
 
-export default function ReplaysSection({ scope, site, settings, onOpenSettings, onDrill }) {
+export default function ReplaysSection({ scope, site, settings, onOpenSettings, onDrill }: ReplaysSectionProps) {
     const { t } = useTranslation();
     const [filter, setFilter] = useState('all');
     const recording = !!site?.recording;
@@ -44,8 +84,8 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
     });
 
     const rows = useMemo(() => {
-        const list = Array.isArray(sessions.payload?.data) ? sessions.payload.data : [];
-        const replayList = Array.isArray(replays.payload?.data) ? replays.payload.data : [];
+        const list: SessionRecord[] = Array.isArray(sessions.payload?.data) ? sessions.payload.data : [];
+        const replayList: ReplayRecord[] = Array.isArray(replays.payload?.data) ? replays.payload.data : [];
         const bySession = new Map();
         for (const r of replayList) {
             // Keep the longest recording per session — a session can produce
@@ -136,7 +176,7 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
     );
 }
 
-function SessionRow({ row, base, websiteId, onDrill }) {
+function SessionRow({ row, base, websiteId, onDrill }: { row: SessionRowData; base: string; websiteId?: string | null; onDrill?: DrillHandler }) {
     const { t } = useTranslation();
     const { session: s, replay, reasons, duration, views, events } = row;
     const href = replay && base && websiteId
@@ -203,7 +243,7 @@ function SessionRow({ row, base, websiteId, onDrill }) {
  * "Why do I have 200 sessions but only 12 recordings?" — the first question
  * this tab has to answer, before anything else on it makes sense.
  */
-function RecordingStrip({ recording, totals, site, onOpenSettings }) {
+function RecordingStrip({ recording, totals, site, onOpenSettings }: { recording: boolean; totals: { sessions: number; recorded: number }; site?: AnalyticsSite | null; onOpenSettings: () => void }) {
     const { t } = useTranslation();
     if (!recording) {
         return (

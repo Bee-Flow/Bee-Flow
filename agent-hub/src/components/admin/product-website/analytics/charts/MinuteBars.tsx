@@ -7,13 +7,30 @@
  * isn't there.
  */
 import React from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { ACCENT, fmt } from '../ui';
 
+/** One minute of the strip: `t` is the bucket start (ms); `overlay` is the second measure (0 when there is none). */
+export interface MinuteBucket {
+    t: number;
+    value: number;
+    overlay: number;
+}
+
+interface MinuteBarsProps {
+    buckets?: MinuteBucket[];
+    height?: number;
+    color?: string;
+    overlayColor?: string;
+    caption?: ReactNode;
+    formatLabel?: (t: number) => string;
+}
+
 export default function MinuteBars({
     buckets = [], height = 72, color = ACCENT, overlayColor = '#3b82f6',
-    caption, formatLabel = (t) => new Date(t).toISOString().slice(11, 16),
-}) {
+    caption, formatLabel = (t: number) => new Date(t).toISOString().slice(11, 16),
+}: MinuteBarsProps) {
     const { t: tr } = useTranslation();
     let peak = 1;
     for (const b of buckets) {
