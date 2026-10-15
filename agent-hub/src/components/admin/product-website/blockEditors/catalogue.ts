@@ -39,7 +39,14 @@ import { ReleaseNotesEditor } from './ReleaseNotesEditor';
 
 export { BLOCK_DEFAULTS, BLOCK_VARIANTS } from './blockData.generated.mjs';
 
-export const BLOCK_CATALOGUE = {
+interface BlockCatalogueEntry {
+    type: string;
+    label: string;
+    icon: string;
+    category: string;
+}
+
+export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     hero:         { type: 'hero',         label: 'Hero',           icon: 'Megaphone',   category: 'Above the fold' },
     socialProof:  { type: 'socialProof',  label: 'Social proof',   icon: 'Users',       category: 'Above the fold' },
     content:      { type: 'content',      label: 'Content',        icon: 'Type',             category: 'Content' },
