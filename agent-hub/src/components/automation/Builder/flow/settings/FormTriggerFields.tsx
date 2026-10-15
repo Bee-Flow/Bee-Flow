@@ -7,6 +7,7 @@ import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useBuilderConfirm } from '../../BuilderConfirmContext';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { copyText } from '../../../../../utils/copyText';
+import type { FormEditorContext } from './FormPageEditor';
 
 /**
  * The authoring surface for a hosted form trigger (`kind: 'form'`) — page one
@@ -24,7 +25,46 @@ export { defaultFormDeclaration, slugifyFieldName, THEME_PRESETS } from './FormB
 /** See the note in FormTriggerFields: Forms owns the public link for now. */
 export const SHOW_PUBLIC_LINK_IN_BUILDER = false;
 
-export default function FormTriggerFields({ draft, set, automation = null, stepId = null, onTestSubmit = null, onRenameField = null, formEditor = null }) {
+/** The declared form: FormBuilderFields (JavaScript) owns its shape. */
+type FormDeclaration = Record<string, unknown>;
+
+type RenameFieldFn = ((from: string, to: string) => number | undefined) | null;
+
+interface PersistedTrigger {
+    id?: string;
+    kind?: string;
+    [key: string]: unknown;
+}
+
+interface UrlPanelAutomation {
+    id?: string;
+    definition?: {
+        trigger?: PersistedTrigger | null;
+        triggers?: PersistedTrigger[];
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
+
+interface PublicFormPage {
+    id: string;
+    url?: string;
+    triggerStepId?: string | null;
+    submissions?: number;
+    [key: string]: unknown;
+}
+
+interface Props {
+    draft: { form?: FormDeclaration | null; [key: string]: unknown };
+    set: (key: string, value: unknown) => void;
+    automation?: UrlPanelAutomation | null;
+    stepId?: string | null;
+    onTestSubmit?: ((answers: Record<string, unknown>) => Promise<unknown>) | null;
+    onRenameField?: RenameFieldFn;
+    formEditor?: FormEditorContext | null;
+}
+
+export default function FormTriggerFields({ draft, set, automation = null, stepId = null, onTestSubmit = null, onRenameField = null, formEditor = null }: Props) {
     const { t } = useTranslation();
     const form = draft.form || null;
 
@@ -62,7 +102,7 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
                 ensureFormPages), so hiding this panel cannot stop a form from
                 being published. */}
             {SHOW_PUBLIC_LINK_IN_BUILDER && <FormTriggerUrlPanel automation={automation} stepId={stepId} />}
-            <FormPageEditor form={form} onChange={(next) => set('form', next)} stepId={stepId} formEditor={formEditor} bindingBase="trigger.output" onTestSubmit={onTestSubmit} onRenameField={onRenameField} />
+            <FormPageEditor form={form} onChange={(next: FormDeclaration) => set('form', next)} stepId={stepId} formEditor={formEditor} bindingBase="trigger.output" onTestSubmit={onTestSubmit} onRenameField={onRenameField} />
         </div>
     );
 }
@@ -76,20 +116,20 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
  * triggerStepId against the SAVED definition, so asking while the node is still
  * inside the autosave debounce deterministically 400s.
  */
-export function FormTriggerUrlPanel({ automation, stepId }) {
+export function FormTriggerUrlPanel({ automation, stepId }: { automation?: UrlPanelAutomation | null; stepId?: string | null }) {
     const { t } = useTranslation();
     const api = useAutomationApi();
     const confirmAction = useBuilderConfirm();
-    const [page, setPage] = useState(null);
+    const [page, setPage] = useState<PublicFormPage | null>(null);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     const persistedTrigger = useMemo(() => {
         const def = automation?.definition;
         if (!def || !stepId) return null;
         if (def.trigger?.id === stepId) return def.trigger;
-        return (def.triggers || []).find(t => t?.id === stepId) || null;
+        return (def.triggers || []).find((t: PersistedTrigger) => t?.id === stepId) || null;
     }, [automation?.definition, stepId]);
     const provisionable = persistedTrigger?.kind === 'form';
 
@@ -98,14 +138,14 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
         setBusy(true);
         setError(null);
         try {
-            const listed = await api.listFormPages(automation.id);
-            const mine = (listed.forms || []).find(f => (f.triggerStepId || null) === (persistedTrigger?.id === automation?.definition?.trigger?.id ? null : stepId))
+            const listed = await api.listFormPages(automation.id) as { forms?: PublicFormPage[] };
+            const mine = (listed.forms || []).find((f: PublicFormPage) => (f.triggerStepId || null) === (persistedTrigger?.id === automation?.definition?.trigger?.id ? null : stepId))
                 || (listed.forms || [])[0];
             if (mine) { setPage(mine); return; }
-            const created = await api.createFormPage(automation.id);
+            const created = await api.createFormPage(automation.id) as { form?: PublicFormPage };
             setPage(created.form || null);
         } catch (e) {
-            setError(e.message);
+            setError((e as Error).message);
         } finally {
             setBusy(false);
         }
@@ -120,7 +160,7 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         } catch (e) {
-            setError(`Copy failed: ${e.message}. Select the text to copy it manually.`);
+            setError(`Copy failed: ${(e as Error).message}. Select the text to copy it manually.`);
         }
     };
 
@@ -137,10 +177,10 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
         if (!ok) return;
         setBusy(true);
         try {
-            const r = await api.rotateFormPage(automation.id, page.id);
+            const r = await api.rotateFormPage((automation as UrlPanelAutomation).id as string, page.id) as { form?: PublicFormPage };
             setPage(r.form || null);
         } catch (e) {
-            setError(e.message);
+            setError((e as Error).message);
         } finally {
             setBusy(false);
         }
@@ -166,7 +206,7 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
             ) : (
                 <>
                     <div className="flex items-center gap-1">
-                        <input readOnly value={page.url || ''} aria-label={t('automations.form_trigger_fields.public_form_url', 'Public form URL')} className={denseInputClass('flex-1 min-w-0 font-mono')} onFocus={(e) => e.target.select()} />
+                        <input readOnly value={page.url || ''} aria-label={t('automations.form_trigger_fields.public_form_url', 'Public form URL')} className={denseInputClass('flex-1 min-w-0 font-mono')} onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()} />
                         <button type="button" onClick={copy} title={t('automations.form_trigger_fields.copy_the_link', 'Copy the link')} aria-label={t('automations.form_trigger_fields.copy_the_link', 'Copy the link')}
                             className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]">
                             {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}

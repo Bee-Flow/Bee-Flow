@@ -30,8 +30,8 @@ jest.mock('../../../../../../agent-hub/src/components/automation/Builder/flow/in
 
 const BUILDER = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder');
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webStatus = require(`${BUILDER}/flow/runStatus.js`);
-const webFocus = require(`${BUILDER}/flow/runFocus.js`);
+const webStatus = require(`${BUILDER}/flow/runStatus.ts`);
+const webFocus = require(`${BUILDER}/flow/runFocus.ts`);
 const webDisplay = require(`${BUILDER}/flow/displayHelpers.js`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);

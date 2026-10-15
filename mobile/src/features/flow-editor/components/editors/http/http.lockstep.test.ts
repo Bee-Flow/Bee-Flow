@@ -19,7 +19,7 @@ import type { Msg } from '../declarative/spec';
 const AGENT_HUB = path.resolve(__dirname, '../../../../../../../agent-hub/src');
 const SETTINGS = path.join(AGENT_HUB, 'components/automation/Builder/flow/settings');
 const src = fs.readFileSync(path.join(SETTINGS, 'actionEditors/httpRequestFields.jsx'), 'utf8');
-const cacheSrc = fs.readFileSync(path.join(SETTINGS, 'actionEditors/cacheIntoRow.jsx'), 'utf8');
+const cacheSrc = fs.readFileSync(path.join(SETTINGS, 'actionEditors/cacheIntoRow.tsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const kinds = require(path.join(AGENT_HUB, 'utils/httpCredentialTypes.js'));
 
@@ -70,7 +70,7 @@ describe('the HTTP request editor against httpRequestFields.jsx', () => {
             { id: 'c', name: 'C', canWrite: true, columns: [] },
         ] as unknown as CatalogDatatable[];
         expect(answerTables(tables).map((t) => t.id)).toEqual(['a']);
-        const audience = /const TABLE_AUDIENCE = \{([^}]+)\}/.exec(cacheSrc)?.[1] ?? '';
+        const audience = /const TABLE_AUDIENCE(?::[^=]+)? = \{([^}]+)\}/.exec(cacheSrc)?.[1] ?? '';
         expect(Object.fromEntries(Object.entries(TABLE_AUDIENCE).map(([k, m]) => [k, m[1]]))).toEqual(Object.fromEntries([...audience.matchAll(/(\w+): '([^']+)'/g)].map((m) => [m[1], m[2]])));
         expect(cacheDays(null)).toBe(30);
         expect(cacheTable({ datatableId: 'a', maxAgeDays: 7 }, 'z')).toEqual({ datatableId: 'z', maxAgeDays: 7 });

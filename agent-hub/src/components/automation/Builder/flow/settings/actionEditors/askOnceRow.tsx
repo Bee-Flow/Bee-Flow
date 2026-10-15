@@ -1,6 +1,33 @@
+import type React from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
+
 // "Ask this only once per run" — the tick shared by the integration_action and
 // http_request editors, and the caller-side answer to whether it is available.
+
+/** The catalog's entry for an integration action, as far as askOnce reads it. */
+interface AskOnceAction {
+    askOnceable?: boolean;
+    sideEffect?: boolean;
+}
+
+interface AskOnceAvailability {
+    disabled: boolean;
+    disabledReason: string | null;
+}
+
+/** The slice of the step draft this row reads: `askOnce` is a flag or `{ acrossRuns, ttlSeconds }`. */
+interface AskOnceDraft {
+    askOnce?: boolean | { acrossRuns?: boolean; ttlSeconds?: number | string };
+    [key: string]: unknown;
+}
+
+interface AskOnceRowProps {
+    draft: AskOnceDraft;
+    set: (key: string, value: unknown) => void;
+    disabled?: boolean;
+    disabledReason?: string | null;
+    label?: string;
+}
 
 /**
  * "Ask this only once per run" — off unless ticked.
@@ -29,7 +56,7 @@ import { useTranslation } from '../../../../../../hooks/useTranslation';
  * or an action it does not know): do not claim either way, leave the toggle
  * usable and let the validator have the last word.
  */
-function askOnceAvailability(action, appLabel) {
+function askOnceAvailability(action: AskOnceAction | null | undefined, appLabel?: string | null): AskOnceAvailability {
     const askOnceable = action ? action.askOnceable : undefined;
     const isWrite = action ? action.sideEffect === true : false;
     if (askOnceable !== false) return { disabled: false, disabledReason: null };
@@ -41,7 +68,7 @@ function askOnceAvailability(action, appLabel) {
     };
 }
 
-function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label = 'Ask this app only once per run' }) {
+function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label = 'Ask this app only once per run' }: AskOnceRowProps) {
     const { t } = useTranslation();
     const on = !!draft.askOnce;
     // Shown whether or not the tick is disabled. It used to be
@@ -62,7 +89,7 @@ function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label
     const ttl = (draft.askOnce && typeof draft.askOnce === 'object' && Number.isFinite(Number(draft.askOnce.ttlSeconds)))
         ? { ttlSeconds: Number(draft.askOnce.ttlSeconds) }
         : null;
-    const setAcrossRuns = (checked) => {
+    const setAcrossRuns = (checked: boolean) => {
         if (checked) return set('askOnce', { acrossRuns: true, ...(ttl || {}) });
         return set('askOnce', ttl ? { ...ttl } : true);
     };
@@ -75,7 +102,7 @@ function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label
                     className="mt-0.5"
                     checked={on}
                     disabled={disabled}
-                    onChange={(e) => set('askOnce', e.target.checked ? true : undefined)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set('askOnce', e.target.checked ? true : undefined)}
                 />
                 <span>
                     <span className="font-medium">{label}</span>
@@ -94,7 +121,7 @@ function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label
                         type="checkbox"
                         className="mt-0.5"
                         checked={acrossRuns}
-                        onChange={(e) => setAcrossRuns(e.target.checked)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcrossRuns(e.target.checked)}
                     />
                     <span>
                         <span className="font-medium">{t('automations.ask_once_row.and_keep_the_answer_for_later', '…and keep the answer for later runs too')}</span>

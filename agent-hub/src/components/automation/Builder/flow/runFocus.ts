@@ -26,6 +26,8 @@
  * once, and makes `done > total` unrepresentable rather than merely unlikely.
  */
 
+import type { RunRow } from './diagramPaneTypes';
+
 // Rows in these states have finished their work and count toward progress.
 const DONE_STATES = ['success', 'skipped', 'pinned'];
 
@@ -35,44 +37,72 @@ const AWAITING_FORM = 'awaiting_form';
 
 // The nodes that exist on the canvas right now, trigger first — the order the
 // banner counts in.
-function liveGraph(definition) {
-    return [definition?.trigger, ...(definition?.steps || [])].filter(Boolean);
+interface FocusStep {
+    id?: string;
+    label?: string;
+    tool?: string;
+    [key: string]: unknown;
 }
 
-function labelOf(step, stepId) {
+interface FocusDefinition {
+    trigger?: FocusStep | null;
+    steps?: FocusStep[];
+    [key: string]: unknown;
+}
+
+interface FocusRow extends RunRow {
+    startedAt?: string;
+}
+
+export interface RunFocus {
+    stepId: string | null;
+    label: string;
+    done: number;
+    total: number;
+    state: 'running' | 'error';
+    startedAt: string | null;
+    awaitingForm: boolean;
+}
+
+interface RunFocusParams {
+    /** Rows from the last/current run ({stepId, status}). */
+    runSteps?: FocusRow[];
+    /** A run is currently executing. */
+    runInFlight?: boolean;
+    /** The graph as it is on the canvas NOW. */
+    definition?: FocusDefinition;
+}
+
+function liveGraph(definition: FocusDefinition | undefined): FocusStep[] {
+    return [definition?.trigger, ...(definition?.steps || [])].filter(Boolean) as FocusStep[];
+}
+
+function labelOf(step: FocusStep | null | undefined, stepId: string | null): string {
     if (!step) return stepId || '';
     return step.label || step.tool || stepId || '';
 }
 
-/**
- * @param {object}   params
- * @param {Array}    [params.runSteps]    Rows from the last/current run ({stepId, status}).
- * @param {boolean}  [params.runInFlight] A run is currently executing.
- * @param {object}   [params.definition]  The graph as it is on the canvas NOW.
- * @returns {{stepId:string|null, label:string, done:number, total:number,
- *            state:'running'|'error', startedAt:string|null,
- *            awaitingForm:boolean}|null} null when there is nothing to show.
- */
-export function computeRunFocus({ runSteps, runInFlight = false, definition } = {}) {
+/** Returns null when there is nothing to show. */
+export function computeRunFocus({ runSteps, runInFlight = false, definition }: RunFocusParams = {}): RunFocus | null {
     const graph = liveGraph(definition);
-    const liveIds = new Set(graph.map(s => s.id).filter(Boolean));
+    const liveIds = new Set(graph.map((s: FocusStep) => s.id).filter(Boolean));
 
     // BFSF-364: a row whose step has been deleted describes a graph that no
     // longer exists. Drop it before anything is derived from it — every field
     // below (target, label, done) read stale rows otherwise.
-    const rows = (runSteps || []).filter(s => s?.stepId && liveIds.has(s.stepId));
+    const rows = (runSteps || []).filter((s: FocusRow) => s?.stepId && liveIds.has(s.stepId));
 
-    const running = rows.find(s => s.status === 'running');
-    const waiting = rows.find(s => s.status === AWAITING_FORM);
-    const failed = rows.find(s => s.status === 'error');
+    const running = rows.find((s: FocusRow) => s.status === 'running');
+    const waiting = rows.find((s: FocusRow) => s.status === AWAITING_FORM);
+    const failed = rows.find((s: FocusRow) => s.status === 'error');
     // A run parked on a form IS the run, and it is the state an author most
     // wants a way out of — so it names the banner when nothing is executing.
     const target = running || waiting || (runInFlight ? null : failed);
     if (!target?.stepId && !runInFlight) return null;
 
-    const done = rows.filter(s => DONE_STATES.includes(s.status)).length;
+    const done = rows.filter((s: FocusRow) => DONE_STATES.includes(s.status as string)).length;
     const stepId = target?.stepId || null;
-    const step = stepId ? graph.find(s => s.id === stepId) : null;
+    const step = stepId ? graph.find((s: FocusStep) => s.id === stepId) : null;
 
     return {
         stepId,
@@ -95,8 +125,8 @@ export function computeRunFocus({ runSteps, runInFlight = false, definition } = 
     };
 }
 
-function earliestStart(rows) {
-    let best = null;
+function earliestStart(rows: FocusRow[]): string | null {
+    let best: number | null = null;
     for (const r of rows) {
         const t = Date.parse(r?.startedAt || '');
         if (!Number.isFinite(t)) continue;

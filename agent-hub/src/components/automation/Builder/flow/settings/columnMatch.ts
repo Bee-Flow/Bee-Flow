@@ -24,7 +24,7 @@
  * "Excl. btw", "excl_btw", "EXCL BTW" and "Excl.btw" all become "exclbtw";
  * "Prijs (€)" becomes "prijs"; "Datum — Überweisung" becomes "datumuberweisung".
  */
-export function normaliseColumnKey(title) {
+export function normaliseColumnKey(title: unknown): string {
     return String(title ?? '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -37,16 +37,27 @@ export function normaliseColumnKey(title) {
  * array is every ORIGINAL spelling that collapsed onto that key, so a caller
  * can tell "one match" from "two things that look the same once normalised".
  */
-function groupByNorm(names) {
-    const out = new Map();
+function groupByNorm(names: unknown[] | null | undefined): Map<string, string[]> {
+    const out = new Map<string, string[]>();
     for (const raw of names || []) {
         const name = String(raw ?? '');
         const norm = normaliseColumnKey(name);
         if (!norm) continue;
         if (!out.has(norm)) out.set(norm, []);
-        out.get(norm).push(name);
+        (out.get(norm) as string[]).push(name);
     }
     return out;
+}
+
+export interface ColumnMatch {
+    /** column title → field name */
+    byColumn: Record<string, string>;
+    /** fields that landed nowhere */
+    unmatchedFields: string[];
+    /** columns nothing landed in (ambiguous ones included) */
+    unmatchedColumns: string[];
+    /** columns skipped because ≥2 names collapsed onto them */
+    ambiguous: string[];
 }
 
 /**
@@ -60,21 +71,15 @@ function groupByNorm(names) {
  *      the column's lower-cased title wins (exact beats normalised, the same
  *      tie-break the server applies). No exact one → ambiguous, no match.
  *
- * @param {string[]} fieldNames    names of the upstream fields on offer
- * @param {string[]} columnTitles  titles of the table's columns
- * @returns {{
- *   byColumn: Record<string, string>,  column title → field name
- *   unmatchedFields: string[],         fields that landed nowhere
- *   unmatchedColumns: string[],        columns nothing landed in (ambiguous ones included)
- *   ambiguous: string[],               columns skipped because ≥2 names collapsed onto them
- * }}
+ * `fieldNames` are the names of the upstream fields on offer, `columnTitles`
+ * the titles of the table's columns.
  */
-export function matchColumns(fieldNames, columnTitles) {
+export function matchColumns(fieldNames: unknown[] | null | undefined, columnTitles: unknown[] | null | undefined): ColumnMatch {
     const fields = groupByNorm(fieldNames);
     const columns = groupByNorm(columnTitles);
-    const byColumn = {};
-    const ambiguous = [];
-    const usedFields = new Set();
+    const byColumn: Record<string, string> = {};
+    const ambiguous: string[] = [];
+    const usedFields = new Set<string>();
 
     for (const title of columnTitles || []) {
         const norm = normaliseColumnKey(title);
@@ -103,6 +108,12 @@ export function matchColumns(fieldNames, columnTitles) {
     return { byColumn, unmatchedFields, unmatchedColumns, ambiguous };
 }
 
+export interface TableColumn {
+    id?: number | string;
+    title: string;
+    [key: string]: unknown;
+}
+
 /**
  * Which column would the server write a given `values` key into?
  *
@@ -112,11 +123,8 @@ export function matchColumns(fieldNames, columnTitles) {
  * object or null. Used to put an AI-written key such as `excl_btw` on the
  * "Excl. btw" row of the editor rather than in the "not a column" group,
  * because at run time it does reach that column.
- *
- * @param {string} key
- * @param {Array<{ id?: number|string, title: string }>} columns
  */
-export function resolveKeyToColumn(key, columns) {
+export function resolveKeyToColumn<C extends TableColumn>(key: unknown, columns: C[] | null | undefined): C | null {
     const k = String(key ?? '');
     if (!k) return null;
     const lower = k.toLowerCase();

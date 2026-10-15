@@ -23,7 +23,7 @@ jest.mock('../../../../../agent-hub/src/utils/helpers', () => ({ API_BASE: '', a
 const settings = (name: string) => requireWeb(`${BUILDER}/flow/settings/${name}.js`);
 
 describe('columnMatch', () => {
-    const web = settings('columnMatch');
+    const web = requireWeb(`${BUILDER}/flow/settings/columnMatch.ts`);
     const titles = ['Excl. btw', 'Prijs (€)', 'Datum — Überweisung', 'Btw', 'BTW.', '', null, 'Totaal'];
     it('normalises and matches like the web', () => {
         for (const s of [...titles, 'excl_btw', 'EXCL BTW', 5]) expect(cm.normaliseColumnKey(s)).toBe(web.normaliseColumnKey?.(s));

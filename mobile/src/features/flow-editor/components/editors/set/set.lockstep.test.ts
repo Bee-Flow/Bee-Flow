@@ -1,5 +1,5 @@
 /**
- * Edit data held to the web: the six table tools are setOperations.js's
+ * Edit data held to the web: the six table tools are setOperations.ts's
  * SET_OP_DEFS (titles, hints, defaults, order); `suggestFieldName` and
  * `parseSampleSource` are cut out of ParseJsonFields.jsx and run beside the
  * port; the key-list edit is SetOperationsEditor's; and a draft edited here
@@ -17,7 +17,7 @@ import { addJsonField, baseColumnsOf, collisionOf, columnsAt, jsonCandidates, ke
 
 const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const webOps = require(path.join(FLOW, 'setOperations.js'));
+const webOps = require(path.join(FLOW, 'setOperations.ts'));
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const bindingHelpers = require(path.resolve(FLOW, '../../../../utils/bindingHelpers.js'));
 const parseJsonSrc = fs.readFileSync(path.join(FLOW, 'settings/ParseJsonFields.jsx'), 'utf8');
@@ -34,7 +34,7 @@ const web = new Function(
     `const FIELD_NAME_RE = ${re};\n${cut(parseJsonSrc, 'suggestFieldName')}\n${cut(parseJsonSrc, 'parseSampleSource')}\nreturn { suggestFieldName, parseSampleSource };`,
 )(bindingHelpers.suggestKeyFromPath);
 
-describe('the table tools against setOperations.js', () => {
+describe('the table tools against setOperations.ts', () => {
     it('offers the web’s six tools, in order, with its words and defaults', () => {
         const ours = SET_OP_DEFS.map((d) => [d.op, d.title[1], d.hint[1], d.makeDefault()]);
         const theirs = webOps.SET_OP_DEFS.map((d: { op: string; title: string; hint: string; makeDefault: () => unknown }) => [d.op, d.title, d.hint, d.makeDefault()]);

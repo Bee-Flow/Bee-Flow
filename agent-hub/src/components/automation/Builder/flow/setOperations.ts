@@ -18,7 +18,31 @@
  */
 import { humanizeFieldKey } from './displayHelpers';
 
-export const SET_OP_DEFS = [
+export interface SetOperation {
+    op: string;
+    target?: string;
+    keys?: string[];
+    from?: string;
+    to?: string;
+    key?: string;
+    direction?: string;
+}
+
+export interface SetOpDef {
+    op: string;
+    title: string;
+    hint: string;
+    makeDefault: () => SetOperation;
+}
+
+export interface SetStep {
+    fields?: Record<string, unknown>;
+    arrayRef?: unknown;
+    operations?: SetOperation[];
+    [key: string]: unknown;
+}
+
+export const SET_OP_DEFS: SetOpDef[] = [
     {
         op: 'rowId',
         title: 'Number the rows',
@@ -57,9 +81,9 @@ export const SET_OP_DEFS = [
     },
 ];
 
-export const SET_OP_TITLES = Object.fromEntries(SET_OP_DEFS.map(d => [d.op, d.title]));
+export const SET_OP_TITLES: Record<string, string> = Object.fromEntries(SET_OP_DEFS.map((d: SetOpDef) => [d.op, d.title]));
 
-const col = (k) => typeof k === 'string' && k.trim().length > 0;
+const col = (k: unknown): k is string => typeof k === 'string' && k.trim().length > 0;
 
 /**
  * Fold the first `uptoIndex` operations over a starting column list. Powers
@@ -67,7 +91,7 @@ const col = (k) => typeof k === 'string' && k.trim().length > 0;
  * the Fields section AND by every EARLIER op) and the "column exists"
  * warnings. Order-preserving, deduped.
  */
-export function columnsAfterOps(baseColumns, ops, uptoIndex = Infinity) {
+export function columnsAfterOps(baseColumns: string[] | null | undefined, ops: SetOperation[] | null | undefined, uptoIndex: number = Infinity): string[] {
     let cols = [...new Set((baseColumns || []).filter(col))];
     const list = Array.isArray(ops) ? ops.slice(0, uptoIndex) : [];
     for (const o of list) {
@@ -75,14 +99,14 @@ export function columnsAfterOps(baseColumns, ops, uptoIndex = Infinity) {
         if ((o.op === 'rowId' || o.op === 'groupId') && col(o.target)) {
             if (!cols.includes(o.target)) cols.push(o.target);
         } else if (o.op === 'rename' && col(o.from) && col(o.to)) {
-            cols = cols.map(c => (c === o.from ? o.to : c));
+            cols = cols.map((c: string) => (c === o.from ? o.to as string : c));
             cols = [...new Set(cols)];
         } else if (o.op === 'keep') {
             const keys = (o.keys || []).filter(col);
-            if (keys.length) cols = cols.filter(c => keys.includes(c));
+            if (keys.length) cols = cols.filter((c: string) => keys.includes(c));
         } else if (o.op === 'remove') {
             const keys = new Set((o.keys || []).filter(col));
-            if (keys.size) cols = cols.filter(c => !keys.has(c));
+            if (keys.size) cols = cols.filter((c: string) => !keys.has(c));
         }
         // sort: order only — column set unchanged
     }
@@ -94,8 +118,8 @@ export function columnsAfterOps(baseColumns, ops, uptoIndex = Infinity) {
  * can show downstream steps the post-operations shape. rowId/groupId targets
  * become `1` — a truthful "this will be a number" sample.
  */
-export function applyOpsToSampleRow(row, ops) {
-    let out = { ...(row && typeof row === 'object' && !Array.isArray(row) ? row : {}) };
+export function applyOpsToSampleRow(row: Record<string, unknown> | null | undefined, ops: SetOperation[] | null | undefined): Record<string, unknown> {
+    let out: Record<string, unknown> = { ...(row && typeof row === 'object' && !Array.isArray(row) ? row : {}) };
     for (const o of (Array.isArray(ops) ? ops : [])) {
         if (!o || typeof o !== 'object') continue;
         if ((o.op === 'rowId' || o.op === 'groupId') && col(o.target)) {
@@ -105,7 +129,7 @@ export function applyOpsToSampleRow(row, ops) {
         } else if (o.op === 'keep') {
             const keys = (o.keys || []).filter(col);
             if (keys.length) {
-                const next = {};
+                const next: Record<string, unknown> = {};
                 for (const k of keys) if (k in out) next[k] = out[k];
                 out = next;
             }
@@ -117,9 +141,9 @@ export function applyOpsToSampleRow(row, ops) {
 }
 
 /** One friendly line per operation — for op cards and the canvas node body. */
-export function describeSetOperation(o) {
+export function describeSetOperation(o: SetOperation | null | undefined): string {
     if (!o || typeof o !== 'object') return '';
-    const name = (k) => humanizeFieldKey(k);
+    const name = (k: string) => humanizeFieldKey(k);
     switch (o.op) {
         case 'rowId':
             return col(o.target) ? `number rows → ${name(o.target)}` : 'number rows';
@@ -149,7 +173,7 @@ export function describeSetOperation(o) {
  * ("N fields: a, b, …"); list mode leads with the per-row work then up to two
  * operation labels.
  */
-export function summariseSetStep(step) {
+export function summariseSetStep(step: SetStep | null | undefined): string {
     if (!step) return '';
     const fieldKeys = Object.keys(step.fields || {});
     if (typeof step.arrayRef !== 'string') {
@@ -157,7 +181,7 @@ export function summariseSetStep(step) {
         const shown = fieldKeys.slice(0, 4).map(humanizeFieldKey).join(', ');
         return `${fieldKeys.length} field${fieldKeys.length === 1 ? '' : 's'}: ${shown}${fieldKeys.length > 4 ? '…' : ''}`;
     }
-    const parts = [];
+    const parts: string[] = [];
     if (fieldKeys.length) parts.push(`+${fieldKeys.length} field${fieldKeys.length === 1 ? '' : 's'}`);
     const ops = (Array.isArray(step.operations) ? step.operations : []).map(describeSetOperation).filter(Boolean);
     parts.push(...ops.slice(0, 2));
