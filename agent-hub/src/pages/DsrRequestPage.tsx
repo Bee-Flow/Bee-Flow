@@ -1,15 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { ShieldCheck, CheckCircle2, Search, BadgeCheck, CircleAlert } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/dsr';
+
+interface DsrReceipt {
+    id: number;
+    created_at: string;
+    due_at: string | null;
+    status_url: string;
+    ack: string;
+}
+
+interface DsrPublicStatus {
+    error?: string;
+    id?: number;
+    status?: string;
+    request_type?: string;
+    created_at?: string;
+    due_at?: string | null;
+    extended_until?: string | null;
+    fulfilled_at?: string | null;
+}
 
 /**
  * The identity link from the acknowledgement e-mail lands here as
  * `…?token=<signed>&id=<request id>` (PLAN-BACKEND 4.3: `${base}/dsr/verify?token=…`).
  * Pure: reads the two parameters, nothing else.
  */
-export function readVerifyParams(search) {
+export function readVerifyParams(search?: string | null): { token: string; id: string | null } | null {
     const params = new URLSearchParams(search || '');
     const token = params.get('token');
     const id = params.get('id') ?? params.get('request') ?? params.get('r');
@@ -17,7 +36,7 @@ export function readVerifyParams(search) {
 }
 
 /** "Answer expected by 11 Sep 2026" — the public status view's one date. */
-export function formatDueDate(value, locale) {
+export function formatDueDate(value: string | number | Date | null | undefined, locale?: string): string {
     if (!value) return '';
     const d = new Date(value);
     if (!Number.isFinite(d.getTime())) return '';
@@ -33,9 +52,9 @@ export function formatDueDate(value, locale) {
  * whether the request exists — only whether THIS link worked (BFSF-441; the
  * server answers 400 `invalid_token` for every miss).
  */
-function VerifyIdentity({ token, id }) {
+function VerifyIdentity({ token, id }: { token: string; id: string | null }) {
     const { t } = useTranslation();
-    const [state, setState] = useState('verifying');
+    const [state, setState] = useState<'verifying' | 'ok' | 'failed'>('verifying');
 
     useEffect(() => {
         let alive = true;
@@ -99,23 +118,23 @@ const REQUEST_TYPES = [
     { id: 'objection', labelKey: 'dsr_public.type_objection', fallback: 'Object to processing (Art. 21)' },
 ];
 
-export default function DsrRequestPage({ search = typeof window !== 'undefined' ? window.location.search : '' } = {}) {
+export default function DsrRequestPage({ search = typeof window !== 'undefined' ? window.location.search : '' }: { search?: string } = {}) {
     const { t, resolvedLocale, locale } = useTranslation();
     const verify = readVerifyParams(search);
     const [email, setEmail] = useState('');
     const [type, setType] = useState('access');
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [result, setResult] = useState(null);   // { id, ack }
-    const [error, setError] = useState(null);
+    const [result, setResult] = useState<DsrReceipt | null>(null);   // { id, ack }
+    const [error, setError] = useState<string | null>(null);
 
     // Status check widget
     const [checkId, setCheckId] = useState('');
     const [checkEmail, setCheckEmail] = useState('');
-    const [checkResult, setCheckResult] = useState(null);
+    const [checkResult, setCheckResult] = useState<DsrPublicStatus | null>(null);
     const [checking, setChecking] = useState(false);
 
-    const submit = async (e) => {
+    const submit = async (e: FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
         setError(null);
@@ -129,11 +148,11 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
             if (!r.ok) throw new Error(body.error || `${r.status}`);
             setResult(body);
         } catch (err) {
-            setError(err.message);
+            setError((err as Error).message);
         } finally { setSubmitting(false); }
     };
 
-    const checkStatus = async (e) => {
+    const checkStatus = async (e: FormEvent) => {
         e.preventDefault();
         setChecking(true);
         setCheckResult(null);
@@ -251,31 +270,31 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
     );
 }
 
-const page = {
+const page: CSSProperties = {
     minHeight: '100vh', background: '#f6f7f9',
     display: 'flex', flexDirection: 'column', alignItems: 'center',
     padding: '48px 16px', fontFamily: 'Inter, system-ui, sans-serif', color: '#111',
 };
-const card = {
+const card: CSSProperties = {
     background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
     borderRadius: 16, padding: 28, width: 520, maxWidth: '100%',
     boxShadow: '0 8px 30px rgba(0,0,0,0.05)',
 };
-const fieldLabel = {
+const fieldLabel: CSSProperties = {
     display: 'flex', flexDirection: 'column', gap: 6,
     fontSize: 13, fontWeight: 600, color: '#333',
 };
-const input = {
+const input: CSSProperties = {
     border: '1px solid rgba(0,0,0,0.15)', borderRadius: 8,
     padding: '10px 12px', fontSize: 14, fontFamily: 'inherit',
     color: '#111', background: '#fff', outline: 'none', width: '100%',
 };
-const primaryBtn = {
+const primaryBtn: CSSProperties = {
     background: '#10b981', color: '#fff', border: 'none',
     padding: '11px 18px', borderRadius: 8, cursor: 'pointer',
     fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
 };
-const successBox = {
+const successBox: CSSProperties = {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
     textAlign: 'center', padding: '24px 12px',
     background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)',

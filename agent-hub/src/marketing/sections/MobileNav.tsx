@@ -1,6 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { readDropdown, navHandler } from './navShared';
+import React, { useEffect, useState, type CSSProperties, type SyntheticEvent } from 'react';
+import { readDropdown, navHandler, type NavLinkData } from './navShared';
 import NavIcon from '../components/NavIcon';
+
+interface MobileNavCta {
+    id?: string;
+    label?: string;
+    href?: string;
+    target?: string;
+    rel?: string;
+    style?: string;
+}
+
+interface MobileNavProps {
+    open: boolean;
+    onClose: () => void;
+    navItems: NavLinkData[];
+    ctas?: MobileNavCta[];
+    isActive: (href: string | undefined) => boolean;
+    navLinkStyle?: CSSProperties;
+}
 
 const Chevron = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -26,12 +44,12 @@ export default function MobileNav({
     ctas,
     isActive,
     navLinkStyle,
-}) {
+}: MobileNavProps) {
     // One section at a time. It deliberately survives a close/reopen: if you
     // went into Product, came back and opened the menu again, you almost
     // certainly want Product still open. (Resetting it from an effect on
     // `open` would also mean a cascading render on every close.)
-    const [expandedIdx, setExpandedIdx] = useState(null);
+    const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
     // Lock the page while the drawer is open. Otherwise the body scrolls
     // underneath it and closing the menu drops you somewhere you never
@@ -46,7 +64,7 @@ export default function MobileNav({
     // Every navigating link inside the drawer closes it. In preview mode
     // navHandler swallows the click, so the drawer closing is the only
     // feedback an editor gets — which is why it happens either way.
-    const closeAndGo = (e) => { navHandler(e); onClose(); };
+    const closeAndGo = (e: SyntheticEvent): void => { navHandler(e); onClose(); };
 
     return (
         <>
@@ -59,7 +77,7 @@ export default function MobileNav({
             />
             <div className={`mobile-nav ${open ? 'active' : ''}`}>
                 <div className="mobile-nav-inner">
-                    {navItems.map((link, i) => {
+                    {navItems.map((link: NavLinkData, i: number) => {
                         const dropdown = readDropdown(link);
                         const expanded = expandedIdx === i;
                         const toggleRow = () => setExpandedIdx(expanded ? null : i);

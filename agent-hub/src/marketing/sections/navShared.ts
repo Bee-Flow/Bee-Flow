@@ -5,12 +5,35 @@
  * and Header imports MobileNav — putting them in Header would make that
  * circular.
  */
+export interface NavItem {
+    label?: string;
+    href?: string;
+    target?: string;
+    rel?: string;
+    icon?: string;
+    description?: string;
+}
+
+export interface NavColumn {
+    heading?: string;
+    items?: NavItem[];
+}
+
+export interface NavLinkData extends NavItem {
+    dropdown?: { layout?: string; columns?: NavColumn[] };
+    children?: NavItem[];
+}
+
+export type NavDropdown =
+    | { kind: 'columns'; columns: NavColumn[] }
+    | { kind: 'list'; items: NavItem[] };
+
 // Resolve the dropdown shape regardless of which mode the user picked.
 // Returns:
 //   { kind: 'columns', columns: [{ heading, items: [...] }] }  — mega menu
 //   { kind: 'list',    items:   [{ label, href, ... }]      }  — flat
 //   null if the link has no dropdown content at all
-export function readDropdown(link) {
+export function readDropdown(link: NavLinkData | undefined): NavDropdown | null {
     if (link?.dropdown?.layout === 'columns'
         && Array.isArray(link.dropdown.columns)
         && link.dropdown.columns.length > 0) {
@@ -22,20 +45,20 @@ export function readDropdown(link) {
     return null;
 }
 
-export const isPreview = () =>
+export const isPreview = (): boolean =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('preview');
 
 // In preview mode, anchor clicks should not jump-scroll inside the iframe;
 // they'd take the admin's focus away from what they were editing.
-export const navHandler = (e) => {
+export const navHandler = (e: { preventDefault: () => void }): void => {
     if (isPreview()) e.preventDefault();
 };
 
 // True on a device with no hover — a phone, or an iPad in landscape wide
 // enough to still get the desktop nav. There, the first tap on a dropdown
 // parent must OPEN the panel rather than navigate away from it.
-export const isTouchLike = () =>
+export const isTouchLike = (): boolean =>
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(hover: none)').matches;

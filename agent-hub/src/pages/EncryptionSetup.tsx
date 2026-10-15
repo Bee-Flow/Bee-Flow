@@ -13,14 +13,14 @@ import { useTranslation } from '../hooks/useTranslation';
  * 3. mode='recovery': Show a recovery key (from login migration or signup)
  * 4. Internal 'recover' state: Forgot PIN — enter recovery key + new PIN
  */
-const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
+const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' | 'unlock' | 'recovery'; onComplete: () => void; recoveryKeyProp?: string }) => {
     const { t } = useTranslation();
     const [pin, setPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
     const [showPin, setShowPin] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [recoveryKey, setRecoveryKey] = useState(recoveryKeyProp || null);
+    const [recoveryKey, setRecoveryKey] = useState<string | null>(recoveryKeyProp || null);
     const [copied, setCopied] = useState(false);
     const [showRecovery, setShowRecovery] = useState(false);
     const [recoveryInput, setRecoveryInput] = useState('');
@@ -49,7 +49,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
                 return;
             }
         } catch (opaqueErr) {
-            console.warn('[Encryption] OPAQUE PIN setup failed, falling back to legacy:', opaqueErr.message);
+            console.warn('[Encryption] OPAQUE PIN setup failed, falling back to legacy:', (opaqueErr as Error).message);
         }
 
         // Legacy fallback — PIN sent to server (for users without OPAQUE support)
@@ -98,7 +98,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
             // fallback. Fall through and let the legacy endpoint decide; it
             // reports genuine first-time setup via its own needsSetup.
         } catch (opaqueErr) {
-            console.warn('[Encryption] OPAQUE PIN unlock failed, falling back to legacy:', opaqueErr.message);
+            console.warn('[Encryption] OPAQUE PIN unlock failed, falling back to legacy:', (opaqueErr as Error).message);
         }
 
         // Legacy fallback
@@ -160,7 +160,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(recoveryKey);
+        navigator.clipboard.writeText(recoveryKey as string);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };

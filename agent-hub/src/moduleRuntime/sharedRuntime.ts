@@ -15,6 +15,12 @@ import * as ReactDOM from 'react-dom';
 import * as ReactDOMClient from 'react-dom/client';
 import * as JsxRuntime from 'react/jsx-runtime';
 
+declare global {
+    interface Window {
+        __BEEFLOW_SHARED__?: typeof shared;
+    }
+}
+
 const shared = {
     react: React,
     'react-dom': ReactDOM,
