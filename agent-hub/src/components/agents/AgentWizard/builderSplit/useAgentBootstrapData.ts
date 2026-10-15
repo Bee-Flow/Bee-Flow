@@ -13,9 +13,10 @@ import { useEffect, useState } from 'react';
 import { fetchAgentEditorBootstrap } from '../../../../api/agentEditor';
 import { useAgentEditorBootstrap } from '../AgentEditorBootstrapContext';
 import { READ } from '../canUse/canUseFacts';
+import type { ReadState } from '../agentEditor.types';
+import type { OrgGroup } from '../../AgentDesigner/PublishMenu';
 
 type Row = Record<string, unknown>;
-type ReadState = (typeof READ)[keyof typeof READ];
 type Setter<T> = (value: T) => void;
 
 interface BootstrapSetters {
@@ -23,7 +24,7 @@ interface BootstrapSetters {
     setIntegrationStatus: Setter<Row | null>;
     setCategories: Setter<Row[]>;
     setCategoriesState: Setter<ReadState>;
-    setOrgGroups: Setter<Row[]>;
+    setOrgGroups: Setter<OrgGroup[]>;
     setTiers: Setter<Row>;
     setAutomations: Setter<Row[]>;
 }
@@ -72,7 +73,7 @@ export default function useAgentBootstrapData() {
     // "Could the category list be read?", kept apart from the list itself so
     // a failed read does not read as "this org has no categories".
     const [categoriesState, setCategoriesState] = useState<ReadState>(READ.LOADING);
-    const [orgGroups, setOrgGroups] = useState<Row[]>([]);
+    const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
     const [automations, setAutomations] = useState<Row[]>([]);
 
     const bootstrap = useAgentEditorBootstrap();
