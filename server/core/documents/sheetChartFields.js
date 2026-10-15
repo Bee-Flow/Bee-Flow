@@ -61,12 +61,33 @@ function chartProblem(c) {
 }
 
 /**
+ * The stored fields of a chart; each is present only when the request had it.
+ * @typedef {object} ChartFields
+ * @property {string} [type]
+ * @property {string} [dataRange]
+ * @property {string} [categoriesRange]
+ * @property {string} [compareRange]
+ * @property {string} [anchor]
+ * @property {string} [title]
+ * @property {string} [label]
+ * @property {string} [format]
+ * @property {string} [currency]
+ * @property {string[]} [colors]
+ * @property {boolean} [showValues]
+ * @property {boolean} [colorByCategory]
+ * @property {number} [width]
+ * @property {number} [height]
+ */
+
+/**
  * The stored fields of a request (ranges upper-cased, style checked, size in px).
  * Only what is present is returned, so it can also be a patch.
  * @param {any} c
+ * @returns {ChartFields}
  */
 function chartFieldsOf(c) {
     const up = (v) => String(v).trim().toUpperCase();
+    /** @type {ChartFields} */
     const out = {};
     if (c.type !== undefined) out.type = String(c.type);
     for (const k of ['dataRange', 'categoriesRange', 'compareRange', 'anchor']) if (c[k]) out[k] = up(c[k]);

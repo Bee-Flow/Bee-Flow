@@ -82,7 +82,7 @@ function chartSummary(c) {
  * @param {object[]} charts  new ones
  * @param {{ documents?: any, actorUserId?: string }} deps
  * @param {{ updated?: any[], removed?: string[] }} [changes]  from chartsFrom
- * @returns {Promise<{ saved: number } | { error: string }>}
+ * @returns {Promise<{ saved: number, updated: number, removed: number } | { error: string }>}
  */
 async function addCharts(doc, charts, deps, changes = {}) {
     const documents = deps.documents || require('../../stores/documentStore');
