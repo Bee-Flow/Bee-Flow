@@ -442,7 +442,7 @@ router.get('/:id/usage', async (req, res) => {
         if (e?.expose === true && Number(e?.status) >= 400 && Number(e?.status) < 500) throw e;
         // Regel 1: zeggen dat het niet kon, niet doen alsof er niets is.
         log.warn('[automation usage] read failed:', e.message);
-        res.status(500).json({ error: 'usage_unavailable' });
+        throw new HttpError(500, 'usage_unavailable', 'usage_unavailable');
     }
 });
 

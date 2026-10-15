@@ -482,7 +482,7 @@ router.get('/catalog/nextcloud-tables/:tableId/columns', async (req, res, next) 
             session: req.session,
             egress: false,
         });
-        if (out && out.error) return res.status(502).json({ error: out.error });
+        if (out && out.error) return next(new HttpError(502, 'upstream_failed', out.error));
         res.json(out);
     } catch (e) {
         log.error('[Catalog] Nextcloud table columns failed:', e);
