@@ -14,17 +14,13 @@ const fs = require('fs');
 const configStore = require('../../stores/configStore');
 const { asM4aIfAdts } = require('../../core/voice/audioPreprocess');
 const { resolveDefaultTemplateForReq, VOXTRAL_TIMEOUT_MS } = require('./shared');
+const { lookupUserName, nameSpeakers, buildTranscriptOrThrow } = require('./speakerNaming');
 const { stampForTemplate } = require('../../core/meetingNotes/summaryStamp');
 const {
-    identifySpeakerNames,
     generateMeetingSummary,
     extractMeetingArtifacts,
     generateChapters,
     generateSpeakerSummaries,
-    tagSpeakerProvenance,
-    applySpeakerNames,
-    fillGenericSpeakerLabels,
-    buildTranscriptArtifacts,
     buildPipelineNotices,
     artifactsUsable,
     transcribeWithWhisperX,
@@ -121,17 +117,6 @@ function manualSpeakerNames(transcription) {
         .map((s) => s.id.trim());
 }
 
-/** The caller's first name, or null when it cannot be looked up. */
-async function lookupUserName(userId) {
-    try {
-        const { getUser } = require('../../stores/userStore');
-        const u = await getUser(userId);
-        return u?.firstName || u?.displayName || null;
-    } catch (_) {
-        return null;
-    }
-}
-
 /**
  * The lists a reprocess writes back. The artifact pass is re-run, but a failed
  * pass keeps what the note had, and a person's own entries always survive.
@@ -164,12 +149,7 @@ function mergeArtifactLists(transcription, artifacts, usable) {
 async function analyseTranscript({ req, transcriptionId, transcription, userId, userOrgId, language, numSpeakers, transcribed }) {
     const { response, truncationNotice, voiceprintMapping, voiceprintRoster, voiceprintRuledOut, voiceprintInfo } = transcribed;
 
-    // Shared artifacts helper: same merge/transcript/stats shape as the upload
-    // route and ingestRecordingCore (segments carry speaker+speakerId).
-    let { merged, transcript, speakers, totalDuration } = buildTranscriptArtifacts(response.segments || []);
-    if (!merged.length) {
-        throw new Error('Transcription returned no segments.');
-    }
+    let { merged, transcript, speakers, totalDuration } = buildTranscriptOrThrow(response);
 
     // Speaker identification: pass the stats rows so the model can tell real
     // participants from short diarization fragments.
@@ -183,18 +163,10 @@ async function analyseTranscript({ req, transcriptionId, transcription, userId, 
         ...(transcription.attendees || []),
         ...voiceprintRoster,
     ])];
-    const nameMapping = await identifySpeakerNames(
-        merged, speakers, language, reprocessUserName, userOrgId,
-        reprocessRoster,
-        { lockedNames: voiceprintMapping, ruledOutNames: voiceprintRuledOut, expectedSpeakers: numSpeakers },
-    );
-
-    // Same generic-label floor as the upload route: never leak raw ids.
-    const filledMapping = fillGenericSpeakerLabels(speakers, nameMapping, language);
-
-    // Collapse the diarizer's many IDs onto the identified names.
-    ({ merged, transcript, speakers } = applySpeakerNames(merged, filledMapping));
-    speakers = tagSpeakerProvenance(speakers, voiceprintMapping);
+    ({ merged, transcript, speakers } = await nameSpeakers({
+        merged, speakers, language, userName: reprocessUserName, userOrgId,
+        roster: reprocessRoster, voiceprintMapping, voiceprintRuledOut, numSpeakers,
+    }));
 
     // Summary + timeline chapters + structured artifacts. The artifacts are
     // re-extracted too: the transcript is brand new, so the old items point at
