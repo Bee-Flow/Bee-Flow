@@ -1,6 +1,28 @@
 import { parseCellRef, cellName, formatValue, type Computed } from './sheetEngine';
 
-export type ChartType = 'bar' | 'line' | 'pie';
+/**
+ * bar = vertical columns, hbar = horizontal bars, stacked = stacked columns,
+ * pie/doughnut read the first data column, scatter takes numeric x from
+ * categoriesRange, kpi is a value tile (dataRange = one cell).
+ * Mirrors server/core/documents/sheetChartFields.js.
+ */
+export const CHART_TYPES = ['bar', 'hbar', 'line', 'area', 'pie', 'doughnut', 'scatter', 'stacked', 'kpi'] as const;
+export type ChartType = (typeof CHART_TYPES)[number];
+export type ChartFormat = 'number' | 'currency' | 'percent';
+
+/** Categorical palette: mid-tone, distinct, readable on a light and a dark background. Series i gets colour i. */
+export const CHART_PALETTE = ['#4e79a7', '#f28e2b', '#59a14f', '#e15759', '#76b7b2', '#edc948', '#b07aa1', '#ff9da7'] as const;
+/** The grid's cell size in px (SheetCell: w-28 h-7): what a chart's size in cells is measured in. */
+export const COL_PX = 112;
+export const ROW_PX = 28;
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/** The colour of series / slice `i`: the chart's own `colors` when set, else the palette. */
+export function chartColor(config: Pick<SheetChartConfig, 'colors'>, i: number): string {
+    const list = config.colors?.length ? config.colors : CHART_PALETTE;
+    return list[i % list.length];
+}
 
 export interface SheetChartConfig {
     id: string;
@@ -14,6 +36,25 @@ export interface SheetChartConfig {
     anchor: string;
     width: number;
     height: number;
+    /** Hex colours overriding the palette, series by series. */
+    colors?: string[];
+    format?: ChartFormat;
+    /** ISO code for format 'currency', EUR when unset. */
+    currency?: string;
+    /** Data labels on the marks. */
+    showValues?: boolean;
+    /** A single-series bar chart with a colour per bar. */
+    colorByCategory?: boolean;
+    /** kpi: caption, and the cell the value is compared against. */
+    label?: string;
+    compareRange?: string;
+    /** The tab whose cells it reads and shows on; a chart without one (made before tabs) shows on every tab. */
+    tab?: string;
+}
+
+/** The charts that belong on `activeTab`. */
+export function chartsOnTab(charts: SheetChartConfig[], activeTab: string | undefined): SheetChartConfig[] {
+    return charts.filter((c) => !c.tab || !activeTab || c.tab === activeTab);
 }
 
 export interface ChartPoint { label: string; value: number; display: string }
@@ -74,9 +115,20 @@ export function chartDataFrom(config: SheetChartConfig, computed: Computed): Cha
     return points;
 }
 
+function typeProblem(config: Partial<SheetChartConfig>, data: ParsedRange): string | null {
+    if (config.type === 'kpi' && rangeSize(data) !== 1) return 'A KPI takes one cell.';
+    if (config.type === 'scatter' && !config.categoriesRange) return 'A scatter chart needs the x values as categories range.';
+    if (config.compareRange && !parseA1Range(config.compareRange)) return 'Compare cell is not valid.';
+    if (config.colors?.some((c) => !HEX.test(c))) return 'Colours must be hex like #4e79a7.';
+    return null;
+}
+
 export function validateChart(config: Partial<Omit<SheetChartConfig, 'type'>> & { type?: string }): string | null {
-    if (!config.id || !config.type || !['bar', 'line', 'pie'].includes(config.type)) return 'Chart needs a valid type.';
-    if (!parseA1Range(config.dataRange || '')) return 'Chart needs a valid data range.';
+    if (!config.id || !config.type || !(CHART_TYPES as readonly string[]).includes(config.type)) return 'Chart needs a valid type.';
+    const data = parseA1Range(config.dataRange || '');
+    if (!data) return 'Chart needs a valid data range.';
+    const problem = typeProblem(config as Partial<SheetChartConfig>, data);
+    if (problem) return problem;
     if (config.categoriesRange && !parseA1Range(config.categoriesRange)) return 'Categories range is not valid.';
     if (!parseA1Range(config.anchor || '')) return 'Chart needs a valid anchor cell.';
     if (!config.width || !config.height) return 'Chart needs a size.';

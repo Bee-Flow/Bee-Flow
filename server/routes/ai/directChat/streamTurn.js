@@ -190,7 +190,7 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         await turn.swapModelForActiveStage();
         const attachmentIntake = await processAttachmentsAndUserMessage({
             req, res, send, userId, convId: turn.convId, conversationId, modelTier, message, attachments,
-            adapter: turn.adapter, modelId: turn.modelId, config: turn.config, messages: turn.messages,
+            adapter: turn.adapter, modelId: turn.modelId, config: turn.config, messages: turn.messages, documentScope: turn.documentScope,
         });
         if (!attachmentIntake) return;
         Object.assign(turn, attachmentIntake);

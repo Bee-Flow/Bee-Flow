@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getDocument, updateDocument } from '../documentsApi';
 import type { StudioDocument } from '../documentQueries';
 import type { SheetChartConfig } from './sheetCharts';
@@ -21,6 +21,18 @@ export default function useSheetCharts(initial: StudioDocument) {
             setError(e instanceof Error ? e : new Error(String(e)));
             throw e;
         }
+    }, [initial.id]);
+
+    // The AI added charts from the chat (document_write): take the stored list again.
+    useEffect(() => {
+        const onUpdated = (e: Event) => {
+            if ((e as CustomEvent).detail?.documentId !== initial.id) return;
+            getDocument(initial.id)
+                .then((doc) => setCharts((doc as StudioDocument).settings?.sheet?.charts || []))
+                .catch(() => undefined);
+        };
+        window.addEventListener('beeflow:document-updated', onUpdated);
+        return () => window.removeEventListener('beeflow:document-updated', onUpdated);
     }, [initial.id]);
 
     const addChart = useCallback(async (config: SheetChartConfig) => {

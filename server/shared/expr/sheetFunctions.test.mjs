@@ -166,3 +166,30 @@ describe('COUNTIF wildcards', () => {
         assert.ok(Date.now() - started < 1000, `took ${Date.now() - started} ms`);
     });
 });
+
+test('a date typed as ISO text counts as a date in comparisons and date functions', () => {
+    // An Excel workbook keeps dates as serials; an imported one arrives as "2016-03-01" text.
+    const klanten = { K2: '2016-03-01', K3: '2017-05-01', K4: '2016-07-01', K5: '2016-02-30', L2: 'ZZP', L3: 'MKB', L4: 'ZZP', L5: 'ZZP' };
+    const pivot = {
+        A1: 'ZZP', D19: '2016-01-01', D20: '2017-01-01',
+        B1: '=COUNTIFS(Klanten!$L$2:$L$5,$A1,Klanten!$K$2:$K$5,">="&D$19,Klanten!$K$2:$K$5,"<"&D$20)',
+        B2: '=COUNTIF(Klanten!K2:K5,">="&DATE(2016,1,1))',
+        B3: '=YEAR(Klanten!K2)', B4: '=MONTH("2017-05-01")', B5: '=YEAR("2016-02-30")',
+    };
+    const r = evaluateSheet(pivot, { workbook: { Klanten: klanten, Pivot: pivot }, activeSheet: 'Pivot' });
+    assert.strictEqual(r.B1.display, '2');
+    assert.strictEqual(r.B2.display, '3', '30 February is no date');
+    assert.strictEqual(r.B3.display, '2016');
+    assert.strictEqual(r.B4.display, '5');
+    assert.strictEqual(r.B5.error, '#VALUE!');
+});
+
+test('LEFT, RIGHT and MID take characters from text, as Excel does', () => {
+    const r = evaluateSheet({
+        A1: '2021-10-30', B1: '=LEFT(A1,4)', B2: '=RIGHT(A1,2)', B3: '=MID(A1,6,2)', B4: '=LEFT("abc")', B5: '=RIGHT("abc",9)',
+        B6: '=LEFT(A1,-1)', B7: '=MID(A1,0,2)', B8: '=LEFT(A1)&"-x"', B9: '=COUNTIF(A1:A1,LEFT(A1,4)&"*")',
+    });
+    assert.deepStrictEqual(['B1', 'B2', 'B3', 'B4', 'B5', 'B8', 'B9'].map((k) => r[k].display), ['2021', '30', '10', 'a', 'abc', '2-x', '1']);
+    assert.strictEqual(r.B6.error, '#VALUE!');
+    assert.strictEqual(r.B7.error, '#VALUE!');
+});

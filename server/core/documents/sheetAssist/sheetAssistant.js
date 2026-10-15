@@ -40,6 +40,7 @@ const { HttpError } = require('../../http/errors');
 const { parseRange, cellsIn, fillRange, colName } = require('./sheetRefs');
 const { sheetDigest, rowsBlock, errorList, RANGE_CELL_CHARS } = require('./sheetDigest');
 const { sheetTabsOf } = require('../../../stores/lib/sheetDocument');
+const { chartProblem, chartFieldsOf, sizeInPx, CHART_STYLE_PROPERTIES, CHART_TYPES, CHART_TYPES_TEXT } = require('../sheetChartFields');
 
 const MAX_ROUNDS = 8;
 /** The most cells one request may change. */
@@ -83,13 +84,14 @@ const TOOLS = Object.freeze([
     } },
     { type: 'function', function: {
         name: 'add_chart',
-        description: 'Add a basic chart to the spreadsheet. type is bar, line or pie; dataRange holds the numeric values (e.g. "B2:B10"); categoriesRange holds the labels (e.g. "A2:A10"); anchor is the top-left cell the chart floats at (e.g. "D2"); title is optional.',
+        description: `Add a chart to the spreadsheet. type is ${CHART_TYPES_TEXT} (bar = columns, stacked = stacked columns; scatter needs categoriesRange as numeric x; pie/doughnut use the first column); dataRange holds the numeric values (e.g. "B2:B10"; several columns = several series, named by the cell above); categoriesRange holds the labels (e.g. "A2:A10"); anchor is the top-left cell the chart floats at (e.g. "D2"); title is optional.`,
         parameters: { type: 'object', properties: {
-            type: { type: 'string', enum: ['bar', 'line', 'pie'] },
+            type: { type: 'string', enum: CHART_TYPES },
             dataRange: { type: 'string' },
             categoriesRange: { type: 'string' },
             anchor: { type: 'string' },
             title: { type: 'string' },
+            ...CHART_STYLE_PROPERTIES,
         }, required: ['type', 'dataRange', 'anchor'] },
     } },
     { type: 'function', function: {
@@ -324,23 +326,16 @@ function makeSheetAssistant(deps = {}) {
                 return stage(activeEntry, Object.fromEntries(cellsIn(r).map((n) => [n, ''])));
             }
             if (name === 'add_chart') {
-                const type = String(args?.type || '');
-                if (!['bar', 'line', 'pie'].includes(type)) return 'Error: type must be bar, line or pie.';
-                const dataRange = String(args?.dataRange || '');
-                if (!parseRange(dataRange)) return 'Error: dataRange must be a range like "B2:B10".';
-                const anchor = String(args?.anchor || '');
-                if (!parseRange(anchor)) return 'Error: anchor must be a cell like "D2".';
-                const categoriesRange = args?.categoriesRange ? String(args.categoriesRange) : undefined;
-                if (categoriesRange && !parseRange(categoriesRange)) return 'Error: categoriesRange must be a range like "A2:A10".';
+                const fields = chartFieldsOf(args || {});
+                const problem = chartProblem(fields);
+                if (problem) return `Error: ${problem}`;
                 const chart = {
                     // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a chart id inside one sheet, not a secret
                     id: `chart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                    type, dataRange, anchor, categoriesRange,
-                    title: args?.title ? String(args.title) : undefined,
-                    width: 320, height: 220,
+                    ...sizeInPx({}), ...fields,
                 };
                 newCharts.push(chart);
-                return `Added ${type} chart anchored at ${anchor} using ${dataRange}.`;
+                return `Added ${chart.type} chart anchored at ${chart.anchor} using ${chart.dataRange}.`;
             }
             if (name === 'create_pivot') {
                 const src = parseRange(args?.sourceRange);

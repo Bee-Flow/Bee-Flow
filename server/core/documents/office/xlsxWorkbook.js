@@ -7,30 +7,11 @@
  */
 
 const JSZip = require('jszip');
-
-function xmlEscape(v) {
-    return String(v)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-}
+const { xmlEscape, colLetter } = require('./xlsxXml');
+const { chartPartsFor } = require('./xlsxCharts');
 
 function isNumericCell(v) {
     return typeof v === 'number' && Number.isFinite(v);
-}
-
-/** 0-based column index → spreadsheet column letter (0→A, 26→AA). */
-function colLetter(n) {
-    let s = '';
-    n += 1;
-    while (n > 0) {
-        const m = (n - 1) % 26;
-        s = String.fromCharCode(65 + m) + s;
-        n = Math.floor((n - 1) / 26);
-    }
-    return s;
 }
 
 function sanitizeSheetName(name) {
@@ -42,7 +23,7 @@ function sanitizeSheetName(name) {
 // a postcode) or an exponent stays text: those are identifiers, not amounts.
 const NUMERIC_TEXT = /^-?(0|[1-9]\d{0,14})(\.\d{1,10})?$/;
 
-function xlsxSheetXml(matrix, formulas) {
+function xlsxSheetXml(matrix, formulas, hasDrawing) {
     const rowsXml = matrix.map((row, ri) => {
         const cells = row.map((val, ci) => {
             if (val === null || val === undefined || val === '') return '';
@@ -59,15 +40,17 @@ function xlsxSheetXml(matrix, formulas) {
         return `<row r="${ri + 1}">${cells}</row>`;
     }).join('');
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-        `<sheetData>${rowsXml}</sheetData></worksheet>`;
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+        `<sheetData>${rowsXml}</sheetData>${hasDrawing ? '<drawing r:id="rId1"/>' : ''}</worksheet>`;
 }
 
 /**
  * A workbook with one or more sheets: `sheets` = [{ name, matrix }]. Sheet names
  * are sanitised and made unique (Excel rejects duplicates). With
  * `opts.formulas`, a string cell starting with "=" becomes a real formula and
- * a plain decimal string below the header row a number.
+ * a plain decimal string below the header row a number. A sheet may carry
+ * `charts` (+ `values`, its computed cells): they become native Excel charts
+ * (xlsxCharts.js).
  */
 async function buildXlsxWorkbook(sheets, opts = {}) {
     const list = Array.isArray(sheets) && sheets.length ? sheets : [{ name: 'Sheet1', matrix: [] }];
@@ -80,6 +63,7 @@ async function buildXlsxWorkbook(sheets, opts = {}) {
         return n;
     });
     const zip = new JSZip();
+    const charted = chartPartsFor(list.map((sh, i) => ({ name: names[i], charts: sh.charts, values: sh.values })));
     zip.file('[Content_Types].xml',
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
@@ -87,7 +71,7 @@ async function buildXlsxWorkbook(sheets, opts = {}) {
         '<Default Extension="xml" ContentType="application/xml"/>' +
         '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
         list.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') +
-        '</Types>');
+        charted.contentTypes + '</Types>');
     zip.file('_rels/.rels',
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
@@ -104,7 +88,8 @@ async function buildXlsxWorkbook(sheets, opts = {}) {
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
         list.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') +
         '</Relationships>');
-    list.forEach((sh, i) => zip.file(`xl/worksheets/sheet${i + 1}.xml`, xlsxSheetXml(Array.isArray(sh.matrix) ? sh.matrix : [], opts.formulas)));
+    list.forEach((sh, i) => zip.file(`xl/worksheets/sheet${i + 1}.xml`, xlsxSheetXml(Array.isArray(sh.matrix) ? sh.matrix : [], opts.formulas, i in charted.sheetRels)));
+    for (const [path, xml] of Object.entries(charted.files)) zip.file(path, xml);
     return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 }
 

@@ -23,6 +23,7 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 // the access decision belongs to the caller.
 const { normaliseKbIds } = require('../../core/kb/kbIdList');
 const log = require('../../telemetry/log');
+const { _restoreTokensInMessages, _displayTokenMap } = require('./tokenDisplay');
 const { searchConversationRows, byUpdatedDesc, DIRECT_SEARCH } = require('../lib/conversationSearch');
 
 /** What the shared search needs from this store's db and crypto modules. */
@@ -231,41 +232,6 @@ function _serialiseDirectMeta(metaObj, conversationId, ctx) {
         encrypt: !!(ctx && ctx.encryptConversationMeta),
     });
 }
-// Replace [email_N] / [phone_N] etc. tokens with the real values stored in
-// the per-message tokenMap. Idempotent — messages without a tokenMap pass
-// through unchanged. Only used on the UI-display read path; the LLM
-// history loader passes restore=false so Claude keeps seeing tokens.
-// Lazy-require inside the function: same circular-dep reason as
-// piiDetection.js→aiAgent — capturing a destructure at module load
-// can grab a stale snapshot of the cycle's partial exports.
-function _restoreTokensInMessages(messages, convTokenMap = null) {
-    if (!Array.isArray(messages)) return messages;
-    const restoreTokens = require('../../core/privacy/piiDetection').restoreTokens;
-    if (typeof restoreTokens !== 'function') return messages;
-    const convMapHasEntries = convTokenMap && typeof convTokenMap === 'object' && Object.keys(convTokenMap).length > 0;
-    return messages.map(m => {
-        if (!m || typeof m.content !== 'string') return m;
-        // User messages: use the per-message tokenMap (existing behaviour).
-        // Each user turn captured the message-level tokens at the moment it
-        // was tokenised — that's a stable, self-contained mapping.
-        if (m.role === 'user' && m.tokenMap && Object.keys(m.tokenMap).length > 0) {
-            try {
-                return { ...m, content: restoreTokens(m.content, m.tokenMap) };
-            } catch (e) { /* fall through with original */ }
-        }
-        // Assistant messages: use the conversation-level token map. Assistant
-        // tokens come from attachment scans + cross-turn message PII and are
-        // not stashed per-message. Without this branch, an assistant response
-        // referencing `[person_N]` would be displayed as raw placeholders on
-        // a conversation reload.
-        if (m.role === 'assistant' && convMapHasEntries) {
-            try {
-                return { ...m, content: restoreTokens(m.content, convTokenMap) };
-            } catch (e) { /* fall through with original */ }
-        }
-        return m;
-    });
-}
 
 /**
  * True when Postgres is telling us `knowledge_base_ids` has not landed yet.
@@ -419,7 +385,7 @@ async function getDirectConversation(id, userId, options = {}) {
         // The conversation-level pii_token_map covers assistant tokens that
         // span turns (attachment scans + cross-turn message PII). User
         // messages still consult their per-row tokenMap inside the helper.
-        messages = _restoreTokensInMessages(messages, row.pii_token_map || null);
+        messages = _restoreTokensInMessages(messages, await _displayTokenMap(row));  // ./tokenDisplay.js
     }
     // `title` after the meta spread: meta must not be able to shadow it.
     //
@@ -434,8 +400,11 @@ async function getDirectConversation(id, userId, options = {}) {
     // unpublished, moved out of a group or deleted afterwards. Anything that
     // hands these ids to retrieval, or shows them to a person, MUST re-run
     // core/kb/kbSelection.resolveUsableKbIds over them first.
+    // The stored token map (often an encryption envelope) is the server's: the
+    // messages above are already restored, so it never goes to the client.
+    const { pii_token_map: _storedMap, ...rowOut } = row;
     return {
-        ...row, messages, meta, ...meta,
+        ...rowOut, messages, meta, ...meta,
         title: openTitle(row.title, row.id, 'direct', titleCtx),
         knowledgeBaseIds: normaliseKbIds(parseJSON(row.knowledge_base_ids, [])),
     };
@@ -779,6 +748,7 @@ module.exports = {
     updateDirectConversationWorkspace, getDirectConversationWorkspace, getConversationOwnerId,
     searchDirectConversations, updateDirectConversationMeta, getDirectConversationMeta,
     // Exposed so agentConversations.js can reuse the same restore logic.
+    // Kept here for old callers; the code lives in ./tokenDisplay.js.
     _restoreTokensInMessages,
     // Shared-thread plumbing, reused by agentConversations.js and asserted on
     // by the chat routes (they map the code onto an SSE error frame).

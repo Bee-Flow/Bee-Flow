@@ -1,11 +1,11 @@
-// What the page does besides editing cells: rename, download as CSV, leave
+// What the page does besides editing cells: rename, download as CSV or Excel, leave
 // (after the queued cells were sent).
 
 import { useState } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import type { StudioDocument } from '../documentQueries';
 import { getDocument, updateDocument } from '../documentsApi';
-import { downloadSheetCsv } from './sheetApi';
+import { downloadSheetCsv, downloadSheetXlsx } from './sheetApi';
 import type { SheetState } from './useSheet';
 
 export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
@@ -28,15 +28,20 @@ export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
             onRenamed?.(saved);
         } catch (e) { setNotice((e as Error).message || t('spreadsheet.rename_failed', 'Could not rename the spreadsheet.')); }
     };
-    const download = async () => {
+    const download = async (format: 'csv' | 'xlsx' = 'csv') => {
         setDownloading(true);
         setNotice(null);
         try {
             await sheet.flush();
-            await (sheet.activeTab
+            if (format === 'xlsx') await downloadSheetXlsx(initial.id, name);
+            else await (sheet.activeTab
                 ? downloadSheetCsv(initial.id, name, sheet.activeTab)
                 : downloadSheetCsv(initial.id, name));
-        } catch (e) { setNotice((e as Error).message || t('spreadsheet.download_failed', 'Could not download the CSV.')); } finally { setDownloading(false); }
+        } catch (e) {
+            setNotice((e as Error).message || (format === 'xlsx'
+                ? t('spreadsheet.download_xlsx_failed', 'Could not download the Excel file.')
+                : t('spreadsheet.download_failed', 'Could not download the CSV.')));
+        } finally { setDownloading(false); }
     };
     const leave = async () => {
         await sheet.flush();

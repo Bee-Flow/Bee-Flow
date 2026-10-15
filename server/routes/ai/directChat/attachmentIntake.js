@@ -16,8 +16,9 @@ const configStore = require('../../../stores/configStore');
 const { emitPhase, emitPhaseEnd } = require('../../../core/agentRuntime/phaseEvents');
 require('./shared');
 const log = require('../../../telemetry/log');
+const { importUploadedSpreadsheet, isSpreadsheetUpload } = require('./spreadsheetImportIntake');
 
-async function processAttachmentsAndUserMessage({ req, res, send, userId, convId, conversationId, modelTier, message, attachments, adapter, modelId, config, messages }) {
+async function processAttachmentsAndUserMessage({ req, res, send, userId, convId, conversationId, modelTier, message, attachments, adapter, modelId, config, messages, documentScope }) {
         // ─── Eagerly create conversation BEFORE the attachment scan ──
         // Two reasons:
         //   1) workspace_* tools later in the turn need a valid DB row.
@@ -420,12 +421,7 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
                             text: `[${isDeck ? 'PPTX' : 'DOCX'}: ${att.name} — failed to process: ${e.message}]`
                         });
                     }
-                } else if (att.content && (
-                    att.type?.includes('spreadsheetml') || att.type?.includes('ms-excel') ||
-                    att.type === 'text/csv' || att.type === 'application/csv' ||
-                    att.name?.toLowerCase().endsWith('.xlsx') || att.name?.toLowerCase().endsWith('.xls') ||
-                    att.name?.toLowerCase().endsWith('.csv')
-                )) {
+                } else if (att.content && isSpreadsheetUpload(att)) {
                     // Spreadsheet — Azure Document Intelligence (when enabled) → XLSX library fallback
                     try {
                         const base64Data = att.content.split(',')[1] || att.content;
@@ -468,16 +464,19 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
                             log.warn(`[DirectChat] Failed to upload spreadsheet to RustFS: ${e.message}`);
                         }
 
+                        // Also open it as a spreadsheet document next to the chat (when the person has them)
+                        const { base: importedBase, note: importedNote } = await importUploadedSpreadsheet({ req, send, userId, buffer: spreadsheetBuffer, att, documentScope });
+
                         if (sheetText && !sheetText.startsWith('[Spreadsheet:')) {
                             const safeSheetText = await _scanExtracted(sheetText, undefined, att.name);
-                            const docText = `[Spreadsheet: ${att.name}]\n---\n${safeSheetText}\n---`;
+                            const docText = `[Spreadsheet: ${att.name}]\n---\n${safeSheetText}\n---${importedNote}`;
                             contentParts.push({ type: 'text', text: docText });
-                            await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl }, docText);
+                            await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl, ...importedBase }, docText);
                             log.info(`[DirectChat] Extracted ${sheetText.length} chars from spreadsheet: ${att.name}`);
                         } else {
-                            const note = sheetText || `[Spreadsheet: ${att.name} — no data found]`;
+                            const note = (sheetText || `[Spreadsheet: ${att.name} — no data found]`) + importedNote;
                             contentParts.push({ type: 'text', text: note });
-                            await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl }, note);
+                            await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl, ...importedBase }, note);
                         }
                     } catch (e) {
                         log.error(`[DirectChat] Spreadsheet processing failed for ${att.name}:`, e.message);

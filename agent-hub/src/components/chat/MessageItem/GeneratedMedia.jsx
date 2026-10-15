@@ -1,5 +1,6 @@
 import AudioPlayerInline from './AudioPlayer';
 import { resolveUrl } from './messageItemHelpers';
+import { openLibraryDocument } from './openLibraryDocument';
 import useTranslation from '../../../hooks/useTranslation';
 
 /**
@@ -136,27 +137,14 @@ export const GeneratedVideos = ({ msg }) => {
 // Rendered from the tool RESULT, not from the model's text, so a deck is
 // never lost because the reply forgot the link.
 const fileSize = (n) => (Number(n) > 0 ? (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`) : '');
-/**
- * A generated deck that also lives in the library opens beside the chat —
- * the same event DocumentLinkCard dispatches, with the same fallback to the
- * Studio page when nothing claims it (a transcript rendered outside the
- * chat shell).
- */
-function openLibraryDocument(id) {
-    const href = `/app/studio/documents/${id}`;
-    const evt = new CustomEvent('beeflow:open-document-side', { detail: { id, href }, cancelable: true });
-    if (!window.dispatchEvent(evt)) return;
-    window.history.pushState({ page: 'studio' }, '', href);
-    window.dispatchEvent(new PopStateEvent('popstate', { state: { page: 'studio' } }));
-}
-
-/** A deck, a Word document (create_word_document) or any other file. */
+/** A deck, a Word document, an Excel workbook (create_spreadsheet) or any other file. */
 function fileKind(f) {
     if (f.kind === 'presentation' || /\.pptx$/i.test(f.name || '')) return 'presentation';
     if (f.kind === 'word' || /\.docx$/i.test(f.name || '')) return 'word';
+    if (f.kind === 'spreadsheet' || /\.xlsx$/i.test(f.name || '')) return 'spreadsheet';
     return 'file';
 }
-const FILE_KIND_ICON = { presentation: '📊', word: '📝', file: '📄' };
+const FILE_KIND_ICON = { presentation: '📊', word: '📝', spreadsheet: '📗', file: '📄' };
 
 export const GeneratedFiles = ({ msg }) => {
     const { t } = useTranslation();
