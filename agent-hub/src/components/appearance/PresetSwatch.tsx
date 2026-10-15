@@ -8,8 +8,8 @@ import React from 'react';
  * Used by both the admin Theme sub-panel and the user-facing Appearance
  * section in Settings — kept in a shared location so they never drift.
  */
-export default function PresetSwatch({ preset }) {
-    const palettes = {
+export default function PresetSwatch({ preset }: { preset: string }) {
+    const palettes: Record<string, string[]> = {
         light:           ['#fafafa', '#f3f3f3', '#ffffff'],
         dark:            ['#0f0f13', '#16161d', '#1a1a24'],
         glass:           ['rgba(255,255,255,0.55)', 'rgba(255,255,255,0.30)', '#a8b5d9'],

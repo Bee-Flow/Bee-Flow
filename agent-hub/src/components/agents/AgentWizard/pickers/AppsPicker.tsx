@@ -1,12 +1,27 @@
 import { Search, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import Modal from '../../../shared/Modal';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
-export default function AppsPicker({ items, enabled, onClose, onToggle, t }) {
+interface AppItem {
+    id: string;
+    label: string;
+    description?: string;
+    iconSvg?: ReactNode;
+}
+
+export default function AppsPicker({ items, enabled, onClose, onToggle, t }: {
+    items: AppItem[];
+    enabled?: string[] | null;
+    onClose: () => void;
+    onToggle: (id: string) => void;
+    t: TranslateFn;
+}) {
     // R4: apps off by default. `enabled` is always an array now (legacy null backfilled).
-    const isSelected = (id) => Array.isArray(enabled) ? enabled.includes(id) : false;
+    const isSelected = (id: string) => Array.isArray(enabled) ? enabled.includes(id) : false;
     const [search, setSearch] = useState('');
-    const [focusedId, setFocusedId] = useState(items[0]?.id || null);
+    const [focusedId, setFocusedId] = useState<string | null>(items[0]?.id || null);
     const filtered = items.filter(it =>
         !search.trim() || it.label.toLowerCase().includes(search.toLowerCase()) || (it.description || '').toLowerCase().includes(search.toLowerCase())
     );
@@ -36,7 +51,7 @@ export default function AppsPicker({ items, enabled, onClose, onToggle, t }) {
                             <input
                                 type="text"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                                 placeholder={t('agent_wizard.apps.search', 'Search apps')}
                                 className="w-full bg-[var(--bg-secondary)] rounded-full pl-9 pr-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                                 autoFocus

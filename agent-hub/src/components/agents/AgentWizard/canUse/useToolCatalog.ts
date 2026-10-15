@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { READ } from './canUseFacts';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import type { ToolApp } from './toolCatalogTypes';
+
+/** What `GET /agents/tool-catalog` answers, narrowed to what the card reads. */
+interface CatalogAnswer {
+    apps: ToolApp[];
+    degraded: boolean;
+    providersKnown: boolean;
+    lendingEnabled: boolean;
+}
 
 /**
  * De twee lezingen die de Tools-kaart nodig heeft (A2 stap 3).
@@ -51,15 +60,15 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  * er geen resource om grants op te hebben, en dan is "niets geleend" een
  * gelezen feit in plaats van een mislukking.
  */
-export default function useToolCatalog({ enabled = true, agentId = null } = {}) {
-    const [catalog, setCatalog] = useState(null);
-    const [catalogState, setCatalogState] = useState(READ.LOADING);
-    const [lentApps, setLentApps] = useState(null);
-    const [lentState, setLentState] = useState(READ.LOADING);
+export default function useToolCatalog({ enabled = true, agentId = null }: { enabled?: boolean; agentId?: string | number | null } = {}) {
+    const [catalog, setCatalog] = useState<CatalogAnswer | null>(null);
+    const [catalogState, setCatalogState] = useState<string>(READ.LOADING);
+    const [lentApps, setLentApps] = useState<Set<string> | null>(null);
+    const [lentState, setLentState] = useState<string>(READ.LOADING);
     // Of de agent ZOALS DE RUNTIME HEM LEEST gecureerd is (`null` = onbekend).
     // Komt van dezelfde route, want het is dezelfde vraag: wat gebeurt er nú
     // als iemand deze agent draait. De editor heeft alleen de draft.
-    const [runtimeCurated, setRuntimeCurated] = useState(null);
+    const [runtimeCurated, setRuntimeCurated] = useState<boolean | null>(null);
     const [catalogNonce, setCatalogNonce] = useState(0);
     const [lentNonce, setLentNonce] = useState(0);
 
@@ -132,7 +141,7 @@ export default function useToolCatalog({ enabled = true, agentId = null } = {}) 
                 // Dat is geen lege lijst — het is geen lijst.
                 if (body?.readable !== true) throw new Error('tool-lending: not readable');
                 if (!Array.isArray(body?.apps)) throw new Error('tool-lending: no list');
-                setLentApps(new Set(body.apps.filter(id => typeof id === 'string' && id)));
+                setLentApps(new Set(body.apps.filter((id: unknown) => typeof id === 'string' && id)));
                 setRuntimeCurated(typeof body.runtimeCurated === 'boolean' ? body.runtimeCurated : null);
                 setLentState(READ.OK);
             } catch (_) {

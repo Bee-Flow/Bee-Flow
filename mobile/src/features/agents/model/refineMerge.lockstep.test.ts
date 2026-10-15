@@ -7,7 +7,7 @@
 import * as port from './refineMerge';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require('../../../../../agent-hub/src/components/agents/AgentWizard/state/refineMerge.js');
+const web = require('../../../../../agent-hub/src/components/agents/AgentWizard/state/refineMerge.ts');
 
 const base: port.RefineState = {
     name: 'Helpdesk',

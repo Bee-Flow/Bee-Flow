@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * De kaartvorm van de tab "Rol" (Agents-artboard 1c): een gekleurd glyph, een
@@ -15,7 +16,16 @@ import React from 'react';
  * De kaart tekent GEEN gedrag. Hij weet niet wat een toonchip is, en dat is
  * precies waarom de vijf kaarten niet uit elkaar kunnen groeien in vorm.
  */
-export default function RoleCard({ icon, iconColor = 'var(--type-ai)', title, hint, action, children, testId, wide = false }) {
+export default function RoleCard({ icon, iconColor = 'var(--type-ai)', title, hint, action, children, testId, wide = false }: {
+    icon?: ReactNode;
+    iconColor?: string;
+    title?: ReactNode;
+    hint?: ReactNode;
+    action?: ReactNode;
+    children?: ReactNode;
+    testId?: string;
+    wide?: boolean;
+}) {
     return (
         <section
             data-testid={testId}
@@ -49,7 +59,12 @@ export default function RoleCard({ icon, iconColor = 'var(--type-ai)', title, hi
  * precedent Studio/Datatables/DatatablesStudio.jsx, waar de wisselende inhoud
  * in één kale wrapper staat met rolloze kinderen.
  */
-export function RoleNote({ tone = 'muted', children, testId, announce = true }) {
+export function RoleNote({ tone = 'muted', children, testId, announce = true }: {
+    tone?: 'muted' | 'warn' | 'promise';
+    children?: ReactNode;
+    testId?: string;
+    announce?: boolean;
+}) {
     const style = tone === 'warn'
         ? { color: 'var(--warning)' }
         : { color: 'var(--text-tertiary)' };
@@ -66,7 +81,7 @@ export function RoleNote({ tone = 'muted', children, testId, announce = true }) 
 }
 
 /** Het lege vak: gelezen, en er staat echt niets. Nooit bij een mislukte lezing. */
-export function RoleEmpty({ children, testId }) {
+export function RoleEmpty({ children, testId }: { children?: ReactNode; testId?: string }) {
     return (
         <p data-testid={testId} className="text-[12px] leading-[17px] m-0 text-[var(--text-tertiary)] italic">
             {children}
@@ -78,7 +93,7 @@ export function RoleEmpty({ children, testId }) {
  * Een teller "412 / 600". Staat er pas als het ergens over gaat: onder 80% van
  * de grens is hij ruis, en ruis leert mensen om tellers weg te kijken.
  */
-export function RoleCounter({ value = '', max, testId, label }) {
+export function RoleCounter({ value = '', max, testId, label }: { value?: string; max: number; testId?: string; label?: string }) {
     const used = typeof value === 'string' ? value.length : 0;
     if (used < max * 0.8) return null;
     return (
@@ -103,13 +118,22 @@ export function RoleCounter({ value = '', max, testId, label }) {
  * server knipt zonder iets te zeggen en dan is de laatste zin weg zonder dat
  * hij ooit rood werd.
  */
-export function RoleTextArea({ value, onChange, placeholder, maxLength, rows = 3, disabled = false, testId, ariaLabel }) {
+export function RoleTextArea({ value, onChange, placeholder, maxLength, rows = 3, disabled = false, testId, ariaLabel }: {
+    value?: string;
+    onChange?: (next: string) => void;
+    placeholder?: string;
+    maxLength?: number;
+    rows?: number;
+    disabled?: boolean;
+    testId?: string;
+    ariaLabel?: string;
+}) {
     const [local, setLocal] = React.useState(value || '');
     const lastRef = React.useRef(value);
     React.useEffect(() => {
         if (value !== lastRef.current) { lastRef.current = value; setLocal(value || ''); }
     }, [value]);
-    const handle = (e) => {
+    const handle = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const next = e.target.value;
         setLocal(next);
         lastRef.current = next;

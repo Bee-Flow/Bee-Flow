@@ -1,6 +1,7 @@
 import { UserRound } from 'lucide-react';
 import React from 'react';
 import { PERSONA_LIMITS } from './personaFacts';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import RoleCard, { RoleCounter, RoleEmpty, RoleTextArea } from './RoleCard';
 
 /**
@@ -16,7 +17,12 @@ import RoleCard, { RoleCounter, RoleEmpty, RoleTextArea } from './RoleCard';
  * op 600 tekens zonder iets te zeggen, en dan is de afbakening — meestal de
  * laatste zin — weg.
  */
-export default function WhoCard({ t, value = '', onChange, readOnly = false }) {
+export default function WhoCard({ t, value = '', onChange, readOnly = false }: {
+    t: TranslateFn;
+    value?: string;
+    onChange?: (next: string) => void;
+    readOnly?: boolean;
+}) {
     return (
         <RoleCard
             testId="agent-role-who"

@@ -1,9 +1,10 @@
 import { Ban, Globe, Hand, HandHelping, Loader2, Workflow } from 'lucide-react';
 import React from 'react';
-import { READ, handoffBlockedBecause, handoffChoices, selectedHandoff } from './personaFacts';
+import { READ, handoffBlockedBecause, handoffChoices, selectedHandoff, type HandoffRow, type HandoffSelection, type Persona } from './personaFacts';
 import RoleCard, { RoleEmpty, RoleNote } from './RoleCard';
 import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
 import ChoiceCards from '../../../shared/ChoiceCards';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
  * "Als het niet weet" — wat er gebeurt buiten de kennis (Agents-artboard 1c).
@@ -32,7 +33,7 @@ import ChoiceCards from '../../../shared/ChoiceCards';
  */
 
 /** Waarom er niet gekozen mag worden, als zin. Letterlijke t()-aanroepen voor de i18n-guard. */
-function blockedMessage(t, code) {
+function blockedMessage(t: TranslateFn, code: string | null) {
     if (code === 'not_owner') {
         return t('agent_studio.role.handoff_not_owner', 'This agent belongs to someone else. The hand-off automation is checked against its owner, not against you, so an automation of yours would be refused when it saves.');
     }
@@ -43,7 +44,7 @@ function blockedMessage(t, code) {
 }
 
 /** De pil die de gekozen automatisering toont — of zegt dat hij niet te lezen was. */
-function HandoffPill({ t, chosen }) {
+function HandoffPill({ t, chosen }: { t: TranslateFn; chosen: HandoffSelection | null }) {
     if (!chosen) {
         return (
             <RoleNote tone="warn" testId="agent-role-handoff-none">
@@ -91,7 +92,15 @@ function HandoffPill({ t, chosen }) {
  * aanpassen van een trigger gestuurd die al goed was, in plaats van naar de
  * aan/uit-schakelaar.
  */
-function HandoffChooser({ t, rows, state, blocked, value, onChange, readOnly }) {
+function HandoffChooser({ t, rows, state, blocked, value, onChange, readOnly }: {
+    t: TranslateFn;
+    rows: HandoffRow[];
+    state: string;
+    blocked: string | null;
+    value: string | null;
+    onChange?: (id: string | null) => void;
+    readOnly: boolean;
+}) {
     const offered = rows.filter(r => r.active);
     const switchedOff = rows.length - offered.length;
     const message = blockedMessage(t, blocked);
@@ -131,7 +140,7 @@ function HandoffChooser({ t, rows, state, blocked, value, onChange, readOnly }) 
                         data-testid="agent-role-handoff-select"
                         value={value || ''}
                         disabled={readOnly}
-                        onChange={(e) => onChange?.(e.target.value || null)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value || null)}
                         className="bg-[var(--bg-secondary)]/60 border border-[var(--border-default)] rounded-lg px-2 py-1 text-[12px] text-[var(--text-primary)] outline-none disabled:opacity-60"
                     >
                         <option value="">{t('agent_studio.role.handoff_pick_none', 'No automation')}</option>
@@ -158,7 +167,7 @@ function HandoffChooser({ t, rows, state, blocked, value, onChange, readOnly }) 
 }
 
 /** De drie keuzes. Losse functie zodat de kaart zelf kort blijft. */
-function unknownOptions(t) {
+function unknownOptions(t: TranslateFn) {
     return [
         {
             value: 'honest',
@@ -192,6 +201,16 @@ export default function UnknownCard({
     automations = null, automationsState = READ.OK,
     agentOwnerId = null, userId = null,
     readOnly = false,
+}: {
+    t: TranslateFn;
+    persona?: Partial<Persona> | null;
+    onChangeMode?: (mode: string) => void;
+    onChangeHandoff?: (id: string | null) => void;
+    automations?: unknown;
+    automationsState?: string;
+    agentOwnerId?: string | null;
+    userId?: string | null;
+    readOnly?: boolean;
 }) {
     const mode = persona?.unknown?.mode || 'honest';
     const automationId = persona?.unknown?.automationId || null;

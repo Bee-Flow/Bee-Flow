@@ -13,16 +13,16 @@ import { Link2 } from 'lucide-react';
 import ExternalShareSection from './ExternalShareSection';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-export default function ShareLinksMenu({ webpageId, webpageName }) {
+export default function ShareLinksMenu({ webpageId, webpageName }: { webpageId?: string | null; webpageName?: string }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const popoverRef = useRef(null);
-    const triggerRef = useRef(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
     useEffect(() => {
         if (!open) return;
-        const onDoc = (e) => {
-            if (popoverRef.current?.contains(e.target)) return;
-            if (triggerRef.current?.contains(e.target)) return;
+        const onDoc = (e: MouseEvent) => {
+            if (popoverRef.current?.contains(e.target as Node | null)) return;
+            if (triggerRef.current?.contains(e.target as Node | null)) return;
             setOpen(false);
         };
         document.addEventListener('mousedown', onDoc);

@@ -1,7 +1,8 @@
 import { Ban, CheckCircle2, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { PERSONA_LIMITS } from './personaFacts';
+import { PERSONA_LIMITS, type BulletRejection } from './personaFacts';
 import RoleCard, { RoleEmpty, RoleNote } from './RoleCard';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
  * "Doet wel" en "Doet niet" — twee bulletlijsten van dezelfde vorm
@@ -35,7 +36,7 @@ import RoleCard, { RoleEmpty, RoleNote } from './RoleCard';
  */
 
 /** De afwijzingsreden als zin. Letterlijke t()-aanroepen voor de i18n-guard. */
-function rejectionMessage(t, code) {
+function rejectionMessage(t: TranslateFn, code: BulletRejection) {
     if (code === 'duplicate') return t('agent_studio.role.bullet_duplicate', 'That line is already in this list.');
     if (code === 'full') return t('agent_studio.role.bullet_full', 'Twenty lines is the maximum this agent keeps — anything beyond that is dropped when it saves.');
     return null;
@@ -50,10 +51,17 @@ function rejectionMessage(t, code) {
  * `'duplicate'` op terug, en dan blijft het invoerveld staan mét de reden
  * eronder; precies wat `AddRow` hieronder al deed.
  */
-function BulletRow({ t, text, index, onEdit, onRemove, readOnly }) {
+function BulletRow({ t, text, index, onEdit, onRemove, readOnly }: {
+    t: TranslateFn;
+    text: string;
+    index: number;
+    onEdit?: (index: number, value: string) => BulletRejection;
+    onRemove?: (index: number) => void;
+    readOnly: boolean;
+}) {
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(text);
-    const [rejected, setRejected] = useState(null);
+    const [rejected, setRejected] = useState<BulletRejection>(null);
     const commit = () => {
         if (draft === text) { setEditing(false); setRejected(null); return; }
         const code = onEdit?.(index, draft) ?? null;
@@ -73,9 +81,9 @@ function BulletRow({ t, text, index, onEdit, onRemove, readOnly }) {
                     aria-label={t('agent_studio.role.bullet_edit_label', 'Edit this line')}
                     value={draft}
                     maxLength={PERSONA_LIMITS.bullet}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
                     onBlur={commit}
-                    onKeyDown={(e) => {
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                         if (e.key === 'Enter') { e.preventDefault(); commit(); }
                         if (e.key === 'Escape') { e.preventDefault(); setEditing(false); setDraft(text); }
                     }}
@@ -111,10 +119,10 @@ function BulletRow({ t, text, index, onEdit, onRemove, readOnly }) {
 }
 
 /** De "+ toevoegen"-regel; klikken maakt er een invoerveld van. */
-function AddRow({ t, onAdd }) {
+function AddRow({ t, onAdd }: { t: TranslateFn; onAdd?: (value: string) => BulletRejection }) {
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState('');
-    const [rejected, setRejected] = useState(null);
+    const [rejected, setRejected] = useState<BulletRejection>(null);
 
     const commit = () => {
         const code = onAdd?.(draft) ?? null;
@@ -145,9 +153,9 @@ function AddRow({ t, onAdd }) {
                 aria-label={t('agent_studio.role.bullet_add_label', 'Add a line')}
                 value={draft}
                 maxLength={PERSONA_LIMITS.bullet}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
                 onBlur={commit}
-                onKeyDown={(e) => {
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === 'Enter') { e.preventDefault(); commit(); }
                     if (e.key === 'Escape') { e.preventDefault(); setDraft(''); setOpen(false); setRejected(null); }
                 }}
@@ -160,7 +168,15 @@ function AddRow({ t, onAdd }) {
     );
 }
 
-export default function BulletsCard({ t, variant, items = [], onAdd, onEdit, onRemove, readOnly = false }) {
+export default function BulletsCard({ t, variant, items = [], onAdd, onEdit, onRemove, readOnly = false }: {
+    t: TranslateFn;
+    variant: 'does' | 'doesNot';
+    items?: string[];
+    onAdd?: (value: string) => BulletRejection;
+    onEdit?: (index: number, value: string) => BulletRejection;
+    onRemove?: (index: number) => void;
+    readOnly?: boolean;
+}) {
     const forbids = variant === 'doesNot';
     return (
         <RoleCard

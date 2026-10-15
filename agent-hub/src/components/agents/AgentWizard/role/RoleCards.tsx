@@ -2,12 +2,13 @@ import { Code, Loader2, PenLine } from 'lucide-react';
 import React from 'react';
 import BulletsCard from './BulletsCard';
 import {
-    READ, addBullet, editBullet, patchPersona, personaShape, removeBullet, toggleToneChip,
+    READ, addBullet, editBullet, patchPersona, personaShape, removeBullet, toggleToneChip, type Persona,
 } from './personaFacts';
 import RoleCard, { RoleNote } from './RoleCard';
 import ToneCard from './ToneCard';
 import UnknownCard from './UnknownCard';
 import WhoCard from './WhoCard';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
  * De vijf kaarten van de tab "Rol" (Agents-artboard 1c, A3 deel A) — de eerste
@@ -37,7 +38,7 @@ import WhoCard from './WhoCard';
  */
 
 /** De strook onder de kaarten: overstappen naar één vrije instructie. */
-function FreeFooter({ t, onOpenFree }) {
+function FreeFooter({ t, onOpenFree }: { t: TranslateFn; onOpenFree: () => void }) {
     return (
         <div
             data-testid="agent-role-free-footer"
@@ -76,7 +77,7 @@ function FreeFooter({ t, onOpenFree }) {
  * NOG NIET AFGELEID, en de afleiding is de expliciete parse waar de knop
  * hiernaast voor is.
  */
-function FreeBanner({ t, onBackToFields, describes }) {
+function FreeBanner({ t, onBackToFields, describes }: { t: TranslateFn; onBackToFields: (() => void) | null; describes: boolean }) {
     return (
         <div
             data-testid="agent-role-free-banner"
@@ -102,7 +103,7 @@ function FreeBanner({ t, onBackToFields, describes }) {
 }
 
 /** Nog niet gelezen / niet te lezen — nooit vijf lege kaarten. */
-function RoleUnknown({ t, state }) {
+function RoleUnknown({ t, state }: { t: TranslateFn; state: string }) {
     if (state === READ.LOADING) {
         return (
             <div aria-live="polite" data-testid="agent-role-loading" className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
@@ -134,7 +135,7 @@ function RoleUnknown({ t, state }) {
  * `READ.ERROR`, want in allebei de gevallen weten we het niet. Alleen LOADING
  * krijgt zijn eigen scherm, omdat daar nog een antwoord onderweg is.
  */
-function roleScreen({ readable, personaState }) {
+function roleScreen({ readable, personaState }: { readable: boolean; personaState: string }): 'cards' | 'loading' | 'unreadable' {
     if (readable) return 'cards';
     return personaState === READ.LOADING ? 'loading' : 'unreadable';
 }
@@ -151,6 +152,18 @@ export default function RoleCards({
     userId = null,
     onOpenFree = null,
     onBackToFields = null,
+}: {
+    t: TranslateFn;
+    persona?: unknown;
+    personaState?: string;
+    onChange?: (next: Persona) => void;
+    readOnly?: boolean;
+    automations?: unknown;
+    automationsState?: string;
+    agentOwnerId?: string | null;
+    userId?: string | null;
+    onOpenFree?: (() => void) | null;
+    onBackToFields?: (() => void) | null;
 }) {
     const { persona: p, readable } = personaShape(persona);
     const screen = roleScreen({ readable, personaState });
@@ -159,20 +172,20 @@ export default function RoleCards({
 
     const free = p.mode === 'free';
     const ro = readOnly || free;
-    const write = (next) => onChange?.(next);
-    const addTo = (field) => (text) => {
+    const write = (next: Persona) => onChange?.(next);
+    const addTo = (field: 'does' | 'doesNot') => (text: string) => {
         const { list, rejected } = addBullet(p[field], text);
         if (!rejected) write(patchPersona(p, { [field]: list }));
         return rejected;
     };
     // Geeft de afwijzingscode door aan de kaart. Een bewerking die stilletjes
     // niets doet is erger dan een bewerking die zegt waarom.
-    const editIn = (field) => (i, text) => {
+    const editIn = (field: 'does' | 'doesNot') => (i: number, text: string) => {
         const { list, rejected } = editBullet(p[field], i, text);
         if (!rejected) write(patchPersona(p, { [field]: list }));
         return rejected;
     };
-    const removeFrom = (field) => (i) => write(patchPersona(p, { [field]: removeBullet(p[field], i) }));
+    const removeFrom = (field: 'does' | 'doesNot') => (i: number) => write(patchPersona(p, { [field]: removeBullet(p[field], i) }));
     // Zegt de banner de waarheid? Alleen als er ook echt iets in de velden staat.
     const describes = !!(p.who || p.tone.chips.length || p.tone.text || p.does.length || p.doesNot.length);
 

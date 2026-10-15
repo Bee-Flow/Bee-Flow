@@ -1,7 +1,31 @@
 import React, { useState } from 'react';
 import { Plus, Search, X } from 'lucide-react';
+import type { Skill } from '../../../../api/queries/skills';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
-export default function SkillPicker({ skills, selectedIds, automations = [], search, onSearch, onClose, onToggle, onCreate, t }) {
+interface PickerSkill extends Skill {
+    icon?: string;
+    automationId?: string | null;
+}
+
+interface NewSkill {
+    name: string;
+    description: string;
+    instructions: string;
+    automationId: string | null;
+}
+
+export default function SkillPicker({ skills, selectedIds, automations = [], search, onSearch, onClose, onToggle, onCreate, t }: {
+    skills?: PickerSkill[] | null;
+    selectedIds: string[];
+    automations?: Array<{ id: string; title?: string }> | null;
+    search: string;
+    onSearch: (value: string) => void;
+    onClose: () => void;
+    onToggle: (id: string) => void;
+    onCreate: (skill: NewSkill) => Promise<unknown>;
+    t: TranslateFn;
+}) {
     const [creating, setCreating] = useState(false);
     const [newName, setNewName] = useState('');
     const [newDesc, setNewDesc] = useState('');
@@ -36,7 +60,7 @@ export default function SkillPicker({ skills, selectedIds, automations = [], sea
                         <input
                             autoFocus
                             value={search}
-                            onChange={(e) => onSearch(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearch(e.target.value)}
                             placeholder={t('agent_wizard.skills.search')}
                             className="flex-1 bg-transparent outline-none text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)]"
                         />
@@ -92,20 +116,20 @@ export default function SkillPicker({ skills, selectedIds, automations = [], sea
                     <input
                         autoFocus
                         value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewName(e.target.value)}
                         placeholder={t('agent_wizard.skills.field_name')}
                         className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
                     />
                     <input
                         value={newDesc}
-                        onChange={(e) => setNewDesc(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewDesc(e.target.value)}
                         placeholder={t('agent_wizard.skills.field_description')}
                         className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
                     />
                     {!newAutomationId && (
                         <textarea
                             value={newInstr}
-                            onChange={(e) => setNewInstr(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewInstr(e.target.value)}
                             rows={4}
                             placeholder={t('agent_wizard.skills.field_instructions')}
                             className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] resize-y"
@@ -118,7 +142,7 @@ export default function SkillPicker({ skills, selectedIds, automations = [], sea
                             </div>
                             <select
                                 value={newAutomationId}
-                                onChange={(e) => setNewAutomationId(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewAutomationId(e.target.value)}
                                 className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] cursor-pointer"
                             >
                                 <option value="">{t('agent_wizard.skills.linked_automation_none', '— No automation, use instructions above —')}</option>
