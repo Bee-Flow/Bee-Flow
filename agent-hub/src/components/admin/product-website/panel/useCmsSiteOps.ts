@@ -8,6 +8,7 @@ import type useCmsAutosave from './useCmsAutosave';
 import type useCmsPanelState from './useCmsPanelState';
 import { errorMessage, messageOf } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
+import type { AuthFetchOptions } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
@@ -151,7 +152,7 @@ export default function useCmsSiteOps({
         const isZip = /\.zip$/i.test(file.name || '') || file.type === 'application/zip';
         setSiteIoStatus({ kind: 'busy', text: 'Importing…' });
 
-        let request: RequestInit;
+        let request: AuthFetchOptions;
         if (isZip) {
             const form = new FormData();
             form.append('file', file, file.name || 'site.zip');

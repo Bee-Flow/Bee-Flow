@@ -1,5 +1,6 @@
 import type { RegexRule, RuleCollection } from '../patterns/patternTypes';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import type { AuthFetchOptions } from '../../../../../utils/helpers';
 
 /**
  * Data access for the Guardrail Configs console.
@@ -23,7 +24,7 @@ export interface GuardrailRequestError extends Error {
     body?: unknown;
 }
 
-export async function apiJson(path: string, options?: RequestInit) {
+export async function apiJson(path: string, options?: AuthFetchOptions) {
     const res = await authFetch(`${API_BASE}${path}`, options);
     let body = null;
     try { body = await res.json(); } catch { /* empty or non-JSON body */ }
