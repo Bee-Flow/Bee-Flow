@@ -19,7 +19,7 @@ import * as vp from './valueParts';
 import { pathLabelParts } from './walkPath';
 
 const web = requireWeb('utils/bindingHelpers.js');
-const m = (name: string) => requireWeb(`${BUILDER}/mapping/${name}.js`);
+const m = (name: string) => requireWeb(`${BUILDER}/mapping/${name}.${name === 'valueParts' ? 'ts' : 'js'}`);
 const webPick = requireWeb(`${BUILDER}/mapping/proposePick.ts`);
 
 const lvl3 = '```json\n' + JSON.stringify({ verdict: { score: 0.93, 'reason code': 'R-7' } }) + '\n```';

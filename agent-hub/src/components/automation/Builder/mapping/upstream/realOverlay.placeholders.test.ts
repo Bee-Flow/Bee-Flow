@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeUpstreamGroups, overlayGroupWithReal } from './index';
 import { eachField, type Field } from './fieldTree';
+import type { Group } from './upstream.types';
 
 /**
  * Once a step has run, what it REALLY returned is the truth. A key the
@@ -22,7 +23,7 @@ describe('real output replaces the placeholder sample', () => {
             steps: [{ id: 'h', type: 'http_request', url: 'https://x' }, { id: 'dst', type: 'notification', title: 't' }],
             edges: [{ from: 'trg', to: 'h' }, { from: 'h', to: 'dst' }],
         };
-        const before = computeUpstreamGroups(def, 'dst', { apps: [], triggerOutputs: {} }).find((g: { id: string }) => g.id === 'h');
+        const before = computeUpstreamGroups(def, 'dst', { apps: [], triggerOutputs: {} }).find((g: { id: string }) => g.id === 'h') as Group;
         expect(paths(before.fields)).toContain('steps.h.output.data');
         const out = { status: 200, ok: true, headers: {}, body: '{"a":1}', truncated: false };
         const after = overlayGroupWithReal(before, out);

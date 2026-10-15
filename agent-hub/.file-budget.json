@@ -151,7 +151,7 @@
     "src/components/automation/Builder/mapping/ValueBuilder.jsx": 861,
     "src/components/automation/Builder/mapping/VariablePicker.jsx": 454,
     "src/components/automation/Builder/NodeDetailView.jsx": 408,
-    "src/components/automation/Builder/utils/conditionModel.js": 403,
+    "src/components/automation/Builder/utils/conditionModel.ts": 403,
     "src/components/automation/index.jsx": 640,
     "src/components/automation/useAutomationLibrary.ts": 408,
     "src/components/chat/answerTrace.js": 420,

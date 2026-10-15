@@ -40,7 +40,7 @@ interface Props {
 const PathField = PathFieldJs as unknown as ComponentType<Record<string, unknown>>;
 const FormRow = FormRowJs as unknown as ComponentType<Record<string, unknown>>;
 const inputClass = inputClassJs as () => string;
-const collectArrayPaths = collectArrayPathsJs as (groups: unknown, sample?: unknown) => string[];
+const collectArrayPaths = collectArrayPathsJs as (groups: unknown, sample?: unknown) => { key: string; path: string; sample: unknown }[];
 
 const MUTED = 'text-[11px] text-[var(--text-tertiary)]';
 const AMBER = 'text-[11px] text-amber-600 dark:text-amber-400';

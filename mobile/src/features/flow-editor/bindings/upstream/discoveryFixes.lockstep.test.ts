@@ -21,7 +21,7 @@ import type { Catalog, FlowDefinition, VariableField, VariableGroup } from '../t
 import * as up from './index';
 
 const web = {
-    up: requireWeb(`${BUILDER}/mapping/upstream/index.js`),
+    up: requireWeb(`${BUILDER}/mapping/upstream/index.ts`),
     real: requireWeb(`${BUILDER}/mapping/realOutputs.js`),
 };
 

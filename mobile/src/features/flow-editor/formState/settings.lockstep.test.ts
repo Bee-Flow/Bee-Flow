@@ -201,7 +201,7 @@ describe('diffSummary', () => {
 });
 
 describe('notificationDefaults', () => {
-    const web = requireWeb(`${BUILDER}/notificationDefaults.js`);
+    const web = requireWeb(`${BUILDER}/notificationDefaults.ts`);
     it('tables and channel rules match', () => {
         expect(nd.NOTIFICATION_DEFAULTS).toStrictEqual(webValue(web, 'NOTIFICATION_DEFAULTS'));
         // Handoff 5 replaced the policy's bell levels with urgencies (the old
