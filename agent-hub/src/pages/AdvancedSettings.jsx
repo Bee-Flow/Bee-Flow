@@ -104,7 +104,8 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose })
         showComplianceNav, canManageUsers, isSelfHosted, isConsumerAccount, isNcConnectorUser, isNcOrg, showNcSync,
     } = useSettingsAccess(user);
     // The badge on the Compliance row: ONE cheap call, no poll, `attention_open`
-    // only; an unknown or zero count renders nothing (NavCountBadge).
+    // only; an unknown or zero count renders nothing (NavCountBadge): a "0"
+    // invented while the endpoint has not answered is a lie.
     const { counts: complianceCounts } = useComplianceCounts({
         enabled: !!showComplianceNav, poll: false, keys: ['attention_open'],
     });
@@ -168,18 +169,18 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose })
 
     const { handleComplianceNavigate } = useComplianceNavigation(canSeeOrg, onNavigate, setOrgDeepSegs, setActiveTabState);
 
-    // On a phone the hub owns the way back to the section list (its own top bar).
-    const complianceHub = (
-        <ComplianceHub
-            activeSection={orgDeepSegs.seg1 || 'overview'}
-            focusCheckId={orgDeepSegs.seg2 || null}
-            onNavigate={handleComplianceNavigate}
-            onBack={isMobile ? (() => setMobileDetail(false)) : null}
-        />
-    );
     const renderContent = () => renderSettingsContent({
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs, complianceHub,
+        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs,
+        // On a phone the hub owns the way back to the section list (its own top bar).
+        complianceHub: (
+            <ComplianceHub
+                activeSection={orgDeepSegs.seg1 || 'overview'}
+                focusCheckId={orgDeepSegs.seg2 || null}
+                onNavigate={handleComplianceNavigate}
+                onBack={isMobile ? (() => setMobileDetail(false)) : null}
+            />
+        ),
         defaultAgentMode, setDefaultAgentMode, defaultAgentId, setDefaultAgentId, agents, onLogout, onUpdateUser,
         memoryStats, memoryStatsStatus, fetchMemoryStats, statuses, handleIntegrationSaved,
         openMemoryPanel: (view) => { setMemoryPanelView(view === 'review' ? 'review' : 'active'); setShowMemoryPanel(true); },

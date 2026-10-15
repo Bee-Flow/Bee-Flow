@@ -97,7 +97,6 @@ export default function TemplatesPage({ user, onBack }) {
         sendChatMessage,
     });
 
-
     // Save instructions
     const saveInstructions = async () => {
         if (!fillTemplate) return;

@@ -19,10 +19,11 @@ vi.mock('../components/chat/MessageItem', () => ({
 }));
 
 let fetchSpy: MockInstance<typeof fetch>;
-let events: Array<[string, unknown]> = [];
+// A plain string is sent verbatim as a raw SSE block (for malformed input).
+let events: Array<[string, unknown] | string> = [];
 let streamOk = true;
 
-const sse = () => events.map(([e, d]) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`).join('');
+const sse = () => events.map((ev) => (typeof ev === 'string' ? ev : `event: ${ev[0]}\ndata: ${JSON.stringify(ev[1])}\n\n`)).join('');
 
 let embedStatus = 200;
 beforeEach(() => {
@@ -166,7 +167,7 @@ describe('EmbedChat: stream events', () => {
     });
 
     it('ignores a data line that is not JSON and an unknown event', async () => {
-        events = [['whatever', { a: 1 }], ['content', { text: 'ok' }]];
+        events = ['event: content\ndata: {not json\n\n', ['whatever', { a: 1 }], ['content', { text: 'ok' }]];
         await sendText('hi');
         expect((await settled()).content).toBe('ok');
     });
