@@ -9,13 +9,27 @@ export const ALWAYS_AVAILABLE = new Set(['agent-search']);
 
 const OUTLOOK_IDS = new Set(['outlook', 'outlook-readonly']);
 
+/** The flags of `GET /ai/user-settings` this filter reads; every one may be absent. */
+export interface IntegrationAvailabilityStatus {
+    orgEnabledIntegrations?: string[] | null;
+    isGoogleUser?: boolean;
+    isMicrosoftUser?: boolean;
+    hasMicrosoftConnection?: boolean;
+    hasFirefliesKey?: boolean;
+    hasYouTrackConfig?: boolean;
+    hasGammaKey?: boolean;
+    hasN8nConfig?: boolean;
+    hasLinkedInConfig?: boolean;
+    linkedInConnected?: boolean;
+}
+
 /**
  * Filter the integration catalog against the caller's integration status
  * (the raw `GET /ai/user-settings` payload). A null/undefined status means
  * "not loaded yet" and returns the full catalog, matching the pre-extraction
  * behavior in BuilderSplit.
  */
-export function filterAvailableIntegrations(catalog, integrationStatus) {
+export function filterAvailableIntegrations<T extends { id: string; group?: string }>(catalog: T[], integrationStatus?: IntegrationAvailabilityStatus | null): T[] {
     if (!integrationStatus) return catalog;
     const status = integrationStatus;
     return catalog.filter(item => {

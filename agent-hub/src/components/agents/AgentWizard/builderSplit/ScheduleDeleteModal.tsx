@@ -1,10 +1,25 @@
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import Modal from '../../../shared/Modal';
+import type { RefObject } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+/** The schedule the delete dialog is about. */
+export interface ScheduleDeleteTarget { id: string; title?: string }
+
+export interface ScheduleDeleteModalProps {
+    t: TranslateFn;
+    scheduleDeleteTarget: ScheduleDeleteTarget;
+    scheduleDeleting: boolean;
+    setScheduleDeleteTarget: (target: ScheduleDeleteTarget | null) => void;
+    setScheduleDeleting: (deleting: boolean) => void;
+    refreshAgentSchedules: () => unknown;
+    mountedRef: RefObject<boolean>;
+}
 
 // Schedule delete-confirmation modal (in-app instead of window.confirm so the
 // styling, focus management and i18n match the rest of the studio). Subtree
 // moved verbatim from BuilderSplit; state stays in the parent.
-export default function ScheduleDeleteModal({ t, scheduleDeleteTarget, scheduleDeleting, setScheduleDeleteTarget, setScheduleDeleting, refreshAgentSchedules, mountedRef }) {
+export default function ScheduleDeleteModal({ t, scheduleDeleteTarget, scheduleDeleting, setScheduleDeleteTarget, setScheduleDeleting, refreshAgentSchedules, mountedRef }: ScheduleDeleteModalProps) {
     const remove = async () => {
         if (scheduleDeleting) return;
         setScheduleDeleting(true);

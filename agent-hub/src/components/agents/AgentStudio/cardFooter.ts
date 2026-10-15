@@ -72,7 +72,18 @@
 // binnen en wordt onder zijn eigen naam gemeld in plaats van weggelaten.
 import { USAGE_KINDS } from './deleteBlock';
 
-const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** What the footer line says, and which of the three lines it is. */
+export interface CardFooterSummary {
+    variant: 'ungrounded' | 'private' | 'counts';
+    statsAsked: boolean;
+    conversations: number | null;
+    people: number | null;
+    usageAsked: boolean;
+    usedBy: Array<{ kind: string; count: number | null }>;
+    unchecked: string[];
+}
 
 /**
  * Een eindig, niet-negatief geheel getal, of `null`. Nooit een 0 uit niets.
@@ -84,7 +95,7 @@ const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
  * worden". Dezelfde zeef die `documentCountOf` in
  * server/routes/studio/attentionChecks.js voor zet.
  */
-function countOrNull(value) {
+function countOrNull(value: unknown) {
     // Alleen een getal, of een string die er een is. Alles wat `Number()`
     // buiten die twee soorten stilzwijgend 0 noemt (`null`, `''`, `false`,
     // `[]`) is hier ONBEKEND.
@@ -105,21 +116,20 @@ function countOrNull(value) {
  * mee voor context maar worden hier NIET opnieuw tot een oordeel verwerkt —
  * dat zou de tweede implementatie zijn die dit bestand vermijdt.
  *
- * @returns {'grounded'|'ungrounded'|null}
  */
-export function groundingVerdictOf(agent) {
+export function groundingVerdictOf(agent: unknown): 'grounded' | 'ungrounded' | null {
     const g = isObj(agent) ? agent.grounding : null;
     if (!isObj(g)) return null;
     return g.verdict === 'grounded' || g.verdict === 'ungrounded' ? g.verdict : null;
 }
 
 /** De volgorde waarin een mens de soorten leest. Onbekende soort: achteraan. */
-function kindOrder(kind) {
+function kindOrder(kind: string) {
     const i = USAGE_KINDS.indexOf(kind);
     return i === -1 ? USAGE_KINDS.length : i;
 }
 
-const byKind = (a, b) => kindOrder(a) - kindOrder(b) || String(a).localeCompare(String(b));
+const byKind = (a: string, b: string) => kindOrder(a) - kindOrder(b) || String(a).localeCompare(String(b));
 
 /**
  * De "gebruikt door"-helft: wat er gevonden is, en wat niemand kon
@@ -132,7 +142,7 @@ const byKind = (a, b) => kindOrder(a) - kindOrder(b) || String(a).localeCompare(
  * antwoord over ALLE soorten — dezelfde smalle lezing die
  * `summariseDeleteBlock` hiernaast maakt.
  */
-function usageHalf(usage) {
+function usageHalf(usage: unknown) {
     if (!isObj(usage)) return { usageAsked: false, usedBy: [], unchecked: [] };
     const counts = isObj(usage.counts) ? usage.counts : {};
     return {
@@ -160,7 +170,7 @@ function usageHalf(usage) {
  * wist wie er keek (geen `excludeUserId`), en dan is de FILTER over álle rijen
  * gelopen: een 0 zou daar "niemand anders" beweren zonder bewijs.
  */
-function onlyYou(row, viewerId, others) {
+function onlyYou(row: Record<string, unknown> | null, viewerId: string | null, others: number | null) {
     const published = row?.is_published ?? row?.isPublished;
     const owner = row?.owner_id ?? row?.ownerId;
     const mine = !!viewerId && !!owner && String(owner) === String(viewerId);
@@ -189,7 +199,7 @@ function onlyYou(row, viewerId, others) {
  * tegenspraak op één kaart, dus daar zwijgt de voet. Voor H3 — een werklijst
  * voor de bouwer — is het concept juist de goede kolom; vandaar het verschil.
  */
-function warnsUngrounded(row) {
+function warnsUngrounded(row: Record<string, unknown> | null) {
     if (groundingVerdictOf(row) !== 'ungrounded') return false;
     const published = row?.is_published ?? row?.isPublished;
     if (published !== true) return false;
@@ -200,20 +210,11 @@ function warnsUngrounded(row) {
 /**
  * Wat er in de voet van deze kaart staat.
  *
- * @param {unknown} agent  één rij van GET /agents/all
- * @param {string|null} viewerId  wie er kijkt; zonder dat kan "alleen jij"
+ * @param agent  één rij van GET /agents/all
+ * @param viewerId  wie er kijkt; zonder dat kan "alleen jij"
  *   niet waar zijn en verschijnt die vorm niet
- * @returns {{
- *   variant: 'ungrounded'|'private'|'counts',
- *   statsAsked: boolean,
- *   conversations: number|null,
- *   people: number|null,
- *   usageAsked: boolean,
- *   usedBy: Array<{kind: string, count: number}>,
- *   unchecked: string[],
- * }}
  */
-export function summariseCardFooter(agent, viewerId = null) {
+export function summariseCardFooter(agent: unknown, viewerId: string | null = null): CardFooterSummary {
     const row = isObj(agent) ? agent : null;
 
     // DRIE ANTWOORDEN, NIET TWEE. Een rij ZONDER het veld `stats` komt van een

@@ -63,7 +63,45 @@ export const CATEGORY = Object.freeze({ NONE: 'none', NAMED: 'named', UNKNOWN: '
 /** De chip-id van "Zonder categorie" — geen echt categorie-id, dus geen botsing. */
 export const NO_CATEGORY = '__no_category__';
 
-function isPlainObject(v) {
+/** The config blob of an agent row. */
+export type AgentRowConfig = Record<string, unknown>;
+
+/** One row of `GET /agents/all` (or `/agents/system`); every field may be missing. */
+export interface AgentListRow {
+    id?: string | null;
+    name?: string;
+    description?: string;
+    config?: AgentRowConfig | string | null;
+    can_edit?: boolean;
+    category_id?: string | null;
+    published_version?: number | string | null;
+    is_published?: boolean | number;
+    shared_groups?: string[] | string | null;
+    avatar?: string | null;
+}
+
+/** A category as the list reads it. */
+export interface CategoryLike { id?: string; name?: string }
+
+/** The three counters of one card. */
+export interface CardCounts {
+    readable: boolean;
+    knowledge: number | null;
+    skills: number | null;
+    tools: number | null;
+    toolsAtLeast: boolean;
+}
+
+/** The category of a row: none, a name that was read, or an id without a name. */
+export type CategoryVerdict =
+    | { state: 'none'; id: null; name: null }
+    | { state: 'named'; id: string; name: string }
+    | { state: 'unknown'; id: string; name: null };
+
+/** One filter chip above the grid. */
+export interface CategoryChip { id: string | undefined; name: string | null | undefined; count: number | undefined }
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
@@ -74,7 +112,7 @@ function isPlainObject(v) {
  * — een rij die langs een andere weg binnenkwam — maar alles wat daarna geen
  * gewoon object is, is ONLEESBAAR en komt terug als `null`.
  */
-export function configOf(agent) {
+export function configOf(agent?: AgentListRow | null): AgentRowConfig | null {
     if (!agent) return null;
     const raw = agent.config;
     if (isPlainObject(raw)) return raw;
@@ -90,8 +128,8 @@ export function configOf(agent) {
 }
 
 /** Unieke, niet-lege strings uit een lijst. Geen lijst ⇒ leeg. */
-function uniqueStrings(list) {
-    const seen = new Set();
+function uniqueStrings(list: unknown) {
+    const seen = new Set<string>();
     for (const v of Array.isArray(list) ? list : []) {
         if (typeof v === 'string' && v) seen.add(v);
     }
@@ -103,7 +141,7 @@ function uniqueStrings(list) {
  * draagt `knowledge_base_ids`, maar `attentionChecks.js` accepteert al jaren
  * óók `knowledgeBaseIds` en er staan rijen in het veld met die sleutel.
  */
-function knowledgeIdsOf(config) {
+function knowledgeIdsOf(config: AgentRowConfig) {
     const raw = config.knowledge_base_ids ?? config.knowledgeBaseIds;
     return uniqueStrings(raw);
 }
@@ -111,15 +149,14 @@ function knowledgeIdsOf(config) {
 /**
  * De drie tellers van één kaart.
  *
- * @returns {{readable: boolean, knowledge: number|null, skills: number|null,
- *            tools: number|null, toolsAtLeast: boolean}}
+ * @returns
  *   `readable: false` ⇒ alle drie `null`: de config kon niet gelezen worden,
  *   en dan zegt de kaart dát, in plaats van drie nullen.
  *   `tools: null` bij een leesbare config betekent hetzelfde één niveau lager:
  *   de sectie `config.tools` staat er wél maar is niet te lezen, en dan is er
  *   geen getal om te tonen. `toolsAtLeast` zegt dat het getal een ONDERGRENS is.
  */
-export function countsOf(agent) {
+export function countsOf(agent?: AgentListRow | null): CardCounts {
     const config = configOf(agent);
     if (!config) return { readable: false, knowledge: null, skills: null, tools: null, toolsAtLeast: false };
 
@@ -169,7 +206,7 @@ export function countsOf(agent) {
  * Mag deze gebruiker de agent bewerken? Alleen een expliciete boolean telt;
  * een ontbrekend veld is ONBEKEND — zie de docblock bovenaan.
  */
-export function editVerdict(agent) {
+export function editVerdict(agent?: AgentListRow | null) {
     const v = agent?.can_edit;
     if (v === true) return EDIT.YES;
     if (v === false) return EDIT.NO;
@@ -183,7 +220,7 @@ export function editVerdict(agent) {
  * `NONE`: "zonder categorie" is een bewering over de agent, en de agent heeft
  * er juist wél een — we konden zijn naam alleen niet lezen.
  */
-export function categoryOf(agent, categories) {
+export function categoryOf(agent: AgentListRow | null | undefined, categories?: readonly CategoryLike[] | null): CategoryVerdict {
     const id = typeof agent?.category_id === 'string' && agent.category_id ? agent.category_id : null;
     if (!id) return { state: CATEGORY.NONE, id: null, name: null };
     const hit = (Array.isArray(categories) ? categories : []).find(c => c && c.id === id);
@@ -202,12 +239,12 @@ export function categoryOf(agent, categories) {
  * "onbekend" zou een categorie suggereren die niet bestaat. Ze blijven
  * bereikbaar zolang er geen chip actief is.
  *
- * @returns {Array<{id: string, name: string|null, count: number}>}
+ * @returns
  *   `name: null` op de chip met id NO_CATEGORY — die schrijft de UI zelf.
  */
-export function categoryChipsOf(agents, categories) {
+export function categoryChipsOf(agents: readonly AgentListRow[] | null | undefined, categories?: readonly CategoryLike[] | null): CategoryChip[] {
     const rows = Array.isArray(agents) ? agents : [];
-    const counts = new Map();
+    const counts = new Map<string | undefined, number>();
     let noCategory = 0;
     for (const a of rows) {
         const cat = categoryOf(a, categories);
@@ -215,7 +252,7 @@ export function categoryChipsOf(agents, categories) {
         if (cat.state !== CATEGORY.NAMED) continue;
         counts.set(cat.id, (counts.get(cat.id) || 0) + 1);
     }
-    const chips = (Array.isArray(categories) ? categories : [])
+    const chips: CategoryChip[] = (Array.isArray(categories) ? categories : [])
         .filter(c => c && typeof c.id === 'string' && counts.has(c.id))
         .map(c => ({ id: c.id, name: c.name, count: counts.get(c.id) }));
     // Zonder ook maar één benoemde categorie is er niets om tegen te
@@ -245,7 +282,7 @@ export function categoryChipsOf(agents, categories) {
  */
 
 /** Alles waarop het zoekveld matcht, als één kleingeschreven string. */
-function haystackOf(agent, categories) {
+function haystackOf(agent: AgentListRow | null | undefined, categories?: readonly CategoryLike[] | null) {
     const cat = categoryOf(agent, categories);
     return [agent?.name, agent?.description, cat.name]
         .map(v => (typeof v === 'string' ? v : ''))
@@ -256,13 +293,15 @@ function haystackOf(agent, categories) {
 /**
  * Het getoonde deel van de lijst: eerst de chip, dan de zoekterm.
  *
- * @param {Array} agents        de rijen zoals de server ze gaf
- * @param {object} opts
- * @param {string} opts.query        de zoekterm ('' = alles)
- * @param {string|null} opts.categoryId  actieve chip, `NO_CATEGORY`, of null
- * @param {Array} opts.categories    de gelezen categorielijst
+ * @param agents        de rijen zoals de server ze gaf
+ * @param opts.query        de zoekterm ('' = alles)
+ * @param opts.categoryId  actieve chip, `NO_CATEGORY`, of null
+ * @param opts.categories    de gelezen categorielijst
  */
-export function filterAgents(agents, { query = '', categoryId = null, categories = [] } = {}) {
+export function filterAgents<T extends AgentListRow>(
+    agents: readonly T[] | null | undefined,
+    { query = '', categoryId = null, categories = [] }: { query?: string; categoryId?: string | null; categories?: readonly CategoryLike[] } = {},
+): readonly T[] {
     let rows = Array.isArray(agents) ? agents : [];
     if (categoryId === NO_CATEGORY) {
         rows = rows.filter(a => categoryOf(a, categories).state === CATEGORY.NONE);

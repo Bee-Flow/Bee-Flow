@@ -1,5 +1,10 @@
 import { FolderOpen, Gauge, Languages, Pencil } from 'lucide-react';
 import React from 'react';
+import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import type { CategoryResult, CategoryRow, ReadState } from '../agentEditor.types';
+import type { ModelTierMap } from '../../../../api/queries/modelTiers';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { TIER_META, customTierMeta } from '../../../licensing/tierMeta';
 import CategoryField from '../CategoryField';
 import { READ } from '../canUse/canUseFacts';
@@ -53,7 +58,7 @@ import AvatarPicker from '../pickers/AvatarPicker';
  * variabele wordt samengesteld is voor de i18n-guard niet te controleren —
  * en een tierchip die "tier.fast" toont is erger dan een Engelse "Fast".
  */
-function tierLabelOf(t, key, tiers) {
+function tierLabelOf(t: TranslateFn, key: string, tiers?: ModelTierMap | null) {
     switch (key) {
         case 'auto': return t('tier.auto', TIER_META.auto.label);
         case 'fast': return t('tier.fast', TIER_META.fast.label);
@@ -86,7 +91,7 @@ function tierLabelOf(t, key, tiers) {
  * `Intl.DisplayNames` bestaat niet in elke omgeving, dus alles zit in een
  * try/catch: geen naam ⇒ geen chip.
  */
-export function languageChipLabel(code, locale = 'en') {
+export function languageChipLabel(code: unknown, locale = 'en') {
     if (typeof code !== 'string' || !code.trim()) return null;
     const base = code.trim().toLowerCase().split('-')[0];
     if (!/^[a-z]{2,3}$/.test(base)) return null;
@@ -98,7 +103,7 @@ export function languageChipLabel(code, locale = 'en') {
 }
 
 /** De chipvorm van de hero: 24px hoog, hairline, tertiaire glyph. */
-function HeroChip({ Icon, children, title, testId }) {
+function HeroChip({ Icon, children, title, testId }: { Icon: LucideIcon; children?: ReactNode; title?: string; testId?: string }) {
     return (
         <span
             data-testid={testId}
@@ -111,6 +116,29 @@ function HeroChip({ Icon, children, title, testId }) {
     );
 }
 
+export interface AgentHeroProps {
+    t: TranslateFn;
+    ro?: boolean;
+    avatar: string;
+    updateAvatar: (avatar: string) => void;
+    name: string;
+    updateName: (name: string) => void;
+    flushNow: () => void;
+    description: string;
+    updateDescription: (description: string) => void;
+    tiers?: ModelTierMap | null;
+    selectedTier: string;
+    language?: string | null;
+    locale?: string;
+    categoryId?: string | null;
+    categories?: CategoryRow[] | null;
+    categoriesState?: ReadState;
+    updateCategory?: (id: string | null) => void;
+    createCategory: (name: string) => Promise<CategoryResult>;
+    renameCategory: (id: string, name: string) => Promise<CategoryResult>;
+    deleteCategory: (id: string, reassignTo?: string) => Promise<CategoryResult>;
+}
+
 export default function AgentHero({
     t, ro = false,
     avatar, updateAvatar,
@@ -120,7 +148,7 @@ export default function AgentHero({
     language = null, locale = 'en',
     categoryId = null, categories = null, categoriesState = READ.OK,
     updateCategory, createCategory, renameCategory, deleteCategory,
-}) {
+}: AgentHeroProps) {
     const tierLabel = tierLabelOf(t, selectedTier, tiers);
     const languageLabel = languageChipLabel(language, locale);
     // Wanneer de categorietag verschijnt.

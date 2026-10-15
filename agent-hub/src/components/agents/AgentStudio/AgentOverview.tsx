@@ -2,9 +2,26 @@ import { Bot, Loader2, Plus, Search } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import AgentCard from './AgentCard';
 import { NO_CATEGORY, categoryChipsOf, filterAgents } from './agentCardFacts';
+import type { AgentListRow, CategoryLike } from './agentCardFacts';
 import EmptyState from '../../shared/EmptyState';
 import { PRIMARY_ACTION_STYLE } from '../../shared/StudioSectionHeader';
 import { useAgentEditorBootstrap } from '../AgentWizard/AgentEditorBootstrapContext';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { OrgGroup } from '../AgentDesigner/PublishMenu';
+
+export interface AgentOverviewProps<T extends AgentListRow> {
+    t: TranslateFn;
+    agents?: readonly T[] | null;
+    loading?: boolean;
+    error?: string | null;
+    onRetry?: (() => void) | null;
+    onOpen: (agent: T) => void;
+    onDelete?: ((agent: T | null | undefined) => void) | null;
+    onCreate?: (() => void) | null;
+    selectedId?: string | null;
+    systemMode?: boolean;
+    viewerId?: string | null;
+}
 
 /** Eén gedeelde lege lijst, zodat een ontbrekende bron geen nieuwe identiteit per render is. */
 const EMPTY = Object.freeze([]);
@@ -33,7 +50,7 @@ const EMPTY = Object.freeze([]);
  * hij hoort niet bij "no category" — en blijft zichtbaar zolang er geen chip
  * actief is; zijn kaart zegt zelf dat de categorie onbekend is.
  */
-export default function AgentOverview({
+export default function AgentOverview<T extends AgentListRow>({
     t,
     agents,
     loading = false,
@@ -45,20 +62,20 @@ export default function AgentOverview({
     selectedId = null,
     systemMode = false,
     viewerId = null,
-}) {
+}: AgentOverviewProps<T>) {
     const bootstrap = useAgentEditorBootstrap();
     // useMemo, niet een ternary in de body: een verse `[]` per render maakt elke
     // memo hieronder elke render opnieuw ongeldig.
-    const categories = useMemo(
+    const categories = useMemo<readonly CategoryLike[]>(
         () => (Array.isArray(bootstrap?.categories) ? bootstrap.categories : EMPTY),
         [bootstrap?.categories],
     );
-    const orgGroups = Array.isArray(bootstrap?.orgGroups) ? bootstrap.orgGroups : EMPTY;
+    const orgGroups: readonly OrgGroup[] = Array.isArray(bootstrap?.orgGroups) ? bootstrap.orgGroups : EMPTY;
 
     const [query, setQuery] = useState('');
-    const [categoryId, setCategoryId] = useState(null);
+    const [categoryId, setCategoryId] = useState<string | null | undefined>(null);
 
-    const rows = useMemo(() => (Array.isArray(agents) ? agents : EMPTY), [agents]);
+    const rows = useMemo<readonly T[]>(() => (Array.isArray(agents) ? agents : EMPTY), [agents]);
     const chips = useMemo(() => categoryChipsOf(rows, categories), [rows, categories]);
 
     // Een chip die uit de lijst verdwijnt (de laatste agent eruit gehaald, de
@@ -194,7 +211,7 @@ export default function AgentOverview({
 }
 
 /** Het zoekveld, op elke lijstlengte aanwezig — zie DatatablesStudio's SearchBox. */
-function SearchBox({ t, value, onChange }) {
+function SearchBox({ t, value, onChange }: { t: TranslateFn; value: string; onChange: (value: string) => void }) {
     return (
         <label className="relative block shrink-0" style={{ width: 200 }}>
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -215,7 +232,7 @@ function SearchBox({ t, value, onChange }) {
 }
 
 /** Eén filterchip. `aria-pressed` omdat het een schakelaar is, geen navigatie. */
-function Chip({ label, count, active, onClick }) {
+function Chip({ label, count, active, onClick }: { label: string | null | undefined; count: number | undefined; active: boolean; onClick: () => void }) {
     return (
         <button
             type="button"

@@ -32,31 +32,47 @@
 // under its own name rather than dropped.
 export const USAGE_KINDS = ['task', 'cowork', 'support', 'automation', 'app', 'webpage'];
 
-const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/**
+ * The 409 body is untrusted JSON: `T` is the shape this reader expects, and
+ * every field read below is checked again before it is believed.
+ */
+const isObj = <T extends object = Record<string, unknown>>(v: unknown): v is T => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** The parts of the 409 body this reader looks at. */
+interface DeleteBlockBody {
+    rows?: unknown;
+    counts?: unknown;
+    unchecked?: unknown;
+    chat?: unknown;
+}
+
+/** One kind of consumer that was found. */
+export interface UsedKind { kind: string; count: number; foreignOnly: boolean }
+
+export interface DeleteBlockSummary {
+    readable: boolean;
+    used: UsedKind[];
+    unchecked: string[];
+    othersChats: number | null | undefined;
+    chatUnknown: boolean;
+}
 
 /**
- * @param {unknown} body the parsed 409 body, or anything at all
- * @returns {{
- *   readable: boolean,
- *   used: Array<{kind: string, count: number, foreignOnly: boolean}>,
- *   unchecked: string[],
- *   othersChats: number|null,
- *   chatUnknown: boolean,
- * }}
+ * @param body the parsed 409 body, or anything at all
  */
-export function summariseDeleteBlock(body) {
-    if (!isObj(body)) {
+export function summariseDeleteBlock(body: unknown): DeleteBlockSummary {
+    if (!isObj<DeleteBlockBody>(body)) {
         // Not "nothing uses it" — nothing was learned. Every kind is unchecked.
         return { readable: false, used: [], unchecked: [...USAGE_KINDS], othersChats: null, chatUnknown: true };
     }
 
     const rows = Array.isArray(body.rows) ? body.rows : null;
-    const counts = isObj(body.counts) ? body.counts : null;
+    const counts = isObj<Record<string, number>>(body.counts) ? body.counts : null;
 
     // A kind counts as USED when either source says so. Counts is the cheaper
     // and more complete of the two (rows can be capped); rows carry whether
     // every hit belonged to somebody else, which decides the wording.
-    const perKind = new Map();
+    const perKind = new Map<string, UsedKind>();
     for (const r of rows || []) {
         if (!isObj(r) || typeof r.kind !== 'string' || !r.kind) continue;
         const e = perKind.get(r.kind) || { kind: r.kind, count: 0, foreignOnly: true };
@@ -80,11 +96,11 @@ export function summariseDeleteBlock(body) {
 
     // `chat: null` is the server's own spelling for "the count could not be
     // read". An object without the field is the same thing, not zero.
-    const chat = isObj(body.chat) ? body.chat : null;
+    const chat = isObj<{ othersConversationCount?: number | null }>(body.chat) ? body.chat : null;
     const raw = chat ? chat.othersConversationCount : null;
     const chatUnknown = !chat || !Number.isFinite(raw);
 
-    const order = (k) => {
+    const order = (k: string) => {
         const i = USAGE_KINDS.indexOf(k);
         return i === -1 ? USAGE_KINDS.length : i;
     };
@@ -105,6 +121,6 @@ export function summariseDeleteBlock(body) {
  * has already decided this needs a human and hiding the button would leave no
  * path at all.
  */
-export function blockHasFindings(summary) {
+export function blockHasFindings(summary?: DeleteBlockSummary | null) {
     return !!summary && (summary.used.length > 0 || (summary.othersChats || 0) > 0);
 }

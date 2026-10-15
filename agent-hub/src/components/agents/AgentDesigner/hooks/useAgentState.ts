@@ -1,7 +1,25 @@
 import { useState, useRef } from 'react';
 import { useUrlQueryParam } from '../../../../hooks/useUrlTab';
+import type { ModelTierMap } from '../../../../api/queries/modelTiers';
+import type { ModelEntry } from '../../../../utils/modelMeta';
+import type { DesignerAgent } from '../AgentListSidebar';
+import type { IntegrationStatus } from '../DesignerPanels';
+import type { OrgGroup } from '../PublishMenu';
 
-const VALID_DESIGNER_SECTIONS = ['identity', 'tools', 'behavior', 'knowledge'];
+const VALID_DESIGNER_SECTIONS: (string | null)[] = ['identity', 'tools', 'behavior', 'knowledge'];
+
+/** A tool from `GET /agents/meta/components`. */
+export interface DesignerComponent { id: string; name?: string; category?: string }
+/** An organisation from `GET /auth/organizations`. */
+export interface DesignerOrganization { id: string; name?: string }
+/** An agent category from `GET /agents/categories`. */
+export interface AgentCategory { id: string; name?: string }
+/** A regex-guardrail collection from `GET /ai/config`. */
+export interface RegexCollection { id: string; name?: string }
+/** Which text the regex guardrails look at. */
+export interface RegexScope { userInput: boolean; agentOutput: boolean; toolInput: boolean; toolOutput: boolean }
+/** A line of the designer's test chat. */
+export interface DesignerMessage { role: string; content: string }
 
 /**
  * All form/UI state for the AgentDesigner.
@@ -9,10 +27,10 @@ const VALID_DESIGNER_SECTIONS = ['identity', 'tools', 'behavior', 'knowledge'];
  */
 export default function useAgentState() {
     // Core
-    const [agents, setAgents] = useState([]);
-    const [selectedAgent, setSelectedAgent] = useState(null);
+    const [agents, setAgents] = useState<DesignerAgent[]>([]);
+    const [selectedAgent, setSelectedAgent] = useState<DesignerAgent | null>(null);
     const [isCreating, setIsCreating] = useState(false);
-    const [components, setComponents] = useState([]);
+    const [components, setComponents] = useState<DesignerComponent[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -20,25 +38,25 @@ export default function useAgentState() {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [systemPrompt, setSystemPrompt] = useState('');
-    const [selectedTools, setSelectedTools] = useState([]);
-    const [toolParams, setToolParams] = useState({});
+    const [selectedTools, setSelectedTools] = useState<string[]>([]);
+    const [toolParams, setToolParams] = useState<Record<string, unknown>>({});
     const [model, setModel] = useState('');
     const [isPublished, setIsPublished] = useState(false);
-    const [sharedGroups, setSharedGroups] = useState([]);
+    const [sharedGroups, setSharedGroups] = useState<string[]>([]);
     const [showPublishMenu, setShowPublishMenu] = useState(false);
     const [publishError, setPublishError] = useState('');
-    const [organizations, setOrganizations] = useState([]);
-    const [orgGroups, setOrgGroups] = useState([]);
-    const [availableModels, setAvailableModels] = useState([]);
-    const [modelTiers, setModelTiers] = useState({});
-    const [starterPrompts, setStarterPrompts] = useState([]);
+    const [organizations, setOrganizations] = useState<DesignerOrganization[]>([]);
+    const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
+    const [availableModels, setAvailableModels] = useState<ModelEntry[]>([]);
+    const [modelTiers, setModelTiers] = useState<ModelTierMap>({});
+    const [starterPrompts, setStarterPrompts] = useState<string[]>([]);
     const [avatar, setAvatar] = useState('\u{1F916}');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiCategory, setEmojiCategory] = useState('smileys');
 
     // Categories
-    const [categoryId, setCategoryId] = useState(null);
-    const [agentCategories, setAgentCategories] = useState([]);
+    const [categoryId, setCategoryId] = useState<string | null>(null);
+    const [agentCategories, setAgentCategories] = useState<AgentCategory[]>([]);
 
     // Behavior
     const [allowCopy, setAllowCopy] = useState(true);
@@ -51,13 +69,13 @@ export default function useAgentState() {
 
     const [strictKnowledge, setStrictKnowledge] = useState(false);
     const [includeSourceReferences, setIncludeSourceReferences] = useState(false);
-    const [knowledgeBaseIds, setKnowledgeBaseIds] = useState([]);
+    const [knowledgeBaseIds, setKnowledgeBaseIds] = useState<string[]>([]);
 
     // Regex Guardrails
     const [regexGuardrailsEnabled, setRegexGuardrailsEnabled] = useState(false);
-    const [selectedCollections, setSelectedCollections] = useState([]);
-    const [availableCollections, setAvailableCollections] = useState([]);
-    const [regexScope, setRegexScope] = useState({
+    const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+    const [availableCollections, setAvailableCollections] = useState<RegexCollection[]>([]);
+    const [regexScope, setRegexScope] = useState<RegexScope>({
         userInput: true,
         agentOutput: true,
         toolInput: false,
@@ -83,28 +101,28 @@ export default function useAgentState() {
     // sub-section of the Agent Designer is bookmarkable.
     const [sectionParam, setSectionParam] = useUrlQueryParam('section');
     const activeSection = VALID_DESIGNER_SECTIONS.includes(sectionParam) ? sectionParam : 'identity';
-    const setActiveSection = (v) => setSectionParam(VALID_DESIGNER_SECTIONS.includes(v) ? v : 'identity');
+    const setActiveSection = (v: string) => setSectionParam(VALID_DESIGNER_SECTIONS.includes(v) ? v : 'identity');
     const [activeGuardrailTab, setActiveGuardrailTab] = useState('llama');
     const [showPreview, setShowPreview] = useState(false);
 
     // Chat
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState<DesignerMessage[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
     const [showChat, setShowChat] = useState(false);
     const [showToolSelector, setShowToolSelector] = useState(false);
-    const [integrationStatus, setIntegrationStatus] = useState(null);
-    const [enabledIntegrations, setEnabledIntegrations] = useState(null);
+    const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
+    const [enabledIntegrations, setEnabledIntegrations] = useState<string[] | null>(null);
 
     // Prompt Designer
     const [showPromptDesigner, setShowPromptDesigner] = useState(false);
-    const [promptDesignerMessages, setPromptDesignerMessages] = useState([]);
+    const [promptDesignerMessages, setPromptDesignerMessages] = useState<DesignerMessage[]>([]);
     const [promptDesignerInput, setPromptDesignerInput] = useState('');
     const [promptDesignerLoading, setPromptDesignerLoading] = useState(false);
 
     // Refs
-    const chatEndRef = useRef(null);
-    const emojiPickerRef = useRef(null);
+    const chatEndRef = useRef<HTMLDivElement>(null);
+    const emojiPickerRef = useRef<HTMLDivElement>(null);
 
     return {
         // Core

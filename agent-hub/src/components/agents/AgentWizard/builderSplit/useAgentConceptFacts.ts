@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { READ } from '../canUse/canUseFacts';
 
+/** The persona column of an agent; the editor reads its language. */
+export interface ConceptPersona { language?: string | null; [key: string]: unknown }
+
+type ReadState = (typeof READ)[keyof typeof READ];
+
+interface ConceptFacts {
+    id: string | null;
+    persona: ConceptPersona | null;
+    state: ReadState;
+    unpublishedChanges: number | null;
+}
+
 /**
  * De twee feiten die de editorkop nodig heeft en de agentenLIJST niet draagt.
  *
@@ -37,12 +49,9 @@ import { READ } from '../canUse/canUseFacts';
  *     stuiten die niemand gemeten heeft. `personaState` maakt dat verschil
  *     expliciet: LOADING zolang de lezing loopt, ERROR als hij mislukte of
  *     als het antwoord geen persona droeg, OK zodra er een is.
- *
- * @param {string|null} agentId
- * @returns {{persona: object|null, personaState: string, unpublishedChanges: number|null}}
  */
-export default function useAgentConceptFacts(agentId) {
-    const [facts, setFacts] = useState({ id: null, persona: null, state: READ.LOADING, unpublishedChanges: null });
+export default function useAgentConceptFacts(agentId: string | null) {
+    const [facts, setFacts] = useState<ConceptFacts>({ id: null, persona: null, state: READ.LOADING, unpublishedChanges: null });
 
     useEffect(() => {
         if (!agentId) return undefined;

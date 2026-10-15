@@ -1,9 +1,17 @@
 import Modal from '../../../shared/Modal';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+export interface EnableEmbedConfirmModalProps {
+    t: TranslateFn;
+    agent?: { id?: string | null } | null;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
 
 // Confirmation modal shown before flipping `embedEnabled` to true. Without
 // this, the toggle silently makes the agent reachable at the public
 // /chat/<id> URL — users may not realise that's what just happened.
-export default function EnableEmbedConfirmModal({ t, agent, onConfirm, onCancel }) {
+export default function EnableEmbedConfirmModal({ t, agent, onConfirm, onCancel }: EnableEmbedConfirmModalProps) {
     const url = agent?.id ? `${window.location.origin}/chat/${agent.id}` : '';
     return (
         <Modal

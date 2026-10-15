@@ -1,5 +1,19 @@
 import { FlaskConical, Undo2 } from 'lucide-react';
 import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+/** One field the refine touched, from `state/refineMerge.diffRefinedPlan`. */
+export interface RefineChange { field?: string; direction?: string; count?: number }
+
+export interface RefineDoneCardProps {
+    t: TranslateFn;
+    changes?: RefineChange[];
+    undoVersionId?: string | null;
+    undoState?: string;
+    superseded?: boolean;
+    onTest?: () => void;
+    onUndo?: (versionId: string | null) => void;
+}
 
 /**
  * De "Gedaan: …"-beurt van de verfijn-rail (A2 stap 5).
@@ -26,7 +40,7 @@ import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
  */
 
 /** De regel bij één wijziging — de vormkeuze is een SLEUTELkeuze, nooit een stringkeuze. */
-function changeLabel(t, change) {
+function changeLabel(t: TranslateFn, change?: RefineChange) {
     const { field, direction, count } = change || {};
     if (!direction) {
         switch (field) {
@@ -60,7 +74,7 @@ function changeLabel(t, change) {
  * De ongedaan-knop in vier toestanden. Drie ervan zijn "nee, en dit is waarom";
  * alleen `idle` doet iets.
  */
-function undoStateOf({ undoVersionId, undoState, superseded }) {
+function undoStateOf({ undoVersionId, undoState, superseded }: { undoVersionId?: string | null; undoState?: string; superseded?: boolean }) {
     if (undoState === 'undone') return 'undone';
     if (undoState === 'busy') return 'busy';
     if (!undoVersionId) return 'unavailable';
@@ -76,7 +90,7 @@ export default function RefineDoneCard({
     superseded = false,
     onTest,
     onUndo,
-}) {
+}: RefineDoneCardProps) {
     const lines = (Array.isArray(changes) ? changes : []).map(c => changeLabel(t, c)).filter(Boolean);
     const state = undoStateOf({ undoVersionId, undoState, superseded });
     const undoDisabled = state !== 'idle';

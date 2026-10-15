@@ -3,6 +3,7 @@ import ModelSelector from '../../../chat/ModelSelector';
 import Toggle from '../../../shared/Toggle';
 import useCopyToClipboard from '../../../../hooks/useCopyToClipboard';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { DesignerSectionProps } from './sectionProps';
 
 export const BehaviorSection = ({
   selectedAgent, name, setName, description, setDescription,
@@ -26,7 +27,7 @@ export const BehaviorSection = ({
   chatLineHeight, setChatLineHeight, userBubbleColor, setUserBubbleColor,
   assistantBubbleColor, setAssistantBubbleColor, warningText, setWarningText,
   setPromptDesignerMessages, setPromptDesignerInput, setShowPromptDesigner
-}) => {
+}: DesignerSectionProps) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
   return (

@@ -238,3 +238,4 @@ You only need to provide PROJECT-SPECIFIC information (client details, pricing, 
 };
 
 export { CAPABILITIES };
+export type CapabilityKey = keyof typeof CAPABILITIES;

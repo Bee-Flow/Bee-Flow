@@ -1,11 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
+import type { ChangeEvent } from 'react';
+
+export interface InstructionsEditorProps {
+    initialValue?: string;
+    placeholder?: string;
+    onCommit?: (value: string) => void;
+    onBlurEnd?: () => void;
+}
 
 // Memoized instructions textarea. The parent's `instructions` state lives in
 // BuilderSplit (~127 hooks), so updating it on every keystroke causes the
 // entire editor to rerender. This child holds its own local string and only
 // commits to the parent on a 250ms debounce + on blur — keystrokes stay
 // scoped to this component, BuilderSplit only sees settled values.
-const InstructionsEditor = React.memo(React.forwardRef(function InstructionsEditor(
+const InstructionsEditor = React.memo(React.forwardRef<HTMLTextAreaElement, InstructionsEditorProps>(function InstructionsEditor(
     { initialValue, placeholder, onCommit, onBlurEnd },
     forwardedRef,
 ) {
@@ -29,7 +37,7 @@ const InstructionsEditor = React.memo(React.forwardRef(function InstructionsEdit
     // second debounce here just produced out-of-order saves on rapid typing —
     // the parent's stale-buffer commit would race the editor's later one.
     // Forward every keystroke immediately; the parent coalesces.
-    const handleChange = (e) => {
+    const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
         const next = e.target.value;
         setValue(next);
         lastInitialRef.current = next;

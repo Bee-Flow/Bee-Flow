@@ -1,4 +1,13 @@
 import { Check } from 'lucide-react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+export interface SaveStateIndicatorProps {
+    t: TranslateFn;
+    state?: string | null;
+    savedAt?: Date | null;
+    errorMsg?: string;
+    onRetry?: () => void;
+}
 
 // Compact save-state pill for the editor header. State machine:
 //   - idle:    nothing rendered (no churn before the first save)
@@ -6,7 +15,7 @@ import { Check } from 'lucide-react';
 //   - saved:   check + label
 //   - error:   warning icon, full server message in `title` tooltip,
 //              click to retry the save
-export default function SaveStateIndicator({ t, state, savedAt, errorMsg, onRetry }) {
+export default function SaveStateIndicator({ t, state, savedAt, errorMsg, onRetry }: SaveStateIndicatorProps) {
     if (!state || state === 'idle') return null;
 
     if (state === 'saving') {

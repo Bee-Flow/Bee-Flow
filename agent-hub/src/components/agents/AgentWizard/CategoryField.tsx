@@ -2,6 +2,19 @@ import { Plus, X, Settings2, Pencil, Trash2, Check, ChevronDown, Loader2 } from 
 import React, { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
+import type { CategoryResult, CategoryRow } from './agentEditor.types';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+
+export interface CategoryFieldProps {
+    t: TranslateFn;
+    value?: string | null;
+    categories: CategoryRow[];
+    onChange: (id: string | null) => void;
+    onCreate: (name: string) => Promise<CategoryResult>;
+    onRename: (id: string, name: string) => Promise<CategoryResult>;
+    onDelete: (id: string, reassignTo?: string) => Promise<CategoryResult>;
+    variant?: 'default' | 'tag';
+}
 
 /**
  * Agent Designer category dropdown + management popover (BFSF-272).
@@ -26,14 +39,14 @@ import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
  * moves — a chip has no room for one, so the select carries an `aria-label`
  * instead of a heading above it.
  */
-export default function CategoryField({ t, value, categories, onChange, onCreate, onRename, onDelete, variant = 'default' }) {
+export default function CategoryField({ t, value, categories, onChange, onCreate, onRename, onDelete, variant = 'default' }: CategoryFieldProps) {
     const tag = variant === 'tag';
     const [creating, setCreating] = useState(false);
     const [draft, setDraft] = useState('');
-    const [hint, setHint] = useState(null); // transient inline feedback (replaces alert())
+    const [hint, setHint] = useState<string | null>(null); // transient inline feedback (replaces alert())
     const [manageOpen, setManageOpen] = useState(false);
-    const inputRef = useRef(null);
-    const manageRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const manageRef = useRef<HTMLDivElement>(null);
     useEffect(() => { if (creating) inputRef.current?.focus(); }, [creating]);
 
     // Click-outside closes the manage popover (PublishMenu idiom). The
@@ -43,15 +56,15 @@ export default function CategoryField({ t, value, categories, onChange, onCreate
     // make deletion impossible with a mouse.
     useEffect(() => {
         if (!manageOpen) return undefined;
-        const onDoc = (e) => {
-            if (e.target.closest?.('[role="dialog"], [role="presentation"]')) return;
-            if (manageRef.current && !manageRef.current.contains(e.target)) setManageOpen(false);
+        const onDoc = (e: MouseEvent) => {
+            if ((e.target as Element).closest?.('[role="dialog"], [role="presentation"]')) return;
+            if (manageRef.current && !manageRef.current.contains(e.target as Node)) setManageOpen(false);
         };
         document.addEventListener('mousedown', onDoc);
         return () => document.removeEventListener('mousedown', onDoc);
     }, [manageOpen]);
 
-    const flashHint = (text) => {
+    const flashHint = (text: string) => {
         setHint(text);
         setTimeout(() => setHint(null), 4000);
     };
@@ -178,16 +191,22 @@ export default function CategoryField({ t, value, categories, onChange, onCreate
     );
 }
 
-function ManageRow({ t, category, others, onRename, onDelete }) {
+function ManageRow({ t, category, others, onRename, onDelete }: {
+    t: TranslateFn;
+    category: CategoryRow;
+    others: CategoryRow[];
+    onRename: CategoryFieldProps['onRename'];
+    onDelete: CategoryFieldProps['onDelete'];
+}) {
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(category.name);
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     // Guided delete flow: null → not deleting; 'confirm' → simple confirm;
     // { count } → in use, pick unassign vs merge target.
-    const [deleting, setDeleting] = useState(null);
+    const [deleting, setDeleting] = useState<null | 'confirm' | { count: number | undefined }>(null);
     const [mergeTarget, setMergeTarget] = useState('none');
-    const editRef = useRef(null);
+    const editRef = useRef<HTMLInputElement>(null);
     useEffect(() => { if (editing) editRef.current?.focus(); }, [editing]);
 
     const saveRename = async () => {

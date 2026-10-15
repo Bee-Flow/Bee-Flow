@@ -1,4 +1,5 @@
 import { INTEGRATION_CATALOG as CANONICAL_CATALOG, orderCategories } from '../../../config/integrationCatalog';
+import type { IntegrationEntry } from '../../../config/integrationCatalog';
 import { getIntegrationIcon } from '../../../config/integrationIcons';
 
 /**
@@ -58,7 +59,7 @@ const MICROSOFT_OAUTH_IDS = new Set(['outlook', 'outlook-readonly', 'ms-calendar
  * schermen gebruiken om te ordenen. Ze blijven bestaan omdat het oude bestand
  * ze had — maar niets hangt er een recht aan op.
  */
-function groupOf(item) {
+function groupOf(item: IntegrationEntry): string {
     if (GOOGLE_OAUTH_IDS.has(item.id)) return 'google';
     if (MICROSOFT_OAUTH_IDS.has(item.id)) return 'microsoft';
     if (item.category === 'Nextcloud') return 'nextcloud';

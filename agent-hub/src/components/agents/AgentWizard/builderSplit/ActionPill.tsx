@@ -1,9 +1,20 @@
+import type { ReactNode } from 'react';
+
 // `popoverTrigger` (optional): when this pill is the toggle for a popover, set
 // to a unique name that matches the popover's `triggerName` prop. The popover's
 // outside-click handler then ignores clicks on this trigger so toggling
 // works correctly (without it, the document mousedown listener and the
 // trigger's onClick race and the popover stays open on close-click).
-export default function ActionPill({ icon, label, count, onClick, active, popoverTrigger }) {
+export interface ActionPillProps {
+    icon?: ReactNode;
+    label?: ReactNode;
+    count?: number | null;
+    onClick?: () => void;
+    active?: boolean;
+    popoverTrigger?: string;
+}
+
+export default function ActionPill({ icon, label, count, onClick, active, popoverTrigger }: ActionPillProps) {
     return (
         <button
             onClick={onClick}

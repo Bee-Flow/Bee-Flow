@@ -2,6 +2,7 @@ import React from 'react';
 import { INTEGRATION_CATALOG } from '../integrations';
 import ConnectionPolicyPicker from '../../../shared/ConnectionPolicyPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { DesignerSectionProps } from './sectionProps';
 
 export const ToolsSection = ({
   selectedAgent, name, setName, description, setDescription,
@@ -24,7 +25,7 @@ export const ToolsSection = ({
   chatLineHeight, setChatLineHeight, userBubbleColor, setUserBubbleColor,
   assistantBubbleColor, setAssistantBubbleColor, warningText, setWarningText,
   setPromptDesignerMessages, setPromptDesignerInput, setShowPromptDesigner
-}) => {
+}: DesignerSectionProps) => {
   const { t } = useTranslation();
   return (
                                                 <div className="space-y-6 animate-fadeIn">
@@ -35,7 +36,7 @@ export const ToolsSection = ({
 
                                                     {/* Integration Status Grid */}
                                                     {(() => {
-                                                        const isAvailable = (item) => {
+                                                        const isAvailable = (item: { id: string; group?: string }) => {
                                                             if (!integrationStatus) return false;
                                                             // Org-level gating only
                                                             const orgEnabled = integrationStatus.orgEnabledIntegrations;
@@ -54,12 +55,12 @@ export const ToolsSection = ({
 
                                                         const available = INTEGRATION_CATALOG.filter(isAvailable);
 
-                                                        const isSelected = (id) => {
+                                                        const isSelected = (id: string) => {
                                                             if (!enabledIntegrations) return true; // null = all enabled by default
                                                             return enabledIntegrations.includes(id);
                                                         };
 
-                                                        const toggleIntegration = (id) => {
+                                                        const toggleIntegration = (id: string) => {
                                                             setEnabledIntegrations(prev => {
                                                                 const currentList = prev || available.map(a => a.id);
                                                                 if (currentList.includes(id)) {

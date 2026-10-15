@@ -1,10 +1,24 @@
 import { useState, useCallback } from 'react';
+import type { EditorSnapshot, Ref } from './agentSaveTypes';
+
+export interface BehaviorTogglesDeps {
+    allowCopy: boolean;
+    setAllowCopy: (value: boolean) => void;
+    disableExternalTools: boolean;
+    setDisableExternalTools: (value: boolean) => void;
+    embedEnabled: boolean;
+    setEmbedEnabled: (value: boolean) => void;
+    stateRef: Ref<EditorSnapshot>;
+    dirtyRef: Ref<boolean>;
+    queueSave: (immediate?: boolean) => void;
+    patchConfig: (patch: Record<string, unknown>) => void;
+}
 
 // Behavior toggles (allowCopy / external tools / embedEnabled with its
 // public-access confirm gate) for BuilderSplit. Moved verbatim; the hook is
 // called from the same position in the parent, so the internal hooks keep
 // their order and the state stays on BuilderSplit's fiber.
-export default function useBehaviorToggles({ allowCopy, setAllowCopy, disableExternalTools, setDisableExternalTools, embedEnabled, setEmbedEnabled, stateRef, dirtyRef, queueSave, patchConfig }) {
+export default function useBehaviorToggles({ allowCopy, setAllowCopy, disableExternalTools, setDisableExternalTools, embedEnabled, setEmbedEnabled, stateRef, dirtyRef, queueSave, patchConfig }: BehaviorTogglesDeps) {
     // Behavior toggles
     const toggleAllowCopy = () => {
         const next = !allowCopy;
@@ -21,7 +35,7 @@ export default function useBehaviorToggles({ allowCopy, setAllowCopy, disableExt
     // it behind a confirmation modal — the actual flip happens via
     // `confirmEnableEmbed` after the user accepts.
     const [pendingEmbedEnable, setPendingEmbedEnable] = useState(false);
-    const persistEmbedEnabled = useCallback((next) => {
+    const persistEmbedEnabled = useCallback((next: boolean) => {
         setEmbedEnabled(next);
         stateRef.current.embedEnabled = next;
         dirtyRef.current = true;

@@ -1,7 +1,9 @@
 import { AlertTriangle } from 'lucide-react';
 import React from 'react';
 import { summariseCardFooter } from './cardFooter';
+import type { CardFooterSummary } from './cardFooter';
 import useTranslation from '../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 
 /**
@@ -61,7 +63,7 @@ import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
  * Een soort die de server later toevoegt valt terug op zijn eigen ruwe naam:
  * lelijk en eerlijk verslaat een etiket dat stilletjes iets anders beweert.
  */
-function usedByPhrase(t, kind, n) {
+function usedByPhrase(t: TranslateFn, kind: string, n: number | null) {
     switch (kind) {
         case 'task': return nOf(t, 'agent_studio.card.n_task', n, '{count} scheduled task', '{count} scheduled tasks');
         case 'cowork': return nOf(t, 'agent_studio.card.n_cowork', n, '{count} Cowork schedule', '{count} Cowork schedules');
@@ -74,7 +76,7 @@ function usedByPhrase(t, kind, n) {
 }
 
 /** De kopjesnaam van een soort, voor "could not check: …". */
-function kindHeading(t, kind) {
+function kindHeading(t: TranslateFn, kind: string) {
     switch (kind) {
         case 'task': return t('agent_usage.kind_task', 'Scheduled tasks');
         case 'cowork': return t('agent_usage.kind_cowork', 'Cowork schedules');
@@ -92,8 +94,8 @@ function kindHeading(t, kind) {
  * lezen — een lijst zonder `?usage=1` levert hier niets op, en dat is iets
  * anders dan "door niets gebruikt".
  */
-function usageParts(t, footer) {
-    const parts = [];
+function usageParts(t: TranslateFn, footer: CardFooterSummary) {
+    const parts: string[] = [];
     if (footer.usedBy.length > 0) {
         const items = footer.usedBy.map(u => usedByPhrase(t, u.kind, u.count)).join(', ');
         parts.push(t('agent_studio.card.also_in', 'also in {items}', { items }));
@@ -105,13 +107,14 @@ function usageParts(t, footer) {
     return parts;
 }
 
-/**
- * @param {object} props
- * @param {unknown} props.agent  één rij van GET /agents/all
- * @param {string|null} [props.viewerId]  wie er kijkt — zonder dit kan
- *   "Only you" niet waar zijn en verschijnt die vorm niet
- */
-export default function AgentCardFooter({ agent, viewerId = null }) {
+export interface AgentCardFooterProps {
+    /** Één rij van GET /agents/all. */
+    agent?: unknown;
+    /** Wie er kijkt — zonder dit kan "Only you" niet waar zijn en verschijnt die vorm niet. */
+    viewerId?: string | null;
+}
+
+export default function AgentCardFooter({ agent, viewerId = null }: AgentCardFooterProps) {
     const { t } = useTranslation();
     const footer = summariseCardFooter(agent, viewerId);
 

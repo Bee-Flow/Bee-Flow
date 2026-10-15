@@ -1,4 +1,13 @@
 import Modal from '../../shared/Modal';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+
+export interface AgentConflictModalProps {
+    t: TranslateFn;
+    busy?: boolean;
+    onLoadLatest: () => void;
+    onOverwrite: () => void;
+    onDismiss: () => void;
+}
 
 /**
  * Shown when a save returns 409 (the agent changed elsewhere — another tab, a
@@ -7,7 +16,7 @@ import Modal from '../../shared/Modal';
  * their own. There is no undo stack in the agent editor, so "load latest"
  * discards unsaved changes — the copy says so explicitly.
  */
-export default function AgentConflictModal({ t, busy, onLoadLatest, onOverwrite, onDismiss }) {
+export default function AgentConflictModal({ t, busy, onLoadLatest, onOverwrite, onDismiss }: AgentConflictModalProps) {
     return (
         <Modal
             open

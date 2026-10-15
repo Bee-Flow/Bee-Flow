@@ -1,16 +1,21 @@
 import { CAPABILITIES } from '../constants';
+import type { CapabilityKey } from '../constants';
+import type { DesignerComponent } from './useAgentState';
+import type useAgentState from './useAgentState';
+
+type CapabilityState = Pick<ReturnType<typeof useAgentState>, 'systemPrompt' | 'setSystemPrompt' | 'setWorkspaceEnabled'>;
 
 /**
  * Capability toggle helpers (check/toggle capabilities embedded in system prompt).
  */
-export default function useCapabilities(state) {
+export default function useCapabilities(state: CapabilityState) {
     const { systemPrompt, setSystemPrompt, setWorkspaceEnabled } = state;
 
-    const checkCapability = (prompt, key) => {
+    const checkCapability = (prompt: string, key: CapabilityKey) => {
         return prompt.includes(`<!-- CAPABILITY: ${key} -->`);
     };
 
-    const toggleCapability = (key) => {
+    const toggleCapability = (key: CapabilityKey) => {
         const cap = CAPABILITIES[key];
         if (!cap) return;
 
@@ -29,7 +34,7 @@ export default function useCapabilities(state) {
         setSystemPrompt(newPrompt);
     };
 
-    const componentsByCategory = (components) => components.reduce((acc, comp) => {
+    const componentsByCategory = (components: DesignerComponent[]) => components.reduce<Record<string, DesignerComponent[]>>((acc, comp) => {
         const category = comp.category || 'Uncategorized';
         if (!acc[category]) acc[category] = [];
         acc[category].push(comp);

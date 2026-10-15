@@ -2,12 +2,26 @@ import { Bot, Trash2 } from 'lucide-react';
 import React from 'react';
 import AgentCardFooter from './AgentCardFooter';
 import { CATEGORY, EDIT, categoryOf, countsOf, editVerdict } from './agentCardFacts';
+import type { AgentListRow, CategoryLike } from './agentCardFacts';
 import { DEFAULT_AGENT_EMOJI, isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '../../../utils/agentAvatar';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import { kindTileStyle } from '../../shared/kindColors';
 import StatusActionPill from '../../shared/StatusActionPill';
 import { audienceLabel, audienceModeOf, makeGroupNamer } from '../../shared/VisibilityCapsule';
 import { publishedVersionOf } from '../AgentWizard/builderSplit/AgentEditorHeader';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { OrgGroup } from '../AgentDesigner/PublishMenu';
+
+export interface AgentCardProps<T extends AgentListRow> {
+    t: TranslateFn;
+    agent?: T | null;
+    categories?: readonly CategoryLike[];
+    orgGroups?: readonly OrgGroup[];
+    viewerId?: string | null;
+    onOpen: () => void;
+    onDelete?: ((agent: T | null | undefined) => void) | null;
+    selected?: boolean;
+}
 
 /**
  * Eén agent in het overzicht (Bee Flow Builder-herontwerp, sep 2026;
@@ -52,7 +66,7 @@ import { publishedVersionOf } from '../AgentWizard/builderSplit/AgentEditorHeade
  * er absoluut overheen ligt: een knop in een knop is een toetsenbordval en
  * een raadsel voor de schermlezer.
  */
-export default function AgentCard({
+export default function AgentCard<T extends AgentListRow>({
     t,
     agent,
     categories = [],
@@ -61,7 +75,7 @@ export default function AgentCard({
     onOpen,
     onDelete = null,
     selected = false,
-}) {
+}: AgentCardProps<T>) {
     const counts = countsOf(agent);
     const tf = filling(t);
     const verdict = editVerdict(agent);
@@ -79,7 +93,7 @@ export default function AgentCard({
 
     // De metaregel, als lijst — een ontbrekend deel laat de scheidingstekens
     // niet achter ("Sales ·  · organisation").
-    const meta = [];
+    const meta: string[] = [];
     if (cat.state === CATEGORY.NAMED) meta.push(cat.name);
     // Een categorie die we niet konden thuisbrengen is niet "geen categorie".
     else if (cat.state === CATEGORY.UNKNOWN) meta.push(t('agent_studio.card.category_unknown', 'Category unavailable'));
@@ -178,7 +192,7 @@ export default function AgentCard({
  * de echte vertaler interpoleert zelf, een meegegeven `t` (tests, embeds) niet,
  * en een pil die letterlijk "{count} tools" zegt is erger dan geen pil.
  */
-function tx(t, key, fallback, params) {
+function tx(t: TranslateFn, key: string, fallback: string, params?: Record<string, unknown>) {
     let value = t(key, fallback, params);
     if (typeof value !== 'string') value = fallback;
     for (const [k, v] of Object.entries(params || {})) {
@@ -208,16 +222,16 @@ function tx(t, key, fallback, params) {
  * `nOf(t, 'key', Number(n) || 0, …)` zou de hele aanroep onzichtbaar maken —
  * precies het gat dat de `{key, one, many}`-tabel hiervoor ook had.
  */
-function filling(t) {
-    return (key, fallback, params) => tx(t, key, fallback, params);
+function filling(t: TranslateFn) {
+    return (key: string, fallback: string, params?: Record<string, unknown>) => tx(t, key, fallback, params);
 }
 
-function knowledgeLabel(tf, n) {
+function knowledgeLabel(tf: TranslateFn, n: number | null) {
     const count = Number(n) || 0;
     return nOf(tf, 'agent_studio.card.n_knowledge', count, '{count} knowledge base', '{count} knowledge bases');
 }
 
-function skillsLabel(tf, n) {
+function skillsLabel(tf: TranslateFn, n: number | null) {
     const count = Number(n) || 0;
     return nOf(tf, 'agent_studio.card.n_skills', count, '{count} skill', '{count} skills');
 }
@@ -227,7 +241,7 @@ function skillsLabel(tf, n) {
  * heeft geen automation-curatie, dus de runtime legt er élke agent-callable
  * automatisering van de vrager bovenop plus elke gepubliceerde Step.
  */
-function toolsLabel(tf, n, atLeast) {
+function toolsLabel(tf: TranslateFn, n: number | null, atLeast: boolean) {
     const count = Number(n) || 0;
     return atLeast
         ? nOf(tf, 'agent_studio.card.n_tools_min', count, 'at least {count} tool', 'at least {count} tools')
@@ -235,7 +249,7 @@ function toolsLabel(tf, n, atLeast) {
 }
 
 /** Eén telpil. Nul blijft staan — dat is een gemeten nul, geen ontbrekende. */
-function CountPill({ n, label }) {
+function CountPill({ n, label }: { n: number | null; label: string }) {
     const empty = Number(n) === 0;
     return (
         <span
@@ -259,7 +273,7 @@ function CountPill({ n, label }) {
  * Onbekend versmalt én zegt dat het onbekend is — een "View only" over een rij
  * waarvan we het antwoord niet hebben zou een bewering zijn.
  */
-function EditBadge({ t, verdict }) {
+function EditBadge({ t, verdict }: { t: TranslateFn; verdict: string }) {
     if (verdict === EDIT.YES) return null;
     const label = verdict === EDIT.NO
         ? t('agent_studio.view_only', 'View only')

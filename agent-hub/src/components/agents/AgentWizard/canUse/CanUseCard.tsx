@@ -1,5 +1,6 @@
 import { AlertTriangle, MoreHorizontal, Plus } from 'lucide-react';
 import React, { useRef } from 'react';
+import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
 import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
 
@@ -22,12 +23,22 @@ import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
  * variabele die tijdens de render ontstaat en leest dat als een component die
  * per render opnieuw gemaakt wordt.
  */
-function renderKindGlyph(Glyph, style) {
+function renderKindGlyph(Glyph: ComponentType<{ style?: CSSProperties; 'aria-hidden'?: boolean | 'true' }> | null | undefined, style: CSSProperties) {
     if (!Glyph) return null;
     return <Glyph style={style} aria-hidden="true" />;
 }
 
-export default function CanUseCard({ kind, title, subtitle, action, menu, children, testId }) {
+export interface CanUseCardProps {
+    kind: string;
+    title: ReactNode;
+    subtitle?: ReactNode;
+    action?: ReactNode;
+    menu?: ReactNode;
+    children?: ReactNode;
+    testId?: string;
+}
+
+export default function CanUseCard({ kind, title, subtitle, action, menu, children, testId }: CanUseCardProps) {
     const { tile, glyph } = kindTileStyle(kind, 28);
     const icon = kindIcon(kind);
     return (
@@ -52,7 +63,7 @@ export default function CanUseCard({ kind, title, subtitle, action, menu, childr
 }
 
 /** De "+ Koppelen"-knop van een kaart. */
-export function LinkButton({ label, onClick, disabled = false, testId }) {
+export function LinkButton({ label, onClick, disabled = false, testId }: { label: ReactNode; onClick?: () => void; disabled?: boolean; testId?: string }) {
     return (
         <button
             type="button"
@@ -74,8 +85,8 @@ export function LinkButton({ label, onClick, disabled = false, testId }) {
  * BFSF-328: de tab scrollt in een eigen kolom, en een absoluut paneel wordt
  * daar afgeknipt zodra de kaart onderaan staat.
  */
-export function CardMenu({ label, open, onToggle, onClose, children, testId }) {
-    const anchorRef = useRef(null);
+export function CardMenu({ label, open, onToggle, onClose, children, testId }: { label: string; open: boolean; onToggle: () => void; onClose: () => void; children?: ReactNode; testId?: string }) {
+    const anchorRef = useRef<HTMLButtonElement>(null);
     return (
         <>
             <button
@@ -107,7 +118,7 @@ export function CardMenu({ label, open, onToggle, onClose, children, testId }) {
  * verbieden. Een deel dat niemand kon meten staat er niet: de rij zwijgt
  * liever over een teller dan dat hij er een verzint.
  */
-export function CanUseRow({ icon, title, parts = [], note = null, muted = false, testId }) {
+export function CanUseRow({ icon, title, parts = [], note = null, muted = false, testId }: { icon?: ReactNode; title: ReactNode; parts?: unknown[]; note?: ReactNode; muted?: boolean; testId?: string }) {
     const shown = parts.filter(p => typeof p === 'string' && p);
     return (
         <div data-testid={testId} className="flex items-start gap-3 px-4 py-3">
@@ -133,7 +144,7 @@ export function CanUseRow({ icon, title, parts = [], note = null, muted = false,
  * ontbreekt. `role="status"` want het is een mededeling over de toestand van
  * het scherm, niet over de inhoud van de agent.
  */
-export function UnreadableNotice({ message, retryLabel, onRetry, testId }) {
+export function UnreadableNotice({ message, retryLabel, onRetry, testId }: { message: ReactNode; retryLabel?: ReactNode; onRetry?: () => void; testId?: string }) {
     return (
         <div
             role="status"
@@ -157,7 +168,7 @@ export function UnreadableNotice({ message, retryLabel, onRetry, testId }) {
 }
 
 /** De rustige variant: gelezen, en er is echt niets. */
-export function EmptyRow({ message, testId }) {
+export function EmptyRow({ message, testId }: { message: ReactNode; testId?: string }) {
     return (
         <div data-testid={testId} className="px-4 py-4 text-[13px] text-[var(--text-tertiary)]">
             {message}

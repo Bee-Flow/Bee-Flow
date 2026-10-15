@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 
 /**
  * Breedte + sleepgreep van de verfijn-rail in BuilderSplit.
@@ -11,22 +12,20 @@ import { useState, useRef } from 'react';
  * LINKERkant van de rail, dus naar links slepen maakt hem BREDER: het teken
  * van de delta hangt aan de kant waar de rail staat. Vandaar `side` als
  * expliciete parameter en niet als aanname in de rekensom.
- *
- * @param {{initial?:number, min?:number, max?:number, side?:'left'|'right'}} [opts]
  */
-export default function useChatPanelResize({ initial = 360, min = 300, max = 600, side = 'right' } = {}) {
+export default function useChatPanelResize({ initial = 360, min = 300, max = 600, side = 'right' }: { initial?: number; min?: number; max?: number; side?: 'left' | 'right' } = {}) {
     const [chatWidth, setChatWidth] = useState(initial);
     const isDragging = useRef(false);
     const dragStartX = useRef(0);
     const dragStartW = useRef(0);
 
-    const onDragStart = (e) => {
+    const onDragStart = (e: ReactMouseEvent) => {
         isDragging.current = true;
         dragStartX.current = e.clientX;
         dragStartW.current = chatWidth;
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
-        const onMove = (ev) => {
+        const onMove = (ev: MouseEvent) => {
             if (!isDragging.current) return;
             const travel = ev.clientX - dragStartX.current;
             // Rail rechts: naar links (negatieve travel) = breder.
