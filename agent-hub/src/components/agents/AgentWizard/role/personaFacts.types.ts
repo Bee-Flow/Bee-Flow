@@ -1,4 +1,5 @@
 /** Types of the persona facts (role/personaFacts.ts). */
+import type { CallableAutomation } from '../../../admin/Studio/SkillsStudio/skillModel.types';
 
 /** The full persona as the editor holds it (`agents.persona`, after `personaShape`). */
 export interface Persona {
@@ -15,8 +16,8 @@ export interface Persona {
 /** Why a bullet edit changed nothing; `null` = it went through. */
 export type BulletRejection = 'empty' | 'duplicate' | 'full' | 'missing' | null;
 
-/** The slice of an automation the hand-off picker reads (`GET /api/automation`). */
-export interface AutomationSummary {
+/** The slice of an automation the hand-off picker reads (`GET /api/automation`), trigger fields included (isAgentCallable). */
+export interface AutomationSummary extends CallableAutomation {
     id?: string;
     title?: string | null;
     name?: string | null;
