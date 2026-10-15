@@ -121,7 +121,7 @@ function barepath(path: string): string {
 
 /**
  * Settings sections the web's own settings screen hides on a phone
- * (agent-hub pages/settings/settingsNavItems.jsx SETTINGS_DESKTOP_ONLY_TABS):
+ * (agent-hub pages/settings/settingsNavItems.tsx SETTINGS_DESKTOP_ONLY_TABS):
  * at phone width AdvancedSettings.jsx swaps them for Preferences. So although
  * 'settings' is an allowed page, a browser handed the Learning Center or
  * Connections shows Preferences after a sign-in — the address itself and
