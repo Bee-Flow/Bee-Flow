@@ -3,6 +3,24 @@ import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import type { CmsHref, SectionDataBase, TextStyleBlob } from './sectionData.types';
+
+interface CtaBannerCta extends CmsHref {
+    label?: string;
+    link?: CmsHref;
+}
+
+interface CtaBannerData extends SectionDataBase {
+    heading?: string;
+    subheading?: string;
+    layout?: string;
+    headingStyle?: TextStyleBlob;
+    headingAlign?: string;
+    subheadingStyle?: TextStyleBlob;
+    subheadingAlign?: string;
+    primaryCta?: CtaBannerCta;
+    secondaryCta?: CtaBannerCta;
+}
 
 // True inside the CMS editor's preview iframe (?preview) — empty fields keep
 // their clickable placeholder there, but never on the published site.
@@ -23,7 +41,7 @@ const isEditable = () =>
  *   cta-banner.heading
  *   cta-banner.subheading
  */
-export default function CtaBanner({ data }) {
+export default function CtaBanner({ data }: { data?: CtaBannerData }) {
     if (!data?.enabled) return null;
 
     const heading           = data.heading    || '';

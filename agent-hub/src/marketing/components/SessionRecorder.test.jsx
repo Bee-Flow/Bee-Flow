@@ -1,6 +1,6 @@
 import { render, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import SessionRecorder from './SessionRecorder.jsx';
+import SessionRecorder from './SessionRecorder.tsx';
 
 const SCRIPT_ID = 'bf-umami-recorder';
 const WEBSITE_ID = 'web_123';

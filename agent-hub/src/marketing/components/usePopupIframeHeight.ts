@@ -13,6 +13,7 @@
 //   <iframe ref={iframeRef} srcDoc={HEIGHT_SCRIPT + userHtml} ... />
 
 import { useEffect, useRef } from 'react';
+import type { RefObject } from 'react';
 
 export const HEIGHT_SCRIPT = `<script>
 function reportHeight() {
@@ -29,11 +30,11 @@ new ResizeObserver(reportHeight).observe(document.body);
 // match. Scoped to `type === 'reportHeight'` so unrelated postMessage
 // chatter (cms-edit, lc-resize, etc.) is ignored. Returns the ref to
 // attach to the iframe.
-export default function usePopupIframeHeight() {
-    const iframeRef = useRef(null);
+export default function usePopupIframeHeight(): RefObject<HTMLIFrameElement | null> {
+    const iframeRef = useRef<HTMLIFrameElement>(null);
 
     useEffect(() => {
-        const handler = (event) => {
+        const handler = (event: MessageEvent) => {
             if (event.data && event.data.type === 'reportHeight') {
                 const iframe = iframeRef.current;
                 if (iframe && typeof event.data.height === 'number') {

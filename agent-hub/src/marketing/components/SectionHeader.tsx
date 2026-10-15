@@ -1,6 +1,7 @@
 import React from 'react';
 import EditableText from './EditableText';
 import { inlineTextStyle } from '../sections/textStyle';
+import type { SectionHeaderFields } from '../sections/sectionData.types';
 
 // True inside the CMS editor's preview iframe (?preview), where empty
 // fields must keep rendering as clickable placeholders. Same one-liner the
@@ -8,6 +9,10 @@ import { inlineTextStyle } from '../sections/textStyle';
 const isEditable = () =>
     typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).has('preview');
+
+interface SectionHeaderProps extends SectionHeaderFields {
+    pathPrefix?: string;
+}
 
 /**
  * Section eyebrow + headline + lead. Pass a `pathPrefix` (e.g. "features")
@@ -39,7 +44,7 @@ export default function SectionHeader({
     titleAlign,
     leadAlign,
     align,
-}) {
+}: SectionHeaderProps) {
     const eyebrowCss = inlineTextStyle(eyebrowStyle, eyebrowAlign || align);
     const titleCss   = inlineTextStyle(titleStyle,   titleAlign   || align);
     const leadCss    = inlineTextStyle(leadStyle,    leadAlign    || align);
