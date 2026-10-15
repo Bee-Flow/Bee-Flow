@@ -8,9 +8,9 @@
 | Step | Package | Status |
 |---|---|---|
 | 1 | Shared Builder modules (7 files) | drafted on `ts-s1/shared` 5ee68f5b: 2/7 converted; review pending (with batch 22) |
-| 2 | Batch 22 + Builder sweep (batches 21-26) | batch 22 drafting on `ts-s1/batch-22` (on top of `ts-s1/shared`) |
-| 3 | Batches 19, 20 | drafting |
-| 4 | Long functions LF-A4, LF-A5, agents | pending |
+| 2 | Batch 22 + Builder sweep (batches 21-26) | b22 drafted (edba6ad2, 20 converted), Opus review running; sweep A (b23+b26 leftovers) drafting |
+| 3 | Batches 19, 20 | drafted (b19 26+5, b20 19+2); merge break found in scratch merge; Opus review running |
+| 4 | Long functions LF-A4, LF-A5, agents | characterisation tests merged (8e399b69, 99 tests) |
 
 ## Scope notes
 - `agents/AgentWizard/builderSplit/useKnowledgeBases.js` is 80 lines and has no function over 200 lines; the
@@ -36,3 +36,15 @@ Kept JS:
 - `flow/settings/collectionEditors.jsx`: blocked by `mapping/PathField.jsx`, `mapping/ToolInputForm.jsx`, `mapping/FieldKeyCombobox.jsx` (batch 26) → sweep.
 - `mapping/TemplateField.jsx`: react-hooks disable (`set-state-in-effect`).
 Mobile: `density.lockstep.test.ts` path + regex tolerates the `(NODE_DEFS as …)` upcast; `FieldRow.tsx` comment path.
+
+## Characterisation tests (8e399b69, merged 05090737)
+99 tests in 5 files, each passed 3× in a row: AgentStudio (26), AITasksDesigner (12 + 21 panes), ApprovalFields (22),
+BuilderSplit panels (18); helpers `test/automationDesignerHarness.tsx`, `test/automationDesignerStubs.tsx`.
+Ratchets: fire-event 4230 (unchanged, userEvent only), module-mock 0 (unchanged; that metric counts require.cache tricks,
+not vi.mock), 12 new `vi.mock` calls (authFetch in helpers; BuilderShell/AutomationsLauncher stubs in the designer tests).
+Note: the designer fetches the Steps list twice at mount (mount effect + builder-closed effect); the test asserts ≥ 1.
+
+## Scratch merge (874608af: integration + b22 + b19 + b20 + tests)
+No textual conflicts (.file-budget.json and ci.yml auto-merged). check:fast 39/39; duplication 15231 (-144 vs 15375);
+vitest components/{agents,automation,appearance} 528 files / 5910 pass; agent-hub typecheck: 10 errors, all
+`builderSplit/refineActions.ts:215-233` (b19 typed against JS refineMerge; b20's refineMerge.ts returns optional fields) → fixed at integration.
