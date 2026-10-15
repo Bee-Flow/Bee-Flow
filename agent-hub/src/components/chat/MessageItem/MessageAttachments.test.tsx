@@ -15,7 +15,8 @@ describe('MessageAttachments open button', () => {
         window.addEventListener('beeflow:open-document-side', seen);
         const msg = { id: 'm1', attachments: [{ name: 'a.xlsx', documentId: 'd1' }] };
         render(<MessageAttachments msg={msg} isUser setLightboxImage={() => {}} />);
-        await userEvent.click(screen.getByRole('button', { name: /open/i }));
+        await userEvent.click(screen.getByRole('button', { name: 'Open a.xlsx as a document' }));
+        expect(screen.getByRole('button', { name: 'Open a.xlsx as a document' }).textContent).toBe('Open');
         window.removeEventListener('beeflow:open-document-side', seen);
         expect(seen).toHaveBeenCalledTimes(1);
         expect((seen.mock.calls[0][0] as CustomEvent<{ id: string }>).detail.id).toBe('d1');
