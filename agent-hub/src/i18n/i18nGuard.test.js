@@ -493,8 +493,9 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
     { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
     { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.js', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
-    { rel: 'components/admin/product-website/analytics/filters.js', pending: 'CMS — analytics filter names' },
-    { rel: 'components/admin/product-website/analytics/heatmap/model.js', pending: 'CMS — block-type names in the heatmap' },
+    { rel: 'components/admin/product-website/analytics/filters.ts', pending: 'CMS — analytics filter names' },
+    { rel: 'components/admin/monitoring/sharedFormat.ts', pending: 'Monitoring — relative-time formatter (fmtTime)' },
+    { rel: 'components/admin/product-website/analytics/heatmap/model.ts', pending: 'CMS — block-type names in the heatmap' },
     // Caught by the relative-time signature on the words "just now" in a
     // sentence that is not about time at all — which is the check doing its
     // job by accident and landing on real debt anyway. The two sentences here
