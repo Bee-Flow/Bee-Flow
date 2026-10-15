@@ -51,7 +51,7 @@ import {
     Type,
     UserRound,
 } from 'lucide-react';
-
+import type { RegistryEntry } from './componentRegistry.types';
 import AppAiChat from './components/AppAiChat';
 import AppApprovalList from './components/AppApprovalList';
 import AppBadgeList from './components/AppBadgeList';
@@ -120,7 +120,7 @@ import AppTimeline from './components/AppTimeline';
  * the end-user run view.
  */
 
-export const APP_COMPONENT_TYPES = {
+export const APP_COMPONENT_TYPES: Record<string, RegistryEntry | undefined> = {
     heading: {
         Component: AppHeading, label: 'Heading', icon: Heading1, category: 'Content',
         defaultProps: { text: 'Heading', level: 2, accent: 'none' },
@@ -496,7 +496,7 @@ export const APP_COMPONENT_TYPES = {
 };
 
 /** Palette section order (mirrors the categories used in componentSpecs.js). */
-export const PALETTE_CATEGORIES = ['Basics', 'Content', 'Layout', 'Data', 'Input', 'AI'];
+export const PALETTE_CATEGORIES: string[] = ['Basics', 'Content', 'Layout', 'Data', 'Input', 'AI'];
 
 /**
  * The handful of components a first-time builder reaches for, in the order
@@ -504,9 +504,9 @@ export const PALETTE_CATEGORIES = ['Basics', 'Content', 'Layout', 'Data', 'Input
  * type keeps the `category` the server spec gives it (catalogLockstep.test.js
  * enforces that), so every category tab and the palette search are unaffected.
  */
-export const PALETTE_STARTERS = ['heading', 'text', 'button', 'image', 'card', 'table', 'form', 'chart'];
+export const PALETTE_STARTERS: string[] = ['heading', 'text', 'button', 'image', 'card', 'table', 'form', 'chart'];
 
-export function getComponentEntry(type) {
+export function getComponentEntry(type?: string | null): RegistryEntry | null {
     return (type == null ? undefined : APP_COMPONENT_TYPES[type]) || null;
 }
 

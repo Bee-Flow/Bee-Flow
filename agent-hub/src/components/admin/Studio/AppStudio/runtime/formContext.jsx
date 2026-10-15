@@ -29,7 +29,13 @@ export const FormContext = createContext(null);
 // app "switch context" had no way to empty a half-typed composer.
 const resetters = new Map();
 
-/** AppForm calls this on mount; returns the unregister cleanup. */
+/**
+ * AppForm calls this on mount; returns the unregister cleanup.
+ *
+ * @param {string | null | undefined} name
+ * @param {() => void} fn
+ * @returns {() => void}
+ */
 export function registerFormReset(name, fn) {
     if (!name || typeof fn !== 'function') return () => {};
     let set = resetters.get(name);
@@ -41,7 +47,11 @@ export function registerFormReset(name, fn) {
     };
 }
 
-/** Clear every mounted form registered under this name back to its defaults. */
+/**
+ * Clear every mounted form registered under this name back to its defaults.
+ *
+ * @param {string} name
+ */
 export function resetAppForm(name) {
     (resetters.get(name) || []).forEach((fn) => fn());
 }

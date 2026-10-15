@@ -1,5 +1,39 @@
+import type { TranslateFn } from '../../../hooks/useTranslation';
 import { firstOpenStudioSection, makeCanUse, resolveStudioNav, STUDIO_APPS, studioPermissionHeld } from './studioApps';
+import type { StudioGateCtx, StudioNavDescriptor } from './studioGates';
+import type { StudioAppDescriptor } from './studioRegistry';
 import { isStudioStart } from './studioStart';
+
+/** The user fields makeCanUse reads. */
+type CanUseUserFields = NonNullable<Parameters<typeof makeCanUse>[0]>;
+
+/** The user fields the Studio gates read. */
+export interface StudioNavUser extends CanUseUserFields {
+    isAdmin?: boolean | null;
+    orgRole?: string | null;
+}
+
+/** A nav section as the gates leave it: `locked` is the lock reason, `topLevelEntrance` a row of its own. */
+interface EntrySection {
+    locked?: unknown;
+    topLevelEntrance?: unknown;
+}
+
+type Sections<T> = ReadonlyArray<T | null | undefined> | null | undefined;
+
+/** What `studioSectionLabel` reads: a runtime module's `label(t, locale)`, or a built-in section's key. */
+export interface StudioLabelled {
+    id?: string;
+    label?: ((t: TranslateFn, locale?: string) => string) | string;
+    labelKey?: string | null;
+    labelFallback?: string | null;
+}
+
+/** What `studioSectionAccess` answers. */
+export interface StudioSectionAccess {
+    allowed: boolean;
+    redirectTo: string | null;
+}
 
 /**
  * The two steps between "the registry" and "the rows a person sees", in one
@@ -28,7 +62,15 @@ import { isStudioStart } from './studioStart';
 export function studioGateContext({
     user, hasLicenseFeature, hasPermission,
     can, lockReason, entitlementsLoading = false, entitlementsError = null,
-}) {
+}: {
+    user?: StudioNavUser | null;
+    hasLicenseFeature: StudioGateCtx['hasLicenseFeature'];
+    hasPermission: StudioGateCtx['hasPermission'];
+    can: StudioGateCtx['can'];
+    lockReason?: StudioGateCtx['lockReason'] | null;
+    entitlementsLoading?: boolean;
+    entitlementsError?: unknown;
+}): StudioGateCtx {
     const answerIsReal = !entitlementsLoading && !entitlementsError && typeof lockReason === 'function';
     return {
         user,
@@ -50,7 +92,10 @@ export function studioGateContext({
  * Approvals is one, and it stays fully renderable from its own sidebar row,
  * the notification bell and every e-mail deep link.
  */
-export function studioNavSections(apps, ctx) {
+export function studioNavSections<T extends StudioNavDescriptor & { hiddenFromNav?: boolean }>(
+    apps: readonly T[] | null | undefined,
+    ctx: StudioGateCtx,
+): Array<T & { locked: string | null }> {
     return resolveStudioNav(apps, ctx).filter((app) => !app.hiddenFromNav);
 }
 
@@ -61,7 +106,7 @@ export function studioNavSections(apps, ctx) {
  * the Start screen — so this is kept as its own answer rather than folded
  * into the section count below.
  */
-export function isStudioBuilder(user) {
+export function isStudioBuilder(user: StudioNavUser | null | undefined): boolean {
     const perms = user?.permissions || [];
     return !!user?.isAdmin || perms.includes('all')
         || perms.includes('manage_agents') || perms.includes('manage_skills')
@@ -75,7 +120,8 @@ export function isStudioBuilder(user) {
  * gets Studio for it; a member whose role opens nothing in Studio does not get
  * a Studio holding only Documents.
  */
-export function studioEntrySections(sections) {
+export function studioEntrySections<T extends EntrySection>(sections: Sections<T>): T[];
+export function studioEntrySections(sections: Sections<EntrySection>): Array<EntrySection | null | undefined> {
     return (sections || []).filter((s) => s && !s.locked && !s.topLevelEntrance);
 }
 
@@ -86,7 +132,7 @@ export function studioEntrySections(sections) {
  * so a section counts only when its licence, programme AND permission pass.
  * Simple Mode and phone width are the caller's (Sidebar.jsx).
  */
-export function canSeeStudio({ user, sections }) {
+export function canSeeStudio({ user, sections }: { user?: StudioNavUser | null; sections?: Sections<EntrySection> }): boolean {
     return isStudioBuilder(user) || studioEntrySections(sections).length > 0;
 }
 
@@ -95,7 +141,11 @@ export function canSeeStudio({ user, sections }) {
  * Anyone else: the first section that earned them Studio — never Documents,
  * which they have a row for, and never a fallback they may not open (null).
  */
-export function studioLanding({ user, sections, fallback = STUDIO_APPS[0] }) {
+export function studioLanding<T extends EntrySection>(args: { user?: StudioNavUser | null; sections?: Sections<T>; fallback: null }): T | null;
+export function studioLanding<T extends EntrySection>(args: { user?: StudioNavUser | null; sections?: Sections<T>; fallback?: StudioAppDescriptor }): T | StudioAppDescriptor | null;
+export function studioLanding<T extends EntrySection>(
+    { user, sections, fallback = STUDIO_APPS[0] }: { user?: StudioNavUser | null; sections?: Sections<T>; fallback?: StudioAppDescriptor | null },
+): T | StudioAppDescriptor | null {
     return isStudioBuilder(user)
         ? firstOpenStudioSection(sections, fallback)
         : firstOpenStudioSection(studioEntrySections(sections), null);
@@ -122,9 +172,15 @@ export function studioLanding({ user, sections, fallback = STUDIO_APPS[0] }) {
  * section this person may open, or null when there is none (the shell then
  * shows its no-access state).
  */
-export function studioSectionAccess({ section, apps, user, hasPermission, sections }) {
-    const allowed = { allowed: true, redirectTo: null };
-    const refuse = () => {
+export function studioSectionAccess({ section, apps, user, hasPermission, sections }: {
+    section: string;
+    apps?: ReadonlyArray<(Pick<StudioNavDescriptor, 'id' | 'permission'> & { hiddenFromNav?: boolean }) | null | undefined> | null;
+    user?: StudioNavUser | null;
+    hasPermission?: ((permission: string) => unknown) | null;
+    sections?: Sections<EntrySection & { urlSegment: string }>;
+}): StudioSectionAccess {
+    const allowed: StudioSectionAccess = { allowed: true, redirectTo: null };
+    const refuse = (): StudioSectionAccess => {
         const to = studioLanding({ user, sections, fallback: null });
         return { allowed: false, redirectTo: to ? to.urlSegment : null };
     };
@@ -144,7 +200,7 @@ export function studioSectionAccess({ section, apps, user, hasPermission, sectio
  * het ene scherm anders heet dan op het andere is precies de drift die dit
  * bestand moet voorkomen.
  */
-export function studioSectionLabel(app, t, locale) {
+export function studioSectionLabel(app: StudioLabelled | null | undefined, t: TranslateFn, locale?: string): string {
     if (!app) return '';
     if (typeof app.label === 'function') return app.label(t, locale);
     if (!app.labelKey) return app.labelFallback || app.id || '';
@@ -166,7 +222,7 @@ export function studioSectionLabel(app, t, locale) {
  * en STUDIO_APPS is de lijst die op elke build hetzelfde is.
  */
 const APP_BY_KIND = (() => {
-    const out = {};
+    const out: Record<string, StudioAppDescriptor> = {};
     for (const app of STUDIO_APPS) {
         if (app?.kind && !out[app.kind]) out[app.kind] = app;
     }
@@ -174,6 +230,6 @@ const APP_BY_KIND = (() => {
 })();
 
 /** Het registerrecord van een soort, of null. */
-export function studioAppForKind(kind) {
+export function studioAppForKind(kind: string | null | undefined): StudioAppDescriptor | null {
     return (kind && APP_BY_KIND[kind]) || null;
 }

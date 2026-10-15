@@ -13,11 +13,13 @@
  * density multiplier), so one density picker rescales the whole app.
  */
 
+import type { InlineStyle, ResolvedNodeStyle, StyleKnobs, StyledNode } from './styleResolver.types';
+
 // One spacing step in px (multiplied by the --app-space density var).
 export const SPACE_STEP_PX = 4;
 
 /** calc() for N spacing steps honouring the theme density multiplier. */
-export function spaceSteps(n) {
+export function spaceSteps(n?: number | null): string {
     const steps = Number.isFinite(n) ? Number(n) : 0;
     if (steps <= 0) return '0px';
     return `calc(${steps * SPACE_STEP_PX}px * var(--app-space, 1))`;
@@ -26,7 +28,7 @@ export function spaceSteps(n) {
 // Role → color. primary follows the theme var; neutral uses the platform
 // text token; the status roles use the house emerald/amber/red/sky hexes
 // (see shared/statusTokens.ts / shared/Toast.tsx for the same family).
-export const ROLE_COLORS = {
+export const ROLE_COLORS: Record<string, string> = {
     primary: 'var(--app-primary)',
     neutral: 'var(--text-secondary)',
     success: '#10b981',
@@ -46,7 +48,7 @@ export const ROLE_COLORS = {
  * says "warning" at a glance) while the lightness follows the theme, which is
  * what makes it legible in all eight rather than in four.
  */
-export const roleTextColor = (tone) => {
+export const roleTextColor = (tone?: string | null): string => {
     const color = (tone == null ? undefined : ROLE_COLORS[tone]) || ROLE_COLORS.primary;
     if (tone === 'neutral' || tone === 'primary') return color;
     return `color-mix(in srgb, ${color} 55%, var(--text-primary))`;
@@ -59,14 +61,12 @@ export const roleTextColor = (tone) => {
  * danger — fell under 4.5:1. These two are dark enough for white; the rest read
  * far better with near-black on them.
  */
-export const roleFillContrast = (tone) => (
-    tone === 'danger' || tone === 'primary' ? '#ffffff' : '#111827'
-);
+export const roleFillContrast = (tone?: string | null): string => (tone === 'danger' || tone === 'primary' ? '#ffffff' : '#111827');
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 /** colorOrRole knob value → CSS color, or null to inherit. */
-export function resolveColor(value) {
+export function resolveColor(value?: string | null): string | null {
     if (value == null) return null;
     if (ROLE_COLORS[value]) return ROLE_COLORS[value];
     if (typeof value === 'string' && HEX_RE.test(value)) return value;
@@ -74,20 +74,20 @@ export function resolveColor(value) {
 }
 
 // radius knob: null inherits the theme radius; 'full' is the pill shape.
-const RADIUS_VALUES = { none: '0px', sm: '4px', md: '8px', lg: '12px', full: '9999px' };
+const RADIUS_VALUES: Record<string, string> = { none: '0px', sm: '4px', md: '8px', lg: '12px', full: '9999px' };
 
-export function resolveRadius(value) {
+export function resolveRadius(value?: string | null): string | undefined {
     if (value === undefined) return undefined;       // knob not present on this node
     if (value === null) return 'var(--app-radius)';  // inherit theme
     return RADIUS_VALUES[value] || 'var(--app-radius)';
 }
 
-const ALIGN_VALUES = { start: 'left', center: 'center', end: 'right' };
-const WEIGHT_VALUES = { regular: 400, medium: 500, semibold: 600 };
-const SIZE_FONT = { sm: '0.875em', md: null, lg: '1.125em' };
+const ALIGN_VALUES: Record<string, 'left' | 'center' | 'right'> = { start: 'left', center: 'center', end: 'right' };
+const WEIGHT_VALUES: Record<string, number> = { regular: 400, medium: 500, semibold: 600 };
+const SIZE_FONT: Record<string, string | null> = { sm: '0.875em', md: null, lg: '1.125em' };
 // 'xl' is the document-viewer tier: a PDF at 320px is a postage stamp, and
 // 'fill' collapses inside a tab whose ancestors are not full-height.
-export const HEIGHT_PX = { sm: '120px', md: '200px', lg: '320px', xl: '620px' };
+export const HEIGHT_PX: Record<string, string> = { sm: '120px', md: '200px', lg: '320px', xl: '620px' };
 
 /**
  * `flex: 1 1 0` — as LONGHANDS, deliberately.
@@ -109,7 +109,7 @@ export const FLEX_FILL = Object.freeze({ flexGrow: 1, flexShrink: 1, flexBasis: 
  * h-full/.app-fill treatment on top of a fixed height and the two would fight.
  * For any definition without the advanced knobs this is exactly what it was.
  */
-export const isFill = (node) => !resolveHeightCss(node?.style) && node?.style?.height === 'fill';
+export const isFill = (node?: StyledNode | null): boolean => !resolveHeightCss(node?.style) && node?.style?.height === 'fill';
 
 /**
  * gridTemplateRows for a container/tab/card that fills its height.
@@ -126,9 +126,9 @@ export const isFill = (node) => !resolveHeightCss(node?.style) && node?.style?.h
  * other row stays at content height. One row still resolves to the old value
  * verbatim, so existing definitions render byte-identically.
  */
-export function fillRowTemplate(node) {
+export function fillRowTemplate(node?: StyledNode | null): string {
     const kids = Array.isArray(node?.children) ? node.children : [];
-    const rows = [];
+    const rows: StyledNode[][] = [];
     let used = 0;
     for (const kid of kids) {
         const raw = Number(kid?.style?.span);
@@ -147,12 +147,12 @@ export function fillRowTemplate(node) {
  * (run + edit render) and the editor's live resize preview so a dragged span
  * lays out EXACTLY like a committed one.
  */
-export function spanGridColumn(span) {
+export function spanGridColumn(span?: number | null): string {
     return `span ${clampSpan(span)} / span ${clampSpan(span)}`;
 }
 
 /** The authored span, coerced into 1..12 (missing = full width). */
-export function clampSpan(span) {
+export function clampSpan(span?: number | null): number {
     return Number.isFinite(span) ? Math.max(1, Math.min(12, Number(span))) : 12;
 }
 
@@ -163,7 +163,7 @@ export function clampSpan(span) {
  * becomes a flex rule in resolveNodeStyle instead, so the node takes whatever
  * space is left rather than a number someone guessed.
  */
-export function resolveHeight(value) {
+export function resolveHeight(value?: string | number | null): string | null {
     if (!value || value === 'auto' || value === 'fill') return null;
     return HEIGHT_PX[value] || null;
 }
@@ -183,13 +183,13 @@ export function resolveHeight(value) {
 // ---------------------------------------------------------------------------
 
 /** Whole-number knob value, or null (mirrors what canonicalize already stored). */
-const sizeNumber = (v) => (Number.isFinite(v) ? Math.round(Number(v)) : null);
+const sizeNumber = (v?: number | null): number | null => (Number.isFinite(v) ? Math.round(Number(v)) : null);
 
 /**
  * widthMode/widthValue → a CSS width, or null when the grid owns the width.
  * 'pct' resolves against the grid cell — the box the author's `span` reserved.
  */
-export function resolveWidthCss(s) {
+export function resolveWidthCss(s?: StyleKnobs | null): string | null {
     const mode = s && s.widthMode;
     if (mode !== 'px' && mode !== 'pct') return null;
     const n = sizeNumber(s?.widthValue);
@@ -204,7 +204,7 @@ export function resolveWidthCss(s) {
  * parent has no definite height (validate.js style.height_pct_indefinite), so
  * anything that reaches here has something real to measure against.
  */
-export function resolveHeightCss(s) {
+export function resolveHeightCss(s?: StyleKnobs | null): string | null {
     const mode = s && s.heightMode;
     if (mode !== 'px' && mode !== 'pct' && mode !== 'vh') return null;
     const n = sizeNumber(s?.heightValue);
@@ -222,7 +222,7 @@ export function resolveHeightCss(s) {
  * null rather than emitting a declaration that would do nothing if a stale
  * definition still carries one.
  */
-export function resolveSectionHeightCss(s) {
+export function resolveSectionHeightCss(s?: StyleKnobs | null): string | null {
     if (s && s.heightMode === 'pct') return null;
     return resolveHeightCss(s);
 }
@@ -237,7 +237,7 @@ export function resolveSectionHeightCss(s) {
  * missing from the third. runtime.css re-asserts the same cap with !important
  * below 640px, so the mobile stack wins even if an inline width slips through.
  */
-export function applyWidth(s, style) {
+export function applyWidth(s: StyleKnobs | null | undefined, style: InlineStyle): string | null {
     const width = resolveWidthCss(s);
     if (!width) return null;
     style.width = width;
@@ -255,7 +255,7 @@ export function applyWidth(s, style) {
 export const SOFT_PRIMARY_GRADIENT =
     'linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 12%, transparent), color-mix(in srgb, var(--app-primary) 2%, transparent))';
 
-export function resolveBackground(value) {
+export function resolveBackground(value?: string | null): string | null {
     if (value === 'surface') return 'var(--bg-card)';
     if (value === 'tint') return 'var(--app-primary-soft)';
     // Look-pass values (appended to the knob AFTER the originals, so the three
@@ -277,7 +277,7 @@ export function resolveBackground(value) {
  * Both values use --border-color so they follow the platform theme; 'subtle'
  * fades it, which is what a divider inside a card wants.
  */
-export function resolveBorder(value) {
+export function resolveBorder(value?: string | null): string | null {
     // The fallback is load-bearing: --border-color is declared only inside the
     // data-app-appearance light/dark blocks, so on the default 'auto' both of
     // these were invalid declarations and the border knob painted nothing.
@@ -297,7 +297,7 @@ export function resolveBorder(value) {
  * unless the author's own radius knob already spoke (it resolves before the
  * background, so we defer to it).
  */
-function applyBackground(value, style) {
+function applyBackground(value: string | null | undefined, style: InlineStyle): string | null {
     const background = resolveBackground(value);
     if (background) style.background = background;
     if (value === 'panel' || value === 'gradient') {
@@ -322,7 +322,7 @@ function applyBackground(value, style) {
  * data. Neither one emits anything under the default 'preset'/'auto', so this
  * is byte-identical for a definition that never used advanced sizing.
  */
-function applyNodeHeight(s, style) {
+function applyNodeHeight(s: StyleKnobs, style: InlineStyle): void {
     const explicitHeight = resolveHeightCss(s);
     if (explicitHeight) {
         style.height = explicitHeight;
@@ -351,15 +351,15 @@ function applyNodeHeight(s, style) {
  * as one: only a stylesheet can read the viewport. 'none'/absent emits
  * nothing, so a definition without the knobs keeps its exact className.
  */
-const HIDE_BANDS = ['sm', 'md', 'lg'];
-function hideClasses(s) {
+const HIDE_BANDS: Array<string | undefined> = ['sm', 'md', 'lg'];
+function hideClasses(s: StyleKnobs): string {
     return (HIDE_BANDS.includes(s.hideBelow) ? ` app-hide-below-${s.hideBelow}` : '')
         + (HIDE_BANDS.includes(s.hideAbove) ? ` app-hide-above-${s.hideAbove}` : '');
 }
 
-export function resolveNodeStyle(node) {
-    const s = (node && node.style) || {};
-    const style = {};
+export function resolveNodeStyle(node?: StyledNode | null): ResolvedNodeStyle {
+    const s: StyleKnobs = (node && node.style) || {};
+    const style: InlineStyle = {};
 
     // Placement first, and UNCONDITIONALLY: an explicit px/pct width sizes the
     // box inside this cell, it never changes which columns the cell occupies.
@@ -368,7 +368,7 @@ export function resolveNodeStyle(node) {
 
     if ((s.align ?? '') in ALIGN_VALUES) style.textAlign = ALIGN_VALUES[s.align ?? ''];
     if ((s.weight ?? '') in WEIGHT_VALUES) style.fontWeight = WEIGHT_VALUES[s.weight ?? ''];
-    if (SIZE_FONT[s.size ?? '']) style.fontSize = SIZE_FONT[s.size ?? ''];
+    if (SIZE_FONT[s.size ?? '']) style.fontSize = SIZE_FONT[s.size ?? ''] as string;
     applyNodeHeight(s, style);
 
     const color = resolveColor(s.color);
@@ -407,9 +407,9 @@ export function resolveNodeStyle(node) {
  * the fixed height on phones, where a squashed two-pane split is worse than a
  * plain stack.
  */
-export function resolveSectionStyle(section) {
-    const s = (section && section.style) || {};
-    const style = {
+export function resolveSectionStyle(section?: StyledNode | null): ResolvedNodeStyle {
+    const s: StyleKnobs = (section && section.style) || {};
+    const style: InlineStyle = {
         gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
         gap: spaceSteps(Number.isFinite(s.gap) ? s.gap : 3),
         padding: spaceSteps(Number.isFinite(s.padding) ? s.padding : 0),

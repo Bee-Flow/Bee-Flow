@@ -15,7 +15,7 @@ type AnyFn = (...args: unknown[]) => unknown;
 const web = loadWeb<Record<string, AnyFn>>('editor/logicRows.js');
 const webLabels = loadWeb<Record<string, AnyFn>>('inspector/actionLabels.ts');
 const webSummary = loadWeb<Record<string, AnyFn>>('editor/nodeLogicSummary.ts');
-const webKnobs = loadWeb<Record<string, unknown>>('inspector/styleKnobMeta.js');
+const webKnobs = loadWeb<Record<string, unknown>>('inspector/styleKnobMeta.ts');
 
 const fixtures = allFixtures();
 const titleFor = (id: unknown) => (id === 'auto_1' ? 'Nightly import' : null);
