@@ -4,5 +4,5 @@ export interface HttpConnection {
     label?: string;
     kind?: string;
     /** 'lent' for a credential shared with the caller, 'own' for their own. */
-    access?: string;
+    access?: 'own' | 'lent';
 }

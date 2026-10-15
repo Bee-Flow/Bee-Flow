@@ -5,12 +5,14 @@
 export interface TriggerFilterValues {
     from?: string;
     to?: string;
+    cc?: string;
     subjectContains?: string;
     subjectRegex?: string;
     hasAttachment?: boolean;
     excludeFromSelf?: boolean;
     maxAgeMinutes?: number;
     labelId?: string;
+    labelIds?: string[];
     excludeLabelIds?: string[];
     calendarId?: string | number;
     statusEquals?: string;
@@ -51,6 +53,7 @@ export interface TriggerFilterValues {
     /** A list, or the comma-separated text an older draft stored. */
     tags?: string[] | string;
     reprocessed?: boolean;
+    [key: string]: unknown;
 }
 
 export interface FilterFieldsProps {

@@ -9,6 +9,7 @@
 import type { FlowStep } from '../types';
 import type { BindingInput } from '../../../../../utils/bindingHelpers.types';
 import type { SidecarEntry } from '../diagramPaneTypes';
+import type { TriggerFilterValues } from '../settings/triggerFilters.types';
 
 /** The translator every card reads from `useTranslation()`. */
 export type TFn = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
@@ -45,37 +46,8 @@ export interface NodeRunStep {
     [key: string]: unknown;
 }
 
-/** An app-event trigger's filter: every key the provider flavours know. */
-export interface AppEventFilter {
-    labelId?: string;
-    from?: string;
-    to?: string;
-    cc?: string;
-    subjectContains?: string;
-    subjectRegex?: string;
-    labelIds?: string[];
-    excludeLabelIds?: string[];
-    hasAttachment?: boolean;
-    excludeFromSelf?: boolean;
-    maxAgeMinutes?: number;
-    leadMinutes?: number;
-    calendarId?: string;
-    statusEquals?: string;
-    attendeeEmailContains?: string;
-    includeAllDay?: boolean;
-    folderId?: string;
-    mimeType?: string;
-    nameContains?: string;
-    excludeOwnUploads?: boolean;
-    inFolder?: string;
-    extension?: string;
-    actorEquals?: string;
-    kindEquals?: string;
-    type?: string;
-    objectNameContains?: string;
-    app?: string;
-    [key: string]: unknown;
-}
+/** An app-event trigger's filter: the same stored object the filter forms edit. */
+export type AppEventFilter = TriggerFilterValues;
 
 export interface AppEventConfig {
     provider?: string;

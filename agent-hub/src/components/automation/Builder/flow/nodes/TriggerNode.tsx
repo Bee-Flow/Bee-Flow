@@ -13,7 +13,8 @@ import { humanizeFieldKey } from '../displayHelpers';
 import { nodeTypeLabel } from '../nodeDefs';
 import { describeCron } from '../scheduleBuilderUtils';
 import { APP_EVENT_TYPE_LABEL, triggerTypeLabel } from '../triggerLabels';
-import type { AppEventConfig, AppEventFilter, StepNodeProps, TFn } from './nodeProps';
+import type { AppRef } from '../../../../admin/Studio/AppStudio/inspector/appDefinition';
+import type { AppEventConfig, AppEventFilter, StepNodeProps, SummaryText, TFn } from './nodeProps';
 
 /**
  * Trigger provider id → integration id used by INTEGRATION_META.
@@ -89,7 +90,7 @@ export default function TriggerNode({ id, data }: StepNodeProps) {
     // The one summary line under the name, per kind. Chips where the values
     // are discrete (a cadence and its timezone, a tool's parameters), plain
     // words otherwise.
-    let sub: React.ReactNode | { muted: string } = null;
+    let sub: React.ReactNode | SummaryText = null;
     if (kind === 'schedule') {
         // "Every day at 09:00", not `0 9 * * *`. A schedule the author can't
         // read at a glance is a schedule they can't check.
@@ -237,9 +238,9 @@ export default function TriggerNode({ id, data }: StepNodeProps) {
  * fires from an app action — so this says so on the card instead of falling
  * silently back to a nameless trigger.
  */
-function AppRefPlace({ record, appRef, t }: { record: ReturnType<typeof useAppRefLabel>; appRef: ReturnType<typeof triggerAppRef>; t: TFn }) {
+function AppRefPlace({ record, appRef, t }: { record: unknown; appRef: AppRef | null; t: TFn }) {
     if (!appRef || record === undefined) return null;
-    const d = (appRefDisplay as (record: ReturnType<typeof useAppRefLabel>, ref?: ReturnType<typeof triggerAppRef>) => ReturnType<typeof appRefDisplay>)(record, appRef);
+    const d = (appRefDisplay as (record: unknown, ref?: AppRef | null) => ReturnType<typeof appRefDisplay>)(record, appRef);
 
     if (d.gone === 'app') {
         return <span className="italic text-[var(--text-tertiary)]" title={d.appId || undefined}>{t('automations.trigger.app_gone', 'App is gone')} · </span>;
@@ -370,7 +371,7 @@ function summariseFilter(filter: AppEventFilter, appEvent: AppEventConfig | null
     return out;
 }
 
-function truncate(s: string | null | undefined, n: number): string {
+function truncate(s: string | number | null | undefined, n: number): string {
     s = String(s ?? '');
     return s.length > n ? s.slice(0, n - 1) + '…' : s;
 }
