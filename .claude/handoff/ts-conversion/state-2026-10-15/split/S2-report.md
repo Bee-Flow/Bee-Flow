@@ -43,3 +43,39 @@
 - Watch at merge: the mobile `src/features/compliance/model/lockstep.test.ts` reads `settingsFields.ts` now; new
   `settingsFields.types.ts`; `.file-budget.json` key renames; `i18nGuard.test.js` path edit; `OrgUser` has 4 definitions
   across the tree (unify later); b13 types commit c2698ab9 alone does not typecheck (QuestionnaireImport), fixed by 4768fda3.
+
+### 17 + 16 (product website builder, block editors, analytics; admin security), branch `s2/batch-16` (on `s2/batch-17`), merged
+- Converted: b17 44/60 (incl. blockEditors/shared.tsx via an Opus-approved pure move of GroupedItemsField into a new
+  GroupedItemsField.jsx, re-exported; net ts-ratchet 0), b16 27/46 (incl. analytics/ui.tsx). New type homes:
+  primitives.types.ts, analytics/ui.types.ts, blockEditors/editorProps.ts, HeaderEditor.types.ts.
+- Gate: b17 types `35 identical, 0 different of 35`; shared move+convert `1 identical, 0 different`; b16 types `27 identical,
+  0 different of 27`; overall vs BASE `62 identical, 10 different of 72` (9 catch files + shared.tsx minus the moved
+  function). Review-fix commit: transpile of the 28 touched files parent vs fix, 0 differences.
+- Catch commits: b17 8 files (`// behaviour:` bare `setError/toast.error(err.message)` → `messageOf(err, '')`: '' instead of
+  undefined, both render as no text; toast.error requires a string), b16 PricingEditor.
+- Kept JS, b17: runtime: googleFonts.js (push of possibly-undefined entry), localeMerge.js/translatable.js/previewContent.js
+  (untyped JSON indexing), pageIO.js (`e.target.result` to JSON.parse), AddBlockDialog (`out.get(k).push`), security/guardrails/
+  Info.jsx (FieldHint title string|null into a button title), useCmsBlockEditing/useCmsContentMutations/useCmsPagesTemplates
+  (`.blocks.map`/`.pages.map` on optional), useCmsBuilderBridge (`includes(nullable)`). Blocked: PageInspector (utils/
+  cmsPublicRouting.js `= null` defaults; blockEditors/catalogue string index), ChromeInspector (CookieBannerEditor/
+  AnnouncementEditor `locales = null`), SecurityHub (admin/shared/HubScaffold.jsx `titleFor` required), GuardrailsHub
+  (guardrails/overview/HealthBanner.jsx, StatStrip.jsx), useCmsPreviewBridge (previewContent.js).
+- Kept JS, b16: react-hooks disable: useAnalyticsQuery.js. Blocked: ContentEditor (marketing/sections/contentMigration.ts
+  ContentElement), VariantPicker (blockEditors/blockData.generated.mjs string index), FeatureDemoEditor (demo/registry.js),
+  ArchitectureEditor (GroupedItemsField.jsx `groups = []` → never[]). runtime: HeatmapSection (reads `scrollReach.pageW`
+  that `toScrollReach` never returns — latent JS bug), BehaviorSection (`Map.get().days.set`), SettingsSection (null fetch
+  result deref), CmsAssistantPane (`?.length > 0`), RoadmapEditor (passes `checked=` to Toggle whose prop is `value` —
+  latent bug), ShowcaseEditor (`includes(undefined)`). Sections retried in batch 15 (see there).
+- Review: `reviews/S2-product-website.md` (both CHANGES REQUIRED, small; all required + most recommended applied in 06fe267f,
+  re-signed as f627c205). Security code: API shapes match orgRoutes.js, encryptionAvailability.js, microsoftBindingRoutes.js,
+  orgPrivacyShield.js; no logic change.
+- Out-of-scope edits (types only): `export` on `PublicPlan` (marketing/sections/PricingSection.tsx) and `CmsSeo`
+  (marketing/useCmsHead.ts); existing TS cmsPanelTypes.ts (`CmsPageSeo`, `seo?`) and panelView.ts tightened.
+- Full gate at the merge (push 2): check:fast 39/39; server tc 0; duplication 15324; gitleaks clean; agent-hub tc 0, vitest
+  1836 / 21619 pass; mobile jest 13430 pass, tsc 0; server 28933 pass, 0 fail, no HUNG.
+- Integrator follow-ups: shims in product-website/blog/jsComponents.ts, fieldKit/jsDeps.ts, panel/panelJsComponents.ts still
+  cast now-typed components `as unknown as` (can be deleted); generic `apiJson<T>` in guardrailsApi.ts (PatternSections.tsx
+  relies on its any); duplicate block-editor shapes (SectionHeaderData, StyleBlob/TextStyleBlob, media slot ×4, CTA ×3);
+  GuardStatus ×4.
+- History note: the b17 types commit was unsigned (drafter worktree); the unpushed chain was re-created signed with
+  identical trees before push 2 (ccdba2f7 → c5cd3a5f… ; batch-16 tip f627c205).
