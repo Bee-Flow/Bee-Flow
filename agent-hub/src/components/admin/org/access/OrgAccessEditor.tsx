@@ -3,6 +3,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getIntegrationIcon } from '../../../../config/integrationIcons';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { messageOf } from '../../../../utils/caughtError';
+import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './accessTypes';
 
 /**
  * OrgAccessEditor — the super-admin "Organisation access" menu: which
@@ -15,7 +17,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  */
 
 // MCP servers are integrations now — they appear under Integrations.
-const KIND_SECTIONS = [
+const KIND_SECTIONS: AccessKindSection[] = [
     { kind: 'core', labelKey: 'admin_org.access_matrix_features', label: 'Features', icon: Layers },
     { kind: 'beta', labelKey: 'admin_org.access_matrix_beta_features', label: 'Beta features', icon: Sparkles },
     { kind: 'integration', labelKey: 'admin_org.access_matrix_integrations', label: 'Integrations', icon: Settings },
@@ -24,14 +26,19 @@ const EMERALD = '#10b981';
 const BLUE = '#3b82f6';
 const SAVE_DEBOUNCE_MS = 450;
 
-export default function OrgAccessEditor({ orgId, onChanged }) {
+interface OrgAccessEditorProps {
+    orgId: string;
+    onChanged?: () => void;
+}
+
+export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorProps) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState(null);
-    const [available, setAvailable] = useState(() => new Set());
+    const [data, setData] = useState<AccessData | null>(null);
+    const [available, setAvailable] = useState<Set<string>>(() => new Set());
     const [unrestricted, setUnrestricted] = useState(true);
-    const [message, setMessage] = useState(null);
-    const saveTimer = useRef(null);
+    const [message, setMessage] = useState<AccessMessage | null>(null);
+    const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const path = `${API_BASE}/auth/organizations/${encodeURIComponent(orgId)}/org-availability`;
 
@@ -45,7 +52,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
             setUnrestricted(!!j.unrestricted);
             setAvailable(new Set(j.unrestricted ? (j.ceiling || []) : (j.available || [])));
         } catch (e) {
-            setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_failed_load', 'Failed to load') });
+            setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_failed_load', 'Failed to load')) });
         } finally { setLoading(false); }
     }, [path, t]);
 
@@ -55,7 +62,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
 
     const ceiling = useMemo(() => (data?.ceiling || []), [data]);
     const capsByKind = useMemo(() => {
-        const map = { core: [], beta: [], integration: [] };
+        const map: Record<string, AccessCapability[]> = { core: [], beta: [], integration: [] };
         for (const c of (data?.capabilities || [])) {
             if (!ceiling.includes(c.id)) continue; // only show what the plan/license allows
             (map[c.kind] || (map[c.kind] = [])).push(c);
@@ -64,7 +71,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
         return map;
     }, [data, ceiling]);
 
-    const save = (payload) => {
+    const save = (payload: { unrestricted: true } | { available: string[] }) => {
         if (saveTimer.current) clearTimeout(saveTimer.current);
         saveTimer.current = setTimeout(async () => {
             try {
@@ -72,11 +79,11 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
                 if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
                 setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
                 onChanged?.();
-            } catch (e) { setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_save_failed', 'Save failed') }); load(); }
+            } catch (e) { setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_save_failed', 'Save failed')) }); load(); }
         }, SAVE_DEBOUNCE_MS);
     };
 
-    const setUnrestrictedMode = (val) => {
+    const setUnrestrictedMode = (val: boolean) => {
         setUnrestricted(val);
         if (val) {
             setAvailable(new Set(ceiling));
@@ -90,7 +97,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
         }
     };
 
-    const toggle = (capId) => {
+    const toggle = (capId: string) => {
         if (unrestricted) return;
         setAvailable(prev => {
             const n = new Set(prev);

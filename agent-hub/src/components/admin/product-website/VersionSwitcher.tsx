@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import AppIcon from '../../icons/AppIcon';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { CmsSiteListEntry } from './panel/cmsPanelTypes';
+
+interface VersionSwitcherProps {
+    versions: CmsSiteListEntry[];
+    activeSiteId?: string | null;
+    liveSiteId?: string | null;
+    onSelect: (siteId: string) => void;
+    onSetLive: (siteId: string) => void;
+    onDuplicate: () => Promise<unknown> | void;
+}
 
 /**
  * Version switcher — lists every version (site) that shares the active
@@ -23,7 +33,7 @@ export default function VersionSwitcher({
     onSelect,
     onSetLive,
     onDuplicate,
-}) {
+}: VersionSwitcherProps) {
     const { t } = useTranslation();
     const [busy, setBusy] = useState(false);
 

@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { getIntegrationIcon } from '../../../../config/integrationIcons';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import type { AccessCapability, AccessData, AccessKindSection } from './accessTypes';
+import { messageOf } from '../../../../utils/caughtError';
 
 /**
  * CeilingReadOnly — the org-admin view of the ceiling. The ceiling (what the
@@ -15,18 +17,18 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  */
 
 // MCP servers are integrations now — they appear under Integrations.
-const KIND_SECTIONS = [
+const KIND_SECTIONS: AccessKindSection[] = [
     { kind: 'core', labelKey: 'admin_org.access_matrix_features', label: 'Features', icon: Layers },
     { kind: 'beta', labelKey: 'admin_org.access_matrix_beta_features', label: 'Beta features', icon: Sparkles },
     { kind: 'integration', labelKey: 'admin_org.access_matrix_integrations', label: 'Integrations', icon: Settings },
 ];
 const BLUE = '#3b82f6';
 
-export default function CeilingReadOnly({ orgId = null }) {
+export default function CeilingReadOnly({ orgId = null }: { orgId?: string | null }) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
+    const [data, setData] = useState<AccessData | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const readPath = orgId
         ? `${API_BASE}/auth/organizations/${encodeURIComponent(orgId)}/group-access`
@@ -42,7 +44,7 @@ export default function CeilingReadOnly({ orgId = null }) {
                 const j = await res.json();
                 if (alive) setData(j);
             } catch (e) {
-                if (alive) setError(e.message || t('admin_org.access_matrix_failed_load', 'Failed to load'));
+                if (alive) setError(messageOf(e, t('admin_org.access_matrix_failed_load', 'Failed to load')));
             } finally { if (alive) setLoading(false); }
         })();
         return () => { alive = false; };
@@ -50,12 +52,12 @@ export default function CeilingReadOnly({ orgId = null }) {
 
     const byKind = useMemo(() => {
         const ceiling = new Set(data?.ceiling || []);
-        const map = { core: [], beta: [], integration: [] };
+        const map: Record<string, AccessCapability[]> = { core: [], beta: [], integration: [] };
         for (const c of (data?.capabilities || [])) {
             if (!ceiling.has(c.id)) continue;
             (map[c.kind] || (map[c.kind] = [])).push(c);
         }
-        for (const k of Object.keys(map)) map[k].sort((a, b) => a.name.localeCompare(b.name));
+        for (const k of Object.keys(map)) map[k].sort((a: AccessCapability, b: AccessCapability) => a.name.localeCompare(b.name));
         return map;
     }, [data]);
 

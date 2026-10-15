@@ -19,7 +19,35 @@ import { ACCENT, fmt } from '../ui';
 
 const PAD = { top: 10, right: 8, bottom: 20, left: 8 };
 
-function pathFor(values, x, y) {
+/** One line of the chart; a null in `data` is a gap, not a zero. */
+export interface TrendSeries {
+    key?: string;
+    label: string;
+    data: Array<number | null | undefined>;
+    color?: string;
+    /** 'line' and 'dashed' draw no area fill; 'dashed' also dashes the stroke. */
+    style?: 'line' | 'dashed' | 'area';
+}
+
+/** A horizontal reference line (e.g. a Core Web Vitals threshold) at value `y`. */
+export interface TrendRefLine {
+    y: number;
+    color?: string;
+}
+
+interface TrendChartProps {
+    series?: TrendSeries[];
+    labels?: string[];
+    height?: number;
+    formatY?: (v: number) => string;
+    formatLabel?: (i: number) => string;
+    refLines?: TrendRefLine[];
+    partialLast?: boolean;
+    yMin?: number;
+    emptyText?: string;
+}
+
+function pathFor(values: Array<number | null | undefined>, x: (i: number) => number, y: (v: number) => number) {
     // A null is a gap, not a zero: `M` restarts the line after one.
     let d = '';
     let pen = false;
@@ -34,13 +62,13 @@ function pathFor(values, x, y) {
 export default function TrendChart({
     series = [], labels = [], height = 200, formatY = fmt, formatLabel,
     refLines = [], partialLast = false, yMin = 0, emptyText,
-}) {
+}: TrendChartProps) {
     const { t: tr } = useTranslation();
-    const [hover, setHover] = useState(null);
+    const [hover, setHover] = useState<number | null>(null);
     const n = labels.length;
 
     const { scaleX, scaleY, top } = useMemo(() => {
-        const all = series.flatMap(s => s.data).filter(v => v != null && Number.isFinite(v));
+        const all = series.flatMap(s => s.data).filter((v): v is number => v != null && Number.isFinite(v));
         const refs = refLines.map(r => r.y).filter(Number.isFinite);
         const peak = Math.max(...all, ...refs, 1);
         // Round the top of the axis up so the line never touches the frame.
@@ -48,8 +76,8 @@ export default function TrendChart({
         const topV = Math.ceil(peak / nice + 0.15) * nice;
         return {
             top: topV,
-            scaleX: (i) => (n <= 1 ? 50 : (i / (n - 1)) * 100),
-            scaleY: (v) => {
+            scaleX: (i: number) => (n <= 1 ? 50 : (i / (n - 1)) * 100),
+            scaleY: (v: number) => {
                 const t = (v - yMin) / (topV - yMin || 1);
                 return 100 - Math.max(0, Math.min(1, t)) * 100;
             },
@@ -66,7 +94,7 @@ export default function TrendChart({
         );
     }
 
-    const label = (i) => (formatLabel ? formatLabel(i) : labels[i]);
+    const label = (i: number) => (formatLabel ? formatLabel(i) : labels[i]);
 
     return (
         <div style={{ position: 'relative' }}>
@@ -92,7 +120,7 @@ export default function TrendChart({
                     // filling — otherwise it reads as a crash that hasn't happened.
                     const tailFrom = s.data.length - 2;
                     const tail = partialLast && tailFrom >= 0
-                        ? pathFor(s.data.slice(tailFrom), (i) => scaleX(tailFrom + i), scaleY)
+                        ? pathFor(s.data.slice(tailFrom), (i: number) => scaleX(tailFrom + i), scaleY)
                         : '';
                     return (
                         <g key={s.key || si}>

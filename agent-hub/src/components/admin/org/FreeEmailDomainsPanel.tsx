@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
+
+interface DomainMessage {
+    type: 'success' | 'error';
+    text: string;
+}
 
 /**
  * FreeEmailDomainsPanel — super-admin editor for the free/public email-provider
@@ -13,15 +19,15 @@ import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck }
  */
 export default function FreeEmailDomainsPanel() {
     const { t } = useTranslation();
-    const [builtin, setBuiltin] = useState([]);
-    const [extra, setExtra] = useState([]);
+    const [builtin, setBuiltin] = useState<string[]>([]);
+    const [extra, setExtra] = useState<string[]>([]);
     const [newDomain, setNewDomain] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState(null);
+    const [message, setMessage] = useState<DomainMessage | null>(null);
     const [showBuiltin, setShowBuiltin] = useState(false);
 
-    const notify = (type, text) => {
+    const notify = (type: DomainMessage['type'], text: string) => {
         setMessage({ type, text });
         setTimeout(() => setMessage(null), 3000);
     };
@@ -48,7 +54,7 @@ export default function FreeEmailDomainsPanel() {
 
     // Persist a new extra list. Sends {extra} and adopts the server-normalised
     // list from the response so the UI reflects exactly what was stored.
-    const persist = async (nextExtra) => {
+    const persist = async (nextExtra: string[]) => {
         setSaving(true);
         try {
             const res = await authFetch(`${API_BASE}/auth/free-email-domains`, {
@@ -75,7 +81,8 @@ export default function FreeEmailDomainsPanel() {
     const addDomain = async () => {
         const raw = newDomain.trim().toLowerCase();
         if (!raw) return;
-        const domain = raw.includes('@') ? raw.split('@').pop() : raw;
+        // split() always returns ≥1 element, so pop() is a string.
+        const domain = raw.includes('@') ? raw.split('@').pop() as string : raw;
         if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
             notify('error', t('admin.fed_invalid', 'Not a valid domain: "{domain}"').replace('{domain}', domain));
             return;
@@ -92,11 +99,11 @@ export default function FreeEmailDomainsPanel() {
         if (ok) setNewDomain('');
     };
 
-    const removeDomain = async (domain) => {
+    const removeDomain = async (domain: string) => {
         await persist(extra.filter(d => d !== domain));
     };
 
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') { e.preventDefault(); addDomain(); }
     };
 

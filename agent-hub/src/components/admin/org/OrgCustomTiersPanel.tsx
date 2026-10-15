@@ -3,12 +3,36 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
 
+interface OrgTier {
+    id: string;
+    label?: string;
+    icon?: string;
+    description?: string;
+    modelId?: string;
+    euModelId?: string;
+    maxTokens?: number;
+    temperature?: number;
+    allowedTaskTypes?: string[];
+}
+
+interface AvailableModel {
+    id: string;
+    name?: string;
+    providerName?: string;
+    providerType?: string;
+}
+
+interface PanelMessage {
+    type: 'success' | 'warning' | 'error';
+    text: string;
+}
+
 const TASK_TYPES = [
     { key: 'direct_chat', labelKey: 'admin_org.custom_tiers_direct_chat', label: 'Direct Chat' },
     { key: 'agent_chat', labelKey: 'admin_org.custom_tiers_agent_chat', label: 'Agent Chat' },
 ];
 
-const slugifyTierLabel = (label) => {
+const slugifyTierLabel = (label: unknown) => {
     const slug = String(label || '')
         .toLowerCase()
         .normalize('NFKD')
@@ -28,13 +52,13 @@ const slugifyTierLabel = (label) => {
 const OrgCustomTiersPanel = () => {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    const [orgTiers, setOrgTiers] = useState([]);
-    const [globalTiers, setGlobalTiers] = useState([]);
-    const [availableModels, setAvailableModels] = useState([]);
+    const [orgTiers, setOrgTiers] = useState<OrgTier[]>([]);
+    const [globalTiers, setGlobalTiers] = useState<OrgTier[]>([]);
+    const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState(null);
-    const [expandedId, setExpandedId] = useState(null);
+    const [message, setMessage] = useState<PanelMessage | null>(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const loadAll = async () => {
         setLoading(true);
@@ -53,12 +77,12 @@ const OrgCustomTiersPanel = () => {
             if (providersRes.ok) {
                 const { providers } = await providersRes.json();
                 const results = await Promise.all(
-                    (providers || []).map(async (p) => {
+                    (providers || []).map(async (p: { id: string; name?: string; type?: string }) => {
                         try {
                             const r = await authFetch(`${API_BASE}/ai/providers/${p.id}/models`);
                             if (r.ok) {
                                 const { models } = await r.json();
-                                return (models || []).map(m => ({ ...m, providerName: p.name, providerType: p.type }));
+                                return (models || []).map((m: AvailableModel) => ({ ...m, providerName: p.name, providerType: p.type }));
                             }
                             return [];
                         } catch (_) { return []; }
@@ -98,11 +122,11 @@ const OrgCustomTiersPanel = () => {
         setExpandedId(placeholderId);
     };
 
-    const patch = (id, patchObj) => {
+    const patch = (id: string, patchObj: Partial<OrgTier>) => {
         setOrgTiers(prev => prev.map(t => t.id === id ? { ...t, ...patchObj } : t));
     };
 
-    const rename = (currentId, newLabel) => {
+    const rename = (currentId: string, newLabel: string) => {
         const newId = slugifyTierLabel(newLabel);
         setOrgTiers(prev => prev.map(t => {
             if (t.id !== currentId) return t;
@@ -111,12 +135,12 @@ const OrgCustomTiersPanel = () => {
         if (newId && newId !== currentId) setExpandedId(newId);
     };
 
-    const remove = async (id) => {
+    const remove = async (id: string) => {
         if (!(await confirm({ title: t('admin_org.custom_tiers_delete_title', 'Delete this custom tier?'), description: t('admin_org.custom_tiers_delete_desc', 'This cannot be undone.'), confirmLabel: t('admin_org.custom_tiers_delete', 'Delete'), destructive: true }))) return;
         setOrgTiers(prev => prev.filter(t => t.id !== id));
     };
 
-    const toggleTaskType = (id, key) => {
+    const toggleTaskType = (id: string, key: string) => {
         setOrgTiers(prev => prev.map(t => {
             if (t.id !== id) return t;
             const set = new Set(t.allowedTaskTypes || []);

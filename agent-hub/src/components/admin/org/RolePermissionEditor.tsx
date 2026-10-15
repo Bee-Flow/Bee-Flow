@@ -3,6 +3,16 @@ import React, { useMemo, useState } from 'react';
 import { editablePermissionsForRole, permissionsForRole } from '../../../config/orgRoles';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { errorMessage } from '../../../utils/caughtError';
+import type { OrgRolePermissions } from './useOrgDirectory';
+
+interface RolePermissionEditorProps {
+    role: { id: string; color: string };
+    mapping: OrgRolePermissions[];
+    editablePermissions?: string[];
+    canEdit: boolean;
+    onSaved: (roleId: string, permissions: string[]) => void;
+}
 
 /**
  * The expanded panel under one Organisation Role: what it may use, and — for an
@@ -20,11 +30,11 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
  * Saving is per role and sends the FULL editable choice, not a delta, so two
  * admins editing different roles cannot interleave into a state neither picked.
  */
-const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onSaved }) => {
+const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onSaved }: RolePermissionEditorProps) => {
     const { t } = useTranslation();
-    const [draft, setDraft] = useState(null);   // null = untouched, mirrors `mapping`
+    const [draft, setDraft] = useState<string[] | null>(null);   // null = untouched, mirrors `mapping`
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState<string | undefined>('');
 
     const rows = useMemo(
         () => editablePermissionsForRole(role.id, mapping, editablePermissions),
@@ -51,7 +61,7 @@ const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onS
     const dirty = draft !== null
         && (draft.length !== saved.length || draft.some((id) => !saved.includes(id)));
 
-    const toggle = (id) => {
+    const toggle = (id: string) => {
         setError('');
         setDraft(granted.has(id) ? current.filter((x) => x !== id) : [...current, id]);
     };
@@ -72,7 +82,7 @@ const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onS
             onSaved(role.id, body?.permissions || current);
             setDraft(null);
         } catch (e) {
-            setError(e.message);
+            setError(errorMessage(e));
         } finally {
             setSaving(false);
         }

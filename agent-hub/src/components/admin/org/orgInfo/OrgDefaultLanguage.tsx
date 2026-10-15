@@ -3,10 +3,15 @@ import { useId, useState, useEffect } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
+interface LocaleOption {
+    code: string;
+    name: string;
+}
+
 // ── Org Default Language ───────────────────────────────────────────────────
 const OrgDefaultLanguage = () => {
     const { t } = useTranslation();
-    const [locales, setLocales] = useState([]);
+    const [locales, setLocales] = useState<LocaleOption[]>([]);
     const [defaultLocale, setDefaultLocale] = useState('en');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -17,7 +22,7 @@ const OrgDefaultLanguage = () => {
     useEffect(() => {
         setLoading(true);
         authFetch(`${API_BASE}/api/languages/org/default`)
-            .then(r => r.json())
+            .then((r: Response) => r.json())
             .then(data => {
                 if (data.defaultLocale) setDefaultLocale(data.defaultLocale);
                 if (Array.isArray(data.locales)) setLocales(data.locales);
@@ -26,7 +31,7 @@ const OrgDefaultLanguage = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    const handleSave = async (code) => {
+    const handleSave = async (code: string) => {
         const previous = defaultLocale;
         setDefaultLocale(code);
         setSaving(true);

@@ -2,6 +2,7 @@ import { Building2, ChevronDown, ChevronRight, Users as UsersIcon } from 'lucide
 import React, { useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import PeopleRow from './PeopleRow';
+import type { PeopleRowProps, PeopleUser } from './PeopleRow';
 
 /**
  * A collapsible directory section — one organisation (with its groups nested
@@ -17,17 +18,50 @@ import PeopleRow from './PeopleRow';
  * Separators use `--border-default`, not `--border-subtle`: the subtle token is
  * rgba(255,255,255,.06) and effectively vanishes in the high-contrast theme.
  */
-const ORG_STATUS_CHIP = {
+const ORG_STATUS_CHIP: Record<string, string> = {
     suspended: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/40',
     archived: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-default)]',
 };
+
+interface PeopleSectionBase {
+    key: string;
+    title: string;
+    subtitle?: string | null;
+    isGlobal?: boolean;
+    orphaned?: boolean;
+    count: number;
+    users: PeopleUser[];
+    subsections?: PeopleSection[];
+}
+
+/** An organisation section; only these carry a lifecycle status. */
+interface OrgSection extends PeopleSectionBase {
+    kind: 'org';
+    status: string;
+}
+
+interface OtherSection extends PeopleSectionBase {
+    kind?: 'group' | 'all' | 'none';
+    status?: string;
+}
+
+export type PeopleSection = OrgSection | OtherSection;
+
+interface PeopleGroupSectionProps {
+    section: PeopleSection;
+    rowProps?: Partial<PeopleRowProps>;
+    defaultOpen?: boolean;
+    orgChipsFor?: (user: PeopleUser) => string[];
+    depth?: number;
+}
+
 export default function PeopleGroupSection({
     section,
     rowProps,
     defaultOpen = true,
     orgChipsFor = () => [],
     depth = 0,
-}) {
+}: PeopleGroupSectionProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(defaultOpen);
     const Chevron = open ? ChevronDown : ChevronRight;

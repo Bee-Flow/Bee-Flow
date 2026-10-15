@@ -96,8 +96,8 @@ export interface BackgroundCardProps {
     persistKey?: string | null;
 }
 
-export interface SegmentedOption {
-    value: string;
+export interface SegmentedOption<V extends string | number = string> {
+    value: V;
     label?: string;
     /** Translation key for the label; `label` is its fallback. */
     labelKey?: string;
@@ -107,10 +107,10 @@ export interface SegmentedOption {
     hint?: string;
 }
 
-export interface SegmentedControlProps {
-    options: SegmentedOption[];
-    value?: string | null;
-    onChange: (value: string) => void;
+export interface SegmentedControlProps<V extends string | number = string> {
+    options: SegmentedOption<V>[];
+    value?: V | null;
+    onChange: (value: V) => void;
     iconOnly?: boolean;
 }
 

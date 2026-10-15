@@ -13,11 +13,11 @@ interface SiteVersionMenuProps {
     activeSiteId: string | null;
     liveSiteId: string | null;
     onSelectSite: (id: string) => void;
-    onCreateSite: (name: string) => void;
+    onCreateSite: (name: string) => Promise<{ id?: string } | null> | void;
     onRenameSite: (id: string, name: string) => void;
     onDeleteSite: (site: CmsSiteListEntry) => void;
     onSetLiveVersion: (id: string) => void;
-    onDuplicateVersion: (id: string, name?: string) => void;
+    onDuplicateVersion: () => Promise<unknown> | void;
     onExportSite: (format: string) => void;
     onImportFile: (file: File) => void;
     ioStatus: SiteIoStatus | null;
