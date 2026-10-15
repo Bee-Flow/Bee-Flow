@@ -100,7 +100,7 @@ async function addTab(doc, name, deps) {
 /**
  * @param {any} doc  the spreadsheet, as getDocument returned it to the caller
  * @param {{ cells?: any, evaluate?: Function }} [deps]
- * @param {{ tab?: unknown }} [args]  the document_read arguments
+ * @param {{ tab?: unknown, mode?: unknown, range?: unknown }} [args]  the document_read arguments
  */
 async function readSheetDocument(doc, deps = {}, args = {}) {
     const sheetCells = deps.cells || require('../core/documents/sheetCells');
@@ -198,7 +198,7 @@ async function readOutline(doc, sheetCells, evaluate) {
 /**
  * @param {any} doc
  * @param {any} args  the document_write arguments
- * @param {{ cells?: any }} [deps]
+ * @param {{ cells?: any, documents?: any, actorUserId?: string }} [deps]
  */
 async function writeSheetDocument(doc, args, deps = {}) {
     const sheetCells = deps.cells || require('../core/documents/sheetCells');
@@ -224,6 +224,8 @@ async function writeSheetDocument(doc, args, deps = {}) {
     const wantsCharts = Array.isArray(args.charts) || Array.isArray(args.removeCharts);
     const newCharts = wantsCharts ? spec.chartsFrom(args.charts, picked.tab.id, doc.settings?.sheet?.charts || [], args.removeCharts) : null;
     if (newCharts && 'error' in newCharts) return { error: newCharts.error };
+    // Without strictNullChecks the check above does not narrow `newCharts` afterwards; the return guarantees no error shape is left.
+    const planned = /** @type {Exclude<typeof newCharts, { error: string }>} */ (newCharts);
     try {
         let saved = 0;
         for (let i = 0; i < names.length; i += CHUNK) {
@@ -231,12 +233,14 @@ async function writeSheetDocument(doc, args, deps = {}) {
             const done = await sheetCells.writeCells(doc.userId, picked.tab.datatableId, part);
             saved += Object.keys(done.cells).length;
         }
-        const charted = newCharts ? await spec.addCharts(doc, newCharts.charts, deps, newCharts) : null;
-        if (charted && 'error' in charted) return { error: `Saved ${saved} cell(s), but the charts were not added: ${charted.error}` };
+        const addResult = planned ? await spec.addCharts(doc, planned.charts, deps, planned) : null;
+        if (addResult && 'error' in addResult) return { error: `Saved ${saved} cell(s), but the charts were not added: ${addResult.error}` };
+        // Same: the return above leaves only the success shape (or null).
+        const charted = /** @type {Exclude<typeof addResult, { error: string }>} */ (addResult);
         return {
             documentId: doc.id, saved, tab: { id: picked.tab.id, name: picked.tab.name },
             ...(created ? { createdTab: true, tabs: picked.tabs.map((t) => ({ id: t.id, name: t.name })) } : {}),
-            ...(charted ? { charts: charted.saved, chartIds: newCharts.charts.map((c) => c.id), chartsUpdated: charted.updated, chartsRemoved: charted.removed } : {}),
+            ...(charted ? { charts: charted.saved, chartIds: planned.charts.map((c) => c.id), chartsUpdated: charted.updated, chartsRemoved: charted.removed } : {}),
             message: `Saved ${saved} cell(s)${charted ? ` and ${charted.saved} chart(s) (${charted.updated} updated, ${charted.removed} removed)` : ''} in ${created ? 'the new ' : ''}tab "${picked.tab.name}" of "${doc.name}".`
                 + (charted ? ' The charts show in the sheet next to the user; they follow the cells when values change.' : ''),
         };
