@@ -2,7 +2,12 @@ import React from 'react';
 import { AzureOpenAILogo } from './ProviderLogos';
 import { useTranslation } from '../../hooks/useTranslation';
 
-const StepDeploymentType = ({ deploymentType, setDeploymentType }) => {
+interface StepDeploymentTypeProps {
+    deploymentType: string;
+    setDeploymentType: (value: string) => void;
+}
+
+const StepDeploymentType = ({ deploymentType, setDeploymentType }: StepDeploymentTypeProps) => {
     const { t } = useTranslation();
     return (
     <div className="space-y-4">

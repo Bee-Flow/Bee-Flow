@@ -1,4 +1,5 @@
 import { Database, LayoutTemplate, Wrench } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
@@ -20,7 +21,15 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 
 // Labels/titles are i18n keys (app_studio.builder.quick.*) with their English
 // under `en`; the prompts stay English — they are what the model reads.
-const ACTIONS = [
+interface QuickAction {
+    id: string;
+    label: { key: string; en: string };
+    title: { key: string; en: string };
+    icon: LucideIcon;
+    prompt: string;
+}
+
+const ACTIONS: QuickAction[] = [
     {
         id: 'wire-data',
         label: { key: 'app_studio.builder.quick.use_data', en: 'Use my data' },
@@ -37,10 +46,16 @@ const ACTIONS = [
     },
 ];
 
-export default function QuickActions({ onAction, disabled = false, hasErrors = false }) {
+interface QuickActionsProps {
+    onAction?: (prompt: string, options: { planMode: 'never' }) => void;
+    disabled?: boolean;
+    hasErrors?: boolean;
+}
+
+export default function QuickActions({ onAction, disabled = false, hasErrors = false }: QuickActionsProps) {
     const { t } = useTranslation();
-    const tr = (entry) => t(entry.key, entry.en);
-    const trigger = (prompt) => {
+    const tr = (entry: { key: string; en: string }) => t(entry.key, entry.en);
+    const trigger = (prompt: string) => {
         if (disabled) return;
         onAction?.(prompt, { planMode: 'never' });
     };

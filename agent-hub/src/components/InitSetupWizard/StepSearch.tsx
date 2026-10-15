@@ -1,12 +1,34 @@
 import React from 'react';
 import { BingLogo, SerperLogo } from './ProviderLogos';
+import type { LogoProps } from './ProviderLogos';
 import { useTranslation } from '../../hooks/useTranslation';
 
-const SEARCH_OPTIONS = [
+interface SearchOption {
+    id: string;
+    label: string;
+    Logo?: React.ComponentType<LogoProps>;
+    icon?: string;
+}
+
+const SEARCH_OPTIONS: SearchOption[] = [
     { id: 'bing', label: 'Azure Bing', Logo: BingLogo },
     { id: 'agent-search', label: 'Agent Search', Logo: SerperLogo },
     { id: '', label: 'None', icon: '⏭️' },
 ];
+
+interface StepSearchProps {
+    searchProvider: string;
+    setSearchProvider: (value: string) => void;
+    bingKey: string;
+    setBingKey: (value: string) => void;
+    bingMarket: string;
+    setBingMarket: (value: string) => void;
+    serperKey: string;
+    setSerperKey: (value: string) => void;
+    clearMessages: () => void;
+    inputClass: string;
+    inputStyle: React.CSSProperties;
+}
 
 const StepSearch = ({
     searchProvider, setSearchProvider,
@@ -14,7 +36,7 @@ const StepSearch = ({
     bingMarket, setBingMarket,
     serperKey, setSerperKey,
     clearMessages, inputClass, inputStyle,
-}) => {
+}: StepSearchProps) => {
     const { t } = useTranslation();
     return (
     <>
@@ -39,13 +61,13 @@ const StepSearch = ({
             <div className="space-y-3 pt-2">
                 <div>
                     <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_search_api_subscription_key', 'API Subscription Key')}</label>
-                    <input type="password" value={bingKey} onChange={e => setBingKey(e.target.value)}
+                    <input type="password" value={bingKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBingKey(e.target.value)}
                         placeholder={t('init_setup.step_search_bing_search_api_subscription_key', 'Bing Search API subscription key')}
                         className={inputClass} style={inputStyle} />
                 </div>
                 <div>
                     <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_search_market', 'Market')}</label>
-                    <input type="text" value={bingMarket} onChange={e => setBingMarket(e.target.value)}
+                    <input type="text" value={bingMarket} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBingMarket(e.target.value)}
                         placeholder={t('init_setup.step_search_optional_e_g_nl_nl_en_us', 'Optional, e.g. nl-NL, en-US')}
                         className={inputClass} style={inputStyle} />
                 </div>
@@ -62,7 +84,7 @@ const StepSearch = ({
                 <div>
                     {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                     <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_search_serper_api_key', 'Serper API Key')}</label>
-                    <input type="password" value={serperKey} onChange={e => setSerperKey(e.target.value)}
+                    <input type="password" value={serperKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSerperKey(e.target.value)}
                         /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                         placeholder={t('init_setup.step_search_serper_dev_api_key', 'Serper.dev API Key')}
                         className={inputClass} style={inputStyle} />

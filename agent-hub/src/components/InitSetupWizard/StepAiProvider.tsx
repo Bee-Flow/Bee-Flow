@@ -1,8 +1,15 @@
 import React from 'react';
 import { AzureOpenAILogo, OpenAILogo, GoogleAILogo, MistralLogo, ClaudeLogo } from './ProviderLogos';
+import type { LogoProps } from './ProviderLogos';
 import { useTranslation } from '../../hooks/useTranslation';
 
-const PROVIDERS = [
+interface Provider {
+    id: string;
+    label: string;
+    Logo: React.ComponentType<LogoProps>;
+}
+
+const PROVIDERS: Provider[] = [
     { id: 'azure', label: 'Azure OpenAI', Logo: AzureOpenAILogo },
     { id: 'openai', label: 'OpenAI', Logo: OpenAILogo },
     { id: 'google', label: 'Google AI', Logo: GoogleAILogo },
@@ -10,12 +17,28 @@ const PROVIDERS = [
     { id: 'claude', label: 'Claude', Logo: ClaudeLogo },
 ];
 
-const HELP_LINKS = {
+const HELP_LINKS: Record<string, string> = {
     openai: 'Get your key from platform.openai.com',
     google: 'Get your key from Google AI Studio',
     mistral: 'Get your key from console.mistral.ai',
     claude: 'Get your key from console.anthropic.com',
 };
+
+interface StepAiProviderProps {
+    aiProvider: string;
+    setAiProvider: (value: string) => void;
+    azureEndpoint: string;
+    setAzureEndpoint: (value: string) => void;
+    azureKey: string;
+    setAzureKey: (value: string) => void;
+    azureModels: string;
+    setAzureModels: (value: string) => void;
+    genericKey: string;
+    setGenericKey: (value: string) => void;
+    clearMessages: () => void;
+    inputClass: string;
+    inputStyle: React.CSSProperties;
+}
 
 const StepAiProvider = ({
     aiProvider, setAiProvider,
@@ -24,7 +47,7 @@ const StepAiProvider = ({
     azureModels, setAzureModels,
     genericKey, setGenericKey,
     clearMessages, inputClass, inputStyle,
-}) => {
+}: StepAiProviderProps) => {
     const { t } = useTranslation();
     return (
     <>
@@ -47,21 +70,21 @@ const StepAiProvider = ({
             <div className="space-y-3 pt-2">
                 <div>
                     <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_ai_provider_azure_endpoint', 'Azure Endpoint')}</label>
-                    <input type="text" value={azureEndpoint} onChange={e => setAzureEndpoint(e.target.value)}
+                    <input type="text" value={azureEndpoint} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAzureEndpoint(e.target.value)}
                         placeholder="https://your-resource.openai.azure.com"
                         className={inputClass} style={inputStyle} />
                 </div>
                 <div>
                     {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                     <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_ai_provider_api_key', 'API Key')}</label>
-                    <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
+                    <input type="password" value={azureKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAzureKey(e.target.value)}
                         /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                         placeholder={t('init_setup.step_ai_provider_azure_api_key', 'Azure API Key')}
                         className={inputClass} style={inputStyle} />
                 </div>
                 <div>
                     <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_ai_provider_deployment_names', 'Deployment Names')}</label>
-                    <input type="text" value={azureModels} onChange={e => setAzureModels(e.target.value)}
+                    <input type="text" value={azureModels} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAzureModels(e.target.value)}
                         placeholder={t('init_setup.step_ai_provider_gpt_5_6_terra_gpt_6_astra_gpt_4_1', 'gpt-5.6-terra, gpt-6-astra, gpt-4.1')}
                         className={inputClass} style={inputStyle} />
                     <p className="text-xs mt-1 text-[var(--text-muted)]">
@@ -75,7 +98,7 @@ const StepAiProvider = ({
             <div className="pt-2">
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('init_setup.step_ai_provider_api_key', 'API Key')}</label>
-                <input type="password" value={genericKey} onChange={e => setGenericKey(e.target.value)}
+                <input type="password" value={genericKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGenericKey(e.target.value)}
                     placeholder={`${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key`}
                     className={inputClass} style={inputStyle} />
                 <p className="text-xs mt-1 text-[var(--text-muted)]">

@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
 import { AzureOpenAILogo, BingLogo, MicrosoftLogo } from './ProviderLogos';
+import type { LogoProps } from './ProviderLogos';
 import { useTranslation } from '../../hooks/useTranslation';
 
-const Section = ({ Logo, title, subtitle, children, defaultOpen = true }) => {
+interface SectionProps {
+    Logo: React.ComponentType<LogoProps>;
+    title: string;
+    subtitle: string;
+    children: React.ReactNode;
+    defaultOpen?: boolean;
+}
+
+const Section = ({ Logo, title, subtitle, children, defaultOpen = true }: SectionProps) => {
     const [open, setOpen] = useState(defaultOpen);
     return (
         <div className="rounded-xl border-2 overflow-hidden transition-all" style={{ borderColor: '#e5e7eb', background: '#fff' }}>
@@ -23,9 +32,32 @@ const Section = ({ Logo, title, subtitle, children, defaultOpen = true }) => {
     );
 };
 
-const Label = ({ children }) => (
+const Label = ({ children }: { children: React.ReactNode }) => (
     <label className="block text-xs font-medium mb-1" style={{ color: '#374151' }}>{children}</label>
 );
+
+interface StepAzureSetupProps {
+    azureEndpoint: string;
+    setAzureEndpoint: (value: string) => void;
+    azureKey: string;
+    setAzureKey: (value: string) => void;
+    azureModels: string;
+    setAzureModels: (value: string) => void;
+    bingKey: string;
+    setBingKey: (value: string) => void;
+    bingMarket: string;
+    setBingMarket: (value: string) => void;
+    msClientId: string;
+    setMsClientId: (value: string) => void;
+    msClientSecret: string;
+    setMsClientSecret: (value: string) => void;
+    msTenantId: string;
+    setMsTenantId: (value: string) => void;
+    officeAppsEnabled: boolean;
+    setOfficeAppsEnabled: (value: boolean) => void;
+    inputClass: string;
+    inputStyle: React.CSSProperties;
+}
 
 const StepAzureSetup = ({
     azureEndpoint, setAzureEndpoint,
@@ -38,7 +70,7 @@ const StepAzureSetup = ({
     msTenantId, setMsTenantId,
     officeAppsEnabled, setOfficeAppsEnabled,
     inputClass, inputStyle,
-}) => {
+}: StepAzureSetupProps) => {
     const { t } = useTranslation();
     return (
     <div className="space-y-3">
@@ -46,21 +78,21 @@ const StepAzureSetup = ({
         <Section Logo={MicrosoftLogo} title={t('init_setup.step_azure_setup_microsoft_entra_id', 'Microsoft Entra ID')} subtitle="Enable 'Sign in with Microsoft' for your users">
             <div>
                 <Label>{t('init_setup.step_azure_setup_application_client_id', 'Application (Client) ID')}</Label>
-                <input type="text" value={msClientId} onChange={e => setMsClientId(e.target.value)}
+                <input type="text" value={msClientId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsClientId(e.target.value)}
                     placeholder={t('init_setup.step_azure_setup_xxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')}
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */}
                 <Label>{t('init_setup.step_azure_setup_client_secret', 'Client Secret')}</Label>
-                <input type="password" value={msClientSecret} onChange={e => setMsClientSecret(e.target.value)}
+                <input type="password" value={msClientSecret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsClientSecret(e.target.value)}
                     /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
                     placeholder={t('init_setup.step_azure_setup_client_secret_value', 'Client secret value')}
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
                 <Label>{t('init_setup.step_azure_setup_tenant_id', 'Tenant ID')}</Label>
-                <input type="text" value={msTenantId} onChange={e => setMsTenantId(e.target.value)}
+                <input type="text" value={msTenantId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsTenantId(e.target.value)}
                     placeholder={t('init_setup.step_azure_setup_common_or_your_tenant_guid', 'common or your tenant GUID')}
                     className={inputClass} style={inputStyle} />
                 <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>
@@ -78,21 +110,21 @@ const StepAzureSetup = ({
         <Section Logo={AzureOpenAILogo} title={t('init_setup.step_azure_setup_azure_openai', 'Azure OpenAI')} subtitle="AI model endpoint and deployment configuration" defaultOpen={false}>
             <div>
                 <Label>{t('init_setup.step_azure_setup_endpoint_url', 'Endpoint URL')}</Label>
-                <input type="text" value={azureEndpoint} onChange={e => setAzureEndpoint(e.target.value)}
+                <input type="text" value={azureEndpoint} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAzureEndpoint(e.target.value)}
                     placeholder="https://your-resource.openai.azure.com"
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 <Label>{t('init_setup.step_azure_setup_api_key', 'API Key')}</Label>
-                <input type="password" value={azureKey} onChange={e => setAzureKey(e.target.value)}
+                <input type="password" value={azureKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAzureKey(e.target.value)}
                     /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                     placeholder={t('init_setup.step_azure_setup_your_azure_api_key', 'Your Azure API key')}
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
                 <Label>{t('init_setup.step_azure_setup_deployment_names', 'Deployment Names')}</Label>
-                <input type="text" value={azureModels} onChange={e => setAzureModels(e.target.value)}
+                <input type="text" value={azureModels} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAzureModels(e.target.value)}
                     placeholder={t('init_setup.step_azure_setup_gpt_5_6_terra_gpt_6_astra_gpt_4_1', 'gpt-5.6-terra, gpt-6-astra, gpt-4.1')}
                     className={inputClass} style={inputStyle} />
                 <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>{t('init_setup.step_azure_setup_comma_separated_names_from_your_azure', 'Comma-separated names from your Azure portal. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra).')}</p>
@@ -103,14 +135,14 @@ const StepAzureSetup = ({
         <Section Logo={BingLogo} title={t('init_setup.step_azure_setup_bing_web_search', 'Bing Web Search')} subtitle="Enable web search powered by Azure Bing" defaultOpen={false}>
             <div>
                 <Label>{t('init_setup.step_azure_setup_bing_api_subscription_key', 'Bing API Subscription Key')}</Label>
-                <input type="password" value={bingKey} onChange={e => setBingKey(e.target.value)}
+                <input type="password" value={bingKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBingKey(e.target.value)}
                     /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                     placeholder={t('init_setup.step_azure_setup_your_bing_search_api_key', 'Your Bing Search API key')}
                     className={inputClass} style={inputStyle} />
             </div>
             <div>
                 <Label>{t('init_setup.step_azure_setup_market_optional', 'Market (optional)')}</Label>
-                <input type="text" value={bingMarket} onChange={e => setBingMarket(e.target.value)}
+                <input type="text" value={bingMarket} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBingMarket(e.target.value)}
                     placeholder={t('init_setup.step_azure_setup_e_g_nl_nl_en_us', 'e.g. nl-NL, en-US')}
                     className={inputClass} style={inputStyle} />
             </div>
@@ -139,7 +171,7 @@ const StepAzureSetup = ({
                     style={{
                         background: officeAppsEnabled ? '#0078D4' : '#d1d5db',
                         focusRingColor: '#0078D4',
-                    }}
+                    } as React.CSSProperties}
                 >
                     <span
                         className="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out"

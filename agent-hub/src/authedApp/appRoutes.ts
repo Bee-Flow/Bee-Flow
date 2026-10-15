@@ -2,7 +2,7 @@
 // Extracted verbatim from AuthedApp.jsx — pure constants and helpers only.
 
 // ── Route mapping ──────────────────────────────────────────────
-export const PAGE_ROUTES = {
+export const PAGE_ROUTES: Record<string, string> = {
     // ── App routes (all under /app/) ──
     agents: '/app',
     admin: '/app/admin',
@@ -78,7 +78,7 @@ export const PAGE_ROUTES = {
 // either a phone-shaped page and an entry here, or the row hidden below 768px;
 // without one of the two, tapping it bounces to /app via MobileRouteGuard.
 export const MOBILE_ALLOWED_PAGES = new Set(['agents', 'projects', 'settings', 'appRun', 'apps', 'forms', 'formView', 'cowork', 'approvals']);
-export const isPageAllowedOnMobile = (page) => MOBILE_ALLOWED_PAGES.has(page);
+export const isPageAllowedOnMobile = (page: string) => MOBILE_ALLOWED_PAGES.has(page);
 
 // ── The approvals slice of Studio (B2) ─────────────────────────────────
 // Goedkeuringen keeps its address. /app/studio/approvals[/<id>] is minted by
@@ -96,12 +96,12 @@ export const isPageAllowedOnMobile = (page) => MOBILE_ALLOWED_PAGES.has(page);
 const APPROVALS_SLICE = /^studio\/approvals(\/|$)/;
 
 /** 'studio/approvals[/<id>]' — the slice as navigateToPage spells it. */
-export function isApprovalsPageArg(page) {
+export function isApprovalsPageArg(page: unknown): boolean {
     return APPROVALS_SLICE.test(String(page || ''));
 }
 
 /** '/app/studio/approvals[/<id>]' — the same slice as the browser spells it. */
-export function isApprovalsStudioPath(pathname) {
+export function isApprovalsStudioPath(pathname: unknown): boolean {
     return isApprovalsPageArg(String(pathname || '').replace(/^\/app\//, ''));
 }
 
@@ -117,7 +117,7 @@ export function isApprovalsStudioPath(pathname) {
 // SWAP happens in Sidebar.jsx, which is the only component that also knows
 // whether it is rendering below the mobile breakpoint, where the rail is not
 // offered at all and the ordinary sidebar + Studio flyout stays.
-export function usesStudioRail(page, section = null) {
+export function usesStudioRail(page: string, section: string | null = null): boolean {
     if (page !== 'studio') return false;
     // ONE Studio address does NOT get the rail: Approvals. It is a Studio URL
     // with a non-Studio audience — deciding is a member act, not a builder
@@ -137,14 +137,14 @@ export function usesStudioRail(page, section = null) {
 // WHICH project (if any) is open lives in the project route, so the caller
 // passes its id. The list (no id) and the create form ('new') keep the
 // ordinary sidebar: there is no project to show.
-export function usesProjectRail(page, projectId) {
+export function usesProjectRail(page: string, projectId: unknown): boolean {
     return page === 'projects' && typeof projectId === 'string' && projectId !== '' && projectId !== 'new';
 }
 
 // Reduce a navigateToPage() argument (which may be a bare key, a 'studio/agents'
 // path form, or an 'agentDesigner:<id>' form) to the canonical page key used by
 // MOBILE_ALLOWED_PAGES. Mirrors the alias handling inside navigateToPage().
-export function mobilePageKey(page) {
+export function mobilePageKey(page: string | null | undefined): string {
     if (!page || page === '/' || page === 'home') return 'agents';
     // The approvals slice of Studio is phone-allowed (a bell notification
     // links straight to it); map it to its own key so the allow-list can
@@ -161,18 +161,18 @@ const PATH_TO_PAGE = Object.fromEntries(
 );
 
 /** The member library's selected document, including notebook/<id> references. */
-export function parseDocumentUrl(pathname) {
+export function parseDocumentUrl(pathname: string): string | null {
     const ref = pathname.match(/^\/app\/documents\/(.+?)\/?$/)?.[1];
     if (!ref) return null;
     try { return ref.split('/').map(decodeURIComponent).join('/'); }
     catch { return null; }
 }
 
-export function documentRoutePath(ref = null) {
+export function documentRoutePath(ref: string | null = null): string {
     return ref ? `${PAGE_ROUTES.documents}/${ref.split('/').map(encodeURIComponent).join('/')}` : PAGE_ROUTES.documents;
 }
 
-export function pageFromPath(pathname) {
+export function pageFromPath(pathname: string): string {
     // Root → agents (redirect to /app)
     if (pathname === '/') return 'agents';
     // Exact match for app routes
@@ -280,7 +280,7 @@ export function pageFromPath(pathname) {
 // never part of a segment: in-app navigation hands over the whole page string
 // ('admin/compliance/frameworks?tab=calendar'), and 'frameworks?tab=calendar'
 // is not a section.
-export function parseAdminPath(pathname) {
+export function parseAdminPath(pathname: unknown): { seg1: string; seg2: string; seg3: string } {
     const match = String(pathname || '').match(/^\/(?:app\/)?admin(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/([^/?#]+))?/);
     return {
         seg1: match?.[1] || '',
@@ -290,7 +290,7 @@ export function parseAdminPath(pathname) {
 }
 
 // Parse /app/org-settings/{seg1}/{seg2} from the URL
-export function parseOrgSettingsPath(pathname) {
+export function parseOrgSettingsPath(pathname: string): { seg1: string; seg2: string } {
     const match = pathname.match(/^\/(?:app\/)?org-settings(?:\/([^/]+))?(?:\/([^/]+))?/);
     return {
         seg1: match?.[1] || '',
@@ -299,7 +299,7 @@ export function parseOrgSettingsPath(pathname) {
 }
 
 // Parse the agent id out of /app/agent-designer/{agentId} (trailing segments ignored).
-export function parseAgentDesignerUrl(pathname) {
+export function parseAgentDesignerUrl(pathname: string): string | null {
     const match = pathname.match(/^\/app\/agent-designer(?:-advanced)?(?:\/([^/]+))?/);
     return match?.[1] || null;
 }
@@ -310,14 +310,14 @@ export function parseAgentDesignerUrl(pathname) {
 
 // Extract the cowork id from /app/cowork/:id, plus the two legacy shapes it
 // used to live at: /app/work/:id and the Studio tab /app/studio/cowork/:id.
-export function parseCoworkUrl(pathname) {
+export function parseCoworkUrl(pathname: string): string | null {
     const match = pathname.match(/^\/app\/(?:studio\/cowork|cowork|work)(?:\/([^/]+))?/);
     return match?.[1] || null;
 }
 
 // Extract agent ID prefix and conversation ID prefix from URL
 // Supports: /app/a/:shortId, /app/a/:shortId/:shortConvId, /app/agent/:fullId, and legacy bare forms
-export function parseAgentUrl(pathname) {
+export function parseAgentUrl(pathname: string): { agentId: string | null; conversationId: string | null } {
     const match = pathname.match(/^\/(?:app\/)?(?:a|agent)\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?/);
     if (match) {
         return { agentId: match[1], conversationId: match[2] || null };
@@ -326,7 +326,7 @@ export function parseAgentUrl(pathname) {
 }
 
 // Extract direct chat conversation ID from URL: /app/d/:shortConvId (legacy: /d/:shortConvId)
-export function parseDirectChatUrl(pathname) {
+export function parseDirectChatUrl(pathname: string): string | null {
     const match = pathname.match(/^\/(?:app\/)?d\/([a-zA-Z0-9_-]+)/);
     return match ? match[1] : null;
 }
@@ -337,7 +337,7 @@ export function parseDirectChatUrl(pathname) {
 // SPA iframe at the signed-proxy ROOT with `?ncStudioApp=<appId>` — inside
 // Nextcloud the pathname is the proxy path and never matches /app/apps/:id,
 // so the boot route comes from this query param instead.
-export function parseNcStudioAppParam() {
+export function parseNcStudioAppParam(): string | null {
     try {
         const id = new URLSearchParams(window.location.search).get('ncStudioApp');
         // App ids are UUIDs; refuse anything else so a mangled param falls

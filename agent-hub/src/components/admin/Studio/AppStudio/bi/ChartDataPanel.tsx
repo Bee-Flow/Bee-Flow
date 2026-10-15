@@ -1,5 +1,6 @@
 import React from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import FormField from '../../../../shared/FormField';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import { inputCls } from '../../../product-website/fields';
@@ -13,7 +14,24 @@ import { CHART_COLORS, chartColorAt } from '../runtime/chartPalette';
  * anywhere in this file (enforced by AppStudio.noPurple.test).
  */
 
-const chartTypes = (t) => [
+/** One row of a query result. */
+export type ResultRow = Record<string, unknown>;
+
+/** One series of a chart binding. */
+export interface ChartSeries {
+    key: string;
+    label?: string;
+    color?: string;
+}
+
+/** A query result mapped onto a chart: type, x column, value series. */
+export interface ChartMapping {
+    chartType: string;
+    xKey: string;
+    series: ChartSeries[];
+}
+
+const chartTypes = (t: TranslateFn) => [
     { value: 'bar', label: t('studio_apps_bi.chart.type_bar', 'Bar') },
     { value: 'line', label: t('studio_apps_bi.chart.type_line', 'Line') },
     { value: 'area', label: t('studio_apps_bi.chart.type_area', 'Area') },
@@ -21,12 +39,12 @@ const chartTypes = (t) => [
     { value: 'donut', label: t('studio_apps_bi.chart.type_donut', 'Donut') },
 ];
 
-function isPieType(chartType) {
+function isPieType(chartType: string | undefined): boolean {
     return chartType === 'pie' || chartType === 'donut';
 }
 
 /** A column looks numeric if its first non-null value coerces to a finite number. */
-function isNumericColumn(rows, key) {
+function isNumericColumn(rows: ResultRow[] | null | undefined, key: string): boolean {
     const sample = (Array.isArray(rows) ? rows : []).find((r) => r && r[key] != null);
     if (!sample) return true; // no data yet → assume plottable
     return Number.isFinite(Number(sample[key]));
@@ -37,7 +55,7 @@ function isNumericColumn(rows, key) {
  * name key; the remaining numeric columns become series, each coloured from the
  * palette by index. A pie/donut keeps a single value series.
  */
-export function deriveChartMapping(columns, rows = [], chartType = 'bar') {
+export function deriveChartMapping(columns: string[] | null | undefined, rows: ResultRow[] = [], chartType = 'bar'): ChartMapping {
     const cols = (Array.isArray(columns) ? columns : []).filter((c) => typeof c === 'string' && c);
     if (cols.length === 0) return { chartType, xKey: '', series: [] };
     const xKey = cols[0];
@@ -49,30 +67,38 @@ export function deriveChartMapping(columns, rows = [], chartType = 'bar') {
     return { chartType, xKey, series };
 }
 
-export default function ChartDataPanel({ columns = [], rows = [], value, onChange, disabled = false }) {
+interface ChartDataPanelProps {
+    columns?: string[];
+    rows?: ResultRow[];
+    value?: ChartMapping | null;
+    onChange?: (mapping: ChartMapping) => void;
+    disabled?: boolean;
+}
+
+export default function ChartDataPanel({ columns = [], rows = [], value, onChange, disabled = false }: ChartDataPanelProps) {
     const { t } = useTranslation();
     const mapping = value || deriveChartMapping(columns, rows);
     const cols = (Array.isArray(columns) ? columns : []).filter((c) => typeof c === 'string' && c);
     const isPie = isPieType(mapping.chartType);
     const seriesKeys = new Set((mapping.series || []).map((s) => s.key));
 
-    const set = (patch) => onChange?.({ ...mapping, ...patch });
+    const set = (patch: Partial<ChartMapping>) => onChange?.({ ...mapping, ...patch });
 
-    const setChartType = (chartType) => {
+    const setChartType = (chartType: string) => {
         let series = mapping.series || [];
         if (isPieType(chartType) && series.length > 1) series = series.slice(0, 1);
         set({ chartType, series });
     };
 
-    const setXKey = (xKey) => {
+    const setXKey = (xKey: string) => {
         // The x column can't also be a series.
         const series = (mapping.series || []).filter((s) => s.key !== xKey);
         set({ xKey, series });
     };
 
-    const toggleSeries = (key) => {
+    const toggleSeries = (key: string) => {
         if (key === mapping.xKey) return;
-        let series;
+        let series: ChartSeries[];
         if (isPie) {
             series = [{ key, label: key, color: chartColorAt(0) }];
         } else if (seriesKeys.has(key)) {
@@ -83,7 +109,7 @@ export default function ChartDataPanel({ columns = [], rows = [], value, onChang
         set({ series });
     };
 
-    const setSeriesColor = (key, color) => {
+    const setSeriesColor = (key: string, color: string) => {
         const series = (mapping.series || []).map((s) => (s.key === key ? { ...s, color } : s));
         set({ series });
     };
@@ -102,7 +128,7 @@ export default function ChartDataPanel({ columns = [], rows = [], value, onChang
             </FormField>
 
             <FormField label={isPie ? t('studio_apps_bi.chart.name_column', 'Name column') : t('studio_apps_bi.chart.x_axis_column', 'X-axis column')}>
-                <select className={inputCls} value={mapping.xKey || ''} onChange={(e) => setXKey(e.target.value)} aria-label={t('studio_apps_bi.chart.x_axis_column', 'X-axis column')}>
+                <select className={inputCls} value={mapping.xKey || ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setXKey(e.target.value)} aria-label={t('studio_apps_bi.chart.x_axis_column', 'X-axis column')}>
                     <option value="">{t('studio_apps_bi.chart.pick_column', 'Pick a column…')}</option>
                     {cols.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>

@@ -1,6 +1,56 @@
 import { useCallback, useEffect } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { logger } from '../utils/logger';
+import type { BootstrapDiagnostics } from './shellScreens';
+
+/** The parts of /auth/user the session applier reads. */
+interface AuthUserResponse {
+    authenticated?: boolean;
+    user: { isAdmin?: boolean; [key: string]: unknown };
+    featureFlags?: { deploymentMode?: string; [key: string]: unknown } | null;
+    organization?: { logo?: string; [key: string]: unknown } | null;
+    organizationName?: string;
+    encryptionEnabled?: boolean;
+    needsEncryptionSetup?: boolean;
+    needsEncryptionPin?: boolean;
+    noOrganization?: boolean;
+    pendingApproval?: boolean;
+    mfaSetupRequired?: boolean;
+    ncOnboardingNeeded?: boolean;
+    ncOnboardingPending?: boolean;
+    pendingNcBinding?: unknown;
+    enabledIntegrations?: unknown;
+    isConsumerAccount?: boolean;
+    ncOrg?: unknown;
+    [key: string]: unknown;
+}
+
+/** The parts of /auth/my-permissions the session applier reads. */
+interface PermissionsResponse {
+    permissions?: string[];
+    groups?: unknown[];
+    organizations?: unknown[];
+    allowedAgentTypes?: unknown[];
+    betaFeatures?: unknown[];
+    canUseFeature?: Record<string, unknown>;
+}
+
+interface UseAuthSessionArgs {
+    setDeploymentMode: (mode: string) => void;
+    setOrgLogo: (url: string) => void;
+    setEncryptionState: (state: 'setup' | 'pin') => void;
+    setNoOrganization: (value: boolean) => void;
+    setPendingApproval: (value: boolean) => void;
+    setMfaSetupRequired: (value: boolean) => void;
+    setNcOnboardingState: (state: 'admin' | 'pending' | null) => void;
+    setNcOrgName: (name: string) => void;
+    setPendingNcBinding: (binding: unknown) => void;
+    setUser: (user: Record<string, unknown>) => void;
+    setIsAuthenticated: (value: boolean) => void;
+    setBootstrapDiagnostics: (diagnostics: BootstrapDiagnostics) => void;
+    setServerAvailable: (value: boolean) => void;
+    setIsLoading: (value: boolean) => void;
+}
 
 // The boot-time auth pair from AuthedApp's <App/>, moved verbatim: the shared
 // `applyAuthSession` applier and the mount effect that probes /auth/setup-status,
@@ -23,7 +73,7 @@ export function useAuthSession({
     setBootstrapDiagnostics,
     setServerAvailable,
     setIsLoading,
-}) {
+}: UseAuthSessionArgs) {
     // Apply the authenticated session from the authoritative /auth/user +
     // /auth/my-permissions responses. Shared by checkAuth (page refresh) and
     // handleLogin (in-app login) so BOTH paths populate identical state —
@@ -31,7 +81,7 @@ export function useAuthSession({
     // gates. Previously handleLogin built a thin `user` from the login response
     // (no featureFlags, no fresh org) and skipped these gates, so the sidebar
     // and branding showed a stale subset until the next full page refresh.
-    const applyAuthSession = useCallback((data, permsData) => {
+    const applyAuthSession = useCallback((data: AuthUserResponse, permsData: PermissionsResponse | null) => {
         // Deployment mode (drives self-hosted white-label branding)
         if (data.featureFlags?.deploymentMode) {
             setDeploymentMode(data.featureFlags.deploymentMode);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import type { CatalogAction } from './connectors/connectorModel';
 
 /**
  * The app catalog, once per editor session.
@@ -17,7 +18,27 @@ import useAutomationApi from '../../../../../hooks/useAutomationApi';
  * coming back to a stale "not connected" would read as a bug.
  */
 
-let catalogPromise = null;
+/** One action of the catalog, with the flags the connector pickers read. */
+export interface CatalogAppAction extends CatalogAction {
+    integrationId?: string;
+    producesList?: boolean;
+    description?: string;
+}
+
+/** One platform app and its actions. */
+export interface CatalogApp {
+    id?: string;
+    label?: string;
+    available?: boolean;
+    actions?: CatalogAppAction[];
+    [key: string]: unknown;
+}
+
+export interface CatalogResponse {
+    apps?: CatalogApp[];
+}
+
+let catalogPromise: Promise<CatalogResponse> | null = null;
 let catalogFetchedAt = 0;
 const CATALOG_TTL_MS = 30_000;
 
@@ -28,14 +49,14 @@ export default function useIntegrationCatalog() {
     const apiRef = useRef(api);
     apiRef.current = api;
 
-    const [catalog, setCatalog] = useState(null);
+    const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
     const [failed, setFailed] = useState(false);
     const [reload, setReload] = useState(0);
 
     useEffect(() => {
         let alive = true;
         if (!catalogPromise || Date.now() - catalogFetchedAt > CATALOG_TTL_MS) {
-            catalogPromise = apiRef.current.getCatalog();
+            catalogPromise = apiRef.current.getCatalog<CatalogResponse>();
             catalogFetchedAt = Date.now();
         }
         catalogPromise.then(
@@ -54,7 +75,7 @@ export default function useIntegrationCatalog() {
     }, [catalog]);
 
     const byToolName = useMemo(() => {
-        const m = new Map();
+        const m = new Map<string, { app: CatalogApp; action: CatalogAppAction }>();
         for (const app of apps) {
             for (const action of app.actions || []) m.set(action.name, { app, action });
         }
@@ -71,9 +92,9 @@ export default function useIntegrationCatalog() {
         failed,
         refresh,
         /** The catalog entry for a tool name, or null when it isn't in the catalog. */
-        lookup: (toolName) => byToolName.get(toolName) || null,
+        lookup: (toolName: string) => byToolName.get(toolName) || null,
         /** Sibling actions of the app owning `toolName` (the chain candidates). */
-        siblingsOf: (toolName) => {
+        siblingsOf: (toolName: string) => {
             const hit = byToolName.get(toolName);
             if (!hit) return [];
             return (hit.app.actions || []).filter((a) => a.name !== toolName);

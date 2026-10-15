@@ -1,3 +1,5 @@
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+
 /**
  * "This needs the saved model" — said once, in one place.
  *
@@ -20,17 +22,25 @@
  */
 
 /** Label for an action that will save the draft first. */
-export function saveFirstLabel(label, dirty, t) {
+export function saveFirstLabel(label: string, dirty: boolean, t?: TranslateFn): string {
     if (!dirty) return label;
     const action = `${label.charAt(0).toLowerCase()}${label.slice(1)}`;
     return t ? t('studio_apps_bi.save_gate.save_and', 'Save & {action}', { action }) : `Save & ${action}`;
 }
 
 /** Why an action that CANNOT save implicitly is unavailable, or null. */
-export function saveFirstReason(dirty, t) {
+export function saveFirstReason(dirty: true, t?: TranslateFn): string;
+export function saveFirstReason(dirty: boolean, t?: TranslateFn): string | null;
+export function saveFirstReason(dirty: boolean, t?: TranslateFn): string | null {
     if (!dirty) return null;
     const english = 'Save your changes first — this runs against the saved model.';
     return t ? t('studio_apps_bi.save_gate.save_first', english) : english;
+}
+
+interface RunWithSaveArgs<T> {
+    dirty: boolean;
+    onSave?: () => Promise<unknown> | unknown;
+    action: () => T;
 }
 
 /**
@@ -39,7 +49,7 @@ export function saveFirstReason(dirty, t) {
  * `onSave` must resolve truthy on success; a failed save cancels the action
  * (it already reported itself — a second error would just be noise).
  */
-export async function runWithSave({ dirty, onSave, action }) {
+export async function runWithSave<T>({ dirty, onSave, action }: RunWithSaveArgs<T>): Promise<T | undefined> {
     if (dirty) {
         if (typeof onSave !== 'function') return undefined;
         const ok = await onSave();
