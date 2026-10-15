@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import React, { useId, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createBodyOf, localInputValue } from './incidentClocks';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { useNow } from '../../../../shared/DeadlineClock';
@@ -19,15 +20,36 @@ import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
  *
  * props: open, kind ('breach' | 'vulnerability'), busy, onCreate(body) → Promise, onClose
  */
-const EMPTY = Object.freeze({ title: '', description: '', severity: 'medium', occurred_at: '', detected_at: '', high_risk: false, cve_ids: '', exploited_in_wild: false, affected_products: '' });
+interface IncidentDraft {
+    title: string;
+    description: string;
+    severity: string;
+    occurred_at: string;
+    detected_at: string;
+    high_risk: boolean;
+    cve_ids: string;
+    exploited_in_wild: boolean;
+    affected_products: string;
+}
+
+interface IncidentCreateModalProps {
+    open: boolean;
+    kind?: 'breach' | 'vulnerability';
+    busy?: boolean;
+    onCreate?: (body: unknown) => unknown;
+    onClose: () => void;
+    testId?: string;
+}
+
+const EMPTY: Readonly<IncidentDraft> = Object.freeze({ title: '', description: '', severity: 'medium', occurred_at: '', detected_at: '', high_risk: false, cve_ids: '', exploited_in_wild: false, affected_products: '' });
 /** The server refuses an awareness moment more than five minutes ahead of its own clock. */
 const FUTURE_SKEW_MS = 5 * 60 * 1000;
 
-const freshDraft = () => ({ ...EMPTY, detected_at: localInputValue() });
+const freshDraft = (): IncidentDraft => ({ ...EMPTY, detected_at: localInputValue() });
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
-const SEVERITY_EN = Object.freeze({ low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' });
+const SEVERITY_EN: Readonly<Record<string, string>> = Object.freeze({ low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' });
 
-export default function IncidentCreateModal({ open, kind = 'breach', busy = false, onCreate, onClose, testId = 'inc-create' }) {
+export default function IncidentCreateModal({ open, kind = 'breach', busy = false, onCreate, onClose, testId = 'inc-create' }: IncidentCreateModalProps) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(freshDraft);
     const hintId = useId();
@@ -39,7 +61,7 @@ export default function IncidentCreateModal({ open, kind = 'breach', busy = fals
         if (open) setDraft(freshDraft());
     }
     const vuln = kind === 'vulnerability';
-    const patch = (p) => setDraft(d => ({ ...d, ...p }));
+    const patch = (p: Partial<IncidentDraft>) => setDraft(d => ({ ...d, ...p }));
     const awareMs = draft.detected_at ? new Date(draft.detected_at).getTime() : NaN;
     const awareInFuture = Number.isFinite(awareMs) && awareMs > now + FUTURE_SKEW_MS;
     const canSubmit = !busy && draft.title.trim() && !awareInFuture;
@@ -144,7 +166,7 @@ export default function IncidentCreateModal({ open, kind = 'breach', busy = fals
 const INPUT = 'w-full rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
 
 /** A labelled field; `hint` sits under it, outside the label, so it describes the input without renaming it. */
-function Field({ label, hint = null, children }) {
+function Field({ label, hint = null, children }: { label: ReactNode; hint?: ReactNode; children?: ReactNode }) {
     const field = (
         <label className="flex flex-col gap-1">
             <span className="text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)]">{label}</span>
