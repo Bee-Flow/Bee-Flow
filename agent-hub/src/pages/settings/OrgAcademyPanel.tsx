@@ -1,11 +1,62 @@
 import { GraduationCap, Search, RefreshCw, Award, ScrollText, Users as UsersIcon, Activity } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useCan } from '../../components/licensing/Gate';
 import Tabs from '../../components/shared/Tabs';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { TranslateFn } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import AcademyContentEditor from './learning/admin/AcademyContentEditor';
 import RequiredTrainingPanel from './learning/admin/RequiredTrainingPanel';
+
+/** GET /ai/learning/org-overview (server/learning/orgOverview.js). */
+interface AcademyMember {
+    userId: string;
+    displayName: string;
+    email: string | null;
+    avatar: string | null;
+    avatarType: string | null;
+    lessonsDone: number;
+    coursesDone: string[];
+    badges: string[];
+    certificates: AcademyCertificate[];
+    lastActivity: string | null;
+}
+
+interface AcademyCertificate {
+    certificateId: string;
+    level: string | null;
+    issuedAt: string | null;
+}
+
+interface AcademyCourse {
+    id: string;
+    title: string;
+    lessonCount: number;
+}
+
+interface AcademyTotals {
+    members: number;
+    coursesCompleted: number;
+    badges: number;
+    certificatesIssued: number;
+    activeLast30d: number;
+}
+
+interface AcademyOverview {
+    orgId: string;
+    generatedAt: string;
+    courses: AcademyCourse[];
+    totals: AcademyTotals;
+    members: AcademyMember[];
+}
+
+interface StatCardProps {
+    icon: LucideIcon;
+    label: string;
+    value: string | number;
+    accent: string;
+}
 
 /**
  * OrgAcademyPanel — org-admin Academy hub. The Overview tab is the team
@@ -27,7 +78,7 @@ const TableSkeleton = () => (
     </div>
 );
 
-function relativeTime(iso, t) {
+function relativeTime(iso: string | null, t: TranslateFn) {
     if (!iso) return t('org.academy.never', 'Not started');
     const diffMs = Date.now() - new Date(iso).getTime();
     const days = Math.floor(diffMs / 86_400_000);
@@ -39,7 +90,7 @@ function relativeTime(iso, t) {
     return new Date(iso).toLocaleDateString();
 }
 
-const StatCard = ({ icon: Icon, label, value, accent }) => (
+const StatCard = ({ icon: Icon, label, value, accent }: StatCardProps) => (
     <div className="rounded-xl border p-4 flex items-center gap-3 border-[var(--border-default)] bg-[var(--bg-card)]">
         <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: `color-mix(in srgb, ${accent} 14%, transparent)` }}>
@@ -52,7 +103,7 @@ const StatCard = ({ icon: Icon, label, value, accent }) => (
     </div>
 );
 
-const MemberAvatar = ({ m }) => {
+const MemberAvatar = ({ m }: { m: AcademyMember }) => {
     if (m.avatarType === 'emoji' && m.avatar) {
         return <div className="w-9 h-9 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center text-lg shrink-0">{m.avatar}</div>;
     }
@@ -68,9 +119,9 @@ const MemberAvatar = ({ m }) => {
 
 function OrgAcademyOverview() {
     const { t } = useTranslation();
-    const [data, setData] = useState(null);
+    const [data, setData] = useState<AcademyOverview | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState('');
     const [courseFilter, setCourseFilter] = useState('');
 
@@ -94,16 +145,16 @@ function OrgAcademyOverview() {
         let rows = data?.members || [];
         const q = query.trim().toLowerCase();
         if (q) {
-            rows = rows.filter((m) =>
+            rows = rows.filter((m: AcademyMember) =>
                 (m.displayName || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q));
         }
-        if (courseFilter) rows = rows.filter((m) => (m.coursesDone || []).includes(courseFilter));
+        if (courseFilter) rows = rows.filter((m: AcademyMember) => (m.coursesDone || []).includes(courseFilter));
         // Most recently active first; never-started members sink to the bottom.
-        return [...rows].sort((a, b) => (b.lastActivity || '').localeCompare(a.lastActivity || ''));
+        return [...rows].sort((a: AcademyMember, b: AcademyMember) => (b.lastActivity || '').localeCompare(a.lastActivity || ''));
     }, [data, query, courseFilter]);
 
     const courses = data?.courses || [];
-    const totals = data?.totals || {};
+    const totals: Partial<AcademyTotals> = data?.totals || {};
 
     return (
         <div>
@@ -152,7 +203,7 @@ function OrgAcademyOverview() {
                             className="px-3 py-2 rounded-lg border text-sm outline-none"
                             style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
                             <option value="">{t('org.academy.all_courses', 'All courses')}</option>
-                            {courses.map((c) => (
+                            {courses.map((c: AcademyCourse) => (
                                 <option key={c.id} value={c.id}>{t('org.academy.completed_prefix', 'Completed:')} {c.title}</option>
                             ))}
                         </select>
@@ -179,7 +230,7 @@ function OrgAcademyOverview() {
                                     <span className="w-44">{t('org.academy.col_certs', 'Certificates')}</span>
                                     <span className="w-24 text-right">{t('org.academy.col_activity', 'Last activity')}</span>
                                 </div>
-                                {members.map((m) => (
+                                {members.map((m: AcademyMember) => (
                                     <div key={m.userId} className="px-5 py-3 flex items-center gap-4 flex-wrap md:flex-nowrap hover:bg-[var(--bg-secondary)] transition-colors">
                                         <MemberAvatar m={m} />
                                         <div className="flex-1 min-w-0">
@@ -188,7 +239,7 @@ function OrgAcademyOverview() {
                                         </div>
                                         {/* Course completion dots */}
                                         <div className="w-36 flex items-center gap-1.5 flex-shrink-0" aria-label={t('org.academy.col_courses', 'Courses')}>
-                                            {courses.map((c) => {
+                                            {courses.map((c: AcademyCourse) => {
                                                 const done = (m.coursesDone || []).includes(c.id);
                                                 return (
                                                     <span key={c.id} title={`${c.title}${done ? ' ✓' : ''}`}
@@ -211,7 +262,7 @@ function OrgAcademyOverview() {
                                         <div className="w-44 flex items-center gap-1 flex-wrap flex-shrink-0">
                                             {(m.certificates || []).length === 0 ? (
                                                 <span className="text-sm text-[var(--text-muted)]">—</span>
-                                            ) : m.certificates.map((cert) => (
+                                            ) : m.certificates.map((cert: AcademyCertificate) => (
                                                 <span key={cert.certificateId}
                                                     title={cert.issuedAt ? new Date(cert.issuedAt).toLocaleDateString() : ''}
                                                     className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
@@ -238,7 +289,7 @@ function OrgAcademyOverview() {
 export default function OrgAcademyPanel() {
     const { t } = useTranslation();
     const canAuthor = useCan('learning_custom_content');
-    const [tab, setTab] = useState('overview');
+    const [tab, setTab] = useState<string>('overview');
 
     // Required training is always available — it governs the built-in courses,
     // so it does not depend on the custom-content beta the Content tab needs.

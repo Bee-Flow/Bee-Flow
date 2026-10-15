@@ -5,6 +5,24 @@ import { LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { useTranslation } from '../../hooks/useTranslation';
 
+interface GmeetConfig {
+    autoImport: boolean;
+    autoRecordConfig: boolean;
+    importScope: string;
+    language: string;
+}
+
+/** The `connection` block of GET /api/gmeet-notes-settings/user/me ({} when absent). */
+interface GmeetConnection {
+    googleConnected?: boolean;
+    meetScopesGranted?: boolean;
+}
+
+interface SaveMessage {
+    type: 'success' | 'error';
+    text: string;
+}
+
 // Google Meet brand colour, for the header icon only; the Save button uses the accent.
 const MEET_GREEN = '#00832D';
 
@@ -18,13 +36,13 @@ const MEET_GREEN = '#00832D';
  */
 export default function GoogleMeetNotesSection() {
     const { t } = useTranslation();
-    const [cfg, setCfg] = useState({ autoImport: false, autoRecordConfig: false, importScope: 'organizer', language: 'nl' });
-    const [connection, setConnection] = useState(null);
+    const [cfg, setCfg] = useState<GmeetConfig>({ autoImport: false, autoRecordConfig: false, importScope: 'organizer', language: 'nl' });
+    const [connection, setConnection] = useState<GmeetConnection | null>(null);
     const [available, setAvailable] = useState(true);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [reauthing, setReauthing] = useState(false);
-    const [message, setMessage] = useState(null);
+    const [message, setMessage] = useState<SaveMessage | null>(null);
 
     const load = async () => {
         try {
@@ -32,7 +50,7 @@ export default function GoogleMeetNotesSection() {
             if (res.ok) {
                 const { connection: conn, ...data } = await res.json();
                 setConnection(conn || {});
-                setCfg(prev => ({ ...prev, ...data }));
+                setCfg((prev: GmeetConfig) => ({ ...prev, ...data }));
             } else setAvailable(false); // 403/404 → feature not licensed for this account
         } catch (_) { setAvailable(false); } finally { setLoading(false); }
     };
@@ -46,7 +64,7 @@ export default function GoogleMeetNotesSection() {
             });
             if (res.ok) setMessage({ type: 'success', text: t('common.saved', 'Saved') });
             else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
-        } catch (e) { setMessage({ type: 'error', text: e.message }); }
+        } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
         finally { setSaving(false); }
     };
 
@@ -55,7 +73,7 @@ export default function GoogleMeetNotesSection() {
         try {
             const result = await openGoogleOAuthPopup({ authFetch, apiBase: API_BASE });
             if (result.success) await load();
-        } catch (e) { setMessage({ type: 'error', text: e.message || 'Could not start the Google re-authorization. Try again.' }); }
+        } catch (e) { setMessage({ type: 'error', text: (e as Error).message || 'Could not start the Google re-authorization. Try again.' }); }
         finally { setReauthing(false); }
     };
 
@@ -95,23 +113,23 @@ export default function GoogleMeetNotesSection() {
                 <>
                     <div className="rounded-xl overflow-hidden border border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
                         <Row title={t('settings.gmeet_notes.auto_import_title', 'Auto-import my recorded Meet meetings')} desc={t('settings.gmeet_notes.auto_import_desc', 'When a recording of your Google Meet call appears in Drive, create a Meeting Note automatically. Recording must be started in Meet — requires Google Workspace Business Standard or higher.')}>
-                            <Toggle on={cfg.autoImport} onClick={() => setCfg(c => ({ ...c, autoImport: !c.autoImport }))} disabled={saving} ariaLabel={t('settings.gmeet_notes.auto_import_title', 'Auto-import my recorded Meet meetings')} />
+                            <Toggle on={cfg.autoImport} onClick={() => setCfg((c: GmeetConfig) => ({ ...c, autoImport: !c.autoImport }))} disabled={saving} ariaLabel={t('settings.gmeet_notes.auto_import_title', 'Auto-import my recorded Meet meetings')} />
                         </Row>
                         <Row title={t('settings.gmeet_notes.auto_record_title', 'Also pre-enable auto-recording for meetings I organize')} desc={t('settings.gmeet_notes.auto_record_desc', 'Configure Meet to start recording automatically for meetings you organize, so nothing is missed.')}>
-                            <Toggle on={cfg.autoRecordConfig} onClick={() => setCfg(c => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))} disabled={saving} ariaLabel={t('settings.gmeet_notes.auto_record_title', 'Also pre-enable auto-recording for meetings I organize')} />
+                            <Toggle on={cfg.autoRecordConfig} onClick={() => setCfg((c: GmeetConfig) => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))} disabled={saving} ariaLabel={t('settings.gmeet_notes.auto_record_title', 'Also pre-enable auto-recording for meetings I organize')} />
                         </Row>
                         <Row title={t('settings.gmeet_notes.scope_title', 'Which meetings')} desc={t('settings.gmeet_notes.scope_desc', 'Import only meetings you organize, or every Meet meeting on your calendar.')}>
-                            <Select value={cfg.importScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, importScope: e.target.value }))}
+                            <Select value={cfg.importScope} disabled={saving} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCfg((c: GmeetConfig) => ({ ...c, importScope: e.target.value }))}
                                 ariaLabel={t('settings.gmeet_notes.scope_title', 'Which meetings')}
                                 options={[{ value: 'organizer', label: t('settings.gmeet_notes.scope_organizer', 'Meetings I organize') }, { value: 'calendar', label: t('settings.gmeet_notes.scope_calendar', 'All my calendar meetings') }]} />
                         </Row>
                         <Row title={t('settings.gmeet_notes.language_title', 'Default language')} desc={t('settings.gmeet_notes.language_desc', 'Language used when transcribing your Meet recordings.')}>
                             <select
-                                value={cfg.language} onChange={e => setCfg(c => ({ ...c, language: e.target.value }))} disabled={saving}
+                                value={cfg.language} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCfg((c: GmeetConfig) => ({ ...c, language: e.target.value }))} disabled={saving}
                                 aria-label={t('settings.gmeet_notes.language_title', 'Default language')}
                                 className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                             >
-                                {LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                                {LANGS.map((l: { code: string; label: string }) => <option key={l.code} value={l.code}>{l.label}</option>)}
                             </select>
                         </Row>
                     </div>

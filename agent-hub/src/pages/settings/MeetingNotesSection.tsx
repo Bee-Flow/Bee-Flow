@@ -4,6 +4,21 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { NC_BLUE, LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 
+interface TalkNotesConfig {
+    autoTranscribe: boolean;
+    postSummaryBack: boolean;
+    recordingFolder: string;
+    language: string;
+    autoRecord: boolean;
+    autoRecordScope: string;
+    recordingMode: string;
+}
+
+interface SaveMessage {
+    type: 'success' | 'error';
+    text: string;
+}
+
 /**
  * Personal Nextcloud Talk → Meeting Notes settings. Rendered for every account
  * that has the Meeting Notes feature; self-hides (renders null) when the
@@ -14,13 +29,13 @@ export default function MeetingNotesSection() {
     const { t } = useTranslation();
     // recordingFolder: Talk saves to <attachment folder>/Recording/<room token>/,
     // so /Talk/Recording is the default on a stock Nextcloud.
-    const [cfg, setCfg] = useState({ autoTranscribe: false, postSummaryBack: false, recordingFolder: '/Talk/Recording', language: 'nl', autoRecord: false, autoRecordScope: 'calendar', recordingMode: 'audio' });
+    const [cfg, setCfg] = useState<TalkNotesConfig>({ autoTranscribe: false, postSummaryBack: false, recordingFolder: '/Talk/Recording', language: 'nl', autoRecord: false, autoRecordScope: 'calendar', recordingMode: 'audio' });
     const [available, setAvailable] = useState(true);
     const [connected, setConnected] = useState(false);
     const [recordingEnabled, setRecordingEnabled] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState(null);
+    const [message, setMessage] = useState<SaveMessage | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -30,7 +45,7 @@ export default function MeetingNotesSection() {
                     const data = await res.json();
                     setConnected(!!data.nextcloudConnected);
                     setRecordingEnabled(!!data.recordingEnabled);
-                    setCfg(prev => ({ ...prev, ...data }));
+                    setCfg((prev: TalkNotesConfig) => ({ ...prev, ...data }));
                 } else setAvailable(false); // 403/404 → feature not licensed for this account
             } catch (_) { setAvailable(false); } finally { setLoading(false); }
         })();
@@ -44,7 +59,7 @@ export default function MeetingNotesSection() {
             });
             if (res.ok) setMessage({ type: 'success', text: t('settings.talk_notes.saved', "Saved") });
             else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
-        } catch (e) { setMessage({ type: 'error', text: e.message }); }
+        } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
         finally { setSaving(false); }
     };
 
@@ -72,12 +87,12 @@ export default function MeetingNotesSection() {
                 {cfg.autoRecord && recordingEnabled && (
                     <>
                         <Row title={t('settings.talk_notes.scope_title', "Which calls")} desc={t('settings.talk_notes.scope_desc', "Record only scheduled calendar meetings, or every call you moderate.")}>
-                            <Select value={cfg.autoRecordScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, autoRecordScope: e.target.value }))}
+                            <Select value={cfg.autoRecordScope} disabled={saving} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCfg(c => ({ ...c, autoRecordScope: e.target.value }))}
                                 ariaLabel={t('settings.talk_notes.scope_title', "Which calls")}
                                 options={[{ value: 'calendar', label: t('settings.talk_notes.scope_calendar', "Calendar meetings") }, { value: 'all', label: t('settings.talk_notes.scope_all', "Any call I moderate") }]} />
                         </Row>
                         <Row title={t('settings.talk_notes.quality_title', "Recording quality")} desc={t('settings.talk_notes.quality_desc', "Audio-only is smaller and faster to transcribe.")}>
-                            <Select value={cfg.recordingMode} disabled={saving} onChange={e => setCfg(c => ({ ...c, recordingMode: e.target.value }))}
+                            <Select value={cfg.recordingMode} disabled={saving} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCfg(c => ({ ...c, recordingMode: e.target.value }))}
                                 ariaLabel={t('settings.talk_notes.quality_title', "Recording quality")}
                                 options={[{ value: 'audio', label: t('settings.talk_notes.quality_audio', "Audio-only") }, { value: 'video', label: t('settings.talk_notes.quality_video', "Video") }]} />
                         </Row>
@@ -104,7 +119,7 @@ export default function MeetingNotesSection() {
                         aria-label={t('settings.talk_notes.language_title', "Default language")}
                         className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                     >
-                        {LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                        {LANGS.map((l: { code: string; label: string }) => <option key={l.code} value={l.code}>{l.label}</option>)}
                     </select>
                 </Row>
             </div>

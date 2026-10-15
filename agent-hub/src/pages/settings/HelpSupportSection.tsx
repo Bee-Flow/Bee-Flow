@@ -9,6 +9,23 @@ import {
 } from '../../components/support/SupportDrawer';
 import { useTranslation } from '../../hooks/useTranslation';
 
+interface HelpSupportSectionProps {
+    showLearningLink?: boolean;
+    onOpenLearning?: () => void;
+}
+
+/** One row of GET /api/support/threads/mine. */
+interface SupportThread {
+    id: string;
+    subject: string;
+    status: keyof typeof STATUS_LABELS;
+    last_message_at: string | null;
+    requester_org_role: string | null;
+    requester_org_name: string | null;
+}
+
+type SupportView = 'list' | 'new' | 'detail';
+
 /**
  * HelpSupportSection — user-facing support inbox inside AdvancedSettings.
  *
@@ -19,14 +36,12 @@ import { useTranslation } from '../../hooks/useTranslation';
  * `showLearningLink` hides the Learning Center button where that page cannot
  * open (phones, plans without it); `onOpenLearning` lets the settings shell
  * switch to it instead of the synthetic popstate below.
- *
- * @param {{ showLearningLink?: boolean, onOpenLearning?: () => void }} props
  */
-export default function HelpSupportSection({ showLearningLink = true, onOpenLearning }) {
+export default function HelpSupportSection({ showLearningLink = true, onOpenLearning }: HelpSupportSectionProps) {
     const { t } = useTranslation();
-    const [threads, setThreads] = useState([]);
-    const [view, setView] = useState('list'); // 'list' | 'new' | 'detail'
-    const [activeId, setActiveId] = useState(null);
+    const [threads, setThreads] = useState<SupportThread[]>([]);
+    const [view, setView] = useState<SupportView>('list'); // 'list' | 'new' | 'detail'
+    const [activeId, setActiveId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchMine = useCallback(async () => {
@@ -118,7 +133,7 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
                         <div className="p-8 text-sm text-center text-[var(--text-muted)]">
                             {t('settings.help_support.empty_prefix', 'No conversations yet. Click')} <strong>{t('settings.help_support.new_question', 'New question')}</strong> {t('settings.help_support.empty_suffix', 'to ask Bee Flow something — the AI will reply within seconds.')}
                         </div>
-                    ) : threads.map(th => (
+                    ) : threads.map((th: SupportThread) => (
                         <button
                             key={th.id}
                             onClick={() => { setActiveId(th.id); setView('detail'); }}
@@ -150,7 +165,7 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
                     </div>
                     <NewThreadForm
                         onCancel={() => setView('list')}
-                        onCreated={(id) => {
+                        onCreated={(id: string | undefined) => {
                             if (id) { setActiveId(id); setView('detail'); }
                             else setView('list');
                             fetchMine();
