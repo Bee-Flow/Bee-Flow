@@ -1,7 +1,7 @@
 /**
  * DIFFERENTIAL + TEXTUAL lockstep: the media option tables against the web's
  * constants/elevenLabsOptions.js (loaded and compared value for value) and
- * the arrays written into NanoBananaSettings.jsx and VideoGenSettings.jsx.
+ * the arrays written into NanoBananaSettings.tsx and VideoGenSettings.tsx.
  */
 
 import fs from 'node:fs';
@@ -38,11 +38,11 @@ it('offers the web’s voices and speech models, with the same defaults', () => 
 });
 
 it('offers the web’s image and video choices', () => {
-    expect(asWeb(catalog.IMAGE_ASPECT_RATIOS)).toEqual(arrayIn('NanoBananaSettings.jsx', 'ASPECT_RATIOS'));
-    expect(asWeb(catalog.IMAGE_MODELS)).toEqual(arrayIn('NanoBananaSettings.jsx', 'IMAGE_MODELS'));
-    expect(asWeb(catalog.VIDEO_MODELS)).toEqual(arrayIn('VideoGenSettings.jsx', 'VIDEO_MODELS'));
-    expect(asWeb(catalog.VIDEO_ASPECT_RATIOS)).toEqual(arrayIn('VideoGenSettings.jsx', 'ASPECT_RATIOS'));
-    expect(asWeb(catalog.VIDEO_DURATIONS)).toEqual(arrayIn('VideoGenSettings.jsx', 'DURATIONS'));
+    expect(asWeb(catalog.IMAGE_ASPECT_RATIOS)).toEqual(arrayIn('NanoBananaSettings.tsx', 'ASPECT_RATIOS'));
+    expect(asWeb(catalog.IMAGE_MODELS)).toEqual(arrayIn('NanoBananaSettings.tsx', 'IMAGE_MODELS'));
+    expect(asWeb(catalog.VIDEO_MODELS)).toEqual(arrayIn('VideoGenSettings.tsx', 'VIDEO_MODELS'));
+    expect(asWeb(catalog.VIDEO_ASPECT_RATIOS)).toEqual(arrayIn('VideoGenSettings.tsx', 'ASPECT_RATIOS'));
+    expect(asWeb(catalog.VIDEO_DURATIONS)).toEqual(arrayIn('VideoGenSettings.tsx', 'DURATIONS'));
 });
 
 it('translates the Lyria modes with the web’s own words', () => {

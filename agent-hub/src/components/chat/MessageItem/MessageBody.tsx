@@ -14,6 +14,8 @@ import { AnswerChips, ChatActivity, ToolConfirmCard } from './jsChildren';
 import KeepDraftCard from './KeepDraftCard';
 import LinkedInDraftCard from './LinkedInDraftCard';
 import type { ChatMessage, MapEmbed } from './messageTypes';
+import type { SkillSummary } from '../../../hooks/useChatEngine/types';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 import SessionSkillsSection from './SessionSkillsSection';
 import SwarmTimeline from './SwarmTimeline';
 import TerminalProgress from './TerminalProgress';
@@ -24,13 +26,13 @@ import MapEmbedRenderer from '../../renderers/MapEmbedRenderer';
 import MemoryUsedDisclosure, { memoryUsedOf } from '../memory/MemoryUsedDisclosure';
 import RememberedChip from '../memory/RememberedChip';
 
-type Translate = (key: string, fallback?: string) => string;
+type Translate = TranslateFn;
 
 export interface PreambleProps {
     msg: ChatMessage;
     allMessages: ChatMessage[];
     chatSource: string;
-    sessionSkills: unknown[];
+    sessionSkills: SkillSummary[];
     liveActivatedSkillIds: unknown[];
     liveCompletedSkillIds: unknown;
     liveCompletions: unknown;
@@ -149,7 +151,7 @@ export interface AnswerFooterProps {
     msg: ChatMessage;
     idx: number;
     allMessages: ChatMessage[];
-    sessionSkills: unknown[];
+    sessionSkills: SkillSummary[];
     onCitationClick: (source: unknown) => void;
     showSources: boolean;
     showAnswerChips: boolean;

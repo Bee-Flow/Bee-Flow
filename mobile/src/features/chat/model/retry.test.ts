@@ -116,7 +116,7 @@ describe('unsavedFailure, for a turn the person stopped', () => {
 
 describe('the tiers a retry offers', () => {
     it("matches the web's list, in its order", () => {
-        const src = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/MessageItem/MessageActionsRow.jsx`, 'utf8');
+        const src = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/MessageItem/MessageActionsRow.tsx`, 'utf8');
         const web = /RETRY_KEYS = \[([^\]]+)\]/.exec(src)?.[1]?.match(/'([^']+)'/g)?.map((k) => k.slice(1, -1));
         expect([...RETRY_TIER_KEYS]).toEqual(web);
     });
