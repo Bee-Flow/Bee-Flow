@@ -11,14 +11,19 @@ import { Globe, ArrowRight } from 'lucide-react';
  * chat context. If no listener handles it (e.g. card rendered outside the
  * chat shell), fall back to plain in-app navigation.
  */
-function extractWebpageId(href) {
+function extractWebpageId(href?: string | null): string | null {
     if (typeof href !== 'string') return null;
     const m = href.match(/\/app\/(?:studio\/)?webpages\/([a-zA-Z0-9_-]+)/);
     return m ? m[1] : null;
 }
 
-export default function WebpageLinkCard({ href, label }) {
-    const handleClick = (e) => {
+interface WebpageLinkCardProps {
+    href?: string | null;
+    label?: string | null;
+}
+
+export default function WebpageLinkCard({ href, label }: WebpageLinkCardProps) {
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         const id = extractWebpageId(href);
         if (id) {

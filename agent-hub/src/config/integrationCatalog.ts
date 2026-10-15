@@ -12,7 +12,15 @@
 // User Status), not an accident of the alphabet. Leave it off anywhere the
 // plain A→Z is right.
 
-export const INTEGRATION_CATALOG = [
+export interface IntegrationEntry {
+    id: string;
+    label: string;
+    description: string;
+    category: string;
+    rank?: number;
+}
+
+export const INTEGRATION_CATALOG: IntegrationEntry[] = [
     { id: 'gmail', label: 'Gmail', description: 'Send and read emails', category: 'Google Workspace' },
     { id: 'google-calendar', label: 'Calendar', description: 'Manage calendar events', category: 'Google Workspace' },
     { id: 'google-drive', label: 'Drive', description: 'Access and manage files', category: 'Google Workspace' },
@@ -67,24 +75,24 @@ export const INTEGRATION_CATALOG = [
 
 // Stable set of Nextcloud IDs — the org-admin generic toggle UI excludes
 // these because they're managed by the dedicated Nextcloud panel.
-export const NEXTCLOUD_INTEGRATION_IDS = new Set(
-    INTEGRATION_CATALOG.filter(i => i.category === 'Nextcloud').map(i => i.id)
+export const NEXTCLOUD_INTEGRATION_IDS = new Set<string>(
+    INTEGRATION_CATALOG.filter((i: IntegrationEntry) => i.category === 'Nextcloud').map((i: IntegrationEntry) => i.id)
 );
 
 // Display order of category sections across the admin UIs. Categories not
 // listed here (e.g. the dynamic 'MCP' group) are appended after these.
-export const CATEGORY_ORDER = [
+export const CATEGORY_ORDER: string[] = [
     'Google Workspace', 'Microsoft 365', 'Nextcloud', 'AI & Media',
     'Developer', 'Automation', 'Productivity', 'Health', 'Social',
 ];
 
-export function orderCategories(cats) {
+export function orderCategories(cats: string[]): string[] {
     const present = new Set(cats);
-    const ordered = CATEGORY_ORDER.filter(c => present.has(c));
-    const extras = cats.filter(c => !CATEGORY_ORDER.includes(c)); // e.g. 'MCP'
+    const ordered = CATEGORY_ORDER.filter((c: string) => present.has(c));
+    const extras = cats.filter((c: string) => !CATEGORY_ORDER.includes(c)); // e.g. 'MCP'
     return [...ordered, ...extras];
 }
 
-export function getIntegrationById(id) {
-    return INTEGRATION_CATALOG.find(i => i.id === id) || null;
+export function getIntegrationById(id: string): IntegrationEntry | null {
+    return INTEGRATION_CATALOG.find((i: IntegrationEntry) => i.id === id) || null;
 }

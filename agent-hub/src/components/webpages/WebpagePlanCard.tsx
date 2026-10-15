@@ -1,11 +1,33 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { CheckCircle2, X, Loader2, ChevronRight, FileCode2, Palette, Cpu } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const FILE_ICON = { html: FileCode2, css: Palette, js: Cpu };
-const FILE_LABEL = { html: 'index.html', css: 'style.css', js: 'script.js' };
-const ACTION_LABEL = { edit: 'Edit', create: 'Create', rewrite: 'Rewrite', partial_edit: 'Edit' };
-const ACTION_TONE = {
+interface PlanStep {
+    file: string;
+    action: string;
+    why?: string;
+    preview?: string;
+}
+
+interface WebpagePlan {
+    title?: string;
+    summary?: string;
+    steps: PlanStep[];
+}
+
+interface WebpagePlanCardProps {
+    plan?: WebpagePlan | null;
+    status?: 'pending' | 'approved' | 'executed' | 'rejected';
+    planId?: string;
+    onApprove?: (planId?: string) => void;
+    onReject?: (planId?: string) => void;
+}
+
+const FILE_ICON: Record<string, LucideIcon> = { html: FileCode2, css: Palette, js: Cpu };
+const FILE_LABEL: Record<string, string> = { html: 'index.html', css: 'style.css', js: 'script.js' };
+const ACTION_LABEL: Record<string, string> = { edit: 'Edit', create: 'Create', rewrite: 'Rewrite', partial_edit: 'Edit' };
+const ACTION_TONE: Record<string, { bg: string; fg: string }> = {
     edit: { bg: 'rgba(234,179,8,0.16)', fg: 'rgb(133,77,14)' },
     partial_edit: { bg: 'rgba(234,179,8,0.16)', fg: 'rgb(133,77,14)' },
     create: { bg: 'rgba(22,163,74,0.12)', fg: 'rgb(22,101,52)' },
@@ -23,7 +45,7 @@ const ACTION_TONE = {
  *   onReject(planId)
  *   planId
  */
-export default function WebpagePlanCard({ plan, status = 'pending', planId, onApprove, onReject }) {
+export default function WebpagePlanCard({ plan, status = 'pending', planId, onApprove, onReject }: WebpagePlanCardProps) {
     const { t } = useTranslation();
     const [expanded, setExpanded] = useState(true);
 
@@ -53,7 +75,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
             {/* Header */}
             <button
                 type="button"
-                onClick={() => setExpanded(e => !e)}
+                onClick={() => setExpanded((e: boolean) => !e)}
                 className="w-full flex items-center gap-2 px-3 py-2 text-left"
             >
                 <div className="flex-1 min-w-0">
@@ -91,7 +113,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                     {/* Steps */}
                     {stepCount > 0 && (
                         <ol className="space-y-1.5 mb-2">
-                            {plan.steps.map((s, i) => {
+                            {plan.steps.map((s: PlanStep, i: number) => {
                                 const Icon = FILE_ICON[s.file] || FileCode2;
                                 const action = ACTION_TONE[s.action] || ACTION_TONE.partial_edit;
                                 return (

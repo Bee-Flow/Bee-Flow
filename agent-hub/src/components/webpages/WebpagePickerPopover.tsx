@@ -2,6 +2,20 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Globe, Search, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { WebpageRow } from '../../pages/webpages/webpageEditorTypes';
+
+interface PickerState {
+    loading: boolean;
+    items: WebpageRow[];
+    error: string | null;
+}
+
+interface WebpagePickerPopoverProps {
+    anchorRef?: React.RefObject<HTMLElement | null>;
+    open: boolean;
+    onClose: () => void;
+    onSelect: (id: string) => void;
+}
 
 /**
  * Compact popover that lists webpages the user can see (owned + published
@@ -11,12 +25,12 @@ import { useTranslation } from '../../hooks/useTranslation';
  * — same ref dance so two popovers can't fight each other for the document
  * listener.
  */
-export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelect }) {
+export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelect }: WebpagePickerPopoverProps) {
     const { t } = useTranslation();
-    const popoverRef = useRef(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [state, setState] = useState({ loading: true, items: [], error: null });
+    const [state, setState] = useState<PickerState>({ loading: true, items: [], error: null });
 
     // Debounce the search term so each keystroke doesn't re-run the filter
     // (and trigger a fresh useMemo) — irrelevant for small lists, but the
@@ -28,9 +42,9 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
 
     useEffect(() => {
         if (!open) return;
-        const onDoc = (e) => {
-            if (popoverRef.current?.contains(e.target)) return;
-            if (anchorRef?.current?.contains(e.target)) return;
+        const onDoc = (e: MouseEvent) => {
+            if (popoverRef.current?.contains(e.target as Node)) return;
+            if (anchorRef?.current?.contains(e.target as Node)) return;
             onClose();
         };
         document.addEventListener('mousedown', onDoc);
@@ -49,7 +63,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
                 const items = Array.isArray(data?.webpages) ? data.webpages : [];
                 if (!cancelled) setState({ loading: false, items, error: null });
             } catch (err) {
-                if (!cancelled) setState({ loading: false, items: [], error: err.message });
+                if (!cancelled) setState({ loading: false, items: [], error: (err as Error).message });
             }
         })();
         return () => { cancelled = true; };
@@ -58,7 +72,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
     const filtered = useMemo(() => {
         const q = debouncedSearch.trim().toLowerCase();
         if (!q) return state.items;
-        return state.items.filter(w => (w.name || '').toLowerCase().includes(q));
+        return state.items.filter((w: WebpageRow) => (w.name || '').toLowerCase().includes(q));
     }, [debouncedSearch, state.items]);
 
     if (!open) return null;
@@ -82,7 +96,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
                         type="text"
                         placeholder={t('webpages.picker.search', 'Search webpages…')}
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                         className="w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border outline-none"
                         style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}
                     />
@@ -106,7 +120,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
                             : 'No matches.'}
                     </div>
                 )}
-                {filtered.map(w => (
+                {filtered.map((w: WebpageRow) => (
                     <button
                         key={w.id}
                         onClick={() => { onSelect(w.id); onClose(); }}

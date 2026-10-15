@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { getIntegrationLogo } from './integrationLogos.tsx';
-import { NEXTCLOUD_INTEGRATION_IDS } from '../config/integrationCatalog.js';
+import { NEXTCLOUD_INTEGRATION_IDS } from '../config/integrationCatalog';
 
 describe('getIntegrationLogo', () => {
     it('resolves a logo for the outlook-readonly catalog id', () => {

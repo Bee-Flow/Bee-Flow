@@ -1,6 +1,6 @@
 /**
  * DIFFERENTIAL + TEXTUAL lockstep: the media option tables against the web's
- * constants/elevenLabsOptions.js (loaded and compared value for value) and
+ * constants/elevenLabsOptions.ts (loaded and compared value for value) and
  * the arrays written into NanoBananaSettings.tsx and VideoGenSettings.tsx.
  */
 
@@ -13,7 +13,7 @@ import * as catalog from './mediaCatalog';
 type Option = { label: string; value: string | number };
 
 const web = loadWebModule<{ TTS_MODELS: Option[]; TTS_VOICES: Option[]; DEFAULT_TTS_MODEL: string; DEFAULT_TTS_VOICE: string }>(
-    'constants/elevenLabsOptions.js',
+    'constants/elevenLabsOptions.ts',
 );
 
 /** `const NAME = [ { label: 'x', value: y }, … ];` out of a component file, without its icons. */

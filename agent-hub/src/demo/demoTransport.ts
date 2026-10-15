@@ -1,3 +1,23 @@
+export interface DemoContext {
+    state: object;
+    params: Record<string, string>;
+    body: Record<string, unknown> | null;
+    path: string;
+    method: string;
+    query: URLSearchParams;
+}
+
+/** A handler names only the members of the context it reads, typed to its own fixture state. */
+export type DemoHandler = { bivarianceHack(ctx: Partial<DemoContext>): unknown }['bivarianceHack'];
+export type DemoRoutes = Record<string, DemoHandler>;
+
+interface CompiledRoute {
+    method: string;
+    regex: RegExp;
+    names: string[];
+    handler: DemoHandler;
+}
+
 /**
  * The demo backend — an in-memory API for the public feature demos.
  *
@@ -22,7 +42,7 @@
  */
 
 /** Build a Response the way fetch would, so callers need no special-casing. */
-function json(body, status = 200) {
+function json(body: unknown, status = 200) {
     return new Response(JSON.stringify(body), {
         status,
         headers: { 'Content-Type': 'application/json' },
@@ -42,7 +62,7 @@ function noContent(status = 204) {
  * those as different routes meant the automations list and every save 404'd
  * in the demo while looking like a plain "save failed" toast.
  */
-function toPath(url) {
+function toPath(url: unknown) {
     const raw = String(url || '');
     // API_BASE is either '' (prod, relative) or an absolute origin (dev).
     const withoutOrigin = raw.replace(/^https?:\/\/[^/]+/i, '');
@@ -60,14 +80,14 @@ function toPath(url) {
  * URLSearchParams when there is no query, so a handler can always call
  * `.get()` without a guard.
  */
-function parseQuery(url) {
+function parseQuery(url: unknown) {
     const raw = String(url || '');
     const i = raw.indexOf('?');
     if (i === -1) return new URLSearchParams();
     return new URLSearchParams(raw.slice(i + 1).split('#')[0]);
 }
 
-function parseBody(options) {
+function parseBody(options?: RequestInit): Record<string, unknown> | null {
     if (!options || typeof options.body !== 'string') return null;
     try { return JSON.parse(options.body); } catch (_) { return null; }
 }
@@ -79,13 +99,13 @@ function parseBody(options) {
  * segment; `*` at the end matches the rest. First match wins, so declare
  * literal paths before parameterised ones.
  */
-function compile(routes) {
+function compile(routes: DemoRoutes): CompiledRoute[] {
     return Object.entries(routes).map(([key, handler]) => {
         const [method, pattern] = key.split(' ');
-        const names = [];
+        const names: string[] = [];
         const source = pattern
             .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-            .replace(/:([a-zA-Z0-9_]+)/g, (_, name) => { names.push(name); return '([^/]+)'; })
+            .replace(/:([a-zA-Z0-9_]+)/g, (_: string, name: string) => { names.push(name); return '([^/]+)'; })
             .replace(/\*$/, '.*');
         return { method, regex: new RegExp(`^${source}$`), names, handler };
     });
@@ -94,13 +114,13 @@ function compile(routes) {
 /**
  * Create a transport bound to one demo's route table + state.
  *
- * @param {object} routes  { 'GET /api/x': (ctx) => body|Response }
- * @param {object} state   mutable fixture state, handed to every handler
+ * @param routes  { 'GET /api/x': (ctx) => body|Response }
+ * @param state   mutable fixture state, handed to every handler
  */
-export function createDemoTransport(routes, state) {
+export function createDemoTransport(routes: DemoRoutes, state: object) {
     const compiled = compile(routes);
 
-    return async function demoFetch(url, options = {}) {
+    return async function demoFetch(url: unknown, options: RequestInit = {}) {
         const method = String(options.method || 'GET').toUpperCase();
         const path = toPath(url);
 
@@ -109,8 +129,8 @@ export function createDemoTransport(routes, state) {
             const match = route.regex.exec(path);
             if (!match) continue;
 
-            const params = {};
-            route.names.forEach((name, i) => { params[name] = decodeURIComponent(match[i + 1]); });
+            const params: Record<string, string> = {};
+            route.names.forEach((name: string, i: number) => { params[name] = decodeURIComponent(match[i + 1]); });
 
             let result;
             try {

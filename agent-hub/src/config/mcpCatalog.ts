@@ -37,7 +37,32 @@
  * logo.dev → emoji/letter) lives in utils/mcpLogos.jsx.
  */
 
-export const MCP_REGISTRY = [
+export interface McpRegistryEntry {
+    id: string;
+    name: string;
+    description: string;
+    icon?: string;
+    category: string;
+    transport: 'stdio' | 'http';
+    command?: string;
+    args?: string[];
+    bundled?: boolean;
+    url?: string;
+    configurable_url?: boolean;
+    required_credentials?: { key: string; label: string }[];
+    logo?: string;
+    repository?: string;
+    homepage?: string;
+    verified?: boolean;
+}
+
+export interface McpCategory {
+    id: string;
+    label: string;
+    icon: string;
+}
+
+export const MCP_REGISTRY: McpRegistryEntry[] = [
     // ── Development ──────────────────────────────────────────────────
     { id: 'github', name: 'GitHub', description: 'Repository management, issues, PRs, code search, and CI/CD.', icon: '🐙', category: 'development', transport: 'stdio', command: 'npx', args: ['-y', '@modelcontextprotocol/server-github'], required_credentials: [{ key: 'GITHUB_PERSONAL_ACCESS_TOKEN', label: 'GitHub PAT' }], repository: 'https://github.com/github/github-mcp-server', verified: true },
     { id: 'gitlab', name: 'GitLab', description: 'Repository management, merge requests, issues, and pipelines.', icon: '🦊', category: 'development', transport: 'stdio', command: 'npx', args: ['-y', '@modelcontextprotocol/server-gitlab'], required_credentials: [{ key: 'GITLAB_PERSONAL_ACCESS_TOKEN', label: 'GitLab PAT' }, { key: 'GITLAB_API_URL', label: 'GitLab API URL' }], repository: 'https://github.com/gitlabhq/gitlab-mcp' },
@@ -141,7 +166,7 @@ export const MCP_REGISTRY = [
     { id: 'tuya', name: 'Tuya', description: 'Tuya / Smart Life smart home — list devices, read status, switch lights and plugs, and run scenes.', icon: '🏠', category: 'iot', transport: 'stdio', command: 'node', args: ['mcpServers/tuya/index.mjs'], required_credentials: [{ key: 'TUYA_ACCESS_ID', label: 'Tuya Access ID' }, { key: 'TUYA_ACCESS_SECRET', label: 'Tuya Access Secret' }, { key: 'TUYA_UID', label: 'Smart Life app account UID' }, { key: 'TUYA_REGION', label: 'Data center (eu / weu / us / cn / in)' }], homepage: 'https://developer.tuya.com', bundled: true, verified: true },
 ];
 
-export const CATEGORIES = [
+export const CATEGORIES: McpCategory[] = [
     { id: 'all', label: 'All', icon: '🔮' },
     { id: 'development', label: 'Development', icon: '💻' },
     { id: 'communication', label: 'Communication', icon: '💬' },

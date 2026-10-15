@@ -1,7 +1,25 @@
 import React, { useState } from 'react';
 import { ChevronRight, FileCode2, Palette, Cpu } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const FILE_META = {
+interface DiffHunk {
+    type: string;
+    text: string;
+}
+
+interface WebpageDiff {
+    summary: string;
+    added: number;
+    removed: number;
+    hunks?: DiffHunk[];
+}
+
+interface WebpageDiffCardProps {
+    file: string;
+    diff?: WebpageDiff | null;
+}
+
+const FILE_META: Record<string, { label: string; Icon: LucideIcon }> = {
     html: { label: 'index.html', Icon: FileCode2 },
     css:  { label: 'style.css',  Icon: Palette },
     js:   { label: 'script.js',  Icon: Cpu },
@@ -12,7 +30,7 @@ const FILE_META = {
  * Webpages chat. Shows filename, +X −Y summary, and an expandable list of
  * hunks. Purely informational — the change is already applied to the editor.
  */
-export default function WebpageDiffCard({ file, diff }) {
+export default function WebpageDiffCard({ file, diff }: WebpageDiffCardProps) {
     const [open, setOpen] = useState(false);
 
     const meta = FILE_META[file] || FILE_META.html;
@@ -26,7 +44,7 @@ export default function WebpageDiffCard({ file, diff }) {
         >
             <button
                 type="button"
-                onClick={() => setOpen(o => !o)}
+                onClick={() => setOpen((o: boolean) => !o)}
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left"
                 style={{ color: 'var(--vsc-fg, var(--text-primary))' }}
             >
@@ -55,7 +73,7 @@ export default function WebpageDiffCard({ file, diff }) {
                     className="border-t font-mono text-[11px] overflow-x-auto"
                     style={{ borderColor: 'var(--vsc-border, var(--border-subtle))', background: 'var(--vsc-editor-bg, var(--bg-primary))' }}
                 >
-                    {diff.hunks.map((h, i) => {
+                    {diff.hunks.map((h: DiffHunk, i: number) => {
                         const sigil = h.type === 'add' ? '+' : h.type === 'remove' ? '-' : h.type === 'gap' ? ' ' : ' ';
                         const bg = h.type === 'add'
                             ? 'rgba(22,163,74,0.12)'
