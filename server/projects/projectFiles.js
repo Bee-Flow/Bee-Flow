@@ -53,6 +53,8 @@ const { HttpError, conflict, notFound } = require('../core/http/errors');
 const {
     PROJECT_FILES_SOURCE_KIND, filesKbIdOf, isProjectFilesKb,
 } = require('../core/kb/projectFilesKb');
+const { makeFilesKbAccess, filesKbName } = require('./projectFilesKb');
+const { makeFileProcessor, DUPLICATE_REASON } = require('./projectFilesProcess');
 
 /** The knowledge-base upload limit (routes/knowledgeBases/ingest.js, sources.js). */
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -79,22 +81,12 @@ const STALE_AFTER_MS = 30 * 60 * 1000;
 /** The activity rows about one project file (routes/projects/workspace.js). */
 const FILE_ACTIONS = new Set(['file.added', 'file.removed']);
 
-const DUPLICATE_REASON = 'The same file is already in this project.';
 const STALLED_REASON = 'Processing did not finish. Remove the file and upload it again.';
-
-/** Where the project's chats may use the base. Not an access rule (see core/kb/usageContexts.js). */
-const USAGE_CONTEXTS = Object.freeze(['agent', 'direct_chat']);
 
 /** A file name as people will read it: one line, no control characters, capped. */
 function cleanName(name) {
     const cleaned = String(name || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
     return cleaned ? cleaned.slice(0, 200) : 'Untitled file';
-}
-
-/** The base's name: "<project> · Files", within the KB name column's reasonable length. */
-function filesKbName(project) {
-    const base = String(project?.name || 'Project').replace(/\s+/g, ' ').trim() || 'Project';
-    return `${base.slice(0, 180)} · Files`;
 }
 
 function isQueued(doc) {
@@ -139,10 +131,6 @@ function toFile(doc, now) {
     };
 }
 
-function storedIds(project) {
-    const ids = Array.isArray(project?.knowledgeBaseIds) ? project.knowledgeBaseIds : [];
-    return ids.filter(id => typeof id === 'string' && id);
-}
 
 /**
  * @param {object} [deps]
@@ -183,116 +171,13 @@ function makeProjectFiles(deps = {}) {
         while (pending.size > 0) await Promise.all(Array.from(pending));
     }
 
-    /**
-     * The project's files base, or null when it has none (yet). A recorded id
-     * that resolves to something that is not this project's files base is
-     * treated as none: it is never read as the project's files.
-     */
-    async function getFilesKb(project) {
-        const id = filesKbIdOf(project);
-        if (!id) return null;
-        const kb = await kbStore().getKB(id);
-        return isProjectFilesKb(kb, project) ? kb : null;
-    }
-
-    /**
-     * Make sure the files base is in `knowledge_base_ids`, which is what the
-     * direct-chat path searches. Compare-and-swap on the project's version
-     * like every other writer of that column (knowledgeBaseMembership.js), so
-     * a colleague's KB change a moment earlier is kept, not overwritten.
-     *
-     * Best-effort: the agent path and the team-chat assistant reach the files
-     * through `files_kb_id` either way, so a failure here is logged, not
-     * raised. Returns true when this call added the id.
-     */
-    async function ensureListed(projectId, kbId) {
-        for (let attempt = 0; attempt < 3; attempt++) {
-            const project = await projectStore().getProject(projectId);
-            if (!project) return false;
-            const ids = storedIds(project);
-            if (ids.includes(kbId)) return false;
-            if (ids.length >= maxKbIds()) {
-                log.warn(`[ProjectFiles] project ${projectId} already holds ${ids.length} knowledge bases; its files base is searched through files_kb_id only`);
-                return false;
-            }
-            if (!Number.isFinite(Number(project.version))) return false;
-            const result = await projectStore().updateProject(
-                projectId, { knowledgeBaseIds: [...ids, kbId] }, { expectedVersion: Number(project.version) },
-            );
-            if (!result) return false;
-            if (result.conflict) continue;
-            // The project row's version moved: open settings forms must reload
-            // before they save, or their next PUT is a needless conflict.
-            try {
-                await publishTransient(projectId, { kind: 'project_updated', payload: { changes: ['knowledgeBaseIds'] } });
-            } catch (_) { /* presence-grade: never fail the upload over it */ }
-            return true;
-        }
-        log.warn(`[ProjectFiles] could not list the files base on project ${projectId} after three attempts`);
-        return false;
-    }
-
-    async function discardBase(kb) {
-        try { await kbStore().deleteKB(kb.id); } catch (e) {
-            log.warn(`[ProjectFiles] could not remove the redundant files base ${kb.id}:`, e.message);
-        }
-    }
-
-    /**
-     * The project's files base, created on first use.
-     * @param {object} project  a getProject() result
-     */
-    async function ensureFilesKb(project) {
-        const recorded = filesKbIdOf(project);
-        if (recorded) {
-            const existing = await kbStore().getKB(recorded);
-            if (isProjectFilesKb(existing, project)) {
-                await ensureListed(project.id, existing.id);
-                return existing;
-            }
-            if (existing) {
-                // The project names a base that is not its files base. Refuse
-                // rather than upload into somebody else's knowledge base.
-                log.error(`[ProjectFiles] project ${project.id} records base ${recorded} as its files, but it is not`);
-                throw new HttpError(409, 'FILES_UNAVAILABLE', 'The files of this project cannot be stored right now.');
-            }
-            // Recorded, but the base is gone: make a new one below and replace
-            // the stale id (only if it is still the one we saw).
-        }
-
-        const kb = await kbStore().createKB(
-            project.ownerId,
-            filesKbName(project),
-            'Files uploaded into this project. Every member of the project can search them in its chats.',
-            project.organizationId || null,
-            { sourceKind: PROJECT_FILES_SOURCE_KIND, usageContexts: [...USAGE_CONTEXTS] },
-        );
-
-        let winner;
-        try {
-            winner = recorded
-                ? await projectStore().setFilesKbId(project.id, kb.id, { expected: recorded })
-                : await projectStore().setFilesKbId(project.id, kb.id);
-        } catch (e) {
-            await discardBase(kb);
-            throw e;
-        }
-        if (winner === kb.id) {
-            log.info(`[ProjectFiles] created files base ${kb.id} for project ${project.id}`);
-            await ensureListed(project.id, kb.id);
-            return kb;
-        }
-
-        // Somebody else's first upload won (or the project went away).
-        await discardBase(kb);
-        if (!winner) throw notFound('not_found', 'Not found');
-        const other = await kbStore().getKB(winner);
-        if (!isProjectFilesKb(other, { ...project, filesKbId: winner })) {
-            throw new HttpError(409, 'FILES_UNAVAILABLE', 'The files of this project cannot be stored right now.');
-        }
-        await ensureListed(project.id, other.id);
-        return other;
-    }
+    const { getFilesKb, ensureFilesKb, removeFilesKb } = makeFilesKbAccess({
+        kbStore, projectStore, helpers, maxKbIds, publishTransient, log,
+        resolveKbProvider: () => deps.resolveKbProvider || require('../core/kb/resolveProvider').resolveKbProvider,
+        deleteChunksLocally: () => deps.deleteChunksLocally || require('../core/kb/localKBIngest').deleteChunksLocally,
+        kit: { HttpError, notFound, PROJECT_FILES_SOURCE_KIND, filesKbIdOf, isProjectFilesKb },
+    });
+    const processFile = makeFileProcessor({ kbStore, helpers, privacy, log });
 
     /**
      * Every file in the project, newest first.
@@ -380,94 +265,6 @@ function makeProjectFiles(deps = {}) {
     }
 
     /**
-     * Extract, screen, deduplicate and embed one accepted file under its row.
-     * Never throws; returns the outside status it ended in, or 'removed' when
-     * the file was deleted while it was being processed.
-     */
-    async function processFile(kb, doc, upload, { userId }) {
-        const h = helpers();
-        const store = kbStore();
-        const name = doc.title;
-        const markFailed = async (status, statusReason) => {
-            try { await store.updateDocumentStatus(doc.id, { status, statusReason, chunkCount: 0 }); } catch (e) {
-                log.warn(`[ProjectFiles] could not record why "${doc.id}" failed:`, e.message);
-            }
-            return 'failed';
-        };
-
-        try {
-            let text = '';
-            let meta = {};
-            try {
-                const extracted = await h.extractFileContentWithMeta(upload.buffer, upload.mimetype, name);
-                text = extracted?.text || '';
-                meta = extracted?.meta || {};
-            } catch (e) {
-                log.warn(`[ProjectFiles] extraction failed for ${doc.id}: ${e.message}`);
-                return await markFailed('error', h.friendlyError(e));
-            }
-            const pages = Array.isArray(meta.pages) && meta.pages.length ? meta.pages : null;
-
-            // Privacy BEFORE the hash, as ingestDocument does it: what is hashed
-            // is what is stored, and what is stored is what the policy allows.
-            let status = 'processed';
-            let piiStatus;
-            let piiCategories;
-            if (text && text.trim().length >= 3) {
-                const { applyShield, OUTCOME } = privacy();
-                const verdict = await applyShield({
-                    orgId: kb.organization_id || null, userId, text, filename: name, pages,
-                });
-                piiStatus = verdict.piiStatus;
-                piiCategories = verdict.piiCategories;
-                if (verdict.outcome === OUTCOME.SKIPPED) {
-                    await store.replaceDocumentContent(doc.id, {
-                        status: 'skipped', statusReason: verdict.reason, chunkCount: 0, piiStatus, piiCategories,
-                    });
-                    return 'failed';
-                }
-                text = verdict.text;
-                if (verdict.outcome === OUTCOME.REDACTED) status = 'redacted';
-
-                // The same content already in the project: an alias, not a
-                // second embedding (the Knowledge Studio upload's rule).
-                const existing = await store.findDocumentByContentHash(kb.id, store.hashContent(text));
-                if (existing && String(existing.id) !== String(doc.id)) {
-                    return await markFailed('duplicate', DUPLICATE_REASON);
-                }
-            }
-
-            const result = await h.reingestDocument(kb.tenant_id, kb.id, doc.id, text, {
-                title: name,
-                sizeBytes: upload.size != null ? upload.size : (upload.buffer ? upload.buffer.length : null),
-                mime: upload.mimetype || null,
-                pageCount: Number.isFinite(meta.pageCount) ? meta.pageCount : null,
-                sheetCount: Array.isArray(meta.sheetNames) ? meta.sheetNames.length : null,
-                pages,
-                externalId: name,
-                onFailure: 'record',
-                status,
-                piiStatus,
-                piiCategories,
-            });
-
-            // Removed while it was being embedded: its chunks may have landed
-            // after the row went, and deleted text must not stay searchable.
-            if (!(await store.getDocument(doc.id))) {
-                await h.purgeDocumentChunks(kb.id, doc.id, kb.tenant_id).catch((e) => {
-                    log.warn(`[ProjectFiles] could not purge chunks of removed file ${doc.id}:`, e.message);
-                });
-                return 'removed';
-            }
-            return result && (result.status === 'processed' || result.status === 'redacted') ? 'ready' : 'failed';
-        } catch (e) {
-            if (e && e.code === 'NOT_FOUND') return 'removed';
-            log.error(`[ProjectFiles] processing ${doc.id} failed:`, e && e.message ? e.message : e);
-            return await markFailed('error', h.friendlyError(e));
-        }
-    }
-
-    /**
      * Accept one uploaded file into the project.
      *
      * Creates the row and returns it as a `processing` file. The work runs
@@ -537,34 +334,6 @@ function makeProjectFiles(deps = {}) {
         return toFile(doc, now());
     }
 
-    /**
-     * Delete the project's files base with every chunk in it. For the project
-     * delete path: a base nobody can reach any more is personal data kept for
-     * no purpose. Mirrors routes/knowledgeBases/detail.js DELETE.
-     * @returns {Promise<boolean>} true when a base was removed
-     */
-    async function removeFilesKb(project) {
-        const kb = await getFilesKb(project);
-        if (!kb) return false;
-        const store = kbStore();
-        const resolveKbProvider = deps.resolveKbProvider || require('../core/kb/resolveProvider').resolveKbProvider;
-        const deleteChunksLocally = deps.deleteChunksLocally || require('../core/kb/localKBIngest').deleteChunksLocally;
-
-        if ((await resolveKbProvider()) !== 'local') {
-            const PAGE = 200;
-            for (let offset = 0; offset < PAGE * 50; offset += PAGE) {
-                const docs = await store.listDocuments(kb.id, { limit: PAGE, offset });
-                if (!docs || docs.length === 0) break;
-                for (const doc of docs) await helpers().purgeDocumentChunks(kb.id, doc.id, kb.tenant_id);
-                if (docs.length < PAGE) break;
-            }
-        }
-        try { await deleteChunksLocally(kb.tenant_id, kb.id); } catch (e) {
-            log.warn(`[ProjectFiles] local chunk cleanup for ${kb.id} failed:`, e.message);
-        }
-        await store.deleteKB(kb.id);
-        return true;
-    }
 
     return {
         getFilesKb, ensureFilesKb, listFiles, fileContent, fileNames, nameFileActivity, addFile, removeFile, removeFilesKb, settle,
