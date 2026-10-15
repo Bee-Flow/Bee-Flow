@@ -2,20 +2,35 @@ import { useState, useEffect, useCallback } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { READ } from '../canUse/canUseFacts';
+import { messageOf } from '../../../../utils/caughtError';
+
+/** A knowledge base as `GET /api/kb` lists it. */
+export interface KnowledgeBaseRow {
+    id: string;
+    name?: string;
+    documentCount?: number | null;
+    documentCountAll?: number | null;
+}
+
+export interface KnowledgeBasesDeps {
+    knowledgeBaseIds: string[];
+    setKnowledgeBaseIds: (ids: string[]) => void;
+    patchConfig: (patch: Record<string, unknown>) => void;
+}
 
 // Knowledge-base link state + handlers for BuilderSplit. Moved verbatim; the
 // hook is called from the same position in the parent, so the internal hooks
 // keep their order and the state stays on BuilderSplit's fiber.
-export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseIds, patchConfig }) {
+export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseIds, patchConfig }: KnowledgeBasesDeps) {
     // Knowledge — link / unlink an existing KB into the agent's array.
-    const toggleKbLink = (kbId) => {
+    const toggleKbLink = (kbId: string) => {
         const next = knowledgeBaseIds.includes(kbId)
             ? knowledgeBaseIds.filter(x => x !== kbId)
             : [...knowledgeBaseIds, kbId];
         setKnowledgeBaseIds(next);
         patchConfig({ knowledge_base_ids: next });
     };
-    const [allKbs, setAllKbs] = useState([]);
+    const [allKbs, setAllKbs] = useState<KnowledgeBaseRow[]>([]);
     /**
      * Is die lijst er ECHT, of ging de lezing stuk? (A2 stap 2.)
      *
@@ -25,7 +40,7 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
      * de Kennis-kaart TEKENT dat verschil ("niets gekoppeld" versus een
      * waarschuwing met een opnieuw-knop), dus het moet hier te lezen zijn.
      */
-    const [kbsState, setKbsState] = useState(READ.LOADING);
+    const [kbsState, setKbsState] = useState<(typeof READ)[keyof typeof READ]>(READ.LOADING);
     /**
      * `?context=agent` — only the knowledge bases whose owner made them
      * available to agents (K5's `usage_contexts`). Without it the picker
@@ -55,7 +70,7 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
         }
     }, []);
     useEffect(() => { refreshKbs(); }, [refreshKbs]);
-    const createKb = async (name, description) => {
+    const createKb = async (name: string, description?: string) => {
         try {
             const res = await authFetch(`${API_BASE}/api/kb`, {
                 method: 'POST',
@@ -71,7 +86,7 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
             patchConfig({ knowledge_base_ids: next });
             return created;
         } catch (err) {
-            toast.error(err.message);
+            toast.error(messageOf(err, 'Failed to create knowledge base'));
             return null;
         }
     };

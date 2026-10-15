@@ -1,19 +1,64 @@
 import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
+import { errorMessage, messageOf } from '../../../../utils/caughtError';
+import type { EditorSnapshot, Ref, Setter } from './agentSaveTypes';
+import type { CategoryRow } from '../agentEditor.types';
+
+export interface FieldUpdaterDeps {
+    setName: (value: string) => void;
+    setInstructions: (value: string) => void;
+    setAvatar: (value: string) => void;
+    memoryEnabled: boolean;
+    setMemoryEnabled: (value: boolean) => void;
+    useGeneralMemory: boolean;
+    setUseGeneralMemory: (value: boolean) => void;
+    attachedSkillIds: string[];
+    setAttachedSkillIds: (ids: string[]) => void;
+    enabledIntegrations: string[] | null;
+    setEnabledIntegrations: (ids: string[]) => void;
+    setKnowledgeBaseIds: (ids: string[]) => void;
+    setStrictKnowledge: (value: boolean) => void;
+    setIncludeSourceReferences: (value: boolean) => void;
+    setDescription: (value: string) => void;
+    setModel: (value: string) => void;
+    setSelectedTier: (tier: string) => void;
+    setCategoryId: (id: string | null) => void;
+    stateRef: Ref<EditorSnapshot>;
+    dirtyRef: Ref<boolean>;
+    queueSave: (immediate?: boolean) => void;
+    patchConfig: (patch: Record<string, unknown>) => void;
+}
+
+export interface CategoryActionDeps {
+    setCategories: Setter<CategoryRow[]>;
+    updateCategory: (id: string | null) => void;
+    bootstrap: { refreshCategories?: () => unknown };
+    stateRef: Ref<EditorSnapshot>;
+    flush: () => unknown;
+}
+
+export interface PublishActionDeps {
+    agentIdRef: Ref<string | null | undefined>;
+    isPublished: boolean;
+    sharedGroups: string[];
+    setIsPublished: (value: boolean) => void;
+    setSharedGroups: (groups: string[]) => void;
+    setSaveErrorMsg: (message: string) => void;
+}
 
 // Edit-handler factories for BuilderSplit, moved here verbatim. Each factory
 // is called once per render from the exact position the handlers used to be
 // defined at, and the handlers close over the deps object properties exactly
 // as they closed over the parent scope before. No hooks in this module.
 
-export function createFieldUpdaters({ setName, setInstructions, setAvatar, memoryEnabled, setMemoryEnabled, useGeneralMemory, setUseGeneralMemory, attachedSkillIds, setAttachedSkillIds, enabledIntegrations, setEnabledIntegrations, setKnowledgeBaseIds, setStrictKnowledge, setIncludeSourceReferences, setDescription, setModel, setSelectedTier, setCategoryId, stateRef, dirtyRef, queueSave, patchConfig }) {
+export function createFieldUpdaters({ setName, setInstructions, setAvatar, memoryEnabled, setMemoryEnabled, useGeneralMemory, setUseGeneralMemory, attachedSkillIds, setAttachedSkillIds, enabledIntegrations, setEnabledIntegrations, setKnowledgeBaseIds, setStrictKnowledge, setIncludeSourceReferences, setDescription, setModel, setSelectedTier, setCategoryId, stateRef, dirtyRef, queueSave, patchConfig }: FieldUpdaterDeps) {
     // Typing: debounced.
-    const updateName = (v) => { setName(v); stateRef.current.name = v; queueSave(false); };
-    const updateInstructions = (v) => { setInstructions(v); stateRef.current.systemPrompt = v; queueSave(false); };
+    const updateName = (v: string) => { setName(v); stateRef.current.name = v; queueSave(false); };
+    const updateInstructions = (v: string) => { setInstructions(v); stateRef.current.systemPrompt = v; queueSave(false); };
     // Discrete actions: save immediately so a quick navigation still persists.
     // Avatar is now written only to the canonical top-level column. Reads still
     // fall through to config.avatar via pickAgentAvatar so legacy agents keep
     // displaying until the one-shot backfill migration lands.
-    const updateAvatar = (v) => {
+    const updateAvatar = (v: string) => {
         setAvatar(v);
         stateRef.current.avatar = v;
         queueSave(true);
@@ -28,12 +73,12 @@ export function createFieldUpdaters({ setName, setInstructions, setAvatar, memor
         setUseGeneralMemory(next);
         patchConfig({ useGeneralMemory: next });
     };
-    const toggleSkill = (id) => {
+    const toggleSkill = (id: string) => {
         const next = attachedSkillIds.includes(id) ? attachedSkillIds.filter(x => x !== id) : [...attachedSkillIds, id];
         setAttachedSkillIds(next);
         patchConfig({ attachedSkillIds: next });
     };
-    const toggleIntegration = (id, available) => {
+    const toggleIntegration = (id: string, available: Array<{ id: string }>) => {
         // null = legacy "all enabled" — materialise the implicit list before toggling.
         const baseList = Array.isArray(enabledIntegrations)
             ? enabledIntegrations
@@ -42,16 +87,16 @@ export function createFieldUpdaters({ setName, setInstructions, setAvatar, memor
         setEnabledIntegrations(next);
         patchConfig({ enabledIntegrations: next });
     };
-    const onKnowledgeBaseIdsChange = (next) => {
+    const onKnowledgeBaseIdsChange = (next: string[]) => {
         setKnowledgeBaseIds(next);
         patchConfig({ knowledge_base_ids: next });
     };
-    const onStrictKnowledgeChange = (v) => { setStrictKnowledge(v); patchConfig({ strictKnowledge: v }); };
-    const onIncludeSourceReferencesChange = (v) => { setIncludeSourceReferences(v); patchConfig({ includeSourceReferences: v }); };
+    const onStrictKnowledgeChange = (v: boolean) => { setStrictKnowledge(v); patchConfig({ strictKnowledge: v }); };
+    const onIncludeSourceReferencesChange = (v: boolean) => { setIncludeSourceReferences(v); patchConfig({ includeSourceReferences: v }); };
 
     // Identity / model / category — typed fields debounce, dropdowns/toggles immediate.
-    const updateDescription = (v) => { setDescription(v); stateRef.current.description = v; queueSave(false); };
-    const updateModel = (tierName) => {
+    const updateDescription = (v: string) => { setDescription(v); stateRef.current.description = v; queueSave(false); };
+    const updateModel = (tierName: string) => {
         const v = tierName ? `tier:${tierName}` : '';
         setModel(v);
         setSelectedTier(tierName);
@@ -61,18 +106,18 @@ export function createFieldUpdaters({ setName, setInstructions, setAvatar, memor
         stateRef.current.model = v;
         queueSave(true);
     };
-    const updateCategory = (id) => { setCategoryId(id); stateRef.current.categoryId = id; dirtyRef.current = true; queueSave(true); };
+    const updateCategory = (id: string | null) => { setCategoryId(id); stateRef.current.categoryId = id; dirtyRef.current = true; queueSave(true); };
 
     return { updateName, updateInstructions, updateAvatar, toggleMemory, toggleUseGeneralMemory, toggleSkill, toggleIntegration, onKnowledgeBaseIdsChange, onStrictKnowledgeChange, onIncludeSourceReferencesChange, updateDescription, updateModel, updateCategory };
 }
 
-export function createCategoryActions({ setCategories, updateCategory, bootstrap, stateRef, flush }) {
+export function createCategoryActions({ setCategories, updateCategory, bootstrap, stateRef, flush }: CategoryActionDeps) {
     // BFSF-272: category CRUD for the CategoryField manage popover. Every
     // mutation also refreshes the bootstrap provider — its mirror effect
     // (setCategories(bootstrap.categories) above) would otherwise resurrect
     // deleted/renamed rows on the next re-fire. Errors return inline
     // (rendered by CategoryField) instead of alert().
-    const createCategory = async (name) => {
+    const createCategory = async (name?: string | null) => {
         const trimmed = name?.trim();
         if (!trimmed) return { ok: false, error: 'Name is required' };
         try {
@@ -90,10 +135,10 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
             bootstrap.refreshCategories?.();
             return { ok: true, category: created, existed: !!created.existing };
         } catch (err) {
-            return { ok: false, error: err.message || 'Failed to create category' };
+            return { ok: false, error: messageOf(err, 'Failed to create category') };
         }
     };
-    const renameCategory = async (id, name) => {
+    const renameCategory = async (id: string, name: string) => {
         try {
             const res = await authFetch(`${API_BASE}/agents/categories/${id}`, {
                 method: 'PATCH',
@@ -106,10 +151,10 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
             bootstrap.refreshCategories?.();
             return { ok: true, category: data };
         } catch (err) {
-            return { ok: false, error: err.message || 'Rename failed' };
+            return { ok: false, error: messageOf(err, 'Rename failed') };
         }
     };
-    const deleteCategory = async (id, reassignTo) => {
+    const deleteCategory = async (id: string, reassignTo?: string) => {
         try {
             // On the DEFINITIVE call (reassignTo set): if the open agent uses
             // this category, move it locally FIRST and flush the save. The
@@ -135,18 +180,18 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
             bootstrap.refreshCategories?.();
             return { ok: true };
         } catch (err) {
-            return { ok: false, error: err.message || 'Delete failed' };
+            return { ok: false, error: messageOf(err, 'Delete failed') };
         }
     };
 
     return { createCategory, renameCategory, deleteCategory };
 }
 
-export function createPublishActions({ agentIdRef, isPublished, sharedGroups, setIsPublished, setSharedGroups, setSaveErrorMsg }) {
+export function createPublishActions({ agentIdRef, isPublished, sharedGroups, setIsPublished, setSharedGroups, setSaveErrorMsg }: PublishActionDeps) {
     // Publishing — uses the dedicated PATCH /agents/:id/publish endpoint instead
     // of the canonical PUT, since publish state lives in a column the regular
     // update path doesn't touch.
-    const callPublish = async (next, groups) => {
+    const callPublish = async (next: boolean, groups: string[]) => {
         const id = agentIdRef.current;
         if (!id) return;
         try {
@@ -170,7 +215,7 @@ export function createPublishActions({ agentIdRef, isPublished, sharedGroups, se
             setSaveErrorMsg('');
         } catch (err) {
             console.error('Publish toggle failed:', err);
-            setSaveErrorMsg(String(err?.message || err || 'Failed to update publish settings').slice(0, 500));
+            setSaveErrorMsg(String(errorMessage(err) || err || 'Failed to update publish settings').slice(0, 500));
         }
     };
     const togglePublishedToOrg = () => {
@@ -182,7 +227,7 @@ export function createPublishActions({ agentIdRef, isPublished, sharedGroups, se
     // Groups without first toggling the master switch off and on.
     const setPublishPersonal = () => callPublish(false, []);
     const setPublishEntireOrg = () => callPublish(true, []);
-    const togglePublishGroup = (gid) => {
+    const togglePublishGroup = (gid: string) => {
         const next = sharedGroups.includes(gid) ? sharedGroups.filter(x => x !== gid) : [...sharedGroups, gid];
         // Setting any group implies published=true.
         callPublish(true, next);

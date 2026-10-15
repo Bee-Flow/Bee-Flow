@@ -5,12 +5,14 @@ import { logger } from '../../../../utils/logger';
 import { filterVisibleModels, fetchAllowedModelsByAgentType } from '../../../../utils/modelMeta';
 import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
+import { messageOf } from '../../../../utils/caughtError';
+import type { AgentSaveBody, ApiOptions, ApiState, DesignerAgent, DesignerMessage } from './useAgentApi.types';
 
 /**
  * All API operations for the AgentDesigner: fetch, save, delete, duplicate, publish.
  * Accepts the state object from useAgentState.
  */
-export default function useAgentApi(state, { systemMode, securityMode, initialAgentId }) {
+export default function useAgentApi(state: ApiState, { systemMode, securityMode, initialAgentId }: ApiOptions) {
     const {
         setAgents, setLoading, setComponents, setAvailableModels,
         setAvailableCollections, setModelTiers, setIntegrationStatus,
@@ -20,7 +22,6 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
         setToolParams, setIsPublished, setSharedGroups, setStarterPrompts,
         setAvatar, setAllowCopy, setEmbedEnabled, setWorkspaceEnabled,
         setEnableGuardrails, setLlamaGuardEnabled, setWebSearchGuardEnabled,
-
         strictKnowledge, setStrictKnowledge, setIncludeSourceReferences, setKnowledgeBaseIds,
         setEnabledIntegrations, setRegexGuardrailsEnabled, setSelectedCollections,
         setRegexScope, setGuardrailAction, setMessages, setShowChat,
@@ -34,7 +35,6 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
         categoryId, setCategoryId, setAgentCategories,
         setDisableExternalTools,
     } = state;
-
     const initialSelectionDoneRef = useRef(false);
     const { confirm, confirmDialog } = useConfirm();
 
@@ -50,7 +50,7 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
             // Auto-select agent if initialAgentId is provided (once)
             if (initialAgentId && !initialSelectionDoneRef.current) {
                 initialSelectionDoneRef.current = true;
-                const target = data.find(a => a.id === initialAgentId);
+                const target = data.find((a: DesignerAgent) => a.id === initialAgentId);
                 if (target) {
                     // Defer to avoid state conflicts during initial mount
                     setTimeout(() => selectAgent(target), 0);
@@ -157,7 +157,7 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
         loadOrgData();
     }, []);
 
-    const selectAgent = async (agent) => {
+    const selectAgent = async (agent: DesignerAgent) => {
         setSelectedAgent(agent);
         setIsCreating(false);
         if (agent) {
@@ -208,7 +208,7 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
         try {
             const res = await authFetch(`${API_BASE}/agents/${agent.id}/history`);
             const history = await res.json();
-            setMessages(history.filter(m => m.role === 'user' || m.role === 'assistant'));
+            setMessages(history.filter((m: DesignerMessage) => m.role === 'user' || m.role === 'assistant'));
         } catch (err) {
             setMessages([]);
         }
@@ -246,7 +246,7 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
         if (!name.trim()) return;
         setSaving(true);
         try {
-            const body = {
+            const body: AgentSaveBody = {
                 name, description, systemPrompt,
                 tools: selectedTools, toolParams,
                 model: model || null, starterPrompts, avatar,
@@ -286,12 +286,12 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
                 setIsCreating(false);
             }
             fetchAgents();
-        } catch (err) { console.error('Failed to save agent:', err); toast.error(err.message); } finally {
+        } catch (err) { console.error('Failed to save agent:', err); toast.error(messageOf(err, 'Failed to save agent')); } finally {
             setSaving(false);
         }
     };
 
-    const deleteAgent = async (id) => {
+    const deleteAgent = async (id: string) => {
         if (!(await confirm({ title: 'Delete this agent?', confirmLabel: 'Delete', destructive: true }))) return;
         try {
             const res = await authFetch(securityMode ? `${API_BASE}/security-agents/${id}` : `${API_BASE}/agents/${id}`, { method: 'DELETE' });
@@ -313,7 +313,7 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
         }
     };
 
-    const duplicateAgent = async (agent) => {
+    const duplicateAgent = async (agent: DesignerAgent) => {
         try {
             const freshRes = await authFetch(securityMode ? `${API_BASE}/security-agents/${agent.id}` : `${API_BASE}/agents/${agent.id}`);
             const freshAgent = await freshRes.json();
@@ -364,7 +364,7 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
     // togglePublish wrapper keeps the legacy "no args = flip" semantics for
     // older callsites; the menu uses setPublishState directly so the user
     // can switch between Personal / Org / Specific Groups in one click.
-    const setPublishState = async (nextPublished, nextGroups = []) => {
+    const setPublishState = async (nextPublished: boolean, nextGroups: string[] = []) => {
         if (!selectedAgent) return;
         const groups = nextPublished ? (Array.isArray(nextGroups) ? nextGroups : []) : [];
         try {
@@ -394,13 +394,13 @@ export default function useAgentApi(state, { systemMode, securityMode, initialAg
             setPublishError('Failed to publish agent. Please check your connection and try again.');
         }
     };
-    const togglePublish = (targetGroups = undefined) => {
+    const togglePublish = (targetGroups: string[] | undefined = undefined) => {
         const nextPublished = targetGroups !== undefined ? true : !isPublished;
         const nextGroups = targetGroups !== undefined ? targetGroups : sharedGroups;
         return setPublishState(nextPublished, nextGroups);
     };
 
-    const toggleTool = (componentId) => {
+    const toggleTool = (componentId: string) => {
         setSelectedTools(prev =>
             prev.includes(componentId)
                 ? prev.filter(id => id !== componentId)

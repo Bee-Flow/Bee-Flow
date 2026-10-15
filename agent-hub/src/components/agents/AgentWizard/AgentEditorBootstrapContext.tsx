@@ -8,11 +8,17 @@
 // wizard landing path keeps working).
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { READ } from './canUse/canUseFacts';
 import { readSkills } from '../../../api/queries/skills';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { isAbortError } from '../../../utils/caughtError';
+import type { AgentEditorBootstrap, CategoryRow, OrgGroupRow, ReadState } from './agentEditor.types';
+import type { ModelTierMap } from '../../../api/queries/modelTiers';
+import type { Skill } from '../../../api/queries/skills';
+import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
 
-const EMPTY = {
+const EMPTY: AgentEditorBootstrap = {
     allSkills: null,
     integrationStatus: null,
     categories: [],
@@ -36,17 +42,17 @@ const EMPTY = {
     refreshCategories: () => Promise.resolve(),
 };
 
-const AgentEditorBootstrapContext = createContext(EMPTY);
+const AgentEditorBootstrapContext = createContext<AgentEditorBootstrap>(EMPTY);
 
-export function AgentEditorBootstrapProvider({ children }) {
-    const [allSkills, setAllSkills] = useState(null);
-    const [integrationStatus, setIntegrationStatus] = useState(null);
-    const [categories, setCategories] = useState([]);
-    const [categoriesState, setCategoriesState] = useState(READ.LOADING);
-    const [orgGroups, setOrgGroups] = useState([]);
-    const [tiers, setTiers] = useState({});
-    const [automations, setAutomations] = useState([]);
-    const [automationsState, setAutomationsState] = useState(READ.LOADING);
+export function AgentEditorBootstrapProvider({ children }: { children?: ReactNode }) {
+    const [allSkills, setAllSkills] = useState<Skill[] | null>(null);
+    const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
+    const [categories, setCategories] = useState<CategoryRow[]>([]);
+    const [categoriesState, setCategoriesState] = useState<ReadState>(READ.LOADING);
+    const [orgGroups, setOrgGroups] = useState<OrgGroupRow[]>([]);
+    const [tiers, setTiers] = useState<ModelTierMap>({});
+    const [automations, setAutomations] = useState<Array<Record<string, unknown>>>([]);
+    const [automationsState, setAutomationsState] = useState<ReadState>(READ.LOADING);
     const [loaded, setLoaded] = useState(false);
 
     const refreshSkills = useCallback(async () => {
@@ -83,8 +89,8 @@ export function AgentEditorBootstrapProvider({ children }) {
                     authFetch(`${API_BASE}/agents/categories`, { signal }),
                     authFetch(`${API_BASE}/auth/groups`, { signal }),
                     authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`, { signal }),
-                    authFetch(`${API_BASE}/api/automation`, { signal }).catch((e) => {
-                        if (e?.name !== 'AbortError') console.warn('[AgentEditorBootstrap] automations fetch failed', e);
+                    authFetch(`${API_BASE}/api/automation`, { signal }).catch((e: unknown): { ok: false } => {
+                        if (!isAbortError(e)) console.warn('[AgentEditorBootstrap] automations fetch failed', e);
                         return { ok: false };
                     }),
                 ]);
@@ -120,7 +126,7 @@ export function AgentEditorBootstrapProvider({ children }) {
                     setAutomationsState(READ.ERROR);
                 }
             } catch (e) {
-                if (e?.name === 'AbortError' || signal.aborted) return;
+                if (isAbortError(e) || signal.aborted) return;
                 console.warn('[AgentEditorBootstrap] bootstrap fetch failed', e);
                 setAllSkills([]);
                 setIntegrationStatus({});

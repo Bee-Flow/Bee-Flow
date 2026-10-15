@@ -107,7 +107,7 @@
     "src/components/admin/Studio/studioRegistry.tsx": 760,
     "src/components/admin/Studio/SupportStudio/index.jsx": 577,
     "src/components/admin/subscriptions/plans/planTemplates.js": 446,
-    "src/components/agents/AgentDesigner/hooks/useAgentApi.js": 416,
+    "src/components/agents/AgentDesigner/hooks/useAgentApi.ts": 416,
     "src/components/agents/AgentEditorUI.jsx": 502,
     "src/components/agents/AgentMarketplace.jsx": 402,
     "src/components/agents/AgentStudio/index.jsx": 494,

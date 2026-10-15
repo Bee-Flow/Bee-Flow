@@ -1,5 +1,9 @@
-// Shapes shared by the agent editor's hero and category field.
+// Shapes shared by the agent editor's bootstrap context, hero and category field.
 import type { READ } from './canUse/canUseFacts';
+import type { RefineChange } from './builderSplit/RefineDoneCard';
+import type { ModelTierMap } from '../../../api/queries/modelTiers';
+import type { Skill } from '../../../api/queries/skills';
+import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
 
 /** Whether a source could be read: not yet, read, or unreadable. */
 export type ReadState = (typeof READ)[keyof typeof READ];
@@ -14,4 +18,32 @@ export interface CategoryResult {
     error?: string;
     code?: string;
     count?: number;
+}
+
+/** One line of the refine rail: the person's text, a plan, an outcome or an error. */
+export interface ChatMessage {
+    role: string;
+    content?: string;
+    plan?: unknown;
+    changes?: RefineChange[];
+    undoVersionId?: string | null;
+    undoState?: string;
+}
+
+/** An organisation group as `GET /auth/groups` lists it. */
+export type OrgGroupRow = { id: string; name?: string; description?: string | null };
+
+/** What the editor's pickers read, fetched once for the whole studio. */
+export interface AgentEditorBootstrap {
+    allSkills: Skill[] | null;
+    integrationStatus: IntegrationStatus | null;
+    categories: CategoryRow[];
+    categoriesState: ReadState;
+    orgGroups: OrgGroupRow[];
+    tiers: ModelTierMap;
+    automations: Array<Record<string, unknown>>;
+    automationsState: ReadState;
+    loaded: boolean;
+    refreshSkills: () => Promise<void>;
+    refreshCategories: () => Promise<void>;
 }

@@ -2,13 +2,63 @@ import { computeScheduleNextRun } from '@shared/schedule/nextRun.mjs';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { configuredTierKeys } from '../../../licensing/tierMeta';
 import { buildRefineContext, diffRefinedPlan, mergeRefinedPlan } from '../state/refineMerge';
+import { errorMessage } from '../../../../utils/caughtError';
+import type { ChatMessage } from '../agentEditor.types';
+import type { EditorSnapshot, Ref, Setter } from './agentSaveTypes';
+import type { ConceptPersona } from './useAgentConceptFacts';
+import type { ModelTierMap } from '../../../../api/queries/modelTiers';
+import type { Skill } from '../../../../api/queries/skills';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+export interface RefineDeps {
+    chat: ChatMessage[];
+    setChat: Setter<ChatMessage[]>;
+    chatInput: string;
+    setChatInput: (value: string) => void;
+    chatBusy: boolean;
+    setChatBusy: (busy: boolean) => void;
+    setRefining: (refining: boolean) => void;
+    setInstructionsEditing: (editing: boolean) => void;
+    dirtyRef: Ref<boolean>;
+    flush: () => unknown;
+    attachedSkillIds: string[];
+    setAttachedSkillIds: (ids: string[]) => void;
+    skillNamesById: Map<string, Skill>;
+    name: string;
+    setName: (value: string) => void;
+    description: string;
+    setDescription: (value: string) => void;
+    avatar: string;
+    setAvatar: (value: string) => void;
+    setInstructions: (value: string) => void;
+    setModel: (value: string) => void;
+    setSelectedTier: (tier: string) => void;
+    setEnabledIntegrations: (ids: string[]) => void;
+    setKnowledgeBaseIds: (ids: string[]) => void;
+    stateRef: Ref<EditorSnapshot>;
+    plan?: { capabilities?: string[] } | null;
+    chatTier: string;
+    tier?: string;
+    locale?: string;
+    t: TranslateFn;
+    allSkills: Skill[] | null;
+    setAllSkills: Setter<Skill[] | null>;
+    availableIntegrations: Array<{ id: string }>;
+    tiers?: ModelTierMap;
+    queueSave: (immediate?: boolean) => void;
+    schedulesAllowed: boolean;
+    agent?: { id?: string | null } | null;
+    refreshAgentSchedules: () => unknown;
+    currentPersona?: ConceptPersona;
+    noStoredPersona?: boolean;
+}
 
 // The refine-chat pipeline for BuilderSplit, moved here verbatim. The factory
 // is called once per render (right after the derived values it needs are
 // computed), and the returned handler closes over the deps object properties
 // exactly as it closed over the parent scope before. No hooks in this module.
-export function createHandleRefine({ chat, setChat, chatInput, setChatInput, chatBusy, setChatBusy, setRefining, setInstructionsEditing, dirtyRef, flush, attachedSkillIds, setAttachedSkillIds, skillNamesById, name, setName, description, setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations, setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, setAllSkills, availableIntegrations, tiers, queueSave, schedulesAllowed, agent, refreshAgentSchedules, currentPersona, noStoredPersona = false }) {
-    const handleRefine = async (overrideText = null) => {
+export function createHandleRefine({ chat, setChat, chatInput, setChatInput, chatBusy, setChatBusy, setRefining, setInstructionsEditing, dirtyRef, flush, attachedSkillIds, setAttachedSkillIds, skillNamesById, name, setName, description, setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations, setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, setAllSkills, availableIntegrations, tiers, queueSave, schedulesAllowed, agent, refreshAgentSchedules, currentPersona, noStoredPersona = false }: RefineDeps) {
+    const handleRefine = async (overrideText: unknown = null) => {
         // Callers pass either a string (programmatic refine from the wizard
         // hand-off) or nothing (button/Enter). React event objects and similar
         // non-string values get treated as "no override" so we fall back to
@@ -63,7 +113,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                 // Structured, actionable error — a malformed model output (422)
                 // is retryable; anything else surfaces the server reason. No
                 // state was mutated, so the save pill stays coherent.
-                let msg;
+                let msg: string;
                 try {
                     const body = await res.json();
                     msg = body?.reason === 'plan_parse_failed'
@@ -85,7 +135,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
             // verfijning gewoon door (de gebruiker vroeg erom) maar draagt de
             // beurt `undoVersionId: null` en zégt de knop dat er niets te
             // herstellen is.
-            let undoVersionId = null;
+            let undoVersionId: string | null = null;
             if (agent?.id) {
                 try {
                     const snapRes = await authFetch(`${API_BASE}/versions/${agent.id}/pre-refine`, { method: 'POST' });
@@ -98,7 +148,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
 
             // Resolve skills BEFORE the single save so attachedSkillIds are
             // valid. Base off stateRef (not the stale attachedSkillIds closure).
-            const attach = new Set(stateRef.current.config?.attachedSkillIds || []);
+            const attach = new Set<string>(stateRef.current.config?.attachedSkillIds || []);
             if (Array.isArray(updated.skills) && updated.skills.length > 0) {
                 for (const s of updated.skills) {
                     if (s.id && (allSkills || []).some(x => x.id === s.id)) {
@@ -230,7 +280,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                 } catch (_) { /* non-fatal — chat already shows the plan update */ }
             }
         } catch (err) {
-            setChat(prev => [...prev, { role: 'error', content: err.message }]);
+            setChat(prev => [...prev, { role: 'error', content: errorMessage(err) }]);
         } finally {
             setChatBusy(false);
             setRefining(false);
