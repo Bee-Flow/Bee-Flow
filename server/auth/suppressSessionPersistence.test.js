@@ -79,11 +79,13 @@ test('establishSession itself is untouched — cookie flows still persist', asyn
 const read = (rel) => fs.readFileSync(path.join(__dirname, rel), 'utf8');
 
 test('connectorJwt establishes the session in-memory, not via establishSession', () => {
-    const src = read('./connectorJwt.js');
+    const src = read('./connectorJwtPhases.js');
     assert.ok(src.includes('suppressSessionPersistence(req)'),
         'connector-JWT requests must suppress the per-request session INSERT');
-    assert.ok(!/establishSession\(req/.test(src),
-        'connectorJwt must not persist sessions — cookies are stripped by the connector, the row is unreachable');
+    for (const f of ['./connectorJwt.js', './connectorJwtPhases.js', './connectorJwtProvision.js']) {
+        assert.ok(!/establishSession\(req/.test(read(f)),
+            `${f}: connectorJwt must not persist sessions — cookies are stripped by the connector, the row is unreachable`);
+    }
     assert.match(src, /isAuthenticated:\s*true/, 'the canonical authenticated shape must still be written');
     assert.match(src, /connectorOrgId:\s*orgId/, 'the connector binding must still reach the session');
 });
