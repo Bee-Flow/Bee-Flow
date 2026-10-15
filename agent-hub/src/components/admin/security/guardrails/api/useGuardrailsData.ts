@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     probeCapabilities, fetchAiConfig, fetchOrganisations, fetchOrgShield, fetchGuardStatus,
 } from './guardrailsApi';
-import type { GuardrailCapabilities } from './guardrailsApi';
+import type { DirectChatBinding, GuardrailCapabilities } from './guardrailsApi';
 import type { RegexRule, RuleCollection } from '../patterns/patternTypes';
 
 /** An organisation of GET /auth/organizations (the console reads only its id). */
@@ -21,12 +21,6 @@ export interface GuardrailOrgShield {
 export interface GuardStatus {
     configured: boolean;
     reachable: boolean;
-}
-
-/** The direct-chat binding of the server-wide `ai` blob. */
-export interface DirectChatBinding {
-    enabled: boolean;
-    collectionIds: string[];
 }
 
 /** A reference that points at a collection or rule that no longer exists. */

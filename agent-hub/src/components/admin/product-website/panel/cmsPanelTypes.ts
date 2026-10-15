@@ -1,3 +1,5 @@
+import type { CmsSeo } from '../../../../marketing/useCmsHead';
+
 /**
  * The CMS documents as the panel container reads them. Only the fields the
  * container itself touches are named; the editors and the server own the rest.
@@ -19,12 +21,7 @@ export interface CmsBlock {
 }
 
 /** The SEO fields a PageDoc carries. */
-export interface CmsPageSeo {
-    metaTitle?: string;
-    metaDescription?: string;
-    ogImage?: string;
-    noIndex?: boolean;
-}
+export type CmsPageSeo = CmsSeo;
 
 /** A PageDoc: one page's blocks and SEO. */
 export interface CmsPageDoc {

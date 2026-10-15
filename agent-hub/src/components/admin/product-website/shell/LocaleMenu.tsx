@@ -4,16 +4,6 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
 import type { CmsLocale } from '../panel/cmsPanelTypes';
 
-/**
- * TopBar locale switcher — THE one locale control for the builder.
- * Lists the org's locales (from the site payload), marks the site's source
- * language (★), switches the editor into translate mode, and carries the
- * "Set as default locale" action (behind the shell's confirm) plus a
- * cross-link to the Languages admin tab where locales are managed.
- *
- * `coverageByLocale` is optional ({ [code]: { done, total } }) — rendered
- * as "n/m translated" + a mini bar when provided (translation workstream).
- */
 export interface LocaleCoverage {
     done: number;
     total: number;
@@ -29,6 +19,16 @@ interface LocaleMenuProps {
     onManageLanguages?: () => void;
 }
 
+/**
+ * TopBar locale switcher — THE one locale control for the builder.
+ * Lists the org's locales (from the site payload), marks the site's source
+ * language (★), switches the editor into translate mode, and carries the
+ * "Set as default locale" action (behind the shell's confirm) plus a
+ * cross-link to the Languages admin tab where locales are managed.
+ *
+ * `coverageByLocale` is optional ({ [code]: { done, total } }) — rendered
+ * as "n/m translated" + a mini bar when provided (translation workstream).
+ */
 export default function LocaleMenu({
     locales,
     activeLocale,

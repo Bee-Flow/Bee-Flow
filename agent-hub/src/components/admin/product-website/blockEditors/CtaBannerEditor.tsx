@@ -24,8 +24,8 @@ type CtaBannerData = {
     layout?: string;
     backgroundVariant?: string;
     primaryCta?: CtaButtonValue;
-    /** Present only while the secondary CTA is on. */
-    secondaryCta?: CtaButtonValue;
+    /** `null` (or absent) while the secondary CTA is off. */
+    secondaryCta?: CtaButtonValue | null;
     headingStyle?: StyleBlob;
     subheadingStyle?: StyleBlob;
 };
@@ -36,8 +36,7 @@ export function CtaBannerEditor({ data = {}, pages = [], onChange }: BlockEditor
     const primary: CtaButtonValue = data.primaryCta || { label: '', link: { kind: 'external', url: '' } };
     const showSecondary = !!data.secondaryCta;
 
-    const toggleSecondary = (next: boolean) =>
- setField('secondaryCta',
+    const toggleSecondary = (next: boolean) => setField('secondaryCta',
         next ? { label: 'Learn more', link: { kind: 'anchor', anchor: '' } } : null);
 
     return (

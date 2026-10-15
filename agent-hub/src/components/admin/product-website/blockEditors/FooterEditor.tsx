@@ -41,8 +41,7 @@ export function FooterEditor({ data = {}, pages = [], onChange }: BlockEditorWit
     // applies across all footer link labels (both inside columns and
     // socials when wired). Matches the *Style naming used elsewhere.
     const linkStyle = data.linkStyle || {};
-    const updateLinkStyle = (patch: StyleBlob) =>
- onChange(set(data, 'linkStyle', { ...linkStyle, ...patch }));
+    const updateLinkStyle = (patch: StyleBlob) => onChange(set(data, 'linkStyle', { ...linkStyle, ...patch }));
 
     return (
         <>

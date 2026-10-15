@@ -27,6 +27,14 @@ function Caption({ children }: { children?: ReactNode }) {
     );
 }
 
+interface NavigatorPanelProps {
+    activeEntryId: string | null;
+    onSelectEntry: (id: string) => void;
+    pageListProps: ComponentProps<typeof PageList>;
+    blockListProps: ComponentProps<typeof BlockList> | null;
+    blogSlot?: ReactNode;
+}
+
 /**
  * Left navigator — everything you can select to edit, in one panel:
  *
@@ -36,14 +44,6 @@ function Caption({ children }: { children?: ReactNode }) {
  *   BLOCKS  the existing BlockList for the active page — full remaining
  *           height (the old 35%-cap double-scroll-well is gone)
  */
-interface NavigatorPanelProps {
-    activeEntryId: string | null;
-    onSelectEntry: (id: string) => void;
-    pageListProps: ComponentProps<typeof PageList>;
-    blockListProps: ComponentProps<typeof BlockList> | null;
-    blogSlot?: ReactNode;
-}
-
 export default function NavigatorPanel({
     activeEntryId,          // normalized activePageId (virtual ids resolved)
     onSelectEntry,          // (id) — virtual id or page id

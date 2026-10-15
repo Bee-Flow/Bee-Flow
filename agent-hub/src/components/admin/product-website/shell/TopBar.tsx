@@ -28,13 +28,6 @@ function IconBtn({ name, title, onClick, active = false }: { name: string; title
     );
 }
 
-/**
- * Builder TopBar — the single chrome strip of the full-screen CMS editor.
- *
- * Left:   back to admin · site/version menu · translation-mode chip
- * Center: Preview | Sitemap | AI view switch
- * Right:  panel toggles · save badge · locale menu · publish · overflow
- */
 interface TopBarHistory {
     canUndo: boolean;
     canRedo: boolean;
@@ -71,6 +64,13 @@ interface TopBarProps {
     isLive: boolean;
 }
 
+/**
+ * Builder TopBar — the single chrome strip of the full-screen CMS editor.
+ *
+ * Left:   back to admin · site/version menu · translation-mode chip
+ * Center: Preview | Sitemap | AI view switch
+ * Right:  panel toggles · save badge · locale menu · publish · overflow
+ */
 export default function TopBar({
     onExit,
     siteMenuProps,

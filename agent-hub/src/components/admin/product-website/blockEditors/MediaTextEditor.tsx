@@ -70,8 +70,7 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }: BlockEditor
         next ? { label: 'Learn more', link: { kind: 'anchor', anchor: '' } } : null);
 
     const updateMedia = (key: string, value: unknown) => setField('media', { ...media, [key]: value });
-    const updateCta   = (key: string, value: unknown) =>
- setField('cta',   { ...cta, [key]: value });
+    const updateCta   = (key: string, value: unknown) => setField('cta',   { ...cta, [key]: value });
 
     return (
         <>

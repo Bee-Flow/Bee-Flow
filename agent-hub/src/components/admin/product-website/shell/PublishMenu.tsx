@@ -46,15 +46,6 @@ function Stage({ label, active, done }: { label: string; active: boolean; done: 
     );
 }
 
-/**
- * TopBar publish control — status pill + Publish split button.
- *
- * The dropdown makes the draft → published snapshot → live pipeline legible
- * in one place: save state, last publish, the Live toggle with its real
- * consequence spelled out, and the open-live-site link. The Publish action
- * itself is the container's `handlePublish`, behavior-identical (drain →
- * abort-on-failed-save → POST); the disabled rules are unchanged.
- */
 interface PublishMenuProps {
     saveStatus: string;
     onRetrySave?: () => void;
@@ -67,6 +58,15 @@ interface PublishMenuProps {
     onSetLive: (next: boolean) => void;
 }
 
+/**
+ * TopBar publish control — status pill + Publish split button.
+ *
+ * The dropdown makes the draft → published snapshot → live pipeline legible
+ * in one place: save state, last publish, the Live toggle with its real
+ * consequence spelled out, and the open-live-site link. The Publish action
+ * itself is the container's `handlePublish`, behavior-identical (drain →
+ * abort-on-failed-save → POST); the disabled rules are unchanged.
+ */
 export default function PublishMenu({
     saveStatus,
     onRetrySave,

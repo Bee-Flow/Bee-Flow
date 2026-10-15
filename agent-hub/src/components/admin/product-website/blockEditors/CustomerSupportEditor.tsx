@@ -21,8 +21,7 @@ type CustomerSupportData = Partial<Record<
 
 export function CustomerSupportEditor({ data = {}, onChange }: BlockEditorProps<CustomerSupportData>) {
     const { t } = useTranslation();
-    const setField = (key: string, value: unknown) =>
- onChange(set(data, key, value));
+    const setField = (key: string, value: unknown) => onChange(set(data, key, value));
     return (
         <>
             <InlineHint>{t('cms_site.blocks.customer_support.click_the_title_and_intro_in', 'Click the title and intro in the preview to edit them inline.')}</InlineHint>

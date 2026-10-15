@@ -3,6 +3,13 @@ import { FieldRow, ImageField } from '../fields';
 import ColorControl from './ColorControl';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+export interface BackgroundControlProps {
+    image?: string | null;
+    overlay?: string | null;
+    onChangeImage: (urlOrKey: string) => void;
+    onChangeOverlay: (rgba: string | null) => void;
+}
+
 /**
  * BackgroundControl — the Style tab's background area as one card with
  * three zones:
@@ -25,13 +32,6 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *   onChangeImage   — (urlOrKey | '')  — caller nulls empty
  *   onChangeOverlay — (rgbaString | null)
  */
-export interface BackgroundControlProps {
-    image?: string | null;
-    overlay?: string | null;
-    onChangeImage: (urlOrKey: string) => void;
-    onChangeOverlay: (rgba: string | null) => void;
-}
-
 export default function BackgroundControl({ image, overlay, onChangeImage, onChangeOverlay }: BackgroundControlProps) {
     const { t } = useTranslation();
     const [showAdvanced, setShowAdvanced] = useState(false);

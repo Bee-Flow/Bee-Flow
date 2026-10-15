@@ -4,6 +4,7 @@ import { InlineHint, CollapsibleCard, FieldSelect } from '../primitives';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { BlockEditorProps } from './editorProps';
 import { set } from './shared';
+import type { PublicPlan } from '../../../../marketing/sections/PricingSection';
 import { messageOf } from '../../../../utils/caughtError';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -37,16 +38,8 @@ type PricingData = {
     emptyText?: string;
 };
 
-/** The fields of a `GET /api/billing/public-plans` plan (server toPublicPlan) that the preview list reads. */
-interface PreviewPlan {
-    id: string;
-    name: string;
-    planType: string;
-    price: number | null;
-    currency: string;
-    billingInterval: string;
-    trialDays: number;
-}
+/** The fields of a `GET /api/billing/public-plans` plan that the preview list reads. */
+type PreviewPlan = Pick<PublicPlan, 'id' | 'name' | 'planType' | 'price' | 'currency' | 'billingInterval' | 'trialDays'>;
 
 interface PricingPreview {
     loading: boolean;
@@ -85,8 +78,7 @@ export function PricingEditor({ data = {}, onChange }: BlockEditorProps<PricingD
                 const plans = Array.isArray(payload?.plans) ? payload.plans : [];
                 setPreview({ loading: false, error: null, plans });
             })
-            .catch(err => setPreview({ loading: false, error: messageOf(err, 'Failed')
-, plans: [] }));
+            .catch(err => setPreview({ loading: false, error: messageOf(err, 'Failed'), plans: [] }));
     }, []);
     React.useEffect(() => { reloadPreview(); }, [reloadPreview]);
     const matchingPlans = preview.plans.filter(p => p?.planType === planType);

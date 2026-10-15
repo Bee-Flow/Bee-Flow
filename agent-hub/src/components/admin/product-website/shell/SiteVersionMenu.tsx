@@ -5,18 +5,7 @@ import AppIcon from '../../../icons/AppIcon';
 import SiteSwitcher from '../SiteSwitcher';
 import VersionSwitcher from '../VersionSwitcher';
 import type { CmsSiteListEntry } from '../panel/cmsPanelTypes';
-
-/**
- * TopBar site + version menu — one trigger for everything site-level:
- * switch/create/rename/delete sites, switch/duplicate/set-live versions,
- * export/import a site. Composes the existing SiteSwitcher (embedded mode)
- * and VersionSwitcher so all handler contracts stay identical to the old
- * Pane A wiring.
- */
-interface SiteIoStatus {
-    kind: 'success' | 'error' | 'busy';
-    text: string;
-}
+import type { SiteIoStatus } from '../panel/useCmsSiteOps';
 
 interface SiteVersionMenuProps {
     sites: CmsSiteListEntry[];
@@ -34,6 +23,13 @@ interface SiteVersionMenuProps {
     ioStatus: SiteIoStatus | null;
 }
 
+/**
+ * TopBar site + version menu — one trigger for everything site-level:
+ * switch/create/rename/delete sites, switch/duplicate/set-live versions,
+ * export/import a site. Composes the existing SiteSwitcher (embedded mode)
+ * and VersionSwitcher so all handler contracts stay identical to the old
+ * Pane A wiring.
+ */
 export default function SiteVersionMenu({
     sites,
     versions,

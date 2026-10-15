@@ -57,8 +57,7 @@ export function HeroEditor({ data = {}, pages = [], onChange }: BlockEditorWithP
     const setPrimary      = (patch: HeroCta) => onChange(set(data, 'primaryCta',   { ...primary,     ...patch }));
     const setSecondary    = (patch: HeroCta) => onChange(set(data, 'secondaryCta', { ...secondary,   ...patch }));
     const setMockup       = (patch: HeroMockup) => onChange(set(data, 'mockup',       { ...mockup,      ...patch }));
-    const setMedia        = (patch: HeroMedia) =>
- onChange(set(data, 'media',        { ...media,       ...patch }));
+    const setMedia        = (patch: HeroMedia) => onChange(set(data, 'media',        { ...media,       ...patch }));
 
     const hasMedia = typeof media.src === 'string' && media.src.trim() !== '';
 

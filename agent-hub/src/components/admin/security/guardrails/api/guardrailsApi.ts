@@ -8,6 +8,12 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
  * moves to react-query it is one file, not thirty call sites.
  */
 
+/** The direct-chat binding of the server-wide `ai` blob. */
+export interface DirectChatBinding {
+    enabled: boolean;
+    collectionIds: string[];
+}
+
 /** Which artefact families the server serves, by probe name. */
 export type GuardrailCapabilities = Record<string, boolean>;
 
@@ -88,7 +94,7 @@ export function saveRegexGuardrails({ rules, collections }: { rules: RegexRule[]
     });
 }
 
-export function saveDirectChatGuardrails({ enabled, collectionIds }: { enabled: boolean; collectionIds: string[] }) {
+export function saveDirectChatGuardrails({ enabled, collectionIds }: DirectChatBinding) {
     return apiJson('/ai/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

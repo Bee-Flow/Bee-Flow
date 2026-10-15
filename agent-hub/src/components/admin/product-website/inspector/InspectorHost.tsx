@@ -19,17 +19,6 @@ function CenteredNote({ children }: { children?: ReactNode }) {
     );
 }
 
-/**
- * Inspector mode router — the right panel's single decision point. Priority
- * order is identical to the old Pane B ternary:
- *
- *   translation mode  →  blocked note (design/analytics) | TranslationPanel | pick-a-page
- *   chrome entry      →  ChromeInspector (header / footer / cookie)
- *   design entry      →  DesignInspector
- *   analytics entry   →  AnalyticsInspector
- *   real page         →  PageInspector (page settings + block editor)
- *   nothing           →  placeholder
- */
 interface InspectorHostProps {
     activePageId: string;
     activePage: CmsActivePage | null;
@@ -42,6 +31,17 @@ interface InspectorHostProps {
     blogInspector?: ReactNode;
 }
 
+/**
+ * Inspector mode router — the right panel's single decision point. Priority
+ * order is identical to the old Pane B ternary:
+ *
+ *   translation mode  →  blocked note (design/analytics) | TranslationPanel | pick-a-page
+ *   chrome entry      →  ChromeInspector (header / footer / cookie)
+ *   design entry      →  DesignInspector
+ *   analytics entry   →  AnalyticsInspector
+ *   real page         →  PageInspector (page settings + block editor)
+ *   nothing           →  placeholder
+ */
 export default function InspectorHost({
     activePageId,
     activePage,

@@ -73,6 +73,21 @@ function LockScrim() {
     );
 }
 
+interface CmsBuilderShellProps {
+    topBar: ReactNode;
+    navigator: ReactNode;
+    stage: ReactNode;
+    inspector: ReactNode;
+    aiDock?: ReactNode;
+    navOpen: boolean;
+    inspectorOpen: boolean;
+    onCloseNav?: () => void;
+    onCloseInspector?: () => void;
+    onCloseAiDock?: () => void;
+    locked?: boolean;
+    dialogs?: ReactNode;
+}
+
 /**
  * Full-screen builder chassis:
  *
@@ -92,21 +107,6 @@ function LockScrim() {
  * container also blocks every write path — the scrim is the visible half
  * of the stream lock).
  */
-interface CmsBuilderShellProps {
-    topBar: ReactNode;
-    navigator: ReactNode;
-    stage: ReactNode;
-    inspector: ReactNode;
-    aiDock?: ReactNode;
-    navOpen: boolean;
-    inspectorOpen: boolean;
-    onCloseNav?: () => void;
-    onCloseInspector?: () => void;
-    onCloseAiDock?: () => void;
-    locked?: boolean;
-    dialogs?: ReactNode;
-}
-
 export default function CmsBuilderShell({
     topBar,
     navigator: navigatorPanel,

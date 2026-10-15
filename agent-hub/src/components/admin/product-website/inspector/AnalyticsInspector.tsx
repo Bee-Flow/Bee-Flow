@@ -53,15 +53,6 @@ function GaIdField({ value, onCommit }: { value: string; onCommit: (value: strin
     );
 }
 
-/**
- * Site analytics settings — the `__analytics__` navigator entry.
- *
- * Google Analytics config lives ON the site doc (`site.analytics`), so it is
- * versioned, exported and duplicated with the site and — like everything else
- * on the doc — goes live on the next publish. Consent is non-negotiable:
- * the public tracker only loads after a cookie-banner accept, so a disabled
- * banner means GA stays off (warned about below, never silently shipped).
- */
 interface AnalyticsSite extends CmsSiteDoc {
     analytics?: { gaMeasurementId?: string; [key: string]: unknown };
     cookieBanner?: { enabled?: boolean };
@@ -74,6 +65,15 @@ interface AnalyticsInspectorProps {
     onOpenAnalytics?: () => void;
 }
 
+/**
+ * Site analytics settings — the `__analytics__` navigator entry.
+ *
+ * Google Analytics config lives ON the site doc (`site.analytics`), so it is
+ * versioned, exported and duplicated with the site and — like everything else
+ * on the doc — goes live on the next publish. Consent is non-negotiable:
+ * the public tracker only loads after a cookie-banner accept, so a disabled
+ * banner means GA stays off (warned about below, never silently shipped).
+ */
 export default function AnalyticsInspector({
     site,
     onChange,               // (nextAnalytics) → updateSiteAnalytics

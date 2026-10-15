@@ -184,6 +184,7 @@ export default function SectionThumb({ type, variant = null, design = null }: Se
         return () => ro.disconnect();
     }, [wireframeOnly]);
 
+    // Rendered only when !wireframeOnly, which includes !SECTION_REGISTRY[type] (see above).
     const Comp = (SECTION_REGISTRY as Record<string, SectionComponent>)[type];
     const vars = designVars(design);
 

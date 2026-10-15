@@ -4,19 +4,6 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { messageOf } from '../../../../utils/caughtError';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
-/**
- * AssetPickerDialog — browse previously uploaded CMS assets and pick one.
- *
- * Backed by the read-only `GET /api/cms/admin/assets` route (org-wide
- * `cms/` bucket prefix, same admin gate as /admin/upload). That route
- * degrades to `{ assets: [], unavailable: true }` in local-fs mode or a
- * storage outage — we surface that as an explanatory empty state rather
- * than an error, and ImageField hides its "Browse" entry point entirely
- * once it has seen `unavailable` (see useAssetLibraryAvailable).
- *
- * onPick receives the asset's URL (`/api/cms/asset/cms/…`), matching what
- * the upload handler returns, so both paths store the same shape.
- */
 interface CmsAsset {
     key: string;
     url: string;
@@ -35,6 +22,19 @@ interface AssetPickerDialogProps {
     accept?: string;
 }
 
+/**
+ * AssetPickerDialog — browse previously uploaded CMS assets and pick one.
+ *
+ * Backed by the read-only `GET /api/cms/admin/assets` route (org-wide
+ * `cms/` bucket prefix, same admin gate as /admin/upload). That route
+ * degrades to `{ assets: [], unavailable: true }` in local-fs mode or a
+ * storage outage — we surface that as an explanatory empty state rather
+ * than an error, and ImageField hides its "Browse" entry point entirely
+ * once it has seen `unavailable` (see useAssetLibraryAvailable).
+ *
+ * onPick receives the asset's URL (`/api/cms/asset/cms/…`), matching what
+ * the upload handler returns, so both paths store the same shape.
+ */
 export default function AssetPickerDialog({ onPick, onClose, accept = 'image' }: AssetPickerDialogProps) {
     const { t } = useTranslation();
     const [state, setState] = useState<AssetLibraryState>({ loading: true, error: null, assets: [], unavailable: false });

@@ -1,16 +1,16 @@
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-/**
- * Save-pipeline status badge — extracted verbatim from ProductWebsitePanel.
- * The 5-state machine (idle → dirty → saving → saved / error) is driven by
- * the container's autosave machinery; `onRetry` re-flushes the failed batch.
- */
 interface SaveBadgeProps {
     status: string;
     onRetry?: () => void;
 }
 
+/**
+ * Save-pipeline status badge — extracted verbatim from ProductWebsitePanel.
+ * The 5-state machine (idle → dirty → saving → saved / error) is driven by
+ * the container's autosave machinery; `onRetry` re-flushes the failed batch.
+ */
 export default function SaveBadge({ status, onRetry }: SaveBadgeProps) {
     const { t } = useTranslation();
     const map: Record<string, { label: string; color: string }> = {

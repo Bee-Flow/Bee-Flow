@@ -29,8 +29,7 @@ type ReleaseNotesData = SectionHeaderData & {
 export function ReleaseNotesEditor({ data = {}, onChange }: BlockEditorProps<ReleaseNotesData>) {
     const { t } = useTranslation();
     const kindLabels = data.kindLabels || {};
-    const setKind = (key: string, v: string) =>
- onChange(set(data, 'kindLabels', { ...kindLabels, [key]: v }));
+    const setKind = (key: string, v: string) => onChange(set(data, 'kindLabels', { ...kindLabels, [key]: v }));
 
     return (
         <>

@@ -4,18 +4,13 @@ import { toast } from '../../../../shared/Toast';
 import Toggle from '../../../../shared/Toggle';
 import { saveDirectChatGuardrails } from '../api/guardrailsApi';
 import { messageOf } from '../../../../../utils/caughtError';
+import type { DirectChatBinding } from '../api/guardrailsApi';
 import type { RuleCollection } from '../patterns/patternTypes';
-
-/** The installation-wide direct-chat binding. */
-export interface DirectChatConfig {
-    enabled: boolean;
-    collectionIds: string[];
-}
 
 interface DirectChatViewProps {
     collections: RuleCollection[];
-    directChat: DirectChatConfig;
-    setDirectChat: (config: DirectChatConfig) => void;
+    directChat: DirectChatBinding;
+    setDirectChat: (config: DirectChatBinding) => void;
     onSaved?: () => void;
 }
 

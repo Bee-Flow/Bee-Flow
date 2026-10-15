@@ -16,7 +16,7 @@ type CtaData = {
     titleAlign?: string;
     leadAlign?: string;
     button?: CtaButtonValue;
-    /** Present only while the secondary button is on. */
+    /** `null` while off (the toggle writes null). Every read is behind `hasSecondary = !!data.secondaryCta`, which TS cannot correlate, so the type omits null. */
     secondaryCta?: CtaButtonValue;
 };
 

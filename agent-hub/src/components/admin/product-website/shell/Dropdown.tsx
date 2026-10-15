@@ -2,14 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
 
-/**
- * Minimal TopBar dropdown: trigger + anchored panel with click-outside and
- * Escape to close. No portal — the TopBar sits at the top of the builder
- * with nothing clipping descendants, so absolute positioning is enough.
- *
- * `trigger` is a render-prop receiving `{ open }` so triggers can flip their
- * chevron; `align` anchors the panel to the trigger's left or right edge.
- */
 interface DropdownProps {
     trigger: (state: { open: boolean }) => ReactNode;
     children: (api: { close: () => void }) => ReactNode;
@@ -19,6 +11,14 @@ interface DropdownProps {
     onOpenChange?: (open: boolean) => void;
 }
 
+/**
+ * Minimal TopBar dropdown: trigger + anchored panel with click-outside and
+ * Escape to close. No portal — the TopBar sits at the top of the builder
+ * with nothing clipping descendants, so absolute positioning is enough.
+ *
+ * `trigger` is a render-prop receiving `{ open }` so triggers can flip their
+ * chevron; `align` anchors the panel to the trigger's left or right edge.
+ */
 export default function Dropdown({ trigger, children, align = 'left', width = 288, panelClassName = '', onOpenChange }: DropdownProps) {
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
