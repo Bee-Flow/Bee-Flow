@@ -17,7 +17,7 @@
  * diphthongs (ui/ei/au), nasals — rather than being a flat word list.
  */
 
-const PASSAGES = {
+const PASSAGES: Record<string, string[]> = {
     nl: [
         'Goedemorgen, ik neem dit fragment op zodat Bee Flow mijn stem later kan herkennen in vergaderingen. Ik spreek rustig en op mijn normale toon, precies zoals ik dat in een gesprek met collega’s zou doen.',
         'Buiten schijnt de zon, terwijl ik hier bij het raam zit en nadenk over de planning van volgende week. Zullen we dinsdag om half elf beginnen? Dan bespreken we de nieuwe afspraken en de vragen die nog openstaan.',
@@ -32,11 +32,8 @@ const PASSAGES = {
  * The passage for a UI locale, falling back to English for languages we have
  * not written one for. (Any language works acoustically — this only affects
  * how comfortable the text is to read aloud.)
- *
- * @param {string} locale e.g. 'nl', 'nl-NL', 'de'
- * @returns {string[]} paragraphs
  */
-export function passageFor(locale) {
+export function passageFor(locale?: string | null): string[] {
     const key = String(locale || 'en').slice(0, 2).toLowerCase();
     return PASSAGES[key] || PASSAGES.en;
 }

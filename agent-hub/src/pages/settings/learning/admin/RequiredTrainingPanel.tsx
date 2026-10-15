@@ -2,6 +2,29 @@ import { GraduationCap, Info, Loader2, Lock, Save } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+interface TrainingArea {
+    id: string;
+    labelKey: string;
+    labelFallback: string;
+    defaultCourseId: string;
+}
+
+interface TrainingCourse {
+    id: string;
+    title: string;
+    own?: boolean;
+    lessons: number;
+}
+
+interface TrainingState {
+    loading: boolean;
+    error: string | null;
+    catalog: TrainingArea[];
+    courses: TrainingCourse[];
+    areas: Record<string, string>;
+}
 
 /**
  * Required training — the org-admin side of "finish the course first".
@@ -17,8 +40,8 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  */
 export default function RequiredTrainingPanel() {
     const { t } = useTranslation();
-    const [state, setState] = useState({ loading: true, error: null, catalog: [], courses: [], areas: {} });
-    const [draft, setDraft] = useState({});
+    const [state, setState] = useState<TrainingState>({ loading: true, error: null, catalog: [], courses: [], areas: {} });
+    const [draft, setDraft] = useState<Record<string, string>>({});
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
@@ -31,7 +54,7 @@ export default function RequiredTrainingPanel() {
             setState({ loading: false, error: null, catalog: body.catalog || [], courses: body.courses || [], areas: body.areas || {} });
             setDraft(body.areas || {});
         } catch (e) {
-            setState((s) => ({ ...s, loading: false, error: e.message }));
+            setState((s) => ({ ...s, loading: false, error: (e as Error).message }));
         }
     }, []);
 
@@ -62,7 +85,7 @@ export default function RequiredTrainingPanel() {
         }
     };
 
-    const toggle = (areaId, on, defaultCourseId) => {
+    const toggle = (areaId: string, on: boolean, defaultCourseId: string) => {
         setSaved(false);
         setDraft((d) => {
             const next = { ...d };
@@ -95,11 +118,11 @@ export default function RequiredTrainingPanel() {
             </div>
 
             <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                {state.catalog.map((area) => (
+                {state.catalog.map((area: TrainingArea) => (
                     <AreaRow key={area.id} t={t} area={area} courses={state.courses}
                         courseId={draft[area.id] || ''}
-                        onToggle={(on) => toggle(area.id, on, area.defaultCourseId)}
-                        onPick={(courseId) => { setSaved(false); setDraft((d) => ({ ...d, [area.id]: courseId })); }} />
+                        onToggle={(on: boolean) => toggle(area.id, on, area.defaultCourseId)}
+                        onPick={(courseId: string) => { setSaved(false); setDraft((d) => ({ ...d, [area.id]: courseId })); }} />
                 ))}
             </div>
 
@@ -127,7 +150,14 @@ export default function RequiredTrainingPanel() {
     );
 }
 
-function AreaRow({ t, area, courses, courseId, onToggle, onPick }) {
+function AreaRow({ t, area, courses, courseId, onToggle, onPick }: {
+    t: TranslateFn;
+    area: TrainingArea;
+    courses: TrainingCourse[];
+    courseId: string;
+    onToggle: (on: boolean) => void;
+    onPick: (courseId: string) => void;
+}) {
     const on = !!courseId;
     return (
         <div className="flex items-center gap-3" style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-default)' }}>

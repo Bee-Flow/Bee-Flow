@@ -9,7 +9,7 @@ const ITEMS = [
     { id: 'history',   Icon: History,   title: 'Version history' },
 ];
 
-export default function ActivityBar({ active, onSelect }) {
+export default function ActivityBar({ active, onSelect }: { active: string | null; onSelect: (id: string) => void }) {
     return (
         <div
             className="flex flex-col items-center pt-1 pb-1 shrink-0"

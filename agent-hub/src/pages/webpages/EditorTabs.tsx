@@ -1,14 +1,21 @@
 import React from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { Code, Palette, Cpu, FileText, Image as ImageIcon, FileType, Braces, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 
-const PRIMARY_META = {
+interface TabMeta {
+    label: string | undefined;
+    Icon: LucideIcon;
+    title?: string;
+}
+
+const PRIMARY_META: Record<string, TabMeta> = {
     html: { label: 'index.html', Icon: Code },
     css:  { label: 'style.css',  Icon: Palette },
     js:   { label: 'script.js',  Icon: Cpu },
 };
 
-function iconForPath(path) {
+function iconForPath(path: string): LucideIcon {
     const ext = (path.split('.').pop() || '').toLowerCase();
     if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'].includes(ext)) return ImageIcon;
     if (['html', 'htm'].includes(ext)) return Code;
@@ -19,7 +26,7 @@ function iconForPath(path) {
     return FileText;
 }
 
-function metaForKey(key) {
+function metaForKey(key: string): TabMeta {
     if (PRIMARY_META[key]) return PRIMARY_META[key];
     if (typeof key === 'string' && key.startsWith('extra:')) {
         const path = key.slice(6);
@@ -33,7 +40,13 @@ function metaForKey(key) {
  * (keys: 'html' | 'css' | 'js' | 'extra:<path>'). Clicking a tab activates
  * it; the X closes it. Closing the last tab is the caller's responsibility.
  */
-export default function EditorTabs({ openFiles, activeKey, onSelect, onClose, dirtyFiles = {} }) {
+export default function EditorTabs({ openFiles, activeKey, onSelect, onClose, dirtyFiles = {} }: {
+    openFiles: string[];
+    activeKey: string | null;
+    onSelect: (key: string) => void;
+    onClose?: (key: string) => void;
+    dirtyFiles?: Record<string, boolean>;
+}) {
     const { t } = useTranslation();
     if (!Array.isArray(openFiles) || openFiles.length === 0) return null;
     return (

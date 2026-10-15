@@ -1,3 +1,16 @@
+export interface ComplianceNav {
+    section: string;
+    checkId: string;
+    tab: string;
+    url: string;
+}
+
+export interface AdminEscape {
+    tab: string;
+    seg1: string;
+    url: string;
+}
+
 /**
  * Rewrites ComplianceHub's admin-dashboard paths onto the Settings URL scheme.
  *
@@ -13,7 +26,7 @@
  * Returns null for any non-compliance path — the caller tries rewriteAdminEscape
  * next, and only then forwards to the app router (admin dashboard).
  */
-export function rewriteComplianceNav(path) {
+export function rewriteComplianceNav(path?: string | null): ComplianceNav | null {
     const m = /^admin\/compliance(?:\/([^/?#]+))?(?:\/([^?#]+))?(?:\?([^#]*))?$/.exec(path || '');
     if (!m) return null;
     const section = m[1] || 'overview';
@@ -49,7 +62,7 @@ export function rewriteComplianceNav(path) {
  * `tab` before applying — when they can't (e.g. a pure DPO without org-admin),
  * falling through to the admin dashboard is today's behavior and stays correct.
  */
-export function rewriteAdminEscape(path) {
+export function rewriteAdminEscape(path?: string | null): AdminEscape | null {
     const p = path || '';
     if (p === 'admin/security' || p === 'admin/security/guardrails' || p.startsWith('admin/security/guardrails/')) {
         return { tab: 'privacy', seg1: '', url: '/app/settings/organisation/privacy' };

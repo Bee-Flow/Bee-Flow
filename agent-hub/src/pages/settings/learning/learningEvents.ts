@@ -7,18 +7,23 @@
 // when the player fires (the learner may be anywhere in the app) — the last
 // request is also parked here and consumed on the section's next mount.
 
+export interface LearningNavigateDetail {
+    view: 'overview' | 'review' | 'achievements' | 'course';
+    courseId?: string;
+}
+
 export const LEARNING_NAVIGATE_EVENT = 'beeflow:learning-navigate';
 
-let pending = null;
+let pending: LearningNavigateDetail | null = null;
 
 /** { view: 'overview'|'review'|'achievements'|'course', courseId? } */
-export function requestLearningNavigate(detail) {
+export function requestLearningNavigate(detail?: LearningNavigateDetail | null): void {
     pending = detail || null;
     try { window.dispatchEvent(new CustomEvent(LEARNING_NAVIGATE_EVENT, { detail })); } catch (_) { /* no window */ }
 }
 
 /** The parked request, cleared on read. */
-export function takePendingLearningNavigate() {
+export function takePendingLearningNavigate(): LearningNavigateDetail | null {
     const p = pending;
     pending = null;
     return p;

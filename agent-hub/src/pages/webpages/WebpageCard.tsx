@@ -1,9 +1,12 @@
+import type { LucideIcon } from 'lucide-react';
 import { Building2, Copy, Globe, Loader2, Lock, Pencil, Table, Trash2, Users, Workflow } from 'lucide-react';
 import React from 'react';
 import { visibilityOf } from './webpageVisibility';
 import { kindColorVar, kindTint } from '../../components/shared/kindColors';
 import { audienceLabel, GROUPS, ORG, PERSONAL } from '../../components/shared/VisibilityCapsule';
+import type { TranslateFn } from '../../hooks/useTranslation';
 import { formatRelativeTime } from '../../utils/dateFormatters';
+import type { DateLike } from '../../utils/dateFormatters';
 import { API_BASE } from '../../utils/helpers';
 
 /**
@@ -16,11 +19,26 @@ import { API_BASE } from '../../utils/helpers';
  * with the card's.
  */
 
-const MODE_ICON = { [PERSONAL]: Lock, [ORG]: Building2, [GROUPS]: Users };
+/** A list row, as far as the card reads it. */
+export interface WebpageCardData {
+    id: string;
+    name?: string;
+    icon?: string;
+    tagline?: string;
+    thumbnailSha?: string | null;
+    updatedAt?: DateLike;
+    sharedGroups?: string[];
+    bridgeGrants?: {
+        tables?: Array<{ datatableId: string; label?: string; name?: string }>;
+        automations?: Array<{ automationId: string; label?: string }>;
+    } | null;
+}
+
+const MODE_ICON: Record<string, LucideIcon> = { [PERSONAL]: Lock, [ORG]: Building2, [GROUPS]: Users };
 const MAX_PILLS = 3;
 
 /** The badge over the preview: a live public share first, then the audience. */
-function VisibilityBadge({ webpage, t }) {
+function VisibilityBadge({ webpage, t }: { webpage: WebpageCardData; t: TranslateFn }) {
     const { isPublic, mode } = visibilityOf(webpage);
     const Icon = isPublic ? Globe : MODE_ICON[mode];
     const label = isPublic
@@ -47,7 +65,7 @@ function VisibilityBadge({ webpage, t }) {
 }
 
 /** What this page is wired to — `bridge_grants`, the only link that exists. */
-function LinkPills({ webpage }) {
+function LinkPills({ webpage }: { webpage: WebpageCardData }) {
     const grants = webpage.bridgeGrants || {};
     const items = [
         // `tables` lands in W3; reading it here means the pill appears the day
@@ -95,7 +113,7 @@ function LinkPills({ webpage }) {
 }
 
 /** The 150px preview: the rendered thumbnail, or the page's emoji on a tint. */
-function Preview({ webpage }) {
+function Preview({ webpage }: { webpage: WebpageCardData }) {
     const thumbnailUrl = webpage.thumbnailSha
         // Cache-bust on the sha so a fresh thumbnail replaces a stale one
         // without ever serving long-lived stale bytes.
@@ -154,6 +172,21 @@ export default function WebpageCard({
     onClone,
     onDelete,
     t,
+}: {
+    webpage: WebpageCardData;
+    dimmed?: boolean;
+    opening?: boolean;
+    renaming?: boolean;
+    renameValue?: string;
+    onRenameValueChange?: (value: string) => void;
+    onStartRename?: (webpage: WebpageCardData) => void;
+    onCommitRename?: (id: string) => void;
+    onCancelRename?: () => void;
+    onOpen?: (id: string) => void;
+    onEdit?: (id: string) => void;
+    onClone?: (id: string) => void;
+    onDelete?: (id: string) => void;
+    t: TranslateFn;
 }) {
     const activate = () => { if (!dimmed && !opening) onOpen?.(webpage.id); };
 
@@ -246,7 +279,7 @@ export default function WebpageCard({
     );
 }
 
-function CardAction({ title, onClick, danger = false, children }) {
+function CardAction({ title, onClick, danger = false, children }: { title: string; onClick: () => void; danger?: boolean; children?: React.ReactNode }) {
     return (
         <button
             type="button"

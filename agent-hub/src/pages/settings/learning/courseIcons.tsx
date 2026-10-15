@@ -1,3 +1,4 @@
+import type { LucideIcon, LucideProps } from 'lucide-react';
 import {
     Bot, BookOpen, Boxes, Compass, Crown, Gauge, GraduationCap, Handshake, History,
     KeyRound, LayoutGrid, MessageSquareText, Mic, SearchCheck, Shield, ShieldCheck,
@@ -23,7 +24,7 @@ import {
  * The emoji stay in the catalog. They are still what the badge wears on the
  * Achievements screen, where colour and personality are the content.
  */
-const BY_COURSE = Object.freeze({
+const BY_COURSE: Readonly<Record<string, LucideIcon>> = Object.freeze({
     // ── Everyday work ────────────────────────────────────────────────────
     'course-foundations': Compass,
     'course-prompting': MessageSquareText,
@@ -58,7 +59,7 @@ const BY_COURSE = Object.freeze({
  * graduation cap — deliberately the Learning Center's own mark, so an org
  * course reads as "a course" rather than borrowing a feature's identity.
  */
-export function courseIcon(courseId) {
+export function courseIcon(courseId: string): LucideIcon {
     return BY_COURSE[courseId] || GraduationCap;
 }
 
@@ -71,7 +72,7 @@ export const COURSE_ICONS = BY_COURSE;
  * the map is frozen — but it reads to both a linter and a reviewer as a
  * component conjured per render, so the lookup is done in here instead.
  */
-export default function CourseIcon({ courseId, size = 16, style, className, ...rest }) {
+export default function CourseIcon({ courseId, size = 16, style, className, ...rest }: Omit<LucideProps, 'size' | 'ref'> & { courseId: string; size?: number }) {
     // A property read, not a call: the glyphs are module-level constants in a
     // frozen map, so the reference is stable across renders and React keeps the
     // element's identity. (Written as a lookup rather than through courseIcon()
