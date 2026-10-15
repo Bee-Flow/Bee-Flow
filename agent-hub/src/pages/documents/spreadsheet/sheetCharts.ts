@@ -18,6 +18,21 @@ export const ROW_PX = 28;
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+const positive = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
+
+/**
+ * The px size a chart is drawn at: its own, else 6 x 14 cells, clamped. The
+ * same rule as the server (sheetChartFields.js sizeInPx), so the editor and
+ * the Excel export agree on a chart stored without a size.
+ */
+export function chartSize(config: Partial<Pick<SheetChartConfig, 'width' | 'height'>>): { width: number; height: number } {
+    return {
+        width: clamp(Math.round(positive(config.width) ?? 6 * COL_PX), 120, 1400),
+        height: clamp(Math.round(positive(config.height) ?? 14 * ROW_PX), 80, 900),
+    };
+}
+
 /** The colour of series / slice `i`: the chart's own `colors` when set, else the palette. */
 export function chartColor(config: Pick<SheetChartConfig, 'colors'>, i: number): string {
     const list = config.colors?.length ? config.colors : CHART_PALETTE;

@@ -58,4 +58,11 @@ describe('SheetChartOverlay', () => {
         const { container } = renderCharts([one('bar', { id: 'far', anchor: 'Z900' }), one('line', { id: 'empty', dataRange: 'A2:A3' })]);
         expect(container.querySelector('[data-chart-type]')).toBeNull();
     });
+
+    test('a chart stored without a size is drawn at the default 6 x 14 cells', () => {
+        const { container } = renderCharts([one('bar', { width: 0, height: 0 })]);
+        const card = container.querySelector('[data-chart-type="bar"]') as HTMLElement;
+        expect(card.style.width).toBe('672px');
+        expect(card.style.height).toBe('392px');
+    });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { chartDataFrom, parseA1Range, validateChart } from './sheetCharts';
+import { chartDataFrom, chartSize, parseA1Range, validateChart } from './sheetCharts';
 import { evaluateSheet } from './sheetEngine';
 
 describe('sheetCharts', () => {
@@ -29,5 +29,12 @@ describe('sheetCharts', () => {
         expect(validateChart({})).toBeTruthy();
         expect(validateChart({ id: 'c', type: 'bar', dataRange: 'A1:A2', anchor: 'D2', width: 100, height: 100 })).toBeNull();
         expect(validateChart({ id: 'c', type: 'donut', dataRange: 'A1:A2', anchor: 'D2', width: 100, height: 100 })).toBeTruthy();
+    });
+
+    test('chartSize: the stored size, else 6 x 14 cells like the server and the Excel export, clamped', () => {
+        expect(chartSize({ width: 400, height: 300 })).toEqual({ width: 400, height: 300 });
+        expect(chartSize({})).toEqual({ width: 672, height: 392 });
+        expect(chartSize({ width: 0, height: Number.NaN })).toEqual({ width: 672, height: 392 });
+        expect(chartSize({ width: 99999, height: 10 })).toEqual({ width: 1400, height: 80 });
     });
 });

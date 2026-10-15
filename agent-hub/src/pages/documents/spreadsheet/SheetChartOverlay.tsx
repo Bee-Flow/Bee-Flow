@@ -4,7 +4,7 @@ import type { Computed } from './sheetEngine';
 import SheetChartKpi from './SheetChartKpi';
 import SheetChartPlot from './SheetChartPlot';
 import { chartSeriesFrom, type ChartSeriesData } from './sheetChartSeries';
-import { type SheetChartConfig } from './sheetCharts';
+import { chartSize, type SheetChartConfig } from './sheetCharts';
 
 interface SheetChartOverlayProps {
     contentRef: React.RefObject<HTMLElement | null>;
@@ -30,7 +30,7 @@ function ChartCard({ chart, data, computed, onRemove }: { chart: SheetChartConfi
     return (
         <div
             className="absolute bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl shadow-md overflow-hidden flex flex-col"
-            style={{ width: chart.width, height: chart.height }}
+            style={chartSize(chart)}
             data-chart-type={chart.type}
         >
             {kpi ? (
@@ -70,7 +70,7 @@ function measure(content: HTMLElement, charts: SheetChartConfig[]): Record<strin
     const next: Record<string, Layout | null> = {};
     for (const chart of charts) {
         const cell = content.querySelector<HTMLElement>(`[data-cell="${chart.anchor}"]`);
-        next[chart.id] = cell ? { top: cell.offsetTop, left: cell.offsetLeft, width: chart.width, height: chart.height } : null;
+        next[chart.id] = cell ? { top: cell.offsetTop, left: cell.offsetLeft, ...chartSize(chart) } : null;
     }
     return next;
 }
