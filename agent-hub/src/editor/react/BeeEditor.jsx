@@ -41,7 +41,7 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
   useEffect(() => mountEditorView({
     host: s.hostRef.current,
     content: props.content,
-    editable: props.editable ?? true,
+    editable: props.editable,
     s,
     sync,
     // Declared below by the lifecycle hook; only called after mount.

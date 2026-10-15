@@ -23,7 +23,7 @@ export function imageFromTransfer(dt: DataTransfer | null | undefined, upload: (
 export interface MountEditorViewDeps {
   host: HTMLDivElement;
   content: BeeEditorProps['content'];
-  editable: boolean;
+  editable?: boolean;
   s: EditorShared;
   sync: EditorSync;
   uploadImage: (file: File) => void;
@@ -35,7 +35,7 @@ export interface MountEditorViewDeps {
  * per mount), so the effect stays under the react-hooks lint rules.
  */
 export function mountEditorView(deps: MountEditorViewDeps): () => void {
-  const { host, content, editable, s, sync } = deps;
+  const { host, content, editable = true, s, sync } = deps;
   const { viewRef, facadeRef, setViewInst, setAtoms, saveTimer, lastHtmlRef, contentGenRef, notebookIdRef, onSaveRef, runShortcutRef } = s;
   const { chromeRef, collabRef } = sync;
   let nextAtomId = 1;
