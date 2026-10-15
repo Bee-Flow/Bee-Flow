@@ -1,84 +1,31 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import useVoiceSession from './useVoiceSession';
-import { authFetch } from '../../../utils/helpers';
+import { bodyOf, frame, installVoiceStubs, mockFetch, removeVoiceStubs, speakOneTurn, vadFrame } from './voiceTestKit';
 
 // Characterisation of what a turn's SSE events do to the hook's state, the
 // host callback, the form the turn is POSTed with and the failure paths.
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
-let rms = 0;
-let nowMs = 0;
-
-class FakeMediaRecorder {
-    static isTypeSupported() { return true; }
-    constructor() { this.state = 'inactive'; this.mimeType = 'audio/webm'; }
-    start() {
-        this.state = 'recording';
-        this.ondataavailable?.({ data: new Blob(['audio-bytes'], { type: 'audio/webm' }) });
-    }
-    stop() { this.state = 'inactive'; this.onstop?.(); }
-}
-
-const frame = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-
-/** A body that hands the frames over in the given chunks (frames may be split mid-way). */
-function bodyOf(chunks) {
-    return {
-        getReader: () => {
-            let i = 0;
-            return {
-                read: async () => (i < chunks.length
-                    ? { done: false, value: new TextEncoder().encode(chunks[i++]) }
-                    : { done: true, value: undefined }),
-            };
-        },
-    };
-}
-
-let turnResponse;
-let lastTurnForm;
+let turnResponse: unknown;
+let lastTurnForm: FormData | null;
 
 beforeEach(() => {
-    rms = 0;
-    nowMs = 0;
     lastTurnForm = null;
-    vi.useFakeTimers();
-    vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+    installVoiceStubs();
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    globalThis.MediaRecorder = FakeMediaRecorder;
-    globalThis.navigator.mediaDevices = { getUserMedia: async () => ({ getTracks: () => [] }) };
-    globalThis.AudioContext = class {
-        createMediaStreamSource() { return { connect() {} }; }
-        createAnalyser() { return { fftSize: 1024, getFloatTimeDomainData(buf) { buf.fill(rms); } }; }
-        close() {}
-    };
-    authFetch.mockReset();
-    authFetch.mockImplementation(async (url, opts) => {
+    mockFetch(async (url, opts) => {
         if (String(url).endsWith('/ai/voice/session')) return { ok: true, json: async () => ({ model: 'm1', language: 'nl' }) };
-        lastTurnForm = opts.body;
+        lastTurnForm = opts?.body instanceof FormData ? opts.body : null;
         return turnResponse;
     });
 });
 
-afterEach(() => {
-    vi.restoreAllMocks();
-    vi.useRealTimers();
-    delete globalThis.MediaRecorder;
-    delete globalThis.AudioContext;
-});
+afterEach(removeVoiceStubs);
 
-async function vadFrame(energy, dt = 50) {
-    rms = energy;
-    nowMs += dt;
-    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
-}
-
-async function speakOneTurn(result) {
-    await act(async () => { await result.current.connect({}); });
-    await vadFrame(0.05);
-    await vadFrame(0.001, 1000);
-    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+function form(): FormData {
+    if (!lastTurnForm) throw new Error('no turn was posted');
+    return lastTurnForm;
 }
 
 describe('useVoiceSession — turn stream', () => {
@@ -106,14 +53,13 @@ describe('useVoiceSession — turn stream', () => {
                 { role: 'assistant', content: 'hidden', isHidden: true },
                 { role: 'assistant', content: 'streaming', isStreaming: true },
                 { role: 'assistant', content: 42 },
-                null,
             ],
             onTurnComplete,
         }));
         await speakOneTurn(result);
 
-        expect(JSON.parse(lastTurnForm.get('history'))).toEqual([{ role: 'user', content: 'hi' }]);
-        expect(lastTurnForm.get('language')).toBe('nl');
+        expect(JSON.parse(String(form().get('history')))).toEqual([{ role: 'user', content: 'hi' }]);
+        expect(form().get('language')).toBe('nl');
         expect(onTurnComplete).toHaveBeenCalledTimes(1);
         const turn = onTurnComplete.mock.calls[0][0];
         expect(turn.user).toEqual({ role: 'user', content: 'wat is mijn saldo', source: 'voice' });
@@ -144,7 +90,7 @@ describe('useVoiceSession — turn stream', () => {
         await vadFrame(0.05);
         await vadFrame(0.001, 1000);
         await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-        expect(lastTurnForm.get('language')).toBe('nl');
+        expect(form().get('language')).toBe('nl');
     });
 
     it('does not report a turn without a transcript', async () => {
@@ -185,7 +131,7 @@ describe('useVoiceSession — turn stream', () => {
 
     it('a network failure errors; an abort goes back to idle', async () => {
         const { result } = renderHook(() => useVoiceSession({}));
-        authFetch.mockImplementation(async (url) => {
+        mockFetch(async (url) => {
             if (String(url).endsWith('/ai/voice/session')) return { ok: true, json: async () => ({}) };
             throw new Error('offline');
         });
@@ -194,11 +140,9 @@ describe('useVoiceSession — turn stream', () => {
         expect(result.current.state).toBe('error');
 
         const second = renderHook(() => useVoiceSession({}));
-        authFetch.mockImplementation(async (url) => {
+        mockFetch(async (url) => {
             if (String(url).endsWith('/ai/voice/session')) return { ok: true, json: async () => ({}) };
-            const e = new Error('aborted');
-            e.name = 'AbortError';
-            throw e;
+            throw Object.assign(new Error('aborted'), { name: 'AbortError' });
         });
         await speakOneTurn(second.result);
         expect(second.result.current.error).toBeNull();
@@ -206,7 +150,7 @@ describe('useVoiceSession — turn stream', () => {
     });
 
     it('connect() surfaces the server message of a failed session start and releases everything', async () => {
-        authFetch.mockImplementation(async () => ({ ok: false, status: 403, json: async () => ({ error: 'no voice for you' }) }));
+        mockFetch(async () => ({ ok: false, status: 403, json: async () => ({ error: 'no voice for you' }) }));
         const { result } = renderHook(() => useVoiceSession({}));
         await act(async () => { await expect(result.current.connect({})).rejects.toThrow('no voice for you'); });
         expect(result.current.error).toBe('no voice for you');

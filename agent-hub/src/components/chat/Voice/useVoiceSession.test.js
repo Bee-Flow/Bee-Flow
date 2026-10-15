@@ -2,31 +2,12 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import useVoiceSession from './useVoiceSession';
 import { authFetch } from '../../../utils/helpers';
+import { installVoiceStubs, removeVoiceStubs, speakOneTurn } from './voiceTestKit';
 
 // The hook's only network seam.
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
-// ─── Browser stubs ────────────────────────────────────────────────────────────
-// jsdom has neither MediaRecorder, getUserMedia nor WebAudio, and the hook
-// drives all three. The stubs are the minimum the VAD → record → submit path
-// touches: an analyser whose RMS we script frame by frame, and a recorder that
-// hands back one chunk on stop().
-
-let rms = 0;          // scripted mic energy for the next VAD tick
-let nowMs = 0;        // scripted performance.now()
-
-class FakeMediaRecorder {
-    static isTypeSupported() { return true; }
-    constructor() { this.state = 'inactive'; this.mimeType = 'audio/webm'; }
-    start() {
-        this.state = 'recording';
-        this.ondataavailable?.({ data: new Blob(['audio-bytes'], { type: 'audio/webm' }) });
-    }
-    stop() {
-        this.state = 'inactive';
-        this.onstop?.();
-    }
-}
+// Browser stubs and the VAD helpers live in voiceTestKit.ts.
 
 const sseResponse = () => ({
     ok: true,
@@ -59,25 +40,8 @@ const SESSION = {
 let lastTurnForm = null;
 
 beforeEach(() => {
-    rms = 0;
-    nowMs = 0;
     lastTurnForm = null;
-    vi.useFakeTimers();
-    vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
-
-    globalThis.MediaRecorder = FakeMediaRecorder;
-    globalThis.navigator.mediaDevices = { getUserMedia: async () => ({ getTracks: () => [] }) };
-    globalThis.AudioContext = class {
-        createMediaStreamSource() { return { connect() {} }; }
-        createAnalyser() {
-            return {
-                fftSize: 1024,
-                getFloatTimeDomainData(buf) { buf.fill(rms); },
-            };
-        }
-        close() {}
-    };
-
+    installVoiceStubs();
     authFetch.mockReset();
     authFetch.mockImplementation(async (url, opts) => {
         if (String(url).endsWith('/ai/voice/session')) {
@@ -91,28 +55,7 @@ beforeEach(() => {
     });
 });
 
-afterEach(() => {
-    vi.restoreAllMocks();
-    vi.useRealTimers();
-    delete globalThis.MediaRecorder;
-    delete globalThis.AudioContext;
-});
-
-/** Run one VAD poll at the given energy, `dt` ms after the previous one. */
-async function vadFrame(energy, dt = 50) {
-    rms = energy;
-    nowMs += dt;
-    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
-}
-
-/** connect(), then speak one utterance and let the VAD close the turn. */
-async function speakOneTurn(result) {
-    await act(async () => { await result.current.connect({ agentId: 'agent-42' }); });
-    await vadFrame(0.05);          // loud   → startRecording()
-    await vadFrame(0.001, 1000);   // silent → 1000ms trailing silence closes the turn
-    // finishRecording awaits the recorder's blob before POSTing.
-    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-}
+afterEach(removeVoiceStubs);
 
 describe('useVoiceSession', () => {
     it('connect() stores the resolved session', async () => {

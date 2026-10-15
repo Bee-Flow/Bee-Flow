@@ -22,6 +22,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { messageOf } from '../../../utils/caughtError';
 import { VAD_POLL_MS, VOICE_STATES, openVadPipeline, pickMimeType, playTtsAudio, releaseVoiceResources } from './voiceSessionAudio';
 import { runVadTick } from './voiceSessionVad';
 import { fetchVoiceSession, streamVoiceTurn } from './voiceSessionTurn';
@@ -188,7 +189,7 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
             return data;
         } catch (err) {
             console.error('[useVoiceSession] connect error:', err);
-            setError((err as Error).message || 'Could not start voice session');
+            setError(messageOf(err, 'Could not start voice session'));
             setStateSync(STATES.ERROR);
             cleanup();
             throw err;

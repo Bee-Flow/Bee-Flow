@@ -155,6 +155,7 @@ export default function useAppBuilderStream({
     onPhaseRef.current = onPhase;
     const onCheckpointRef = useRef(onCheckpoint);
     onCheckpointRef.current = onCheckpoint;
+
     // ---- rehydrate a prior session (refresh / reopen) -----------------------
     useEffect(() => {
         if (!appId) return undefined;
@@ -192,7 +193,6 @@ export default function useAppBuilderStream({
         if (t.firstEventAt && t.phase === 'writing') return t;
         return { ...t, firstEventAt: t.firstEventAt || Date.now(), phase: 'writing' };
     }), []);
-
 
     /**
      * Stream ONE turn against the builder route (see runBuilderTurn): the
