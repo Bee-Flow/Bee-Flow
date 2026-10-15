@@ -133,7 +133,7 @@
     "src/components/automation/Builder/flow/settings/approvalEditors.jsx": 708,
     "src/components/automation/Builder/flow/settings/collectionEditors.jsx": 752,
     "src/components/automation/Builder/flow/settings/datatableEditors.jsx": 427,
-    "src/components/automation/Builder/flow/settings/fieldDesigner.jsx": 415,
+    "src/components/automation/Builder/flow/settings/fieldDesigner.tsx": 415,
     "src/components/automation/Builder/flow/settings/FormBuilderFields.jsx": 934,
     "src/components/automation/Builder/flow/settings/RouteAssist.jsx": 587,
     "src/components/automation/Builder/flow/settings/routeEditors.jsx": 725,

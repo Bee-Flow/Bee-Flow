@@ -1,6 +1,6 @@
 /**
  * The declared-parameter designer held to the web's
- * (agent-hub `Builder/flow/settings/fieldDesigner.jsx`, a component file):
+ * (agent-hub `Builder/flow/settings/fieldDesigner.tsx`, a component file):
  * `nameProblem`, `applyBindingRename` and its outcome sentences are cut out of
  * the web's source and run beside the port — with the web's own
  * renameFormField helpers — on the same cases; the two type lists are the
@@ -10,20 +10,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import ts from 'typescript';
+
 import { addParam, APP_TRIGGER_TYPES, applyBindingRename, CONTRACT_TYPES, nameProblem, PLACEHOLDER_NAME_RE } from './paramsModel';
 import type { Msg } from '../declarative/spec';
 
 const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow');
-const src = fs.readFileSync(path.join(FLOW, 'settings/fieldDesigner.jsx'), 'utf8');
+const src = fs.readFileSync(path.join(FLOW, 'settings/fieldDesigner.tsx'), 'utf8');
 const editors = fs.readFileSync(path.join(FLOW, 'settings/triggerEditors.jsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const renameHelpers = require(path.join(FLOW, 'renameFormField.ts'));
 
 function cut(name: string): string {
     const at = src.indexOf(`function ${name}(`);
-    if (at < 0) throw new Error(`${name} is gone from fieldDesigner.jsx`);
+    if (at < 0) throw new Error(`${name} is gone from fieldDesigner.tsx`);
     const start = src.lastIndexOf('\n', at) + 1;
-    return src.slice(start, src.indexOf('\n}\n', at) + 2).replace(/^export /, '');
+    const text = src.slice(start, src.indexOf('\n}\n', at) + 2).replace(/^export /, '');
+    return ts.transpileModule(text, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 }
 
 const web = new Function(
@@ -40,7 +43,7 @@ const english = (m: Msg | null): string => {
     return out;
 };
 
-describe('the parameter designer against fieldDesigner.jsx', () => {
+describe('the parameter designer against fieldDesigner.tsx', () => {
     it('keeps the web’s placeholder rule', () => {
         const webRe = /export const PLACEHOLDER_NAME_RE = (\/.+\/);/.exec(src)?.[1];
         expect(String(PLACEHOLDER_NAME_RE)).toBe(webRe);

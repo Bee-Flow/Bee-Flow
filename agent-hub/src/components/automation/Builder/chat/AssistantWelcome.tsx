@@ -1,11 +1,20 @@
 import { Bell, Code, Eye, Filter, Mail, Repeat, Sparkles, WandSparkles } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
+import type { FlowDefinition, FlowStep } from '../flow/types';
 
-export default function AssistantWelcome({ triggerKind, definition = null, selectedStep = null, onPick }) {
+interface AssistantWelcomeProps {
+    triggerKind?: string;
+    definition?: FlowDefinition | null;
+    selectedStep?: FlowStep | null;
+    onPick?: (text: string) => void;
+}
+
+export default function AssistantWelcome({ triggerKind, definition = null, selectedStep = null, onPick }: AssistantWelcomeProps) {
     const { t } = useTranslation();
     const steps = definition?.steps || [];
-    const chips = [];
-    const suggest = (Icon, key, fallback) => chips.push({ Icon, text: t(`automations.assistant.suggest.${key}`, fallback) });
+    const chips: Array<{ Icon: LucideIcon; text: string }> = [];
+    const suggest = (Icon: LucideIcon, key: string, fallback: string) => chips.push({ Icon, text: t(`automations.assistant.suggest.${key}`, fallback) });
     if (selectedStep?.type === 'code') suggest(Code, 'code', 'Write the code for the selected step');
     if (selectedStep?.type === 'ai_step') suggest(Sparkles, 'prompt', 'Improve the instruction for this AI step');
     if (selectedStep && steps.length) suggest(WandSparkles, 'mapping', 'Check the field mappings of this step');

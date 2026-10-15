@@ -38,6 +38,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { fieldNameTaken, isValidFieldName } from '../renameFormField';
 import { cardClass, denseInputClass, rowInputClass } from './formPrimitives';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { BindingNameFieldProps, DesignedField, FieldDesignerProps, FieldRowProps, RenameArgs, RowNameBoxArgs } from './fieldDesigner.types';
 
 /**
  * The names a designer mints for a row the author has not named yet
@@ -63,7 +64,7 @@ export const PLACEHOLDER_NAME_RE = /^(?:input|arg)\d+$/;
  * first. Two sentences, because "must start with a letter" is a lie about
  * `klant-naam`.
  */
-export function nameProblem(name) {
+export function nameProblem(name: string | null | undefined) {
     if (!name) return null;
     if (!/^[A-Za-z]/.test(name)) return 'Names must start with a letter (no leading _ or digit).';
     if (!isValidFieldName(name)) return 'Letters, digits and underscores only.';
@@ -96,7 +97,7 @@ export function applyBindingRename({
     onRenameField = null,
     takenError = 'Another question on this page already binds that name.',
     orphanNote = false,
-}) {
+}: RenameArgs) {
     const next = String(to ?? '').trim();
     if (next === from) return { ok: false, unchanged: true, name: from, error: '', note: '' };
     if (!isValidFieldName(next)) {
@@ -115,7 +116,7 @@ export function applyBindingRename({
 }
 
 /** How the rename is reported back. Separate so both widgets word it the same. */
-function renameNote(moved, from, orphanNote) {
+function renameNote(moved: number | undefined, from: string, orphanNote: boolean) {
     if (typeof moved === 'number') {
         // The plural half is the wording the form builder has always shown and
         // its test pins; only the singular is corrected here, where "1 binding
@@ -144,7 +145,7 @@ function renameNote(moved, from, orphanNote) {
  * read-only there and says why, rather than offering an edit that would break
  * bindings it cannot see.
  */
-export function BindingNameField({ field, siblings, bindingBase, onRenameField, onChange }) {
+export function BindingNameField({ field, siblings, bindingBase, onRenameField, onChange }: BindingNameFieldProps) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(field.name);
     const [error, setError] = useState('');
@@ -220,7 +221,7 @@ export function BindingNameField({ field, siblings, bindingBase, onRenameField, 
  * `email_address` is never stored, never saved, and never rewrites an automation
  * eight times.
  */
-function useRowNameBox({ name, siblings, onRenameField, onCommit, sanitize, takenError, ariaLabel }) {
+function useRowNameBox({ name, siblings, onRenameField, onCommit, sanitize, takenError, ariaLabel }: RowNameBoxArgs) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(name);
     const [error, setError] = useState('');
@@ -279,7 +280,7 @@ function useRowNameBox({ name, siblings, onRenameField, onCommit, sanitize, take
 function FieldRow({
     row, siblings, types, removeLabel, descriptionPlaceholder,
     sanitizeName, takenError, onRenameField, onPatch, onRemove, position,
-}) {
+}: FieldRowProps) {
     const { t } = useTranslation();
     const { box, error, note } = useRowNameBox({
         name: row.name || '',
@@ -365,7 +366,7 @@ export default function FieldDesigner({
     onRenameField = null,
     takenError = 'Another field here already binds that name.',
     defaults = null,
-}) {
+}: FieldDesignerProps) {
     const list = Array.isArray(rows) ? rows : [];
     // Writes go through the LATEST list, not the one this render closed over.
     // The name box commits on blur, and the blur that commits it is usually
@@ -375,14 +376,13 @@ export default function FieldDesigner({
     // keep `flushNow` reading the draft it is about to send.
     const listRef = useRef(list);
     useEffect(() => { listRef.current = list; });
-    const write = (fn) => onChange(fn(listRef.current));
+    const write = (fn: (cur: Array<DesignedField | null>) => Array<DesignedField | null>) => onChange(fn(listRef.current));
 
-    const patchRow = (i, changes) => write(cur => cur.map((r, j) => (j === i ? { ...r, ...changes } : r)));
-    const removeRow = (i) => write(cur => cur.filter((_, j) => j !== i));
+    const patchRow = (i: number, changes: Partial<DesignedField>) => write(cur => cur.map((r, j) => (j === i ? { ...r, ...changes } : r)));
+    const removeRow = (i: number) => write(cur => cur.filter((_, j) => j !== i));
     const addRow = () => write(cur => {
-        // Count up rather than off the length: add three, remove the middle,
-        // add again and a length-based name would mint a duplicate — which
-        // the server drops silently, taking the row with it.
+        // Count up rather than off the length: add three, remove the middle, add again and a
+        // length-based name would mint a duplicate — which the server drops silently, with the row.
         let n = cur.length + 1;
         while (cur.some(r => r?.name === `${namePrefix}${n}`)) n += 1;
         return [...cur, { name: `${namePrefix}${n}`, type: 'string', required: false, ...(defaults || {}) }];

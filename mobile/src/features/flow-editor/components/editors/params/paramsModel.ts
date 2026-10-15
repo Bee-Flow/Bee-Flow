@@ -1,7 +1,7 @@
 /**
  * The declared-parameter rows of a flowlet's inputs, an agent tool and a
  * Studio App trigger — the pure half of the web's shared field designer
- * (agent-hub `Builder/flow/settings/fieldDesigner.jsx`).
+ * (agent-hub `Builder/flow/settings/fieldDesigner.tsx`).
  *
  * A declared field's `name` is a BINDING (`trigger.output.<name>`), so it is
  * only ever COMMITTED on purpose, validated first (a name the server accepts,
