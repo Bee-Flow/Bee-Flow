@@ -154,7 +154,9 @@ function dispatch(body) {
             end() { this.writableEnded = true; resolve(this); return this; },
             setHeader() {}, flushHeaders() {}, write() {}, on() {},
         };
-        router(request, res, (err) => reject(err || new Error('fell through router')));
+        router(request, res, (err) => (err
+            ? require('../../core/http/terminalErrorHandler').terminalErrorHandler(err, request, res, reject)
+            : reject(new Error('fell through router'))));
     });
 }
 

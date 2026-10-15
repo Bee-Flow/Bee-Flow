@@ -182,7 +182,9 @@ function dispatch({ method = 'POST', url, user = 'owner-1', body }) {
             end() { resolve(this); return this; },
             setTimeout() {},
         };
-        router(req, res, (err) => reject(err || new Error(`fell through router: ${method} ${url}`)));
+        router(req, res, (err) => (err
+            ? require('../core/http/terminalErrorHandler').terminalErrorHandler(err, req, res, reject)
+            : reject(new Error(`fell through router: ${method} ${url}`))));
     });
 }
 
