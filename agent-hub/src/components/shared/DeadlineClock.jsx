@@ -151,7 +151,7 @@ export default function DeadlineClock({
     const now = useNow();
     const clock = resolveClock({ dueAt, startedAt, doneAt, state, pct, urgentBelowMs, now });
     // Far away and fine: neutral ink, a quiet bar. Never for urgent/overdue.
-    const quiet = clock.state === 'ok' && Number.isFinite(quietUntilMs) && clock.remainingMs !== null && clock.remainingMs > quietUntilMs;
+    const quiet = clock.state === 'ok' && typeof quietUntilMs === 'number' && Number.isFinite(quietUntilMs) && clock.remainingMs !== null && clock.remainingMs > quietUntilMs;
     const tone = quiet ? 'neutral' : toneOfClock(clock.state);
     const { raw, ink } = quiet ? QUIET : TONES[tone];
     const label = clockLabel(t, clock, doneLabel);

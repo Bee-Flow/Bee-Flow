@@ -76,7 +76,7 @@ const FOLD_TIERS = Object.freeze([1180, 900]);
 
 function foldsAt(column, tier) {
     const fold = column?.foldBelow;
-    return FOLD_TIERS.includes(fold) && fold >= tier;
+    return typeof fold === 'number' && FOLD_TIERS.includes(fold) && fold >= tier;
 }
 
 /**
@@ -113,7 +113,7 @@ function alignClass(align) {
 /** The stripe colour for a row: status tone raw, or the area's teal for 'kind'. */
 export function accentColor(accent) {
     if (accent === 'kind') return 'var(--kind-compliance)';
-    return TONES[accent]?.raw ?? null;
+    return (accent == null ? undefined : TONES[accent])?.raw ?? null;
 }
 
 /** A body cell: min-w-0 so long text truncates, the fold class when its column folds. */

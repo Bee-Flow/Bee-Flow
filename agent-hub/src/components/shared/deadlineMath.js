@@ -59,7 +59,7 @@ export function toMs(value) {
  */
 export function addCalendarMonths(value, months) {
     const ms = toMs(value);
-    if (ms === null || !Number.isInteger(months)) return null;
+    if (ms === null || typeof months !== 'number' || !Number.isInteger(months)) return null;
     const d = new Date(ms);
     const day = d.getUTCDate();
     d.setUTCDate(1);
@@ -131,7 +131,7 @@ export function clockState({ dueAt, startedAt, now, urgentBelowMs, doneAt, unit:
     const unitMs = unit === 'days' ? DAY_MS : HOUR_MS;
     const value = ceilUnits(remainingMs, unitMs);
     const overdue = remainingMs < 0;
-    const urgent = !overdue && Number.isFinite(urgentBelowMs) && urgentBelowMs > 0 && remainingMs <= urgentBelowMs;
+    const urgent = !overdue && typeof urgentBelowMs === 'number' && Number.isFinite(urgentBelowMs) && urgentBelowMs > 0 && remainingMs <= urgentBelowMs;
 
     let pct;
     if (overdue) pct = 1;

@@ -87,14 +87,15 @@ export function usageKind(row) {
 }
 
 function kindVisual(kind) {
-    if (EXTRA_KIND[kind]) return EXTRA_KIND[kind];
+    if (kind != null && EXTRA_KIND[kind]) return EXTRA_KIND[kind];
     return { Icon: kindIcon(kind), color: kindColorVar(kind) };
 }
 
 /** `row.href`, else the Studio page for its kind, else null (not navigable). */
 export function usageHref(row) {
     if (row?.href) return row.href;
-    const segment = STUDIO_PATH[usageKind(row)];
+    const kind = usageKind(row);
+    const segment = kind == null ? undefined : STUDIO_PATH[kind];
     if (!segment || row?.id == null || row.id === '') return null;
     return `studio/${segment}/${row.id}`;
 }
@@ -130,7 +131,7 @@ export function adaptDatatableUsageRow(u) {
 export function adaptUsageRows(rows, adapt) {
     if (!Array.isArray(rows)) return [];
     const mapped = typeof adapt === 'function' ? rows.map(adapt) : rows;
-    return mapped.filter((r) => r && typeof r === 'object');
+    return mapped.filter((r) => !!r && typeof r === 'object');
 }
 
 /** `{ kind: count }` in first-seen order, for the summary pills. */

@@ -350,7 +350,7 @@ export const getRelativeTime = (date) => {
     if (!date) return '';
     const now = new Date();
     const then = new Date(date);
-    const diffInSeconds = Math.floor((now - then) / 1000);
+    const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
 
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
@@ -434,7 +434,7 @@ export const toolNameToCatalogId = (name) => {
         gamma_list_themes: 'tools.gamma_themes',
         gamma_list_folders: 'tools.gamma_folders',
     };
-    return map[name] || 'tools.fallback';
+    return (name == null ? undefined : map[name]) || 'tools.fallback';
 };
 
 const TOOL_DEFAULT_EMOJI = {

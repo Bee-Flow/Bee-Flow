@@ -120,7 +120,7 @@ export function kindOf(objOrKind) {
 
 /** `var(--kind-kb)` for a kind; a neutral ink when there is none. */
 export function kindColorVar(kind) {
-    return KIND_VAR[kind] ?? 'var(--text-tertiary)';
+    return (kind == null ? undefined : KIND_VAR[kind]) ?? 'var(--text-tertiary)';
 }
 
 /**
@@ -178,5 +178,5 @@ export function kindTileStyle(kind, opts = {}) {
 
 /** The lucide component for a kind; null for an unknown kind. */
 export function kindIcon(kind) {
-    return KIND_ICON[kind] ?? null;
+    return (kind == null ? undefined : KIND_ICON[kind]) ?? null;
 }

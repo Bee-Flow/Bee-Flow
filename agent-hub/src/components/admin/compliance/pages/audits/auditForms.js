@@ -58,13 +58,13 @@ export const OBJ_STATUS = Object.freeze({
 
 /** Label of `value` in a status table — falls back to the raw word, never to nothing. */
 export function labelOf(t, table, value) {
-    const entry = table[value];
+    const entry = value == null ? undefined : table[value];
     if (!entry) return value ? String(value).replace(/_/g, ' ') : '—';
     return t(entry.key, entry.en);
 }
 
 export function toneOf(table, value, fallback = 'neutral') {
-    return table[value]?.tone || fallback;
+    return (value == null ? undefined : table[value])?.tone || fallback;
 }
 
 /** Display name of an org user by id — the id itself when the roster does not know them. */
