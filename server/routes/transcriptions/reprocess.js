@@ -9,36 +9,16 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
-const fs = require('fs');
 const transcriptionStore = require('../../stores/transcriptionStore');
 const configStore = require('../../stores/configStore');
 const { requireAuth } = require('../../auth/permissions');
-const { asM4aIfAdts } = require('../../core/voice/audioPreprocess');
 const {
     parseSpeakerCount,
     resolveAccessContext,
     resolveUserOrgFromReq,
-    resolveDefaultTemplateForReq,
-    VOXTRAL_TIMEOUT_MS,
 } = require('./shared');
-const { stampForTemplate } = require('../../core/meetingNotes/summaryStamp');
-const {
-    identifySpeakerNames,
-    generateMeetingSummary,
-    extractMeetingArtifacts,
-    generateChapters,
-    generateSpeakerSummaries,
-    applySpeakerSummaries,
-    tagSpeakerProvenance,
-    applySpeakerNames,
-    fillGenericSpeakerLabels,
-    buildTranscriptArtifacts,
-    buildPipelineNotices,
-    artifactsUsable,
-    transcribeWithWhisperX,
-    transcribeWithScaleway,
-} = require('../../core/meetingNotes/summaryHelpers');
-const { mergeRegeneratedActionItems, mergeRegeneratedNotes } = require('../../core/meetingNotes/actionItems');
+const { applySpeakerSummaries } = require('../../core/meetingNotes/summaryHelpers');
+const { transcribeStoredAudio, analyseTranscript } = require('./reprocessPipeline');
 const { validate } = require('../../core/http/validate');
 const { NOTHING, NO_QUERY } = require('./schemas');
 
@@ -125,177 +105,13 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
 
         log.info(`[Transcriptions] Reprocessing "${fileName}" via ${provider}`);
 
-        let response;
-        let truncationNotice = null;
-        let voiceprintMapping = null;
-        let voiceprintRoster = [];
-        let voiceprintRuledOut = null;
-        let voiceprintInfo = null;
-
-        if (provider === 'local') {
-            // The note was transcribed on-device by choice; never silently move
-            // it to a cloud provider on reprocess.
-            const { transcribeLocally } = require('../../core/voice/localWhisper');
-            const local = await transcribeLocally(audioPath, { language });
-            if (!local) {
-                throw new Error('Local transcription model is not available. Try again, or pick a cloud provider.');
-            }
-            response = { text: local.text, segments: local.segments };
-        } else if (provider === 'whisperx') {
-            response = await transcribeWithWhisperX(audioPath, fileName, language, '');
-        } else if (provider === 'scaleway') {
-            response = await transcribeWithScaleway(audioPath, fileName, language, '');
-        } else if (provider === 'azure') {
-            const { transcribeWithAzureSpeech } = require('../../core/voice/azureSpeech');
-            const az = await transcribeWithAzureSpeech(audioPath, { language });
-            truncationNotice = az.truncated;
-            response = { text: az.text, segments: az.segments };
-        } else if (provider === 'whisper_azure') {
-            const { runAzureWhisperBatch } = require('../../integrations/transcriptionTools');
-            response = await runAzureWhisperBatch({ filePath: audioPath, fileName, language, numSpeakers });
-        } else if (provider === 'pyannote') {
-            const { transcribeWithPyannote } = require('../../core/voice/pyannoteClient');
-            // Org comes from the NOTE, not from the caller: resolveUserOrgFromReq
-            // picks an arbitrary element of a multi-org user's set, and choosing
-            // which organisation's biometric templates leave the building must
-            // never be non-deterministic.
-            const p = await transcribeWithPyannote(audioPath, {
-                language, numSpeakers,
-                orgId: transcription.organizationId || null,
-                recorderUserId: transcription.ownerId || userId,
-                attendees: transcription.attendees || [],
-            });
-            response = p;
-            voiceprintMapping = p.voiceprintMapping;
-            voiceprintRoster = p.voiceprintRoster || [];
-            voiceprintRuledOut = p.voiceprintRuledOut;
-            voiceprintInfo = p.voiceprintInfo;
-        } else {
-            const apiKey = await configStore.getSecret('mistral_api_key');
-            if (!apiKey) throw new Error('Mistral API key not configured');
-
-            const { createVoxtralClient } = require('../../core/meetingNotes/voxtralClient');
-            const client = createVoxtralClient(apiKey, { timeoutMs: VOXTRAL_TIMEOUT_MS });
-
-            // A stored .aac from the phone goes over as .m4a (audioPreprocess.asM4aIfAdts).
-            const voxtralAudio = await asM4aIfAdts(audioPath, fileName);
-            let fileContent;
-            try {
-                fileContent = await fs.promises.readFile(voxtralAudio.path);
-            } finally {
-                voxtralAudio.cleanup();
-            }
-
-            response = await client.audio.transcriptions.complete({
-                model: 'voxtral-mini-2602',
-                file: { fileName: voxtralAudio.fileName, content: fileContent },
-                diarize: true,
-                language,
-                timestampGranularities: ['segment'],
-            });
-        }
-
-        // Shared artifacts helper — same merge/transcript/stats shape as the
-        // upload route and ingestRecordingCore (segments carry speaker+speakerId).
-        let { merged, transcript, speakers, totalDuration } = buildTranscriptArtifacts(response.segments || []);
-        if (!merged.length) {
-            throw new Error('Transcription returned no segments.');
-        }
-
-        // Speaker identification — pass the stats rows so the model can tell
-        // real participants from short diarization fragments.
-        let reprocessUserName = null;
-        try { const { getUser } = require('../../stores/userStore'); const u = await getUser(userId); reprocessUserName = u?.firstName || u?.displayName || null; } catch (_) {}
-        // Reuse the roster captured at upload — reprocessing without it would
-        // throw away the strongest naming signal we have. Names the OWNER typed
-        // in the speaker editor count too, and count for more than anything the
-        // model guessed: the previous run's diarization is discarded here, so
-        // without this a user who painstakingly named five speakers got
-        // "Spreker 1..5" back and had to do it again.
-        const manualNames = (transcription.speakers || [])
-            .filter((s) => s && s.source === 'manual' && typeof s.id === 'string' && s.id.trim())
-            .map((s) => s.id.trim());
-        const reprocessRoster = [...new Set([
-            ...manualNames,
-            ...(transcription.attendees || []),
-            ...voiceprintRoster,
-        ])];
-        const nameMapping = await identifySpeakerNames(
-            merged, speakers, language, reprocessUserName, userOrgId,
-            reprocessRoster,
-            { lockedNames: voiceprintMapping, ruledOutNames: voiceprintRuledOut, expectedSpeakers: numSpeakers },
-        );
-
-        // Same generic-label floor as the upload route — never leak raw ids.
-        const filledMapping = fillGenericSpeakerLabels(speakers, nameMapping, language);
-
-        // Collapse the diarizer's many IDs onto the identified names (same
-        // treatment as the upload route).
-        ({ merged, transcript, speakers } = applySpeakerNames(merged, filledMapping));
-        speakers = tagSpeakerProvenance(speakers, voiceprintMapping);
-
-        // Summary + timeline chapters + structured artifacts. The artifacts are
-        // re-extracted too: the transcript is brand new, so the old action
-        // items/decisions/questions point at timestamps that no longer exist.
-        const defaultTemplate = await resolveDefaultTemplateForReq(req, userId, userOrgId);
-        const summary = await generateMeetingSummary(transcript, language, userOrgId, { templatePrompt: defaultTemplate?.prompt || null });
-        // De samenvatting wordt hier OPNIEUW geschreven, dus de sjabloonstempel
-        // wordt opnieuw gezet — ook als het antwoord "geen sjabloon" is. Een
-        // oude stempel laten staan zou een sjabloonnaam plakken op tekst die
-        // dat sjabloon nooit gemaakt heeft.
-        const summaryStamp = stampForTemplate(defaultTemplate);
-        const chapters = await generateChapters(transcript, language, userOrgId);
-        const artifacts = await extractMeetingArtifacts(transcript, language, userOrgId, {
-            meetingDateIso: (transcription.createdAt || '').slice(0, 10) || null,
-            personNames: [...speakers.map((s) => s.id), ...(transcription.attendees || [])],
-        });
-        const speakerSummaries = await generateSpeakerSummaries(transcript, speakers.map((s) => s.id), language, userOrgId);
-        // Re-extraction replaces the AI's action items — and only those (M3).
-        // The comment above justifies re-extracting with "the old items point at
-        // timestamps that no longer exist", which is true of the model's items
-        // and false of an action a person typed: that one has no timestamp to
-        // invalidate, and losing it here would be the same silent deletion
-        // "Opnieuw" used to do, from a button one step further away. Survivors
-        // keep their text and destination and give up their anchors into the
-        // transcript this run just replaced.
-        // ── EEN MISLUKTE EXTRACTIE IS GEEN LEGE VERGADERING ─────────────
-        // extractMeetingArtifacts kent DRIE uitkomsten: een vergadering waarin
-        // niets is afgesproken, een antwoord dat niet te parsen was, en een
-        // call die omviel. De laatste twee leverden vier lege lijsten op, en
-        // die hier doorschrijven wist actiepunten, besluiten én vragen van een
-        // notitie die al 'completed' was — zonder undo, en het scherm toont
-        // daarna een vergadering die niets heeft opgeleverd.
-        // `artifactsUsable` stelt de vraag aan de WAARDE en niet aan een losse
-        // vlag, en versmalt op alles wat er niet als afgeronde pass uitziet:
-        // de vorige poort (`ok !== false`) liet ook een antwoord zónder lijsten
-        // door als "gelukt", en wiste er dan de hele notitie mee leeg.
-        // Bij een mislukte pass blijft alles staan wat er stond — wél zonder de
-        // ankers, want de transcriptie waar ze in wezen is zojuist vervangen.
-        const usable = artifactsUsable(artifacts);
-        if (!usable) {
-            log.warn(`[Transcriptions] Reprocess ${transcriptionId}: artifact extraction failed — keeping the existing action items, decisions and questions.`);
-        }
-        const mergedActionItems = mergeRegeneratedActionItems(
-            transcription.actionItems, artifacts.actionItems,
-            { transcriptChanged: true, keepAiItems: !usable },
-        );
-        // Same rule for the other two lists (M4). A decision picked off a
-        // transcript line is a person's, and re-transcribing the audio is not
-        // a reason to delete it — only a reason to drop its anchors into the
-        // transcript this run just replaced.
-        const mergedDecisions = mergeRegeneratedNotes(
-            transcription.decisions, artifacts.decisions,
-            { field: 'decisions', transcriptChanged: true, keepAiNotes: !usable },
-        );
-        const mergedQuestions = mergeRegeneratedNotes(
-            transcription.questions, artifacts.questions,
-            { field: 'questions', transcriptChanged: true, keepAiNotes: !usable },
-        );
-        // Bewaren is de helft; zeggen dat je bewaard hebt is de andere helft.
-        // Zonder deze regel is een mislukte pass op het scherm niet te
-        // onderscheiden van een vergadering waarin niets is afgesproken.
-        const notices = buildPipelineNotices({ truncated: truncationNotice, voiceprint: voiceprintInfo, artifactsFailed: !usable, language });
-        const finalSummary = notices.length ? `${notices.join('\n')}\n\n${summary || ''}`.trim() : summary;
+        const transcribed = await transcribeStoredAudio({ provider, audioPath, fileName, language, numSpeakers, transcription, userId });
+        const { response, voiceprintInfo } = transcribed;
+        const {
+            merged, transcript, speakers, totalDuration, chapters, artifacts, usable,
+            speakerSummaries, summaryStamp, finalSummary,
+            mergedActionItems, mergedDecisions, mergedQuestions,
+        } = await analyseTranscript({ req, transcriptionId, transcription, userId, userOrgId, language, numSpeakers, transcribed });
 
         // Update the existing record — but only while we still hold the claim,
         // so a slow run cannot overwrite a note someone else has since taken.
