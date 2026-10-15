@@ -87,6 +87,7 @@ test('an update only reaches a chart on this tab (or one without a tab), and nev
     const legacy = chartsFrom([{ id: 'old', title: 'Trend' }], 't2', existing);
     assert.deepStrictEqual(legacy.updated.map((c) => [c.id, c.title, c.tab]), [['old', 'Trend', 't2']], 'a chart without a tab is pinned to the tab that updates it');
     assert.match(chartsFrom([{ id: 'a', anchor: 'K2' }], 't1', existing, ['a']).error, /both updated and removed/);
+    assert.match(chartsFrom([{ id: 'a', anchor: 'K2' }, { id: 'a', title: 'x' }], 't1', existing).error, /Chart 2: chart "a" is updated twice/);
 });
 
 test('the summary the chat reads: size in cells (default when stored without one) and the categories', () => {

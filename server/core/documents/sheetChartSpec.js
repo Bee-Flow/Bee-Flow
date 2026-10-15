@@ -39,8 +39,13 @@ function chartsFrom(list, tabId, existing, remove) {
     }
     const charts = [];
     const updated = [];
+    const seen = new Set();
     for (const [i, c] of items.entries()) {
         const at = `Chart ${i + 1}`;
+        if (c?.id) {
+            if (seen.has(String(c.id))) return { error: `${at}: chart "${c.id}" is updated twice in this call; give each chart once.` };
+            seen.add(String(c.id));
+        }
         const old = c?.id ? have.find((x) => x.id === String(c.id) && (!x.tab || x.tab === tabId)) : null;
         if (c?.id && !old) return { error: `${at}: no chart "${c.id}" on this tab to update; leave out id for a new chart, or pass the chart's own tab.` };
         if (old && removed.includes(old.id)) return { error: `${at}: chart "${old.id}" is both updated and removed.` };

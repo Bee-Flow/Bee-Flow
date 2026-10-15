@@ -79,7 +79,7 @@ function formatCode(chart, whole = false) {
 }
 
 /** Every number the chart's series hold is an integer. */
-const allWhole = (data) => data.series.every((s) => s.values.every((v) => v === null || Number.isInteger(v)));
+const allWhole = (data) => data.series.every((s) => s.values.every((v) => v == null || !Number.isFinite(v) || Number.isInteger(v)));
 
 const colorOf = (chart, i) => String((chart.colors && chart.colors.length ? chart.colors : CHART_PALETTE)[i % (chart.colors?.length || CHART_PALETTE.length)]).replace('#', '').toUpperCase();
 const fill = (hex) => `<a:solidFill><a:srgbClr val="${hex}"/></a:solidFill>`;
