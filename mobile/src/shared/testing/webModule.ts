@@ -44,7 +44,7 @@ export function loadWebFunctions<T = Record<string, unknown>>(
     names: readonly string[],
     deps: Record<string, unknown> = {},
 ): T {
-    const src = fs.readFileSync(`${AGENT_HUB_SRC}/${relative}`, 'utf8');
+    const src = stripTypes(relative, fs.readFileSync(`${AGENT_HUB_SRC}/${relative}`, 'utf8'));
     const body = `${names.map((n) => functionSource(src, n)).join('\n')}\nreturn { ${names.join(', ')} };`;
     return new Function(...Object.keys(deps), body)(...Object.values(deps)) as T;
 }

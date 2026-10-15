@@ -3,6 +3,50 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { useEntitlements } from './EntitlementsContext';
 import UpgradePrompt from '../billing/UpgradePrompt';
 
+/** A licence or subscription row as /api/license/status returns it. */
+export interface LicenseRecord {
+    tier?: string;
+    expiresAt?: string | null;
+    issuer?: string;
+    billingInterval?: string;
+}
+
+export interface LicenseState {
+    tier: string;
+    source: string;
+    scope: string | null;
+    license: LicenseRecord | null;
+    subscription: LicenseRecord | null;
+    features: string[];
+    limits: Record<string, number>;
+    serverOverride: boolean;
+    serverLicense: LicenseRecord | null;
+    upgradeUrl: string;
+    deploymentMode: string;
+    loading: boolean;
+    error: string | null;
+}
+
+export interface LicenseContextValue extends LicenseState {
+    hasFeature: (name: string) => boolean;
+    hasTier: (required: string) => boolean;
+    entLoading?: boolean;
+    entDegraded?: boolean;
+    entError?: string | null;
+    reload: () => Promise<void>;
+    activate: (token: string) => Promise<unknown>;
+    deactivate: () => Promise<void>;
+    refresh: () => Promise<unknown>;
+}
+
+interface LicenseActionResponse {
+    code?: string;
+    error?: string;
+    status?: Partial<LicenseState>;
+}
+
+type NavigateToBilling = (arg: { feature: string | null; requiredTier: string }) => void;
+
 /**
  * LicenseContext — app-wide tier/feature awareness.
  *
@@ -25,15 +69,15 @@ import UpgradePrompt from '../billing/UpgradePrompt';
 // before the Pro tier was retired) are normalised to `enterprise` via
 // LEGACY_TIER_ALIAS — same contract as the server side.
 export const TIER_HIERARCHY = ['community', 'enterprise', 'full'];
-export const LEGACY_TIER_ALIAS = { pro: 'enterprise' };
-export const TIER_RANK = Object.fromEntries(TIER_HIERARCHY.map((t, i) => [t, i]));
+export const LEGACY_TIER_ALIAS: Record<string, string> = { pro: 'enterprise' };
+export const TIER_RANK: Record<string, number> = Object.fromEntries(TIER_HIERARCHY.map((t, i) => [t, i]));
 
-function normalizeTier(tier) {
+function normalizeTier(tier: string) {
     if (typeof tier !== 'string') return tier;
     return LEGACY_TIER_ALIAS[tier] || tier;
 }
 
-const LicenseContext = createContext({
+const LicenseContext = createContext<LicenseContextValue>({
     tier: 'community',
     source: 'default',
     scope: null,
@@ -67,8 +111,8 @@ const LicenseContext = createContext({
     refresh: async () => {},
 });
 
-export function LicenseProvider({ children }) {
-    const [state, setState] = useState({
+export function LicenseProvider({ children }: { children: React.ReactNode }) {
+    const [state, setState] = useState<LicenseState>({
         tier: 'community',
         source: 'default',
         scope: null,
@@ -115,20 +159,20 @@ export function LicenseProvider({ children }) {
         } catch (e) {
             if (!mountedRef.current) return;
             console.warn('[LicenseProvider] reload failed', e);
-            setState(s => ({ ...s, loading: false, error: e.message || 'license fetch failed' }));
+            setState(s => ({ ...s, loading: false, error: (e as Error).message || 'license fetch failed' }));
         }
     }, []);
 
-    const activate = useCallback(async (token) => {
+    const activate = useCallback(async (token: string) => {
         const r = await authFetch(`${API_BASE}/api/license/activate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token }),
         });
-        let data = {};
+        let data: LicenseActionResponse = {};
         try { data = await r.json(); } catch (e) { console.warn('[LicenseProvider] activate response not JSON', e); }
         if (!r.ok) {
-            const err = new Error(data.error || `HTTP ${r.status}`);
+            const err: Error & { code?: string } = new Error(data.error || `HTTP ${r.status}`);
             err.code = data.code;
             throw err;
         }
@@ -142,7 +186,7 @@ export function LicenseProvider({ children }) {
     const deactivate = useCallback(async () => {
         const r = await authFetch(`${API_BASE}/api/license/deactivate`, { method: 'DELETE' });
         if (!r.ok && r.status !== 404) {
-            let data = {};
+            let data: LicenseActionResponse = {};
             try { data = await r.json(); } catch (e) { console.warn('[LicenseProvider] deactivate response not JSON', e); }
             throw new Error(data.error || `HTTP ${r.status}`);
         }
@@ -151,7 +195,7 @@ export function LicenseProvider({ children }) {
 
     const refresh = useCallback(async () => {
         const r = await authFetch(`${API_BASE}/api/license/refresh`, { method: 'POST' });
-        let data = {};
+        let data: LicenseActionResponse = {};
         try { data = await r.json(); } catch (e) { console.warn('[LicenseProvider] refresh response not JSON', e); }
         if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
         await reload();
@@ -175,14 +219,14 @@ export function LicenseProvider({ children }) {
                 if (!r.ok) return;
                 const data = await r.json();
                 if (ac.signal.aborted) return;
-                const patch = {};
+                const patch: Partial<LicenseState> = {};
                 if (data?.licenseUpgradeUrl) patch.upgradeUrl = data.licenseUpgradeUrl;
                 if (data?.deploymentMode === 'cloud' || data?.deploymentMode === 'self-hosted') {
                     patch.deploymentMode = data.deploymentMode;
                 }
                 if (Object.keys(patch).length > 0) setState(s => ({ ...s, ...patch }));
             } catch (e) {
-                if (e.name === 'AbortError') return;
+                if ((e as Error).name === 'AbortError') return;
                 console.warn('[LicenseProvider] setup-status fetch failed', e);
             }
         })();
@@ -213,9 +257,9 @@ export function LicenseProvider({ children }) {
     // (a licence-management concern, not a per-capability grant).
     const ent = useEntitlements();
     const entCan = ent.can;
-    const hasFeature = useCallback((name) => entCan(name), [entCan]);
+    const hasFeature = useCallback((name: string) => entCan(name), [entCan]);
     const hasTier = useCallback(
-        (required) => {
+        (required: string) => {
             const a = TIER_RANK[normalizeTier(tier)] ?? -1;
             const b = TIER_RANK[normalizeTier(required)] ?? 99;
             return a >= b;
@@ -257,6 +301,13 @@ export function useLicenseContext() {
 export function RequireTier({
     tier = 'enterprise', feature = null, children, fallback = null,
     onNavigateToLicense = null, onNavigateToBilling = null,
+}: {
+    tier?: string;
+    feature?: string | null;
+    children?: React.ReactNode;
+    fallback?: React.ReactNode;
+    onNavigateToLicense?: (() => void) | null;
+    onNavigateToBilling?: NavigateToBilling | null;
 }) {
     const ctx = useLicenseContext();
     const upgradeUrl = ctx.upgradeUrl || 'https://beeflow.nl/pricing';
@@ -288,7 +339,11 @@ export function RequireTier({
  * <LockedIfBelow tier="enterprise">{({ locked, requiredTier }) => (...)}</LockedIfBelow>
  * Render-prop helper for lightweight inline gating (lock icons, tooltips).
  */
-export function LockedIfBelow({ tier = 'enterprise', feature = null, children }) {
+export function LockedIfBelow({ tier = 'enterprise', feature = null, children }: {
+    tier?: string;
+    feature?: string | null;
+    children: (arg: { locked: boolean; requiredTier: string; currentTier: string; ctx: LicenseContextValue }) => React.ReactNode;
+}) {
     const ctx = useLicenseContext();
     // Don't flash a lock while the snapshot is still loading, and don't show a
     // false lock during a transient resolver outage — fail open (server gate

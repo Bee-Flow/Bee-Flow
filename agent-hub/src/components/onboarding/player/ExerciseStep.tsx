@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Check, ArrowUpRight, Sparkles, Loader2, RotateCcw, Lightbulb } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { gradeExercise, getHint } from '../exerciseCoach';
+import type { ExerciseGrade } from '../exerciseCoach';
+import type { LessonStep, StepState } from '../lessons.types';
 
 // Small circular score gauge (0–100). Amber for partial, green on pass. Never
 // purple. A null score (coach unavailable) renders a neutral dash.
-function ScoreRing({ score, passed }) {
+function ScoreRing({ score, passed }: { score: number | null; passed: boolean }) {
     const r = 26;
     const c = 2 * Math.PI * r;
     const pct = typeof score === 'number' ? Math.max(0, Math.min(100, score)) : 0;
@@ -38,19 +40,26 @@ function ScoreRing({ score, passed }) {
  *   modelTier — user/org-selected tier for the coach call
  *   onState   — called with the recorded state after each grade / skip
  */
-export default function ExerciseStep({ step, saved, modelTier = 'fast', onState }) {
+interface ExerciseStepProps {
+    step: LessonStep;
+    saved?: StepState | null;
+    modelTier?: string;
+    onState?: (state: StepState) => void;
+}
+
+export default function ExerciseStep({ step, saved, modelTier = 'fast', onState }: ExerciseStepProps) {
     const { t, locale } = useTranslation();
     const maxAttempts = step.maxAttempts || 4;
 
     const [text, setText] = useState(saved?.submission ?? step.starter ?? '');
     const [attempts, setAttempts] = useState(saved?.attempts || 0);
     const [grading, setGrading] = useState(false);
-    const [result, setResult] = useState(
+    const [result, setResult] = useState<ExerciseGrade | null>(
         saved && (saved.status === 'passed' || saved.status === 'failed')
             ? { score: saved.score ?? null, passed: saved.status === 'passed', feedback: saved.feedback || '', strengths: saved.strengths || [], improvements: saved.improvements || [], error: null }
             : null,
     );
-    const [hint, setHint] = useState(null);
+    const [hint, setHint] = useState<string | null>(null);
     const [hinting, setHinting] = useState(false);
 
     const passed = result?.passed;
@@ -114,7 +123,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                     borderColor: 'var(--border-default)', background: 'var(--bg-card)',
                     color: 'var(--text-primary)', minHeight: 110,
                     '--tw-ring-color': 'color-mix(in srgb, var(--accent-primary) 35%, transparent)',
-                }}
+                } as React.CSSProperties}
             />
 
             {hint && (

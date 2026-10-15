@@ -1,12 +1,13 @@
 import React from 'react';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { LessonStep } from '../lessons.types';
 
 /**
  * SlideStep — a teaching card inside the LessonPlayer. Renders the step's markdown
  * body. Always satisfiable: the player's Next button is enabled for slides.
  */
-export default function SlideStep({ step }) {
+export default function SlideStep({ step }: { step: LessonStep }) {
     const { t } = useTranslation();
     const title = t(step.titleKey, step.titleFallback);
     const body = t(step.bodyMdKey, step.bodyMdFallback);

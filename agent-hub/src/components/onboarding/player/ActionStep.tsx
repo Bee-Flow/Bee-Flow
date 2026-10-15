@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 import { getActionCheck, runActionCheck, applicableCriteria } from '../actionChecks';
+import type { LessonUser, StepState } from '../lessons.types';
 
 /**
  * ActionStep — a verified do-it-for-real challenge (the Trailhead pattern).
@@ -33,21 +34,40 @@ import { getActionCheck, runActionCheck, applicableCriteria } from '../actionChe
 // The artboard promises "every 5 seconds"; the checklist polls at that cadence.
 const POLL_MS = 5000;
 
-export default function ActionStep({ step, user, saved, onState, onLaunch }) {
+/** The slice of an action step this component reads. */
+interface ActionStepDoc {
+    id: string;
+    checkId: string;
+    titleKey?: string;
+    titleFallback?: string;
+    instructionKey?: string;
+    instructionFallback?: string;
+    readonly launch?: { readonly navigateTo?: string; readonly labelKey?: string; readonly labelFallback?: string };
+}
+
+interface ActionStepProps {
+    step: ActionStepDoc;
+    user?: LessonUser | null;
+    saved?: StepState | null;
+    onState?: (state: StepState) => void;
+    onLaunch?: (navigateTo: string) => void;
+}
+
+export default function ActionStep({ step, user, saved, onState, onLaunch }: ActionStepProps) {
     const { t } = useTranslation();
     const { hasFeature } = useLicenseContext();
     const check = getActionCheck(step.checkId);
     const ctx = useMemo(() => ({ user, hasFeature }), [user, hasFeature]);
     const criteria = useMemo(() => applicableCriteria(check, ctx), [check, ctx]);
-    const [passes, setPasses] = useState(() => saved?.passes || {});
-    const [status, setStatus] = useState(saved?.status || null); // 'passed' | 'done' | null
+    const [passes, setPasses] = useState<Record<string, boolean>>(() => saved?.passes || {});
+    const [status, setStatus] = useState<string | null>(saved?.status || null); // 'passed' | 'done' | null
     const [checking, setChecking] = useState(false);
-    const [checkError, setCheckError] = useState(null);
+    const [checkError, setCheckError] = useState<string | null>(null);
     const [manualAttempts, setManualAttempts] = useState(0);
     // When each criterion was first seen passing (artboard 1c shows a time
     // per ticked row) and when the checklist last ran.
-    const [passedAt, setPassedAt] = useState({});
-    const [lastCheckAt, setLastCheckAt] = useState(null);
+    const [passedAt, setPassedAt] = useState<Record<string, string>>({});
+    const [lastCheckAt, setLastCheckAt] = useState<Date | null>(null);
     const doneRef = useRef(status === 'passed' || status === 'done');
 
     // onState is an inline closure from the player (fresh identity per render);
@@ -58,14 +78,14 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }) {
     const ctxRef = useRef(ctx);
     useEffect(() => { ctxRef.current = ctx; }, [ctx]);
 
-    const finish = useCallback((newStatus, newPasses) => {
+    const finish = useCallback((newStatus: string, newPasses: Record<string, boolean>) => {
         if (doneRef.current) return;
         doneRef.current = true;
         setStatus(newStatus);
         onStateRef.current?.({ status: newStatus, passes: newPasses, answeredAt: new Date().toISOString() });
     }, []);
 
-    const doCheck = useCallback(async (manual) => {
+    const doCheck = useCallback(async (manual: boolean) => {
         if (!check || doneRef.current) return;
         if (manual) setChecking(true);
         const result = await runActionCheck(step.checkId, ctxRef.current);
@@ -108,7 +128,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }) {
     const finished = status === 'passed' || status === 'done';
     const offerHonor = !finished && (checkError || manualAttempts >= 2);
     const firstUnmet = criteria.find((c) => !(finished || passes[c.id]))?.id || null;
-    const fmtTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const fmtTime = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     return (
         <div className="flex flex-col gap-3">
