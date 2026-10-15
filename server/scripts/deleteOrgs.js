@@ -41,6 +41,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const { pool } = require('../db');
+require('../projects/erasurePorts'); // deleteOrganization erases users through these ports
 const userStore = require('../stores/userStore');
 
 const { parseOpsArgsOrExit } = require('./lib/opsArgs');

@@ -14,6 +14,7 @@
  *   integrations/integrationClients.js  the provider clients meeting notes and datatable
  *                                  sources use -> core/integrations/integrationClients.js
  *   jobs/datatableChangePorts.js   the live-datatable listeners -> stores/datatableStore/liveChanges.js
+ *   projects/erasurePorts.js       account erasure's notebooks + projects -> stores/user/erasurePorts.js
  *
  * Loaded by index.js, early. A test that drives the real code path through
  * one of these loads the registering module itself.
@@ -29,3 +30,4 @@ require('../services/runnerPorts');
 require('../core/meetingNotes/runnerPorts');
 require('../integrations/integrationClients');
 require('../jobs/datatableChangePorts');
+require('../projects/erasurePorts');

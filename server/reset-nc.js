@@ -2,6 +2,7 @@
 // starts from scratch: org gone, tenant key gone, pending bindings gone,
 // pairing codes gone, all sessions gone. Invoked by scripts/dev-nc.sh reset.
 
+require('./projects/erasurePorts'); // deleteOrganization erases users through these ports
 const u = require('./stores/userStore');
 const db = require('./db');
 const log = require('./telemetry/log');

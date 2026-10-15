@@ -30,6 +30,7 @@
 
 const path = require('path');
 const { pool } = require(path.join(__dirname, '..', 'db'));
+require(path.join(__dirname, '..', 'projects', 'erasurePorts')); // deleteUser erases notebooks/projects through these ports
 const userStore = require(path.join(__dirname, '..', 'stores', 'userStore'));
 const { isAzureOid } = require(path.join(__dirname, '..', 'auth', 'ssoUserResolver'));
 const { discoverUserTables, userDataFootprint, isSafeToDelete } = require('./lib/userDataFootprint');

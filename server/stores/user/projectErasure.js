@@ -98,7 +98,7 @@ async function eraseOwnedProjects(userId, opts = {}) {
     const countSharedThreads = opts.countSharedThreads
         || ((projectId) => require('../projectStore').countSharedThreads(projectId));
     const handOver = opts.handOver || ((projectId, fromOwnerId) => require('../projectStore').handOverProject(projectId, fromOwnerId));
-    const teardown = opts.teardown || require('../../projects/projectTeardown').makeProjectTeardown();
+    const teardown = opts.teardown || require('./erasurePorts').erasurePort('projects').makeTeardown();
 
     const report = { deleted: 0, kept: 0, failed: 0, handedOver: 0 };
     if (!userId) return report;
