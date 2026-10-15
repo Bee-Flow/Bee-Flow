@@ -11,25 +11,7 @@ import {
     MessagesSquare, ListTree, MessageSquarePlus, Type, FileUp, Search, Keyboard,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-
-/** The chain of editor commands the palette uses (the editor's `chain().focus()`). */
-export interface EditorChain {
-    toggleBold: () => EditorChain;
-    toggleItalic: () => EditorChain;
-    toggleUnderline: () => EditorChain;
-    toggleStrike: () => EditorChain;
-    toggleCode: () => EditorChain;
-    toggleHighlight: () => EditorChain;
-    toggleHeading: (attrs: { level: number }) => EditorChain;
-    toggleBulletList: () => EditorChain;
-    toggleOrderedList: () => EditorChain;
-    toggleTaskList: () => EditorChain;
-    toggleBlockquote: () => EditorChain;
-    setCodeBlock: () => EditorChain;
-    insertTable: (attrs: { rows: number; cols: number; withHeaderRow: boolean }) => EditorChain;
-    setHorizontalRule: () => EditorChain;
-    run: () => boolean;
-}
+import type { EditorChain } from '../../../../editor/react/editorFacade';
 
 /** The slice of the editor ref the commands reach into. */
 export interface CommandEditorRef {
