@@ -43,15 +43,9 @@ export type Catalogue = Record<string, unknown>;
 
 export type TranslateParams = Record<string, unknown>;
 
-/** A missing key (a lesson or course the server sent without one) finds nothing
- *  and the string fallback is used. Declared as a method so a translator
- *  written for `key: string` (tests, adapters) stays assignable. */
+/** A missing key falls back to the string fallback. A method type, so a `key: string` translator stays assignable. */
 export type TranslateFn = {
-    bivarianceHack(
-        key: string | undefined,
-        fallbackOrParams?: string | TranslateParams,
-        params?: TranslateParams,
-    ): string;
+    bivarianceHack(key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams): string;
 }['bivarianceHack'];
 
 export interface TranslationValue {
@@ -385,7 +379,7 @@ const NO_PROVIDER: TranslationValue = {
     t: (key, fallbackOrParams, paramsArg) => {
         const hasStringFallback = typeof fallbackOrParams === 'string';
         const params = hasStringFallback ? paramsArg : fallbackOrParams;
-        // key may be undefined (a lesson without one): the entry is then missing and the fallback below applies.
+        // key may be undefined: the entry is then missing and the fallback applies.
         let value: unknown = DEFAULTS[key as string];
         if (typeof value !== 'string') value = hasStringFallback ? fallbackOrParams : key;
         return interpolate(value as string, params);
