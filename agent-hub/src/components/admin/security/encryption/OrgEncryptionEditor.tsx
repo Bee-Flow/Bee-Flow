@@ -22,18 +22,41 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import EncryptExistingData from './EncryptExistingData';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { errorMessage, messageOf } from '../../../../utils/caughtError';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import ChoiceCards from '../../../shared/ChoiceCards';
+import type { ChoiceCardOption } from '../../../shared/ChoiceCards';
 import { toast } from '../../../shared/Toast';
+
+type EncryptionTier = 'none' | 'managed' | 'zk';
+
+/** One entry of `tierOptions` (server stores/encryptionAvailability.js). */
+interface TierOption {
+    tier: EncryptionTier;
+    selectable: boolean;
+    /** Why the tier is blocked; null when selectable. */
+    reason?: string | null;
+    /** 'entitlement' (billing), 'readiness' (configuration) or null. */
+    blockedBy?: string | null;
+    /** Advisory, not a blocker. */
+    warningReason?: string | null;
+}
+
+/** GET /auth/organizations/:id/encryption — the fields this screen reads. */
+interface EncryptionSettings {
+    tier: EncryptionTier;
+    entitled?: boolean;
+    tierOptions?: TierOption[];
+}
 
 const TIER_ICON = { none: ShieldOff, managed: ShieldCheck, zk: KeyRound };
 
-export default function OrgEncryptionEditor({ orgId }) {
+export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState(null);
-    const [server, setServer] = useState(null);   // last loaded server state
-    const [tier, setTier] = useState(null);       // current selection
+    const [loadError, setLoadError] = useState<string | null | undefined>(null);
+    const [server, setServer] = useState<EncryptionSettings | null>(null);   // last loaded server state
+    const [tier, setTier] = useState<EncryptionTier | null>(null);       // current selection
     const [saving, setSaving] = useState(false);
 
     const load = useCallback(async () => {
@@ -53,7 +76,7 @@ export default function OrgEncryptionEditor({ orgId }) {
             // Null the loaded state so Save stays disabled — saving on top of a
             // failed load would write a guess.
             setServer(null);
-            setLoadError(err.message);
+            setLoadError(errorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -88,7 +111,7 @@ export default function OrgEncryptionEditor({ orgId }) {
             }
             await load();
         } catch (err) {
-            toast.error(err.message || t('admin.encryption.save_failed', 'Could not save encryption settings'));
+            toast.error(messageOf(err, t('admin.encryption.save_failed', 'Could not save encryption settings')));
         } finally {
             setSaving(false);
         }
@@ -99,7 +122,7 @@ export default function OrgEncryptionEditor({ orgId }) {
     // form, and two writers would overwrite each other's state.
 
     const options = useMemo(() => {
-        const meta = {
+        const meta: Record<string, { label: string; description?: string }> = {
             none: {
                 label: t('admin.encryption.tier_none', 'Off'),
                 description: t('admin.encryption.tier_none_desc', 'Messages are stored without content encryption.'),
@@ -120,7 +143,7 @@ export default function OrgEncryptionEditor({ orgId }) {
             },
         };
 
-        return (server?.tierOptions || []).map((opt) => {
+        return (server?.tierOptions || []).map((opt): ChoiceCardOption<EncryptionTier> => {
             const m = meta[opt.tier] || { label: opt.tier };
             const blockedByPlan = opt.blockedBy === 'entitlement';
             return {

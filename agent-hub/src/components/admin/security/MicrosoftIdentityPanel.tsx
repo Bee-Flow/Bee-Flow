@@ -1,15 +1,29 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
+
+/** A pending Microsoft identity link request. */
+interface LinkRequest {
+    id: string;
+    email: string;
+    tenant_id: string;
+    object_id: string;
+}
+
+interface SyncBinding {
+    syncOrganizationId: string;
+    syncTenantId: string;
+}
 
 export default function MicrosoftIdentityPanel() {
     const { t } = useTranslation();
-    const [requests, setRequests] = useState([]);
-    const [binding, setBinding] = useState({ syncOrganizationId: '', syncTenantId: '' });
-    const [users, setUsers] = useState({});
-    const [error, setError] = useState('');
+    const [requests, setRequests] = useState<LinkRequest[]>([]);
+    const [binding, setBinding] = useState<SyncBinding>({ syncOrganizationId: '', syncTenantId: '' });
+    const [users, setUsers] = useState<Record<string, string>>({});
+    const [error, setError] = useState<string | undefined>('');
     const [busy, setBusy] = useState(false);
-    const request = useCallback(async (path, options) => {
+    const request = useCallback(async (path: string, options?: RequestInit) => {
         const res = await authFetch(`${API_BASE}/auth/microsoft/${path}`, options);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t('common.error'));
@@ -20,15 +34,15 @@ export default function MicrosoftIdentityPanel() {
             const [pending, current] = await Promise.all([request('link-requests'), request('sync-binding')]);
             setRequests(pending);
             setBinding({ syncOrganizationId: current.syncOrganizationId || '', syncTenantId: current.syncTenantId || '' });
-        } catch (err) { setError(err.message); }
+        } catch (err) { setError(errorMessage(err)); }
     }, [request]);
     useEffect(() => { refresh(); }, [refresh]);
-    async function act(path, method, body) {
+    async function act(path: string, method: string, body?: unknown) {
         setBusy(true); setError('');
         try {
             await request(path, { method, headers: { 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
             await refresh();
-        } catch (err) { setError(err.message); }
+        } catch (err) { setError(errorMessage(err)); }
         finally { setBusy(false); }
     }
     const fieldClass = 'w-full rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm';
@@ -57,7 +71,7 @@ export default function MicrosoftIdentityPanel() {
         <MicrosoftUnlink onUnlink={userId => act(`users/${encodeURIComponent(userId)}/identity`, 'DELETE')} busy={busy} />
     </section>;
 }
-function MicrosoftUnlink({ onUnlink, busy }) {
+function MicrosoftUnlink({ onUnlink, busy }: { onUnlink: (userId: string) => unknown; busy: boolean }) {
     const { t } = useTranslation();
     const [userId, setUserId] = useState('');
     const [confirm, setConfirm] = useState(false);

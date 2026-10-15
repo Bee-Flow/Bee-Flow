@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ModalShell from './ModalShell';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
 /**
@@ -16,9 +17,27 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  * onPick receives the asset's URL (`/api/cms/asset/cms/…`), matching what
  * the upload handler returns, so both paths store the same shape.
  */
-export default function AssetPickerDialog({ onPick, onClose, accept = 'image' }) {
+interface CmsAsset {
+    key: string;
+    url: string;
+}
+
+interface AssetLibraryState {
+    loading: boolean;
+    error: string | null;
+    assets: CmsAsset[];
+    unavailable: boolean;
+}
+
+interface AssetPickerDialogProps {
+    onPick: (url: string) => void;
+    onClose?: () => void;
+    accept?: string;
+}
+
+export default function AssetPickerDialog({ onPick, onClose, accept = 'image' }: AssetPickerDialogProps) {
     const { t } = useTranslation();
-    const [state, setState] = useState({ loading: true, error: null, assets: [], unavailable: false });
+    const [state, setState] = useState<AssetLibraryState>({ loading: true, error: null, assets: [], unavailable: false });
     const [query, setQuery] = useState('');
 
     useEffect(() => {
@@ -36,7 +55,7 @@ export default function AssetPickerDialog({ onPick, onClose, accept = 'image' })
             })
             .catch(err => {
                 if (cancelled) return;
-                setState({ loading: false, error: err.message || '', assets: [], unavailable: false });
+                setState({ loading: false, error: messageOf(err, ''), assets: [], unavailable: false });
             });
         return () => { cancelled = true; };
     }, []);
