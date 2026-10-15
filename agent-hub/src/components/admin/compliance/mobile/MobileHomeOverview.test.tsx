@@ -73,11 +73,11 @@ describe('MobileHomeOverview — every deadline row opens its target', () => {
 
 describe('attentionTarget', () => {
     it('keeps the tab and applies the legacy alias', () => {
-        expect(attentionTarget({ action: { target: '/app/admin/compliance/frameworks?tab=per_automation' } }))
+        expect(attentionTarget({ id: 'x', action: { target: '/app/admin/compliance/frameworks?tab=per_automation' } }))
             .toEqual({ section: 'aia', id: null, tab: 'systems' });
-        expect(attentionTarget({ action: { target: '/app/admin/compliance/audits?tab=obligations' } }))
+        expect(attentionTarget({ id: 'x', action: { target: '/app/admin/compliance/audits?tab=obligations' } }))
             .toEqual({ section: 'training', id: null });
-        expect(attentionTarget({ action: { target: '/app/settings/organisation/compliance/dpia/ag%2F9' } }))
+        expect(attentionTarget({ id: 'x', action: { target: '/app/settings/organisation/compliance/dpia/ag%2F9' } }))
             .toEqual({ section: 'dpia', id: 'ag/9' });
     });
 });

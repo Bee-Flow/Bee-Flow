@@ -411,7 +411,7 @@ const KEY_TABLE_FILES = [
     // (HOME_TABS in ComplianceMobile).
     'components/admin/compliance/pages/overview/DeadlinesCard.jsx',
     'components/admin/compliance/pages/overview/deadlineRows.ts',
-    'components/admin/compliance/ComplianceMobile.jsx',
+    'components/admin/compliance/ComplianceMobile.tsx',
     // OBLIGATION_KINDS — de soorten opleidingsverplichting.
     'components/admin/compliance/pages/TrainingPage.jsx',
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
@@ -491,8 +491,8 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js' },
     { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
-    { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
-    { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.js', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
+    { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.ts', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
+    { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.ts', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
     { rel: 'components/admin/product-website/analytics/filters.js', pending: 'CMS — analytics filter names' },
     { rel: 'components/admin/product-website/analytics/heatmap/model.js', pending: 'CMS — block-type names in the heatmap' },
     // Caught by the relative-time signature on the words "just now" in a
@@ -980,7 +980,7 @@ describe('i18n guard — the scanners themselves bite', () => {
         // redesign (components/admin/compliance/data/registers.js) — seven
         // calls, every one nested behind `() => fetchJson(…)`, so the old
         // regex sees NONE of them. An empty source fails the second count.
-        const real = sourceOf('components/admin/compliance/data/registers.js')?.src || '';
+        const real = sourceOf('components/admin/compliance/data/registers.ts')?.src || '';
         expect([...real.matchAll(oldArgRx())].filter(m => m[1] === '_isoMutate')).toHaveLength(0);
         expect(keyArgCalls(real).filter(c => c.fn === '_isoMutate')).toHaveLength(7);
     });

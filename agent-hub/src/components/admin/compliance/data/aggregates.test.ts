@@ -40,7 +40,7 @@ describe('deadlinesFromRegisters — incidents and vulnerabilities', () => {
         const [item] = deadlinesFromRegisters({ incidents: [{ ...base, id: 31, kind: 'breach', regimes: ['GDPR', 'NIS2'] }], now: NOW });
         expect(item).toMatchObject({ id: 'incident:31', kind: 'incident', ref: 'INC-31', meta: { article: 'GDPR Art. 33 · NIS2 Art. 23(4)' }, target: { section: 'incidents', id: '31' } });
         const [plain] = deadlinesFromRegisters({ incidents: [{ ...base, id: 32, kind: 'breach' }], now: NOW });
-        expect(plain.meta.article).toBe('GDPR Art. 33');
+        expect(plain.meta?.article).toBe('GDPR Art. 33');
     });
 
     it('a vulnerability counts down its first open CRA stage, with that stage’s article — never GDPR Art. 33', () => {

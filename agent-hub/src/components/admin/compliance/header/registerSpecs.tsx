@@ -29,6 +29,7 @@ import React from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { countFor } from '../data/useComplianceCounts';
 import { dpiaRows } from '../pages/DpiaPage';
+import type { DpiaRecord } from '../pages/dpia/DpiaDrawer';
 import { DAY_MS } from '../railMeta';
 import { formatDay } from '../shared/formatDates';
 import StatusPillJs from '../shared/StatusPill';
@@ -311,7 +312,7 @@ export const REGISTER_SPECS: Record<string, SpecFn> = {
      * the pill renders nothing.
      */
     dpia(ctx, t) {
-        const rows = dpiaRows(ctx.core?.checks, ctx.dpia?.dpiaList) as Array<{ dpia?: unknown }>;
+        const rows = dpiaRows(ctx.core?.checks, ctx.dpia?.dpiaList as DpiaRecord[] | null | undefined) as Array<{ dpia?: unknown }>;
         const done = rows.filter(r => r.dpia).length;
         return {
             ...EMPTY,

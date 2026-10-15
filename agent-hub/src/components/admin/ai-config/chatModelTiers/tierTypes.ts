@@ -9,6 +9,7 @@ export interface TierSettings {
     reasoningEffort?: string;
     reasoningSummary?: boolean | string;
     budgetTokens?: number;
+    verbosity?: string;
     [key: string]: unknown;
 }
 
@@ -27,6 +28,8 @@ export interface CustomTier {
     temperature?: number;
     reasoningEffort?: string;
     reasoningSummary?: boolean;
+    budgetTokens?: number;
+    verbosity?: string;
     allowedTaskTypes?: string[];
     /** Local-only: the card was just added, show the label/id editor expanded. */
     _isNew?: boolean;

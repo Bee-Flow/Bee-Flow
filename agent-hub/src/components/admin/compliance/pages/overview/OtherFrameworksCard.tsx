@@ -19,15 +19,6 @@ import { railScore } from '../../railMeta';
 import { sectionsInGroup } from '../../sections';
 import ScoreRingJs from '../../shared/ScoreRing';
 
-interface SectionLike {
-    id: string;
-    regulation?: string | null;
-    optional?: boolean;
-    icon?: React.ComponentType<{ size?: number; className?: string; 'aria-hidden'?: boolean }>;
-    labelKey: string;
-    labelFallback: string;
-}
-
 type Tone = keyof typeof TONES;
 
 export interface OtherFrameworkRow {
@@ -58,14 +49,14 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 
 /** The rows: enabled optional frameworks that score a regulation, in rail order. */
 export function otherFrameworkRows({ counts, frameworks, overview, checks, t }: {
-    counts: unknown;
+    counts: Record<string, unknown> | null | undefined;
     frameworks: FrameworksHook | null | undefined;
     overview: Overview | null | undefined;
     checks: ReadonlyArray<CheckLike | null> | null | undefined;
     t: Translate;
 }): OtherFrameworkRow[] {
-    const all = sectionsInGroup('frameworks') as unknown as SectionLike[];
-    const visible = visibleSections(all, { counts, frameworks }) as SectionLike[];
+    const all = sectionsInGroup('frameworks');
+    const visible = visibleSections(all, { counts, frameworks });
     return visible
         .filter((s) => s.optional && s.regulation)
         .map((s) => {
@@ -86,7 +77,7 @@ export function otherFrameworkRows({ counts, frameworks, overview, checks, t }: 
 export default function OtherFrameworksCard({
     counts, frameworks, overview, checks, navigate, testId = 'other-frameworks',
 }: {
-    counts: unknown;
+    counts: Record<string, unknown> | null | undefined;
     frameworks?: FrameworksHook | null;
     overview?: Overview | null;
     checks?: ReadonlyArray<CheckLike | null> | null;

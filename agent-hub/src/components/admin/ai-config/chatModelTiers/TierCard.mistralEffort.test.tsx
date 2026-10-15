@@ -19,6 +19,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 vi.mock('../../shared/SearchableModelSelect', () => ({ default: () => null }));
 
 import TierCard from './TierCard';
+import type { TierSettings } from './tierTypes';
 import { clampToEfforts, defaultTierEffort, stampedEffortOptions } from './modelMeta';
 
 afterEach(cleanup);
@@ -26,7 +27,7 @@ afterEach(cleanup);
 const mistralSmall = { id: 'mistral-small-latest', name: 'Mistral Small 4', reasoning: true, efforts: ['none', 'high'] };
 const gpt = { id: 'gpt-5.6-terra' };
 
-function renderCard(tierKey: string, tierConfig: Record<string, unknown>, updateFn = vi.fn()) {
+function renderCard(tierKey: string, tierConfig: TierSettings, updateFn = vi.fn()) {
     render(
         <TierCard
             tier={{ key: tierKey, label: tierKey, desc: '', icon: '' }}
