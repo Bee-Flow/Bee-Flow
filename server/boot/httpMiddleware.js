@@ -129,7 +129,7 @@ function applyCors(app, { log = defaultLog } = {}) {
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         // X-Beeflow-Client must be listed or the browser refuses the preflight and
         // NO cross-origin call gets through — authFetch sets it on every request
-        // (agent-hub/src/utils/helpers.js). Production never caught this because
+        // (agent-hub/src/utils/helpers.ts). Production never caught this because
         // the SPA and the API share an origin there, so nothing pre-flights; it
         // breaks exactly the split-origin setups — the dev server on :5176 talking
         // to :3001, and self-hosts serving the app from a separate host.

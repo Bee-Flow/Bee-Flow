@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
     MANAGED_COLUMNS, columnTypeKind, describeAccess, destructiveChanges, gradeAtLeast, isManagedColumn,
