@@ -60,7 +60,8 @@ async function importUploadedSpreadsheet({ req, send, userId, buffer, att, docum
         const importWorkbook = deps.importWorkbook || require('../../../core/documents/sheetImport').importWorkbook;
         const result = await importWorkbook({ userId, buffer, fileName: att.name, mimeType: att.type });
         documentScope?.markCreated(result.documentId);
-        send('document_open', { documentId: result.documentId, name: result.name, docType: 'spreadsheet' });
+        // filename: the upload's own name, so the client can put the Open button on its chip right away
+        send('document_open', { documentId: result.documentId, name: result.name, docType: 'spreadsheet', filename: att.name });
         log.info(`[DirectChat] Imported spreadsheet ${att.name} as document ${result.documentId} (${result.tabs.length} tab(s))`);
         return { base: { documentId: result.documentId }, note: `\n${importNote(result)}` };
     } catch (e) {

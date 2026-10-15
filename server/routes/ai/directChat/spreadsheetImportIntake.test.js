@@ -29,7 +29,7 @@ test('an allowed import marks the scope, sends document_open and returns the not
     });
     assert.strictEqual(out.base.documentId, result.documentId);
     assert.deepStrictEqual(marked, [result.documentId]);
-    assert.deepStrictEqual(events, [['document_open', { documentId: result.documentId, name: 'Budget', docType: 'spreadsheet' }]]);
+    assert.deepStrictEqual(events, [['document_open', { documentId: result.documentId, name: 'Budget', docType: 'spreadsheet', filename: 'Budget.xlsx' }]]);
     assert.match(out.note, /imported as document 11111111-2222-3333-4444-555555555555 and opened in the side panel/);
     assert.match(out.note, /mode: "outline"[\s\S]*document_write\(\{ documentId, tab, cells, charts \}\)/);
     assert.match(out.note, /5 row\(s\) past row 2000 and 1 column\(s\) past column Z/);

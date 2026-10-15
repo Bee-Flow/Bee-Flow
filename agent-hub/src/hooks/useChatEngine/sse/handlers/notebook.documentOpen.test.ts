@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { dispatchSSEEvent } from '../dispatch';
-import type { SseDispatchContext, SseDispatchIds, SseEventData } from '../../types';
+import type { ChatMessage, SseDispatchContext, SseDispatchIds, SseEventData } from '../../types';
 
 const noop = () => {};
 const ids: SseDispatchIds = {
@@ -44,5 +44,26 @@ describe('document_open', () => {
         send({ documentId: 5 });
         window.removeEventListener('beeflow:open-document-side', seen);
         expect(seen).not.toHaveBeenCalled();
+    });
+
+    it('puts the document on the matching upload chip of this turn\'s user message', () => {
+        let messages: ChatMessage[] = [
+            { id: 'u', role: 'user', content: 'see', attachments: [{ name: 'a.xlsx', type: 'x' }, { name: 'b.pdf', type: 'y' }, { name: 'c.xlsx', documentId: 'old' }] },
+            { id: 'older', role: 'user', content: 'before', attachments: [{ name: 'a.xlsx', type: 'x' }] },
+        ];
+        const local: SseDispatchContext = { ...ctx, setMessages: (next) => { messages = typeof next === 'function' ? next(messages) : next; } };
+        const seen = vi.fn((e: Event) => e.preventDefault());
+        window.addEventListener('beeflow:open-document-side', seen);
+        dispatchSSEEvent(local, 'document_open', { documentId: 'd1', filename: 'a.xlsx' }, ids);
+        dispatchSSEEvent(local, 'document_open', { documentId: 'd2', filename: 'c.xlsx' }, ids);
+        window.removeEventListener('beeflow:open-document-side', seen);
+        expect(messages[0].attachments).toEqual([{ name: 'a.xlsx', type: 'x', documentId: 'd1' }, { name: 'b.pdf', type: 'y' }, { name: 'c.xlsx', documentId: 'old' }]);
+        expect(messages[1].attachments).toEqual([{ name: 'a.xlsx', type: 'x' }]);
+    });
+
+    it('without a filename only the panel opens', () => {
+        const setMessages = vi.fn();
+        dispatchSSEEvent({ ...ctx, setMessages }, 'document_open', { documentId: 'd1' }, ids);
+        expect(setMessages).not.toHaveBeenCalled();
     });
 });
