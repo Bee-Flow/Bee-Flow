@@ -107,8 +107,8 @@ export function landedIcon(type: unknown) {
 export function describeAppToolCall(tc: AppToolCall | null | undefined, t: TranslateFn | null = null) {
     const name = str(tc && tc.name) || '';
     const failed = tc && tc.ok === false;
-    const added = (Array.isArray(tc && tc.added) ? ((tc as AppToolCall).added as unknown[]) : [])
-        .filter((a) => a && typeof a === 'object') as Record<string, unknown>[]
+    const added = ((Array.isArray(tc && tc.added) ? ((tc as AppToolCall).added as unknown[]) : [])
+        .filter((a) => a && typeof a === 'object') as Record<string, unknown>[])
         .map((a) => ({ id: a.id ?? null, type: str(a.type), label: str(a.label), title: str(a.label) || landedTypeLabel(a.type, t) }));
     let title;
     if (failed) {
