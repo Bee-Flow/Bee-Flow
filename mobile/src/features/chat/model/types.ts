@@ -109,6 +109,12 @@ export interface Attachment {
      * the resize has to happen first.
      */
     dataUrl?: string;
+    /**
+     * An uploaded workbook the server imported as a spreadsheet document
+     * (#164). The phone has no spreadsheet editor, so the chip hands the
+     * document's .xlsx to the share sheet (model/importedSheet.ts).
+     */
+    documentId?: string;
 }
 
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';

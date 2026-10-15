@@ -34,6 +34,7 @@ const readAttachment = shapeOf({
     size: field.optNum,
     uri: field.optStr,
     dataUrl: field.optStr,
+    documentId: field.optStr,
 });
 
 const readTool = shapeOf({
