@@ -3,6 +3,7 @@ import { ClipboardPaste, Upload } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { TONES } from '../../../../shared/statusTone';
+import { messageOf } from '../../../../../utils/caughtError';
 
 /**
  * QuestionnaireImport — paste a customer's NIS2 questionnaire or a sector code
@@ -18,13 +19,30 @@ import { TONES } from '../../../../shared/statusTone';
  * being the only gate.
  */
 
-export const SEVERITIES = Object.freeze(['critical', 'high', 'medium', 'low']);
+/** One parsed questionnaire item, as the bulk route takes it. */
+export interface QuestionnaireRow {
+    ref: string;
+    title: string;
+    description: string | null;
+    severity: string;
+    evidence_required: boolean;
+}
+
+/** The result of parsing pasted text. */
+export interface ParsedQuestionnaire {
+    rows: QuestionnaireRow[];
+    skipped: number;
+    format: 'json' | 'delimited' | null;
+    error: string | null;
+}
+
+export const SEVERITIES: readonly string[] = Object.freeze(['critical', 'high', 'medium', 'low']);
 const HEADER_WORDS = /^(ref|reference|nr|no|id|item|title|question|vraag|omschrijving|description|severity|ernst|evidence|bewijs)$/i;
 const TRUTHY = /^(1|true|yes|y|ja|x|required|verplicht)$/i;
 
 /** Split one delimited line, honouring "quoted, fields" and doubled quotes. */
-export function splitLine(line, delimiter) {
-    const out = [];
+export function splitLine(line: string, delimiter: string): string[] {
+    const out: string[] = [];
     let field = '';
     let quoted = false;
     for (let i = 0; i < line.length; i += 1) {
@@ -44,7 +62,7 @@ export function splitLine(line, delimiter) {
 }
 
 /** The delimiter that yields the most columns on the first non-empty line. */
-export function detectDelimiter(lines) {
+export function detectDelimiter(lines: string[]): string {
     const probe = lines.find(l => l.trim()) || '';
     let best = ',';
     let bestCount = 0;
@@ -55,7 +73,7 @@ export function detectDelimiter(lines) {
     return best;
 }
 
-function normaliseRow(cells) {
+function normaliseRow(cells: unknown[]): QuestionnaireRow {
     const [ref, title, description, severity, evidence] = cells;
     const sev = String(severity || '').trim().toLowerCase();
     return {
@@ -67,11 +85,8 @@ function normaliseRow(cells) {
     };
 }
 
-/**
- * Parse pasted text into bulk-upsert rows.
- * @returns {{ rows: Array<object>, skipped: number, format: 'json'|'delimited'|null, error: string|null }}
- */
-export function parseQuestionnaire(text) {
+/** Parse pasted text into bulk-upsert rows. */
+export function parseQuestionnaire(text: unknown): ParsedQuestionnaire {
     const raw = typeof text === 'string' ? text.trim() : '';
     if (!raw) return { rows: [], skipped: 0, format: null, error: null };
 
@@ -80,7 +95,7 @@ export function parseQuestionnaire(text) {
         try { body = JSON.parse(raw); } catch { return { rows: [], skipped: 0, format: 'json', error: 'json_invalid' }; }
         const list = Array.isArray(body) ? body : (Array.isArray(body?.checks) ? body.checks : Array.isArray(body?.rows) ? body.rows : null);
         if (!list) return { rows: [], skipped: 0, format: 'json', error: 'json_shape' };
-        const rows = [];
+        const rows: QuestionnaireRow[] = [];
         let skipped = 0;
         for (const r of list) {
             const row = normaliseRow([
@@ -97,7 +112,7 @@ export function parseQuestionnaire(text) {
 
     const lines = raw.split(/\r?\n/).filter(l => l.trim());
     const delimiter = detectDelimiter(lines);
-    const rows = [];
+    const rows: QuestionnaireRow[] = [];
     let skipped = 0;
     lines.forEach((line, index) => {
         const cells = splitLine(line, delimiter);
@@ -109,7 +124,7 @@ export function parseQuestionnaire(text) {
     return { rows, skipped, format: 'delimited', error: rows.length ? null : 'no_rows' };
 }
 
-const ERROR_COPY = Object.freeze({
+const ERROR_COPY: Readonly<Record<string, { key: string; fallback: string }>> = Object.freeze({
     json_invalid: { key: 'compliance.custom_import_err_json', fallback: 'That is not valid JSON.' },
     json_shape: { key: 'compliance.custom_import_err_shape', fallback: 'Expected an array of items, or { "checks": [ … ] }.' },
     no_rows: { key: 'compliance.custom_import_err_empty', fallback: 'No usable rows: every item needs a reference and a title.' },
@@ -117,11 +132,18 @@ const ERROR_COPY = Object.freeze({
 
 const SECONDARY_BUTTON = 'inline-flex items-center gap-1 px-[9px] py-1 rounded-lg border border-[var(--border-default)] text-[12px] font-medium text-[var(--text-primary)] bg-[var(--bg-card)] disabled:opacity-60';
 
-export default function QuestionnaireImport({ onImport, busy = false, className = '', testId = 'custom-import' }) {
+interface QuestionnaireImportProps {
+    onImport?: (rows: QuestionnaireRow[]) => unknown;
+    busy?: boolean;
+    className?: string;
+    testId?: string;
+}
+
+export default function QuestionnaireImport({ onImport, busy = false, className = '', testId = 'custom-import' }: QuestionnaireImportProps) {
     const { t } = useTranslation();
     const [text, setText] = useState('');
     const [open, setOpen] = useState(false);
-    const [failure, setFailure] = useState(null);
+    const [failure, setFailure] = useState<string | null>(null);
     const parsed = useMemo(() => parseQuestionnaire(text), [text]);
 
     const submit = async () => {
@@ -132,7 +154,7 @@ export default function QuestionnaireImport({ onImport, busy = false, className 
             setText('');
             setOpen(false);
         } catch (e) {
-            setFailure(String(e?.message || 'error'));
+            setFailure(String(messageOf(e, 'error')));
         }
     };
 
