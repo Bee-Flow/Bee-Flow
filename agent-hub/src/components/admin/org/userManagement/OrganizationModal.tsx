@@ -12,7 +12,7 @@ export interface OrganizationModalProps {
     orgData: OrgFormData;
     setOrgData: Dispatch<SetStateAction<OrgFormData>>;
     groups: AdminGroup[];
-    isFullAdmin: boolean;
+    isFullAdmin: boolean | undefined;
     onSubmitAdd: () => void;
     onSubmitUpdate: () => void;
     onUploadLogo: (file: File) => void;

@@ -417,7 +417,7 @@ const KEY_TABLE_FILES = [
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
-    'components/admin/compliance/pages/settings/settingsFields.js',
+    'components/admin/compliance/pages/settings/settingsFields.ts',
     'components/automation/Builder/flow/nodeTypeColors.ts',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
@@ -493,7 +493,7 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
     { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
     { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.ts', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
-    { rel: 'components/admin/product-website/analytics/filters.js', pending: 'CMS — analytics filter names' },
+    { rel: 'components/admin/product-website/analytics/filters.ts', pending: 'CMS — analytics filter names' },
     { rel: 'components/admin/product-website/analytics/heatmap/model.js', pending: 'CMS — block-type names in the heatmap' },
     // Caught by the relative-time signature on the words "just now" in a
     // sentence that is not about time at all — which is the check doing its
