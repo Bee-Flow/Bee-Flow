@@ -6,7 +6,7 @@ import type { SignupData } from './signupValidation';
 /**
  * Plans offered during signup, filtered to the chosen account type. Public
  * endpoint: it must work before the user has an account. Hook order: one
- * effect, then the two memos.
+ * useState, then one effect, then the two memos.
  */
 export function useSignupPlans(signupMode: boolean, signupData: SignupData) {
     const [publicPlans, setPublicPlans] = useState<Parameters<typeof plansFor>[0]>([]);

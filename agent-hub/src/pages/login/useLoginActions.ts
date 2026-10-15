@@ -4,7 +4,7 @@ import { securityKeyMessage } from '../../components/mfa/securityKeyMessages';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import { opaqueLogin } from '../../lib/opaque';
 import { postAdminLogin, postMfaVerifyLogin, postSetup } from './loginRequests';
-import { errorMessage } from '../../utils/caughtError';
+import { messageOf } from '../../utils/caughtError';
 import type { AuthAnswer, OnLogin, Setter } from './loginShared';
 
 interface LoginActionsDeps {
@@ -86,7 +86,7 @@ export function useLoginActions(deps: LoginActionsDeps) {
                             setError(t('login.login_failed'));
                         }
                     } catch (opaqueErr) {
-                        setError(errorMessage(opaqueErr) || t('login.login_failed'));
+                        setError(messageOf(opaqueErr, t('login.login_failed')));
                     }
                 } else if (res.ok && data.mfaRequired) {
                     // Password verified: prompt for the second factor.
