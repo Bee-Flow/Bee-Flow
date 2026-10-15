@@ -25,8 +25,8 @@ export const TOUR_ANCHORS = {
     'agent-wizard-prompt': { selector: '[data-tour="agent-wizard-prompt"]', owner: 'AgentWizard/index.jsx', reveal: {}, ephemeral: true },
 
     // Agent Designer — these only render when their section is the active one.
-    'agent-system-prompt': { selector: '[data-tour="agent-system-prompt"]', owner: 'AgentDesigner/sections/IdentitySection.jsx', reveal: { designerSection: 'identity' } },
-    'agent-tools': { selector: '[data-tour="agent-tools"]', owner: 'AgentDesigner/sections/ToolsSection.jsx', reveal: { designerSection: 'tools' } },
+    'agent-system-prompt': { selector: '[data-tour="agent-system-prompt"]', owner: 'AgentDesigner/sections/IdentitySection.tsx', reveal: { designerSection: 'identity' } },
+    'agent-tools': { selector: '[data-tour="agent-tools"]', owner: 'AgentDesigner/sections/ToolsSection.tsx', reveal: { designerSection: 'tools' } },
     'agent-knowledge': { selector: '[data-tour="agent-knowledge"]', owner: 'knowledge/KnowledgePanel.jsx (Designer knowledge section)', reveal: { designerSection: 'knowledge' } },
 
     'skill-create': { selector: '[data-tour="skill-create"]', owner: 'skills/SkillsGrid.jsx', reveal: {} },
