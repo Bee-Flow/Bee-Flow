@@ -1,18 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import { createRef } from 'react';
-import { describe, expect, test } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, test, vi } from 'vitest';
 import SheetChartOverlay from './SheetChartOverlay';
 import { CHART_TYPES, type SheetChartConfig } from './sheetCharts';
 import { evaluateSheet } from './sheetEngine';
 
 const computed = evaluateSheet({ A1: 'M', B1: 'Sales', C1: 'Costs', A2: 'Jan', B2: '10', C2: '4', A3: 'Feb', B3: '20', C3: '6', F1: '120', F2: '100' });
 
-function renderCharts(charts: SheetChartConfig[]) {
+function renderCharts(charts: SheetChartConfig[], { readOnly = false, onRemove = () => undefined }: { readOnly?: boolean; onRemove?: (id: string) => void } = {}) {
     const ref = createRef<HTMLElement>();
     return render(
         <div>
             <table ref={ref as React.RefObject<HTMLTableElement>}><tbody><tr><td data-cell="H2">cell</td></tr></tbody></table>
-            <SheetChartOverlay contentRef={ref} charts={charts} computed={computed} readOnly={false} onRemove={() => undefined} />
+            <SheetChartOverlay contentRef={ref} charts={charts} computed={computed} readOnly={readOnly} onRemove={onRemove} />
         </div>,
     );
 }
@@ -41,5 +42,20 @@ describe('SheetChartOverlay', () => {
     test('a negative delta is red', () => {
         renderCharts([one('kpi', { dataRange: 'F2', compareRange: 'F1' })]);
         expect(screen.getByTestId('kpi-delta').className).toContain('--error');
+    });
+
+    test('the remove button removes that chart; a read-only sheet has none', async () => {
+        const onRemove = vi.fn();
+        const { unmount } = renderCharts([one('bar')], { onRemove });
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Remove chart' }));
+        expect(onRemove).toHaveBeenCalledWith('bar');
+        unmount();
+        renderCharts([one('bar'), one('kpi', { id: 'k', dataRange: 'F1' })], { readOnly: true });
+        expect(screen.queryByRole('button', { name: 'Remove chart' })).toBeNull();
+    });
+
+    test('no card for a chart whose anchor is not on screen or whose range holds no numbers', () => {
+        const { container } = renderCharts([one('bar', { id: 'far', anchor: 'Z900' }), one('line', { id: 'empty', dataRange: 'A2:A3' })]);
+        expect(container.querySelector('[data-chart-type]')).toBeNull();
     });
 });
