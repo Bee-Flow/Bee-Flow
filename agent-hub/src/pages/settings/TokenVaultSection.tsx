@@ -5,6 +5,25 @@ import useConfirm from '../../components/shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 
+/** One entry of GET /api/privacy/token-vault (server/stores/piiVaultStore.js). */
+interface VaultEntry {
+    id: string;
+    category: string;
+    token: string;
+    value: string | null;
+    unreadable: boolean;
+    firstSeenAt: string;
+    lastUsedAt: string;
+    useCount: number;
+}
+
+interface VaultState {
+    entries: VaultEntry[];
+    total: number;
+    loading: boolean;
+    error: string;
+}
+
 /**
  * The user's tokenization vault.
  *
@@ -22,13 +41,13 @@ const PAGE_SIZE = 100;
 const TokenVaultSection = () => {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    const [state, setState] = useState({ entries: [], total: 0, loading: true, error: '' });
+    const [state, setState] = useState<VaultState>({ entries: [], total: 0, loading: true, error: '' });
     const [search, setSearch] = useState('');
     const [offset, setOffset] = useState(0);
-    const [busyId, setBusyId] = useState(null);
+    const [busyId, setBusyId] = useState<string | null>(null);
 
     const load = useCallback(async (nextOffset = 0, nextSearch = '') => {
-        setState(s => ({ ...s, loading: true, error: '' }));
+        setState((s: VaultState) => ({ ...s, loading: true, error: '' }));
         try {
             const qs = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(nextOffset) });
             if (nextSearch) qs.set('search', nextSearch);
@@ -37,7 +56,7 @@ const TokenVaultSection = () => {
             const data = await res.json();
             setState({ entries: data.entries || [], total: data.total || 0, loading: false, error: '' });
         } catch {
-            setState(s => ({
+            setState((s: VaultState) => ({
                 ...s, loading: false,
                 error: t('vault.load_failed', 'Could not load your vault. Please try again.'),
             }));
@@ -53,7 +72,7 @@ const TokenVaultSection = () => {
         return () => clearTimeout(id);
     }, [search, load]);
 
-    const removeEntry = async (entry) => {
+    const removeEntry = async (entry: VaultEntry) => {
         // The catalogue string is one text; its first paragraph is the question.
         const [title, ...rest] = t(
             'vault.delete_confirm',
@@ -65,7 +84,7 @@ const TokenVaultSection = () => {
         try {
             const res = await authFetch(`${API_BASE}/api/privacy/token-vault/${entry.id}`, { method: 'DELETE' });
             if (res.ok) {
-                setState(s => ({ ...s, entries: s.entries.filter(e => e.id !== entry.id), total: Math.max(0, s.total - 1) }));
+                setState((s: VaultState) => ({ ...s, entries: s.entries.filter((e: VaultEntry) => e.id !== entry.id), total: Math.max(0, s.total - 1) }));
             }
         } finally {
             setBusyId(null);
@@ -174,7 +193,7 @@ const TokenVaultSection = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--border-subtle)]">
-                            {entries.map(e => (
+                            {entries.map((e: VaultEntry) => (
                                 <tr key={e.id} className="hover:bg-[var(--bg-tertiary)]">
                                     <td className="py-2 pr-3">
                                         <code className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--accent-primary)]">{e.token}</code>

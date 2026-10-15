@@ -15,9 +15,10 @@ import TeamsMeetingNotesSection from './TeamsMeetingNotesSection';
 import SummaryTemplatesSection from './SummaryTemplatesSection';
 import VoiceprintSection from './VoiceprintSection';
 import EditorPreferencesSection from './EditorPreferencesSection';
+import type { PreferencesUser, PreferencesAgent, PreferencesSectionProps, RowProps, DropdownOption, DropdownProps, ToggleProps, UiLocale } from './PreferencesSection.types';
 
 // ── Generic list row used in the General container ───────────────────────────
-const Row = ({ label, description, right, first }) => (
+const Row = ({ label, description, right, first }: RowProps) => (
     <div
         className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5"
         style={{
@@ -37,15 +38,15 @@ const Row = ({ label, description, right, first }) => (
 // ── Shared dropdown used for Language and Chat History ──────────────────────
 // `ariaLabel` names the trigger (pass the row label): its visible text is the
 // current value only.
-const Dropdown = ({ value, options, onChange, ariaLabel }) => {
+const Dropdown = ({ value, options, onChange, ariaLabel }: DropdownProps) => {
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
-    const triggerRef = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         if (!open) return;
-        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-        const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); triggerRef.current?.focus(); } };
+        const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); triggerRef.current?.focus(); } };
         document.addEventListener('mousedown', handler);
         document.addEventListener('keydown', onKey);
         return () => {
@@ -54,7 +55,7 @@ const Dropdown = ({ value, options, onChange, ariaLabel }) => {
         };
     }, [open]);
 
-    const current = options.find(o => o.value === value) || options[0];
+    const current = options.find((o: DropdownOption) => o.value === value) || options[0];
 
     return (
         <div className="relative" ref={ref}>
@@ -76,7 +77,7 @@ const Dropdown = ({ value, options, onChange, ariaLabel }) => {
                     aria-label={ariaLabel}
                     className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 min-w-44 max-w-[calc(100vw-2.5rem)] rounded-lg border shadow-xl py-1 z-50 bg-[var(--bg-secondary)] border-[var(--border-default)]"
                 >
-                    {options.map(o => (
+                    {options.map((o: DropdownOption) => (
                         <button
                             key={o.value}
                             type="button"
@@ -96,7 +97,7 @@ const Dropdown = ({ value, options, onChange, ariaLabel }) => {
 };
 
 // ── iOS-style toggle ─────────────────────────────────────────────────────────
-const Toggle = ({ on, onClick, disabled, ariaLabel }) => (
+const Toggle = ({ on, onClick, disabled, ariaLabel }: ToggleProps) => (
     <button
         type="button"
         onClick={onClick}
@@ -116,7 +117,7 @@ const Toggle = ({ on, onClick, disabled, ariaLabel }) => (
     </button>
 );
 
-const SectionLabel = ({ children }) => (
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
     <p
         className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]"
     >
@@ -133,7 +134,7 @@ const PreferencesSection = ({
     onLogout,
     user,
     onUpdateUser,
-}) => {
+}: PreferencesSectionProps) => {
     const { t, locale, setLocale } = useTranslation();
     const [localUser, setLocalUser] = useState(user);
     useEffect(() => { if (user) setLocalUser(user); }, [user]);
@@ -152,18 +153,18 @@ const PreferencesSection = ({
     const [chatHistoryMode, setChatHistoryModeRaw] = useState(
         () => scopedStorage.getItem('chatHistoryMode') || 'per-agent'
     );
-    const setChatHistoryMode = (v) => {
+    const setChatHistoryMode = (v: string) => {
         setChatHistoryModeRaw(v);
         scopedStorage.setItem('chatHistoryMode', v);
         window.dispatchEvent(new CustomEvent('chatHistoryModeChanged', { detail: v }));
     };
 
     // Available UI locales (only render the row if more than one).
-    const [locales, setLocales] = useState([]);
+    const [locales, setLocales] = useState<UiLocale[]>([]);
     useEffect(() => {
         authFetch(`${API_BASE}/api/languages/user/locales`)
-            .then(r => r.json())
-            .then(data => { if (Array.isArray(data)) setLocales(data); })
+            .then((r: Response) => r.json())
+            .then((data: unknown) => { if (Array.isArray(data)) setLocales(data); })
             .catch(e => console.warn('[Preferences] load locales failed', e));
     }, []);
 
@@ -187,7 +188,7 @@ const PreferencesSection = ({
         setSimpleSaving(false);
     };
 
-    const handleAvatarSaved = (avatar, avatarType) => {
+    const handleAvatarSaved = (avatar: string | null, avatarType: string | null) => {
         setLocalUser(prev => ({ ...prev, avatar, avatarType }));
         // Lift the change to the app-level `user` so the sidebar footer avatar
         // updates too — without this only the Settings panel reflected the new
@@ -197,13 +198,13 @@ const PreferencesSection = ({
 
     const effectiveRole = localUser?.orgRole || localUser?.role;
     const roleLabel = roleLabelFor(effectiveRole, t);
-    const isAdminRole = ['admin', 'org_admin'].includes(effectiveRole);
+    const isAdminRole = (['admin', 'org_admin'] as readonly (string | undefined)[]).includes(effectiveRole);
 
     const hasLanguageRow = locales.length > 1;
     const showStartup = !isSimpleMode;
     const showChatHistory = !isSimpleMode;
 
-    const localeOptions = locales.map(l => ({ value: l.code, label: l.name }));
+    const localeOptions = locales.map((l: UiLocale) => ({ value: l.code, label: l.name }));
     const chatHistoryOptions = [
         { value: 'per-agent', label: t('settings.chat_history_per_agent', 'Per agent') },
         { value: 'all-chats', label: t('settings.chat_history_all_chats', 'All chats') },
@@ -313,7 +314,7 @@ const PreferencesSection = ({
                                 }}
                             >
                                 <option value="">{t('settings.select_agent')}</option>
-                                {agents.map(agent => (
+                                {agents.map((agent: PreferencesAgent) => (
                                     <option key={agent.id} value={agent.id}>{agent.name}</option>
                                 ))}
                             </select>
