@@ -1,6 +1,38 @@
 import { Loader2, Sparkles } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { REFUSAL } from './testSetFacts';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+interface SuggestionExpect {
+    mustMention?: string[];
+    mustNotMention?: string[];
+    toolsExpected?: string[];
+    rulesExpected?: string[];
+    notes?: string;
+}
+
+/** What `POST /agents/:id/tests/suggest` proposes. */
+interface TestSuggestion {
+    expect?: SuggestionExpect;
+    /** Per field who wrote it: 'ai', 'observed', … */
+    wrote?: Record<string, string>;
+    suggestedBy?: string;
+}
+
+/** The test the form hands to `onSave`. */
+interface SuggestedTestDraft {
+    name: string;
+    question: string;
+    expect: {
+        mustMention: string[];
+        mustNotMention: string[];
+        toolsExpected: string[];
+        rulesExpected: string[];
+        notes: string;
+    };
+    writtenBy: Record<string, string>;
+    suggestedBy?: string;
+}
 
 /**
  * "+ Dit gesprek als test" — het formulier waarin een VOORSTEL een test wordt
@@ -36,19 +68,19 @@ import { REFUSAL } from './testSetFacts';
  */
 
 /** Elke lijst is één item per regel. Simpel te bewerken, simpel te lezen. */
-export function linesToList(text) {
+export function linesToList(text: unknown): string[] {
     return String(text || '')
         .split('\n')
         .map(s => s.trim())
         .filter(Boolean);
 }
 
-export function listToLines(list) {
+export function listToLines(list: unknown): string {
     return (Array.isArray(list) ? list : []).join('\n');
 }
 
 /** Het merkje dat zegt wie dit veld schreef. Verdwijnt zodra je het aanraakt. */
-function SourceChip({ t, source, touched, field }) {
+function SourceChip({ t, source, touched, field }: { t: TranslateFn; source?: string; touched: boolean; field: string }) {
     if (touched) return null;
     if (source === 'ai') {
         return (
@@ -72,7 +104,17 @@ function SourceChip({ t, source, touched, field }) {
 
 const FIELD_CLASS = 'w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-[13px] text-[var(--text-primary)]';
 
-function ListField({ t, field, label, help, value, onChange, source, touched, rows = 3 }) {
+function ListField({ t, field, label, help, value, onChange, source, touched, rows = 3 }: {
+    t: TranslateFn;
+    field: string;
+    label: string;
+    help?: string;
+    value: string;
+    onChange: (value: string) => void;
+    source?: string;
+    touched: boolean;
+    rows?: number;
+}) {
     return (
         <label className="block">
             <span className="flex items-center gap-2 mb-1">
@@ -83,7 +125,7 @@ function ListField({ t, field, label, help, value, onChange, source, touched, ro
                 data-testid={`agent-tests-field-${field}`}
                 rows={rows}
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
                 className={FIELD_CLASS}
             />
             {help && <span className="block mt-1 text-[11px] text-[var(--text-tertiary)]">{help}</span>}
@@ -91,7 +133,7 @@ function ListField({ t, field, label, help, value, onChange, source, touched, ro
     );
 }
 
-const EMPTY_EXPECT = { mustMention: [], mustNotMention: [], toolsExpected: [], rulesExpected: [], notes: '' };
+const EMPTY_EXPECT: SuggestionExpect = { mustMention: [], mustNotMention: [], toolsExpected: [], rulesExpected: [], notes: '' };
 
 export default function SuggestedTestForm({
     t,
@@ -103,9 +145,19 @@ export default function SuggestedTestForm({
     saveError = null,
     onSave = null,
     onCancel = null,
+}: {
+    t: TranslateFn;
+    turn?: { question?: string } | null;
+    suggestion?: TestSuggestion | null;
+    state?: string;
+    refusal?: { kind: string } | null;
+    saving?: boolean;
+    saveError?: string | null;
+    onSave?: ((test: SuggestedTestDraft) => void) | null;
+    onCancel?: (() => void) | null;
 }) {
     const expect = (suggestion && suggestion.expect) || EMPTY_EXPECT;
-    const wrote = (suggestion && suggestion.wrote) || {};
+    const wrote: Record<string, string> = (suggestion && suggestion.wrote) || {};
     // Welk model het voorstel schreef. Reist mee naar de opslag, zodat de rij
     // later nog kan zeggen wie hem opstelde.
     const suggestedBy = (suggestion && typeof suggestion.suggestedBy === 'string')
@@ -117,9 +169,9 @@ export default function SuggestedTestForm({
     const [mustNotMention, setMustNotMention] = useState(listToLines(expect.mustNotMention));
     const [toolsExpected, setToolsExpected] = useState(listToLines(expect.toolsExpected));
     const [notes, setNotes] = useState(expect.notes || '');
-    const [touched, setTouched] = useState({});
+    const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-    const touch = (field, setter) => (value) => {
+    const touch = (field: string, setter: (value: string) => void) => (value: string) => {
         setTouched(prev => (prev[field] ? prev : { ...prev, [field]: true }));
         setter(value);
     };
@@ -154,7 +206,7 @@ export default function SuggestedTestForm({
         // een mens tikte — terwijl juist die regel bepaalt of een run groen of
         // rood wordt. Een veld dat de mens aanraakte is vanaf dat moment van
         // de mens, wat er ook in stond.
-        const writtenBy = {};
+        const writtenBy: Record<string, string> = {};
         for (const field of ['mustMention', 'mustNotMention', 'toolsExpected', 'rulesExpected', 'notes']) {
             writtenBy[field] = touched[field] ? 'human' : (wrote[field] || 'empty');
         }
@@ -205,7 +257,7 @@ export default function SuggestedTestForm({
                 <input
                     data-testid="agent-tests-field-question"
                     value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuestion(e.target.value)}
                     className={FIELD_CLASS}
                 />
             </label>
@@ -217,7 +269,7 @@ export default function SuggestedTestForm({
                 <input
                     data-testid="agent-tests-field-name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                     className={FIELD_CLASS}
                 />
             </label>

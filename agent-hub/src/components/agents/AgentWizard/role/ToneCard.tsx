@@ -1,7 +1,8 @@
 import { MessageCircle } from 'lucide-react';
 import React from 'react';
-import { PERSONA_LIMITS, toneChipRows, toneChipsFull, toneLanguageClash } from './personaFacts';
+import { PERSONA_LIMITS, toneChipRows, toneChipsFull, toneLanguageClash, type Persona } from './personaFacts';
 import RoleCard, { RoleCounter, RoleEmpty, RoleNote, RoleTextArea } from './RoleCard';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
  * "Hoe het praat" — toon en vorm (Agents-artboard 1c).
@@ -26,7 +27,7 @@ import RoleCard, { RoleCounter, RoleEmpty, RoleNote, RoleTextArea } from './Role
  */
 
 /** Het label van een aangeboden chip. Letterlijke t()-aanroepen, zodat de i18n-guard ze ziet. */
-function chipLabel(t, value) {
+function chipLabel(t: TranslateFn, value: string): string {
     switch (value) {
         case 'formal': return t('agent_studio.role.tone_formal', 'Businesslike');
         case 'friendly': return t('agent_studio.role.tone_friendly', 'Friendly');
@@ -38,7 +39,13 @@ function chipLabel(t, value) {
     }
 }
 
-function ToneChip({ t, row, onToggle, readOnly, full }) {
+function ToneChip({ t, row, onToggle, readOnly, full }: {
+    t: TranslateFn;
+    row: { value: string; on: boolean; offered: boolean };
+    onToggle?: (value: string) => void;
+    readOnly: boolean;
+    full: boolean;
+}) {
     const label = chipLabel(t, row.value);
     if (readOnly) {
         return (
@@ -65,7 +72,13 @@ function ToneChip({ t, row, onToggle, readOnly, full }) {
     );
 }
 
-export default function ToneCard({ t, persona, onToggleChip, onChangeText, readOnly = false }) {
+export default function ToneCard({ t, persona, onToggleChip, onChangeText, readOnly = false }: {
+    t: TranslateFn;
+    persona?: Partial<Persona> | null;
+    onToggleChip?: (chip: string) => void;
+    onChangeText?: (text: string) => void;
+    readOnly?: boolean;
+}) {
     const rows = toneChipRows(persona);
     const shown = readOnly ? rows.filter(r => r.on) : rows;
     const hasOwn = rows.some(r => !r.offered);

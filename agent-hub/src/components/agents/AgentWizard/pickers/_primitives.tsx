@@ -3,9 +3,15 @@
 // they have no internal state.
 
 import React from 'react';
+import type { ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 
-export function CollapsibleSection({ title, open, onToggle, children }) {
+export function CollapsibleSection({ title, open, onToggle, children }: {
+    title: ReactNode;
+    open: boolean;
+    onToggle: () => void;
+    children?: ReactNode;
+}) {
     return (
         <div className="border-t border-[var(--border-default)] first:border-t-0">
             <button
@@ -23,7 +29,7 @@ export function CollapsibleSection({ title, open, onToggle, children }) {
     );
 }
 
-export function Field({ label, children }) {
+export function Field({ label, children }: { label: ReactNode; children?: ReactNode }) {
     return (
         <div>
             <div className="text-[13px] font-medium text-[var(--text-secondary)] mb-1.5">{label}</div>
@@ -32,13 +38,18 @@ export function Field({ label, children }) {
     );
 }
 
-export function ToggleRow({ label, help, checked, onChange }) {
+export function ToggleRow({ label, help, checked, onChange }: {
+    label: ReactNode;
+    help?: ReactNode;
+    checked?: boolean;
+    onChange: (checked: boolean) => void;
+}) {
     return (
         <label className="flex items-start gap-3 cursor-pointer">
             <input
                 type="checkbox"
                 checked={!!checked}
-                onChange={(e) => onChange(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
                 className="mt-1"
             />
             <div className="flex-1">

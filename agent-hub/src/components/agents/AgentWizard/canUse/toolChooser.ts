@@ -22,23 +22,21 @@ export const CHOOSER_SECTION = Object.freeze({
     SKILLS: 'studio.skills',
 });
 
-const SECTIONS = Object.freeze(Object.values(CHOOSER_SECTION));
+const SECTIONS: readonly string[] = Object.freeze(Object.values(CHOOSER_SECTION));
 
 /**
  * Een aanvraag om de kiezer op een sectie te openen.
  *
- * @param {string} section  één van CHOOSER_SECTION
- * @param {object} [opts]
- * @param {string} [opts.appId] de app waarvan de acties meteen openstaan
- * @returns {{section: string, appId: string|null}|null}
+ * @param section  één van CHOOSER_SECTION
+ * @param opts.appId de app waarvan de acties meteen openstaan
  */
-export function chooserRequest(section, opts = {}) {
+export function chooserRequest(section: string, opts: { appId?: string | null } = {}): { section: string; appId: string | null } | null {
     if (!SECTIONS.includes(section)) return null;
     const appId = typeof opts.appId === 'string' && opts.appId ? opts.appId : null;
     return { section, appId };
 }
 
 /** Kent de kiezer deze sectie? */
-export function isChooserSection(section) {
+export function isChooserSection(section: string): boolean {
     return SECTIONS.includes(section);
 }

@@ -41,8 +41,11 @@
  */
 import { isAgentCallable } from '../../../admin/Studio/SkillsStudio/skillModel';
 import { READ } from '../canUse/canUseFacts';
+import type { AutomationSummary, BulletRejection, HandoffRow, HandoffSelection, Persona } from './personaFacts.types';
 
 export { READ };
+
+export type { BulletRejection, HandoffRow, HandoffSelection, Persona } from './personaFacts.types';
 
 /** Spiegel van personaPrompt.LIMITS. Boven deze grenzen knipt de server. */
 export const PERSONA_LIMITS = Object.freeze({
@@ -56,8 +59,8 @@ export const PERSONA_LIMITS = Object.freeze({
 });
 
 /** Spiegel van personaPrompt.PERSONA_MODES / UNKNOWN_MODES. */
-export const PERSONA_MODES = Object.freeze(['fields', 'free']);
-export const UNKNOWN_MODES = Object.freeze(['honest', 'web', 'handoff']);
+export const PERSONA_MODES: readonly unknown[] = Object.freeze(['fields', 'free']);
+export const UNKNOWN_MODES: readonly unknown[] = Object.freeze(['honest', 'web', 'handoff']);
 
 /**
  * De vijf toonchips die de kaart aanbiedt, in artboardvolgorde. Waarden, geen
@@ -74,7 +77,7 @@ export const TONE_CHIPS = Object.freeze([
 /** De chip die iets over TAAL zegt; botst met een harde `persona.language`. */
 export const TONE_CHIP_LANGUAGE = 'Dutch unless asked otherwise';
 
-function isPlainObject(v) {
+function isPlainObject(v: unknown): v is Record<string, unknown> {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
@@ -84,9 +87,8 @@ function isPlainObject(v) {
  * veld. Zonder dat laatste levert één geplakte alinea in een bullet op het
  * scherm iets anders op dan wat er wordt opgeslagen.
  */
-export function clampText(value, max, { multiline = false } = {}) {
+export function clampText(value: unknown, max: number, { multiline = false }: { multiline?: boolean } = {}): string {
     if (typeof value !== 'string') return '';
-    // eslint-disable-next-line no-control-regex
     let s = value.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
     s = multiline ? s.replace(/\r\n?/g, '\n') : s.replace(/[\r\n]+/g, ' ');
     s = s.replace(/[ \t]+/g, ' ').trim();
@@ -94,10 +96,10 @@ export function clampText(value, max, { multiline = false } = {}) {
 }
 
 /** Spiegel van `_list`: geknipt, leeg eruit, hoofdletter-ongevoelig ontdubbeld, gecapt. */
-export function clampList(value, { max, itemMax }) {
+export function clampList(value: unknown, { max, itemMax }: { max: number; itemMax: number }): string[] {
     if (!Array.isArray(value)) return [];
-    const seen = new Set();
-    const out = [];
+    const seen = new Set<string>();
+    const out: string[] = [];
     for (const raw of value) {
         const s = clampText(raw, itemMax);
         if (!s) continue;
@@ -111,7 +113,7 @@ export function clampList(value, { max, itemMax }) {
 }
 
 /** De persona waar een onleesbare waarde op landt. Vers object per aanroep. */
-export function emptyPersona() {
+export function emptyPersona(): Persona {
     return {
         who: '',
         tone: { chips: [], text: '' },
@@ -144,10 +146,8 @@ export function emptyPersona() {
  * op "staat er iets in de velden". Een agent van vóór A1c heeft een lege
  * persona die wél gelezen is; een lijstrij heeft er géén, want die route
  * strippt de kolom. Die twee mogen niet hetzelfde scherm opleveren.
- *
- * @returns {{persona: object, readable: boolean}}
  */
-export function personaShape(raw) {
+export function personaShape(raw: unknown): { persona: Persona; readable: boolean } {
     const persona = emptyPersona();
     let input = raw;
     if (typeof input === 'string') { try { input = JSON.parse(input); } catch (_) { input = null; } }
@@ -155,7 +155,7 @@ export function personaShape(raw) {
 
     persona.who = typeof input.who === 'string' ? input.who : '';
 
-    const tone = isPlainObject(input.tone) ? input.tone : {};
+    const tone: Record<string, unknown> = isPlainObject(input.tone) ? input.tone : {};
     persona.tone = {
         chips: Array.isArray(tone.chips) ? tone.chips.filter(c => typeof c === 'string' && c) : [],
         text: typeof tone.text === 'string' ? tone.text : '',
@@ -172,13 +172,13 @@ export function personaShape(raw) {
     persona.does = clampList(input.does, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
     persona.doesNot = clampList(input.doesNot, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
 
-    const unknown = isPlainObject(input.unknown) ? input.unknown : {};
-    const mode = UNKNOWN_MODES.includes(unknown.mode) ? unknown.mode : 'honest';
+    const unknown: Record<string, unknown> = isPlainObject(input.unknown) ? input.unknown : {};
+    const mode = UNKNOWN_MODES.includes(unknown.mode) ? unknown.mode as string : 'honest';
     const automationId = mode === 'handoff' ? clampText(unknown.automationId, 128) : '';
     persona.unknown = { mode, automationId: automationId || null };
 
     persona.language = typeof input.language === 'string' && input.language ? input.language : null;
-    persona.mode = PERSONA_MODES.includes(input.mode) ? input.mode : 'fields';
+    persona.mode = PERSONA_MODES.includes(input.mode) ? input.mode as string : 'fields';
     persona.freeText = persona.mode === 'free' && typeof input.freeText === 'string' ? input.freeText : '';
 
     return { persona, readable: true };
@@ -192,7 +192,7 @@ export function personaShape(raw) {
 // iemand net leegmaakte stilletjes laten staan.
 
 /** Een kopie van `persona` met `patch` erover, in de volle vorm. */
-export function patchPersona(persona, patch) {
+export function patchPersona(persona: unknown, patch: Record<string, unknown>): Persona {
     const base = personaShape(persona).persona;
     return personaShape({ ...base, ...patch }).persona;
 }
@@ -202,7 +202,7 @@ export function patchPersona(persona, patch) {
  * `normalisePersona` de rest weg zonder iets te zeggen; de kaart schakelt de
  * uit-staande chips daarom uit in plaats van een klik te laten verdampen.
  */
-export function toneChipsFull(persona) {
+export function toneChipsFull(persona: unknown): boolean {
     return personaShape(persona).persona.tone.chips.length >= PERSONA_LIMITS.chips;
 }
 
@@ -211,7 +211,7 @@ export function toneChipsFull(persona) {
  * als de twaalf vol zijn — dan gebeurt er niets, en `toneChipsFull` zorgt dat
  * die knop dan al uit staat.
  */
-export function toggleToneChip(persona, chip) {
+export function toggleToneChip(persona: unknown, chip: unknown): Persona {
     const base = personaShape(persona).persona;
     const value = clampText(chip, PERSONA_LIMITS.chip);
     if (!value) return base;
@@ -228,10 +228,8 @@ export function toggleToneChip(persona, chip) {
  * wat de eigenaar (of de AI-parse) er zelf bij zette. Die tweede groep hoort
  * er echt bij te staan — de server bewaart hem woordelijk en rendert hem in
  * het prompt, dus hem niet tekenen zou de instructie verzwijgen.
- *
- * @returns {Array<{value: string, on: boolean, offered: boolean}>}
  */
-export function toneChipRows(persona) {
+export function toneChipRows(persona: unknown): Array<{ value: string; on: boolean; offered: boolean }> {
     const base = personaShape(persona).persona;
     const on = new Set(base.tone.chips.map(c => c.toLowerCase()));
     const offered = TONE_CHIPS.map(value => ({ value, on: on.has(value.toLowerCase()), offered: true }));
@@ -251,7 +249,7 @@ export function toneChipRows(persona) {
  * instructies die elkaar tegenspreken, en niemand ziet dat — de taal staat in
  * de hero en de chip staat hier.
  */
-export function toneLanguageClash(persona) {
+export function toneLanguageClash(persona: unknown): boolean {
     const base = personaShape(persona).persona;
     if (!base.language) return false;
     return base.tone.chips.some(c => c.toLowerCase() === TONE_CHIP_LANGUAGE.toLowerCase());
@@ -263,7 +261,7 @@ export function toneLanguageClash(persona) {
  * server gooit alle drie stilzwijgend weg; hier krijgt de gebruiker het te
  * horen vóór hij denkt dat het gelukt is.
  */
-export function addBullet(bullets, value) {
+export function addBullet(bullets: unknown, value: unknown): { list: string[]; rejected: BulletRejection } {
     const current = clampList(bullets, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
     const text = clampText(value, PERSONA_LIMITS.bullet);
     if (!text) return { list: current, rejected: 'empty' };
@@ -283,7 +281,7 @@ export function addBullet(bullets, value) {
  * scherm. Dat is precies de stille verdwijning waar deze kaart tegen bestaat,
  * dan door de kaart zelf gedaan. Nu verandert er niets en zegt de kaart waarom.
  */
-export function editBullet(bullets, index, value) {
+export function editBullet(bullets: unknown, index: number, value: unknown): { list: string[]; rejected: BulletRejection } {
     const current = clampList(bullets, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
     if (!Number.isInteger(index) || index < 0 || index >= current.length) {
         return { list: current, rejected: 'missing' };
@@ -302,7 +300,7 @@ export function editBullet(bullets, index, value) {
 }
 
 /** Een bullet verwijderen. */
-export function removeBullet(bullets, index) {
+export function removeBullet(bullets: unknown, index: number): string[] {
     const current = clampList(bullets, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
     if (!Number.isInteger(index) || index < 0 || index >= current.length) return current;
     const next = current.slice();
@@ -324,9 +322,9 @@ export function removeBullet(bullets, index) {
  * Onbekend versmalt: zonder allebei de ids weten we niet of dit dezelfde
  * persoon is, en dan wordt er niet gekozen.
  *
- * @returns {null|'not_owner'|'unknown_owner'} null = kiezen mag.
+ * Geeft `null` terug als kiezen mag.
  */
-export function handoffBlockedBecause({ agentOwnerId, userId }) {
+export function handoffBlockedBecause({ agentOwnerId, userId }: { agentOwnerId?: unknown; userId?: unknown }): 'not_owner' | 'unknown_owner' | null {
     const owner = typeof agentOwnerId === 'string' && agentOwnerId ? agentOwnerId : null;
     const me = typeof userId === 'string' && userId ? userId : null;
     if (!owner || !me) return 'unknown_owner';
@@ -351,10 +349,8 @@ export function handoffBlockedBecause({ agentOwnerId, userId }) {
  * hiernaast en `toolGrants.automationRows` hiernaast dezelfde invoer wél als
  * onleesbaar lezen. Eén kaart die zichzelf tegenspreekt is erger dan een kaart
  * die zegt dat ze het niet weet.
- *
- * @returns {{rows: Array<{id,title,active}>, state: string}}
  */
-export function handoffChoices({ automations, state = READ.OK }) {
+export function handoffChoices({ automations, state = READ.OK }: { automations?: unknown; state?: string }): { rows: HandoffRow[]; state: string } {
     if (state !== READ.OK) return { rows: [], state };
     if (!Array.isArray(automations)) return { rows: [], state: READ.ERROR };
     const rows = automations
@@ -375,14 +371,16 @@ export function handoffChoices({ automations, state = READ.OK }) {
  * Nooit `null` bij een gezet id: een automatisering die we niet kunnen benoemen is
  * `readable: false` en blijft staan mét zijn id. Hem weglaten zou beweren dat
  * er geen hand-off is, terwijl de server hem wel degelijk kan verifiëren.
- *
- * @returns {null|{id, title, readable, active, callable}}
  */
-export function selectedHandoff({ automations, state = READ.OK, automationId }) {
+export function selectedHandoff({ automations, state = READ.OK, automationId }: {
+    automations?: unknown;
+    state?: string;
+    automationId?: unknown;
+}): HandoffSelection | null {
     const id = clampText(automationId, 128);
     if (!id) return null;
     const index = state === READ.OK && Array.isArray(automations)
-        ? new Map(automations.filter(a => a && typeof a.id === 'string').map(a => [a.id, a]))
+        ? new Map(automations.filter(a => a && typeof a.id === 'string').map((a): [string, AutomationSummary] => [a.id, a]))
         : null;
     const found = index ? index.get(id) : null;
     if (!found) return { id, title: null, readable: false, active: null, callable: null };

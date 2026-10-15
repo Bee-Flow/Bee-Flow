@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { READ, datatableGrantsOf } from './canUseFacts';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
+/** `GET /api/skills/usage-summary`: per skill id how many agents link it. */
+type SkillUsageSummary = Record<string, { agents?: number | null }>;
+
 /**
  * De twee EXTRA lezingen die de tab "Kan gebruiken" nodig heeft en die de
  * editor nog niet deed (A2 stap 2):
@@ -26,11 +29,16 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
  * `refetch` erbij. Het patroon van `hooks/useUsage.js`: nooit een stille lege
  * lijst waar een mislukte lezing hoort te staan.
  */
-export default function useCanUseSources({ enabled = true, toolsConfig = null, attachedSkillIds = [], savedSkillIds = [] }) {
-    const [tables, setTables] = useState(null);
-    const [tablesState, setTablesState] = useState(READ.LOADING);
-    const [usage, setUsage] = useState(null);
-    const [usageState, setUsageState] = useState(READ.LOADING);
+export default function useCanUseSources({ enabled = true, toolsConfig = null, attachedSkillIds = [], savedSkillIds = [] }: {
+    enabled?: boolean;
+    toolsConfig?: unknown;
+    attachedSkillIds?: string[];
+    savedSkillIds?: string[];
+}) {
+    const [tables, setTables] = useState<Array<{ id?: string; name?: string }> | null>(null);
+    const [tablesState, setTablesState] = useState<string>(READ.LOADING);
+    const [usage, setUsage] = useState<SkillUsageSummary | null>(null);
+    const [usageState, setUsageState] = useState<string>(READ.LOADING);
     // Een teller die elke refetch ophoogt: het effect hangt eraan, dus opnieuw
     // proberen is één setState en geen tweede kopie van de fetch.
     const [tablesNonce, setTablesNonce] = useState(0);

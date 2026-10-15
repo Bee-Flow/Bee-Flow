@@ -26,6 +26,10 @@
  * (apps, skills, knowledge bases) are additive on refine — refine can add to
  * them but never silently empties them; removals are done manually in the editor.
  */
+import type {
+    MergeOpts, PersonaFields, PersonaLike, RefineChange, RefineConfig, RefinePlan, RefinePreserved, RefineSnapshot, RefineState,
+} from './refineMerge.types';
+import type { Persona } from '../role/personaFacts';
 
 /**
  * De vier BESCHRIJVENDE persona-velden van een persona-object, of `null`.
@@ -40,11 +44,11 @@
  * `null` betekent "hier staat geen rol" en dat is een echt antwoord: de
  * callers vallen daarop terug op de prozatekst als bron.
  */
-export function personaFieldsOf(persona) {
+export function personaFieldsOf(persona: PersonaLike | null | undefined): PersonaFields | null {
     if (!persona || typeof persona !== 'object' || Array.isArray(persona)) return null;
-    const str = (v) => (typeof v === 'string' ? v.trim() : '');
-    const list = (v) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
-    const tone = persona.tone && typeof persona.tone === 'object' ? persona.tone : {};
+    const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
+    const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
+    const tone: Partial<Persona['tone']> = persona.tone && typeof persona.tone === 'object' ? persona.tone : {};
     const fields = {
         who: str(persona.who),
         tone: { chips: list(tone.chips), text: str(tone.text) },
@@ -74,7 +78,7 @@ export function personaFieldsOf(persona) {
  * persona, dus een agent met een leeg prompt heeft niets te verliezen, en een
  * agent met tekst erin wel — ook als we niet kunnen zien waar die vandaan komt.
  */
-export function hasFreeInstruction(state = {}) {
+export function hasFreeInstruction(state: { persona?: PersonaLike | null; systemPrompt?: string } = {}): boolean {
     const persona = state.persona;
     if (persona && typeof persona === 'object' && persona.mode === 'fields') return false;
     const freeText = persona && typeof persona === 'object' && typeof persona.freeText === 'string'
@@ -83,7 +87,7 @@ export function hasFreeInstruction(state = {}) {
 }
 
 /** Build the { plan, current } portions of the refine request from live state. */
-export function buildRefineContext(state = {}) {
+export function buildRefineContext(state: RefineState = {}) {
     const {
         name, description, avatar, systemPrompt, capabilities,
         model, enabledIntegrations, attachedSkills, knowledge_base_ids, persona,
@@ -113,7 +117,7 @@ export function buildRefineContext(state = {}) {
     };
 }
 
-const uniq = (arr) => Array.from(new Set((arr || []).filter(Boolean)));
+const uniq = <T,>(arr: T[] | null | undefined): T[] => Array.from(new Set((arr || []).filter(Boolean)));
 
 /**
  * The persona (A1c) after a refine.
@@ -181,7 +185,12 @@ const uniq = (arr) => Array.from(new Set((arr || []).filter(Boolean)));
  * dat het leeg laat heeft het vrijwel altijd overgeslagen, en een lege `who`
  * over een gevulde heenschrijven is niet wat "bijstellen" betekent.
  */
-function personaAfterRefine(current, { systemPrompt, description, capabilities, planPersona }) {
+function personaAfterRefine(current: RefineSnapshot, { systemPrompt, description, capabilities, planPersona }: {
+    systemPrompt: string | undefined;
+    description: string | undefined;
+    capabilities: string[];
+    planPersona: PersonaLike | null | undefined;
+}): PersonaLike | null | undefined {
     const cur = current.persona;
     if (systemPrompt === current.systemPrompt) return cur;
     const readable = !!cur && typeof cur === 'object' && !Array.isArray(cur);
@@ -191,7 +200,7 @@ function personaAfterRefine(current, { systemPrompt, description, capabilities, 
     // versie. De vlag staat standaard uit: wie hem vergeet krijgt de smalle
     // uitkomst, niet de destructieve.
     if (!readable && current.noStoredPersona !== true) return undefined;
-    const base = readable ? cur : {};
+    const base: PersonaLike = readable ? cur : {};
     const fields = personaFieldsOf(planPersona);
     const described = fields
         ? {
@@ -215,23 +224,19 @@ function personaAfterRefine(current, { systemPrompt, description, capabilities, 
 }
 
 /**
- * @param {object} current  { name, description, systemPrompt, avatar, model,
- *   config:{ enabledIntegrations, attachedSkillIds, knowledge_base_ids, wizard },
- *   persona, noStoredPersona }
- *   `persona` is wat er in de kolom staat; onleesbaar/afwezig betekent "niet
- *   gelezen" en laat de kolom met rust. `noStoredPersona: true` is het enige
- *   antwoord dat zegt dat er nog geen rij is — zie personaAfterRefine.
- * @param {object} updated  the normalized AI plan
- * @param {object} preserved the server's echo of the current curated config
- * @param {object} opts     { availableIntegrationIds, selectableTierKeys, resolvedSkillIds }
+ * `current.persona` is wat er in de kolom staat; onleesbaar/afwezig betekent
+ * "niet gelezen" en laat de kolom met rust. `noStoredPersona: true` is het
+ * enige antwoord dat zegt dat er nog geen rij is — zie personaAfterRefine.
+ * `updated` is the normalized AI plan, `preserved` the server's echo of the
+ * current curated config.
  */
-export function mergeRefinedPlan(current = {}, updated = {}, preserved = {}, opts = {}) {
+export function mergeRefinedPlan(current: RefineSnapshot = {}, updated: RefinePlan = {}, preserved: RefinePreserved = {}, opts: MergeOpts = {}) {
     const {
         availableIntegrationIds = [],
         selectableTierKeys = [],
         resolvedSkillIds = null, // caller's already-unioned skill ids (current ∪ reused ∪ created)
     } = opts;
-    const curConfig = current.config || {};
+    const curConfig: RefineConfig = current.config || {};
 
     // ── name / avatar — take the AI value only when it provided a real one ──
     const name = (typeof updated.name === 'string' && updated.name.trim()) ? updated.name : current.name;
@@ -319,10 +324,10 @@ export function mergeRefinedPlan(current = {}, updated = {}, preserved = {}, opt
  * hem apart noemen zou dezelfde verandering twee keer melden) en
  * `wizard.capabilities` (intern; de gebruiker ziet er geen veld voor).
  */
-export function diffRefinedPlan(before = {}, after = {}) {
-    const changes = [];
-    const text = (v) => (typeof v === 'string' ? v : (v == null ? '' : String(v)));
-    for (const field of ['systemPrompt', 'name', 'description', 'avatar', 'model']) {
+export function diffRefinedPlan(before: RefineSnapshot = {}, after: RefineSnapshot = {}): RefineChange[] {
+    const changes: RefineChange[] = [];
+    const text = (v: unknown): string => (typeof v === 'string' ? v : (v == null ? '' : String(v)));
+    for (const field of ['systemPrompt', 'name', 'description', 'avatar', 'model'] as const) {
         if (text(before[field]) !== text(after[field])) changes.push({ field });
     }
     const beforeCfg = before.config || {};
@@ -331,7 +336,7 @@ export function diffRefinedPlan(before = {}, after = {}) {
         ['apps', 'enabledIntegrations'],
         ['skills', 'attachedSkillIds'],
         ['knowledge', 'knowledge_base_ids'],
-    ]) {
+    ] as const) {
         const was = Array.isArray(beforeCfg[key]) ? beforeCfg[key] : [];
         const now = Array.isArray(afterCfg[key]) ? afterCfg[key] : [];
         const added = now.filter(id => !was.includes(id));

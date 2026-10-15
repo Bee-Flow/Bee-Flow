@@ -12,6 +12,27 @@
  */
 
 import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
+import type { EditorSnapshot } from '../builderSplit/agentSaveTypes';
+
+/** The agent row `PUT /agents/:id` answers with; the editor reads these fields only. */
+export interface SavedAgent {
+    rev?: number;
+    warnings?: unknown[];
+    system_prompt?: string;
+    [key: string]: unknown;
+}
+
+/** What `saveAgent` resolves to: the 200 and the two expected refusals. A real failure throws. */
+export type SaveResult =
+    | { ok: true; updated: SavedAgent; version: number | undefined; warnings: unknown[]; conflict?: undefined; limit?: undefined }
+    | { ok: false; conflict: true; currentVersion: unknown; agent: unknown; limit?: undefined }
+    | { ok: false; limit: true; message: string; resource: unknown; conflict?: undefined };
+
+/** The error `saveAgent` throws for any other non-2xx answer. */
+interface SaveRequestError extends Error {
+    status?: number;
+    code?: string | null;
+}
 
 /**
  * Het systeemprompt dat de editor moet OVERNEMEN nadat een opslag geland is,
@@ -31,7 +52,12 @@ import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
  * een antwoord dat onderweg was. Een antwoord zonder leesbaar prompt levert
  * `null` — onbekend is geen reden om iets te overschrijven.
  */
-export function adoptedPromptAfterSave({ sentPersona, sentSystemPrompt, localSystemPrompt, savedSystemPrompt }) {
+export function adoptedPromptAfterSave({ sentPersona, sentSystemPrompt, localSystemPrompt, savedSystemPrompt }: {
+    sentPersona: unknown;
+    sentSystemPrompt: string | undefined;
+    localSystemPrompt: string | undefined;
+    savedSystemPrompt: unknown;
+}): string | null {
     if (sentPersona === undefined || sentPersona === null) return null;
     if (typeof savedSystemPrompt !== 'string') return null;
     if (localSystemPrompt !== sentSystemPrompt) return null;
@@ -39,7 +65,7 @@ export function adoptedPromptAfterSave({ sentPersona, sentSystemPrompt, localSys
     return savedSystemPrompt;
 }
 
-export async function saveAgent(id, snapshot, baseVersion) {
+export async function saveAgent(id: string | number | null | undefined, snapshot: EditorSnapshot, baseVersion: number | null): Promise<SaveResult> {
     const res = await authFetch(`${API_BASE}/agents/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -52,7 +78,7 @@ export async function saveAgent(id, snapshot, baseVersion) {
     }
 
     if (res.status === 409) {
-        let body = {};
+        let body: { currentVersion?: unknown; agent?: unknown } = {};
         try { body = await res.json(); } catch { /* non-JSON body */ }
         return { ok: false, conflict: true, currentVersion: body.currentVersion, agent: body.agent };
     }
@@ -63,7 +89,7 @@ export async function saveAgent(id, snapshot, baseVersion) {
     if (info.isLimit) {
         return { ok: false, limit: true, message: info.message, resource: info.resource };
     }
-    const err = new Error(info.message);
+    const err: SaveRequestError = new Error(info.message);
     err.status = res.status;
     err.code = info.code || null;
     throw err;
