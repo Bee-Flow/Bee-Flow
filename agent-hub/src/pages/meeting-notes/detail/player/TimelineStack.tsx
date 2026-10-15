@@ -7,6 +7,28 @@ import PlayerTooltip from './PlayerTooltip';
 import SpeakerRows, { TRACK_INDENT_CLASS, TRACK_LEFT_CLASS } from './SpeakerRows';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { segmentNearTime, segmentSpeakerId, speakerColor } from '../../lib/playerData';
+import type { OthersRow, PlayerChapter, PlayerSegment, SeekToFn, SpeakerTimelineRow, TimelineMarker } from './player.types';
+
+interface TimelineStackProps {
+    peaks: ArrayLike<number> | null;
+    loading: boolean;
+    duration: number;
+    currentTime: number;
+    markers: TimelineMarker[];
+    mentionMarkers?: TimelineMarker[];
+    rows: SpeakerTimelineRow[];
+    others: OthersRow | null;
+    colorMap: Record<string, string>;
+    chapters: PlayerChapter[];
+    segments: PlayerSegment[];
+    onSeekTo: SeekToFn;
+}
+
+interface WaveformHover {
+    x: number;
+    frac: number;
+    width: number;
+}
 
 /**
  * The layered timeline: marker rail, waveform, per-speaker rows, chapter strip.
@@ -25,10 +47,10 @@ export default function TimelineStack({
     peaks, loading, duration, currentTime,
     markers, mentionMarkers = [], rows, others, colorMap, chapters, segments,
     onSeekTo,
-}) {
-    const canvasRef = useRef(null);
-    const containerRef = useRef(null);
-    const [hover, setHover] = useState(null); // { x, frac, width } while over the waveform
+}: TimelineStackProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [hover, setHover] = useState<WaveformHover | null>(null); // { x, frac, width } while over the waveform
 
     const progress = duration > 0 ? currentTime / duration : 0;
 
@@ -45,7 +67,7 @@ export default function TimelineStack({
         return () => ro.disconnect();
     }, [draw]);
 
-    const fracFromEvent = (e) => {
+    const fracFromEvent = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): WaveformHover | null => {
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect || !rect.width) return null;
         const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -56,19 +78,19 @@ export default function TimelineStack({
         };
     };
 
-    const handleSeek = (e) => {
+    const handleSeek = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
         const p = fracFromEvent(e);
         if (p && duration) onSeekTo(p.frac * duration);
     };
 
     // Stable jump handler so the memoized rail/strip stay out of the
     // timeupdate re-render loop.
-    const jumpTo = useCallback((sec) => onSeekTo(sec, { play: true }), [onSeekTo]);
+    const jumpTo = useCallback((sec: number) => onSeekTo(sec, { play: true }), [onSeekTo]);
 
     // ChapterStrip gets the active INDEX (changes a handful of times per
     // meeting) instead of currentTime (changes 4×/s), so React.memo holds.
     const activeChapterIndex = useMemo(
-        () => chapters.findIndex((c) => currentTime >= c.seconds && currentTime < c.endSeconds),
+        () => chapters.findIndex((c: PlayerChapter) => currentTime >= c.seconds && currentTime < c.endSeconds),
         [chapters, currentTime],
     );
 
@@ -103,7 +125,7 @@ export default function TimelineStack({
                         ref={canvasRef}
                         className="w-full h-12 cursor-pointer"
                         onClick={handleSeek}
-                        onMouseMove={(e) => setHover(fracFromEvent(e))}
+                        onMouseMove={(e: React.MouseEvent<HTMLCanvasElement>) => setHover(fracFromEvent(e))}
                         onMouseLeave={() => setHover(null)}
                         onTouchStart={handleSeek}
                     />
@@ -137,8 +159,8 @@ export default function TimelineStack({
  * blink out in the sub-second gaps between a speaker's segments. Desktop-only
  * by nature — no hover on touch.
  */
-function WaveformHoverChip({ hover, duration, segments, colorMap }) {
-    const hoverSegment = hover && duration ? segmentNearTime(segments, hover.frac * duration) : null;
+function WaveformHoverChip({ hover, duration, segments, colorMap }: { hover: WaveformHover | null; duration: number; segments: PlayerSegment[]; colorMap: Record<string, string> }) {
+    const hoverSegment = hover && duration ? segmentNearTime(segments, hover.frac * duration) as PlayerSegment | null : null;
     const hoverSpeaker = hoverSegment ? segmentSpeakerId(hoverSegment) : null;
     return (
         <PlayerTooltip x={hover?.x || 0} containerWidth={hover?.width || 0} visible={!!hover}>
@@ -172,7 +194,7 @@ function WaveformHoverChip({ hover, duration, segments, colorMap }) {
  * whenever a duration exists, so "now" is visible at 0:00 too.
  * pointer-events-none: purely visual.
  */
-function PlayheadOverlay({ hoverFrac, progress, visible }) {
+function PlayheadOverlay({ hoverFrac, progress, visible }: { hoverFrac: number | null; progress: number; visible: boolean }) {
     return (
         <div className={`absolute inset-y-0 right-0 ${TRACK_LEFT_CLASS} pointer-events-none`} aria-hidden="true">
             {hoverFrac != null && (

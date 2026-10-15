@@ -4,12 +4,25 @@ import { Pencil } from 'lucide-react';
 import { formatSpeakerLabel } from '../lib/format';
 import { speakerColor } from '../lib/playerData';
 
-export default function SpeakerLegend({ speakers = [], colorMap = {}, activeId, onSelect, onEdit }) {
+interface LegendSpeaker {
+    id: string;
+    speakingTime?: string;
+}
+
+interface SpeakerLegendProps {
+    speakers?: LegendSpeaker[];
+    colorMap?: Record<string, string>;
+    activeId?: string | null;
+    onSelect?: (id: string | null) => void;
+    onEdit?: () => void;
+}
+
+export default function SpeakerLegend({ speakers = [], colorMap = {}, activeId, onSelect, onEdit }: SpeakerLegendProps) {
     const { t } = useTranslation();
     if (!speakers.length) return null;
     return (
         <div className="flex flex-wrap items-center gap-1.5">
-            {speakers.map((s) => {
+            {speakers.map((s: LegendSpeaker) => {
                 const color = speakerColor(colorMap, s.id);
                 const active = activeId === s.id;
                 return (

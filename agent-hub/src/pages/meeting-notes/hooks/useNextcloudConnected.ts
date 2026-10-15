@@ -18,7 +18,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
  * @returns {{ connected: boolean, loading: boolean }} connection status and
  *   whether the probe is still in flight
  */
-export default function useNextcloudConnected(enabled = true) {
+export default function useNextcloudConnected(enabled: boolean = true) {
     const [connected, setConnected] = useState(false);
     const [loading, setLoading] = useState(false);
     const probedRef = useRef(false);

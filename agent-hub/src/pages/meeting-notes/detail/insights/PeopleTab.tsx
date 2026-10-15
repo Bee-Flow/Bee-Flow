@@ -2,6 +2,26 @@ import { ChevronDown } from 'lucide-react';
 import React, { useState } from 'react';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { EmptyState, FLAG_AMBER, TabHeading } from './primitives';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { InsightsModel, PersonStat, SeekFn } from './insights.types';
+
+interface PeopleTabProps {
+    model: InsightsModel;
+    colorFor: (speakerId: string) => string;
+    viewerSpeakerId?: string | null;
+    onSeek?: SeekFn;
+    t: TranslateFn;
+}
+
+interface SpeakerRowProps {
+    stat: PersonStat;
+    color: string;
+    isViewer: boolean;
+    onSeek?: SeekFn;
+    expanded: boolean;
+    onToggle: () => void;
+    t: TranslateFn;
+}
 
 /**
  * Per-speaker detail. The row keeps the original share bar + longest monologue
@@ -11,8 +31,8 @@ import { EmptyState, FLAG_AMBER, TabHeading } from './primitives';
  * Never rendered when the org disabled per-person stats — the model doesn't
  * even build `people` then (see buildInsightsModel).
  */
-export default function PeopleTab({ model, colorFor, viewerSpeakerId, onSeek, t }) {
-    const [expandedId, setExpandedId] = useState(null);
+export default function PeopleTab({ model, colorFor, viewerSpeakerId, onSeek, t }: PeopleTabProps) {
+    const [expandedId, setExpandedId] = useState<string | null>(null);
     const people = model.people;
     if (!people || !people.rows.length) {
         return <EmptyState>{t('meeting_notes.insights_empty', 'Not enough data for insights on this meeting.')}</EmptyState>;
@@ -21,14 +41,14 @@ export default function PeopleTab({ model, colorFor, viewerSpeakerId, onSeek, t 
     // Own row first: a stable partition, not a resort — everyone else keeps
     // their talk-time order.
     const rows = viewerSpeakerId
-        ? [...people.rows.filter((s) => s.speakerId === viewerSpeakerId),
-            ...people.rows.filter((s) => s.speakerId !== viewerSpeakerId)]
+        ? [...people.rows.filter((s: PersonStat) => s.speakerId === viewerSpeakerId),
+            ...people.rows.filter((s: PersonStat) => s.speakerId !== viewerSpeakerId)]
         : people.rows;
 
     return (
         <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2" role="list" aria-label={t('meeting_notes.insights_talk_time', 'Talk time')}>
-                {rows.map((s) => (
+                {rows.map((s: PersonStat) => (
                     <SpeakerRow
                         key={s.speakerId}
                         stat={s}
@@ -36,7 +56,7 @@ export default function PeopleTab({ model, colorFor, viewerSpeakerId, onSeek, t 
                         isViewer={s.speakerId === viewerSpeakerId}
                         onSeek={onSeek}
                         expanded={expandedId === s.speakerId}
-                        onToggle={() => setExpandedId((cur) => (cur === s.speakerId ? null : s.speakerId))}
+                        onToggle={() => setExpandedId((cur: string | null) => (cur === s.speakerId ? null : s.speakerId))}
                         t={t}
                     />
                 ))}
@@ -56,7 +76,7 @@ export default function PeopleTab({ model, colorFor, viewerSpeakerId, onSeek, t 
     );
 }
 
-function SpeakerRow({ stat, color, isViewer, onSeek, expanded, onToggle, t }) {
+function SpeakerRow({ stat, color, isViewer, onSeek, expanded, onToggle, t }: SpeakerRowProps) {
     const pct = Math.round(stat.share * 100);
     const mono = stat.longestMonologue;
     const panelId = `contribution-${encodeURIComponent(stat.speakerId)}`;

@@ -3,6 +3,7 @@ import { nOf } from '../../../components/admin/Studio/KnowledgeStudio/plural';
 import { toast } from '../../../components/shared/Toast';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import * as api from '../lib/transcriptionsApi';
+import type { RegenerateArg } from '../lib/transcriptionsApi.types';
 import type { ApiError, MeetingActionItem, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
 
 interface RegenerateAnswer {
@@ -173,7 +174,7 @@ export default function useMeetingCommands({ data, setLocal, refresh, onChanged,
         return result;
     };
 
-    const handleRegenerateSummary = async (template: unknown) => {
+    const handleRegenerateSummary = async (template: RegenerateArg) => {
         if (!data) return;
         setRegenerating(true);
         try {

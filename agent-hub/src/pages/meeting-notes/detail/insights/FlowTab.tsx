@@ -1,6 +1,10 @@
 import React from 'react';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { EmptyState, MetricRow, Sparkline, StackedAirtime, TabHeading } from './primitives';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { DeadAirGap, InsightsModel, SeekFn } from './insights.types';
+
+interface FlowTabProps { model: InsightsModel; colorFor: (speakerId: string) => string; onSeek?: SeekFn; t: TranslateFn }
 
 /**
  * How the conversation moved: rhythm over time, who held the floor when,
@@ -10,7 +14,7 @@ import { EmptyState, MetricRow, Sparkline, StackedAirtime, TabHeading } from './
  * when the org disabled per-person stats; the attributed halves are simply
  * absent from the model then.
  */
-export default function FlowTab({ model, colorFor, onSeek, t }) {
+export default function FlowTab({ model, colorFor, onSeek, t }: FlowTabProps) {
     const { flow, interactivity } = model;
     const hasRhythm = interactivity && interactivity.windows.length > 1;
     const hasAirtime = !!flow.airtime && flow.airtime.length > 1;
@@ -20,7 +24,7 @@ export default function FlowTab({ model, colorFor, onSeek, t }) {
         return <EmptyState>{t('meeting_notes.insights_flow_empty', 'This recording is too short to show how the conversation moved.')}</EmptyState>;
     }
 
-    const windowLabel = (start) => formatDuration(start);
+    const windowLabel = (start: number) => formatDuration(start);
 
     return (
         <div className="flex flex-col gap-4">
@@ -30,7 +34,7 @@ export default function FlowTab({ model, colorFor, onSeek, t }) {
                         {t('meeting_notes.insights_rhythm', 'Turn-taking rhythm')}
                     </TabHeading>
                     <Sparkline
-                        points={interactivity.windows.map((w) => ({ start: w.start, value: w.switches }))}
+                        points={interactivity.windows.map((w: { start: number; switches: number }) => ({ start: w.start, value: w.switches }))}
                         ariaLabel={t('meeting_notes.insights_rhythm', 'Turn-taking rhythm')}
                         onSeek={onSeek}
                         formatTitle={(p) => `${windowLabel(p.start)} · ${p.value} ${t('meeting_notes.insights_switches', 'switches')}`}
@@ -64,7 +68,7 @@ export default function FlowTab({ model, colorFor, onSeek, t }) {
                     <TabHeading hint={t('meeting_notes.insights_handoff_hint', 'Who most often speaks straight after whom')}>
                         {t('meeting_notes.insights_handoff', 'Who follows whom')}
                     </TabHeading>
-                    {flow.handoffs.map((h, i) => (
+                    {flow.handoffs.map((h: { from: string; to: string; count: number }, i: number) => (
                         <MetricRow
                             // Index, not the names: a display name can contain
                             // anything, so a composed key is not reliably unique.
@@ -90,7 +94,7 @@ export default function FlowTab({ model, colorFor, onSeek, t }) {
                     <TabHeading hint={t('meeting_notes.insights_dead_air_hint', 'The longest stretches where nobody spoke')}>
                         {t('meeting_notes.insights_dead_air', 'Quiet stretches')}
                     </TabHeading>
-                    {flow.deadAir.map((g) => (
+                    {flow.deadAir.map((g: DeadAirGap) => (
                         <MetricRow
                             key={`${g.start}-${g.end}`}
                             label={g.kind === 'lead_in'

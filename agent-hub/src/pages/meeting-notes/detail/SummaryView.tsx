@@ -3,10 +3,26 @@ import { Sparkles, ChevronDown, Loader2, Pencil, Plus, Star } from 'lucide-react
 import MarkdownRenderer from '../../../components/renderers/MarkdownRenderer';
 import useTranslation from '../../../hooks/useTranslation';
 import { buildSummaryStamp, SUMMARY_STAMP } from '../lib/summaryStamp';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { MeetingNote } from './meetingDetailTypes';
+import type { BuiltinTemplate, CustomTemplate, SummaryTemplates } from './summaryTemplates.types';
+
+/** What the Regenerate menu asks for: a built-in key or a saved template. */
+type RegeneratePick = { template: string } | { templateId: string };
+
+interface SummaryViewProps {
+    summary?: string;
+    onRegenerate?: (pick: RegeneratePick) => void;
+    regenerating?: boolean;
+    templates?: SummaryTemplates | null;
+    onNewTemplate?: () => void;
+    onEditTemplate?: (template: CustomTemplate) => void;
+    meeting?: MeetingNote | null;
+}
 
 // Fallback built-ins used before the server list has loaded (keeps the menu
 // populated instantly and covers hosts that don't pass `templates`).
-const FALLBACK_BUILTINS = [
+const FALLBACK_BUILTINS: BuiltinTemplate[] = [
     { id: 'general', name: 'General meeting' },
     { id: 'standup', name: 'Stand-up' },
     { id: 'sales', name: 'Sales call' },
@@ -28,7 +44,7 @@ const FALLBACK_BUILTINS = [
  * Geen taalschakelaar ernaast: er bestaat geen vertaling van transcripten,
  * dus zo'n knop zou iets beloven wat het product niet doet.
  */
-function stampSentence(stamp, t) {
+function stampSentence(stamp: ReturnType<typeof buildSummaryStamp>, t: TranslateFn) {
     if (stamp.state === SUMMARY_STAMP.NONE || stamp.state === SUMMARY_STAMP.LOADING) return null;
     if (stamp.state === SUMMARY_STAMP.GONE) {
         // Versie bekend, naam niet — en WAAROM de naam ontbreekt weet dit
@@ -65,14 +81,14 @@ export default function SummaryView({
     // De notitie zelf — alleen `summaryTemplateId` / `summaryTemplateVersion`
     // worden gelezen, voor de regel "met welk sjabloon is dit geschreven".
     meeting = null,
-}) {
+}: SummaryViewProps) {
     const { t } = useTranslation();
-    const [menuOpen, setMenuOpen] = useState(false);
-    const menuRef = useRef(null);
+    const [menuOpen, setMenuOpen] = useState<boolean>(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        function handler(e) {
-            if (menuOpen && menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+        function handler(e: MouseEvent) {
+            if (menuOpen && menuRef.current && !menuRef.current.contains(e.target as Node | null)) setMenuOpen(false);
         }
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
@@ -82,16 +98,16 @@ export default function SummaryView({
     const custom = Array.isArray(templates?.custom) ? templates.custom : [];
     const defaultTemplateId = templates?.defaultTemplateId || null;
     const canManageOrg = !!templates?.canManageOrg;
-    const mine = custom.filter((tpl) => tpl.scope === 'user');
-    const orgTemplates = custom.filter((tpl) => tpl.scope === 'org' || tpl.scope === 'group');
+    const mine = custom.filter((tpl: CustomTemplate) => tpl.scope === 'user');
+    const orgTemplates = custom.filter((tpl: CustomTemplate) => tpl.scope === 'org' || tpl.scope === 'group');
     const canManageTemplates = typeof onNewTemplate === 'function';
 
-    function pick(payload) {
+    function pick(payload: RegeneratePick) {
         setMenuOpen(false);
         onRegenerate?.(payload);
     }
 
-    function sectionHeader(label) {
+    function sectionHeader(label: string) {
         return (
             <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 {label}
@@ -99,7 +115,7 @@ export default function SummaryView({
         );
     }
 
-    function customRow(tpl) {
+    function customRow(tpl: CustomTemplate) {
         return (
             <div key={tpl.id} className="group flex items-center hover:bg-[var(--bg-tertiary)]">
                 <button
@@ -118,7 +134,7 @@ export default function SummaryView({
                 {canManageTemplates && (tpl.scope === 'user' || canManageOrg) && (
                     <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEditTemplate?.(tpl); }}
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); setMenuOpen(false); onEditTemplate?.(tpl); }}
                         className="px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-muted)]"
                         aria-label={t('meeting_notes.template_edit', 'Edit template')}
                     >
@@ -147,7 +163,7 @@ export default function SummaryView({
                     <div className="relative" ref={menuRef}>
                         <button
                             type="button"
-                            onClick={() => setMenuOpen((o) => !o)}
+                            onClick={() => setMenuOpen((o: boolean) => !o)}
                             disabled={regenerating}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-60 border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
@@ -160,7 +176,7 @@ export default function SummaryView({
                                 className="absolute right-0 top-full mt-1 z-10 w-60 max-h-[60vh] overflow-auto rounded-lg border shadow-lg bg-[var(--bg-secondary)] border-[var(--border-default)]"
                             >
                                 {(mine.length > 0 || orgTemplates.length > 0) && sectionHeader(t('meeting_notes.template_section_builtin', 'Built-in'))}
-                                {builtins.map((tpl) => (
+                                {builtins.map((tpl: BuiltinTemplate) => (
                                     <button
                                         key={tpl.id}
                                         type="button"

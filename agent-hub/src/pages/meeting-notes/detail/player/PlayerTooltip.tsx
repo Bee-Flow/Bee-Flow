@@ -1,5 +1,12 @@
 import React from 'react';
 
+interface PlayerTooltipProps {
+    x: number;
+    containerWidth?: number;
+    visible: boolean;
+    children?: React.ReactNode;
+}
+
 /**
  * Floating info card for the player layers (marker pins, hover preview).
  *
@@ -10,7 +17,7 @@ import React from 'react';
  * Positioning: `x` is px within the positioned ancestor; the card centers on
  * it but clamps to the container so it never clips at the edges.
  */
-export default function PlayerTooltip({ x, containerWidth, visible, children }) {
+export default function PlayerTooltip({ x, containerWidth, visible, children }: PlayerTooltipProps) {
     if (!visible) return null;
 
     const half = 120; // half of max-w below — enough for clamping math

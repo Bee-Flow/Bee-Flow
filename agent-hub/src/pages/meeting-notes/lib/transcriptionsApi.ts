@@ -1,5 +1,6 @@
 import { jsonOrThrow } from './jsonOrThrow';
 import { API_BASE, authFetch, isDemoMode } from '../../../utils/helpers';
+import type { GoogleMeetImportInput, ImportGoogleMeetArgs, ImportTeamsArgs, MeetingRecordOptions, RegenerateArg, SpeakerPatch, TemplateInput, UploadAudioArgs, UploadNextcloudArgs } from './transcriptionsApi.types';
 
 export async function listTranscriptions() {
     const res = await authFetch(`${API_BASE}/api/transcriptions`);
@@ -18,13 +19,13 @@ export async function listTranscriptionTags() {
     return Array.isArray(data) ? data : [];
 }
 
-export async function getTranscription(id) {
+export async function getTranscription(id: string) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}`);
     return jsonOrThrow(res);
 }
 
 /** "Previously in this series" — the prior note from the same Meet/Talk room, or null. */
-export async function getSeriesPrevious(id) {
+export async function getSeriesPrevious(id: string) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}/series-previous`);
     const data = await jsonOrThrow(res);
     return data.previous || null;
@@ -34,7 +35,7 @@ export async function getSeriesPrevious(id) {
  * Multi-meeting AI report: one question over up to 10 selected notes.
  * Returns { report (markdown), usedTranscripts, meetings: [{id,title,createdAt}] }.
  */
-export async function reportMeetings({ ids, prompt }) {
+export async function reportMeetings({ ids, prompt }: { ids: string[]; prompt: string }) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,7 +44,7 @@ export async function reportMeetings({ ids, prompt }) {
     return jsonOrThrow(res);
 }
 
-export async function uploadAudio({ file, language, title, contextTerms, attendees, numSpeakers, provider, captureMode, signal }) {
+export async function uploadAudio({ file, language, title, contextTerms, attendees, numSpeakers, provider, captureMode, signal }: UploadAudioArgs) {
     const formData = new FormData();
     formData.append('audio', file);
     // 'recording' | 'upload'. Decides what we can honestly tell the user if the
@@ -63,7 +64,7 @@ export async function uploadAudio({ file, language, title, contextTerms, attende
     return jsonOrThrow(res);
 }
 
-export async function uploadFromNextcloud({ path, language, title, contextTerms, provider }) {
+export async function uploadFromNextcloud({ path, language, title, contextTerms, provider }: UploadNextcloudArgs) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/from-nextcloud`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,7 +92,7 @@ export async function listNextcloudAudioFiles(folder = '/Recordings') {
  * Pass a `folder` to override the configured Talk recordings folder.
  * Returns `{ folder, count, rooms: [{ token, recordings: [{ name, path, size, lastModified, kind }] }] }`.
  */
-export async function listNextcloudTalkRecordings(folder) {
+export async function listNextcloudTalkRecordings(folder?: string) {
     const qs = folder ? `?folder=${encodeURIComponent(folder)}` : '';
     const res = await authFetch(`${API_BASE}/api/transcriptions/nextcloud-talk-recordings${qs}`);
     return jsonOrThrow(res);
@@ -107,7 +108,7 @@ export async function listTalkMeetings() {
 }
 
 /** Toggle auto-record for a single meeting (by room token; eventUid optional). */
-export async function setMeetingRecord(token, record, eventUid) {
+export async function setMeetingRecord(token: string, record: boolean, eventUid?: string) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/talk-meetings/${encodeURIComponent(token)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -130,7 +131,7 @@ export async function listGoogleMeetMeetings() {
 }
 
 /** Toggle auto-import for a single Google Meet meeting (by calendar event id). */
-export async function setGoogleMeetMeetingRecord(eventId, record, { meetingCode, applyToSeries } = {}) {
+export async function setGoogleMeetMeetingRecord(eventId: string, record: boolean, { meetingCode, applyToSeries }: GoogleMeetImportInput = {}) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/gmeet-meetings/${encodeURIComponent(eventId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -164,7 +165,7 @@ export async function listGoogleMeetImports() {
  * audio and transcribes). Synchronous like `/from-nextcloud`; may return
  * 202 `{ jobId, status }` when the recording isn't generated yet.
  */
-export async function importGoogleMeetRecording({ eventId, meetingCode, meetLink, language, title, contextTerms }) {
+export async function importGoogleMeetRecording({ eventId, meetingCode, meetLink, language, title, contextTerms }: ImportGoogleMeetArgs) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/from-gmeet`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -194,7 +195,7 @@ export async function listTeamsMeetings() {
 }
 
 /** Record/skip one Teams meeting (by calendar event id); `applyToSeries` covers the series. */
-export async function setTeamsMeetingRecord(eventId, record, { seriesMasterId, applyToSeries } = {}) {
+export async function setTeamsMeetingRecord(eventId: string, record: boolean, { seriesMasterId, applyToSeries }: MeetingRecordOptions = {}) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/teams-meetings/${encodeURIComponent(eventId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -217,7 +218,7 @@ export async function listTeamsRecordings() {
  * Import one finished Teams meeting (recording, else its transcript). May
  * answer 202 `{ jobId, status }` while Teams is still processing it.
  */
-export async function importTeamsMeeting({ eventId, language, contextTerms }) {
+export async function importTeamsMeeting({ eventId, language, contextTerms }: ImportTeamsArgs) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/from-teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -226,7 +227,7 @@ export async function importTeamsMeeting({ eventId, language, contextTerms }) {
     return jsonOrThrow(res);
 }
 
-export async function patchTranscription(id, patch) {
+export async function patchTranscription(id: string, patch: Record<string, unknown>) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -251,7 +252,7 @@ export async function patchTranscription(id, patch) {
  * threw the payload away, which is why this could not use the shared danger
  * zone at all.
  */
-export async function deleteTranscription(id, { confirmedBreaking = false } = {}) {
+export async function deleteTranscription(id: string, { confirmedBreaking = false }: { confirmedBreaking?: boolean } = {}) {
     const res = await authFetch(
         `${API_BASE}/api/transcriptions/${id}${confirmedBreaking ? '?confirm=1' : ''}`,
         { method: 'DELETE' },
@@ -261,7 +262,7 @@ export async function deleteTranscription(id, { confirmedBreaking = false } = {}
     return jsonOrThrow(res);
 }
 
-export async function reprocessTranscription(id) {
+export async function reprocessTranscription(id: string) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}/reprocess`, { method: 'POST' });
     return jsonOrThrow(res);
 }
@@ -273,7 +274,7 @@ export async function reprocessTranscription(id) {
  *   - customPrompt — an ephemeral "try this once" prompt (not saved)
  *   - template     — a built-in key (default 'general')
  */
-export async function regenerateSummary(id, arg) {
+export async function regenerateSummary(id: string, arg?: RegenerateArg) {
     const body = typeof arg === 'string' || arg == null
         ? { template: arg || 'general' }
         : {
@@ -310,7 +311,7 @@ export async function listOrgSummaryTemplates() {
  * Create a template. `scope` is 'user' | 'org' | 'group'. Org/group scope
  * require org admin; group scope needs `groupId`.
  */
-export async function createSummaryTemplate({ scope = 'user', name, prompt, groupId, isDefault }) {
+export async function createSummaryTemplate({ scope = 'user', name, prompt, groupId, isDefault }: TemplateInput) {
     const res = await authFetch(`${API_BASE}/api/summary-templates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -319,7 +320,7 @@ export async function createSummaryTemplate({ scope = 'user', name, prompt, grou
     return jsonOrThrow(res);
 }
 
-export async function updateSummaryTemplate(id, patch) {
+export async function updateSummaryTemplate(id: string, patch: Record<string, unknown>) {
     const res = await authFetch(`${API_BASE}/api/summary-templates/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -328,7 +329,7 @@ export async function updateSummaryTemplate(id, patch) {
     return jsonOrThrow(res);
 }
 
-export async function deleteSummaryTemplate(id) {
+export async function deleteSummaryTemplate(id: string) {
     const res = await authFetch(`${API_BASE}/api/summary-templates/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return true;
@@ -340,10 +341,8 @@ export async function deleteSummaryTemplate(id) {
  *   { renames: { "Old name": "New name" }, merges: [{ from: ["A","B"], into: "A" }] }
  * Returns the full updated transcription.
  *
- * @param {string} id
- * @param {{ renames?: Record<string, string>, merges?: Array<{ from: string[], into: string }> }} [patch]
  */
-export async function updateSpeakers(id, { renames = {}, merges = [] } = {}) {
+export async function updateSpeakers(id: string, { renames = {}, merges = [] }: SpeakerPatch = {}) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}/speakers`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -357,7 +356,7 @@ export async function updateSpeakers(id, { renames = {}, merges = [] } = {}) {
  * `attendees` (names of who was in the room, comma-separated or array) is the
  * strongest hint and, when given, drives the mapping. Returns the updated note.
  */
-export async function reidentifySpeakers(id, attendees) {
+export async function reidentifySpeakers(id: string, attendees?: string | string[]) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}/reidentify-speakers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -370,7 +369,7 @@ export async function reidentifySpeakers(id, attendees) {
  * Publish a transcription to the owner's organisation (or specific groups).
  * Mirrors the publish model used by Knowledge Bases.
  */
-export async function publishTranscription(id, isPublished, sharedGroups) {
+export async function publishTranscription(id: string, isPublished: boolean, sharedGroups?: string[]) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}/publish`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -379,13 +378,13 @@ export async function publishTranscription(id, isPublished, sharedGroups) {
     return jsonOrThrow(res);
 }
 
-export async function exportTranscription(id, format) {
+export async function exportTranscription(id: string, format: string) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}/export?format=${format}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.blob();
 }
 
-export function audioUrl(id) {
+export function audioUrl(id: string) {
     // An <audio src> is a browser fetch the demo transport cannot intercept,
     // so on /__demo__/meeting-notes this was a real request to the API from an
     // anonymous visitor — while the page above the frame promised "no
@@ -400,7 +399,7 @@ export function audioUrl(id) {
  * Same bytes, served as an attachment. For a meeting recorded in the browser
  * this is the only way the user can ever get a copy of their own audio out.
  */
-export function audioDownloadUrl(id) {
+export function audioDownloadUrl(id: string) {
     return `${API_BASE}/api/transcriptions/${id}/audio?download=1`;
 }
 

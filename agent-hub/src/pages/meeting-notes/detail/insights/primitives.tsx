@@ -1,5 +1,41 @@
 import React from 'react';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
+import type { AirtimeWindow } from './insights.types';
+
+interface StatChipProps { label: React.ReactNode; value: React.ReactNode; hint?: string }
+interface TabHeadingProps { children?: React.ReactNode; hint?: string }
+interface EmptyStateProps { children?: React.ReactNode }
+interface MetricRowProps {
+    label: React.ReactNode;
+    value: React.ReactNode;
+    detail?: React.ReactNode;
+    onClick?: () => void;
+    title?: string;
+    flagged?: boolean;
+}
+interface SpeakerNameProps { speakerId: string; color: string; className?: string }
+interface BarRowProps {
+    label: React.ReactNode;
+    fraction: number;
+    value: React.ReactNode;
+    color?: string;
+    onClick?: () => void;
+    title?: string;
+}
+interface SparkPoint { start: number; value: number }
+interface SparklineProps {
+    points: SparkPoint[];
+    ariaLabel: string;
+    onSeek?: (seconds: number) => void;
+    formatTitle?: (point: SparkPoint) => string;
+}
+interface StackedAirtimeProps {
+    windows: AirtimeWindow[];
+    colorFor: (speakerId: string) => string;
+    ariaLabel: string;
+    onSeek?: (seconds: number) => void;
+    formatTitle?: (window: AirtimeWindow) => string;
+}
 
 /**
  * Shared building blocks for the Insights tabs, so five tabs read as one
@@ -14,7 +50,7 @@ import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 export const FLAG_AMBER = '#f59e0b';
 
 /** Big-number tile — the three meeting-level headline stats. */
-export function StatChip({ label, value, hint }) {
+export function StatChip({ label, value, hint }: StatChipProps) {
     return (
         <div
             className="rounded-lg border px-3 py-2 bg-[var(--bg-secondary)] border-[var(--border-default)]"
@@ -27,7 +63,7 @@ export function StatChip({ label, value, hint }) {
 }
 
 /** Section title inside a tab. */
-export function TabHeading({ children, hint }) {
+export function TabHeading({ children, hint }: TabHeadingProps) {
     return (
         <h3
             className="text-xs font-semibold text-[var(--text-primary)]"
@@ -39,14 +75,14 @@ export function TabHeading({ children, hint }) {
 }
 
 /** What a tab shows when it has nothing to show — never a bare heading. */
-export function EmptyState({ children }) {
+export function EmptyState({ children }: EmptyStateProps) {
     return (
         <p className="text-xs italic text-[var(--text-muted)]">{children}</p>
     );
 }
 
 /** label → value line. `onClick` turns the value into a seek button. */
-export function MetricRow({ label, value, detail, onClick, title, flagged = false }) {
+export function MetricRow({ label, value, detail, onClick, title, flagged = false }: MetricRowProps) {
     const valueNode = (
         <span
             className="tabular-nums font-medium"
@@ -73,7 +109,7 @@ export function MetricRow({ label, value, detail, onClick, title, flagged = fals
 }
 
 /** Speaker chip: the palette dot plus a humanised name. */
-export function SpeakerName({ speakerId, color, className = '' }) {
+export function SpeakerName({ speakerId, color, className = '' }: SpeakerNameProps) {
     return (
         <span className={`inline-flex items-center gap-1.5 min-w-0 ${className}`}>
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
@@ -83,7 +119,7 @@ export function SpeakerName({ speakerId, color, className = '' }) {
 }
 
 /** Horizontal proportion bar — one row of a ranked list. */
-export function BarRow({ label, fraction, value, color = 'var(--accent-primary)', onClick, title }) {
+export function BarRow({ label, fraction, value, color = 'var(--accent-primary)', onClick, title }: BarRowProps) {
     const pct = Math.max(1, Math.round((Number(fraction) || 0) * 100));
     const body = (
         <>
@@ -109,11 +145,11 @@ export function BarRow({ label, fraction, value, color = 'var(--accent-primary)'
  * counts; the tallest bar defines full height. Decorative by itself, so the
  * caller supplies the accessible summary via `ariaLabel`.
  */
-export function Sparkline({ points, ariaLabel, onSeek, formatTitle }) {
-    const max = points.reduce((m, p) => Math.max(m, p.value), 0);
+export function Sparkline({ points, ariaLabel, onSeek, formatTitle }: SparklineProps) {
+    const max = points.reduce((m: number, p: SparkPoint) => Math.max(m, p.value), 0);
     return (
         <div className="flex items-end gap-px h-8" role="img" aria-label={ariaLabel}>
-            {points.map((p) => {
+            {points.map((p: SparkPoint) => {
                 const h = max > 0 ? Math.max(2, Math.round((p.value / max) * 100)) : 2;
                 const style = { height: `${h}%`, background: 'var(--accent-primary)', opacity: max > 0 && p.value > 0 ? 0.85 : 0.25 };
                 return onSeek ? (
@@ -137,10 +173,10 @@ export function Sparkline({ points, ariaLabel, onSeek, formatTitle }) {
  * Stacked share-per-window column chart: who held the floor when. Each column
  * is one time window; the stack is that window's speech split by speaker.
  */
-export function StackedAirtime({ windows, colorFor, ariaLabel, onSeek, formatTitle }) {
+export function StackedAirtime({ windows, colorFor, ariaLabel, onSeek, formatTitle }: StackedAirtimeProps) {
     return (
         <div className="flex items-end gap-px h-14" role="img" aria-label={ariaLabel}>
-            {windows.map((w) => (
+            {windows.map((w: AirtimeWindow) => (
                 <button
                     key={w.start}
                     type="button"
@@ -148,7 +184,7 @@ export function StackedAirtime({ windows, colorFor, ariaLabel, onSeek, formatTit
                     title={formatTitle ? formatTitle(w) : undefined}
                     className="flex-1 min-w-0 h-full flex flex-col justify-end rounded-sm overflow-hidden bg-[var(--bg-tertiary)]"
                 >
-                    {w.shares.map((s) => (
+                    {w.shares.map((s: AirtimeWindow['shares'][number]) => (
                         <span
                             key={s.speakerId}
                             className="block w-full"
@@ -162,6 +198,6 @@ export function StackedAirtime({ windows, colorFor, ariaLabel, onSeek, formatTit
 }
 
 /** "4:47" for a seconds value, with a dash for nothing. */
-export function duration(seconds) {
+export function duration(seconds: number) {
     return Number.isFinite(seconds) && seconds > 0 ? formatDuration(seconds) : '—';
 }

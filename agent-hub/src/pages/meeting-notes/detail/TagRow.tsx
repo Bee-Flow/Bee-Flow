@@ -2,16 +2,24 @@ import React, { useState } from 'react';
 import { Loader2, Tag, X } from 'lucide-react';
 import useTranslation from '../../../hooks/useTranslation';
 
+interface TagRowProps {
+    tags?: string[];
+    canEdit?: boolean;
+    onAddTag?: (tag: string) => void;
+    onRemoveTag?: (tag: string) => void;
+    busy?: boolean;
+}
+
 /**
  * The note's tag chips with add/remove (Meeting Notes artboard 1a, line 52:
  * `dataweging · spelersmonitor · … · + tag`). Lived inside MeetingHeader
  * until the header became the shared 48px StudioSectionHeader, which has no
  * second row; the artboard draws the tags at the top of the content column.
  */
-export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveTag, busy = false }) {
+export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveTag, busy = false }: TagRowProps) {
     const { t } = useTranslation();
-    const [draft, setDraft] = useState('');
-    const [showInput, setShowInput] = useState(false);
+    const [draft, setDraft] = useState<string>('');
+    const [showInput, setShowInput] = useState<boolean>(false);
 
     const commit = () => {
         const next = draft.trim();
@@ -22,7 +30,7 @@ export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveT
 
     return (
         <div className="flex flex-wrap items-center gap-1 text-[11px]" data-testid="meeting-tags">
-            {tags.map((tag) => (
+            {tags.map((tag: string) => (
                 <span
                     key={tag}
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-secondary)]"

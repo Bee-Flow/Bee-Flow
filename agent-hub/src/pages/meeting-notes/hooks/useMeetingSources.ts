@@ -22,12 +22,12 @@ export default function useMeetingSources() {
         (async () => {
             const [talk, gmeet] = await Promise.all([
                 authFetch(`${API_BASE}/api/talk-notes-settings/user/me`)
-                    .then((r) => (r.ok ? r.json() : {}))
-                    .then((d) => d.nextcloudConnected === true)
+                    .then((r: Response) => (r.ok ? r.json() : {}))
+                    .then((d: { nextcloudConnected?: boolean }) => d.nextcloudConnected === true)
                     .catch(() => false),
                 authFetch(`${API_BASE}/api/gmeet-notes-settings/user/me`)
-                    .then((r) => (r.ok ? r.json() : {}))
-                    .then((d) => d.connection?.googleConnected === true)
+                    .then((r: Response) => (r.ok ? r.json() : {}))
+                    .then((d: { connection?: { googleConnected?: boolean } }) => d.connection?.googleConnected === true)
                     .catch(() => false),
             ]);
             if (alive) setSources({ talk, gmeet, loading: false });

@@ -2,6 +2,18 @@ import React, { useMemo, useState } from 'react';
 import { Plus, Pencil, Star, User, Building2, Users } from 'lucide-react';
 import useTranslation from '../../../hooks/useTranslation';
 import TemplateEditor from './TemplateEditor';
+import type { LucideIcon } from 'lucide-react';
+import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';
+
+interface TemplateManagerProps {
+    templates?: CustomTemplate[];
+    builtins?: BuiltinTemplate[];
+    canManageOrg?: boolean;
+    defaultScope?: string;
+    groups?: OrgGroup[];
+    emptyHint?: React.ReactNode;
+    onReload?: () => void;
+}
 
 /**
  * A list of summary templates with create / edit / delete, built on
@@ -9,7 +21,7 @@ import TemplateEditor from './TemplateEditor';
  * org-admin panel (org + group scope). Presentational — the host fetches the
  * list and passes `onReload` to refresh after a change.
  */
-const SCOPE_ICON = { user: User, org: Building2, group: Users };
+const SCOPE_ICON: Record<string, LucideIcon> = { user: User, org: Building2, group: Users };
 
 export default function TemplateManager({
     templates = [],
@@ -19,21 +31,21 @@ export default function TemplateManager({
     groups = [],            // [{ id, name }] — to label group-scoped rows
     emptyHint,
     onReload,
-}) {
+}: TemplateManagerProps) {
     const { t } = useTranslation();
-    const [editorOpen, setEditorOpen] = useState(false);
-    const [editing, setEditing] = useState(null);
+    const [editorOpen, setEditorOpen] = useState<boolean>(false);
+    const [editing, setEditing] = useState<CustomTemplate | null>(null);
 
     const groupName = useMemo(() => {
-        const map = {};
+        const map: Record<string, string> = {};
         for (const g of groups) map[g.id] = g.name;
         return map;
     }, [groups]);
 
     function openNew() { setEditing(null); setEditorOpen(true); }
-    function openEdit(tpl) { setEditing(tpl); setEditorOpen(true); }
+    function openEdit(tpl: CustomTemplate) { setEditing(tpl); setEditorOpen(true); }
 
-    function scopeLabel(tpl) {
+    function scopeLabel(tpl: CustomTemplate) {
         if (tpl.scope === 'user') return t('meeting_notes.template_scope_user', 'Just me');
         if (tpl.scope === 'org') return t('meeting_notes.template_scope_org', 'Whole organization');
         return groupName[tpl.groupId] || t('meeting_notes.template_scope_group', 'Specific group');
@@ -47,7 +59,7 @@ export default function TemplateManager({
                         {emptyHint || t('meeting_notes.template_empty', 'No templates yet.')}
                     </div>
                 )}
-                {templates.map((tpl, i) => {
+                {templates.map((tpl: CustomTemplate, i: number) => {
                     const Icon = SCOPE_ICON[tpl.scope] || User;
                     return (
                         <div key={tpl.id}>

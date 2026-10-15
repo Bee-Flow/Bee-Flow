@@ -1,9 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, Trash2, User, Building2, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Modal from '../../../components/shared/Modal';
 import useConfirm from '../../../components/shared/useConfirm';
 import useTranslation from '../../../hooks/useTranslation';
 import * as api from '../lib/transcriptionsApi';
+import type { ApiError } from './meetingDetailTypes';
+import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';
+
+interface TemplateEditorProps {
+    open: boolean;
+    onClose: () => void;
+    initial?: CustomTemplate | null;
+    builtins?: BuiltinTemplate[];
+    canManageOrg?: boolean;
+    defaultScope?: string;
+    onSaved?: (saved: unknown) => void;
+    onDeleted?: (id: string) => void;
+}
 
 /**
  * Create / edit a custom summary-regeneration template.
@@ -29,21 +43,21 @@ export default function TemplateEditor({
     defaultScope = 'user',
     onSaved,
     onDeleted,
-}) {
+}: TemplateEditorProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const isEdit = !!(initial && initial.id);
 
-    const [name, setName] = useState('');
-    const [prompt, setPrompt] = useState('');
-    const [scope, setScope] = useState('user');
-    const [groupId, setGroupId] = useState('');
-    const [isDefault, setIsDefault] = useState(false);
-    const [seedId, setSeedId] = useState('');
-    const [groups, setGroups] = useState([]);
-    const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
-    const [error, setError] = useState(null);
+    const [name, setName] = useState<string>('');
+    const [prompt, setPrompt] = useState<string>('');
+    const [scope, setScope] = useState<string>('user');
+    const [groupId, setGroupId] = useState<string>('');
+    const [isDefault, setIsDefault] = useState<boolean>(false);
+    const [seedId, setSeedId] = useState<string>('');
+    const [groups, setGroups] = useState<OrgGroup[]>([]);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [deleting, setDeleting] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
 
     // (Re)initialise whenever the editor opens or targets a different template.
     useEffect(() => {
@@ -70,7 +84,7 @@ export default function TemplateEditor({
     useEffect(() => {
         if (!open || !canManageOrg) return undefined;
         let mounted = true;
-        api.listOrgGroups().then((g) => { if (mounted) setGroups(Array.isArray(g) ? g : []); }).catch(() => {});
+        api.listOrgGroups().then((g: OrgGroup[]) => { if (mounted) setGroups(Array.isArray(g) ? g : []); }).catch(() => {});
         return () => { mounted = false; };
     }, [open, canManageOrg]);
 
@@ -83,9 +97,9 @@ export default function TemplateEditor({
         return opts;
     }, [canManageOrg, t]);
 
-    function applySeed(id) {
+    function applySeed(id: string) {
         setSeedId(id);
-        const b = builtins.find((x) => x.id === id);
+        const b = builtins.find((x: BuiltinTemplate) => x.id === id);
         if (b) {
             setPrompt(b.prompt || '');
             if (!name.trim()) setName(b.name || '');
@@ -99,7 +113,7 @@ export default function TemplateEditor({
         setSaving(true);
         setError(null);
         try {
-            let saved;
+            let saved: unknown;
             if (isEdit) {
                 saved = await api.updateSummaryTemplate(initial.id, { name: name.trim(), prompt: prompt.trim(), isDefault });
             } else {
@@ -114,7 +128,7 @@ export default function TemplateEditor({
             onSaved?.(saved);
             onClose?.();
         } catch (e) {
-            setError(e.message || String(e));
+            setError((e as ApiError).message || String(e));
         } finally {
             setSaving(false);
         }
@@ -138,7 +152,7 @@ export default function TemplateEditor({
             onDeleted?.(initial.id);
             onClose?.();
         } catch (e) {
-            setError(e.message || String(e));
+            setError((e as ApiError).message || String(e));
             setDeleting(false);
         }
     }
@@ -199,7 +213,7 @@ export default function TemplateEditor({
                     <input
                         type="text"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                         placeholder={t('meeting_notes.template_name_ph', 'e.g. Board summary, Klant-review NL')}
                         className="px-3 py-2 rounded-lg text-sm border outline-none"
                         style={inputStyle}
@@ -212,12 +226,12 @@ export default function TemplateEditor({
                         <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_start_from', 'Start from a built-in (optional)')}</span>
                         <select
                             value={seedId}
-                            onChange={(e) => applySeed(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => applySeed(e.target.value)}
                             className="px-3 py-2 rounded-lg text-sm border outline-none"
                             style={inputStyle}
                         >
                             <option value="">{t('meeting_notes.template_start_blank', 'Blank')}</option>
-                            {builtins.map((b) => (
+                            {builtins.map((b: BuiltinTemplate) => (
                                 <option key={b.id} value={b.id}>{b.name}</option>
                             ))}
                         </select>
@@ -229,7 +243,7 @@ export default function TemplateEditor({
                     <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_prompt', 'Prompt')}</span>
                     <textarea
                         value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
                         rows={10}
                         placeholder={t('meeting_notes.template_prompt_ph', 'Describe the summary you want — sections, tone, what to focus on…')}
                         className="px-3 py-2 rounded-lg text-sm border outline-none font-mono leading-relaxed resize-y"
@@ -241,7 +255,7 @@ export default function TemplateEditor({
                 <div className="flex flex-col gap-1.5">
                     <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_visible_to', 'Visible to')}</span>
                     <div className="flex flex-wrap gap-2">
-                        {scopeOptions.map((opt) => {
+                        {scopeOptions.map((opt: { id: string; label: string; icon: LucideIcon }) => {
                             const Icon = opt.icon;
                             const active = scope === opt.id;
                             return (
@@ -272,13 +286,13 @@ export default function TemplateEditor({
                         <span className="text-xs font-medium text-[var(--text-secondary)]">{t('meeting_notes.template_group', 'Group')}</span>
                         <select
                             value={groupId}
-                            onChange={(e) => setGroupId(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGroupId(e.target.value)}
                             disabled={isEdit}
                             className="px-3 py-2 rounded-lg text-sm border outline-none"
                             style={inputStyle}
                         >
                             <option value="">{t('meeting_notes.template_group_choose', 'Choose a group…')}</option>
-                            {groups.map((g) => (
+                            {groups.map((g: OrgGroup) => (
                                 <option key={g.id} value={g.id}>{g.name}</option>
                             ))}
                         </select>
@@ -290,7 +304,7 @@ export default function TemplateEditor({
                     <input
                         type="checkbox"
                         checked={isDefault}
-                        onChange={(e) => setIsDefault(e.target.checked)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIsDefault(e.target.checked)}
                         className="mt-0.5 accent-[var(--accent-primary)] w-4 h-4"
                     />
                     <span className="flex flex-col">

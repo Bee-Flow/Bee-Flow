@@ -2,6 +2,19 @@ import React, { memo, useRef, useState } from 'react';
 import PlayerTooltip from './PlayerTooltip';
 import useTranslation from '../../../../hooks/useTranslation';
 import { formatDuration } from '../../lib/format';
+import type { PlayerChapter } from './player.types';
+
+interface ChapterStripProps {
+    chapters?: PlayerChapter[];
+    activeIndex?: number;
+    onSeek?: (seconds: number) => void;
+}
+
+interface HoveredChapter {
+    index: number;
+    x: number;
+    width: number;
+}
 
 /** Labels vanish below this width — an ellipsis on 4% of a strip is noise. */
 const LABEL_MIN_FRACTION = 0.06;
@@ -21,16 +34,16 @@ const LABEL_MIN_FRACTION = 0.06;
  * handful of times per meeting, so the memo actually keeps this strip out of
  * the 4×/s timeupdate re-render loop.
  */
-function ChapterStrip({ chapters = [], activeIndex = -1, onSeek }) {
+function ChapterStrip({ chapters = [], activeIndex = -1, onSeek }: ChapterStripProps) {
     const { t } = useTranslation();
-    const stripRef = useRef(null);
-    const [hovered, setHovered] = useState(null); // { index, x, width } while a block is hovered/focused
+    const stripRef = useRef<HTMLDivElement>(null);
+    const [hovered, setHovered] = useState<HoveredChapter | null>(null); // { index, x, width } while a block is hovered/focused
 
     if (!chapters.length) return null;
 
     // Anchor the tooltip on the block's own centre (accurate under flex gap /
     // min-width / shrink), measured against the positioned strip container.
-    const show = (i, e) => {
+    const show = (i: number, e: React.MouseEvent<HTMLButtonElement> | React.FocusEvent<HTMLButtonElement>) => {
         const btn = e.currentTarget;
         const width = stripRef.current?.offsetWidth || 0;
         setHovered({ index: i, x: btn.offsetLeft + btn.offsetWidth / 2, width });
@@ -41,16 +54,16 @@ function ChapterStrip({ chapters = [], activeIndex = -1, onSeek }) {
 
     return (
         <div ref={stripRef} className="relative flex w-full gap-[3px]" role="group" aria-label={t('meeting_notes.chapters_aria', 'Chapters')}>
-            {chapters.map((c, i) => {
+            {chapters.map((c: PlayerChapter, i: number) => {
                 const active = i === activeIndex;
                 return (
                     <button
                         key={`${c.seconds}-${c.title}`}
                         type="button"
                         onClick={() => onSeek?.(c.seconds)}
-                        onMouseEnter={(e) => show(i, e)}
+                        onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => show(i, e)}
                         onMouseLeave={hide}
-                        onFocus={(e) => show(i, e)}
+                        onFocus={(e: React.FocusEvent<HTMLButtonElement>) => show(i, e)}
                         onBlur={hide}
                         aria-label={`Chapter: ${c.title}, starts at ${formatDuration(c.seconds)}`}
                         aria-current={active ? 'true' : undefined}

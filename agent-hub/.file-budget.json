@@ -210,7 +210,7 @@
     "src/pages/EncryptionSetup.jsx": 428,
     "src/pages/LoginPage.jsx": 1009,
     "src/pages/meeting-notes/lib/insightsMetrics.js": 577,
-    "src/pages/meeting-notes/lib/transcriptionsApi.js": 426,
+    "src/pages/meeting-notes/lib/transcriptionsApi.ts": 426,
     "src/pages/meeting-notes/library/RulesPanel.jsx": 645,
     "src/pages/meeting-notes/library/UpcomingMeetings.jsx": 583,
     "src/pages/PublicFormPage.jsx": 468,
