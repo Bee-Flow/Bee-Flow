@@ -3,6 +3,7 @@ import { FileText } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import * as api from '../meeting-notes/lib/transcriptionsApi';
 import TemplateManager from '../meeting-notes/detail/TemplateManager';
+import type { SummaryTemplates } from '../meeting-notes/detail/summaryTemplates.types';
 
 /**
  * Personal "My summary templates" settings. Lets any user author and save their
@@ -11,7 +12,7 @@ import TemplateManager from '../meeting-notes/detail/TemplateManager';
  */
 export default function SummaryTemplatesSection() {
     const { t } = useTranslation();
-    const [data, setData] = useState(null);
+    const [data, setData] = useState<SummaryTemplates | null>(null);
     const [available, setAvailable] = useState(true);
     const [loading, setLoading] = useState(true);
 
