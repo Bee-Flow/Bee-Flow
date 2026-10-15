@@ -9,20 +9,18 @@
  * asked of their collaborators and how a failure degrades), the reusable
  * steps and their availability, the form pick sources and the static lists.
  *
- * Route handler invoked directly, collaborators mocked through require.cache.
+ * Route handler invoked directly, collaborators mocked through testUtils/stubRequire.
  *
  * Run: node --test routes/automation/catalog.sections.test.js
  */
 const test = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const Module = require('module');
+
+const { preloadStubs } = require('../../testUtils/stubRequire');
 
 /** Replace a server module (path relative to server/) by a stub, before anything requires it. */
-function stub(rel, exports) {
-    const id = require.resolve(path.join(__dirname, '..', '..', rel));
-    require.cache[id] = Object.assign(new Module(id), { exports, loaded: true });
-}
+const stub = (rel, exports) => preloadStubs(require, { [`../../${rel}`]: exports });
 
 // Per-test mutable state read by the mocks.
 const S = {};
@@ -397,9 +395,8 @@ test('GET /catalog/form-pick-sources serves just the sources, with the same avai
 
 test('form-pick-sources: a tools module that will not load reads every source as unavailable', async () => {
     reset();
-    const id = require.resolve('../../core/integrations/integrationTools');
-    const saved = require.cache[id];
-    require.cache[id] = Object.assign(new Module(id), { loaded: true, exports: Object.defineProperty({}, 'getIntegrationTools', { get() { throw new Error('module failed to load'); } }) });
+    const tools = require('../../core/integrations/integrationTools');
+    stub('core/integrations/integrationTools', Object.defineProperty({}, 'getIntegrationTools', { get() { throw new Error('module failed to load'); } }));
     try {
         const pickHandler = findHandler(catalogRouter, 'get', '/catalog/form-pick-sources');
         const res = { statusCode: 200, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
@@ -407,6 +404,6 @@ test('form-pick-sources: a tools module that will not load reads every source as
         assert.strictEqual(res.statusCode, 200);
         assert.deepStrictEqual(res.body.sources.map(x => [x.id, x.available]), [['internal-src', true], ['ext-src', false], ['ext-other', false]]);
     } finally {
-        require.cache[id] = saved;
+        stub('core/integrations/integrationTools', tools);
     }
 });

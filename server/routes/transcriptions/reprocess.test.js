@@ -18,10 +18,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-function stub(p, exports) {
-    const filename = require.resolve(p);
-    require.cache[filename] = { id: filename, filename, loaded: true, exports };
-}
+const { preloadStubs } = require('../../testUtils/stubRequire');
+
+const stub = (p, exports) => preloadStubs(require, { [p]: exports });
 
 const AUDIO_PATH = path.join(os.tmpdir(), `reprocess-test-${Date.now()}.webm`);
 fs.writeFileSync(AUDIO_PATH, 'fake-audio-bytes');
