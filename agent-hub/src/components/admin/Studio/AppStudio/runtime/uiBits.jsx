@@ -176,6 +176,8 @@ export function displayValue(value) {
  *   - a freshly allocated array/object — `split(…)`, `concat(…)`, `parseJson(…)`
  *     return a new reference every evaluation, so no NaN is needed at all.
  * A ref write cannot schedule a render, so no value shape can loop here again.
+ *
+ * @param {{ value: unknown, isLoading: boolean, error?: unknown, errorCode?: string | null }} binding a resolveBinding result
  */
 export function useStickyBinding({ value, isLoading, error = null, errorCode = null }) {
     // Written during render on purpose: the sticky value has to be readable on
@@ -204,6 +206,8 @@ export function useStickyBinding({ value, isLoading, error = null, errorCode = n
  * whose connector is not linked, or whose request 500s, was told their mailbox
  * was empty. This says what happened, and — when the fix is theirs to make —
  * what to do about it.
+ *
+ * @param {{ error?: unknown, errorCode?: string | null, onRetry?: (() => void) | null }} props
  */
 export function ErrorText({ error, errorCode = null, onRetry = null }) {
     const { t } = useTranslation();

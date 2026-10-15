@@ -15,11 +15,12 @@ import { useFlushGuards } from './header/useFlushGuards';
 import type { FlushResult } from './header/useFlushGuards';
 import { useHeaderView } from './header/useHeaderView';
 import VersionHistoryModal from './header/VersionHistoryModal';
-import CommandPaletteJs from './CommandPalette';
+import CommandPalette from './CommandPalette';
 import LogicaTabJs from './LogicaTab';
 import { countWiredLogic } from './logicRows';
 import PublishModal from './PublishModal';
 import { toSaveNotices } from './saveNotices';
+import type { SavePayload } from './saveNotices';
 import { SaveStatusChip as SaveStatusChipJs } from './SaveStatusPill';
 import IconButton from '../../../../shared/IconButton';
 import { managedOf, managedRefusalOf } from '../../../../shared/managedPart';
@@ -34,7 +35,6 @@ export { PANEL_VIEWS };
 
 // Typed views of three .jsx siblings, whose `= null` / `= []` defaults would
 // otherwise type those props as null-only (or never[]).
-const CommandPalette = CommandPaletteJs as unknown as ComponentType<{ open: boolean; onClose: () => void; actions?: CommandAction[] }>;
 const SaveStatusChip = SaveStatusChipJs as unknown as ComponentType<{ status?: string; version?: number | string | null }>;
 const LogicaTab = LogicaTabJs as unknown as ComponentType<{
     app: unknown;
@@ -92,14 +92,14 @@ export interface EditorHeaderProps {
     app: HeaderApp;
     onAppUpdated?: (app: HeaderApp) => void;
     onClose?: () => void;
-    onCommit?: unknown;
+    onCommit?: (def: AppDefinition) => void;
     canUndo?: boolean;
     canRedo?: boolean;
     onUndo?: () => void;
     onRedo?: () => void;
     saveStatus?: string;
     saveError?: unknown;
-    saveNotices?: unknown;
+    saveNotices?: SavePayload | null;
     onFlush?: () => Promise<FlushResult> | FlushResult;
     conflict?: unknown;
     onConflictLoadLatest?: () => void;

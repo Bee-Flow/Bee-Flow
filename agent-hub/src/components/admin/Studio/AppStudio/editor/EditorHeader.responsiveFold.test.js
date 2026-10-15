@@ -88,7 +88,7 @@ describe('EditorHeader — the responsive fold stays wired', () => {
     });
 
     it('row 2 wraps, so the unfolded ribbon takes its own line', async () => {
-        const row = await readSource('EditorToolRow.jsx');
+        const row = await readSource('EditorToolRow.tsx');
         expect(row).toMatch(/flex-wrap/);
         const ribbon = await readSource('ComponentRibbon.jsx');
         expect(ribbon).toMatch(/basis-full/);

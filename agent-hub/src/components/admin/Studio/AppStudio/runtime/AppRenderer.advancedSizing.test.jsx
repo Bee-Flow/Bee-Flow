@@ -161,7 +161,7 @@ describe('a horizontal pane on a phone', () => {
     });
 
     it('the hook it keys off is one AppPane actually emits', () => {
-        const pane = readFileSync(resolve(RUNTIME_DIR, 'components/AppPane.jsx'), 'utf8');
+        const pane = readFileSync(resolve(RUNTIME_DIR, 'components/AppPane.tsx'), 'utf8');
         expect(pane).toContain("data-app-pane={horizontal ? 'horizontal' : 'vertical'}");
     });
 });

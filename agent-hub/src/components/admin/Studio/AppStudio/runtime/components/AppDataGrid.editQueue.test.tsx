@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import AppDataGrid from './AppDataGrid';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
+import type { ActionState, ActionStatus } from '../actionRunner/core';
 
 const ROWS = [
     { id: 1, name: 'Zoe', updated_at: '2020-01-01T00:00:00.000Z' },
@@ -33,7 +34,7 @@ function makeHarness({ onRowSelect = 'act_update' as string | null } = {}) {
         },
         style: { span: 12 },
     };
-    const ui = ({ actionState = {} as Record<string, unknown>, rows = ROWS as Array<Record<string, unknown>> } = {}) => (
+    const ui = ({ actionState = {} as ActionState, rows = ROWS as Array<Record<string, unknown>> } = {}) => (
         <RuntimeProvider value={{
             ...DEFAULT_RUNTIME, scope: buildScope({ now: '2020-01-01T00:00:00.000Z' }),
             mode: 'run', runAction, actionState,
@@ -52,7 +53,7 @@ function makeHarness({ onRowSelect = 'act_update' as string | null } = {}) {
         await user.clear(input);
         await user.type(input, `${value}{Enter}`);
     };
-    const status = (s: string) => ({ act_update: { status: s, result: undefined, error: s === 'error' ? 'nope' : null } });
+    const status = (s: ActionStatus) => ({ act_update: { status: s, result: undefined, error: s === 'error' ? 'nope' : null } });
     return { runAction, utils, ui, user, nameTrigger, editName, status };
 }
 
