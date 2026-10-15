@@ -3,6 +3,19 @@ import React from 'react';
 import { phaseFact } from './playbookView';
 import { phaseLabel } from './recipes';
 import { studioLockHint } from '../studioGates';
+import type { CSSProperties, ReactNode } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { Phase } from './playbookTypes';
+
+export interface PhaseRailProps {
+    phases?: Phase[] | null;
+    activeKey?: string | null;
+    t: TranslateFn;
+    presenter?: boolean;
+    onSelect?: ((key: string) => void) | null;
+    selectedKey?: string | null;
+    collapsed?: boolean;
+}
 
 /**
  * The five phases as a vertical rail: a 28 px circle per phase, 2 px
@@ -12,7 +25,7 @@ import { studioLockHint } from '../studioGates';
  * breathing ring, awaiting a pause glyph, done emerald check, failed red X,
  * skipped struck through, locked a lock with the plan hint.
  */
-const STATE_TEXT = {
+const STATE_TEXT: Readonly<Record<string, readonly [string, string]>> = {
     pending: ['playbooks.state.pending', 'Later'],
     ready: ['playbooks.state.ready', 'Ready to start'],
     running: ['playbooks.state.running', 'Building…'],
@@ -23,8 +36,8 @@ const STATE_TEXT = {
     locked: ['playbooks.state.locked', 'Locked'],
 };
 
-function Circle({ status }) {
-    const base = { width: 28, height: 28, borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxSizing: 'border-box' };
+function Circle({ status }: { status: string }) {
+    const base: CSSProperties = { width: 28, height: 28, borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxSizing: 'border-box' };
     switch (status) {
         case 'done':
             return <span style={{ ...base, background: 'var(--kind-playbook)', color: 'var(--accent-primary-fg)' }}><Check className="w-4 h-4" strokeWidth={2.5} aria-hidden="true" /></span>;
@@ -45,7 +58,7 @@ function Circle({ status }) {
     }
 }
 
-export default function PhaseRail({ phases = [], activeKey = null, t, presenter = false, onSelect = null, selectedKey = null, collapsed = false }) {
+export default function PhaseRail({ phases = [], activeKey = null, t, presenter = false, onSelect = null, selectedKey = null, collapsed = false }: PhaseRailProps) {
     const list = Array.isArray(phases) ? phases : [];
     // Collapsed (a live fill fills the screen): the circles alone, still the
     // way into a phase's details.
@@ -115,7 +128,14 @@ export default function PhaseRail({ phases = [], activeKey = null, t, presenter 
  * The text beside a circle is a BUTTON when the page can inspect a phase —
  * the whole block, so a fact line is as clickable as the name.
  */
-function Body({ onSelect, phaseKey, selected, label, t, children }) {
+function Body({ onSelect, phaseKey, selected, label, t, children }: {
+    onSelect: ((key: string) => void) | null | undefined;
+    phaseKey: string;
+    selected: boolean;
+    label: string;
+    t: TranslateFn;
+    children?: ReactNode;
+}) {
     if (!onSelect) return children;
     return (
         <button

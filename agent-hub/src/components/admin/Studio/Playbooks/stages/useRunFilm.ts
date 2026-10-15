@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { dwellMs, filmOrder, frameAt, recordsById, serverHead } from './runFilm';
+import type { FilmDefinition, StepRecord } from './runFilm';
 
 /**
  * The run steps, paced (runFilm.js). Returns what the canvas should render
@@ -7,7 +8,17 @@ import { dwellMs, filmOrder, frameAt, recordsById, serverHead } from './runFilm'
  * the server has actually recorded. Under reduced motion it returns the
  * server's own steps untouched.
  */
-export default function useRunFilm(steps, definition, { runId = null, runStatus = null, reducedMotion = false, stepMs, catchUpMs } = {}) {
+export default function useRunFilm(
+    steps: StepRecord[] | null | undefined,
+    definition: FilmDefinition | null | undefined,
+    { runId = null, runStatus = null, reducedMotion = false, stepMs, catchUpMs }: {
+        runId?: string | null;
+        runStatus?: string | null;
+        reducedMotion?: boolean;
+        stepMs?: number;
+        catchUpMs?: number;
+    } = {},
+): StepRecord[] {
     const order = useMemo(() => filmOrder(definition), [definition]);
     const byId = useMemo(() => recordsById(steps), [steps]);
     const hasTrigger = !!definition?.trigger?.id;

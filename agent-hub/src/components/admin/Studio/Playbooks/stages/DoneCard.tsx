@@ -6,8 +6,30 @@ import { kindOf } from '../phaseMachine';
 import { phaseFact, totalElapsed } from '../playbookView';
 import { CENTER_PATH } from './complianceView';
 import { phaseLabel } from '../recipes';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { Artifacts, Phase, Playbook } from '../playbookTypes';
+import type { CSSProperties, ReactElement } from 'react';
 
-function DoorLink({ icon, kind, label, name, onClick, t }) {
+interface DoorLinkProps {
+    icon: ReactElement<{ style?: CSSProperties; 'aria-hidden'?: string }>;
+    kind: string;
+    label: string;
+    name: string | null | undefined;
+    onClick: () => void;
+    t: TranslateFn;
+}
+
+export interface DoneCardProps {
+    playbook: Playbook;
+    onNavigate?: ((path: string) => void) | null;
+    onBack: () => void;
+    onResume?: (() => void) | null;
+    t: TranslateFn;
+    presenter?: boolean;
+    busy?: boolean;
+}
+
+function DoorLink({ icon, kind, label, name, onClick, t }: DoorLinkProps) {
     const { tile, glyph } = kindTileStyle(kind, { size: 32, pct: 16 });
     return (
         <button
@@ -32,13 +54,13 @@ function DoorLink({ icon, kind, label, name, onClick, t }) {
  * the automation, the table, the app. A stopped playbook gets the same card
  * with what DID land; skipped and locked phases are named, not hidden.
  */
-export default function DoneCard({ playbook, onNavigate, onBack, onResume = null, t, presenter = false, busy = false }) {
-    const phases = Array.isArray(playbook?.phases) ? playbook.phases : [];
-    const byKind = (k) => phases.find((p) => kindOf(p) === k) || null;
-    const table = byKind('table')?.artifacts || {};
+export default function DoneCard({ playbook, onNavigate, onBack, onResume = null, t, presenter = false, busy = false }: DoneCardProps) {
+    const phases: Phase[] = Array.isArray(playbook?.phases) ? playbook.phases : [];
+    const byKind = (k: string): Phase | null => phases.find((p) => kindOf(p) === k) || null;
+    const table: Artifacts = byKind('table')?.artifacts || {};
     // Every automation that landed gets a door — the feeding one and the approval one.
     const automations = phases.filter((p) => kindOf(p) === 'automation' && p.artifacts && p.artifacts.automationId);
-    const app = byKind('app')?.artifacts || {};
+    const app: Artifacts = byKind('app')?.artifacts || {};
     const fill = byKind('fill');
     const access = byKind('access');
     const compliance = byKind('compliance');
@@ -46,7 +68,7 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
     const elapsed = totalElapsed(playbook);
     const doneCount = phases.filter((p) => p.status === 'done').length;
     const notBuilt = phases.filter((p) => p.status === 'skipped' || p.status === 'locked' || (stopped && p.status !== 'done'));
-    const go = (route) => { if (onNavigate) onNavigate(route); };
+    const go = (route: string) => { if (onNavigate) onNavigate(route); };
 
     return (
         <div className="pbk-stage-enter h-full flex items-start justify-center overflow-y-auto" style={{ padding: presenter ? '56px 32px' : '40px 24px' }} data-testid="playbook-done">
@@ -62,14 +84,14 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
                         <p className="text-xs mt-1 flex flex-wrap gap-x-2 text-[var(--text-secondary)]">
                             <span>{t('playbooks.done.phases', '{n} of {total} phases built', { n: doneCount, total: phases.length })}</span>
                             {elapsed && (<><span aria-hidden="true">·</span><span>{t('playbooks.done.elapsed', 'in {time}', { time: elapsed })}</span></>)}
-                            {Number.isFinite(fill?.artifacts?.rowCount) && (<><span aria-hidden="true">·</span><span>{t('playbooks.done.rows', '{n} rows', { n: fill.artifacts.rowCount })}</span></>)}
+                            {Number.isFinite(fill?.artifacts?.rowCount) && (<><span aria-hidden="true">·</span><span>{t('playbooks.done.rows', '{n} rows', { n: (fill as Phase).artifacts?.rowCount })}</span></>)}
                         </p>
                     </div>
                 </div>
 
                 <div className="mt-5 grid gap-2">
                     {automations.map((p) => (
-                        <DoorLink key={p.key} icon={<Workflow />} kind="automation" label={p.requires === 'approvals' ? phaseLabel(p, t) : t('playbooks.done.automation', 'Automation')} name={p.artifacts.automationTitle || t('playbooks.done.automation_unnamed', 'The automation')} onClick={() => go(`studio/automations/${p.artifacts.automationId}`)} t={t} />
+                        <DoorLink key={p.key} icon={<Workflow />} kind="automation" label={p.requires === 'approvals' ? phaseLabel(p, t) : t('playbooks.done.automation', 'Automation')} name={(p.artifacts as Artifacts).automationTitle || t('playbooks.done.automation_unnamed', 'The automation')} onClick={() => go(`studio/automations/${(p.artifacts as Artifacts).automationId}`)} t={t} />
                     ))}
                     {table.datatableId && <DoorLink icon={<Table2 />} kind="datatable" label={t('playbooks.done.table', 'Table')} name={table.datatableName || table.datatableKey || t('playbooks.done.table_unnamed', 'The table')} onClick={() => go(`studio/datatables/${table.datatableId}`)} t={t} />}
                     {app.appId && <DoorLink icon={<AppWindow />} kind="app" label={t('playbooks.done.app', 'App')} name={app.appName || playbook.title} onClick={() => go(`studio/apps/${app.appId}`)} t={t} />}

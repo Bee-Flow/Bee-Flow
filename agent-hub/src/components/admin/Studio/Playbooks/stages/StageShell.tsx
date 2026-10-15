@@ -2,6 +2,30 @@ import React from 'react';
 import { TONES } from '../../../../shared/statusTone';
 import { kindTileStyle } from '../../../../shared/kindColors';
 import { heroCard, stagePadding, stageType, WIDTH } from './stageChrome';
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+export type StageTone = 'busy' | 'ok' | 'warn' | 'error';
+export type StageWidth = 'narrow' | 'default' | 'wide' | 'full';
+
+export interface StageHeaderProps {
+    kind?: string;
+    icon?: LucideIcon | null;
+    title: string;
+    subtitle?: ReactNode;
+    status?: ReactNode;
+    tone?: StageTone;
+    presenter?: boolean;
+    actions?: ReactNode;
+}
+
+export interface StageShellProps extends StageHeaderProps {
+    width?: StageWidth;
+    testId?: string | null;
+    phaseKey?: string | null;
+    card?: boolean;
+    children?: ReactNode;
+}
 
 /**
  * The frame every phase is drawn in.
@@ -17,7 +41,7 @@ import { heroCard, stagePadding, stageType, WIDTH } from './stageChrome';
  *   status    the one line under the title that says what is happening
  *   tone      'busy' | 'ok' | 'warn' | 'error' — colours the status line only
  */
-const STATUS_INK = {
+const STATUS_INK: Record<StageTone, string> = {
     busy: 'var(--text-secondary)',
     ok: 'var(--text-secondary)',
     warn: TONES.warning.ink,
@@ -29,7 +53,7 @@ const STATUS_INK = {
  * scroll container: the fill phase is a flex column whose canvas fills the
  * height. It used to open with a bare 11px uppercase `h3` and no tile at all.
  */
-export function StageHeader({ kind = 'playbook', icon: Icon = null, title, subtitle = null, status = null, tone = 'busy', presenter = false, actions = null }) {
+export function StageHeader({ kind = 'playbook', icon: Icon = null, title, subtitle = null, status = null, tone = 'busy', presenter = false, actions = null }: StageHeaderProps) {
     const type = stageType(presenter);
     const { tile, glyph } = kindTileStyle(kind, { size: presenter ? 48 : 40 });
     return (
@@ -59,7 +83,7 @@ export default function StageShell({
     kind = 'playbook', icon: Icon = null, title, subtitle = null,
     status = null, tone = 'busy', width = 'default', presenter = false,
     testId = null, phaseKey = null, actions = null, card = false, children,
-}) {
+}: StageShellProps) {
     const max = WIDTH[width] === undefined ? WIDTH.default : WIDTH[width];
 
     return (

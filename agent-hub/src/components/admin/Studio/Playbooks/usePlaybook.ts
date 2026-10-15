@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyPhaseResult, kindOf, patchFor, SERVER_RUN } from './phaseMachine';
 import { playbooksApi } from './playbooksApi';
+import type { Playbook, PhaseEvent, PhasePatch } from './playbookTypes';
+
+/** The failure shape the API client throws: a message, a code and, on a 409, the playbook. */
+interface ApiFailure {
+    message?: string;
+    code?: string;
+    body?: { playbook?: Playbook | null } | null;
+}
 
 const POLL_MS = 2000;
 const POLL_MAX_MS = 16000;
@@ -18,17 +26,17 @@ const POLL_MAX_MS = 16000;
  *   `base` to chain a second event on the fresh version.
  *   event: { type: 'start'|'artifact'|'finished'|'markDone'|'failed'|'continue'|'revise'|'skip'|'retry'|'stop'|'resume'|'needs_input'|'dismiss_input'|'replace', key, … }
  */
-export default function usePlaybook(id) {
-    const [playbook, setPlaybook] = useState(null);
+export default function usePlaybook(id: string | null | undefined) {
+    const [playbook, setPlaybook] = useState<Playbook | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<ApiFailure | null>(null);
     const [conflict, setConflict] = useState(0);
     const aliveRef = useRef(true);
-    const playbookRef = useRef(null);
+    const playbookRef = useRef<Playbook | null>(null);
     useEffect(() => { playbookRef.current = playbook; }, [playbook]);
     useEffect(() => () => { aliveRef.current = false; }, []);
 
-    const reload = useCallback(async ({ quiet = false } = {}) => {
+    const reload = useCallback(async ({ quiet = false }: { quiet?: boolean } = {}): Promise<Playbook | null> => {
         if (!id) return null;
         try {
             const body = await playbooksApi.get(id);
@@ -38,7 +46,7 @@ export default function usePlaybook(id) {
             if (!quiet) setError(null);
             return body.playbook;
         } catch (e) {
-            if (aliveRef.current && !quiet) setError(e);
+            if (aliveRef.current && !quiet) setError(e as ApiFailure);
             return null;
         } finally {
             if (aliveRef.current) setLoading(false);
@@ -55,10 +63,10 @@ export default function usePlaybook(id) {
     // A failure backs off rather than hammering, and the poll is `quiet`: it
     // must never clear an error the person is still reading.
     const polling = !!(playbook && playbook.status === 'active' && Array.isArray(playbook.phases)
-        && playbook.phases.some((p) => SERVER_RUN.has(kindOf(p)) && p.status === 'running'));
+        && playbook.phases.some((p) => SERVER_RUN.has(kindOf(p) as string) && p.status === 'running'));
     useEffect(() => {
         if (!polling) return undefined;
-        let timer = null;
+        let timer: ReturnType<typeof setTimeout> | null = null;
         let wait = POLL_MS;
         const tick = async () => {
             if (typeof document === 'undefined' || document.visibilityState !== 'hidden') {
@@ -72,9 +80,9 @@ export default function usePlaybook(id) {
     }, [polling, reload]);
 
     // Set state AND the ref at once, so two events in one tick see one version.
-    const commit = useCallback((pb) => { playbookRef.current = pb; setPlaybook(pb); }, []);
+    const commit = useCallback((pb: Playbook | null) => { playbookRef.current = pb; setPlaybook(pb); }, []);
 
-    const dispatch = useCallback(async (event, base = null) => {
+    const dispatch = useCallback(async (event: PhaseEvent | null | undefined, base: Playbook | null = null): Promise<Playbook | null | undefined> => {
         const current = base || playbookRef.current;
         if (!current || !event) return null;
         // A stage that already HAS the server's answer (the compliance phase's
@@ -88,25 +96,26 @@ export default function usePlaybook(id) {
             setPlaybook((pb) => (pb ? { ...pb, phases: applyPhaseResult(pb.phases, event.key, { kind: event.type }) } : pb));
             return current;
         }
-        const wire = patchFor(event, current);
+        const wire = patchFor(event, current) as PhasePatch | null;
         if (!wire) return current;
         // Optimistic: the rail moves before the answer.
-        const optimistic = {
+        const optimistic: string | undefined = ({
             start: 'started', artifact: 'artifacts', finished: 'finished', markDone: 'finished', failed: 'failed', continue: 'done', skip: 'skipped',
-        }[event.type];
+        } as Record<string, string>)[event.type];
         if (optimistic) setPlaybook((pb) => (pb ? { ...pb, phases: applyPhaseResult(pb.phases, event.key, { kind: optimistic, ...event }) } : pb));
         try {
-            let body;
+            let body: { playbook?: Playbook | null } | null;
             if (wire.method === 'POST') {
-                if (wire.route.endsWith('/run')) body = await playbooksApi.runPhase(current.id, event.key, wire.body || {});
-                else if (wire.route.endsWith('/skip')) body = await playbooksApi.skipPhase(current.id, event.key, current.version);
-                else body = await playbooksApi.retryPhase(current.id, event.key, current.version, event.extra || {});
+                if (wire.route.endsWith('/run')) body = await playbooksApi.runPhase(current.id, event.key as string, wire.body || {});
+                else if (wire.route.endsWith('/skip')) body = await playbooksApi.skipPhase(current.id, event.key as string, current.version);
+                else body = await playbooksApi.retryPhase(current.id, event.key as string, current.version, event.extra || {});
             } else {
                 body = await playbooksApi.patch(current.id, wire.body);
             }
             if (aliveRef.current && body && body.playbook) { commit(body.playbook); setError(null); }
             return body ? body.playbook : null;
         } catch (e) {
+            const failure = e as ApiFailure | null;
             if (!aliveRef.current) return null;
             // A 409 is NOT a synonym for "someone else changed this". The route
             // answers 409 for `automation_not_finalized`, `key_taken`,
@@ -115,10 +124,10 @@ export default function usePlaybook(id) {
             // the page used to file all of them under "changed elsewhere" and
             // then suppress the bar, so the primary button silently did
             // nothing (owner, on stage).
-            if (e && e.body && e.body.playbook) commit(e.body.playbook);
+            if (failure && failure.body && failure.body.playbook) commit(failure.body.playbook);
             else await reload({ quiet: true });
-            if (e && e.code === 'version_conflict') setConflict((n) => n + 1);
-            setError(e);
+            if (failure && failure.code === 'version_conflict') setConflict((n) => n + 1);
+            setError(e as ApiFailure);
             return null;
         }
     }, [reload, commit]);

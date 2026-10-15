@@ -5,6 +5,23 @@ import AppEditorShell from '../../AppStudio/editor/AppEditorShell';
 import { studioAppsApi } from '../../AppStudio/studioAppsApi';
 import { kindOf } from '../phaseMachine';
 import { phaseLabel } from '../recipes';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { Artifacts, Phase, PhaseEvent, Playbook } from '../playbookTypes';
+import type { HeaderApp } from '../../AppStudio/editor/header/headerModel';
+import type { AppMetaUpdate, TurnEnd } from '../../AppStudio/chat/useBuilderTurn';
+
+/** The app as this stage reads it: the App Studio editor's record, plus whatever else the server sends. */
+export type StudioAppLike = HeaderApp & { [field: string]: unknown };
+
+export interface AppStageProps {
+    playbook: Playbook;
+    phase: Phase;
+    dispatch: (event: PhaseEvent) => unknown;
+    onBack: () => void;
+    t: TranslateFn;
+    forcedTier?: string;
+    presenter?: boolean;
+}
 
 /**
  * Phases 4 and 5 — the App Studio editor with its builder pane, unchanged.
@@ -15,14 +32,14 @@ import { phaseLabel } from '../recipes';
  * PANE: the shell keeps its definition, the pane rehydrates the server's
  * session for the same app — the second turn rides the windowed history.
  */
-export default function AppStage({ playbook, phase, dispatch, onBack, t, forcedTier = 'fast', presenter = false }) {
+export default function AppStage({ playbook, phase, dispatch, onBack, t, forcedTier = 'fast', presenter = false }: AppStageProps) {
     const status = phase?.status;
-    const art = phase?.artifacts || {};
+    const art: Artifacts = phase?.artifacts || {};
     const appId = art.appId || null;
     const attempt = phase?.attempt || 0;
-    const [app, setApp] = useState(null);
-    const [loadError, setLoadError] = useState(null);
-    const startedRef = useRef(null);
+    const [app, setApp] = useState<StudioAppLike | null>(null);
+    const [loadError, setLoadError] = useState<Error | null>(null);
+    const startedRef = useRef<string | null>(null);
 
     useEffect(() => {
         if (!appId) return undefined;
@@ -45,7 +62,7 @@ export default function AppStage({ playbook, phase, dispatch, onBack, t, forcedT
 
     // A missing app or an app that will not open is a FAILED phase, not a
     // sentence on a screen with no buttons.
-    const deadRef = useRef(null);
+    const deadRef = useRef<string | null>(null);
     useEffect(() => {
         if (status !== 'ready' && status !== 'running') return;
         const why = !appId ? 'artifacts_missing' : (loadError ? 'app_unreadable' : null);
@@ -54,7 +71,7 @@ export default function AppStage({ playbook, phase, dispatch, onBack, t, forcedT
         dispatch({ type: 'failed', key: phase.key, error: why });
     }, [status, appId, loadError, phase.key, attempt, dispatch]);
 
-    const stampedRef = useRef(null);
+    const stampedRef = useRef<string | null>(null);
     useEffect(() => {
         if (status !== 'running' || phase._optimistic || !app) return;
         const stamp = `${phase.key}:${attempt}`;
@@ -72,9 +89,9 @@ export default function AppStage({ playbook, phase, dispatch, onBack, t, forcedT
 
     // The name the builder gives the app (app_set_meta, or the finalize-time
     // net) reaches the shell header and the phase summary at once.
-    const onAppUpdated = useCallback((next) => setApp((prev) => (prev && next && prev.id === next.id ? { ...prev, ...next } : prev)), []);
+    const onAppUpdated = useCallback((next: AppMetaUpdate | null) => setApp((prev) => (prev && next && prev.id === next.id ? { ...prev, ...next } : prev)), []);
 
-    const onTurnEnd = useCallback(({ finalized, stopped, error, code }) => {
+    const onTurnEnd = useCallback(({ finalized, stopped, error, code }: TurnEnd) => {
         if (finalized) {
             // An app_turn is "a further turn of the app builder on the same
             // app" and composeRecipe FORBIDS it from being an approval flow —
@@ -87,7 +104,7 @@ export default function AppStage({ playbook, phase, dispatch, onBack, t, forcedT
             return;
         }
         if (error || stopped) {
-            dispatch({ type: 'failed', key: phase.key, error: code || (error ? String(error.message || error) : 'stopped') });
+            dispatch({ type: 'failed', key: phase.key, error: code || (error ? String(error) : 'stopped') });
             return;
         }
         dispatch({ type: 'needs_input', key: phase.key });
@@ -131,7 +148,7 @@ export default function AppStage({ playbook, phase, dispatch, onBack, t, forcedT
     // does NOT auto-fire on an app that is already half there: the brief is
     // prefilled, the person sends it — or marks the phase done as it is.
     const sentBefore = Number.isInteger(art.briefSentAttempt);
-    const prefill = status === 'running' && sentBefore && art.briefSentAttempt < attempt;
+    const prefill = status === 'running' && sentBefore && (art.briefSentAttempt as number) < attempt;
     // A SECOND turn on an app that is already built gets the same system prompt
     // as a first build — which opens "FIRST MOVE on any NEW app: pick an
     // identity with ONE app_set_theme call". The model duly re-themes and

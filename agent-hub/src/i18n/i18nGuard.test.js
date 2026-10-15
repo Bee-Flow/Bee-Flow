@@ -387,8 +387,8 @@ function unknownTableKeys(rels, srcOf) {
 const KEY_TABLE_FILES = [
     'components/admin/Studio/Executions/runLanguage.js',
     'components/admin/Studio/KnowledgeStudio/SourceDetail.jsx',
-    'components/admin/Studio/KnowledgeStudio/freshness.js',
-    'components/admin/Studio/KnowledgeStudio/sourceKinds.js',
+    'components/admin/Studio/KnowledgeStudio/freshness.ts',
+    'components/admin/Studio/KnowledgeStudio/sourceKinds.ts',
     // Seven event labels in EVENT_LABELS. Reported by P5's own adversarial
     // round: the file uses the { key, en } shape but was not on this list, so
     // those keys travelled unchecked — an `en` beside a key is exactly what
@@ -460,7 +460,7 @@ const KEY_TABLE_FILES = [
  */
 const TEXT_HELPERS = [
     { rel: 'components/shared/statusTokens.ts' },
-    { rel: 'components/admin/Studio/KnowledgeStudio/freshness.js' },
+    { rel: 'components/admin/Studio/KnowledgeStudio/freshness.ts' },
     { rel: 'components/admin/Studio/KnowledgeStudio/plural.js' },
     { rel: 'components/automation/Builder/mapping/mismatch.js' },
     // The clock: ten modules, eight of them the very same ladder — "just now",

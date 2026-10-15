@@ -4,9 +4,33 @@ import { revealSchedule } from '../../../../shared/builder/revealSchedule';
 import { kindColorVar } from '../../../../shared/kindColors';
 import { cellText } from '../../Datatables/datatableDisplay';
 import { datatablesApi } from '../../Datatables/datatablesApi';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { CSSProperties } from 'react';
 
 const PREVIEW_ROWS = 8;
 const ROW_STAGGER_MS = 120;
+
+export interface PreviewField {
+    key: string;
+    name?: string;
+    type?: string;
+}
+
+export interface RowsPreviewProps {
+    datatableId?: string | null;
+    fields?: PreviewField[];
+    rowCount?: number | null;
+    refreshKey?: unknown;
+    t: TranslateFn;
+    onNavigate?: ((path: string) => void) | null;
+    reducedMotion?: boolean;
+    title?: string | null;
+    compact?: boolean;
+    /** Accepted for the stages' shared props; the preview itself draws one size. */
+    presenter?: boolean;
+}
+
+type PreviewRow = Record<string, unknown> & { id?: string | number };
 
 /**
  * The table's values, so the person SEES what the automation extracted: the
@@ -15,9 +39,9 @@ const ROW_STAGGER_MS = 120;
  * section shows); `refreshKey` re-reads (the fill's row count changing).
  * A door to the full table sits in the header.
  */
-export default function RowsPreview({ datatableId, fields = [], rowCount = null, refreshKey = 0, t, onNavigate = null, reducedMotion = false, title = null, compact = false }) {
-    const [rows, setRows] = useState(null);
-    const [error, setError] = useState(null);
+export default function RowsPreview({ datatableId, fields = [], rowCount = null, refreshKey = 0, t, onNavigate = null, reducedMotion = false, title = null, compact = false }: RowsPreviewProps) {
+    const [rows, setRows] = useState<PreviewRow[] | null>(null);
+    const [error, setError] = useState<unknown>(null);
 
     useEffect(() => {
         if (!datatableId) return undefined;
@@ -70,7 +94,7 @@ export default function RowsPreview({ datatableId, fields = [], rowCount = null,
                             {list.map((r, i) => {
                                 const slot = schedule.get(String(r.id || i));
                                 return (
-                                    <tr key={r.id || i} className={reducedMotion ? '' : 'pbk-col-in'} style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, borderBottom: '1px solid var(--border-default)' }} data-testid="playbook-rows-row">
+                                    <tr key={r.id || i} className={reducedMotion ? '' : 'pbk-col-in'} style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, borderBottom: '1px solid var(--border-default)' } as CSSProperties} data-testid="playbook-rows-row">
                                         {columns.map((c) => (
                                             <td key={c.key} className="px-3 py-1.5 whitespace-nowrap max-w-[220px] truncate text-[var(--text-primary)]" title={cellText(r[c.key], c.type)}>
                                                 {cellText(r[c.key], c.type)}

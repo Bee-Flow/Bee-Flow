@@ -5,9 +5,56 @@ import { isBusy, panelCard, STAGE_BUTTON, stageType } from './stageChrome';
 import { revealSchedule } from '../../../../shared/builder/revealSchedule';
 import { TONES } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import type { CSSProperties } from 'react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { Artifacts, Phase, PhaseEvent } from '../playbookTypes';
 
 const SCREEN_STAGGER_MS = 450;
-const EMPTY = Object.freeze([]);
+const EMPTY: readonly DesignScreen[] = Object.freeze([]);
+
+/** One element of a screen's section: a wireframe glyph's kind and words. */
+export interface DesignElement {
+    kind: string;
+    label?: string;
+    note?: string;
+}
+
+export interface DesignSection {
+    title?: string;
+    layout?: string;
+    elements: DesignElement[];
+}
+
+export interface DesignScreen {
+    name: string;
+    purpose?: string;
+    sections: DesignSection[];
+}
+
+/** The designer's answer, as the phase's artifacts carry it. */
+export interface DesignDoc {
+    name: string;
+    tagline?: string;
+    look?: { preset: string; accent?: string; mood?: string };
+    screens?: DesignScreen[];
+    principles?: string[];
+}
+
+interface DesignArtifacts extends Omit<Artifacts, 'design'> {
+    design?: DesignDoc | null;
+    revisions?: string[];
+    elementCount?: number;
+}
+
+type StageType = ReturnType<typeof stageType>;
+
+export interface DesignStageProps {
+    phase: Phase;
+    dispatch: (event: PhaseEvent) => unknown;
+    t: TranslateFn;
+    reducedMotion?: boolean;
+    presenter?: boolean;
+}
 
 /**
  * The DESIGN phase on stage: the designer's answer drawn as wireframes —
@@ -20,11 +67,11 @@ const EMPTY = Object.freeze([]);
  * here, and the app phase's brief is recomposed around the new one — so what
  * the builder gets is always the design on screen.
  */
-export default function DesignStage({ phase, dispatch, t, reducedMotion = false, presenter = false }) {
+export default function DesignStage({ phase, dispatch, t, reducedMotion = false, presenter = false }: DesignStageProps) {
     const status = phase?.status;
-    const art = phase?.artifacts || {};
+    const art = (phase?.artifacts || {}) as DesignArtifacts;
     const design = art.design || null;
-    const startedRef = useRef(null);
+    const startedRef = useRef<string | null>(null);
     useEffect(() => {
         if (status !== 'ready') return;
         const stamp = `${phase.key}:${phase.attempt || 0}`;
@@ -37,7 +84,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
     // rail — only this stage shows that the designer is at work again.
     const [feedback, setFeedback] = useState('');
     const [revising, setRevising] = useState(false);
-    const [reviseError, setReviseError] = useState(false);
+    const [reviseError, setReviseError] = useState<boolean>(false);
     const askForChange = useCallback(async () => {
         const text = feedback.trim();
         if (!text || revising) return;
@@ -87,7 +134,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                     <div className="flex flex-wrap items-center gap-2" style={{ fontSize: type.meta, color: 'var(--text-secondary)' }} data-testid="playbook-design-look">
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ border: '1px solid var(--border-default)' }}>
                             <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 999, background: accent }} />
-                            {t('playbooks.design.look_words', 'Look {preset}{mood}', { preset: design.look.preset, mood: design.look.mood ? ` · ${design.look.mood}` : '' })}
+                            {t('playbooks.design.look_words', 'Look {preset}{mood}', { preset: (design.look as { preset: string }).preset, mood: (design.look as { mood?: string }).mood ? ` · ${(design.look as { mood?: string }).mood}` : '' })}
                         </span>
                         <span aria-hidden="true">·</span>
                         <span>{t('playbooks.design.counts', '{screens} screens · {elements} elements', { screens: screens.length, elements: art.elementCount || 0 })}</span>
@@ -102,7 +149,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                                 <article
                                     key={`${revision}:${s.name}-${i}`}
                                     className={reducedMotion ? '' : 'pbk-col-in'}
-                                    style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, ...panelCard(presenter), padding: 0, boxShadow: 'var(--shadow-md)', overflow: 'hidden' }}
+                                    style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, ...panelCard(presenter), padding: 0, boxShadow: 'var(--shadow-md)', overflow: 'hidden' } as CSSProperties}
                                     data-testid="playbook-design-screen"
                                 >
                                     <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--bg-primary)' }}>
@@ -177,18 +224,18 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
     );
 }
 
-const LAYOUT_STYLE = {
+const LAYOUT_STYLE: Record<string, CSSProperties> = {
     row: { display: 'flex', gap: 8, flexWrap: 'wrap' },
     grid: { display: 'grid', gap: 8, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' },
     split: { display: 'grid', gap: 8, gridTemplateColumns: '1fr 1fr' },
     stack: { display: 'flex', flexDirection: 'column', gap: 8 },
 };
 
-function Section({ section, accent, type }) {
+function Section({ section, accent, type }: { section: DesignSection; accent: string; type: StageType }) {
     return (
         <section>
             {section.title && <div className="font-semibold uppercase tracking-wide mb-1.5" style={{ fontSize: type.micro, color: 'var(--text-tertiary)' }}>{section.title}</div>}
-            <div style={LAYOUT_STYLE[section.layout] || LAYOUT_STYLE.stack}>
+            <div style={LAYOUT_STYLE[section.layout as string] || LAYOUT_STYLE.stack}>
                 {section.elements.map((e, i) => <Element key={i} element={e} accent={accent} type={type} grow={section.layout === 'row'} />)}
             </div>
         </section>
@@ -196,9 +243,9 @@ function Section({ section, accent, type }) {
 }
 
 /** A wireframe glyph per element kind — a sketch, never a real component. */
-function Element({ element, accent, type, grow }) {
-    const box = { border: '1px solid var(--border-default)', borderRadius: 10, padding: '8px 10px', background: 'var(--bg-primary)', minWidth: 0, flex: grow ? '1 1 120px' : undefined };
-    const line = (w, h = 6) => <span style={{ display: 'block', width: w, height: h, borderRadius: 4, background: 'var(--border-default)' }} />;
+function Element({ element, accent, type, grow }: { element: DesignElement; accent: string; type: StageType; grow: boolean }) {
+    const box: CSSProperties = { border: '1px solid var(--border-default)', borderRadius: 10, padding: '8px 10px', background: 'var(--bg-primary)', minWidth: 0, flex: grow ? '1 1 120px' : undefined };
+    const line = (w: string | number, h = 6) => <span style={{ display: 'block', width: w, height: h, borderRadius: 4, background: 'var(--border-default)' }} />;
     const label = <span className="block font-medium truncate mb-1" style={{ fontSize: type.meta, color: 'var(--text-primary)' }} title={element.note || ''}>{element.label}</span>;
     switch (element.kind) {
         case 'stat':

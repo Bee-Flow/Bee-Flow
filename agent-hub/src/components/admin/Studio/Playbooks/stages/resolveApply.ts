@@ -12,7 +12,49 @@
  */
 
 /** What a call of each kind needs, and what it is called in front of a person. */
-export const CALL_KINDS = Object.freeze({
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+
+/** One change the resolve plan asks for. */
+export interface ResolveCall {
+    kind: string;
+    body?: Record<string, unknown> | null;
+}
+
+/** The plan the AI proposed for one finding. */
+export interface ResolvePlan {
+    calls?: ResolveCall[] | null;
+}
+
+/** One failed call, named for the person. */
+export interface ResolveFailure {
+    what: string;
+    kind?: string;
+    error: string;
+}
+
+export interface ResolveOutcome {
+    applied: string[];
+    failed: ResolveFailure[];
+    ok: boolean;
+}
+
+/** The error shape the API client throws. */
+export interface ReadableError {
+    status?: number;
+    message?: string;
+    body?: { errors?: Array<string | { message?: string; error?: string } | null> | null } | null;
+}
+
+/** The write functions the resolve plan hands to `applyResolvePlan`. */
+export interface ResolveDeps {
+    register?: (body: Record<string, unknown>) => Promise<{ failed?: Array<{ error?: string; what?: string }> | null } | null | undefined>;
+    saveAutomation?: (id: unknown, definition: unknown) => Promise<unknown>;
+    publish?: (appId: unknown, body: { isPublished: unknown; sharedGroups: unknown }) => Promise<unknown>;
+    assignMember?: (userId: unknown, roleKey: unknown) => Promise<unknown>;
+    saveComplianceSettings?: (body: Record<string, unknown>) => Promise<unknown>;
+}
+
+export const CALL_KINDS: Readonly<Record<string, string>> = Object.freeze({
     register: 'the processing register',
     automation_definition: 'the automation',
     app_publish: 'who can open the app',
@@ -30,25 +72,25 @@ export const CALL_KINDS = Object.freeze({
  * A dep that is missing is not a silent skip: the call fails by name, so the
  * person is told which part of the fix did not happen.
  */
-export async function applyResolvePlan(plan, deps = {}) {
-    const applied = [];
-    const failed = [];
-    const calls = Array.isArray(plan && plan.calls) ? plan.calls : [];
+export async function applyResolvePlan(plan: ResolvePlan | null | undefined, deps: ResolveDeps = {}): Promise<ResolveOutcome> {
+    const applied: string[] = [];
+    const failed: ResolveFailure[] = [];
+    const calls: ResolveCall[] = Array.isArray(plan && plan.calls) ? (plan && plan.calls) || [] : [];
     for (const call of calls) {
-        const what = CALL_KINDS[call && call.kind] || (call && call.kind) || 'something';
+        const what = CALL_KINDS[(call && call.kind) as string] || (call && call.kind) || 'something';
         try {
             await dispatch(call, deps);
             applied.push(call.kind);
         } catch (e) {
-            failed.push({ what, kind: call && call.kind, error: readable(e) });
+            failed.push({ what, kind: call && call.kind, error: readable(e as ReadableError) });
         }
     }
     return { applied, failed, ok: !failed.length && !!applied.length };
 }
 
 /** The one place a kind becomes a call. Anything unknown is refused loudly. */
-async function dispatch(call, deps) {
-    const body = (call && call.body) || {};
+async function dispatch(call: ResolveCall, deps: ResolveDeps): Promise<unknown> {
+    const body: Record<string, unknown> = (call && call.body) || {};
     switch (call && call.kind) {
         case 'register': {
             if (!deps.register) throw new Error('missing');
@@ -82,7 +124,7 @@ async function dispatch(call, deps) {
  * settings need compliance-admin rights, which the person running a playbook
  * may simply not have. Saying so is the whole answer.
  */
-export function readable(e) {
+export function readable(e: ReadableError | null | undefined): string {
     const status = e && e.status;
     if (status === 403) return 'you do not have the rights for this one';
     if (status === 409) return 'someone changed it while you were reading — try again';
@@ -95,7 +137,7 @@ export function readable(e) {
 }
 
 /** One line for the row after an Apply: what changed, or what did not. */
-export function resolveSummary(out, t) {
+export function resolveSummary(out: ResolveOutcome | null | undefined, t: TranslateFn): string {
     if (!out) return '';
     if (out.failed.length && !out.applied.length) {
         return t('playbooks.compliance.fix_failed', 'Nothing was changed — {why}', { why: out.failed.map((f) => `${f.what}: ${f.error}`).join(', ') });

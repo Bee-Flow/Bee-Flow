@@ -4,8 +4,21 @@ import RowsPreview from './RowsPreview';
 import StageShell from './StageShell';
 import { heroCard, isBusy, stageType } from './stageChrome';
 import { revealSchedule } from '../../../../shared/builder/revealSchedule';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { Artifacts, Phase, PhaseEvent } from '../playbookTypes';
+import type { CSSProperties } from 'react';
 
 const COL_STAGGER_MS = 350;
+
+export interface TableStageProps {
+    phase: Phase;
+    dispatch: (event: PhaseEvent) => unknown;
+    t: TranslateFn;
+    reducedMotion?: boolean;
+    presenter?: boolean;
+    tableMode?: 'new' | 'existing';
+    onNavigate?: ((path: string) => void) | null;
+}
 
 /**
  * Phase 1 — the server creates (or verifies) the table. Nothing to type, so
@@ -14,10 +27,10 @@ const COL_STAGGER_MS = 350;
  * table shows its mapping as ✓ rows instead. Under reduced motion every
  * column is simply there.
  */
-export default function TableStage({ phase, dispatch, t, reducedMotion = false, presenter = false, tableMode = 'new', onNavigate = null }) {
+export default function TableStage({ phase, dispatch, t, reducedMotion = false, presenter = false, tableMode = 'new', onNavigate = null }: TableStageProps) {
     const status = phase?.status;
-    const art = phase?.artifacts || {};
-    const startedRef = useRef(null);
+    const art: Artifacts = phase?.artifacts || {};
+    const startedRef = useRef<string | null>(null);
     useEffect(() => {
         if (status !== 'ready') return;
         const stamp = `${phase.key}:${phase.attempt || 0}`;
@@ -28,7 +41,7 @@ export default function TableStage({ phase, dispatch, t, reducedMotion = false, 
 
     const fields = useMemo(() => (Array.isArray(art.fields) ? art.fields : []), [art.fields]);
     const schedule = useMemo(() => revealSchedule(fields.map((f) => f.key), { stagger: COL_STAGGER_MS }), [fields]);
-    const mapping = art.mapping && typeof art.mapping === 'object' ? art.mapping : null;
+    const mapping: Record<string, string> | null = art.mapping && typeof art.mapping === 'object' ? art.mapping : null;
     const landed = status === 'awaiting' || status === 'done';
     const failed = status === 'failed';
     const type = stageType(presenter);
@@ -42,7 +55,7 @@ export default function TableStage({ phase, dispatch, t, reducedMotion = false, 
                 ? (
                     <>
                         <span>{t('playbooks.table.ready', 'Table ready')}</span>
-                        {Number.isFinite(art.rowCount) && (<><span aria-hidden="true">·</span><span className="tabular-nums">{t('playbooks.table.rows', '{n} rows', { n: art.rowCount })}</span></>)}
+                        {Number.isFinite(art.rowCount) && (<><span aria-hidden="true">·</span><span className="tabular-nums">{t('playbooks.table.rows', '{n} rows', { n: art.rowCount as number })}</span></>)}
                     </>
                 )
                 : null;
@@ -79,7 +92,7 @@ export default function TableStage({ phase, dispatch, t, reducedMotion = false, 
                                     <li
                                         key={f.key}
                                         className={reducedMotion ? '' : 'pbk-col-in'}
-                                        style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, background: 'var(--bg-primary)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '8px 10px' }}
+                                        style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, background: 'var(--bg-primary)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '8px 10px' } as CSSProperties}
                                         data-testid="playbook-table-column"
                                     >
                                         <div className="flex items-center gap-1.5 min-w-0">
@@ -105,7 +118,7 @@ export default function TableStage({ phase, dispatch, t, reducedMotion = false, 
                         </p>
                     )}
             </div>
-            {landed && art.datatableId && Number.isFinite(art.rowCount) && art.rowCount > 0 && (
+            {landed && art.datatableId && Number.isFinite(art.rowCount) && (art.rowCount as number) > 0 && (
                 <RowsPreview datatableId={art.datatableId} fields={fields} rowCount={art.rowCount} t={t} onNavigate={onNavigate} reducedMotion={reducedMotion} presenter={presenter} title={t('playbooks.rows.existing', 'What the table holds today')} />
             )}
         </StageShell>

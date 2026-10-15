@@ -33,8 +33,13 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 const base = `${API_BASE}/api/kb`;
 const enc = encodeURIComponent;
 
+export type QueryValue = string | number | boolean | null | undefined;
+
+/** A named SSE frame's handler. */
+export type KbStreamHandler = (name: string, payload: unknown) => void;
+
 /** `?a=1&b=2` from an object, dropping null/undefined/'' — never `?`. */
-export function qs(params = {}) {
+export function qs(params: Record<string, QueryValue> = {}): string {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
         if (v === null || v === undefined || v === '') continue;
@@ -61,8 +66,8 @@ const request = createJsonResource();
  * partial answer already on screen; one malformed frame should cost that
  * frame, not the paragraph the person is reading.
  */
-async function readNamedSse(response, onEvent) {
-    const reader = response.body.getReader();
+async function readNamedSse(response: Response, onEvent: KbStreamHandler): Promise<void> {
+    const reader = (response.body as ReadableStream<Uint8Array>).getReader();
     const decoder = new TextDecoder();
     let buffer = '';
     try {
@@ -77,7 +82,7 @@ async function readNamedSse(response, onEvent) {
                 const name = lines.find(l => l.startsWith('event:'))?.slice(6).trim();
                 const data = lines.find(l => l.startsWith('data:'))?.slice(5).trim();
                 if (!name || data === undefined) continue;
-                let payload = null;
+                let payload: unknown = null;
                 try { payload = JSON.parse(data); } catch { continue; }
                 onEvent(name, payload);
             }
@@ -94,11 +99,11 @@ export const knowledgeApi = {
      * do (`agent`, `direct_chat`, `ai_step`) — the Studio overview passes
      * none, because Studio is where a KB with no context at all is managed.
      */
-    list: (context = null) => request(`${base}${qs({ context })}`),
-    get: (id) => request(`${base}/${enc(id)}`),
-    create: (body) => request(base, { method: 'POST', body: JSON.stringify(body) }),
+    list: (context: string | null = null) => request(`${base}${qs({ context })}`),
+    get: (id: string | number) => request(`${base}/${enc(id)}`),
+    create: (body: unknown) => request(base, { method: 'POST', body: JSON.stringify(body) }),
     /** body: `{ name?, description?, categoryId?, icon?, usageContexts? }` — PATCH, not PUT. */
-    update: (id, body) => request(`${base}/${enc(id)}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    update: (id: string | number, body: unknown) => request(`${base}/${enc(id)}`, { method: 'PATCH', body: JSON.stringify(body) }),
     /**
      * Audience, on its own route: `{ isPublished, sharedGroups? }`. Separate
      * from `update` because it is the control that widens who can read the
@@ -106,12 +111,12 @@ export const knowledgeApi = {
      * publish; anyone else needs same-org manage_knowledge).
      * `sharedGroups: undefined` means "leave as-is", not "clear".
      */
-    setPublished: (id, body) => request(`${base}/${enc(id)}/publish`, { method: 'PATCH', body: JSON.stringify(body) }),
+    setPublished: (id: string | number, body: unknown) => request(`${base}/${enc(id)}/publish`, { method: 'PATCH', body: JSON.stringify(body) }),
     /**
      * `confirm` is K5's "yes, break the things that use this" flag: until
      * then the server has no 409 to answer with and the flag is inert.
      */
-    remove: (id, opts = {}) => request(`${base}/${enc(id)}${qs({ confirm: opts.confirm ? '1' : null })}`, { method: 'DELETE' }),
+    remove: (id: string | number, opts: { confirm?: boolean } = {}) => request(`${base}/${enc(id)}${qs({ confirm: opts.confirm ? '1' : null })}`, { method: 'DELETE' }),
     categories: () => request(`${base}/categories`),
 
     // ── The test question (K6) ───────────────────────────────────────
@@ -127,7 +132,11 @@ export const knowledgeApi = {
      * Takes an AbortSignal because a person retyping their question while the
      * previous answer streams is the normal case, not an edge one.
      */
-    ask: async (id, question, { signal, onEvent } = {}) => {
+    ask: async (
+        id: string | number,
+        question: string,
+        { signal, onEvent }: { signal?: AbortSignal; onEvent?: KbStreamHandler } = {},
+    ): Promise<void> => {
         const res = await authFetch(`${base}/${enc(id)}/ask`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -137,14 +146,16 @@ export const knowledgeApi = {
         if (!res.ok) {
             // A failure BEFORE the stream opens still answers JSON, so the
             // reason survives — "access denied" beats an empty answer box.
-            let body = null;
+            let body: { error?: string; code?: string } | null = null;
             try { body = await res.json(); } catch { /* non-JSON */ }
-            const err = new Error(body?.error || `Request failed (${res.status})`);
+            const err = new Error(body?.error || `Request failed (${res.status})`) as Error & { status?: number; code?: string | null };
             err.status = res.status;
             err.code = body?.code || null;
             throw err;
         }
-        await readNamedSse(res, onEvent);
+        // `onEvent` is required by the stream reader; a caller that omits it
+        // gets the same behaviour as before (a TypeError on the first frame).
+        await readNamedSse(res, onEvent as KbStreamHandler);
     },
     /**
      * A copy for a new use case. `withSources` copies the SOURCES too — they
@@ -153,7 +164,7 @@ export const knowledgeApi = {
      * are never copied either way (their chunks and embeddings live in the
      * search service, and they are about to be replaced anyway).
      */
-    duplicate: (id, { withSources = false } = {}) =>
+    duplicate: (id: string | number, { withSources = false }: { withSources?: boolean } = {}) =>
         request(`${base}/${enc(id)}/duplicate${qs({ withSources: withSources ? '1' : null })}`, { method: 'POST' }),
 
     // ── Usage (K5) ───────────────────────────────────────────────────
@@ -163,7 +174,7 @@ export const knowledgeApi = {
      * consumer table means "I do not know", and a client that renders it as
      * "nothing uses this" is the reason the delete dialog would be lying.
      */
-    usage: (id) => request(`${base}/${enc(id)}/usage`),
+    usage: (id: string | number) => request(`${base}/${enc(id)}/usage`),
     /** `{ summary: { <kbId>: { counts: {kind:n}, partial: [] } } }` — the overview's pills. */
     usageSummary: () => request(`${base}/usage-summary`),
     /**
@@ -177,35 +188,35 @@ export const knowledgeApi = {
 
     // ── Sources (K1b) ────────────────────────────────────────────────
     /** `{ sources:[…], totals:{…} }` — every counter already a Number. */
-    listSources: (kbId) => request(`${base}/${enc(kbId)}/sources`),
+    listSources: (kbId: string | number) => request(`${base}/${enc(kbId)}/sources`),
     /** body: `{ kind, name?, config, refresh? }`. */
-    createSource: (kbId, body) => request(`${base}/${enc(kbId)}/sources`, { method: 'POST', body: JSON.stringify(body) }),
-    updateSource: (kbId, sid, body) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}`, { method: 'PATCH', body: JSON.stringify(body) }),
-    removeSource: (kbId, sid) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}`, { method: 'DELETE' }),
+    createSource: (kbId: string | number, body: unknown) => request(`${base}/${enc(kbId)}/sources`, { method: 'POST', body: JSON.stringify(body) }),
+    updateSource: (kbId: string | number, sid: string | number, body: unknown) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    removeSource: (kbId: string | number, sid: string | number) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}`, { method: 'DELETE' }),
     /** 202 `{ queued:true, source }` — sets next_refresh_at=now(); K3 does the work. */
-    refreshSource: (kbId, sid) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}/refresh`, { method: 'POST' }),
+    refreshSource: (kbId: string | number, sid: string | number) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}/refresh`, { method: 'POST' }),
 
     /**
      * 202 `{ accepted, documents:[{id,name,status:'processing'}] }`. The ids
      * are REAL rows created before the response, so the caller follows them
      * by id through `listSourceDocuments` rather than guessing by filename.
      */
-    uploadFiles: (kbId, sid, files) => {
+    uploadFiles: (kbId: string | number, sid: string | number, files: Iterable<File>) => {
         const form = new FormData();
         for (const f of files) form.append('files', f);
         return request(`${base}/${enc(kbId)}/sources/${enc(sid)}/files`, { method: 'POST', body: form });
     },
 
     /** `{ documents, total, limit, offset }` — projected, no bodies. */
-    listSourceDocuments: (kbId, sid, params = {}) =>
+    listSourceDocuments: (kbId: string | number, sid: string | number, params: Record<string, QueryValue> = {}) =>
         request(`${base}/${enc(kbId)}/sources/${enc(sid)}/documents${qs(params)}`),
-    getSourceDocument: (kbId, sid, docId) =>
+    getSourceDocument: (kbId: string | number, sid: string | number, docId: string | number) =>
         request(`${base}/${enc(kbId)}/sources/${enc(sid)}/documents/${enc(docId)}`),
 
     // ── Documents ────────────────────────────────────────────────────
     /** The ONE route that returns a body: `{ document, content, remote_only }`. */
-    documentContent: (kbId, docId) => request(`${base}/${enc(kbId)}/documents/${enc(docId)}/content`),
-    removeDocument: (kbId, docId) => request(`${base}/${enc(kbId)}/documents/${enc(docId)}`, { method: 'DELETE' }),
+    documentContent: (kbId: string | number, docId: string | number) => request(`${base}/${enc(kbId)}/documents/${enc(docId)}/content`),
+    removeDocument: (kbId: string | number, docId: string | number) => request(`${base}/${enc(kbId)}/documents/${enc(docId)}`, { method: 'DELETE' }),
 };
 
 export default knowledgeApi;

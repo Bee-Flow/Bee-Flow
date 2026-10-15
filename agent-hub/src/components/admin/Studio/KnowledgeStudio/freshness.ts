@@ -27,6 +27,8 @@
  * which is where relative time already lives.
  */
 
+import type { TranslateParams } from '../../../../hooks/useTranslation';
+
 /** Verdict tones — the caller maps these onto the theme's status tokens. */
 export const TONE = Object.freeze({
     OK: 'ok',           // --success dot
@@ -34,8 +36,39 @@ export const TONE = Object.freeze({
     PROBLEM: 'problem', // --error, with an icon rather than a dot
 });
 
+export type Tone = (typeof TONE)[keyof typeof TONE];
+
+/** The fields of a source that the refresh logic reads (camel and snake aliases). */
+export interface KbSourceLike {
+    refreshMode?: string | null;
+    refresh_mode?: string | null;
+    refreshCron?: string | null;
+    refresh_cron?: string | null;
+}
+
+/** The KB row fields the verdict reads (camel and snake aliases). */
+export interface KbFreshnessInput {
+    documentCount?: unknown;
+    document_count?: unknown;
+    lastContentAt?: Date | number | string | null;
+    last_content_at?: Date | number | string | null;
+    autoRefreshCount?: unknown;
+    auto_refresh_count?: unknown;
+    sourceCount?: unknown;
+    source_count?: unknown;
+}
+
+export interface FreshnessVerdict {
+    tone: Tone;
+    key: string;
+    params: TranslateParams;
+    at: number | null;
+}
+
+export type CronParams = { every?: 'week' | 'month' | 'day'; day?: number };
+
 /** ms since epoch from a Date, a number, or an ISO string; null when unusable. */
-export function toMillis(at) {
+export function toMillis(at: Date | number | string | null | undefined): number | null {
     if (at === null || at === undefined || at === '') return null;
     const ts = at instanceof Date ? at.getTime() : (typeof at === 'number' ? at : Date.parse(at));
     return Number.isFinite(ts) ? ts : null;
@@ -55,11 +88,19 @@ export function toMillis(at) {
  */
 export const REFRESH_RANK = Object.freeze({ live: 4, on_change: 3, after_meeting: 2, schedule: 1, manual: 0 });
 
-export function strongestRefresh(sources = []) {
-    let best = null;
+export type RefreshMode = keyof typeof REFRESH_RANK;
+
+export interface StrongestRefresh {
+    rank: number;
+    mode: string;
+    source: KbSourceLike;
+}
+
+export function strongestRefresh(sources: KbSourceLike[] | null | undefined = []): StrongestRefresh | null {
+    let best: StrongestRefresh | null = null;
     for (const s of Array.isArray(sources) ? sources : []) {
         const mode = s?.refreshMode || s?.refresh_mode || 'manual';
-        const rank = REFRESH_RANK[mode] ?? 0;
+        const rank = REFRESH_RANK[mode as RefreshMode] ?? 0;
         if (rank === 0) continue;
         if (!best || rank > best.rank) best = { rank, mode, source: s };
     }
@@ -81,7 +122,10 @@ export function strongestRefresh(sources = []) {
  * @returns {{ tone, key, params, at }} — `at` is the timestamp the caller
  *          may also render as a title attribute.
  */
-export function freshnessOf(kb = {}, { sources = null, usageCount = 0 } = {}) {
+export function freshnessOf(
+    kb: KbFreshnessInput = {},
+    { sources = null, usageCount = 0 }: { sources?: KbSourceLike[] | null; usageCount?: number } = {},
+): FreshnessVerdict {
     const documentCount = num(kb.documentCount ?? kb.document_count);
     const lastContentAt = toMillis(kb.lastContentAt ?? kb.last_content_at);
 
@@ -119,7 +163,7 @@ export function freshnessOf(kb = {}, { sources = null, usageCount = 0 } = {}) {
 }
 
 /** The i18n key for a refresh mode, as the source table's "Verversen" cell says it. */
-export function refreshModeKey(mode) {
+export function refreshModeKey(mode: string): string {
     switch (mode) {
         case 'live': return 'knowledge.refresh.live';
         case 'on_change': return 'knowledge.refresh.on_change';
@@ -137,7 +181,7 @@ export function refreshModeKey(mode) {
  * "volgens schema", because a wrong human sentence about when data refreshes
  * is worse than a vague true one.
  */
-export function cronParams(source) {
+export function cronParams(source: KbSourceLike | null | undefined): CronParams {
     const cron = source?.refreshCron || source?.refresh_cron || '';
     const parts = String(cron).trim().split(/\s+/);
     if (parts.length !== 5) return {};
@@ -148,7 +192,7 @@ export function cronParams(source) {
     return {};
 }
 
-function num(v) {
+function num(v: unknown): number {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
 }

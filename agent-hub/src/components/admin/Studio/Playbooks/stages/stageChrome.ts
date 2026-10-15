@@ -16,7 +16,9 @@
 export const WIDTH = Object.freeze({ narrow: 560, default: 780, wide: 980, full: null });
 
 /** Outer padding of a stage, normal and presenter. */
-export function stagePadding(presenter) {
+import type { CSSProperties } from 'react';
+
+export function stagePadding(presenter: boolean): string {
     return presenter ? '32px 32px' : '24px';
 }
 
@@ -26,14 +28,14 @@ export function stagePadding(presenter) {
  * inside its wireframes at 11px — unreadable from a conference floor, on the
  * one phase whose entire content is what is being read.
  */
-export function stageType(presenter) {
+export function stageType(presenter: boolean): { title: number; hero: number; card: number; body: number; meta: number; micro: number } {
     return presenter
         ? { title: 22, hero: 20, card: 17, body: 14, meta: 13, micro: 12 }
         : { title: 18, hero: 16, card: 14, body: 12, meta: 11, micro: 11 };
 }
 
 /** A stage's own card: one radius, one border, one elevation, one padding pair. */
-export function heroCard(presenter) {
+export function heroCard(presenter: boolean): CSSProperties {
     return {
         background: 'var(--bg-card)',
         border: '1px solid var(--border-default)',
@@ -44,7 +46,7 @@ export function heroCard(presenter) {
 }
 
 /** Anything nested inside a stage card, or a repeated row. */
-export function panelCard(presenter) {
+export function panelCard(presenter: boolean): CSSProperties {
     return {
         background: 'var(--bg-card)',
         border: '1px solid var(--border-default)',
@@ -71,6 +73,6 @@ export const STAGE_BUTTON_GHOST = Object.freeze({
  * `ready` and `running` are the same half-second to a person, and were painted
  * three different ways: static text, a spinning line, a centred spinner.
  */
-export function isBusy(status) {
+export function isBusy(status: string | null | undefined): boolean {
     return status === 'running' || status === 'ready';
 }

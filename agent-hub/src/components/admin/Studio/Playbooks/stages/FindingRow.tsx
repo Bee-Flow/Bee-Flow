@@ -3,6 +3,26 @@ import React, { useCallback, useState } from 'react';
 import { TONES } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { isResolvable, linkFor, severityTone, severityWord, targetWords } from './complianceView';
+import type { LucideIcon } from 'lucide-react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { ComplianceFacts, Finding, ResolveProposal } from './complianceTypes';
+
+export interface FindingRowProps {
+    finding: Finding;
+    facts?: ComplianceFacts | null;
+    t: TranslateFn;
+    presenter?: boolean;
+    onNavigate?: ((path: string) => void) | null;
+    keepChecked?: boolean;
+    onKeepChange?: ((code: string, checked: boolean) => void) | null;
+    showKeep?: boolean;
+    onResolve?: ((code: string) => unknown) | null;
+    onApply?: ((code: string, plan: ResolveProposal) => unknown) | null;
+    plan?: ResolveProposal | null;
+    planBusy?: boolean;
+    planError?: string | null;
+    applying?: boolean;
+}
 
 /**
  * One thing the review wants tidied up.
@@ -19,18 +39,18 @@ import { isResolvable, linkFor, severityTone, severityWord, targetWords } from '
  * server what it would change, the change appears here in words, and only
  * Apply writes anything.
  */
-const KIND_ICON = { table: Database, automation: Workflow, app: LayoutGrid };
+const KIND_ICON: Record<string, LucideIcon> = { table: Database, automation: Workflow, app: LayoutGrid };
 
 export default function FindingRow({
     finding, facts, t, presenter = false, onNavigate = null,
     keepChecked = false, onKeepChange = null, showKeep = false,
     onResolve = null, onApply = null, plan = null, planBusy = false, planError = null, applying = false,
-}) {
+}: FindingRowProps) {
     const tone = severityTone(finding.severity);
     const isHigh = finding.severity === 'high';
     const target = targetWords(finding, t);
     const to = linkFor(finding, facts);
-    const TargetIcon = (target && KIND_ICON[target.kind]) || null;
+    const TargetIcon = (target && KIND_ICON[target.kind as string]) || null;
     const canResolve = !!onResolve && isResolvable(finding);
     const [open, setOpen] = useState(false);
 
@@ -139,7 +159,7 @@ export default function FindingRow({
                             {plan.note && <p className="mt-1 text-[11px] italic text-[var(--text-tertiary)]">{plan.note}</p>}
                             {(plan.unresolved || []).length > 0 && (
                                 <ul className="mt-1 space-y-0.5" data-testid="playbook-compliance-unresolved">
-                                    {plan.unresolved.map((u, i) => (
+                                    {(plan.unresolved || []).map((u, i) => (
                                         <li key={i} className="flex items-start gap-1.5 text-[11px]" style={{ color: 'var(--warning-ink, var(--warning))' }}>
                                             <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" aria-hidden="true" />{u.what}
                                         </li>

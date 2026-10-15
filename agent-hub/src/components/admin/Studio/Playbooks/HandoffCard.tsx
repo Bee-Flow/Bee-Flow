@@ -6,6 +6,27 @@ import { errorText } from './playbookView';
 import { STAGE_BUTTON, STAGE_BUTTON_GHOST, stageType } from './stages/stageChrome';
 import { phaseLabel } from './recipes';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import type { CSSProperties } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { Phase } from './playbookTypes';
+
+export interface HandoffCardProps {
+    phase: Phase | null | undefined;
+    next: Phase | null | undefined;
+    index: number;
+    total: number;
+    t: TranslateFn;
+    onContinue: (brief?: string) => void;
+    onSkipNext: () => void;
+    onRetry: () => void;
+    onSkip: () => void;
+    onStop: () => void;
+    onMarkDone: () => void;
+    onDismiss?: (() => void) | null;
+    canMarkDone?: boolean;
+    busy?: boolean;
+    presenter?: boolean;
+}
 
 /**
  * The pause between phases. Three faces:
@@ -26,7 +47,7 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
  * returns null for both) and neither of which is a builder — the card said
  * "its brief is composed when you continue", which is simply untrue.
  */
-function nextWords(next, t) {
+function nextWords(next: Phase, t: TranslateFn): string {
     const name = phaseLabel(next, t);
     switch (kindOf(next)) {
         case 'design': return t('playbooks.handoff.next_design', 'Next: {phase} — the AI first designs the app as a designer, before it builds.', { phase: name });
@@ -48,12 +69,12 @@ function nextWords(next, t) {
 const BRIEF_MD = 'text-xs leading-relaxed [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_ul]:pl-4 [&_ol]:pl-5 [&_li]:my-0.5 [&_h1]:text-xs [&_h2]:text-xs [&_h3]:text-[11px] [&_h2]:mt-0 [&_h2]:mb-1 [&_h3]:mb-0.5 [&_h1]:mt-0 [&_pre]:my-1';
 
 
-export default function HandoffCard({ phase, next, index, total, t, onContinue, onSkipNext, onRetry, onSkip, onStop, onMarkDone, onDismiss = null, canMarkDone = false, busy = false, presenter = false }) {
+export default function HandoffCard({ phase, next, index, total, t, onContinue, onSkipNext, onRetry, onSkip, onStop, onMarkDone, onDismiss = null, canMarkDone = false, busy = false, presenter = false }: HandoffCardProps) {
     // The pause card is what the ROOM reads between phases, and it was the one
     // surface in the film that never grew in presenter mode.
     const type = stageType(presenter);
     const serverBrief = next && typeof next.brief === 'string' ? next.brief : '';
-    const [brief, setBrief] = useState(serverBrief);
+    const [brief, setBrief] = useState<string>(serverBrief);
     // The server RECOMPOSES this brief while the card is on screen — a design
     // redrawn on request is the case that matters: the app's brief carries the
     // design, and the card's copy was taken once, when it first rendered. It
@@ -61,7 +82,7 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
     // was set, and the builder was handed the design the person had just
     // replaced (owner, 2026-09-16). A new brief from the server replaces what
     // is in the box; typing in it still wins until the server changes it again.
-    const lastServer = useRef(serverBrief);
+    const lastServer = useRef<string>(serverBrief);
     const [editing, setEditing] = useState(false);
     useEffect(() => {
         if (lastServer.current === serverBrief) return;
@@ -69,10 +90,10 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
         setBrief(serverBrief);
     }, [serverBrief]);
 
-    const label = (p) => phaseLabel(p, t);
+    const label = (p: Phase): string => phaseLabel(p, t);
     const btn = STAGE_BUTTON;
     const ghost = STAGE_BUTTON_GHOST;
-    const card = { background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: 16, boxShadow: 'var(--shadow-lg)', padding: presenter ? '22px 24px' : '16px 18px' };
+    const card: CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: 16, boxShadow: 'var(--shadow-lg)', padding: presenter ? '22px 24px' : '16px 18px' };
 
     if (!phase) return null;
 

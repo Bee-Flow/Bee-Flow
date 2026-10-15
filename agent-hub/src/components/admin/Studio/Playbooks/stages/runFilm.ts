@@ -14,21 +14,36 @@
  * behind a genuinely fast run.
  */
 
+/** One step's record in a run (the server's step rows; the client reads these fields). */
+export interface StepRecord {
+    stepId?: string | null;
+    parentStepId?: string | null;
+    status: string;
+    [field: string]: unknown;
+}
+
+/** The automation definition the film walks. */
+export interface FilmDefinition {
+    trigger?: { id?: string | null } | null;
+    steps?: Array<{ id?: string | null }> | null;
+    [field: string]: unknown;
+}
+
 /** Statuses a step does not come back from — the run has moved on. */
 export const TERMINAL = new Set(['success', 'error', 'skipped', 'nothing_to_do', 'handled_error', 'cancelled', 'pinned']);
 const RUN_OVER = new Set(['success', 'error', 'cancelled', 'failed', 'skipped']);
 
 /** The order the film walks: the trigger, then the steps as the definition lists them. */
-export function filmOrder(definition) {
-    const out = [];
+export function filmOrder(definition: FilmDefinition | null | undefined): string[] {
+    const out: string[] = [];
     if (definition?.trigger?.id) out.push(definition.trigger.id);
     for (const s of (definition?.steps || [])) if (s?.id) out.push(s.id);
     return out;
 }
 
 /** The latest record per step id. */
-export function recordsById(steps) {
-    const m = new Map();
+export function recordsById(steps: StepRecord[] | null | undefined): Map<string, StepRecord> {
+    const m = new Map<string, StepRecord>();
     for (const r of (Array.isArray(steps) ? steps : [])) {
         if (r && r.stepId && !r.parentStepId) m.set(r.stepId, r);
     }
@@ -41,7 +56,11 @@ export function recordsById(steps) {
  * step has one, or the run is over. A finished run releases the whole chain,
  * so a step that never ran (a branch not taken) cannot stall the film.
  */
-export function serverHead(order, byId, { runStatus = null, hasTrigger = false } = {}) {
+export function serverHead(
+    order: string[],
+    byId: Map<string, StepRecord>,
+    { runStatus = null, hasTrigger = false }: { runStatus?: string | null; hasTrigger?: boolean } = {},
+): number {
     if (runStatus && RUN_OVER.has(runStatus)) return order.length;
     for (let i = 0; i < order.length; i++) {
         const rec = byId.get(order[i]);
@@ -59,8 +78,8 @@ export function serverHead(order, byId, { runStatus = null, hasTrigger = false }
  * as the server recorded it, the node AT it running, everything after it
  * absent (the canvas draws an untouched node for a step with no record).
  */
-export function frameAt(order, byId, head, { hasTrigger = false } = {}) {
-    const out = [];
+export function frameAt(order: string[], byId: Map<string, StepRecord>, head: number, { hasTrigger = false }: { hasTrigger?: boolean } = {}): StepRecord[] {
+    const out: StepRecord[] = [];
     for (let i = 0; i < order.length; i++) {
         const id = order[i];
         const rec = byId.get(id);
@@ -79,6 +98,6 @@ export function frameAt(order, byId, head, { hasTrigger = false } = {}) {
 }
 
 /** How long the node at the head stays on screen — shorter when the run has run ahead. */
-export function dwellMs(behind, { stepMs = 620, catchUpMs = 240 } = {}) {
+export function dwellMs(behind: number, { stepMs = 620, catchUpMs = 240 }: { stepMs?: number; catchUpMs?: number } = {}): number {
     return behind > 2 ? catchUpMs : stepMs;
 }
