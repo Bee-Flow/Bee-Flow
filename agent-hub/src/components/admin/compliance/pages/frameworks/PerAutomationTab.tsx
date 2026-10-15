@@ -140,7 +140,6 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
                     );
                 }}
                 renderRow={(r: AiActAssessment, ctx: DataTableContext) => {
-
                     const pill = outcomePill(r.outcome);
                     const Icon = KIND_ICON[r.target_kind] || Workflow;
                     const expired = r.current === false;

@@ -18,14 +18,6 @@ import SideDrawer from '../../../../shared/SideDrawer';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import useDrawerMode from '../../shared/useDrawerMode';
 
-/**
- * ObjectivesTab — security objectives (clause 6.2): measurable, owned,
- * reviewed on a date. A row opens ObjectiveDrawer (measure, target, owner,
- * review date, and the Mark achieved / Drop / Reactivate steps); the table
- * keeps four columns, with "measure → target" under the title, so a title
- * reads on one line. The phone card keeps its buttons: there is no table
- * beside it to make room for.
- */
 interface ObjectiveDraft {
     title: string;
     measure: string;
@@ -47,6 +39,14 @@ interface ObjectivesTabProps {
     setHeaderActions?: SetHeaderActions;
 }
 
+/**
+ * ObjectivesTab — security objectives (clause 6.2): measurable, owned,
+ * reviewed on a date. A row opens ObjectiveDrawer (measure, target, owner,
+ * review date, and the Mark achieved / Drop / Reactivate steps); the table
+ * keeps four columns, with "measure → target" under the title, so a title
+ * reads on one line. The phone card keeps its buttons: there is no table
+ * beside it to make room for.
+ */
 const EMPTY_DRAFT: Readonly<ObjectiveDraft> = Object.freeze({ title: '', measure: '', target: '', review_due_at: '', owner_user_id: '' });
 
 export default function ObjectivesTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }: ObjectivesTabProps) {
@@ -132,8 +132,7 @@ export default function ObjectivesTab({ audit, orgUsers, isMobile = false, focus
         );
     }
 
-    const toggle = (o: Objective) => {
- setCreating(false); setSelectedId(prev => (String(prev) === String(o.id) ? null : o.id)); };
+    const toggle = (o: Objective) => { setCreating(false); setSelectedId(prev => (String(prev) === String(o.id) ? null : o.id)); };
 
     return (
         <RegisterLayout isMobile={isMobile} drawerMode={drawerMode} frameRef={frameRef} testId="objectives-tab" drawer={drawer}

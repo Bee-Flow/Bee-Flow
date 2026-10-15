@@ -201,7 +201,6 @@ export default function RisksTable({ rows, treatmentsByRisk, orgUsers, selectedI
     };
 
     const renderCard = (r: RiskRecord): ReactNode => {
-
         const overdue = isReviewOverdue(r);
         const owner = ownerName(orgUsers, r.owner_user_id);
         const count = treatmentsByRisk?.get?.(r.id)?.length ?? 0;

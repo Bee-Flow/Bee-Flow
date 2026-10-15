@@ -204,7 +204,6 @@ export default function PortabilityPage(props: { isMobile?: boolean; setHeaderAc
                     );
                 }}
                 renderRow={(row: PortabilityRow, ctx: DataTableContext) => {
-
                     const tone = rowTone(row);
                     const gap = !row.route;
                     return (

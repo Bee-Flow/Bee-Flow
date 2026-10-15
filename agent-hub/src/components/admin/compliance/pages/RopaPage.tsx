@@ -336,8 +336,7 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                         );
                     }}
                     renderRow={(p: RopaProcessor, ctx: DataTableContext) => {
-                        const ok
- = isConfirmed(p.operator) || !!p.scc_confirmed;
+                        const ok = isConfirmed(p.operator) || !!p.scc_confirmed;
                         const key = p.operator || 'unknown';
                         let i = 0;
                         return (

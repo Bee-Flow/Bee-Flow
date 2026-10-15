@@ -303,7 +303,6 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                     );
                 }}
                 renderRow={(nc: Nonconformity, ctx: DataTableContext) => {
-
                     const closed = nc.status === 'closed';
                     const overdue = isOverdue(nc.due_at, { closed });
                     return (

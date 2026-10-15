@@ -29,6 +29,22 @@ export type IncidentRecord = {
     created_at?: string | null;
     updated_at?: string | null;
     recipients_notified_at?: string | null;
+    // The clock columns incidentClocks.js reads (compliance_incidents; nullable timestamps, regimes JSONB).
+    regimes?: string[] | null;
+    deadline_at?: string | null;
+    reported_at?: string | null;
+    reported_via?: string | null;
+    authority_notified_at?: string | null;
+    authority_reference?: string | null;
+    subjects_notified_at?: string | null;
+    customer_notice_due_at?: string | null;
+    customer_notified_at?: string | null;
+    early_warning_due_at?: string | null;
+    early_warning_sent_at?: string | null;
+    notification_due_at?: string | null;
+    notification_sent_at?: string | null;
+    final_report_due_at?: string | null;
+    final_report_sent_at?: string | null;
     cve_ids?: string[] | null;
     exploited_in_wild?: boolean | null;
     affected_products?: Array<{ name?: string; version_range?: string }> | null;
@@ -176,7 +192,6 @@ export default function IncidentsTable({ rows, selectedId, onSelect, loading = f
     );
 
     const renderCard = (inc: IncidentRecord): ReactNode => (
-
         <button type="button" onClick={() => onSelect?.(inc)} className="w-full text-left px-3.5 py-2.5 grid grid-cols-[1fr_104px] gap-2 border-b border-[var(--border-default)]" data-testid={`${testId}-card-${inc.id}`}>
             <div className="min-w-0 flex flex-col gap-1">
                 <div className="flex items-center gap-2 min-w-0"><DrawerId>{incidentRef(inc)}</DrawerId><span className="truncate text-xs font-medium text-[var(--text-primary)]">{inc.title}</span></div>

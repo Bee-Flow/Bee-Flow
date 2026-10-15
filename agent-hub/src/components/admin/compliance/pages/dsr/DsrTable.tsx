@@ -242,7 +242,6 @@ export default function DsrTable({
     };
 
     const renderCard = (row: DsrRow): ReactNode => {
-
         const closed = isClosed(row);
         const selected = selectedId !== null && String(selectedId) === String(row.id);
         return (
