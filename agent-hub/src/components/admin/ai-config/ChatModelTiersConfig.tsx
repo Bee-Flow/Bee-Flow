@@ -8,8 +8,13 @@ import EuTiersSection from './chatModelTiers/EuTiersSection';
 import MemoryExtractionModelSection from './chatModelTiers/MemoryExtractionModelSection';
 import TitleModelSection from './chatModelTiers/TitleModelSection';
 import useChatModelTiersState from './chatModelTiers/useChatModelTiersState';
+import type { CatalogModel } from './chatModelTiers/tierTypes';
 
-const ChatModelTiersConfig = ({ allModels = [] }) => {
+interface ChatModelTiersConfigProps {
+    allModels?: CatalogModel[];
+}
+
+const ChatModelTiersConfig = ({ allModels = [] }: ChatModelTiersConfigProps) => {
     const {
         config, euConfig, customTiers, saving, euSaving, message, euMessage,
         expandedTier, setExpandedTier, expandedCustomId, setExpandedCustomId,

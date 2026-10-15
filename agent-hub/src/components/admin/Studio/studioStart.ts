@@ -1,5 +1,9 @@
 import { Home } from 'lucide-react';
 import { lazy } from '../../../utils/lazyWithReload';
+import type { StudioAppDescriptor } from './studioRegistry';
+
+/** A Studio descriptor without a category: Start belongs to none. */
+type StudioStartDescriptor = Omit<StudioAppDescriptor, 'category'> & { category?: string };
 
 /**
  * STUDIO_START — the Studio rail's first row, and the section `/app/studio`
@@ -24,7 +28,7 @@ import { lazy } from '../../../utils/lazyWithReload';
  * module and studioRoutes.js is in the MAIN chunk, so the screen itself may
  * only be referenced inside the lazy() callback.
  */
-export const STUDIO_START = Object.freeze({
+export const STUDIO_START: Readonly<StudioStartDescriptor> = Object.freeze({
     id: 'start',
     urlSegment: 'start',
     labelKey: 'studio.start.title',
@@ -39,6 +43,6 @@ export const STUDIO_START = Object.freeze({
 });
 
 /** True for the one section id that is not in STUDIO_APPS. */
-export const isStudioStart = (section) => section === STUDIO_START.id;
+export const isStudioStart = (section: string) => section === STUDIO_START.id;
 
 export default STUDIO_START;

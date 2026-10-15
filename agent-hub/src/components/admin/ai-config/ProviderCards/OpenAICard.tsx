@@ -1,10 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import ProviderApiKeyCard from './ProviderApiKeyCard';
+import type { ProviderCardProps } from './ProviderApiKeyCard';
 import { PROVIDER_KEY_CONFIGS } from './providerKeyConfig';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 const EU_HOST = 'eu.api.openai.com';
+
+/** The openai row of GET /ai/providers. */
+interface OpenAIProvider {
+    id?: string | number;
+    type?: string;
+    url?: string;
+}
 
 /**
  * Where OpenAI runs the inference.
@@ -18,9 +26,9 @@ const EU_HOST = 'eu.api.openai.com';
  * the setting changes WHERE inference happens, not WHAT gets sent. What leaves
  * the product is still the Privacy Shield's job.
  */
-const EuResidencyToggle = ({ onMessage }) => {
+const EuResidencyToggle = ({ onMessage }: ProviderCardProps) => {
     const { t } = useTranslation();
-    const [provider, setProvider] = useState(null);
+    const [provider, setProvider] = useState<OpenAIProvider | null>(null);
     const [saving, setSaving] = useState(false);
 
     const load = useCallback(async () => {
@@ -28,7 +36,7 @@ const EuResidencyToggle = ({ onMessage }) => {
             const res = await authFetch(`${API_BASE}/ai/providers`);
             if (!res.ok) return;
             const data = await res.json();
-            setProvider((data.providers || []).find(p => p.type === 'openai') || null);
+            setProvider((data.providers || []).find((p: OpenAIProvider) => p.type === 'openai') || null);
         } catch (e) {
             // Non-fatal: the card still works as an API-key card without this.
         }
@@ -72,7 +80,7 @@ const EuResidencyToggle = ({ onMessage }) => {
     return (
         <div className="mt-4 pt-4 border-t border-[var(--border-default)]">
             <div className="flex items-start gap-3 cursor-pointer" onClick={toggle} role="switch" aria-checked={isEU} tabIndex={0}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}>
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}>
                 <div className={`w-9 h-5 rounded-full relative transition-colors shrink-0 mt-0.5 ${isEU ? 'bg-green-500' : 'bg-gray-600'} ${saving ? 'opacity-60' : ''}`}>
                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${isEU ? 'translate-x-4' : 'translate-x-0.5'}`} />
                 </div>
@@ -94,7 +102,7 @@ const EuResidencyToggle = ({ onMessage }) => {
     );
 };
 
-const OpenAIApiKeyCard = ({ onMessage }) => (
+const OpenAIApiKeyCard = ({ onMessage }: ProviderCardProps) => (
     <ProviderApiKeyCard provider={PROVIDER_KEY_CONFIGS.openai} onMessage={onMessage}>
         <EuResidencyToggle onMessage={onMessage} />
     </ProviderApiKeyCard>

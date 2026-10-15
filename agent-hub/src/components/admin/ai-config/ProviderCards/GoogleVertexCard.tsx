@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import useProviderConfig from '../../../../hooks/useProviderConfig';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { ProviderCardProps } from './ProviderApiKeyCard';
 
-const GoogleVertexConfigCard = ({ onMessage }) => {
+const GoogleVertexConfigCard = ({ onMessage }: ProviderCardProps) => {
     const { t } = useTranslation();
     const [project, setProject] = useState('');
     const [location, setLocation] = useState('europe-west4');
@@ -13,7 +14,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
     const { config, saving, save, deleteKey, deleteSetting, patchConfig } = useProviderConfig({
         onMessage,
         onLoaded: data => {
-            if (data.googleVertexLocation) setLocation(data.googleVertexLocation);
+            if (data.googleVertexLocation) setLocation(data.googleVertexLocation as string);
         }
     });
     const hasProject = !!config?.hasGoogleVertexProject;
@@ -21,7 +22,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
 
     const handleSave = async () => {
         if (!project.trim() && !serviceAccountKey.trim()) return;
-        const body = {};
+        const body: Record<string, string> = {};
         if (project.trim()) body.googleVertexProject = project;
         body.googleVertexLocation = location;
         if (serviceAccountKey.trim()) {
@@ -88,7 +89,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                     <input
                         type="text"
                         value={project}
-                        onChange={e => setProject(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProject(e.target.value)}
                         placeholder={hasProject ? '••••••••••••••••' : t('admin_ai_config.vertex_project_placeholder', 'GCP Project ID')}
                         className="flex-1 px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -96,7 +97,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                     <input
                         type="text"
                         value={location}
-                        onChange={e => setLocation(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)}
                         placeholder={t('admin_ai_config.vertex_location_placeholder', 'europe-west4')}
                         className="w-40 px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -120,7 +121,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                         </label>
                         <textarea
                             value={serviceAccountKey}
-                            onChange={e => setServiceAccountKey(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setServiceAccountKey(e.target.value)}
                             placeholder={t('admin_ai_config.vertex_key_placeholder', 'Paste your service account JSON key here...')}
                             rows={4}
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-xs font-mono resize-y"

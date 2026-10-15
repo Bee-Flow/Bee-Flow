@@ -9,10 +9,34 @@ import React, { useState } from 'react';
 import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import SecretInput from './shared/SecretInput';
 import useProviderConfig from '../../../../hooks/useProviderConfig';
+import type { ProviderMessage } from '../../../../hooks/useProviderConfig';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-/** @param {{ provider: Record<string, string>, onMessage?: Function, children?: React.ReactNode }} props */
-const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
+/** The props of every thin provider card that wraps ProviderApiKeyCard. */
+export interface ProviderCardProps {
+    onMessage?: (message: ProviderMessage) => void;
+}
+
+/** One entry of PROVIDER_KEY_CONFIGS (providerKeyConfig.js). */
+interface ProviderKeyConfig {
+    name: string;
+    statusField: string;
+    bodyField: string;
+    deleteSlug: string;
+    icon: string;
+    iconBackground: string;
+    description: string;
+    placeholder: string;
+    docsUrl: string;
+    docsLabel: string;
+}
+
+interface ProviderApiKeyCardProps extends ProviderCardProps {
+    provider: ProviderKeyConfig;
+    children?: React.ReactNode;
+}
+
+const ProviderApiKeyCard = ({ provider, onMessage, children }: ProviderApiKeyCardProps) => {
     const { t } = useTranslation();
     const { name, statusField, bodyField, deleteSlug, icon, iconBackground, description, placeholder, docsUrl, docsLabel } = provider;
     const [apiKey, setApiKey] = useState('');

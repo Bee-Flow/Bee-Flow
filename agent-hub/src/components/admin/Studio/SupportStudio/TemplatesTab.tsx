@@ -6,6 +6,21 @@ import Section from '../../../shared/Section';
 import FormField from '../../../shared/FormField';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
 
+interface SupportTag {
+    id: string;
+    name?: string;
+    color?: string;
+    organization_id?: string | null;
+}
+
+interface CannedReply {
+    id: string;
+    title?: string;
+    shortcut?: string | null;
+    body?: string;
+    organization_id?: string | null;
+}
+
 /**
  * TemplatesTab — organisation-wide tag taxonomy + canned replies. All reads and
  * writes hit the tenant /api/support-inbox/* namespace (org-scoped), so a tenant
@@ -22,10 +37,10 @@ export default function TemplatesTab() {
 
 function Tags() {
     const { t } = useTranslation();
-    const [tags, setTags] = useState([]);
+    const [tags, setTags] = useState<SupportTag[]>([]);
     const [name, setName] = useState('');
     const [color, setColor] = useState('#64748b');
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         const res = await authFetch(`${API_BASE}/api/support-inbox/tags`);
@@ -42,7 +57,7 @@ function Tags() {
         if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.error || t('studio_misc.errors.create_failed', 'Create failed')); return; }
         setName(''); await load();
     };
-    const remove = async (id) => {
+    const remove = async (id: string) => {
         const res = await authFetch(`${API_BASE}/api/support-inbox/tags/${id}`, { method: 'DELETE' });
         if (res.ok) await load();
     };
@@ -51,8 +66,8 @@ function Tags() {
         <Section padded title={t('support.tags.title', 'Tags')} description={t('support.tags.desc', 'The catalogue of tags the AI may auto-assign and staff can apply to tickets.')}>
             {error && <div className="text-xs mb-3 px-3 py-2 rounded text-rose-600 bg-rose-500/10">{error}</div>}
             <div className="flex items-center gap-2 mb-4">
-                <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && create()} placeholder={t('support.tags.new', 'New tag name')} className={`${INPUT_FIELD} flex-1`} />
-                <input type="color" value={color} onChange={e => setColor(e.target.value)} className="w-9 h-9 rounded border border-[var(--border-default)]" />
+                <input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && create()} placeholder={t('support.tags.new', 'New tag name')} className={`${INPUT_FIELD} flex-1`} />
+                <input type="color" value={color} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)} className="w-9 h-9 rounded border border-[var(--border-default)]" />
                 <button onClick={create} disabled={!name.trim()} className={PRIMARY_BTN} style={PRIMARY_BTN_STYLE}><Plus size={14} /> {t('support.common.add', 'Add')}</button>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -72,10 +87,10 @@ function Tags() {
 
 function Canned() {
     const { t } = useTranslation();
-    const [items, setItems] = useState([]);
+    const [items, setItems] = useState<CannedReply[]>([]);
     const [adding, setAdding] = useState(false);
     const [form, setForm] = useState({ title: '', shortcut: '', body: '' });
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         const res = await authFetch(`${API_BASE}/api/support-inbox/canned`);
@@ -93,7 +108,7 @@ function Canned() {
         if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.error || t('studio_misc.errors.create_failed', 'Create failed')); return; }
         setForm({ title: '', shortcut: '', body: '' }); setAdding(false); await load();
     };
-    const remove = async (id) => {
+    const remove = async (id: string) => {
         const res = await authFetch(`${API_BASE}/api/support-inbox/canned/${id}`, { method: 'DELETE' });
         if (res.ok) await load();
     };
@@ -106,14 +121,14 @@ function Canned() {
                 <div className="space-y-3 mb-4 p-3 rounded-lg border border-[var(--border-default)]">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FormField label={t('support.canned.title_label', 'Title')}>
-                            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className={INPUT_FIELD} />
+                            <input value={form.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, title: e.target.value }))} className={INPUT_FIELD} />
                         </FormField>
                         <FormField label={t('support.canned.shortcut', 'Shortcut (optional)')}>
-                            <input value={form.shortcut} onChange={e => setForm(f => ({ ...f, shortcut: e.target.value }))} className={INPUT_FIELD} placeholder="/refund" />
+                            <input value={form.shortcut} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, shortcut: e.target.value }))} className={INPUT_FIELD} placeholder="/refund" />
                         </FormField>
                     </div>
                     <FormField label={t('support.canned.body', 'Body')}>
-                        <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} rows={4} className={`${INPUT_FIELD} resize-y`} />
+                        <textarea value={form.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(f => ({ ...f, body: e.target.value }))} rows={4} className={`${INPUT_FIELD} resize-y`} />
                     </FormField>
                     <div className="flex justify-end">
                         <button onClick={create} className={PRIMARY_BTN} style={PRIMARY_BTN_STYLE}>{t('support.common.create', 'Create')}</button>

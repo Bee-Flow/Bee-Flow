@@ -1,13 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import type { StatusMessage } from './chatModelTiers/tierTypes';
 
-const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
+interface EmbeddingProvider {
+    id: string;
+    name?: string;
+    type?: string;
+}
+
+interface EmbeddingModel {
+    id: string;
+    name?: string;
+    providerId?: string;
+}
+
+interface EmbeddingsConfigProps {
+    providers: EmbeddingProvider[];
+    allModels: EmbeddingModel[];
+    fetchAllModels: () => void;
+}
+
+const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsConfigProps) => {
     const { t } = useTranslation();
     const [config, setConfig] = useState({ embeddingProviderId: '', embeddingModel: '' });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState(null);
+    const [message, setMessage] = useState<StatusMessage | null>(null);
 
     useEffect(() => {
         fetchConfig();
@@ -62,11 +81,11 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
 
     // Filter models based on selected provider
     const providerModels = config.embeddingProviderId
-        ? allModels.filter(m => m.providerId === config.embeddingProviderId)
+        ? allModels.filter((m: EmbeddingModel) => m.providerId === config.embeddingProviderId)
         : [];
 
     // Azure embedding model is a deployment name and must be typed manually
-    const selectedProvider = providers.find(p => p.id === config.embeddingProviderId);
+    const selectedProvider = providers.find((p: EmbeddingProvider) => p.id === config.embeddingProviderId);
     const isAzure = selectedProvider?.type === 'azure';
     const useModelDropdown = providerModels.length > 0 && !isAzure;
 
@@ -96,12 +115,12 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                     <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.embed_provider', 'Embedding Provider')}</label>
                     <select
                         value={config.embeddingProviderId}
-                        onChange={e => setConfig({ ...config, embeddingProviderId: e.target.value, embeddingModel: '' })}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingProviderId: e.target.value, embeddingModel: '' })}
                         className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
                         style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
                         <option value="">{t('admin_ai_config.embed_select_provider', 'Select Provider...')}</option>
-                        {providers.map(p => (
+                        {providers.map((p: EmbeddingProvider) => (
                             <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
                         ))}
                     </select>
@@ -112,12 +131,12 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                     {useModelDropdown ? (
                         <select
                             value={config.embeddingModel}
-                            onChange={e => setConfig({ ...config, embeddingModel: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingModel: e.target.value })}
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
                             style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         >
                             <option value="">{t('admin_ai_config.embed_select_model', 'Select Model...')}</option>
-                            {providerModels.map(m => (
+                            {providerModels.map((m: EmbeddingModel) => (
                                 <option key={m.id} value={m.id}>{m.name}</option>
                             ))}
                         </select>
@@ -125,7 +144,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                         <input
                             type="text"
                             value={config.embeddingModel}
-                            onChange={e => setConfig({ ...config, embeddingModel: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingModel: e.target.value })}
                             placeholder={isAzure ? t('admin_ai_config.embed_azure_placeholder', 'Your Azure deployment name, e.g. text-embedding-3-small') : t('admin_ai_config.embed_model_placeholder', 'e.g. text-embedding-3-small')}
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
                             style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}

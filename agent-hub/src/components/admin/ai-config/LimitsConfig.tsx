@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { StatusMessage } from './chatModelTiers/tierTypes';
 
-const LimitsConfig = ({ onNavigateToTab }) => {
+interface LimitsConfigProps {
+    onNavigateToTab?: (tab: string) => void;
+}
+
+interface LimitsStatus {
+    embedModel: string | null;
+    embedProvider: string | null;
+    searchProvider: string | null;
+    hasSerperKey: boolean;
+    hasAgentSearchUrl: boolean;
+}
+
+const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
     const { t } = useTranslation();
     const PER_SURFACE_DEFAULTS = [
         { name: t('admin_ai_config.limits_surface_direct', 'Direct chat'), value: 5 },
@@ -13,7 +26,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
     const [value, setValue] = useState('');
     const [kbProvider, setKbProvider] = useState('auto');
     const [cpuRerankerEnabled, setCpuRerankerEnabled] = useState(true);
-    const [status, setStatus] = useState({
+    const [status, setStatus] = useState<LimitsStatus>({
         embedModel: null,
         embedProvider: null,
         searchProvider: null,
@@ -22,7 +35,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState(null);
+    const [message, setMessage] = useState<StatusMessage | null>(null);
 
     useEffect(() => { fetchConfig(); }, []);
 
@@ -178,7 +191,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                         min="1"
                         max="50"
                         value={value}
-                        onChange={e => setValue(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
                         placeholder={t('admin_ai_config.limits_rounds_placeholder', 'Use per-surface defaults')}
                         className="w-48 px-3 py-2.5 rounded-lg border outline-none text-sm"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -192,7 +205,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                         {t('admin_ai_config.limits_surface_title', 'Per-surface defaults (when empty)')}
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {PER_SURFACE_DEFAULTS.map(s => (
+                        {PER_SURFACE_DEFAULTS.map((s: { name: string; value: number }) => (
                             <div key={s.name} className="px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-default)' }}>
                                 <div className="text-[var(--text-muted)]">{s.name}</div>
                                 <div className="font-semibold mt-0.5 text-[var(--text-primary)]">{s.value} {t('admin_ai_config.limits_rounds_unit', 'rounds')}</div>
@@ -209,7 +222,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                     {t('admin_ai_config.limits_kbp_hint', 'Where KB chunk retrieval and ranking happens. Local routes everything through the in-process pgvector + reranker pipeline; remote forwards to the external search-service.')}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {KB_OPTIONS.map(opt => {
+                    {KB_OPTIONS.map((opt: { id: string; label: string; desc: string }) => {
                         const selected = kbProvider === opt.id;
                         return (
                             <button
@@ -247,7 +260,7 @@ const LimitsConfig = ({ onNavigateToTab }) => {
                     <input
                         type="checkbox"
                         checked={cpuRerankerEnabled}
-                        onChange={e => setCpuRerankerEnabled(e.target.checked)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCpuRerankerEnabled(e.target.checked)}
                         className="rounded"
                     />
                     <span className="text-sm text-[var(--text-primary)]">

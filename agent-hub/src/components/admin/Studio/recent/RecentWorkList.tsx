@@ -5,6 +5,45 @@ import { formatRelativeTime } from '../../../../utils/dateFormatters';
 import { kindColorVar, kindIcon } from '../../../shared/kindColors';
 import { nOf } from '../KnowledgeStudio/plural';
 import { studioSectionLabel } from '../studioNav';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+
+type RecentWorkState = Awaited<ReturnType<typeof runRecentWork>>;
+type RecentEntry = RecentWorkState['items'][number];
+
+/** The part of a Studio nav row the list reads. */
+interface StudioNavSection {
+    id: string;
+}
+
+interface StatusWordProps {
+    t: TranslateFn;
+    status: string;
+    testId: string;
+}
+
+interface RecentRowProps {
+    t: TranslateFn;
+    locale: string;
+    entry: RecentEntry;
+    icon: React.ReactNode;
+    onOpen: (() => void) | null;
+}
+
+interface StatusLineProps {
+    t: TranslateFn;
+    total: number;
+    complete: boolean;
+    missing: string[];
+    gatesUnknown: boolean;
+    unsupported: string[];
+}
+
+interface RecentWorkListProps {
+    sections?: StudioNavSection[] | null;
+    onNavigate?: ((path: string) => void) | null;
+    limit?: number;
+    gatesResolved?: boolean;
+}
 
 /**
  * "Laatst bewerkt" — de tweede lijst op het Startscherm van Studio (Track H3).
@@ -48,7 +87,7 @@ import { studioSectionLabel } from '../studioNav';
  */
 
 /** Het statuswoord van een rij: altijd een woord, nooit een leeg vakje. */
-function StatusWord({ t, status, testId }) {
+function StatusWord({ t, status, testId }: StatusWordProps) {
     const label = statusLabel(status);
     return (
         <span
@@ -70,7 +109,7 @@ function StatusWord({ t, status, testId }) {
  * in het register op dezelfde plek als bij AttentionList ernaast, en tekent
  * deze rij alleen.
  */
-function RecentRow({ t, locale, entry, icon, onOpen }) {
+function RecentRow({ t, locale, entry, icon, onOpen }: RecentRowProps) {
     const when = entry.at === null ? null : formatRelativeTime(entry.updatedAt, { locale });
     return (
         <button
@@ -109,7 +148,7 @@ function RecentRow({ t, locale, entry, icon, onOpen }) {
  * De zin onder de kop. Precies één van drie, en de eerste twee zijn het paar
  * dat dit scherm uit elkaar moet houden.
  */
-function StatusLine({ t, total, complete, missing, gatesUnknown, unsupported }) {
+function StatusLine({ t, total, complete, missing, gatesUnknown, unsupported }: StatusLineProps) {
     // Eén of meer lijsten, met hun eigen naam erbij. Meervoud via de sleutel,
     // nooit "list(s)" (KnowledgeStudio/plural.js).
     const unreadable = () => nOf(
@@ -165,9 +204,9 @@ function StatusLine({ t, total, complete, missing, gatesUnknown, unsupported }) 
 
 export default function RecentWorkList({
     sections = null, onNavigate = null, limit = RECENT_LIMIT, gatesResolved = true,
-}) {
+}: RecentWorkListProps) {
     const { t, locale } = useTranslation();
-    const [state, setState] = useState(null);
+    const [state, setState] = useState<RecentWorkState | null>(null);
 
     // De secties zijn elke render een nieuwe array; de ids erin niet. Het
     // ophalen hangt aan die ids, zodat een render van de ouder geen tweede
@@ -197,8 +236,8 @@ export default function RecentWorkList({
     const { items, unavailable, complete, unsupported = [] } = state;
     // De namen van de lijsten die niet gelezen konden worden, uit hetzelfde
     // register als de rail — "Agents" hier en "Agents" daar.
-    const byId = new Map((sections || []).filter(Boolean).map((app) => [app.id, app]));
-    const nameOf = (id) => studioSectionLabel(byId.get(id), t, locale) || id;
+    const byId = new Map<string, StudioNavSection>((sections || []).filter(Boolean).map((app) => [app.id, app]));
+    const nameOf = (id: string) => studioSectionLabel(byId.get(id), t, locale) || id;
     // 'gates' is geen sectie maar het ontbrekende antwoord op de vraag WELKE
     // secties er zijn; het krijgt daarom zijn eigen zin en geen naam in de rij.
     const gatesUnknown = unavailable.includes('gates');

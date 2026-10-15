@@ -1,5 +1,6 @@
 import React from 'react';
 import ProviderApiKeyCard from './ProviderApiKeyCard';
+import type { ProviderCardProps } from './ProviderApiKeyCard';
 import { PROVIDER_KEY_CONFIGS } from './providerKeyConfig';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -7,7 +8,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // Whisper transcription integration uses (Admin → Integrations → Transcription).
 // Saving it here also enables that, and vice versa — worth saying out loud so
 // an admin does not go looking for a second key to create.
-const ScalewayApiKeyCard = ({ onMessage }) => {
+const ScalewayApiKeyCard = ({ onMessage }: ProviderCardProps) => {
     const { t } = useTranslation();
     return (
     <ProviderApiKeyCard provider={PROVIDER_KEY_CONFIGS.scaleway} onMessage={onMessage}>

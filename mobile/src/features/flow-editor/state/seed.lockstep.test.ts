@@ -17,7 +17,7 @@ const AGENT_HUB = path.resolve(__dirname, '../../../../../agent-hub/src');
 const read = (rel: string) => fs.readFileSync(path.join(AGENT_HUB, rel), 'utf8');
 const CREATE_DRAFT = read('api/queries/automation/createDraft.ts');
 const GATES = read('components/admin/Studio/studioGates.ts');
-const BARREL = read('components/admin/Studio/studioApps.jsx');
+const BARREL = read('components/admin/Studio/studioApps.tsx');
 
 describe('the new-automation seed', () => {
     it('is the web draft body: schemaVersion 1, a manual trigger, empty steps, edges and vars', () => {
@@ -57,7 +57,7 @@ describe('the new-automation seed', () => {
 
     it('studioApps.jsx still hands out both helpers', () => {
         expect(BARREL).toMatch(/export \{[^}]*\bcreateFormAutomation\b[^}]*\} from '\.\/studioGates';/);
-        expect(BARREL).toContain('export async function createAutomationDraft(ctx, options) {');
+        expect(BARREL).toContain('export async function createAutomationDraft(ctx: AutomationDraftCtx, options?: AutomationDraftOptions) {');
         expect(BARREL).toContain("await import('../../../api/queries/automation/createDraft')");
     });
 });

@@ -3,6 +3,32 @@ import { Users, ShieldCheck, ChevronDown } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import Section from '../../../shared/Section';
+import type { SupportInbox, SupportUser } from './supportStudio.types';
+
+interface AccessGroup {
+    id: string;
+    name?: string;
+}
+
+interface AccessMember {
+    id: string;
+    name?: string;
+    email?: string;
+}
+
+interface AccessTabProps {
+    inbox?: SupportInbox | null;
+    user?: SupportUser | null;
+    onChanged?: () => void;
+}
+
+interface RadioProps {
+    checked: boolean;
+    disabled: boolean;
+    onChange: () => void;
+    label: React.ReactNode;
+    hint?: React.ReactNode;
+}
 
 /**
  * AccessTab — who in the organisation may work this inbox. Default is "everyone
@@ -12,16 +38,16 @@ import Section from '../../../shared/Section';
  */
 const SAVE_DEBOUNCE_MS = 700;
 
-export default function AccessTab({ inbox, user, onChanged }) {
+export default function AccessTab({ inbox, user, onChanged }: AccessTabProps) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState('everyone');
-    const [groupIds, setGroupIds] = useState([]);
-    const [availableGroups, setAvailableGroups] = useState([]);
-    const [members, setMembers] = useState([]);
+    const [groupIds, setGroupIds] = useState<string[]>([]);
+    const [availableGroups, setAvailableGroups] = useState<AccessGroup[]>([]);
+    const [members, setMembers] = useState<AccessMember[]>([]);
     const [showMembers, setShowMembers] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     // Only autosave after the user actually changes something — never on load
     // (which would spam a redundant PUT + audit event every time the tab opens).
     const touched = useRef(false);
@@ -46,7 +72,7 @@ export default function AccessTab({ inbox, user, onChanged }) {
     }, [inboxId]);
     useEffect(() => { load(); }, [load]);
 
-    const persist = useCallback(async (nextGroups) => {
+    const persist = useCallback(async (nextGroups: string[]) => {
         if (!inboxId || !canEdit) return;
         setSaving(true); setError(null);
         try {
@@ -74,8 +100,8 @@ export default function AccessTab({ inbox, user, onChanged }) {
     }, [groupIds, mode, loading, canEdit]);
 
     if (!inbox) return null;
-    const setModeTouched = (m) => { touched.current = true; setMode(m); };
-    const toggleGroup = (id) => { touched.current = true; setGroupIds(g => g.includes(id) ? g.filter(x => x !== id) : [...g, id]); };
+    const setModeTouched = (m: string) => { touched.current = true; setMode(m); };
+    const toggleGroup = (id: string) => { touched.current = true; setGroupIds((g: string[]) => g.includes(id) ? g.filter(x => x !== id) : [...g, id]); };
 
     return (
         <div className="max-w-3xl mx-auto py-6 px-4 space-y-4">
@@ -131,7 +157,7 @@ export default function AccessTab({ inbox, user, onChanged }) {
     );
 }
 
-function Radio({ checked, disabled, onChange, label, hint }) {
+function Radio({ checked, disabled, onChange, label, hint }: RadioProps) {
     return (
         <button type="button" disabled={disabled} onClick={onChange}
             className={`w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-lg border transition-colors disabled:opacity-70 ${checked

@@ -3,26 +3,46 @@ import { RefreshCw } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { metaFor, categoryLabel, CATEGORY_IDS } from './auditMeta';
+import type { SupportInbox } from './supportStudio.types';
+
+interface AuditEvent {
+    id?: string;
+    thread_id?: string | null;
+    inbox_id?: string | null;
+    created_at: string;
+}
+
+interface AuditFilters {
+    inbox: string;
+    actor: string;
+    from: string;
+    to: string;
+}
+
+interface AuditTabProps {
+    inboxes?: SupportInbox[];
+    onOpenThread?: (threadId: string) => void;
+}
 
 /**
  * AuditTab — organisation-wide audit trail of every support interaction
  * (system · automation · AI · staff · requester) across the inboxes the viewer
  * can access, plus admin/config events. Filterable + cursor-paginated. No export.
  */
-export default function AuditTab({ inboxes = [], onOpenThread }) {
+export default function AuditTab({ inboxes = [], onOpenThread }: AuditTabProps) {
     const { t } = useTranslation();
-    const [events, setEvents] = useState([]);
-    const [nextCursor, setNextCursor] = useState(null);
+    const [events, setEvents] = useState<AuditEvent[]>([]);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [filters, setFilters] = useState({ inbox: '', actor: '', from: '', to: '' });
+    const [filters, setFilters] = useState<AuditFilters>({ inbox: '', actor: '', from: '', to: '' });
 
-    const inboxLabel = useCallback((id) => {
+    const inboxLabel = useCallback((id?: string | null) => {
         if (!id) return t('support.audit.config_event', 'Configuration'); // config event — no inbox
         const i = inboxes.find(x => x.id === id);
         return i ? (i.email_address || i.display_name || i.provider) : t('support.audit.an_inbox', 'an inbox');
     }, [inboxes, t]);
 
-    const fetchPage = useCallback(async (cursor) => {
+    const fetchPage = useCallback(async (cursor: string | null) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -34,7 +54,7 @@ export default function AuditTab({ inboxes = [], onOpenThread }) {
             params.set('limit', '50');
             const res = await authFetch(`${API_BASE}/api/support-inbox/audit?${params.toString()}`);
             const d = await res.json().catch(() => ({ events: [] }));
-            setEvents(prev => cursor ? [...prev, ...(d.events || [])] : (d.events || []));
+            setEvents((prev: AuditEvent[]) => cursor ? [...prev, ...(d.events || [])] : (d.events || []));
             setNextCursor(d.nextCursor || null);
         } finally { setLoading(false); }
     }, [filters]);
@@ -45,22 +65,22 @@ export default function AuditTab({ inboxes = [], onOpenThread }) {
         <div className="max-w-4xl mx-auto py-6 px-4 space-y-4">
             <div className="flex flex-wrap items-end gap-2">
                 <Field label={t('support.audit.inbox', 'Inbox')}>
-                    <select value={filters.inbox} onChange={e => setFilters(f => ({ ...f, inbox: e.target.value }))} className={SELECT}>
+                    <select value={filters.inbox} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilters(f => ({ ...f, inbox: e.target.value }))} className={SELECT}>
                         <option value="">{t('support.audit.all_inboxes', 'All inboxes')}</option>
                         {inboxes.map(i => <option key={i.id} value={i.id}>{i.email_address || i.display_name || i.provider}</option>)}
                     </select>
                 </Field>
                 <Field label={t('support.audit.actor', 'Actor')}>
-                    <select value={filters.actor} onChange={e => setFilters(f => ({ ...f, actor: e.target.value }))} className={SELECT}>
+                    <select value={filters.actor} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilters(f => ({ ...f, actor: e.target.value }))} className={SELECT}>
                         <option value="">{t('support.audit.all_actors', 'Everyone')}</option>
                         {CATEGORY_IDS.map(k => <option key={k} value={k}>{categoryLabel(k, t)}</option>)}
                     </select>
                 </Field>
                 <Field label={t('support.audit.from', 'From')}>
-                    <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} className={SELECT} />
+                    <input type="date" value={filters.from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(f => ({ ...f, from: e.target.value }))} className={SELECT} />
                 </Field>
                 <Field label={t('support.audit.to', 'To')}>
-                    <input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} className={SELECT} />
+                    <input type="date" value={filters.to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(f => ({ ...f, to: e.target.value }))} className={SELECT} />
                 </Field>
                 <button onClick={() => fetchPage(null)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
                     <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> {t('support.common.refresh', 'Refresh')}
@@ -107,7 +127,7 @@ export default function AuditTab({ inboxes = [], onOpenThread }) {
 
 const SELECT = 'text-sm rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1.5';
 
-function Field({ label, children }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <label className="flex flex-col gap-1">
             <span className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">{label}</span>
