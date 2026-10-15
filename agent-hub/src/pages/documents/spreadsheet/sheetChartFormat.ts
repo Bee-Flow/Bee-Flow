@@ -1,4 +1,4 @@
-import type { ChartFormat, SheetChartConfig } from './sheetCharts';
+import type { ChartFormat, ChartType, SheetChartConfig } from './sheetCharts';
 
 type FormatSpec = Pick<SheetChartConfig, 'format' | 'currency'>;
 
@@ -33,4 +33,11 @@ export function formatDelta(ratio: number, locale: string): string {
     } catch {
         return `${(ratio * 100).toFixed(1)}%`;
     }
+}
+
+/** Where a data label (showValues) sits: beside a horizontal bar, inside a stacked segment, else above the mark. */
+export function valueLabelPosition(type: ChartType): 'right' | 'center' | 'top' {
+    if (type === 'hbar') return 'right';
+    if (type === 'stacked') return 'center';
+    return 'top';
 }

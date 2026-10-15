@@ -3,7 +3,7 @@ import {
     Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, Pie, PieChart,
     ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { formatChartNumber } from './sheetChartFormat';
+import { formatChartNumber, valueLabelPosition } from './sheetChartFormat';
 import { chartRows, scatterPoints, type ChartSeriesData } from './sheetChartSeries';
 import { chartColor, type SheetChartConfig } from './sheetCharts';
 
@@ -23,7 +23,8 @@ function PiePlot({ chart, rows, full }: { chart: SheetChartConfig; rows: Record<
                 data={slices} dataKey="value" nameKey="name" innerRadius={chart.type === 'doughnut' ? '55%' : 0} outerRadius="80%"
                 paddingAngle={chart.type === 'doughnut' ? 2 : 0} stroke="var(--bg-primary)" label={chart.showValues ? (p) => full(p.value) : false}
             >
-                {slices.map((sl, i) => <Cell key={sl.name} fill={chartColor(chart, i)} />)}
+                {/* keys by position: two slices may carry the same label */}
+                {slices.map((_sl, i) => <Cell key={`slice-${i}`} fill={chartColor(chart, i)} />)}
             </Pie>
         </PieChart>
     );
@@ -39,7 +40,7 @@ export default function SheetChartPlot({ chart, data, locale }: PlotProps) {
         ? <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} /> : null;
     const tooltip = <Tooltip contentStyle={TOOLTIP} formatter={(v) => full(v)} />;
     const labels = (k: number) => (chart.showValues
-        ? <LabelList dataKey={`s${k}`} position="top" formatter={(v) => (typeof v === 'number' ? compact(v) : '')} fontSize={10} fill="var(--text-secondary)" />
+        ? <LabelList dataKey={`s${k}`} position={valueLabelPosition(chart.type)} formatter={(v) => (typeof v === 'number' ? compact(v) : '')} fontSize={10} fill="var(--text-secondary)" />
         : null);
     const xAxis = <XAxis dataKey="label" tick={TICK} tickLine={false} axisLine={{ stroke: 'var(--border-default)' }} />;
     const yAxis = <YAxis tick={TICK} tickLine={false} axisLine={false} tickFormatter={compact} width={52} />;
@@ -54,7 +55,7 @@ export default function SheetChartPlot({ chart, data, locale }: PlotProps) {
                 <XAxis type="number" dataKey="x" tick={TICK} tickFormatter={(v: number) => formatChartNumber(v, { }, locale, true)} />
                 <YAxis type="number" dataKey="y" tick={TICK} tickFormatter={compact} width={52} />
                 {tooltip}{legend}
-                {scatterPoints(data).map((s, k) => <Scatter key={s.name} name={s.name} data={s.points} fill={chartColor(chart, k)} />)}
+                {scatterPoints(data).map((s, k) => <Scatter key={`s${k}`} name={s.name} data={s.points} fill={chartColor(chart, k)} />)}
             </ScatterChart>
         );
     } else if (chart.type === 'line') {
@@ -62,7 +63,7 @@ export default function SheetChartPlot({ chart, data, locale }: PlotProps) {
             <LineChart data={rows}>
                 {GRID}{xAxis}{yAxis}{tooltip}{legend}
                 {data.series.map((s, k) => (
-                    <Line key={s.name} type="monotone" name={s.name} dataKey={`s${k}`} stroke={chartColor(chart, k)} strokeWidth={2.5} dot={false}>{labels(k)}</Line>
+                    <Line key={`s${k}`} type="monotone" name={s.name} dataKey={`s${k}`} stroke={chartColor(chart, k)} strokeWidth={2.5} dot={false}>{labels(k)}</Line>
                 ))}
             </LineChart>
         );
@@ -71,7 +72,7 @@ export default function SheetChartPlot({ chart, data, locale }: PlotProps) {
             <AreaChart data={rows}>
                 {GRID}{xAxis}{yAxis}{tooltip}{legend}
                 {data.series.map((s, k) => (
-                    <Area key={s.name} type="monotone" name={s.name} dataKey={`s${k}`} stroke={chartColor(chart, k)} fill={chartColor(chart, k)} fillOpacity={0.25} strokeWidth={2}>{labels(k)}</Area>
+                    <Area key={`s${k}`} type="monotone" name={s.name} dataKey={`s${k}`} stroke={chartColor(chart, k)} fill={chartColor(chart, k)} fillOpacity={0.25} strokeWidth={2}>{labels(k)}</Area>
                 ))}
             </AreaChart>
         );
@@ -82,10 +83,10 @@ export default function SheetChartPlot({ chart, data, locale }: PlotProps) {
         const radius: [number, number, number, number] = horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0];
         const bars = data.series.map((s, k) => (
             <Bar
-                key={s.name} name={s.name} dataKey={`s${k}`} fill={chartColor(chart, k)} radius={stacked && k < data.series.length - 1 ? 0 : radius}
+                key={`s${k}`} name={s.name} dataKey={`s${k}`} fill={chartColor(chart, k)} radius={stacked && k < data.series.length - 1 ? 0 : radius}
                 stackId={stacked ? 'stack' : undefined} maxBarSize={48}
             >
-                {byPoint && rows.map((r, i) => <Cell key={String(r.label)} fill={chartColor(chart, i)} />)}
+                {byPoint && rows.map((_r, i) => <Cell key={`bar-${i}`} fill={chartColor(chart, i)} />)}
                 {labels(k)}
             </Bar>
         ));

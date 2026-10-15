@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { formatChartNumber, formatDelta } from './sheetChartFormat';
+import { formatChartNumber, formatDelta, valueLabelPosition } from './sheetChartFormat';
 
 describe('sheetChartFormat', () => {
     test('compact axis numbers and full tooltip numbers', () => {
@@ -20,5 +20,12 @@ describe('sheetChartFormat', () => {
         expect(formatChartNumber(5, { format: 'currency', currency: 'nope' }, 'en')).toBe('5');
         expect(formatDelta(0.123, 'en')).toBe('+12.3%');
         expect(formatDelta(-0.05, 'en')).toBe('-5%');
+    });
+
+    test('data labels sit beside a horizontal bar, inside a stacked segment, else on top', () => {
+        expect(valueLabelPosition('hbar')).toBe('right');
+        expect(valueLabelPosition('stacked')).toBe('center');
+        expect(valueLabelPosition('bar')).toBe('top');
+        expect(valueLabelPosition('line')).toBe('top');
     });
 });

@@ -65,37 +65,30 @@ function ChartItem({ chart, computed, layout, readOnly, onRemove }: {
     );
 }
 
+/** Where each chart's anchor cell sits in the grid (null: the cell is not rendered). */
+function measure(content: HTMLElement, charts: SheetChartConfig[]): Record<string, Layout | null> {
+    const next: Record<string, Layout | null> = {};
+    for (const chart of charts) {
+        const cell = content.querySelector<HTMLElement>(`[data-cell="${chart.anchor}"]`);
+        next[chart.id] = cell ? { top: cell.offsetTop, left: cell.offsetLeft, width: chart.width, height: chart.height } : null;
+    }
+    return next;
+}
+
 export default memo(function SheetChartOverlay({ contentRef, charts, computed, readOnly, onRemove }: SheetChartOverlayProps) {
     const [layouts, setLayouts] = useState<Record<string, Layout | null>>({});
 
     useLayoutEffect(() => {
         const content = contentRef.current;
-        if (!content) return;
-        const next: Record<string, Layout | null> = {};
-        for (const chart of charts) {
-            const cell = content.querySelector(`[data-cell="${chart.anchor}"]`) as HTMLElement | null;
-            if (cell) {
-                next[chart.id] = { top: cell.offsetTop, left: cell.offsetLeft, width: chart.width, height: chart.height };
-            } else {
-                next[chart.id] = null;
-            }
-        }
-        setLayouts(next);
+        if (content) setLayouts(measure(content, charts));
     }, [charts, contentRef]);
 
     useEffect(() => {
         const content = contentRef.current;
-        if (!content) return undefined;
-        const ro = 'ResizeObserver' in window ? new ResizeObserver(() => {
-            const next: Record<string, Layout | null> = {};
-            for (const chart of charts) {
-                const cell = content.querySelector(`[data-cell="${chart.anchor}"]`) as HTMLElement | null;
-                next[chart.id] = cell ? { top: cell.offsetTop, left: cell.offsetLeft, width: chart.width, height: chart.height } : null;
-            }
-            setLayouts(next);
-        }) : null;
-        ro?.observe(content);
-        return () => ro?.disconnect();
+        if (!content || !('ResizeObserver' in window)) return undefined;
+        const ro = new ResizeObserver(() => setLayouts(measure(content, charts)));
+        ro.observe(content);
+        return () => ro.disconnect();
     }, [charts, contentRef]);
 
     return (
