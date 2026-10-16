@@ -1,6 +1,7 @@
 import { AlertTriangle, HelpCircle, Info, Loader2 } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { readInstalls } from './releaseModel';
+import type { InstallsBody } from './releaseModel';
 import { Strip } from './solutionNotices';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { nOf } from '../KnowledgeStudio/plural';
@@ -75,7 +76,7 @@ interface HalfProps {
 
 interface RemoteRead {
     status?: string;
-    data?: unknown;
+    data?: InstallsBody | null;
 }
 
 function Half({ count, label, unknownPhrase, testId }: HalfProps) {

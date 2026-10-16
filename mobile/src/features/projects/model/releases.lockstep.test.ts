@@ -14,7 +14,7 @@ import { groupNoteRows, installsBadge } from './releases';
 import { readInstallCounts, readReleases } from '../api/packageReaders';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require(path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Solutions/releaseModel.js'));
+const web = require(path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Solutions/releaseModel.ts'));
 
 const NOTES = {
     entities: [

@@ -108,7 +108,7 @@ export function UpdateChip({ update }: { update: { state: string; latestVersion:
 /** Icon + number per kind, and the kinds whose number could not be read. */
 export function CountChips({ row }: { row: Row }) {
     const { t } = useTranslation();
-    const { chips, unreadable } = chipsOf(row) as { chips: { section: string; kind: string; count: number }[]; unreadable: string[] };
+    const { chips, unreadable } = chipsOf(row);
     if (chips.length === 0 && unreadable.length === 0) return null;
     return (
         <span className="flex flex-wrap items-center gap-1.5">

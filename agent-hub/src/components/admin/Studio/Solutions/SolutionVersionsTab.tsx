@@ -2,6 +2,7 @@ import { AlertTriangle, HelpCircle, Loader2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { kindBarClass, kindInkClass } from './kindBar';
 import { groupNoteRows, noteRowsOf, readReleases } from './releaseModel';
+import type { NoteRow as NoteRowData, ReleaseRemote, ReleaseRow, ReleasesBody } from './releaseModel';
 import { Strip } from './solutionNotices';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { formatRelative } from '../../../projects/relativeTime';
@@ -35,7 +36,9 @@ import { nOf } from '../KnowledgeStudio/plural';
  */
 
 /** Wat de segmented control aanbiedt. Twee weergaven, één keuze. */
-const VIEWS = [
+type ViewId = 'changes' | 'all';
+
+const VIEWS: { id: ViewId; labelKey: string; fallback: string }[] = [
     { id: 'changes', labelKey: 'solutions.versions_view_changes', fallback: 'What changed' },
     { id: 'all', labelKey: 'solutions.versions_view_all', fallback: 'All versions' },
 ];
@@ -47,19 +50,19 @@ const VIEWS = [
  * StudioSectionHeader — want een `const Icon = ...` in een componentlichaam
  * leest voor de linter als een component die tijdens het renderen ontstaat.
  */
-function glyphFor(kind) {
+function glyphFor(kind: string) {
     const Icon = kindIcon(kindOf(kind));
     if (!Icon) return null;
     return <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${kindInkClass(kind)}`} aria-hidden="true" />;
 }
 
 /** The change chip: the word and the colour both say what happened. */
-const CHIP = {
+const CHIP: Record<string, [string, string, string]> = {
     added: ['solutions.release_chip_added', 'Added', 'text-[var(--success)] border-[var(--success)]'],
     changed: ['solutions.release_chip_changed', 'Changed', 'text-[var(--warning)] border-[var(--warning)]'],
     unchanged: ['solutions.release_chip_unchanged', 'Unchanged', 'text-[var(--text-tertiary)] border-[var(--border-subtle)]'],
 };
-function ChangeChip({ change }) {
+function ChangeChip({ change }: { change: string }) {
     const { t } = useTranslation();
     const c = CHIP[change];
     if (!c) return null;
@@ -72,7 +75,7 @@ function ChangeChip({ change }) {
 }
 
 /** Eén entiteitsregel van de diff: pictogram, naam, en de zin als die er is. */
-function NoteRow({ row }) {
+function NoteRow({ row }: { row: NoteRowData }) {
     const { t } = useTranslation();
     return (
         <li className={`flex items-start gap-2.5 px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] border-l-[3px] bg-[var(--bg-secondary)] ${kindBarClass(row.kind)}`}
@@ -97,20 +100,20 @@ function NoteRow({ row }) {
     );
 }
 
-function NoteGroup({ rows, title, testId }) {
+function NoteGroup({ rows, title, testId }: { rows: NoteRowData[]; title: string; testId: string }) {
     if (rows.length === 0) return null;
     return (
         <div data-testid={testId}>
             <h3 className="text-sm font-medium mb-2 text-[var(--text-primary)]">{title}</h3>
             <ul className="space-y-1.5">
-                {rows.map((row, i) => <NoteRow key={`${row.ref}-${i}`} row={row} />)}
+                {rows.map((row: NoteRowData, i: number) => <NoteRow key={`${row.ref}-${i}`} row={row} />)}
             </ul>
         </div>
     );
 }
 
 /** De diff van één versie. */
-function ChangesView({ release }) {
+function ChangesView({ release }: { release: ReleaseRow | null }) {
     const { t } = useTranslation();
     const note = noteRowsOf(release);
 
@@ -169,11 +172,11 @@ function ChangesView({ release }) {
 }
 
 /** De lijst. Een tijdlijn: één rij per publicatie, met de telling van die publicatie erbij. */
-function AllVersionsView({ releases, selectedId, onSelect }) {
+function AllVersionsView({ releases, selectedId, onSelect }: { releases: ReleaseRow[]; selectedId: string | null; onSelect: (id: string) => void }) {
     const { t } = useTranslation();
     return (
         <ol className="relative ml-2 border-l border-[var(--border-subtle)] space-y-2">
-            {releases.map((release) => {
+            {releases.map((release: ReleaseRow) => {
                 const note = noteRowsOf(release);
                 const groups = groupNoteRows(note.rows);
                 const selected = release.id === selectedId;
@@ -226,15 +229,15 @@ function AllVersionsView({ releases, selectedId, onSelect }) {
     );
 }
 
-export default function SolutionVersionsTab({ remote }) {
+export default function SolutionVersionsTab({ remote }: { remote?: ReleaseRemote<ReleasesBody> | null }) {
     const { t } = useTranslation();
-    const [view, setView] = useState('changes');
-    const [picked, setPicked] = useState(null);
+    const [view, setView] = useState<ViewId>('changes');
+    const [picked, setPicked] = useState<string | null>(null);
 
     const { state, releases } = useMemo(() => readReleases(remote), [remote]);
     // De nieuwste is de standaard — dat is de versie die "wat verandert"
     // bedoelt. Een handmatige keuze wint, maar alleen zolang die versie er is.
-    const selected = releases.find(r => r.id === picked) || releases[0] || null;
+    const selected = releases.find((r: ReleaseRow) => r.id === picked) || releases[0] || null;
 
     if (state === 'loading') {
         return (
@@ -287,7 +290,7 @@ export default function SolutionVersionsTab({ remote }) {
                 <AllVersionsView
                     releases={releases}
                     selectedId={selected?.id || null}
-                    onSelect={(id) => { setPicked(id); setView('changes'); }}
+                    onSelect={(id: string) => { setPicked(id); setView('changes'); }}
                 />
             )}
         </div>

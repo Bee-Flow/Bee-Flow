@@ -4,6 +4,9 @@ import * as aiStepEditors from '../../../automation/Builder/flow/settings/aiStep
 import { fieldsToSchema, schemaToFields } from '../../../automation/Builder/flow/settings/formState';
 import FieldKindIcon from '../../../automation/Builder/mapping/FieldKindIcon';
 import { KIND_WORD, expectedKindFor } from '../../../automation/Builder/mapping/fieldKinds';
+import type { OutputFieldRow } from '../../../automation/Builder/flow/settings/structuredOutputFields';
+import type { FormRecord } from '../../../automation/Builder/flow/settings/formState/types';
+import type { OutputSchema, OutputSchemaProp } from './skillModel.types';
 
 /**
  * "Delivers" — the fields a skill hands back (`skills.output_schema`).
@@ -60,10 +63,16 @@ import { KIND_WORD, expectedKindFor } from '../../../automation/Builder/mapping/
  */
 const RowEditor = aiStepEditors.StructuredOutputFields || null;
 
-export default function OutputFieldsCard({ outputSchema, onChange, readOnly = false }) {
+interface OutputFieldsCardProps {
+    outputSchema?: OutputSchema | null;
+    onChange: (schema: FormRecord | null) => void;
+    readOnly?: boolean;
+}
+
+export default function OutputFieldsCard({ outputSchema, onChange, readOnly = false }: OutputFieldsCardProps) {
     const { t } = useTranslation();
-    const fields = useMemo(() => schemaToFields(outputSchema), [outputSchema]);
-    const props = (outputSchema && typeof outputSchema === 'object' && outputSchema.properties) || {};
+    const fields = useMemo(() => schemaToFields(outputSchema) as OutputFieldRow[], [outputSchema]);
+    const props: Record<string, OutputSchemaProp> = (outputSchema && typeof outputSchema === 'object' && outputSchema.properties) || {};
 
     return (
         <section className="flex flex-col gap-2" data-testid="skill-output">

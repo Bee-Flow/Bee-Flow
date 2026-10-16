@@ -1,7 +1,9 @@
 import { AlertTriangle, Loader2, Upload } from 'lucide-react';
 import React, { useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import InstallBlueprintModal from './InstallBlueprintModal';
 import useRemote from './useRemote';
+import type { RemoteStatus } from './useRemote';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE } from '../../../../utils/helpers';
 
@@ -23,8 +25,25 @@ import { API_BASE } from '../../../../utils/helpers';
  * can fail before there is a dialog to fail inside.
  */
 
+/** One Blueprint kept on this instance, as the listing names it. */
+interface SavedBlueprint { id: string; name?: string; version?: number }
+
+interface SavedGalleryProps {
+    saved: SavedBlueprint[];
+    status: RemoteStatus;
+    onInstall: (id: string) => void;
+}
+
+/** What the wizard installs from: a file's manifest, or the id of a kept Blueprint. */
+interface InstallSource { manifest?: unknown; blueprintId?: string }
+
+interface InstallBlueprintButtonProps {
+    onInstalled?: (id: string) => void;
+    showGallery?: boolean;
+}
+
 /** Blueprints kept on this instance, installable without a file. */
-function SavedGallery({ saved, status, onInstall }) {
+function SavedGallery({ saved, status, onInstall }: SavedGalleryProps) {
     const { t } = useTranslation();
     if (status === 'error') {
         return (
@@ -42,7 +61,7 @@ function SavedGallery({ saved, status, onInstall }) {
             <span className="text-xs text-[var(--text-tertiary)]">
                 {t('projects.blueprint_saved_here', 'Kept on this instance')}:
             </span>
-            {saved.map(b => (
+            {saved.map((b: SavedBlueprint) => (
                 <button
                     key={b.id}
                     onClick={() => onInstall(b.id)}
@@ -62,19 +81,19 @@ function SavedGallery({ saved, status, onInstall }) {
  * to the same question a few pixels away, and the fetch behind them a second
  * request for a list already on screen.
  */
-export default function InstallBlueprintButton({ onInstalled, showGallery = true }) {
+export default function InstallBlueprintButton({ onInstalled, showGallery = true }: InstallBlueprintButtonProps) {
     const { t } = useTranslation();
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [error, setError] = useState('');
-    const [source, setSource] = useState(null);
+    const [source, setSource] = useState<InstallSource | null>(null);
     // Blueprints kept on this instance. An empty gallery and a gallery that
     // could not be read are different answers, and the second one says so —
     // silence there taught people their organisation had none.
-    const gallery = useRemote(`${API_BASE}/api/projects/package/blueprints`, showGallery);
+    const gallery = useRemote<{ blueprints?: SavedBlueprint[] }>(`${API_BASE}/api/projects/package/blueprints`, showGallery);
     const saved = gallery.data?.blueprints || [];
     const savedStatus = gallery.status;
 
-    const onPick = async (event) => {
+    const onPick = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         event.target.value = '';           // so the same file can be picked twice
         if (!file) return;
@@ -111,7 +130,7 @@ export default function InstallBlueprintButton({ onInstalled, showGallery = true
                 <SavedGallery
                     saved={saved}
                     status={savedStatus}
-                    onInstall={(id) => { setError(''); setSource({ blueprintId: id }); }}
+                    onInstall={(id: string) => { setError(''); setSource({ blueprintId: id }); }}
                 />
             )}
 

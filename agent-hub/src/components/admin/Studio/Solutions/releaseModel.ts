@@ -31,15 +31,65 @@
  * server die hem per ongeluk op true zet die zin laten weghalen.
  */
 
+/** Een lees-toestand zoals `useRemote` hem draagt; `T` is de vorm die de route belooft. */
+export interface ReleaseRemote<T> { status?: string; data?: T | null }
+
+/**
+ * Een release-rij zoals hij over de lijn kwam. `id`, `publishedAt` en `notes`
+ * worden hieronder gekeurd. `version` staat hier alleen als `number` omdat de
+ * vergelijking `> 0` een getal wil zien; `versionOrNull` toleert elke waarde.
+ */
+interface RawRelease { id?: unknown; version: number; publishedAt?: unknown; notes?: unknown }
+
+/** De notitie van één release, zoals hij over de lijn kwam. */
+export interface ReleaseNotes { entities?: unknown; omitted?: unknown; textsDropped?: unknown }
+
+export interface ReleaseRow {
+    id: string;
+    version: number | null;
+    publishedAt: string | null;
+    notes: ReleaseNotes | null;
+}
+
+export interface ReleasesBody { releases?: unknown }
+
+export interface InstallsBody { installsHere?: unknown; installsElsewhere?: unknown }
+
+/** Een entiteitsregel zoals hij over de lijn kwam. */
+interface RawNoteRow { entityId?: unknown; name?: unknown; text?: unknown; kind?: unknown; change?: unknown }
+
+export interface NoteRow {
+    kind: string;
+    ref: string;
+    name: string;
+    change: string;
+    text: string | null;
+    summaryMissing: boolean;
+}
+
+export interface NoteRows {
+    state: 'unrecorded' | 'ok';
+    rows: NoteRow[];
+    omitted: number;
+    textsDropped: boolean;
+}
+
+export interface NoteGroups {
+    added: NoteRow[];
+    changed: NoteRow[];
+    unchanged: NoteRow[];
+    unreadable: number;
+}
+
 /** Een geheel, niet-negatief getal, of null. `null` blijft null — nooit 0. */
-function countOrNull(value) {
+function countOrNull(value: unknown) {
     if (typeof value !== 'number' || !Number.isFinite(value)) return null;
     const n = Math.trunc(value);
     return n >= 0 ? n : null;
 }
 
 /** Een versienummer zoals de server het telt: geheel en groter dan nul. */
-export function versionOrNull(value) {
+export function versionOrNull(value: number) {
     return Number.isInteger(value) && value > 0 ? value : null;
 }
 
@@ -48,7 +98,7 @@ export function versionOrNull(value) {
  * uit de rij te halen. Een kolom die volgend jaar aan `project_releases` wordt
  * toegevoegd bereikt het scherm dan niet vanzelf. Zonder id is er geen rij.
  */
-function releaseRow(row) {
+function releaseRow(row: RawRelease | null | undefined) {
     if (!row || typeof row !== 'object') return null;
     if (typeof row.id !== 'string' || !row.id) return null;
     return {
@@ -62,10 +112,9 @@ function releaseRow(row) {
 /**
  * De publicatiegeschiedenis, uit het antwoord van de releases-route.
  *
- * @param {{status:string, data:any}} remote  Zoals useRemote/`fetch`-state hem draagt.
- * @returns {{state:'loading'|'unreadable'|'ok', releases:Array}}
+ * @param remote  Zoals useRemote/`fetch`-state hem draagt.
  */
-export function readReleases(remote) {
+export function readReleases(remote: ReleaseRemote<ReleasesBody> | null | undefined): { state: 'loading' | 'unreadable' | 'ok'; releases: ReleaseRow[] } {
     const status = remote?.status;
     if (status === 'idle' || status === 'loading' || !status) return { state: 'loading', releases: [] };
     if (status !== 'ok') return { state: 'unreadable', releases: [] };
@@ -76,11 +125,11 @@ export function readReleases(remote) {
     // laten lezen als een Oplossing die nooit is uitgebracht.
     if (!Array.isArray(list)) return { state: 'unreadable', releases: [] };
 
-    return { state: 'ok', releases: list.map(releaseRow).filter(Boolean) };
+    return { state: 'ok', releases: list.map(releaseRow).filter(Boolean) as ReleaseRow[] };
 }
 
 /** Eén entiteitsregel van een notitie, ook weer uit een allow-list. */
-function noteRow(row) {
+function noteRow(row: RawNoteRow | null | undefined): NoteRow | null {
     if (!row || typeof row !== 'object') return null;
     const ref = typeof row.entityId === 'string' ? row.entityId : '';
     const name = typeof row.name === 'string' && row.name.trim() ? row.name.trim() : ref;
@@ -116,9 +165,8 @@ function noteRow(row) {
  * omdat de notitie anders niet paste. Dat is iets anders dan een model dat
  * omviel, en het scherm moet die twee niet op één hoop gooien.
  *
- * @returns {{state:'unrecorded'|'ok', rows:Array, omitted:number, textsDropped:boolean}}
  */
-export function noteRowsOf(release) {
+export function noteRowsOf(release: { notes?: ReleaseNotes | null } | null | undefined): NoteRows {
     const notes = release?.notes;
     const entities = notes?.entities;
     if (!notes || !Array.isArray(entities)) {
@@ -126,7 +174,7 @@ export function noteRowsOf(release) {
     }
     return {
         state: 'ok',
-        rows: entities.map(noteRow).filter(Boolean),
+        rows: entities.map(noteRow).filter(Boolean) as NoteRow[],
         omitted: countOrNull(notes.omitted) || 0,
         textsDropped: notes.textsDropped === true,
     };
@@ -140,10 +188,10 @@ export function noteRowsOf(release) {
  * scherm niet kent is onbekend, en onbekend versmalt naar "dit konden we niet
  * plaatsen" in plaats van naar "geen nieuws".
  */
-export function groupNoteRows(rows) {
-    const added = [];
-    const changed = [];
-    const unchanged = [];
+export function groupNoteRows(rows: NoteRow[] | null | undefined): NoteGroups {
+    const added: NoteRow[] = [];
+    const changed: NoteRow[] = [];
+    const unchanged: NoteRow[] = [];
     let unreadable = 0;
     for (const row of Array.isArray(rows) ? rows : []) {
         if (row?.change === 'added') added.push(row);
@@ -162,9 +210,8 @@ export function groupNoteRows(rows) {
  * helemaal niet als 0 verschijnen. Ze komen ook nooit als iets anders dan
  * getallen binnen — geen projectnaam, geen org, geen tijdstip.
  *
- * @returns {{state:'loading'|'unreadable'|'ok', here:number|null, elsewhere:number|null}}
  */
-export function readInstalls(remote) {
+export function readInstalls(remote: ReleaseRemote<InstallsBody> | null | undefined): { state: 'loading' | 'unreadable' | 'ok'; here: number | null; elsewhere: number | null } {
     const status = remote?.status;
     if (status === 'idle' || status === 'loading' || !status) return { state: 'loading', here: null, elsewhere: null };
     if (status !== 'ok') return { state: 'unreadable', here: null, elsewhere: null };

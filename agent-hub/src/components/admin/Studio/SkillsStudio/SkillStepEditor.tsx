@@ -1,14 +1,14 @@
-import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent, type UniqueIdentifier } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { BookOpen, ChevronDown, GripVertical, Plus, Table, Trash2, Workflow, X } from 'lucide-react';
-import React, { useMemo, useRef, useState } from 'react';
+import { BookOpen, ChevronDown, GripVertical, Plus, Table, Trash2, Workflow, X, type LucideIcon } from 'lucide-react';
+import React, { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
 import { kindColorVar, kindTint } from '../../../shared/kindColors';
 import { moveItem, newLocalId, refKindKey } from './skillModel';
+import type { RefMenuProps, RefOption, RefOptions, RefPillsProps, SkillStepEditorProps, Step, StepCardProps, StepRef } from './SkillStepEditor.types';
 import { readListStatus } from './useSkillPickerData';
-
 /**
  * "Steps" — the ordered instructions of a skill, as cards you can reorder
  * (Skills artboard 1a, centre column; plan S2).
@@ -61,7 +61,7 @@ export default function SkillStepEditor({
     // the caller passed literal lists and has its answer already.
     listStatus = null,
     onOpenRef = null,
-}) {
+}: SkillStepEditorProps) {
     const { t } = useTranslation();
     const rows = Array.isArray(steps) ? steps : [];
     const sensors = useSensors(
@@ -69,9 +69,9 @@ export default function SkillStepEditor({
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
     );
 
-    const ids = useMemo(() => rows.map(s => s.id), [rows]);
+    const ids = useMemo<UniqueIdentifier[]>(() => rows.map(s => s.id), [rows]);
 
-    const onDragEnd = (event) => {
+    const onDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
         const from = ids.indexOf(active.id);
@@ -80,8 +80,8 @@ export default function SkillStepEditor({
         onChange(moveItem(rows, from, to));
     };
 
-    const patch = (id, next) => onChange(rows.map(s => (s.id === id ? { ...s, ...next } : s)));
-    const remove = (id) => onChange(rows.filter(s => s.id !== id));
+    const patch = (id: string, next: Partial<Step>) => onChange(rows.map(s => (s.id === id ? { ...s, ...next } : s)));
+    const remove = (id: string) => onChange(rows.filter(s => s.id !== id));
     const add = () => onChange([...rows, { id: newLocalId('step'), text: '', refs: [] }]);
 
     return (
@@ -111,7 +111,7 @@ export default function SkillStepEditor({
             >
                 <SortableContext items={ids} strategy={verticalListSortingStrategy}>
                     <ol className="list-none p-0 m-0 flex flex-col gap-1.5">
-                        {rows.map((step, i) => (
+                        {rows.map((step: Step, i: number) => (
                             <StepCard
                                 key={step.id}
                                 step={step}
@@ -120,8 +120,8 @@ export default function SkillStepEditor({
                                 refOptions={refOptions}
                                 listStatus={listStatus}
                                 onOpenRef={onOpenRef}
-                                onText={(text) => patch(step.id, { text })}
-                                onRefs={(refs) => patch(step.id, { refs })}
+                                onText={(text: string) => patch(step.id, { text })}
+                                onRefs={(refs: StepRef[]) => patch(step.id, { refs })}
                                 onRemove={() => remove(step.id)}
                                 t={t}
                             />
@@ -145,7 +145,7 @@ export default function SkillStepEditor({
     );
 }
 
-function StepCard({ step, index, readOnly, refOptions, listStatus, onOpenRef, onText, onRefs, onRemove, t }) {
+function StepCard({ step, index, readOnly, refOptions, listStatus, onOpenRef, onText, onRefs, onRemove, t }: StepCardProps) {
     const {
         attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging,
     } = useSortable({ id: step.id, disabled: readOnly });
@@ -174,7 +174,7 @@ function StepCard({ step, index, readOnly, refOptions, listStatus, onOpenRef, on
             <div className="flex-1 min-w-0 flex flex-wrap items-start gap-1.5">
                 <textarea
                     value={step.text}
-                    onChange={(e) => onText(e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onText(e.target.value)}
                     readOnly={readOnly}
                     rows={1}
                     aria-label={t('skills_studio.steps.step_n', 'Step {n}', { n: index + 1 })}
@@ -219,31 +219,31 @@ function StepCard({ step, index, readOnly, refOptions, listStatus, onOpenRef, on
     );
 }
 
-const REF_ICON = { automation: Workflow, kb: BookOpen, table: Table };
+const REF_ICON: Record<string, LucideIcon> = { automation: Workflow, kb: BookOpen, table: Table };
 
 /** The label a ref shows: the referenced thing's name, or its bare id. */
-export function refLabel(ref, refOptions) {
+export function refLabel(ref: StepRef, refOptions?: RefOptions | null) {
     const bucket = refOptions?.[ref.kind];
-    const hit = Array.isArray(bucket) ? bucket.find(o => String(o.id) === String(ref.id)) : null;
+    const hit = Array.isArray(bucket) ? bucket.find((o: RefOption) => String(o.id) === String(ref.id)) : null;
     return hit?.name || hit?.title || ref.id;
 }
 
-function RefPills({ refs, readOnly, refOptions, listStatus, onOpenRef, onRefs, t }) {
+function RefPills({ refs, readOnly, refOptions, listStatus, onOpenRef, onRefs, t }: RefPillsProps) {
     const rows = Array.isArray(refs) ? refs : [];
     const [open, setOpen] = useState(false);
-    const anchorRef = useRef(null);
+    const anchorRef = useRef<HTMLButtonElement>(null);
 
-    const addRef = (kind, id) => {
+    const addRef = (kind: string, id: string) => {
         setOpen(false);
         if (!id) return;
-        if (rows.some(r => r.kind === kind && String(r.id) === String(id))) return;
+        if (rows.some((r: StepRef) => r.kind === kind && String(r.id) === String(id))) return;
         onRefs([...rows, { kind, id: String(id) }]);
     };
-    const dropRef = (ref) => onRefs(rows.filter(r => !(r.kind === ref.kind && r.id === ref.id)));
+    const dropRef = (ref: StepRef) => onRefs(rows.filter((r: StepRef) => !(r.kind === ref.kind && r.id === ref.id)));
 
     return (
         <>
-            {rows.map((ref) => {
+            {rows.map((ref: StepRef) => {
                 const Icon = REF_ICON[ref.kind] || Workflow;
                 const color = kindColorVar(refKindKey(ref.kind));
                 return (
@@ -316,24 +316,24 @@ function RefPills({ refs, readOnly, refOptions, listStatus, onOpenRef, onRefs, t
     );
 }
 
-const REF_GROUPS = [
+const REF_GROUPS: { kind: string; key: string; en: string }[] = [
     { kind: 'automation', key: 'skills_studio.ref.automations', en: 'Automations' },
     { kind: 'kb', key: 'skills_studio.ref.kbs', en: 'Knowledge bases' },
     { kind: 'table', key: 'skills_studio.ref.tables', en: 'Tables' },
 ];
 
 /** Which `unavailable` id each ref group is fed by. */
-const REF_LIST_ID = Object.freeze({ automation: 'automations', kb: 'kbs', table: 'tables' });
+const REF_LIST_ID: Readonly<Record<string, string>> = Object.freeze({ automation: 'automations', kb: 'kbs', table: 'tables' });
 
-function RefMenu({ open, onClose, anchorRef, refOptions, listStatus, taken, onPick, t }) {
+function RefMenu({ open, onClose, anchorRef, refOptions, listStatus, taken, onPick, t }: RefMenuProps) {
     // A reference this step already carries is not offered a second time:
     // `addRef` would refuse the click, and a menu item that does nothing is
     // worse than an absent one.
-    const has = (kind, id) => (taken || []).some(r => r.kind === kind && String(r.id) === String(id));
+    const has = (kind: string, id: string) => (taken || []).some((r: StepRef) => r.kind === kind && String(r.id) === String(id));
     const { loaded, unread, reload } = readListStatus(listStatus);
     const all = REF_GROUPS.map(g => ({
         ...g,
-        items: (Array.isArray(refOptions?.[g.kind]) ? refOptions[g.kind] : []).filter(i => !has(g.kind, i.id)),
+        items: (Array.isArray(refOptions?.[g.kind]) ? refOptions[g.kind] : []).filter((i: RefOption) => !has(g.kind, i.id)),
     }));
     const groups = all.filter(g => g.items.length > 0);
     // The lists this menu draws on that did NOT arrive, by their own group
