@@ -4,15 +4,13 @@ import { TOKEN_BUSY, fetchFormToken, sendForm } from './formBlockApi';
 import type { FormToken, SendOutcome } from './formBlockApi';
 import { buildPayload, checkAnswers, emptyAnswers, pageLocale } from './formBlockModel';
 import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
+import { newFormNonce } from './formNonce';
 import type { FormAnswers, FormErrors, FormField } from './formBlockModel';
 
 export type FormPhase = 'idle' | 'sending' | 'done' | 'unavailable';
 
 const MESSAGES = { required: 'This field is required.', email: 'Enter a valid email address.' };
 
-const newNonce = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID().replace(/-/g, '')
-    : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`);
 
 interface Options {
     blockId: string | null;
@@ -40,7 +38,7 @@ export function useFormSubmission({ blockId, active, preview, fields, consentTex
     const [formError, setFormError] = useState('');
     const [phase, setPhase] = useState<FormPhase>('idle');
     const token = useRef<FormToken | null>(null);
-    const nonce = useRef(newNonce());
+    const nonce = useRef(newFormNonce());
 
     const loadToken = useCallback(async (): Promise<boolean> => {
         token.current = null;
@@ -68,7 +66,7 @@ export function useFormSubmission({ blockId, active, preview, fields, consentTex
         if (outcome.kind === 'done') { setPhase('done'); return; }
         // Only a submission that went through uses its nonce up: whatever else
         // happened, the next attempt is a new one.
-        nonce.current = newNonce();
+        nonce.current = newFormNonce();
         setPhase(outcome.kind === 'gone' ? 'unavailable' : 'idle');
         if (outcome.kind === 'invalid') setErrors(outcome.errors);
         if (outcome.kind === 'expired') {
