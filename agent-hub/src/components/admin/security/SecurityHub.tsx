@@ -7,6 +7,7 @@ import FreeEmailDomainsPanel from '../org/FreeEmailDomainsPanel';
 import ConnectorHealthPanel from '../../integrations/health/ConnectorHealthPanel';
 import UserManagement from '../org/UserManagement';
 import { useLicenseContext } from '../../licensing/LicenseContext';
+import type { AdminCurrentUser } from '../org/userManagement/types';
 import HubScaffold from '../shared/HubScaffold';
 
 /**
@@ -28,7 +29,14 @@ const SECTIONS = [
     { id: 'connector-health', labelKey: 'admin.sec_connector_health', icon: Activity, color: '#14b8a6', superAdminOnly: true },
 ];
 
-const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', onNavigate, user }) => {
+interface SecurityHubProps {
+    activeSection?: string;
+    userSection?: string;
+    onNavigate?: (path: string) => void;
+    user?: AdminCurrentUser | null;
+}
+
+const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', onNavigate, user }: SecurityHubProps) => {
     const { t } = useTranslation();
     const { hasTier } = useLicenseContext();
     const isEnterprise = hasTier('enterprise');

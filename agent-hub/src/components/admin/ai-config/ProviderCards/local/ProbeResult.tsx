@@ -5,12 +5,17 @@
 // tier picker. So a successful probe lists the model ids it found.
 
 import React from 'react';
+import type { ProbeData } from './runtimeTypes';
 import { CAT_COLORS } from '../../../../../utils/modelMeta';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const MAX_SHOWN = 12;
 
-const ProbeResult = ({ result }) => {
+interface ProbeResultProps {
+    result: ProbeData | null;
+}
+
+const ProbeResult = ({ result }: ProbeResultProps) => {
     const { t } = useTranslation();
     if (!result) return null;
 
@@ -31,7 +36,7 @@ const ProbeResult = ({ result }) => {
             </p>
             {result.models?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                    {result.models.slice(0, MAX_SHOWN).map(m => (
+                    {result.models.slice(0, MAX_SHOWN).map((m) => (
                         <span
                             key={m.id}
                             className="text-[10px] px-1.5 py-0.5 rounded-full"

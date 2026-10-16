@@ -29,6 +29,8 @@ import { API_BASE, authFetch } from '../utils/helpers';
 export interface ProviderConfig {
     /** Always a string: the server falls back to 'europe-west4' (routes/ai/config/instanceConfig.js). */
     googleVertexLocation?: string;
+    /** Always a string: the server answers `|| ''` (routes/ai/config/instanceConfig.js). */
+    azureModels?: string;
     [key: string]: unknown;
 }
 

@@ -1,19 +1,31 @@
 import { Lock, AlertTriangle } from 'lucide-react';
 import { useRef } from 'react';
+import type { Dispatch, KeyboardEvent, SetStateAction } from 'react';
+import type { OrgFormData } from './useOrgInfoForm';
 import { AUTH_METHODS, AllowedDomainsEditor } from './orgInfoShared';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 // The method cards are one radio group (ARIA APG pattern, as in
 // shared/ChoiceCards): one tab stop, arrows move the choice, aria-checked
 // carries what the ring and colour show.
-const AuthMethodGroup = ({ t, label, value, isAuthLocked, isSaving = false, onChoose }) => {
-    const cardRefs = useRef({});
+interface AuthMethodGroupProps {
+    t: TranslateFn;
+    label: string;
+    value: string | null;
+    isAuthLocked: boolean;
+    isSaving?: boolean;
+    onChoose: (id: string) => void;
+}
+
+const AuthMethodGroup = ({ t, label, value, isAuthLocked, isSaving = false, onChoose }: AuthMethodGroupProps) => {
+    const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     // While the first save is in flight the choice is frozen: the server keeps
     // the method it receives first and ignores a later one.
     const frozen = isAuthLocked || isSaving;
-    const choose = (id) => { if (!frozen) onChoose(id); };
+    const choose = (id: string) => { if (!frozen) onChoose(id); };
     // Nothing chosen yet: the first card takes the tab stop.
     const tabStopIdx = Math.max(0, AUTH_METHODS.findIndex(m => m.id === value));
-    const onKeyDown = (e, idx) => {
+    const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, idx: number) => {
         if (frozen) return;
         const n = AUTH_METHODS.length;
         let next;
@@ -77,7 +89,16 @@ const AuthMethodGroup = ({ t, label, value, isAuthLocked, isSaving = false, onCh
 };
 
 // ── Sign-in Method section — extracted verbatim from OrgInfoPanel. ──
-const OrgAuthSection = ({ t, isAuthLocked, isSaving = false, orgData, setOrgData, isSelfHosted }) => (
+interface OrgAuthSectionProps {
+    t: TranslateFn;
+    isAuthLocked: boolean;
+    isSaving?: boolean;
+    orgData: OrgFormData;
+    setOrgData: Dispatch<SetStateAction<OrgFormData | null>>;
+    isSelfHosted: boolean;
+}
+
+const OrgAuthSection = ({ t, isAuthLocked, isSaving = false, orgData, setOrgData, isSelfHosted }: OrgAuthSectionProps) => (
                     <div className="max-w-3xl space-y-5 animate-fadeIn">
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('org.signin_title')}</h2>
@@ -102,7 +123,7 @@ const OrgAuthSection = ({ t, isAuthLocked, isSaving = false, orgData, setOrgData
                             value={orgData.authMethod}
                             isAuthLocked={isAuthLocked}
                             isSaving={isSaving}
-                            onChoose={(id) => setOrgData(p => ({ ...p, authMethod: id }))}
+                            onChoose={(id) => setOrgData(p => ({ ...p, authMethod: id }) as OrgFormData)}
                         />
 
                         {!isAuthLocked && (
@@ -118,7 +139,7 @@ const OrgAuthSection = ({ t, isAuthLocked, isSaving = false, orgData, setOrgData
                         {isSelfHosted && (
                             <AllowedDomainsEditor
                                 domains={orgData.allowedDomains || []}
-                                onChange={(domains) => setOrgData(p => ({ ...p, allowedDomains: domains }))}
+                                onChange={(domains) => setOrgData(p => ({ ...p, allowedDomains: domains }) as OrgFormData)}
                                 t={t}
                             />
                         )}
