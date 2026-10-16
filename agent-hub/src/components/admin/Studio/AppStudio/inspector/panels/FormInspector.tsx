@@ -4,9 +4,18 @@ import FormField from '../../../../../shared/FormField';
 import Toggle from '../../../../../shared/Toggle';
 import ExpressionInput from '../logic/ExpressionInput';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 import { TextField , usePatch } from './kit';
 
-export default function FormInspector({ node, definition, onCommit, disabled = false }) {
+interface FormInspectorProps extends CommonNodeProps {
+    submitLabel?: string | null;
+    showReset?: boolean;
+    name?: string;
+    resetKey?: string | null;
+}
+
+export default function FormInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<FormInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

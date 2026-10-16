@@ -3,9 +3,17 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 import { TextField , usePatch } from './kit';
 
-export default function ImageInspector({ node, definition, onCommit, disabled = false }) {
+interface ImageInspectorProps extends CommonNodeProps {
+    src?: string | null;
+    alt?: string | null;
+    fit?: string;
+}
+
+export default function ImageInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<ImageInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const FITS = [
