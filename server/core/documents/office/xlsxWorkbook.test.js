@@ -38,3 +38,33 @@ test('rowsToMatrix keeps a { formula } cell only on request', () => {
     assert.deepStrictEqual(rowsToMatrix(rows, null, { keepFormulas: true }), [['x', { formula: '=A1' }]]);
     assert.deepStrictEqual(rowsToMatrix(rows), [['x', JSON.stringify({ formula: '=A1' })]]);
 });
+
+test('characters invalid in XML 1.0 never reach the sheet XML', async () => {
+    const bad = 'a\u0000b\u0001c\u000Bd\u000Ce\u001Ff￾g\uD800h\tOK\nOK\r';
+    const xml = await sheetXml([{ name: 'S', matrix: [['h'], [bad], [{ formula: 'A1\u0001' }]] }], { formulas: true });
+    assert.doesNotMatch(xml, /[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/);
+    assert.doesNotMatch(xml, /\uD800/);
+    assert.match(xml, />abcdefgh\tOK\nOK\r</);
+});
+
+test('sheet names follow the Excel rules', async () => {
+    const zip = await JSZip.loadAsync(await buildXlsxWorkbook([
+        { name: "'Q1'", matrix: [] },
+        { name: 'History', matrix: [] },
+        { name: 'x'.repeat(40), matrix: [] },
+        { name: 'x'.repeat(40), matrix: [] },
+        { name: 'a\u0001/b', matrix: [] },
+        { name: "''", matrix: [] },
+        { name: '', matrix: [] },
+    ]));
+    const wb = await zip.file('xl/workbook.xml').async('string');
+    const names = [...wb.matchAll(/<sheet name="([^"]*)"/g)].map((m) => m[1]);
+    assert.strictEqual(names.length, 7);
+    for (const n of names) {
+        assert.ok(n.length > 0 && n.length <= 31, n);
+        assert.doesNotMatch(n, /^'|'$|[[\]:*?/\\]/);
+        assert.notStrictEqual(n.toLowerCase(), 'history');
+    }
+    assert.strictEqual(new Set(names.map((n) => n.toLowerCase())).size, 7);
+    assert.strictEqual(names[0], 'Q1');
+});

@@ -7,7 +7,7 @@
  */
 
 const JSZip = require('jszip');
-const { xmlEscape, colLetter } = require('./xlsxXml');
+const { xmlEscape, stripInvalidXmlChars, colLetter } = require('./xlsxXml');
 const { chartPartsFor } = require('./xlsxCharts');
 
 function isNumericCell(v) {
@@ -19,9 +19,14 @@ function isFormulaCell(v) {
     return !!v && typeof v === 'object' && typeof v.formula === 'string' && v.formula.replace(/^=/, '').trim() !== '';
 }
 
+/**
+ * A name Excel accepts: at most 31 characters, none of \ / ? * [ ] :, no
+ * leading or trailing apostrophe, not empty, not the reserved "History".
+ */
 function sanitizeSheetName(name) {
-    const s = String(name || '').replace(/[\\/?*[\]:]/g, ' ').trim().slice(0, 31);
-    return s || 'Sheet1';
+    const s = stripInvalidXmlChars(name || '').replace(/[\\/?*[\]:]/g, ' ').trim().replace(/^'+|'+$/g, '').trim().slice(0, 31).trim();
+    if (!s) return 'Sheet1';
+    return s.toLowerCase() === 'history' ? `${s}_` : s;
 }
 
 // A plain decimal written as text ("1200", "-3.5"). A leading zero ("0612…",
@@ -68,7 +73,7 @@ async function buildXlsxWorkbook(sheets, opts = {}) {
     const names = list.map((sh, i) => {
         const base = sanitizeSheetName(sh.name || `Sheet${i + 1}`);
         let n = base;
-        for (let k = 2; used.has(n.toLowerCase()); k++) n = `${base.slice(0, 31 - String(k).length - 1)}_${k}`;
+        for (let k = 2; used.has(n.toLowerCase()); k++) n = `${base.slice(0, 31 - String(k).length - 1).replace(/'+$/, '')}_${k}`;
         used.add(n.toLowerCase());
         return n;
     });
