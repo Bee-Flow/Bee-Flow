@@ -514,3 +514,14 @@ test('open tickets are capped at 20 per user; a used or expired one frees a slot
     s.advance(TTL_MS + 1);
     assert.ok(await s.issue(), 'expired tickets do not count');
 });
+
+test('a stored image is handed to the variant queue; a failing queue does not fail the upload', async () => {
+    const jobs = [];
+    const s = setup({ scheduleVariants: async (job) => { jobs.push(job); throw new Error('queue broke'); } });
+    const { ticket } = await s.issue();
+    const out = await s.put(ticket);
+    assert.equal(out.status, 200);
+    assert.equal(jobs.length, 1);
+    assert.equal(jobs[0].key, out.body.key);
+    assert.equal(jobs[0].contentType, 'image/png');
+});

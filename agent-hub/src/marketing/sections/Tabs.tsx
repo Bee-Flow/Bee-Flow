@@ -2,6 +2,7 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
+import { columnSizes } from '../assetUrl';
 import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
@@ -159,7 +160,7 @@ function TabPanel({ item, index: i, baseId, selected }: { item: TabItem; index: 
             </div>
             {hasMedia ? (
                 <div className="tabs-panel-media">
-                    <FramedMedia media={item.media} glow={false} />
+                    <FramedMedia media={item.media} glow={false} sizes={columnSizes(2)} />
                 </div>
             ) : null}
         </div>

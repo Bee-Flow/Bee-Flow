@@ -256,3 +256,14 @@ test('guessContentType covers the CMS upload whitelist', () => {
     assert.strictEqual(bundleLib.guessContentType('cms/a.mp4'), 'video/mp4');
     assert.strictEqual(bundleLib.guessContentType('cms/noext'), 'application/octet-stream');
 });
+
+test('restoreAssets queues resized variants for an imported image', async () => {
+    const sharp = require('sharp');
+    const raw = Buffer.alloc(1400 * 100 * 3);
+    for (let i = 0; i < raw.length; i++) raw[i] = (i * 7919) % 251;
+    const jpeg = await sharp(raw, { raw: { width: 1400, height: 100, channels: 3 } }).jpeg({ quality: 100 }).toBuffer();
+    storage.objects.clear();
+    await bundleLib.restoreAssets([{ key: 'cms/imported.jpg', buffer: jpeg }]);
+    for (let i = 0; i < 200 && !storage.objects.has('cms-variants/imported.jpg.done'); i++) await new Promise((r) => setTimeout(r, 25));
+    assert.ok(storage.objects.has('cms-variants/imported.jpg@640.webp'));
+});

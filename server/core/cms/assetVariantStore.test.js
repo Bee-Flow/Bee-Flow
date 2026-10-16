@@ -56,3 +56,34 @@ test('scheduled jobs run one after another', async () => {
     const b = scheduleVariants({ key: 'cms/1-a-b.jpg', source, contentType: 'image/jpeg', storage });
     assert.deepStrictEqual(await Promise.all([a, b]), [8, 8]);
 });
+
+test('the backfill handles images without a done marker, newest first, and skips handled ones', async () => {
+    const { backfillVariants } = require('./assetVariantStore');
+    const source = await sample();
+    const storage = fakeStorage();
+    const { Readable } = require('node:stream');
+    const originals = new Map([['cms/1700000000002-a-new.jpg', source], ['cms/1700000000001-a-old.jpg', source], ['cms/1700000000000-a-clip.mp4', Buffer.from('v')]]);
+    const full = Object.assign(storage, {
+        async listKeys(/** @type {string} */ prefix) {
+            return [...originals.keys(), ...storage.files.keys()].filter((k) => k.startsWith(prefix));
+        },
+        async streamFile(/** @type {string} */ key) {
+            return { stream: Readable.from([originals.get(key)]), contentType: 'image/jpeg' };
+        },
+    });
+    storage.files.set('cms-variants/1700000000001-a-old.jpg.done', { body: Buffer.from('1'), type: 'text/plain' });
+    assert.strictEqual(await backfillVariants(full), 1);
+    assert.ok(storage.files.has('cms-variants/1700000000002-a-new.jpg@640.avif'));
+    assert.ok(storage.files.has('cms-variants/1700000000002-a-new.jpg.done'));
+    assert.ok(!storage.files.has('cms-variants/1700000000001-a-old.jpg@640.avif'));
+    assert.strictEqual(await backfillVariants(full), 0);
+});
+
+test('a storage that cannot list makes the backfill a quiet no-op', async () => {
+    const { backfillVariants } = require('./assetVariantStore');
+    const broken = Object.assign(fakeStorage(), {
+        async listKeys() { throw new Error('local mode'); },
+        async streamFile() { throw new Error('unused'); },
+    });
+    assert.strictEqual(await backfillVariants(broken), 0);
+});

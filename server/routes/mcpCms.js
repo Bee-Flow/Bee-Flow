@@ -118,6 +118,7 @@ function buildRuntime() {
         tickets,
         storage: storageStore,
         streamIntoStorage: cmsMedia.streamIntoStorage,
+        scheduleVariants: require('../core/cms/assetVariantStore').scheduleVariants,
         sanitizeSvg,
         isValidVtt: cmsMedia.isValidVtt,
         looksLikeClip: cmsMedia.looksLikeClip,

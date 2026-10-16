@@ -1,6 +1,7 @@
 import React from 'react';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
+import { columnSizes } from '../assetUrl';
 import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
@@ -44,8 +45,8 @@ export default function Showcase({ data }: { data?: ShowcaseData }) {
                     />
                     {variant === 'pair' ? (
                         <div className="showcase-pair reveal">
-                            {showMedia ? <FramedMedia media={data.media} glow={false} /> : null}
-                            {showSecondary ? <FramedMedia media={data.mediaSecondary} glow={false} /> : null}
+                            {showMedia ? <FramedMedia media={data.media} glow={false} sizes={columnSizes(2)} /> : null}
+                            {showSecondary ? <FramedMedia media={data.mediaSecondary} glow={false} sizes={columnSizes(2)} /> : null}
                         </div>
                     ) : variant === 'code-ui' ? (
                         <div className="showcase-code-ui reveal">

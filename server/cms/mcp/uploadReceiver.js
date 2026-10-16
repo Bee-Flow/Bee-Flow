@@ -144,6 +144,7 @@ function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs =
  * @param {ReturnType<import('./uploadTickets').createUploadTickets>} deps.tickets
  * @param {{ isAvailable(): boolean, uploadFile(key: string, body: Buffer, type: string, meta?: object|null): Promise<void> }} deps.storage
  * @param {(filePath: string, size: number, key: string, type: string, signal?: AbortSignal) => Promise<void>} deps.streamIntoStorage
+ * @param {(job: { key: string, source: Buffer, contentType: string, storage: object }) => Promise<number>} [deps.scheduleVariants]  renders resized copies of a stored image in the background
  * @param {(buf: Buffer) => Buffer|null} deps.sanitizeSvg
  * @param {(buf: Buffer) => boolean} deps.isValidVtt
  * @param {(head: Buffer, ext: string) => boolean} deps.looksLikeClip
@@ -288,6 +289,10 @@ function createUploadReceiver(deps) {
                 }
                 storedSize = body.length;
                 await withDeadline(() => deps.storage.uploadFile(key, body, storedType, metadata), storeMs, () => new StoreTimeoutError('storage timed out'));
+                if (deps.scheduleVariants) {
+                    deps.scheduleVariants({ key, source: body, contentType: storedType, storage: deps.storage })
+                        .catch((e) => log.warn(`[CmsMcp] variants of ${key} not scheduled: ${e.message}`));
+                }
             }
 
             stored = true;
