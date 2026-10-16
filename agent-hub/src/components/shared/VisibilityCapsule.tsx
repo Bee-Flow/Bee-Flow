@@ -3,6 +3,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
 import useConfirm from './useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../hooks/useTranslation';
+import type {
+    AudienceActionsOptions, AudienceMode, GroupChecklistProps, GroupNames, GroupNamer, OrgGroup,
+    VisibilityCapsuleProps,
+} from './VisibilityCapsule.types';
 
 /**
  * VisibilityCapsule — THE "who can see this" control (Personal / Entire
@@ -54,27 +59,6 @@ import { useTranslation } from '../../hooks/useTranslation';
  * The trigger label reads the audience NAME — "Personal", "Entire
  * organisation", "Group Sales", "3 groups" — never "Published (2)". Names come
  * from `groupNames` (id → name) when given, else from the `orgGroups` list.
- *
- * Props (all optional except the state pair and the callbacks):
- *   t                  translator; falls back to useTranslation()
- *   agent              the entity (its `name` is used in the confirm sentence)
- *   open / onToggle / onClose   menu state, owned by the caller
- *   isPublished, sharedGroups   the server's audience pair
- *   onSetPersonal / onSetEntireOrg / onToggleGroup(groupId)
- *   orgGroups          [{id, name}] — the org directory (useOrgDirectory)
- *   groupsUnavailable  that directory could not be READ. An empty list and a
- *                      failed read look identical on screen, and the panel
- *                      would simply drop the "Or specific groups" section —
- *                      indistinguishable from an org that has no groups. Set
- *                      it and the panel SAYS so instead
- *   onRetryGroups      re-ask, offered next to that sentence
- *   groupNames         Record<id, name> | Map — overrides orgGroups for labels
- *   embedEnabled       shows the "web embed is on" hint (agents)
- *   extraSection       extension slot under the options (webpages' share links)
- *   variant            'pill' | 'capsule'
- *   anchored           portal the panel through AnchoredMenu
- *   confirmWidening    ask before widening the audience
- *   disabled           trigger disabled (read-only viewers)
  */
 
 export const PERSONAL = 'personal';
@@ -82,20 +66,20 @@ export const ORG = 'org';
 export const GROUPS = 'groups';
 
 /** The one derivation, shared with AudienceRows. Empty groups on a published thing = org. */
-export function audienceModeOf({ isPublished, sharedGroups }) {
+export function audienceModeOf({ isPublished, sharedGroups }: { isPublished?: boolean; sharedGroups?: unknown }): AudienceMode {
     if (!isPublished) return PERSONAL;
     return (Array.isArray(sharedGroups) && sharedGroups.length > 0) ? GROUPS : ORG;
 }
 
 /** id → display name, from `groupNames` (object or Map) first, then the directory list. */
-export function makeGroupNamer({ groupNames, orgGroups } = {}) {
-    const fromMap = (id) => {
+export function makeGroupNamer({ groupNames, orgGroups }: { groupNames?: GroupNames | null; orgGroups?: readonly OrgGroup[] | null } = {}): GroupNamer {
+    const fromMap = (id: string): string | undefined => {
         if (!groupNames) return undefined;
         if (groupNames instanceof Map) return groupNames.get(id);
         return groupNames[id];
     };
     const list = Array.isArray(orgGroups) ? orgGroups : [];
-    return (id) => {
+    return (id: string) => {
         const named = fromMap(id);
         if (named) return named;
         const hit = list.find(g => g && g.id === id);
@@ -108,7 +92,7 @@ export function makeGroupNamer({ groupNames, orgGroups } = {}) {
  * interpolates `{name}` itself; a caller-supplied `t` (tests, embeds) may not,
  * and a capsule reading "{count} groups" is worse than no capsule.
  */
-function tx(t, key, fallback, params) {
+function tx(t: TranslateFn, key: string, fallback: string, params?: TranslateParams): string {
     let value = t(key, fallback, params);
     if (typeof value !== 'string') value = fallback;
     for (const [k, v] of Object.entries(params || {})) {
@@ -118,7 +102,7 @@ function tx(t, key, fallback, params) {
 }
 
 /** ["a","b","c"] → "a, b and c" — the "and" goes through i18n. */
-export function joinAudienceNames(t, names) {
+export function joinAudienceNames(t: TranslateFn, names?: (string | null | undefined)[] | null): string {
     const list = (names || []).filter(Boolean);
     if (list.length <= 1) return list[0] || '';
     return tx(t, 'visibility.names_and', '{head} and {last}', {
@@ -128,7 +112,7 @@ export function joinAudienceNames(t, names) {
 }
 
 /** The trigger label: the audience's name, never a count in brackets. */
-export function audienceLabel(t, mode, sharedGroups, nameOf) {
+export function audienceLabel(t: TranslateFn, mode: AudienceMode, sharedGroups?: unknown, nameOf?: GroupNamer | null): string {
     if (mode === PERSONAL) return t('visibility.personal', 'Personal');
     if (mode === ORG) return t('visibility.entire_org', 'Entire organisation');
     const ids = Array.isArray(sharedGroups) ? sharedGroups : [];
@@ -155,11 +139,11 @@ export function useAudienceActions({
     // `onSetPersonal` (see toggleGroup); a consumer whose list lives inside
     // a popover hands in a refusal instead, because onSetPersonal closes it.
     onLastGroup = null,
-}) {
+}: AudienceActionsOptions) {
     const { confirm, confirmDialog } = useConfirm();
     const subject = (entity && (entity.name || entity.title)) || t('visibility.this_item', 'this item');
 
-    const ask = (description) => confirm({
+    const ask = (description: string) => confirm({
         title: t('visibility.confirm_title', 'Share more widely?'),
         description,
         confirmLabel: t('visibility.confirm_share', 'Share'),
@@ -177,7 +161,7 @@ export function useAudienceActions({
             .then((ok) => { if (ok) onSetEntireOrg?.(); });
     };
 
-    const toggleGroup = (gid) => {
+    const toggleGroup = (gid: string) => {
         const current = Array.isArray(sharedGroups) ? sharedGroups : [];
         const adding = !current.includes(gid);
         // Unticking the last group: `[]` on a published thing means EVERYONE,
@@ -199,7 +183,7 @@ export function useAudienceActions({
 }
 
 /** Checkbox list over the org's groups — the capsule panel and the AudienceRows "+" picker share it. */
-export function GroupChecklist({ t, orgGroups = [], groupsUnavailable = false, sharedGroups = [], onToggle, disabled = false, className = '' }) {
+export function GroupChecklist({ t, orgGroups = [], groupsUnavailable = false, sharedGroups = [], onToggle, disabled = false, className = '' }: GroupChecklistProps) {
     if (!orgGroups.length) {
         // Same distinction the capsule panel makes: an empty list is a fact
         // about the organisation, and only a read that ANSWERED may state it.
@@ -218,7 +202,7 @@ export function GroupChecklist({ t, orgGroups = [], groupsUnavailable = false, s
     }
     return (
         <div className={`max-h-40 overflow-y-auto pb-2 ${className}`} data-testid="visibility-group-list">
-            {orgGroups.map(g => {
+            {orgGroups.map((g) => {
                 const checked = sharedGroups.includes(g.id);
                 return (
                     <label key={g.id} className="flex items-center gap-2 px-4 py-1.5 text-sm cursor-pointer hover:bg-[var(--bg-secondary)]">
@@ -255,19 +239,19 @@ export default function VisibilityCapsule({
     confirmWidening = false,
     disabled = false,
     className = '',
-}) {
+}: VisibilityCapsuleProps) {
     const { t: tHook } = useTranslation();
     const t = tProp || tHook;
-    const popoverRef = useRef(null);
-    const triggerRef = useRef(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     // Click-outside for the in-flow popover. The anchored path leaves this to
     // AnchoredMenu, which also ignores presses on a scrollbar.
     useEffect(() => {
         if (!open || anchored) return undefined;
-        const onDoc = (e) => {
-            if (popoverRef.current?.contains(e.target)) return;
-            if (triggerRef.current?.contains(e.target)) return;
+        const onDoc = (e: MouseEvent) => {
+            if (popoverRef.current?.contains(e.target as Node)) return;
+            if (triggerRef.current?.contains(e.target as Node)) return;
             onClose?.();
         };
         document.addEventListener('mousedown', onDoc);
@@ -282,7 +266,7 @@ export default function VisibilityCapsule({
     // gone again the moment the menu closes or the audience changes. The
     // refusal records the audience it happened in, and the hint only shows
     // while that is still the audience — derived, so no reset effect.
-    const [lastGroupHintAt, setLastGroupHintAt] = useState(null);
+    const [lastGroupHintAt, setLastGroupHintAt] = useState<string | null>(null);
     const audienceKey = open ? `${mode}:${groups.length}` : null;
     const lastGroupHint = audienceKey !== null && lastGroupHintAt === audienceKey;
     const { choosePersonal, chooseOrg, toggleGroup, confirmDialog } = useAudienceActions({

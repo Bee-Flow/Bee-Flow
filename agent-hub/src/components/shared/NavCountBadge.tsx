@@ -15,14 +15,19 @@
  */
 import React from 'react';
 
-const TONE_STYLE = {
+interface ToneStyle {
+    borderColor: string;
+    color: string;
+}
+
+const TONE_STYLE: Record<string, ToneStyle> = {
     warning: { borderColor: 'var(--warning)', color: 'var(--warning-ink)' },
     error: { borderColor: 'var(--error)', color: 'var(--error-ink)' },
     success: { borderColor: 'var(--success)', color: 'var(--success-ink)' },
     neutral: { borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' },
 };
 
-export function badgeCount(count) {
+export function badgeCount(count?: unknown): number | null {
     const raw = typeof count === 'string' && count.trim() !== '' ? Number(count) : count;
     if (typeof raw !== 'number' || !Number.isFinite(raw)) return null;
     // Floor BEFORE the threshold, not after: a fractional 0.9 is above zero
@@ -32,7 +37,15 @@ export function badgeCount(count) {
     return n > 0 ? n : null;
 }
 
-export default function NavCountBadge({ count, tone = 'neutral', max = 99, className = '', testId = 'nav-count-badge' }) {
+interface NavCountBadgeProps {
+    count?: unknown;
+    tone?: string;
+    max?: number;
+    className?: string;
+    testId?: string;
+}
+
+export default function NavCountBadge({ count, tone = 'neutral', max = 99, className = '', testId = 'nav-count-badge' }: NavCountBadgeProps) {
     const n = badgeCount(count);
     if (n === null) return null;
     const style = TONE_STYLE[tone] || TONE_STYLE.neutral;

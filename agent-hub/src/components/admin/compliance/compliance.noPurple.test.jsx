@@ -30,7 +30,7 @@ const ROOTS = [
 // shared/ has its own tests and may legitimately carry hex (e.g. chart palettes).
 const SHARED_FILES = new Set([
     'statusTone.ts', 'SideDrawer.tsx', 'DeadlineClock.tsx', 'deadlineMath.ts',
-    'DataTable.tsx', 'FilterPills.jsx', 'Pager.jsx', 'NavCountBadge.jsx',
+    'DataTable.tsx', 'FilterPills.tsx', 'Pager.tsx', 'NavCountBadge.tsx',
 ]);
 
 // Same list as AppStudio.noPurple.test.jsx — keep them identical.

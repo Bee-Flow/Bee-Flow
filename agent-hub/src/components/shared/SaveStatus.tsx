@@ -18,7 +18,17 @@ import useTranslation from '../../hooks/useTranslation';
  * Colours go through `--vsc-fg-muted` where that theme is in scope and fall
  * back to the project tokens everywhere else.
  */
-function fmtTime(date) {
+interface SaveStatusProps {
+    /** 'idle' | 'saving' | 'saved' | 'error'; any other word is drawn as saved */
+    saveState?: string | null;
+    lastSavedAt?: Date | null;
+    onRetry?: (() => void) | null;
+    size?: number;
+    className?: string;
+    showWhenIdle?: boolean;
+}
+
+function fmtTime(date?: Date | null): string {
     if (!date) return '';
     const diff = (Date.now() - date.getTime()) / 1000;
     if (diff < 60) return 'just now';
@@ -36,7 +46,7 @@ export default function SaveStatus({
     size = 11,
     className = '',
     showWhenIdle = false,
-}) {
+}: SaveStatusProps) {
     const { t } = useTranslation();
     // "just now" must not still say "just now" ten minutes later. Only ticks
     // while there is a timestamp on screen to go stale.
@@ -44,7 +54,7 @@ export default function SaveStatus({
     const showsAge = !!lastSavedAt && (saveState === 'saved' || (showWhenIdle && (!saveState || saveState === 'idle')));
     useEffect(() => {
         if (!showsAge) return undefined;
-        const h = setInterval(() => tick(n => n + 1), 30_000);
+        const h = setInterval(() => tick((n: number) => n + 1), 30_000);
         return () => clearInterval(h);
     }, [showsAge]);
 
