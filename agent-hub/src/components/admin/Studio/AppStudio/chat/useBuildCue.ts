@@ -5,6 +5,7 @@ import { countComponents } from './builderPaneModel';
 import type { EditorChrome } from './builderPaneModel';
 import type { DoneInfo, RevealCue } from './useBuilderTurn';
 import type { BuilderEngine, BuilderMessage, BuilderTodo, BuilderTurn } from '../../../../../hooks/builderStream';
+import type { BuildPhaseInfo } from '../editor/BuildCueContext';
 import type { AppDefinition } from '../inspector/appDefinition';
 
 interface ToolCallRow {
@@ -21,7 +22,7 @@ interface BuildCueInputs {
     engine: BuilderEngine | null;
     toolDraft: Record<string, unknown> | null;
     todos: BuilderTodo[];
-    currentPhase: unknown;
+    currentPhase: BuildPhaseInfo | null;
     reveal: RevealCue | null;
     doneInfoRef: RefObject<DoneInfo | null>;
     definitionRef: RefObject<AppDefinition | null>;

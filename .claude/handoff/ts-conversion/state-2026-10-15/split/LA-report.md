@@ -1,6 +1,6 @@
-Status: round 1 merged and pushed; round 2 (form inputs, editor, 28 inspector panels, JSDoc on shared JS blockers) under two Opus reviews; round 3 (JSDoc on 8 blocking JS components → InspectorPanel, PivotInspector, Canvas, EditorViews) drafting
-Done: 21/153 files converted on this branch (round 2 adds ~38 more after review), 1 package merged (round 1: 5 sub-packages)
-Next: integrate round 2 after reviews LA-r2-A/LA-r2-B + full checks, push (ETA ~1.5 h); then round 3 (ETA ~2.5 h)
+Status: rounds 1+2 merged and pushed; round 3 (JSDoc on 8 blocking JS components → InspectorPanel, PivotInspector, EditorViews) under Opus review LA-r3
+Done: 58/153 files converted on this branch (59 converted, AppInputMultiselect returned to JS by review), 2 packages merged (round 1, round 2)
+Next: integrate round 3 after review + full checks, push (ETA ~1.5 h); then a final retry pass over every remaining App Studio JS file on the final base (ETA ~2 h)
 
 # L-A report: App Studio sweep (agent-hub/src/components/admin/Studio/AppStudio/**)
 
@@ -21,13 +21,14 @@ Method: packages by dependency layer. Where a JS module must stay JS (react-hook
 | r1-comp2 (runtime components) | 3/21: AppModal, AppPageHeader, AppRepeater | merged | 3 identical, 0 different | LA-r1-B |
 | r1-comp1 (runtime components) | 0/21 (form-context typing + MAP lookups) | re-queued (r2-forms) | — | — |
 | formContext.jsx JSDoc d4aab1c0 | comments only, stays JS | merged | n/a | LA-r1-B (fix 3 applied) |
-| r2-jsdoc | JSDoc on BindingField, ExpressionInput, ConditionField, FormulaField, dataErrors, gridColumnFilters, cellValue (stay JS) + dataBatchClient.ts | review LA-r2-A running | 1 identical, 0 different | pending |
-| r2-forms | 5/16: AppButton, AppForm, AppInputCheckbox, AppInputMultiselect, useInputChange | review LA-r2-A running | 5 identical, 0 different | pending |
-| r2-editor | 5/12: BuildBanner, SaveStatusPill, logicRows, NavGroupsDialog (types); PublishModal (recipe) | review LA-r2-B running | 4 identical, 0 different (+1 recipe) | pending |
-| r2-panels1 / r2-panels2 | 28/30 inspector panels | review LA-r2-B running | 14 + 14 identical, 0 different | pending |
+| r2-jsdoc | JSDoc on BindingField, ExpressionInput, ConditionField, FormulaField, dataErrors, gridColumnFilters, cellValue (stay JS; comments + BindingField.types.ts, cellValue.types.ts) + dataBatchClient.ts | merged 1e68b067 | 1 identical, 0 different | reviews/LA-r2-A.md (CHANGES REQUIRED → fixed 4e679e35) |
+| r2-forms | 4/16: AppButton, AppForm, AppInputCheckbox, useInputChange (AppInputMultiselect returned to JS by review: toValueList returns any[]) | merged | 5 identical, 0 different (before the revert) | LA-r2-A |
+| r2-editor | 5/12: BuildBanner, SaveStatusPill, logicRows, NavGroupsDialog (types); PublishModal (recipe) | merged | 4 identical, 0 different (+1 recipe) | reviews/LA-r2-B.md (CHANGES REQUIRED → fixed bab46934) |
+| r2-panels1 / r2-panels2 | 28/30 inspector panels | merged | 14 + 14 identical, 0 different | LA-r2-B |
 | r2-flowbi, r2-insprest | 0/10, 0/5 | all need runtime rewrites (below) | — | — |
 
 Round-1 integration gate (0ae29a17..8b6dfa68): `17 identical, 4 different of 21 converted files`; the 4 different are exactly the catch-recipe files (studioAppsApi.ts, index.tsx, useExpressionEditing.ts, PasteImportPanel.tsx), reviewed hunk by hunk in LA-r1-A. No delete+add pairs except the removed shell.types.ts (review fix: one NavigateFn).
+Round-2 integration gate (0ae29a17..1e68b067): `54 identical, 5 different of 59 converted files` (the 5 = the 4 round-1 recipe files + PublishModal.tsx, recipe only). Round-2 review fixes 4e679e35, bab46934: types/comments only, emitted JS of every touched TS file identical, JS hunks comment-only.
 Review-fix commits: 6e4e81e6 and fdb5ec64 are types/comments only (emitted JS of every touched file compared, identical). 0cb9cf72 drops four `as unknown as` component shims (BuilderComposer, BuilderTranscript, AppEditorShell, TableDetail): emitted JS differs only in that the import is bound under the used name instead of `XJs` + `const X = XJs` (same module binding).
 
 ## Kept JS (round 1, byte-identical to BASE)
@@ -50,12 +51,18 @@ Review-fix commits: 6e4e81e6 and fdb5ec64 are types/comments only (emitted JS of
 - flow/ActionFlowEditor.jsx: partial NodeRuntime context value; flow/DocumentFillFields.jsx: `p.fields?.length > 0`; flow/StepSettings.jsx: unknown step values into JSX value/checked; flow/layout.js, flow/stepGraph.js: `Map.get(k).push`, `Map.get(k) + 1`
 - inspector/ActionsSection.jsx: `TYPE_EVENT_LISTS[node?.type]`, `actions[node?.[ev]]`; MultiInspector.jsx, StyleSection.jsx: `STYLE_KNOBS[knob].values` on `KnobSpec | undefined`; ThemePanel.jsx: `navStyleLabels(t)[v]` with `v: string | undefined`
 - editor/ScreenTabs.jsx: `tabRefs.current[screenId]` nullable key; editor/resize.js: `parseFloat(cs?.paddingLeft)`; editor/LogicaTab.jsx: titleFor indexes by a possibly-undefined id; editor/collision.js: droppable rect cast would lie (wave1 review)
-- inspector/panels/InputHtmlInspector.jsx: `hint=` on `<Toggle>` (ToggleProps has no hint)
+- inspector/panels/InputHtmlInspector.jsx: drafter: `hint=` on `<Toggle>` (ToggleProps has no hint); LA-r2-B found no blocker → retried in the final pass
+- runtime/components/AppInputMultiselect.jsx: exported `toValueList` returns any[] carrying unknown form values into keys/labels (LA-r2-A fix 1)
+- editor/Canvas.jsx: BrowseEventSink/BeforeServerStep/ScopeDefinition/FetchScope/ToolDraft and useBuildFollow `= null` params need casts or type changes in other files; editor/ComponentRibbon.jsx: RegistryEntry|undefined deref, dnd-kit listeners typed Function; inspector/panels/PivotInspector converted in round 3
 
 ## Needs integrator
-- agent-hub full vitest on 8b6dfa68: 1858 files, 21872 tests pass, but vitest exits 1 on ONE unhandled rejection outside L-A scope: `src/pages/webpages/useBfMarks.ts:57` setState after jsdom teardown ("window is not defined"), attributed to `WebpageIDE.i18n.test.jsx`. This branch does not touch src/pages/webpages (diff empty vs BASE); the file passes 3/3 alone. Load-dependent teardown race (the hook's fetch resolves after the test ends). Pre-existing; fix belongs to whoever owns webpages (await the load or abort on unmount in the test). Not fixed here.
+- Fix the test-only mock path in src/pages/webpages/WebpageIDE.i18n.test.jsx (root cause and one-line fix in split/RESULT.md): it mocks useBfMarks on ./WebpageCodeStrip, but WebpageIDE imports ./useBfMarks, so the real fetch can reject after teardown and fail a loaded full run (round-2 run was green; round-1 run and the staging run were not).
+- (history) agent-hub full vitest on 8b6dfa68: 1858 files, 21872 tests pass, but vitest exits 1 on ONE unhandled rejection outside L-A scope: `src/pages/webpages/useBfMarks.ts:57` setState after jsdom teardown ("window is not defined"), attributed to `WebpageIDE.i18n.test.jsx`. This branch does not touch src/pages/webpages (diff empty vs BASE); the file passes 3/3 alone. Load-dependent teardown race (the hook's fetch resolves after the test ends). Pre-existing; fix belongs to whoever owns webpages (await the load or abort on unmount in the test). Not fixed here.
 
 ## Merge watch-points
+- Duplication: round 2 editor adds +111 production lines (web editor/logicRows.ts ↔ mobile app-studio/core/logicRows port; jscpd pairs them only now that both are .ts). Measured 15172 ≤ 15290 after round 2. Mirror candidate (shared-mirror manifest), integrator step.
+- .file-budget.json: key renames only (logicRows, PublishModal, AppForm etc. .jsx→.tsx).
+- mobile/src/features/app-studio/core/logicRows.lockstep.test.ts reads editor/logicRows.ts (was .js).
 - inspector/appDefinition.ts: `meta?: AppMeta` (completed with description + index signature; replaces useBuilderTurn's DefMeta), `design?: AppDesign`, `repeat?`/`forEach?: BindingInput`.
 - runtime/formContext.jsx gains JSDoc typedefs `FormFieldMeta`, `FormContextValue` (TS consumers import them as types).
 - tables/tablesManagerModel.ts `ModelField` gained optional fields; recordsApi.ts exports `RowRecord`; spreadsheetPaste.ts exports `ImportTable`.
@@ -66,4 +73,5 @@ Review-fix commits: 6e4e81e6 and fdb5ec64 are types/comments only (emitted JS of
 | Pushed commit | Content | check:fast | server typecheck | duplication (prod / test) | gitleaks | agent-hub tsc | vitest | mobile tsc / jest | server test |
 |---|---|---|---|---|---|---|---|---|---|
 | first push (setup) | BASE + report only | n/a | | | | | | | |
-| this commit | round 1 merged (8b6dfa68) | 39/39 | 0 errors (1076 files) | 15088 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass; 1 unhandled rejection outside scope (above) | 0 errors / 762 suites, 13428 pass | 2587 files, 0 fail, 0 cancelled |
+| aeb4803f | round 1 merged (8b6dfa68) | 39/39 | 0 errors (1076 files) | 15088 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass; 1 unhandled rejection outside scope (above) | 0 errors / 762 suites, 13428 pass | 2587 files, 0 fail, 0 cancelled |
+| this commit | round 2 merged (1e68b067) | 39/39 | 0 errors (1076 files) | 15172 ≤ 15290 / 26228 = 26228 | clean | 0 errors | `npm run test:run -- --maxWorkers=8`: 1858 files, 21872 pass, 0 errors (green) | 0 errors / 762 suites, 13428 pass | 2587 files, 29058 pass, 0 fail |

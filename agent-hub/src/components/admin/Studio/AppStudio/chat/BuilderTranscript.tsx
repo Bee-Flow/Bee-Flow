@@ -15,6 +15,7 @@ import type { TranscriptImage } from './TranscriptItems';
 import WhatChanged from './WhatChanged';
 import type { TurnChange } from './WhatChanged';
 import type { BuilderMessage } from '../../../../../hooks/builderStream';
+import type { BuildPhaseInfo } from '../editor/BuildCueContext';
 import useTranslation from '../../../../../hooks/useTranslation';
 import MessageBubble from '../../../../automation/Builder/chat/MessageBubble';
 import BuilderWaitingCard from '../../../../shared/builder/BuilderWaitingCard';
@@ -43,18 +44,12 @@ export function TranscriptEmptyState() {
     );
 }
 
-interface PhaseInfo {
-    index?: number;
-    total?: number | null;
-    label?: string | null;
-}
-
 interface BuilderTranscriptProps {
     messages: BuilderMessage[];
     running: boolean;
     busy: boolean;
     pendingPlan: unknown;
-    currentPhase: PhaseInfo | null;
+    currentPhase: BuildPhaseInfo | null;
     continuation: { phase: unknown; total: number | null } | null;
     lastChange: TurnChange | null;
     changeOpen: boolean;
