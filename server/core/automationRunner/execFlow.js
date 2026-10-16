@@ -6,7 +6,7 @@
 
 const { classifyUnknownError } = require('../automationErrors');
 const { resolveInputs } = require('../automationModel/bind');
-const { MASK_VALUES } = require('./httpAuth');
+const { sharedRunMarkers } = require('./publicValues');
 const {
     cloneRunValue, MAX_LAYER_DEPTH, LOOP_ROOT_ID, PARALLEL_ROOT_ID,
     refIsSynthetic, COLLECTION_OP_MAX_ITEMS, isToolErrorResult,
@@ -472,7 +472,7 @@ async function execCallLayer(step, ctx, runState, mode, dispatchSubStep) {
         // Same REFERENCE too: credential mask needles pushed inside the layer
         // must still mask the parent's recorded aggregate output. (Spread
         // copies symbol keys, but this subState is built explicitly.)
-        [MASK_VALUES]: runState[MASK_VALUES],
+        ...sharedRunMarkers(runState),
     };
     // Recorded sub-step ids are namespaced under this call step's own
     // recorded id. When the parent context is suppressed (loop body), the

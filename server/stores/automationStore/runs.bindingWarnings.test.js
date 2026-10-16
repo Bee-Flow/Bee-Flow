@@ -101,3 +101,14 @@ test('the stored copy is redacted like the step error', async () => {
     assert.ok(!raw.includes(key));
     assert.ok(!raw.includes('hunter2-secret'));
 });
+
+test('a run-emitted Talk room token stays readable in a container step, other tokens do not', async () => {
+    await record({
+        stepId: 'rooms', stepType: 'filter', status: 'success', publicValues: ['room1abc'],
+        output: { items: [{ token: 'room1abc' }, { token: 'opaque-api-token' }], api_key: 'room1abc' },
+    });
+    const row = await stepRow('rooms');
+    assert.equal(row.output.items[0].token, 'room1abc');
+    assert.equal(row.output.items[1].token, '«redacted:key»');
+    assert.equal(row.output.api_key, '«redacted:key»');
+});

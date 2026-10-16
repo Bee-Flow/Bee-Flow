@@ -799,7 +799,7 @@ async function recordRunStep(args) {
  * recordRunStep's body over an injected `run(sql, params)`, so a test can put
  * its real SQL against an in-process Postgres without mocking the store's db.
  */
-async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null }) {
+async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], publicValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null }) {
     if (!runId || !stepId) {
         // Defensive: NOT NULL columns; skip rather than crash the whole run.
         log.warn(`[AutomationStore] recordRunStep called with null runId/stepId — skipping (runId=${runId}, stepId=${stepId})`);
@@ -815,7 +815,7 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
     // Talk room `token`) from the key-name redaction — they're not credentials
     // and downstream steps need them. Secret shapes/values are still masked.
     const allowKeys = safeOutputKeysForTool(toolName);
-    const redact = (v) => redactForPersistence(v, { secretValues, allowKeys }).value;
+    const redact = (v) => redactForPersistence(v, { secretValues, allowKeys, publicValues }).value;
     // NUL bytes can't live in jsonb/text columns — Postgres rejects them with
     // "unsupported Unicode escape sequence" and aborts the whole run record.
     // A single NUL in extracted tool output (e.g. a CID-font PDF) would

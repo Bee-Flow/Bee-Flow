@@ -13,6 +13,7 @@ const {
     BRANCHER_TYPES, TERMINAL_STEP_TYPES, PII_RESCAN_EXEMPT_TYPES,
 } = require('./shared');
 const { isRunPause } = require('./execApproval');
+const { notePublicValues, publicValuesFor } = require('./publicValues');
 
 /** Whether this walk writes run-step rows (re-read at every use, as ctx may change). */
 function isRecording(recordSteps, ctx) {
@@ -151,6 +152,7 @@ function storeStepOutput(step, dispatched, runState, mode) {
         // invisible to them.
         ...(mode === 'dry_run' && dispatched.dryRunSynthesised ? { synthesised: true } : {}),
     };
+    notePublicValues(runState, step, dispatched.output);
     return recordedStatus;
 }
 
@@ -185,6 +187,7 @@ async function recordStepFinished(step, dispatched, recordedStatus, { ctx, runSt
         branchIndex,
         piiSummary,
         secretValues: secretValuesFor(runState),
+        publicValues: publicValuesFor(runState),
         // Tools an AI step was not given, each with its reason
         // ('permission' | 'confirm' | 'unavailable'), for the
         // Runs tab (handoff 5). Null for every other step.
