@@ -694,6 +694,23 @@ test('cms_update_design: teaching-signal rejections; nothing persists on a rejec
     assert.ok(blankBad.error && /#rrggbb/i.test(blankBad.error), JSON.stringify(blankBad));
 });
 
+test('cms_update_design: numeric strings are coerced for numeric enums, other values get an accurate error', async () => {
+    const draft = await makeDraft();
+    const ok = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: '700', bodySize: ' 17 ' } });
+    assert.ok(!ok.error, JSON.stringify(ok));
+    const stored = await cmsStore.getProject(draft.siteId);
+    assert.strictEqual(stored.design.typography.headingWeight, 700);
+    assert.strictEqual(stored.design.typography.bodySize, 17);
+
+    const bad = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: 'bold' } });
+    assert.match(bad.error, /"bold" is not a legal value\. Valid \(a number\): 500, 600, 700\./);
+    const out = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: '800' } });
+    assert.match(out.error, /"800" is not a legal value/);
+    // String enums keep their quoting in the message.
+    const str = await applyToolCall(draft, 'cms_update_design', { componentsPatch: { buttonShape: 'squircle' } });
+    assert.match(str.error, /Valid: "/);
+});
+
 test('cms_update_design: the summary reports what was PERSISTED, not what was requested', async () => {
     const draft = await makeDraft();
 

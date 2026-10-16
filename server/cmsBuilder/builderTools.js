@@ -881,10 +881,14 @@ function sanitizeDesignPatch(args) {
             if (!allowed) {
                 return bad(`${path}.${key} is not a field of ${path}. Valid fields: ${Object.keys(enums).join(', ')}.`);
             }
-            if (!allowed.includes(value)) {
-                return bad(`${path}.${key} ${JSON.stringify(value ?? null)} is not a legal value. Valid: ${allowed.join(', ')}.`);
+            // MCP clients often send numbers as strings: a numeric enum accepts "700".
+            const numeric = allowed.every((a) => typeof a === 'number');
+            const v = numeric && typeof value === 'string' && /^\s*\d+\s*$/.test(value) ? Number(value) : value;
+            if (!allowed.includes(v)) {
+                const list = allowed.map((a) => JSON.stringify(a)).join(', ');
+                return bad(`${path}.${key} ${JSON.stringify(value ?? null)} is not a legal value. Valid${numeric ? ' (a number)' : ''}: ${list}.`);
             }
-            out[key] = value;
+            out[key] = v;
         }
         return { out };
     };
