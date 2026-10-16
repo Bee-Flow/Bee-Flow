@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { json, installFakeNc, resetFakeNc } = require('./nextcloudToolFakes');
 const { executeNextcloudTeamsTool } = require('./nextcloudTeamsTools');
+const { deleteTeam } = require('./nextcloudTeamsDelete');
 
 test.afterEach(resetFakeNc);
 
@@ -61,4 +62,25 @@ test('when the read-back fails the delete is not claimed as done', async () => {
 test('a 401 on the read-back is the auth error', async () => {
     installFakeNc((req) => (req.method === 'DELETE' ? OK() : json(401, {})));
     assert.equal((await del()).error, 'auth');
+});
+
+test('a team that disappears a moment after the answer is a success', async () => {
+    let reads = 0;
+    const ncFetch = async (_u, opts = {}) => {
+        if (opts.method === 'DELETE') return json(200, { ocs: { meta: { statuscode: 200 }, data: [] } });
+        reads += 1;
+        return reads === 1 ? TEAM() : NOT_FOUND();
+    };
+    const handle = async (res) => ({ ok: true, ocs: JSON.parse(await res.text()).ocs });
+    const out = await deleteTeam({ api: '/x', ncFetch, authError: 'auth', handle, HEADERS: {}, sleep: async () => {} }, { teamId: 'c1' });
+    assert.deepEqual(out, { success: true, teamId: 'c1' });
+});
+
+test('a team that stays is reported with the caller level when it is below owner', async () => {
+    const team = () => json(200, { ocs: { meta: { statuscode: 200 }, data: { id: 'c1', initiator: { level: 8 } } } });
+    const ncFetch = async (_u, opts = {}) => (opts.method === 'DELETE' ? json(200, { ocs: { meta: { statuscode: 200 }, data: [] } }) : team());
+    const handle = async (res) => ({ ok: true, ocs: JSON.parse(await res.text()).ocs });
+    const out = await deleteTeam({ api: '/x', ncFetch, authError: 'auth', handle, HEADERS: {}, sleep: async () => {} }, { teamId: 'c1' });
+    assert.match(out.error, /still exists/);
+    assert.match(out.error, /not the owner \(membership level 8\)/);
 });
