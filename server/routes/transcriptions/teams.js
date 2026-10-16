@@ -111,7 +111,8 @@ router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async 
         let status;
         if (!m.organizerSelf) status = 'organizer_only';
         else if (excluded) status = 'excluded';
-        else if (settings.autoImport) status = 'will_import';
+        // An explicit "record" mark imports this meeting even with autoImport off.
+        else if (settings.autoImport || decision.reason === 'opted_in') status = 'will_import';
         else status = 'upcoming';
         return {
             ...m,
@@ -197,7 +198,8 @@ router.get('/teams-imports', requireAuth, validate({ query: NO_QUERY }), async (
 });
 
 // Manual-import listing: the 10 most recent ended meetings the user
-// organized, with whether Teams has a recording or transcript for them.
+// organized, with whether Teams has a recording or transcript for them
+// ('available' | 'transcript_only' | 'processing' | 'none').
 router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
     const userId = req.session.user.id;
     const { session, connection } = await resolveTeamsSession(req);
@@ -210,16 +212,22 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
 
     const items = [];
     for (const m of meetings) {
-        let recordingState = 'none';
+        // Teams needs time to process a recording: inside the import deadline an
+        // empty answer means "not ready yet", not "was not recorded".
+        const endMs = new Date(m.end || 0).getTime();
+        const stillProcessing = Number.isFinite(endMs) && Date.now() <= endMs + d.autoImport.NO_RECORDING_DEADLINE_MS;
+        let recordingState = stillProcessing ? 'processing' : 'none';
         try {
             const meeting = await d.artifacts.getOnlineMeetingByJoinUrl(session, m.joinUrl);
-            if (meeting) {
+            // No online meeting for this account: nothing will ever appear.
+            if (!meeting) recordingState = 'none';
+            else {
                 const artifact = await d.autoImport.findArtifact(session, meeting.id,
                     { meetingStart: m.start, meetingEnd: m.end },
                     { transcriptAllowed: connection.hasTranscriptScope });
                 if (artifact) recordingState = artifact.kind === 'recording' ? 'available' : 'transcript_only';
             }
-        } catch (_) { /* best-effort — leave 'none' */ }
+        } catch (_) { /* best-effort — keep the default state */ }
         const job = await d.importStore.getJobForEvent(userId, m.eventId).catch(() => null);
         items.push({
             eventId: m.eventId,

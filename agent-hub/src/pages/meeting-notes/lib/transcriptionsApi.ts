@@ -207,7 +207,7 @@ export async function setTeamsMeetingRecord(eventId: string, record: boolean, { 
 /**
  * Recently ended Teams meetings the user organised, for the manual import
  * panel. Returns `{ connection, items: [{ eventId, title, start, end,
- * recordingState: 'available'|'transcript_only'|'none', importedNoteId }] }`.
+ * recordingState: 'available'|'transcript_only'|'processing'|'none', importedNoteId }] }`.
  */
 export async function listTeamsRecordings() {
     const res = await authFetch(`${API_BASE}/api/transcriptions/teams-recordings`);

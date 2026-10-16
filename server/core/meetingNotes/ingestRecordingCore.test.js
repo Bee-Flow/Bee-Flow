@@ -28,6 +28,9 @@ const fx = {
     raceDedup: false,        // createTranscription lost the ON CONFLICT race
     creates: [],             // createTranscription spy
     downloads: [],           // nextcloudClient.downloadBinary spy
+    azureTruncated: null,
+    azureCalls: [],
+    whisperAzureCalls: [],
     transcribeCalls: [],     // transcribeWithWhisperX spy
     identifyCalls: [],       // identifySpeakerNames spy
     talkCalls: [],           // executeNextcloudTalkTool spy
@@ -61,6 +64,9 @@ function resetFx() {
     fx.creates.length = 0;
     fx.downloads.length = 0;
     fx.transcribeCalls.length = 0;
+    fx.azureCalls.length = 0;
+    fx.azureTruncated = null;
+    fx.whisperAzureCalls.length = 0;
     fx.identifyCalls.length = 0;
     fx.talkCalls.length = 0;
     fx.ncScopeDenies = false;
@@ -144,6 +150,18 @@ const MOCKS = {
             return null; // local_whisper_enabled etc.
         },
         getSecret: async () => null,
+    },
+    '../voice/azureSpeech': {
+        transcribeWithAzureSpeech: async (filePath, opts) => {
+            fx.azureCalls.push({ filePath, opts });
+            return { text: 'az', segments: [{ speakerId: 'Guest-1', start: 0, end: 2, text: 'az' }], truncated: fx.azureTruncated || null };
+        },
+    },
+    '../voice/azureWhisperBatch': {
+        runAzureWhisperBatch: async (opts) => {
+            fx.whisperAzureCalls.push(opts);
+            return { text: 'wa', segments: [{ speakerId: 'Guest-1', start: 0, end: 2, text: 'wa' }], durationSeconds: 2 };
+        },
     },
     '../../stores/userStore': {
         getUser: async () => ({ id: 'u1', firstName: 'Tom' }),
@@ -408,6 +426,49 @@ test('core: explicit provider overrides the configured transcription_provider', 
     assert.strictEqual(out.source, 'gmeet');
     assert.strictEqual(out.dedup, false);
     assert.ok(!fs.existsSync(filePath), 'input file consumed');
+});
+
+test('core: workspace engine azure transcribes via Azure Speech, not Voxtral', async () => {
+    resetFx();
+    fx.configProvider = 'azure';
+    const filePath = makeLocalFile();
+    await ingestLocalRecording({
+        userId: 'u1', filePath, fileName: 'meet.m4a', language: 'en', contextTerms: 'alpha',
+        source: 'teams', sourceUri: 'teams://orgA/az1',
+    });
+    trackCreates();
+    assert.strictEqual(fx.azureCalls.length, 1);
+    assert.strictEqual(fx.azureCalls[0].opts.language, 'en');
+    assert.strictEqual(fx.azureCalls[0].opts.contextTerms, 'alpha');
+    assert.strictEqual(fx.creates[0].provider, 'azure');
+});
+
+test('core: a truncated Azure transcript puts the early-stop notice on the summary', async () => {
+    resetFx();
+    fx.configProvider = 'azure';
+    fx.azureTruncated = { reason: 'inactivity', atSeconds: 2 };
+    const filePath = makeLocalFile();
+    await ingestLocalRecording({
+        userId: 'u1', filePath, fileName: 'meet.m4a', language: 'en',
+        source: 'teams', sourceUri: 'teams://orgA/az2',
+    });
+    trackCreates();
+    assert.match(fx.creates[0].summary, /stopped early at 00:02/);
+});
+
+test('core: workspace engine whisper_azure runs the Azure Whisper batch', async () => {
+    resetFx();
+    fx.configProvider = 'whisper_azure';
+    const filePath = makeLocalFile();
+    await ingestLocalRecording({
+        userId: 'u1', filePath, fileName: 'meet.m4a', language: 'en',
+        source: 'teams', sourceUri: 'teams://orgA/wa1',
+    });
+    trackCreates();
+    assert.strictEqual(fx.whisperAzureCalls.length, 1);
+    assert.strictEqual(fx.whisperAzureCalls[0].fileName, 'meet.m4a');
+    assert.strictEqual(fx.whisperAzureCalls[0].language, 'en');
+    assert.strictEqual(fx.creates[0].provider, 'whisper_azure');
 });
 
 test('core: absent provider falls back to the configured one', async () => {

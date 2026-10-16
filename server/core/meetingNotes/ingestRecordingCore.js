@@ -91,7 +91,7 @@ async function nameSpeakers(built, { speakersNamed, language, userName, orgId, p
 }
 
 /** ── Summary, title, action items, chapters, per-speaker summaries ── */
-async function writeSummary(named, { userId, orgId, language, fileName, titleHint, participantNames, voiceprint }) {
+async function writeSummary(named, { userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated }) {
     const { transcript } = named;
     const defaultTemplate = await resolveOwnerDefaultTemplate(userId, orgId);
     const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null });
@@ -111,7 +111,7 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     // An auto-import has no UI to report to, so the note's summary is the
     // only place to explain why voice recognition didn't name everyone —
     // and why this note has no action items.
-    const notices = buildPipelineNotices({ voiceprint: voiceprint.info, artifactsFailed: !usable, language });
+    const notices = buildPipelineNotices({ truncated, voiceprint: voiceprint.info, artifactsFailed: !usable, language });
     const summary = notices.length ? `${notices.join('\n')}\n\n${rawSummary || ''}`.trim() : rawSummary;
     let title = titleHint || fileName.replace(/\.[^/.]+$/, '');
     if (summary) {
@@ -189,7 +189,7 @@ async function ingestLocalRecording(opts) {
     try {
         const userName = userNameArg !== undefined ? userNameArg : await resolveUserFirstName(userId);
         const provider = await chooseProvider(requestedProvider, transcriptResponse);
-        const { response, voiceprint } = await transcribe(provider, {
+        const { response, voiceprint, truncated } = await transcribe(provider, {
             filePath, fileName, language, contextTerms, orgId, userId, participantNames, transcriptResponse,
         });
 
@@ -207,7 +207,7 @@ async function ingestLocalRecording(opts) {
         const named = await nameSpeakers(built, { speakersNamed, language, userName, orgId, participantNames, voiceprint });
         const { merged, transcript } = named;
         const { defaultTemplate, artifacts, usable, summary, title, chapters, speakers } = await writeSummary(named, {
-            userId, orgId, language, fileName, titleHint, participantNames, voiceprint,
+            userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated,
         });
 
         // ── Persist audio for playback ───────────────────────

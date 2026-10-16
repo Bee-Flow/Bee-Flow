@@ -20603,6 +20603,7 @@ const EN_DEFAULTS = {
     "meetings.teams_reauthorize": "Reconnect Microsoft 365",
     "meetings.teams_reconsent_desc": "Your Microsoft 365 account was connected before Teams recordings were supported. Reconnect to let Bee Flow list and import the meetings you organise — your Outlook and OneDrive access keeps working. Your Microsoft 365 admin may need to approve the new permissions.",
     "meetings.teams_reconsent_title": "Microsoft Teams needs additional access",
+    "meetings.teams_recording_processing": "Recording still processing, check again later",
     "meetings.teams_transcript_only": "transcript only, no audio",
     "meetings.upcoming_empty_desc_teams": "Meetings in your calendar with a Nextcloud Talk conversation, a Google Meet link or a Microsoft Teams link show up here.",
     "meetings.upcoming_manual_teams_hint": "Start the recording in Teams — it will be imported afterwards.",

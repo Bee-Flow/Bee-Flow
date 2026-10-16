@@ -23,6 +23,7 @@ const synthesizeDryRunOutput = (toolName, args) => runnerPort('outputSchemas').s
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
 const log = require('../../telemetry/log');
 const { assertStepToolPermitted, resolveLendingIdentity } = require('./integrationActionGates');
+const { recordSimulatedWrite, isUnderSimulatedPath, isNotFoundError } = require('./simulatedPaths');
 const { planReuse, readReuse, rememberAnswer } = require('./integrationActionMemo');
 
 /**
@@ -55,6 +56,7 @@ function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedI
     if (sideEffect) {
         // No real dispatch in a side-effect dry-run, so nothing egresses — but
         // still surface a "would block" annotation for the builder preview.
+        recordSimulatedWrite(ctx, step.tool, inputs);
         const out = synthesizeDryRunOutput(step.tool, inputs);
         if (guardedIn.wouldBlock) out._guardrailWouldBlock = guardedIn.categories;
         return { output: out, dryRunSynthesised: true };
@@ -159,7 +161,7 @@ async function dispatchFailed(step, ctx, mode, { err, inputs, probe, policy, aud
  * run fall back to the sample; a soft `{ error }` fails the step. Returns a
  * step result to hand back as-is, or null when `result` stands.
  */
-function checkResult(step, mode, { result, inputs, deps }) {
+function checkResult(step, ctx, mode, { result, inputs, resolvedInputs, deps }) {
     // Empty-result fallback: a live read-only call that returned no rows
     // teaches the AI nothing about field shapes. In dry-run, swap in the
     // sample so downstream binding decisions are made against realistic
@@ -183,6 +185,12 @@ function checkResult(step, mode, { result, inputs, deps }) {
     if (mode === 'dry_run' && deps.isEnvironmentToolError(result.error)) {
         return { output: synthesizeDryRunOutput(step.tool, inputs), dryRunSynthesised: true, dryRunFallback: 'not_connected' };
     }
+    // A read of a path only a SIMULATED step would have produced (a file the
+    // dry run "uploaded", a folder it "created") cannot exist yet: sample it.
+    // A path no earlier step touched is a real typo and still fails.
+    if (mode === 'dry_run' && isNotFoundError(step.tool, result.error) && isUnderSimulatedPath(ctx, resolvedInputs && resolvedInputs.path)) {
+        return { output: synthesizeDryRunOutput(step.tool, inputs), dryRunSynthesised: true, dryRunFallback: 'simulated_upstream' };
+    }
     const err = new Error(`${step.tool} failed: ${String(result.error)}`);
     err.toolError = true;
     throw deps.enrichNextcloudError(step.tool, err, String(result.error));
@@ -204,6 +212,9 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // party) against the WHOLE run vault, so placeholders minted by an earlier
     // node resolve here too.
     const inMeta = resolveIntegration(step.tool, guardedIn.value, { nextcloudUrl: ctx.nextcloudUrl });
+    // The path as resolved BEFORE egress masking (a tokenised path would never
+    // match what the simulated steps recorded).
+    const resolvedInputs = inputs;
     inputs = safety.prepareForEgress(guardedIn.value, policy, ctx, {
         destination: inMeta && inMeta.isLocal ? 'internal' : 'external',
     });
@@ -252,7 +263,7 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
         });
     }
 
-    const fallback = checkResult(step, mode, { result, inputs, deps });
+    const fallback = checkResult(step, ctx, mode, { result, inputs, resolvedInputs, deps });
     if (fallback) return fallback;
     // Cache the actual output shape so the Builder agent gets ground-truth
     // bindings on its next turn (no more guessing items vs results).

@@ -39,8 +39,10 @@ const router = express.Router();
 
 const kbStore = require('../../stores/knowledgeBases');
 const kbSourcesStore = require('../../stores/kbSources');
+const { adoptOrphanDocuments } = require('../../stores/kb/adoptOrphanDocuments')(() => kbSourcesStore.initDB());
 const { requireAuth, requirePermission } = require('../../auth');
 const { getUserId } = require('./shared');
+const { PROJECT_FILES_SOURCE_KIND } = require('../../core/kb/projectFilesKb');
 const {
     CREATABLE_KINDS, REFRESH_MODES_BY_KIND, REFRESH_LABEL_KEYS, DEFAULT_DOC_PAGE, MAX_DOC_PAGE,
     helpers, resolveKb, resolveSource, publicSourceConfig, resolveCreators, mapSourceForApi, refreshPatchFor,
@@ -93,6 +95,17 @@ router.get('/:id/sources', requireAuth, async (req, res) => {
     const kb = await resolveKb(req, res);
     if (!kb) return;
 
+    // Documents from before the source model have no source and would be
+    // invisible here while the overview counts them: adopt them first. Scoped
+    // to this KB; a failure must not take the listing down.
+    // Never on a system base or a project's files base: they are read-only here.
+    try {
+        if (!kbStore.isSystemKB(kb) && kb.source_kind !== PROJECT_FILES_SOURCE_KIND) {
+            await adoptOrphanDocuments(kb.id);
+        }
+    } catch (e) {
+        log.warn('[KB] Adopting source-less documents failed:', e.message);
+    }
     const sources = await kbSourcesStore.listByKb(kb.id);
     const counts = sources.length > 0
         ? await kbStore.countsBySource(sources.map(s => s.id))
