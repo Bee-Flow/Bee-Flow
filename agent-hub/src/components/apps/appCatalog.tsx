@@ -10,16 +10,75 @@
  * page simply didn't have an Apps picker: there was nothing to reuse.
  */
 import React from 'react';
+import type { ReactNode } from 'react';
 import { Box as BoxIcon } from 'lucide-react';
 import { getIntegrationGlyph, renderIntegrationGlyph } from '../../utils/integrationGlyphs';
 import { getIntegrationLogo } from '../../utils/integrationLogos';
 import { StepIcon } from '../automation/Builder/flow/stepIcons';
+import type { IntegrationStatus } from '../../api/queries/integrationStatus';
+
+/** One entry of the catalogue, from APP_DEFS or built from a workspace source. */
+export interface AppDef {
+    id: string;
+    label: string;
+    description: string;
+    iconSvg: (s?: string) => ReactNode;
+    requiresGoogle?: boolean;
+    requiresMicrosoft?: boolean;
+    requiresFireflies?: boolean;
+    requiresYouTrack?: boolean;
+    requiresGamma?: boolean;
+    requiresAfas?: boolean;
+    requiresNmbrs?: boolean;
+    requiresNone?: boolean;
+    isN8n?: boolean;
+    isMcp?: boolean;
+    isStep?: boolean;
+    mcpConfigured?: boolean;
+    stepId?: string;
+    stepCategory?: string;
+}
+
+export interface N8nWorkflowSource {
+    slug: string;
+    name: string;
+    description?: string;
+}
+
+export interface McpServerSource {
+    id: string;
+    name: string;
+    toolCount?: number;
+    allConfigured?: boolean;
+    icon?: string;
+}
+
+/** A Reusable Step the user exposed to chat. */
+export interface ExposedStepSource {
+    id: string;
+    title?: string;
+    description?: string;
+    category?: string;
+    icon?: string | null;
+}
+
+export interface AppCatalogSources {
+    n8nWorkflows?: N8nWorkflowSource[];
+    mcpServers?: McpServerSource[];
+    exposedSteps?: ExposedStepSource[];
+}
+
+export interface AppAvailabilityGates {
+    integrationStatus?: IntegrationStatus;
+    orgEnabledIntegrations?: string[] | null;
+    agentIntegrations?: string[] | null;
+}
 
 // Tailwind w-N h-N → pixel dimensions for the iconSvg callers
 // (Tailwind defaults: w-4=16, w-5=20, w-6=24).
-const TW_SIZE_TO_PX = { 'w-4 h-4': 16, 'w-5 h-5': 20, 'w-6 h-6': 24 };
+const TW_SIZE_TO_PX: Record<string, number> = { 'w-4 h-4': 16, 'w-5 h-5': 20, 'w-6 h-6': 24 };
 
-export function renderAppLogo(id, sizeClass = 'w-5 h-5') {
+export function renderAppLogo(id: string, sizeClass = 'w-5 h-5'): React.ReactElement {
     const px = TW_SIZE_TO_PX[sizeClass] || 20;
     // Same order as the builder's <IntegrationLogo>: an app's own glyph
     // (a Nextcloud app) before the shared brand SVG.
@@ -36,7 +95,7 @@ export function renderAppLogo(id, sizeClass = 'w-5 h-5') {
 // Each entry's iconSvg is a thin wrapper around the shared INTEGRATION_LOGOS
 // map so the composer and the automation palette always render the same
 // brand mark.
-export const APP_DEFS = [
+export const APP_DEFS: AppDef[] = [
     { id: 'google-drive',    label: 'Google Drive',    description: 'Attach files from Drive',                requiresGoogle: true,    iconSvg: (s = 'w-5 h-5') => renderAppLogo('google-drive', s) },
     { id: 'gmail',           label: 'Gmail',           description: 'Attach emails',                          requiresGoogle: true,    iconSvg: (s = 'w-5 h-5') => renderAppLogo('gmail', s) },
     { id: 'google-calendar', label: 'Google Calendar', description: 'Ask about your schedule',                requiresGoogle: true,    iconSvg: (s = 'w-5 h-5') => renderAppLogo('google-calendar', s) },
@@ -66,15 +125,15 @@ export const APP_DEFS = [
  * workflows, connected MCP servers and Reusable Steps the user exposed to
  * chat. Each is normalised into the same shape as an APP_DEFS entry.
  */
-export function buildAppCatalog({ n8nWorkflows = [], mcpServers = [], exposedSteps = [] } = {}) {
-    const n8nAppDefs = n8nWorkflows.map(wf => ({
+export function buildAppCatalog({ n8nWorkflows = [], mcpServers = [], exposedSteps = [] }: AppCatalogSources = {}): AppDef[] {
+    const n8nAppDefs: AppDef[] = n8nWorkflows.map(wf => ({
         id: `n8n_run_${wf.slug}`,
         label: wf.name,
         description: wf.description || 'n8n workflow',
         iconSvg: (s = 'w-5 h-5') => <img src="/n8n-color.png" alt="n8n" className={`${s} object-contain`} />,
         isN8n: true,
     }));
-    const mcpAppDefs = mcpServers.map(srv => ({
+    const mcpAppDefs: AppDef[] = mcpServers.map(srv => ({
         id: `mcp_${srv.id}`,
         label: srv.name,
         description: `${srv.toolCount} tools available${srv.allConfigured ? '' : ' — credentials needed'}`,
@@ -83,7 +142,7 @@ export function buildAppCatalog({ n8nWorkflows = [], mcpServers = [], exposedSte
         mcpConfigured: srv.allConfigured,
         requiresNone: false,
     }));
-    const stepAppDefs = exposedSteps.map(s => ({
+    const stepAppDefs: AppDef[] = exposedSteps.map(s => ({
         id: `step_${s.id}`,
         stepId: s.id,
         label: s.title || 'Step',
@@ -108,11 +167,11 @@ export function buildAppCatalog({ n8nWorkflows = [], mcpServers = [], exposedSte
  * `agentIntegrations` is undefined outside agent chat (the Cowork page never
  * has one), which correctly means "no agent-level filter".
  */
-export function filterAvailableApps(apps, {
+export function filterAvailableApps(apps: AppDef[], {
     integrationStatus = {},
     orgEnabledIntegrations = null,
     agentIntegrations = null,
-} = {}) {
+}: AppAvailabilityGates = {}): AppDef[] {
     const {
         isGoogleUser, isMicrosoftUser, hasMicrosoftConnection, hasFirefliesKey, hasYouTrackConfig,
         hasGammaKey, hasAfasConfig, hasNmbrsConfig,
@@ -157,7 +216,7 @@ export function filterAvailableApps(apps, {
 }
 
 // Which section of the overlay an app lands in.
-export function appCategory(app) {
+export function appCategory(app: AppDef): string {
     if (app.isStep) return app.stepCategory || 'Steps';
     if (app.isMcp) return 'MCP servers';
     if (app.isN8n) return 'n8n';
@@ -168,10 +227,10 @@ export function appCategory(app) {
 
 // Fixed priority for the integration buckets; step categories (priority 50)
 // sort alphabetically between them and MCP/n8n.
-export const CAT_PRIORITY = { Google: 0, Microsoft: 1, Other: 2, 'MCP servers': 100, n8n: 101 };
+export const CAT_PRIORITY: Record<string, number> = { Google: 0, Microsoft: 1, Other: 2, 'MCP servers': 100, n8n: 101 };
 
-export function groupAppsByCategory(apps) {
-    const byCat = {};
+export function groupAppsByCategory(apps: AppDef[]): { byCat: Record<string, AppDef[]>; orderedCats: string[] } {
+    const byCat: Record<string, AppDef[]> = {};
     for (const app of apps) {
         const c = appCategory(app);
         (byCat[c] = byCat[c] || []).push(app);
@@ -184,7 +243,7 @@ export function groupAppsByCategory(apps) {
     return { byCat, orderedCats };
 }
 
-const SEED_TEXT = {
+const SEED_TEXT: Record<string, string> = {
     // Drive and Gmail open an attachment picker in chat — the host intercepts
     // those two before asking for seed text. Here they get the wording a
     // Cowork brief needs, where attaching a file means nothing.
@@ -212,7 +271,7 @@ const SEED_TEXT = {
  * What picking an app should put in the box. Returns null when there is
  * nothing sensible to type, so the caller can leave the input alone.
  */
-export function seedTextForApp(app) {
+export function seedTextForApp(app?: AppDef | null): string | null {
     if (!app) return null;
     if (SEED_TEXT[app.id]) return SEED_TEXT[app.id];
     if (app.isN8n) return `Run the ${app.label} workflow `;
