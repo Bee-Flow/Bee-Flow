@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../../utils/helpers';
 import AppIcon from '../../components/icons/AppIcon';
 
+interface Locale {
+    code: string;
+    name?: string;
+}
+
 /**
  * Public marketing-site language switcher.
  *
@@ -24,9 +29,9 @@ function currentLocale() {
 }
 
 export default function LanguageSwitcher() {
-    const [locales, setLocales] = useState([]);
+    const [locales, setLocales] = useState<Locale[]>([]);
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
     const active = currentLocale();
 
     const isPreview = typeof window !== 'undefined'
@@ -47,7 +52,7 @@ export default function LanguageSwitcher() {
     }, [isPreview]);
 
     useEffect(() => {
-        const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node | null)) setOpen(false); };
         document.addEventListener('click', onDoc);
         return () => document.removeEventListener('click', onDoc);
     }, []);
@@ -55,7 +60,7 @@ export default function LanguageSwitcher() {
     // Nothing to switch between (or in preview) → render nothing.
     if (isPreview || locales.length < 2) return null;
 
-    const choose = (code) => {
+    const choose = (code: string) => {
         if (code === active) { setOpen(false); return; }
         try { localStorage.setItem('beeflow_locale', code); } catch { /* ignore */ }
         const url = new URL(window.location.href);
