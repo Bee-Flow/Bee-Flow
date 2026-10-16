@@ -7,6 +7,7 @@
 
 const {
     BG_POSITIONS, BG_REPEATS, BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, MOTIFS, MOTIF_SIDES, DECORS, CARD_FILLS, LABEL_STYLES,
+    TILE_SHAPES, TILE_FILLS, TILE_SIZES, TILE_ICON_COLORS,
     BLOCK_DESIGN_STYLE_KEYS, ANCHOR_MAX, cleanAnchor, cleanBackgroundSize,
 } = require('../i18n/defaults/blockStyleEnums');
 
@@ -39,6 +40,10 @@ const DESIGN_ENUMS = {
     decor: DECORS,
     cardFill: CARD_FILLS,
     labelStyle: LABEL_STYLES,
+    tileShape: TILE_SHAPES,
+    tileFill: TILE_FILLS,
+    tileSize: TILE_SIZES,
+    tileIconColor: TILE_ICON_COLORS,
 };
 
 /**

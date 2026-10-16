@@ -116,6 +116,10 @@ export interface BlockStyle {
     decor?: string;
     cardFill?: string;
     labelStyle?: string;
+    tileShape?: string;
+    tileFill?: string;
+    tileSize?: string;
+    tileIconColor?: string;
     band?: string;
     rhythm?: string;
     glow?: boolean;

@@ -1,16 +1,18 @@
 import { FieldRow } from '../fields';
 import { SectionDivider, SegmentedControl } from '../primitives';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import type { DesignComponents } from '../../../../marketing/ProductWebsite.types';
 
 type TileKey = 'tileShape' | 'tileFill' | 'tileSize' | 'tileIconColor';
+
+/** The tile keys of the theme's design components or of a block's style. */
+export type TileValues = Partial<Record<TileKey, string>>;
 
 /**
  * Icon tiles of the feature, security and integration blocks: shape, fill,
  * size and glyph colour. Every setting is an enum; 'Default' keeps today's look.
  */
 export default function IconTileControls({ components, onChange }: {
-    components: DesignComponents;
+    components: TileValues;
     onChange: (key: TileKey, value: string) => void;
 }) {
     const { t } = useTranslation();
@@ -18,7 +20,7 @@ export default function IconTileControls({ components, onChange }: {
     return (
         <>
             <SectionDivider label={t('cms_site.site.design.tiles_title', 'Icon tiles')} />
-            <FieldRow label={t('cms_site.site.design.tile_shape', 'Shape')} hint={t('cms_site.site.design.tile_shape_hint', 'A hexagon drops the tile ring; the other shapes keep it.')}>
+            <FieldRow label={t('cms_site.site.design.tile_shape', 'Shape')} hint={t('cms_site.site.design.tile_shape_hint', 'The icon tile of feature, security and integration cards.')}>
                 <SegmentedControl
                     value={components.tileShape || 'default'}
                     onChange={v => onChange('tileShape', v)}

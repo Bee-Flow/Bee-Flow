@@ -33,6 +33,12 @@ const DECORS = ['default', 'none'];
 const CARD_FILLS = ['tint', 'white', 'none'];
 // Trust-band chip labels: 'mono' (monospace, uppercase, tracked) is the identity value.
 const LABEL_STYLES = ['mono', 'plain'];
+// Icon tiles of the block (same names as the theme-wide tile settings in
+// DESIGN_COMPONENT_ENUMS): 'default' follows the theme.
+const TILE_SHAPES = ['default', 'square', 'rounded', 'circle', 'hexagon'];
+const TILE_FILLS = ['default', 'tint', 'solid', 'none'];
+const TILE_SIZES = ['default', 'sm', 'lg'];
+const TILE_ICON_COLORS = ['default', 'light', 'dark'];
 
 // Bento feature cards: the height box and the fit of an item's media
 // (`items[].mediaHeight` / `items[].mediaFit`). 'auto' / 'natural' are the
@@ -101,6 +107,10 @@ function sanitizeBlockDesignStyle(style) {
         decor: DECORS,
         cardFill: CARD_FILLS,
         labelStyle: LABEL_STYLES,
+        tileShape: TILE_SHAPES,
+        tileFill: TILE_FILLS,
+        tileSize: TILE_SIZES,
+        tileIconColor: TILE_ICON_COLORS,
     };
     for (const [key, allowed] of Object.entries(enums)) {
         if (key in out && !allowed.includes(/** @type {string} */ (out[key]))) delete out[key];
@@ -118,6 +128,7 @@ function sanitizeBlockDesignStyle(style) {
 const BLOCK_DESIGN_STYLE_KEYS = [
     'backgroundSize', 'backgroundPosition', 'backgroundRepeat', 'backgroundHideMobile',
     'motif', 'motifSide', 'motifTiles', 'decor', 'cardFill', 'labelStyle',
+    'tileShape', 'tileFill', 'tileSize', 'tileIconColor',
 ];
 
-export { BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, BG_POSITIONS, BG_REPEATS, MOTIFS, MOTIF_SIDES, DECORS, CARD_FILLS, LABEL_STYLES, MEDIA_HEIGHTS, MEDIA_FITS, BLOCK_DESIGN_STYLE_KEYS, ANCHOR_MAX, cleanAnchor, cleanBackgroundSize, backgroundSizePx, sanitizeBlockDesignStyle };
+export { BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, BG_POSITIONS, BG_REPEATS, MOTIFS, MOTIF_SIDES, DECORS, CARD_FILLS, LABEL_STYLES, TILE_SHAPES, TILE_FILLS, TILE_SIZES, TILE_ICON_COLORS, MEDIA_HEIGHTS, MEDIA_FITS, BLOCK_DESIGN_STYLE_KEYS, ANCHOR_MAX, cleanAnchor, cleanBackgroundSize, backgroundSizePx, sanitizeBlockDesignStyle };

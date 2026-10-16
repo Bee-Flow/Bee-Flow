@@ -3,6 +3,7 @@ import BackgroundControl from './controls/BackgroundControl';
 import BackgroundPlacementControl from './controls/BackgroundPlacementControl';
 import MotifControl from './controls/MotifControl';
 import LookControls from './controls/LookControls';
+import IconTileControls from './controls/IconTileControls';
 import ColorControl from './controls/ColorControl';
 import AnchorField from './controls/AnchorField';
 import SpacingStepper from './controls/SpacingStepper';
@@ -67,6 +68,10 @@ export interface BlockStyle {
     decor?: string;
     cardFill?: string;
     labelStyle?: string;
+    tileShape?: string;
+    tileFill?: string;
+    tileSize?: string;
+    tileIconColor?: string;
     maxWidth?: string;
     align?: string;
     cssClass?: string;
@@ -213,6 +218,7 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
 
             <SectionDivider label={t('cms_site.site.blockstyle.look', 'Look')} />
             <LookControls value={s} onChange={(patch) => onChange({ ...s, ...patch })} />
+            <IconTileControls components={s} onChange={(key, value) => onChange({ ...s, [key]: value })} />
 
             <SectionDivider label={t('cms_site.site.blockstyle.layout', 'Layout')} />
             <FieldRow label={t('cms_site.site.blockstyle.max_width', 'Max width')}>

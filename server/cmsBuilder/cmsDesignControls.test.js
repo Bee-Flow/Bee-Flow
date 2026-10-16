@@ -145,6 +145,25 @@ test('block style: decor, cardFill and labelStyle accept their enum and drop any
     );
 });
 
+test('block style: the tile keys take the theme tile enums and drop anything else', () => {
+    const { DESIGN_COMPONENT_ENUMS } = require('../i18n/defaults/cmsDefaults');
+    const { TILE_SHAPES, TILE_FILLS, TILE_SIZES, TILE_ICON_COLORS } = require('../i18n/defaults/blockStyleEnums');
+    assert.deepStrictEqual(TILE_SHAPES, DESIGN_COMPONENT_ENUMS.tileShape);
+    assert.deepStrictEqual(TILE_FILLS, DESIGN_COMPONENT_ENUMS.tileFill);
+    assert.deepStrictEqual(TILE_SIZES, DESIGN_COMPONENT_ENUMS.tileSize);
+    assert.deepStrictEqual(TILE_ICON_COLORS, DESIGN_COMPONENT_ENUMS.tileIconColor);
+    const ok = validateStylePatch({ tileShape: 'hexagon', tileFill: 'solid', tileSize: 'lg', tileIconColor: 'dark' });
+    assert.deepStrictEqual(ok.style, { tileShape: 'hexagon', tileFill: 'solid', tileSize: 'lg', tileIconColor: 'dark' });
+    for (const patch of [{ tileShape: 'polygon(0 0)' }, { tileFill: 'red' }, { tileSize: '99px' }, { tileIconColor: 'x;y' }]) {
+        const res = validateStylePatch(patch);
+        assert.ok(res.error && res._fixHint, JSON.stringify(patch));
+    }
+    assert.deepStrictEqual(
+        sanitizeBlockDesignStyle({ tileShape: 'circle', tileFill: 'url(x)', band: 'dark' }),
+        { tileShape: 'circle', band: 'dark' },
+    );
+});
+
 test('sanitizeDesign + cms_update_design: darkBand is palette | secondary', async () => {
     const { sanitizeDesign } = require('../stores/cms/shared');
     assert.strictEqual(sanitizeDesign({}).darkBand, 'palette');

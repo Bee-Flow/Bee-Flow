@@ -1504,7 +1504,7 @@
     "cms_site.site.design.tile_shape": "Vorm",
     "cms_site.site.design.tile_shape_circle": "Cirkel",
     "cms_site.site.design.tile_shape_hexagon": "Zeshoek",
-    "cms_site.site.design.tile_shape_hint": "Een zeshoek laat de rand van de tegel weg; de andere vormen houden die.",
+    "cms_site.site.design.tile_shape_hint": "De icoontegel van de kaarten voor functies, beveiliging en integraties.",
     "cms_site.site.design.tile_shape_rounded": "Afgerond",
     "cms_site.site.design.tile_shape_square": "Vierkant",
     "cms_site.site.design.tile_size": "Grootte",

@@ -1,11 +1,12 @@
 // The design part of a block's style wrapper: background placement, the
-// built-in brand motif and the look switches (hero decor, card fill, label style). The renderer (ProductWebsite) calls these two
+// built-in brand motif and the look switches (hero decor, card fill, label style, icon tiles). The renderer (ProductWebsite) calls these two
 // functions and adds the result to the wrapper; nothing here ever builds CSS
 // from a stored value. Every class name is assembled from a value that
 // survived the shared whitelist (blockStyleEnums.generated.mjs, the same file
 // the server store and the MCP validator use), and the single custom
 // property is rebuilt from a validated whole number of pixels.
 
+import { blockTileVars } from './designTiles';
 import { sanitizeBlockDesignStyle, backgroundSizePx } from './blockStyleEnums.generated.mjs';
 
 type BlockStyle = object | null | undefined;
@@ -35,10 +36,11 @@ export function designStyleClasses(style: BlockStyle): string[] {
     return out;
 }
 
-/** The one custom property: the pixel width of the background image, when set. */
+/** The custom properties: the pixel width of the background image, and the block's icon tile overrides. */
 export function designStyleVars(style: BlockStyle): Record<string, string> {
-    const px = backgroundSizePx(clean(style).backgroundSize);
-    return px === null ? {} : { '--cms-bg-size': `${px}px auto` };
+    const s = clean(style);
+    const px = backgroundSizePx(s.backgroundSize);
+    return { ...(px === null ? {} : { '--cms-bg-size': `${px}px auto` }), ...blockTileVars(s) };
 }
 
 const DISPLAY_TRACKING_EM = new Map<string, string>([

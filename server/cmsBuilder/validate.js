@@ -363,7 +363,7 @@ function validateSiteDraft(draftWrap) {
                         code: 'unknown_style_value',
                         path: `pages.${entry.id}.blocks[${i}].style.${key}`,
                         message: `style.${key} ${JSON.stringify(st[key])} is not a known value and is dropped on save.`,
-                        hint: 'backgroundSize: cover | contain | auto | "<n>px"; backgroundPosition: the nine anchors (top-left … bottom-right); backgroundRepeat: no-repeat | repeat | repeat-x | repeat-y; motif: none | honeycomb; motifSide: right | left | center; decor: default | none; cardFill: tint | white | none; labelStyle: mono | plain; backgroundHideMobile / motifTiles: true | false.',
+                        hint: 'backgroundSize: cover | contain | auto | "<n>px"; backgroundPosition: the nine anchors (top-left … bottom-right); backgroundRepeat: no-repeat | repeat | repeat-x | repeat-y; motif: none | honeycomb; motifSide: right | left | center; decor: default | none; cardFill: tint | white | none; labelStyle: mono | plain; tileShape: default | square | rounded | circle | hexagon; tileFill: default | tint | solid | none; tileSize: default | sm | lg; tileIconColor: default | light | dark; backgroundHideMobile / motifTiles: true | false.',
                     });
                 }
                 if (st.anchor !== undefined) {

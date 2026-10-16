@@ -49,6 +49,15 @@ describe('look switches', () => {
     });
 });
 
+describe('block icon tiles', () => {
+    it('turns the tile keys into fixed custom properties on the wrapper', () => {
+        expect(designStyleVars({ tileShape: 'circle', tileSize: 'lg' })).toEqual({
+            '--tile-radius': '999px', '--tile-clip': 'initial', '--tile-ring-clip': 'initial', '--tile-border': 'initial', '--tile-scale': '1.3',
+        });
+        expect(designStyleVars({ tileShape: 'default', tileFill: 'url(x)' })).toEqual({});
+    });
+});
+
 describe('displayTrackingEm', () => {
     it('maps the three tracking names and nothing inherited from Object.prototype', () => {
         expect(displayTrackingEm('tighter')).toBe('-0.045em');

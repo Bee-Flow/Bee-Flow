@@ -1428,15 +1428,25 @@
 .marketing-root .feature-card .icon-tile {
     width: calc(44px * var(--tile-scale, 1)); height: calc(44px * var(--tile-scale, 1));
     border-radius: var(--tile-radius, var(--radius-md));
-    clip-path: var(--tile-clip, none);
-    background: var(--tile-bg, var(--accent-tint-08));
     border: var(--tile-border, 1px solid var(--hairline-accent));
-    color: var(--tile-fg, var(--tile-color, var(--accent)));
-    display: flex; align-items: center; justify-content: center;
     margin-bottom: 16px;
     transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-.marketing-root .feature-card:hover .icon-tile {
+/* What the three icon tiles share. The ring is a layer of its own: a
+   hexagon's clip-path cuts its border away (see designTiles.ts). */
+.marketing-root :is(.feature-card, .security-card, .integration-item) .icon-tile {
+    position: relative;
+    clip-path: var(--tile-clip, none);
+    background: var(--tile-bg, var(--accent-tint-08));
+    color: var(--tile-fg, var(--tile-color, var(--accent)));
+    display: flex; align-items: center; justify-content: center;
+}
+.marketing-root :is(.feature-card, .security-card, .integration-item) .icon-tile::after {
+    content: ''; position: absolute; inset: 0;
+    clip-path: var(--tile-ring-clip, none);
+    background: var(--tile-ring-bg, transparent);
+}
+.marketing-root :is(.feature-card, .integration-item):hover .icon-tile {
     background: var(--tile-bg-hover, var(--accent-tint-22));
 }
 /* `color` and `hyphens` are declared EXPLICITLY, not left to inherit.
@@ -1851,12 +1861,8 @@
 .marketing-root .security-card .icon-tile {
     width: calc(44px * var(--tile-scale, 1)); height: calc(44px * var(--tile-scale, 1));
     border-radius: var(--tile-radius, var(--radius-sm));
-    clip-path: var(--tile-clip, none);
-    background: var(--tile-bg, var(--accent-tint-08));
     border: var(--tile-border, 0 none);
-    color: var(--tile-fg, var(--tile-color, var(--accent)));
     flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
 }
 .marketing-root .security-card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; }
 .marketing-root .security-card p { color: var(--text-secondary); font-size: 0.95rem; }
@@ -2045,17 +2051,8 @@
     width: calc(26px * var(--tile-scale, 1));
     height: calc(26px * var(--tile-scale, 1));
     border-radius: var(--tile-radius, 7px);
-    clip-path: var(--tile-clip, none);
-    background: var(--tile-bg, var(--accent-tint-08));
     border: var(--tile-border, 0 none);
-    color: var(--tile-fg, var(--tile-color, var(--accent)));
-    display: flex;
-    align-items: center;
-    justify-content: center;
     transition: background var(--transition-fast);
-}
-.marketing-root .integration-item:hover .icon-tile {
-    background: var(--tile-bg-hover, var(--accent-tint-22));
 }
 /* Real logo on the chip — same recipe as the social-proof wall:
    normalized height, grayscale until the chip is hovered. */

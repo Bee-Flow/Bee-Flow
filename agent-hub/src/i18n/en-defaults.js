@@ -5240,7 +5240,7 @@ const EN_DEFAULTS = {
     "cms_site.site.design.tile_shape": "Shape",
     "cms_site.site.design.tile_shape_circle": "Circle",
     "cms_site.site.design.tile_shape_hexagon": "Hexagon",
-    "cms_site.site.design.tile_shape_hint": "A hexagon drops the tile ring; the other shapes keep it.",
+    "cms_site.site.design.tile_shape_hint": "The icon tile of feature, security and integration cards.",
     "cms_site.site.design.tile_shape_rounded": "Rounded",
     "cms_site.site.design.tile_shape_square": "Square",
     "cms_site.site.design.tile_size": "Size",
