@@ -1,6 +1,6 @@
 // Shared cookie-consent storage contract for the public marketing site.
 //
-// Written by CookieBanner.jsx (the only writer), read by every tracker that
+// Written by CookieBanner.tsx (the only writer), read by every tracker that
 // must gate on consent (AnalyticsTracker in cookie mode, GoogleAnalyticsTracker
 // always). Same-tab changes are announced via the `bf-cookie-consent` window
 // event; other tabs see the native `storage` event.
