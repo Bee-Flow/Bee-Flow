@@ -8,6 +8,8 @@
 
 'use strict';
 
+const { preflightBlankInputs } = require('./blankInputs');
+
 /**
  * @param {object} deps  execution.js's RUN_DEPS
  * @param {() => Function} dispatchStep  the run's dispatchStep, for container
@@ -19,6 +21,7 @@ function makeLeafRunner(deps, dispatchStep) {
     const e = deps.engine;
     const { execFlatten } = deps;
     return async function runStepLeaf(step, ctx_, state_, mode_) {
+        preflightBlankInputs(step, state_, mode_);
         switch (step.type) {
             case 'integration_action': return e.execIntegrationAction(step, ctx_, state_, mode_);
             case 'ai_step':            return e.execAiStep(step, ctx_, state_, mode_);

@@ -212,7 +212,8 @@ async function handleStepFailure(deps, err, f) {
     // be retried whole here — that would re-run the entire fan-out.
     // A step's own retry wins; without one the automation's
     // runPolicy.retry.max is the default (handoff 5).
-    const retry = stepRetryFor(step, runPolicy);
+    // A mapping that read nothing reads nothing again: no retry for it.
+    const retry = err.errorClass === 'binding_unresolved' ? null : stepRetryFor(step, runPolicy);
     if (retry && retry.max && retry.max > 0 && !err.foreachHandled) {
         const retried = await retryStep(deps, retry, { ...f, inputForRecord, slot });
         if (retried !== undefined) return retried;

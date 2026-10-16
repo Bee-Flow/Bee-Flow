@@ -126,12 +126,14 @@ function checkReferences(ctx, step, at) {
         if (error) {
             if (!(r.parse ?? r.binding)) return;     // its own rule reports it (condition/switch/filter/set)
             const suggestion = suggestExprSpelling(r.src, opts);
-            pushW({
-                code: 'expr.parse', severity: 'warning', path: fieldAt(r.where),
+            // A `{kind:'expr'}` binding that does not parse is an error: it can
+            // only ever evaluate to nothing, so the step would run on a hole.
+            (r.binding ? pushE : pushW)({
+                code: 'expr.parse', severity: r.binding ? 'error' : 'warning', path: fieldAt(r.where),
                 message: `Step ${step.id}: the expression in ${fieldName(r.where)} does not parse (${error.message}), so it evaluates to nothing at run time.`,
                 hint: suggestion
                     ? `Write it as: ${suggestion}`
-                    : 'Expressions read paths without {{ }}: write a list position as [0] and a key with spaces or symbols as ["…"].',
+                    : 'Expressions read paths without {{ }}: write a list position as [0] and a key with spaces or symbols as ["…"]. Object literals ({ a: … }) are not part of the grammar: build an object with a set step.',
             });
             return;
         }

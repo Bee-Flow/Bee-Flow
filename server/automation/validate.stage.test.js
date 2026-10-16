@@ -198,3 +198,17 @@ test('COMPLETENESS_CODES excludes every integrity code it must not swallow', () 
         assert.equal(COMPLETENESS_CODES.has(code), false, `${code} must always block`);
     }
 });
+
+test('draft stage lets an unparseable expr binding save, activate still blocks it', () => {
+    const def = {
+        trigger: trigger(),
+        steps: [{ id: 'n1', type: 'notification', title: 't', body: 'b', inputs: { x: { kind: 'expr', value: '({ a: 1 })' } } }],
+        edges: [{ from: 'trg', to: 'n1' }],
+    };
+    const draft = validateDefinition(def, { stage: 'draft' });
+    assert.equal(draft.ok, true);
+    assert.ok(draft.warnings.some(w => w.code === 'expr.parse' && w.blockedAt === 'activate'));
+    const live = validateDefinition(def, { stage: 'activate' });
+    assert.equal(live.ok, false);
+    assert.ok(live.errors.some(e => e.code === 'expr.parse'));
+});

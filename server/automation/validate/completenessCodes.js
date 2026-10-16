@@ -30,6 +30,9 @@ const COMPLETENESS_CODES = new Set([
     // Required fields the user simply hasn't filled in yet. The *_parse codes
     // belong here too: an expression is half-typed for as long as it takes to
     // type it, and autosave fires mid-keystroke.
+    // An expr binding that does not parse is half-typed mid-keystroke too; it
+    // still blocks finalize and go-live (stage 'activate').
+    'expr.parse',
     'integration_action.tool_missing',
     'integration_action.tool_unknown',
     'integration_action.param_missing',

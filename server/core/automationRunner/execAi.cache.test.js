@@ -81,7 +81,11 @@ const restore = installResolveStub({
     './safety': safetyStub,
     '../aiAgent': { getProviderForModel: () => null },
     '../providers': { getAdapter: () => null },
-    '../automationModel/bind': { resolveInputs: (inputs) => JSON.parse(JSON.stringify(inputs || {})) },
+    '../automationModel/bind': {
+        resolveInputs: (inputs) => JSON.parse(JSON.stringify(inputs || {})),
+        describeBindingMiss: () => '',
+    },
+    '../automationModel/bindCapture': { captureBindingMisses: (fn) => ({ value: fn(), misses: [] }) },
     '../automationModel/sideEffectMap': { isSideEffect: () => false, isMemoisable: () => true },
     '../../automation/outputSchemas': { synthesizeDryRunOutput: () => ({ sample: true }) },
     '../../automation/shapeCache': { async recordShape(rec) { shapeCalls.push(rec); } },

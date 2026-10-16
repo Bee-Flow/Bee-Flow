@@ -14,6 +14,8 @@
  */
 
 const { resolveInputs } = require('../automationModel/bind');
+const { failOnBlankInputs } = require('./blankInputs');
+const { captureBindingMisses } = require('../automationModel/bindCapture');
 const { isSideEffect } = require('../automationModel/sideEffectMap');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
@@ -211,8 +213,10 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // the agent/direct-chat pipeline so automations stop bypassing those controls.
     const { safety, stepInputsSynthetic } = deps;
     // Tool arguments are data, not prose: a list in a `{{…}}` stays JSON.
-    let inputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' });
     const sideEffect = isSideEffect(step.tool);
+    const resolved = captureBindingMisses(() => resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' }));
+    let inputs = resolved.value;
+    if (mode !== 'dry_run' && sideEffect) failOnBlankInputs(step, resolved.misses);
     const { policy, auditBase, guardedIn } = await guardInputs(step, ctx, mode, inputs, safety);
     const { resolveIntegration } = require('../integrations/integrationToolMap');
     const synthesized = dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedIn, inputs, stepInputsSynthetic });
