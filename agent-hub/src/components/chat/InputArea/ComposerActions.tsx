@@ -22,6 +22,30 @@ import React from 'react';
 
 import useTranslation from '../../../hooks/useTranslation';
 import TierSlider from '../../licensing/TierSlider';
+import type { ModelTierMap } from '../../../api/queries/modelTiers';
+import type { MemoryLock, MemoryMode } from '../../../utils/memoryMode';
+import type { ShieldLine } from '../composerClaims';
+import type useDictation from '../useDictation';
+
+interface ComposerActionsProps {
+    shieldClaim: ShieldLine | null;
+    showTierSlider: boolean;
+    modelTiers?: ModelTierMap;
+    selectedTier?: string;
+    onTierChange?: (key: string) => void;
+    memoryMode: MemoryMode;
+    onMemoryModeChange: (next: MemoryMode) => void;
+    memoryLock?: MemoryLock;
+    dictation: ReturnType<typeof useDictation>;
+    simpleMode: boolean;
+    compact: boolean;
+    isLoading: boolean;
+    onStopGenerating: () => void;
+    nothingToSend: boolean;
+    voiceReady: boolean;
+    onStartVoiceMode: () => void;
+    onSend: () => void;
+}
 
 const ComposerActions = ({
     shieldClaim,
@@ -41,7 +65,7 @@ const ComposerActions = ({
     voiceReady,
     onStartVoiceMode,
     onSend,
-}) => {
+}: ComposerActionsProps) => {
     const { t } = useTranslation();
     const ShieldIcon = shieldClaim?.tone === 'warn' ? ShieldAlert : ShieldCheck;
 

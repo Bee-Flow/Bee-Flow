@@ -26,6 +26,7 @@
  */
 import { CalendarClock, Clock, LayoutGrid, Pause, Pencil, Play, Power, Trash2 } from 'lucide-react';
 import React from 'react';
+import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import CoworkEditForm from './CoworkEditForm';
 import CoworkRunHistory from './CoworkRunHistory';
 import { describeMoment, repeatLabel } from './coworkSchedule';
@@ -35,15 +36,25 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { TIER_META, tierLabel } from '../licensing/tierMeta';
 import { kindColorVar, kindIcon, kindTileStyle } from '../shared/kindColors';
 import { statusLabel } from '../shared/statusTokens';
+import type { CoworkAgent, CoworkItem } from './cowork.types';
+import type { CoworkUpdate } from './cowork.types';
+import type { TranslateFn } from '../../hooks/useTranslation';
+import type { StatusToken } from '../shared/statusTokens';
 
 const AgentIcon = kindIcon('agent');
+
+interface PillProps {
+    icon: ComponentType<{ 'aria-hidden'?: boolean | 'true' | 'false'; className?: string; style?: CSSProperties }>;
+    tone: string;
+    children: ReactNode;
+}
 
 /**
  * One context pill. The colour is always a kind/type token from index.css
  * (through kindColors), never a colour picked here — a clock pill is the same
  * teal as a trigger node in the Builder because it means the same thing.
  */
-function Pill(props) {
+function Pill(props: PillProps) {
     const Glyph = props.icon;
     const { tone, children } = props;
     return (
@@ -57,14 +68,14 @@ function Pill(props) {
 }
 
 /** "Every weekday 08:00", "Every week", or "Runs once". */
-function cadenceText(item, t) {
+function cadenceText(item: CoworkItem, t: TranslateFn) {
     if (!item.repeatInterval) return t('cowork.detail.runs_once', 'Runs once');
     const label = repeatLabel(item.repeatInterval, t);
     return item.timeOfDay ? `${label} ${item.timeOfDay}` : label;
 }
 
 /** "Running since 08:00:04" — the clock the artboard puts in the header. */
-function startedAtClock(value) {
+function startedAtClock(value: string | null | undefined) {
     if (!value) return '';
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return '';
@@ -79,7 +90,18 @@ function startedAtClock(value) {
  * Split out so the pane below it reads as four layers rather than one long
  * function — and so the "running since" decision has one place to live.
  */
-function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRunNow }) {
+interface DetailHeaderProps {
+    item: CoworkItem;
+    status: StatusToken;
+    t: TranslateFn;
+    busy?: boolean;
+    onEdit: () => void;
+    onToggle: (id: string) => void;
+    onDelete: (item: CoworkItem) => void;
+    onRunNow: (id: string) => void;
+}
+
+function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRunNow }: DetailHeaderProps) {
     const tile = kindTileStyle('agent', 26);
     // The status word carries the pill on its own EXCEPT while a run is in
     // flight and the server told us when it started. That is the one moment
@@ -153,7 +175,7 @@ function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRun
 }
 
 /** The brief in the user's own words, and the context it runs under. */
-function AssignmentCard({ item, agents, t }) {
+function AssignmentCard({ item, agents, t }: { item: CoworkItem; agents?: CoworkAgent[]; t: TranslateFn }) {
     const agent = item.agentId && Array.isArray(agents)
         ? agents.find(a => a.id === item.agentId)
         : null;
@@ -210,10 +232,25 @@ function AssignmentCard({ item, agents, t }) {
     );
 }
 
+interface CoworkDetailProps {
+    item: CoworkItem;
+    agents?: CoworkAgent[];
+    onRunNow: (id: string) => void;
+    onToggle: (id: string) => void;
+    onDelete: (item: CoworkItem) => void;
+    onSave: (update: CoworkUpdate) => void;
+    busy?: boolean;
+    reloadKey?: number;
+    editing?: boolean;
+    onEdit: () => void;
+    onCancelEdit: () => void;
+    saveError?: string | null;
+}
+
 export default function CoworkDetail({
     item, agents, onRunNow, onToggle, onDelete, onSave, busy, reloadKey,
     editing, onEdit, onCancelEdit, saveError,
-}) {
+}: CoworkDetailProps) {
     const { t } = useTranslation();
     const status = coworkStatus(item);
 

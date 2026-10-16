@@ -27,10 +27,27 @@ import { categoryStyle } from '../../../config/dlpCategoryColors';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { textOffsetFromPoint } from '../../../utils/textSelection';
 import AnchoredMenu from '../../shared/AnchoredMenu';
+import type { AddSpanHandler, DlpSpan, RemoveSpanHandler } from './dlpFindingsState';
+
+interface PendingSelection {
+    offset: number;
+    length: number;
+    text: string;
+    rect: DOMRect;
+}
+
+interface DlpHighlightedTextProps {
+    text: string;
+    spans?: DlpSpan[];
+    onAddSpan?: AddSpanHandler;
+    onRemoveSpan?: RemoveSpanHandler;
+    baseOffset?: number;
+    dense?: boolean;
+}
 
 /** A fixed-position 0-size node AnchoredMenu can anchor a popover to a DOMRect (not a real trigger element). */
-function useVirtualAnchor(rect) {
-    const ref = useRef(null);
+function useVirtualAnchor(rect: DOMRect | undefined) {
+    const ref = useRef<HTMLSpanElement>(null);
     return {
         ref,
         node: rect ? (
@@ -43,12 +60,12 @@ function useVirtualAnchor(rect) {
     };
 }
 
-export default function DlpHighlightedText({ text, spans, onAddSpan, onRemoveSpan, baseOffset = 0, dense = false }) {
+export default function DlpHighlightedText({ text, spans, onAddSpan, onRemoveSpan, baseOffset = 0, dense = false }: DlpHighlightedTextProps) {
     const { t } = useTranslation();
-    const containerRef = useRef(null);
-    const [pendingSelection, setPendingSelection] = useState(null); // {offset, length, text, rect}
-    const [openSpanKey, setOpenSpanKey] = useState(null);
-    const spanAnchorRef = useRef(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [pendingSelection, setPendingSelection] = useState<PendingSelection | null>(null);
+    const [openSpanKey, setOpenSpanKey] = useState<string | null>(null);
+    const spanAnchorRef = useRef<HTMLElement>(null);
 
     const runs = useMemo(() => buildRuns(text || '', spans || []), [text, spans]);
     const pendingAnchor = useVirtualAnchor(pendingSelection?.rect);
