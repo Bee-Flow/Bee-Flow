@@ -46,10 +46,32 @@
 
 import { isSpecialCategory } from './specialCategories';
 
-/** The independent filter axes. Order is the order chips render in. */
-export const FILTER_KEYS = ['kind', 'person', 'place', 'dest', 'region', 'outcome', 'pii', 'day'];
+/** Active filters by axis: a string, or a boolean for `pii`. */
+export type Filters = Record<string, unknown>;
 
-export const NO_FILTERS = Object.freeze({});
+/** The part of a normalised row the filters read. */
+export interface FilterableRow {
+    kinds?: unknown[];
+    found?: unknown[];
+    person?: unknown;
+    place?: unknown;
+    dest?: unknown;
+    region?: unknown;
+    outcome?: unknown;
+    day?: unknown;
+}
+
+/** The window the trend chart is cut into equal buckets. */
+interface BucketWindow {
+    start: string | number | Date;
+    end: string | number | Date;
+    buckets: number;
+}
+
+/** The independent filter axes. Order is the order chips render in. */
+export const FILTER_KEYS: string[] = ['kind', 'person', 'place', 'dest', 'region', 'outcome', 'pii', 'day'];
+
+export const NO_FILTERS: Filters = Object.freeze({});
 
 /**
  * Set an axis, or clear it when the same value is clicked again.
@@ -57,7 +79,7 @@ export const NO_FILTERS = Object.freeze({});
  * Clicking the thing you already filtered by is how people expect to undo it,
  * so every control on the tab is a toggle rather than a one-way set.
  */
-export function toggleFilter(filters, key, value) {
+export function toggleFilter(filters: Filters, key: string, value: unknown): Filters {
     if (!FILTER_KEYS.includes(key)) return filters;
     // A health category is a total, never a filter (see the header).
     if (key === 'kind' && isSpecialCategory(value)) return filters;
@@ -70,7 +92,7 @@ export function toggleFilter(filters, key, value) {
 }
 
 /** Drop one axis regardless of its value — what a chip's ✕ does. */
-export function removeFilter(filters, key) {
+export function removeFilter(filters: Filters, key: string): Filters {
     if (!Object.hasOwn(filters, key)) return filters;
     const next = { ...filters };
     delete next[key];
@@ -82,13 +104,13 @@ export function removeFilter(filters, key) {
  * pills, the day chart, a ranked list) counts over every OTHER filter, so it
  * keeps showing the alternatives while its own choice is highlighted.
  */
-export function omitFilters(filters, keys) {
+export function omitFilters(filters: Filters | null | undefined, keys: string[]): Filters {
     let next = filters || {};
     for (const key of keys) next = removeFilter(next, key);
     return next;
 }
 
-export function isFiltered(filters) {
+export function isFiltered(filters: Filters | null | undefined) {
     return Object.keys(filters || {}).length > 0;
 }
 
@@ -99,9 +121,9 @@ export function isFiltered(filters) {
  * name), so `kind` is a membership test and `pii` a non-empty test, while the
  * other axes are equality.
  */
-const EQUAL_AXES = ['person', 'place', 'dest', 'region', 'outcome', 'day'];
+const EQUAL_AXES = ['person', 'place', 'dest', 'region', 'outcome', 'day'] as const;
 
-export function matches(row, filters) {
+export function matches(row: FilterableRow, filters: Filters | null | undefined) {
     if (!filters) return true;
     if (filters.kind != null && !(row.kinds || []).includes(filters.kind)) return false;
     if (filters.pii != null && (row.found ?? row.kinds ?? []).length === 0) return false;
@@ -111,7 +133,7 @@ export function matches(row, filters) {
     return true;
 }
 
-export function applyFilters(rows, filters) {
+export function applyFilters<R extends FilterableRow>(rows: R[], filters: Filters | null | undefined): R[] {
     if (!isFiltered(filters)) return rows;
     return rows.filter(row => matches(row, filters));
 }
@@ -124,8 +146,8 @@ export function applyFilters(rows, filters) {
  * insertion order, so the same data always renders in the same order instead
  * of reshuffling when a filter changes.
  */
-export function rank(rows, pick, limit = 5) {
-    const counts = new Map();
+export function rank<R, V>(rows: R[] | null | undefined, pick: (row: R) => V | V[], limit = 5) {
+    const counts = new Map<V, number>();
     for (const row of rows || []) {
         const picked = pick(row);
         const values = Array.isArray(picked) ? picked : [picked];
@@ -147,7 +169,7 @@ export function rank(rows, pick, limit = 5) {
  * a broken timestamp is excluded from the trend rather than silently piling
  * into the first bar.
  */
-export function bucketIndexFor(timestamp, { start, end, buckets }) {
+export function bucketIndexFor(timestamp: string | number | Date, { start, end, buckets }: BucketWindow) {
     if (!(buckets > 0)) return null;
     const t = new Date(timestamp).getTime();
     const from = new Date(start).getTime();
@@ -168,7 +190,7 @@ export function bucketIndexFor(timestamp, { start, end, buckets }) {
  *               we fetched. The UI MUST label this, and must say when the
  *               sample is capped: see `isCapped`.
  */
-export function countMode(filters) {
+export function countMode(filters: Filters | null | undefined) {
     return isFiltered(filters) ? 'sample' : 'aggregate';
 }
 
@@ -180,7 +202,7 @@ export function countMode(filters) {
  * total — and a filtered view that does not say so is a wrong number with a
  * confident label.
  */
-export function isCapped({ fetched, total, limit }) {
+export function isCapped({ fetched, total, limit }: { fetched: number; total: number; limit: number }) {
     if (!Number.isFinite(total) || !Number.isFinite(fetched)) return false;
     return fetched < total || (Number.isFinite(limit) && fetched >= limit);
 }

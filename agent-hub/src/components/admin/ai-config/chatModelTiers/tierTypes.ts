@@ -27,6 +27,8 @@ export interface CustomTier {
     temperature?: number;
     reasoningEffort?: string;
     reasoningSummary?: boolean;
+    budgetTokens?: number;
+    verbosity?: string;
     allowedTaskTypes?: string[];
     /** Local-only: the card was just added, show the label/id editor expanded. */
     _isNew?: boolean;

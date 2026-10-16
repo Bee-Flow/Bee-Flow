@@ -14,10 +14,31 @@
 
 import { ExternalLink, Globe, Lock, Mail, Copy, Check, Trash2, Plus, RefreshCw } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type { FocusEvent } from 'react';
+import { errorMessage } from '../../../../utils/caughtError';
 import { copyText } from '../../../../utils/copyText';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import useConfirm from '../../../shared/useConfirm';
 import { useTranslation } from '../../../../hooks/useTranslation';
+
+type AccessMode = 'unlisted' | 'password' | 'email';
+
+/** One public share of a webpage, as `GET /api/webpages/:id/public-shares` lists it. */
+interface PublicShare {
+    id: string;
+    accessMode: AccessMode;
+    url?: string;
+    expiresAt?: string | null;
+    revokedAt?: string | null;
+    viewCount?: number;
+    allowedEmails?: string[];
+}
+
+interface ExternalShareSectionProps {
+    webpageId?: string | null;
+    webpageName?: string | null;
+    readOnly?: boolean;
+}
 
 const EXPIRY_OPTIONS = [
     { value: '1', label: '1 day' },
@@ -27,13 +48,13 @@ const EXPIRY_OPTIONS = [
     { value: 'never', label: 'No expiry' },
 ];
 
-function plusDays(days) {
+function plusDays(days: number) {
     const d = new Date();
     d.setDate(d.getDate() + days);
     return d.toISOString();
 }
 
-function formatExpiry(iso) {
+function formatExpiry(iso?: string | null) {
     if (!iso) return 'No expiry';
     const d = new Date(iso);
     const now = Date.now();
@@ -45,24 +66,24 @@ function formatExpiry(iso) {
     return `Expires ${d.toLocaleDateString()}`;
 }
 
-export default function ExternalShareSection({ webpageId, webpageName, readOnly = false }) {
+export default function ExternalShareSection({ webpageId, webpageName, readOnly = false }: ExternalShareSectionProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    const [shares, setShares] = useState([]);
+    const [shares, setShares] = useState<PublicShare[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [creating, setCreating] = useState(false);
 
     // Form state
     const [showForm, setShowForm] = useState(false);
-    const [accessMode, setAccessMode] = useState('unlisted');
+    const [accessMode, setAccessMode] = useState<AccessMode>('unlisted');
     const [password, setPassword] = useState('');
     const [emailsRaw, setEmailsRaw] = useState('');
     const [expiry, setExpiry] = useState('30');
 
     // One-time URL state — shown right after create.
-    const [justCreated, setJustCreated] = useState(null); // { url, shareId }
-    const [copiedId, setCopiedId] = useState(null);
+    const [justCreated, setJustCreated] = useState<{ url: string; shareId?: string } | null>(null); // { url, shareId }
+    const [copiedId, setCopiedId] = useState<string | null | undefined>(null);
 
     const fetchShares = useCallback(async () => {
         if (!webpageId) return;
@@ -74,7 +95,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
             setShares(Array.isArray(data.shares) ? data.shares : []);
             setError(null);
         } catch (e) {
-            setError(e.message);
+            setError(errorMessage(e));
         } finally {
             setLoading(false);
         }
@@ -100,7 +121,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
         setCreating(true);
         setError(null);
         try {
-            let allowedEmails;
+            let allowedEmails: string[] | undefined;
             if (accessMode === 'email') {
                 allowedEmails = emailsRaw
                     .split(/[\s,;]+/)
@@ -131,13 +152,13 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
             resetForm();
             await fetchShares();
         } catch (e) {
-            setError(e.message);
+            setError(errorMessage(e));
         } finally {
             setCreating(false);
         }
     }, [creating, webpageId, accessMode, password, emailsRaw, expiry, webpageName, fetchShares]);
 
-    const handleRevoke = useCallback(async (shareId) => {
+    const handleRevoke = useCallback(async (shareId: string) => {
         if (!webpageId) return;
         if (!(await confirm({ title: 'Revoke this link?', description: 'Existing recipients will lose access immediately.', confirmLabel: 'Revoke', destructive: true }))) return;
         try {
@@ -150,11 +171,11 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
             }
             await fetchShares();
         } catch (e) {
-            setError(e.message);
+            setError(errorMessage(e));
         }
     }, [webpageId, fetchShares, confirm]);
 
-    const handleRefresh = useCallback(async (shareId) => {
+    const handleRefresh = useCallback(async (shareId: string) => {
         if (!webpageId) return;
         try {
             const res = await authFetch(`${API_BASE}/api/webpages/${webpageId}/public-shares/${shareId}/refresh`, {
@@ -166,11 +187,11 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
             }
             await fetchShares();
         } catch (e) {
-            setError(e.message);
+            setError(errorMessage(e));
         }
     }, [webpageId, fetchShares]);
 
-    const copyToClipboard = async (text, id) => {
+    const copyToClipboard = async (text: string, id?: string) => {
         // The async Clipboard API silently fails inside the Nextcloud iframe when
         // the clipboard-write permission/secure-context/user-gesture isn't all
         // satisfied. Fall back to execCommand('copy') and only mark "Copied" on
@@ -210,7 +231,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                             type="text"
                             value={justCreated.url}
                             readOnly
-                            onFocus={(e) => e.target.select()}
+                            onFocus={(e: FocusEvent<HTMLInputElement>) => e.target.select()}
                             className="flex-1 text-xs px-2 py-1.5 rounded border border-[var(--border-default)] bg-[var(--bg-card,#fff)] text-[var(--text-primary)]"
                         />
                         <button
@@ -319,7 +340,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                                 {s.url && (
                                     <button
                                         type="button"
-                                        onClick={() => copyToClipboard(s.url, s.id)}
+                                        onClick={() => copyToClipboard(s.url as string, s.id)}
                                         title={t('agent_wizard.external_share_copy_link', 'Copy link')}
                                         className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
                                     >

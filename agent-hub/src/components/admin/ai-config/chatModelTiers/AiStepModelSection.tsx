@@ -9,14 +9,24 @@
 // round. Pointing the default tier at a tiny model keeps a demo build warm.
 // Explicit heavier tiers are untouched (core/automationRunner/aiStepModel.js).
 import React from 'react';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+interface AiStepModelSectionProps extends ModelPickerSource {
+    aiStepModel: ModelSetting['model'];
+    setAiStepModel: ModelSetting['setModel'];
+    aiStepModelSaving: ModelSetting['saving'];
+    aiStepModelMessage: ModelSetting['message'];
+    saveAiStepModel: ModelSetting['save'];
+}
+
 export default function AiStepModelSection({
     aiStepModel, setAiStepModel, aiStepModelSaving, aiStepModelMessage,
     saveAiStepModel, chatModels, byProvider, hiddenModelIds, toggleHiddenModel,
-}) {
+}: AiStepModelSectionProps) {
     const { t } = useTranslation();
     return (
             <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>

@@ -104,3 +104,11 @@ export interface CoworkUpdate {
     agentId: string | null;
     enabledApps: string[] | null;
 }
+
+/** The props of the Cowork page. */
+export interface CoworkPageProps {
+    user?: { simpleMode?: boolean } | null;
+    isMobile?: boolean;
+    initialCoworkId?: string | null;
+    onNavigate?: (path: string) => void;
+}

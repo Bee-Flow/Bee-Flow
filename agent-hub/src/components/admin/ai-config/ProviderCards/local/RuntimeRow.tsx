@@ -4,17 +4,35 @@
 import React, { useState } from 'react';
 import { BTN_PRIMARY, BTN_GHOST, TIER_LABELS, testRuntime, pullModel } from './localRuntimeApi';
 import ProbeResult from './ProbeResult';
+import type { ProbeData, RuntimeInfo, RuntimeProvider, StarterModel, PullProgress } from './runtimeTypes';
 import DeleteConfirmButtons from '../shared/DeleteConfirmButtons';
+import type { ProviderMessage } from '../../../../../hooks/useProviderConfig';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from '../shared/ProviderCardShell';
 
-const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, onRemove }) => {
+interface PullState {
+    model: string;
+    status: string;
+    pct: number | null;
+    error: string | null | undefined;
+}
+
+interface RuntimeRowProps {
+    provider: RuntimeProvider;
+    runtime: RuntimeInfo;
+    starterModels: StarterModel[];
+    onMessage?: (message: ProviderMessage) => void;
+    onChanged?: () => void;
+    onRemove: (id: string) => void;
+}
+
+const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, onRemove }: RuntimeRowProps) => {
     const { t } = useTranslation();
-    const [probe, setProbe] = useState(null);
+    const [probe, setProbe] = useState<ProbeData | null>(null);
     const [testing, setTesting] = useState(false);
     const [pullOpen, setPullOpen] = useState(false);
     const [pullInput, setPullInput] = useState('');
-    const [pull, setPull] = useState(null);   // { model, status, pct, error }
+    const [pull, setPull] = useState<PullState | null>(null);   // { model, status, pct, error }
 
     // Providers created from an env var are recreated on restart, so deleting
     // one in the UI is not the way to turn it off — say so rather than letting
@@ -28,11 +46,11 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
         setTesting(false);
     };
 
-    const download = async (model) => {
+    const download = async (model: string) => {
         if (!model?.trim()) return;
         const name = model.trim();
         setPull({ model: name, status: 'starting…', pct: 0, error: null });
-        const result = await pullModel(provider.id, name, ({ status, pct }) => {
+        const result = await pullModel(provider.id, name, ({ status, pct }: PullProgress) => {
             setPull({ model: name, status, pct, error: null });
         });
         if (result.ok) {
@@ -107,7 +125,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                         <input
                             type="text"
                             value={pullInput}
-                            onChange={e => setPullInput(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPullInput(e.target.value)}
                             placeholder={t('admin_ai_config.row_tag_placeholder', 'e.g. qwen3:14b or hf.co/unsloth/gpt-oss-20b-GGUF:Q4_K_M')}
                             className={PROVIDER_INPUT_CLS}
                             style={PROVIDER_INPUT_STYLE}

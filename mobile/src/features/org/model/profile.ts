@@ -1,6 +1,6 @@
 /**
  * Organisation Info and Sign-in Method, as the web edits them
- * (orgInfo/OrgInfoSection.jsx, OrgAuthSection.jsx, orgInfoShared.jsx).
+ * (orgInfo/OrgInfoSection.jsx, OrgAuthSection.tsx, orgInfoShared.jsx).
  */
 
 import type { Organization } from './types';

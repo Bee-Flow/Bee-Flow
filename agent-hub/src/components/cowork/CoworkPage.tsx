@@ -21,29 +21,29 @@ import CoworkComposer from './CoworkComposer';
 import CoworkDetail from './CoworkDetail';
 import CoworkRow from './CoworkRow';
 import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
-import {
-    deleteCowork, listCowork, listCoworkAgents, runCoworkNow, toggleCowork, updateCowork,
-} from './coworkApi';
+import { deleteCowork, listCowork, listCoworkAgents, runCoworkNow, toggleCowork, updateCowork } from './coworkApi';
 import { isInFlight } from './coworkStatus';
 import useCoworkComposer from './useCoworkComposer';
+import type { CoworkAgent, CoworkItem, CoworkPageProps, CoworkUpdate } from './cowork.types';
+import { errorMessage } from '../../utils/caughtError';
 
-export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }) {
+export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }: CoworkPageProps) {
     const { t } = useTranslation();
-    const [items, setItems] = useState([]);
+    const [items, setItems] = useState<CoworkItem[]>([]);
     const [maxItems, setMaxItems] = useState(10);
     const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState(null);
-    const [actionError, setActionError] = useState(null);
+    const [loadError, setLoadError] = useState<string | null | undefined>(null);
+    const [actionError, setActionError] = useState<string | null | undefined>(null);
     const [brief, setBrief] = useState('');
     const [busy, setBusy] = useState(false);
-    const [selectedId, setSelectedId] = useState(initialCoworkId);
-    const [editingId, setEditingId] = useState(null);
-    const [pendingDelete, setPendingDelete] = useState(null);
-    const [flash, setFlash] = useState(null);
+    const [selectedId, setSelectedId] = useState<string | null>(initialCoworkId);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [pendingDelete, setPendingDelete] = useState<CoworkItem | null>(null);
+    const [flash, setFlash] = useState<string | null>(null);
     // Bumped after any mutation so an open history refetches without a reload.
     const [reloadKey, setReloadKey] = useState(0);
-    const [agents, setAgents] = useState([]);
-    const textareaRef = useRef(null);
+    const [agents, setAgents] = useState<CoworkAgent[]>([]);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const refresh = useCallback(async () => {
         try {
@@ -52,7 +52,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
             setMaxItems(max);
             setLoadError(null);
         } catch (err) {
-            setLoadError(err.message);
+            setLoadError(errorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -128,7 +128,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
         [items, selectedId],
     );
 
-    const select = useCallback((id) => {
+    const select = useCallback((id: string) => {
         setSelectedId(id);
         // Switching rows abandons an open edit: carrying the form over to a
         // different item would save one item's text onto another.
@@ -137,7 +137,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
         if (onNavigate) onNavigate(`cowork/${id}`);
     }, [onNavigate]);
 
-    const withBusy = useCallback(async (fn) => {
+    const withBusy = useCallback(async (fn: () => Promise<unknown>) => {
         setBusy(true);
         setActionError(null);
         try {
@@ -145,18 +145,18 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
             await refresh();
             setReloadKey(k => k + 1);
         } catch (err) {
-            setActionError(err.message);
+            setActionError(errorMessage(err));
         } finally {
             setBusy(false);
         }
     }, [refresh]);
 
-    const handleRunNow = useCallback((id) => withBusy(async () => {
+    const handleRunNow = useCallback((id: string) => withBusy(async () => {
         await runCoworkNow(id);
         setFlash('Running — the result lands in your notifications.');
     }), [withBusy]);
 
-    const handleToggle = useCallback((id) => withBusy(() => toggleCowork(id)), [withBusy]);
+    const handleToggle = useCallback((id: string) => withBusy(() => toggleCowork(id)), [withBusy]);
 
     const handleDelete = useCallback(async () => {
         const item = pendingDelete;
@@ -168,7 +168,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
         });
     }, [pendingDelete, withBusy]);
 
-    const handleSave = useCallback(async (patch) => {
+    const handleSave = useCallback(async (patch: CoworkUpdate) => {
         if (!selectedId) return;
         setBusy(true);
         setActionError(null);
@@ -179,7 +179,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
             setEditingId(null);
             await refresh();
         } catch (err) {
-            setActionError(err.message);
+            setActionError(errorMessage(err));
         } finally {
             setBusy(false);
         }

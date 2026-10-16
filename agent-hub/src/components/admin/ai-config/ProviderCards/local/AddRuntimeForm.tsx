@@ -6,34 +6,9 @@
 import React, { useState } from 'react';
 import { BTN_PRIMARY, BTN_GHOST, testRuntime } from './localRuntimeApi';
 import ProbeResult from './ProbeResult';
+import type { RuntimeInfo, ProbeData, ConnectRequest } from './runtimeTypes';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from '../shared/ProviderCardShell';
-
-/** One entry of GET /ai/local-runtimes. */
-interface RuntimeInfo {
-    type?: string;
-    label?: string;
-    defaultUrl?: string;
-    docsUrl?: string;
-    description?: string;
-}
-
-/** What "Test connection" answers. */
-interface ProbeData {
-    ok: boolean;
-    error?: string | null;
-    version?: string | null;
-    modelCount?: number;
-    models?: { id: string; name?: string; cat?: string }[];
-}
-
-/** What the form hands to onConnect. */
-interface ConnectRequest {
-    type?: string;
-    name?: string;
-    url?: string;
-    apiKey?: string;
-}
 
 interface AddRuntimeFormProps {
     runtimes: RuntimeInfo[];

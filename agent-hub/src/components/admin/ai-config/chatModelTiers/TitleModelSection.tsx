@@ -2,14 +2,24 @@
 // verbatim from ChatModelTiersConfig.jsx; all bindings are threaded in as
 // props.
 import React from 'react';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+interface TitleModelSectionProps extends ModelPickerSource {
+    titleModel: ModelSetting['model'];
+    setTitleModel: ModelSetting['setModel'];
+    titleModelSaving: ModelSetting['saving'];
+    titleModelMessage: ModelSetting['message'];
+    saveTitleModel: ModelSetting['save'];
+}
+
 export default function TitleModelSection({
     titleModel, setTitleModel, titleModelSaving, titleModelMessage,
     saveTitleModel, chatModels, byProvider, hiddenModelIds, toggleHiddenModel,
-}) {
+}: TitleModelSectionProps) {
     const { t } = useTranslation();
     return (
             <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>

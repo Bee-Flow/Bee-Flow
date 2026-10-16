@@ -2,13 +2,21 @@
 // Subtree moved verbatim from ChatModelTiersConfig.jsx's
 // renderCustomTierEuRow(); all bindings are threaded in as props.
 import React from 'react';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { CustomTier } from './tierTypes';
+import type { CustomTiersState } from './useCustomTiers';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+interface CustomTierEuRowProps extends ModelPickerSource {
+    tier: CustomTier;
+    updateCustomTier: CustomTiersState['updateCustomTier'];
+}
+
 export default function CustomTierEuRow({
     tier, chatModels, byProvider, hiddenModelIds, toggleHiddenModel, updateCustomTier,
-}) {
+}: CustomTierEuRowProps) {
     const { t } = useTranslation();
         const selectedModel = chatModels.find(m => m.id === tier.euModelId);
         const displayName = selectedModel ? getModelDisplayName(selectedModel) : null;

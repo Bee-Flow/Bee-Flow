@@ -23,7 +23,7 @@
  *
  * Pure and rendering-free on purpose — the words live in the component, where
  * the i18n guard can see the keys. Same split as
- * `components/agents/AgentStudio/deleteBlock.js`, which reads the agent
+ * `components/agents/AgentStudio/deleteBlock.ts`, which reads the agent
  * guard's 409; this one reads `usage`, the field name
  * `shared/DangerZone.inUsePayload` knows, rather than that reader's `rows`.
  */

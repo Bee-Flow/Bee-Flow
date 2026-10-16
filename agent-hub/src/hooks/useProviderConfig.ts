@@ -29,6 +29,10 @@ import { API_BASE, authFetch } from '../utils/helpers';
 export interface ProviderConfig {
     /** Always a string: the server falls back to 'europe-west4' (routes/ai/config/instanceConfig.js). */
     googleVertexLocation?: string;
+    /** Always a string: the server answers `|| ''` (routes/ai/config/instanceConfig.js). */
+    azureModels?: string;
+    /** Always a string: the server falls back to the Cohere default (routes/ai/config/instanceConfig.js). */
+    azureRerankerModel?: string;
     [key: string]: unknown;
 }
 
