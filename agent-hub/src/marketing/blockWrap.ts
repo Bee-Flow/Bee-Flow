@@ -68,3 +68,17 @@ export function withFlatBand<T extends { style?: { band?: unknown } | null; cont
     if (current !== undefined && current !== null && current !== '') return block;
     return { ...block, content: { ...content, backgroundVariant: 'default' } };
 }
+
+/**
+ * A cta has two motif settings: the legacy content.showMotif (the hex line
+ * art of the closing band, on by default) and style.motif (the brand motif on
+ * the wrapper). style.motif is the one setting; showMotif is only the
+ * fallback while style.motif is unset, so both never draw at once.
+ */
+export function withSingleMotif<T extends { type?: unknown; style?: { motif?: unknown } | null; content?: unknown }>(block: T): T {
+    if (block.type !== 'cta' || !block.style?.motif) return block;
+    const content = block.content;
+    if (!content || typeof content !== 'object' || Array.isArray(content)) return block;
+    if ((content as { showMotif?: unknown }).showMotif === false) return block;
+    return { ...block, content: { ...content, showMotif: false } };
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { designStyleClasses, designStyleVars, displayTrackingEm, withFlatBand } from './blockWrap';
+import { designStyleClasses, designStyleVars, displayTrackingEm, withFlatBand, withSingleMotif } from './blockWrap';
 
 describe('designStyleClasses', () => {
     it('emits nothing for a style without design keys', () => {
@@ -80,5 +80,19 @@ describe('withFlatBand', () => {
         expect(withFlatBand(dark)).toBe(dark);
         expect(withFlatBand(surface)).toBe(surface);
         expect(withFlatBand(none)).toBe(none);
+    });
+});
+
+describe('withSingleMotif', () => {
+    it('turns the cta content showMotif off when style.motif is set (one motif, style wins)', () => {
+        const block = { type: 'cta', style: { motif: 'honeycomb' }, content: { showMotif: true, title: 'x' } };
+        expect(withSingleMotif(block).content).toEqual({ showMotif: false, title: 'x' });
+    });
+
+    it('leaves a cta without style.motif, and other block types, alone', () => {
+        const plain = { type: 'cta', style: {}, content: { showMotif: true } };
+        const other = { type: 'hero', style: { motif: 'honeycomb' }, content: { showMotif: true } };
+        expect(withSingleMotif(plain)).toBe(plain);
+        expect(withSingleMotif(other)).toBe(other);
     });
 });
