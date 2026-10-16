@@ -11,6 +11,7 @@ const supportInboxStore = require('../../stores/supportInboxStore');
 const audit = require('../../support/audit');
 const providerClients = require('../../services/email/providerClients');
 const { resolveOrgScope, loadInboxInScope } = require('./inboxScope');
+const { oauthClosePage: _oauthClosePage, serviceEmailClosePage: _serviceEmailClosePage } = require('./oauthClosePage');
 
 /**
  * Build the OAuth callback URL. Mirrors the login flow (server/auth/oauthRoutes.js):
@@ -34,24 +35,6 @@ function redirectUriFor(req) {
         if (!host) host = req.get('host');
     }
     return `${protocol}://${host}/api/support-inbox/oauth/callback`;
-}
-
-function _oauthClosePage(ok, message) {
-    const payload = JSON.stringify({ type: 'support-mailbox-oauth', ok, message: message || '' });
-    return `<!doctype html><html><head><meta charset="utf-8"><title>Mailbox connected</title></head>
-<body style="font-family:system-ui,sans-serif;padding:40px;text-align:center;color:#0f172a">
-<p>${ok ? 'Mailbox connected. You can close this window.' : `Connection failed: ${String(message || '').slice(0, 200)}`}</p>
-<script>try{window.opener&&window.opener.postMessage(${JSON.stringify(payload)},'*');}catch(e){}setTimeout(function(){window.close();},800);</script>
-</body></html>`;
-}
-
-function _serviceEmailClosePage(ok, message) {
-    const payload = JSON.stringify({ type: 'service-email-oauth', ok, message: message || '' });
-    return `<!doctype html><html><head><meta charset="utf-8"><title>Service email connected</title></head>
-<body style="font-family:system-ui,sans-serif;padding:40px;text-align:center;color:#0f172a">
-<p>${ok ? 'Service email connected. You can close this window.' : `Connection failed: ${String(message || '').slice(0, 200)}`}</p>
-<script>try{window.opener&&window.opener.postMessage(${JSON.stringify(payload)},'*');}catch(e){}setTimeout(function(){window.close();},800);</script>
-</body></html>`;
 }
 
 /**
