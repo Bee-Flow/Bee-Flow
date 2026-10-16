@@ -87,15 +87,15 @@ describe('the image can be told at container start, without a rebuild', () => {
 
     it('is loaded by index.html before the app module', () => {
         // Match the TAGS, not any mention of the path: index.html also names
-        // /src/main.jsx in a comment near the top, and comparing raw indexOf
+        // /src/main.tsx in a comment near the top, and comparing raw indexOf
         // offsets made this fail on a file whose script order was correct.
         const html = read('agent-hub/index.html');
         // Relative to the build's base (%BASE_URL%), so the Nextcloud embed
         // asks its own proxy for the file, not Nextcloud's root (BFSF-483).
         const runtimeAt = html.search(/<script\s+src="%BASE_URL%beeflow-runtime\.js"/);
-        const mainAt = html.search(/<script\s+type="module"\s+src="\/src\/main\.jsx"/);
+        const mainAt = html.search(/<script\s+type="module"\s+src="\/src\/main\.tsx"/);
         expect(runtimeAt, 'no <script src="%BASE_URL%beeflow-runtime.js"> tag').toBeGreaterThan(-1);
-        expect(mainAt, 'no <script type="module" src="/src/main.jsx"> tag').toBeGreaterThan(-1);
+        expect(mainAt, 'no <script type="module" src="/src/main.tsx"> tag').toBeGreaterThan(-1);
         expect(runtimeAt, 'the runtime file must load before the app module').toBeLessThan(mainAt);
     });
 

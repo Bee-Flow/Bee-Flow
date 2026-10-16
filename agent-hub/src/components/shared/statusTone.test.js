@@ -7,6 +7,7 @@ import {
     TONES, TONE_KEYS, toneOfCheckStatus, toneOfScore, toneOfClock, toneOfSeverity,
     glyphOfCheckStatus, headlineKeyOfScore, HEADLINE_FALLBACK,
 } from './statusTone';
+import { readAppCss } from '../../test/appStylesheets';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,11 +27,11 @@ describe('statusTone — one tone pair per status word', () => {
         expect(Object.isFrozen(TONES)).toBe(true);
     });
 
-    it('every token it names is declared in src/index.css (no --status-*, no hex)', () => {
-        const css = fs.readFileSync(path.join(here, '..', '..', 'index.css'), 'utf8');
+    it('every token it names is declared in the app stylesheets (no --status-*, no hex)', () => {
+        const css = readAppCss();
         const src = fs.readFileSync(path.join(here, 'statusTone.ts'), 'utf8');
         for (const m of src.matchAll(/var\((--[a-z-]+)\)/g)) {
-            expect(css.includes(`${m[1]}:`), `${m[1]} declared in index.css`).toBe(true);
+            expect(css.includes(`${m[1]}:`), `${m[1]} declared in index.css, themes.css or app.css`).toBe(true);
         }
         expect(src).not.toMatch(/--status-/);
         expect(src).not.toMatch(/#[0-9a-f]{3,8}\b/i);

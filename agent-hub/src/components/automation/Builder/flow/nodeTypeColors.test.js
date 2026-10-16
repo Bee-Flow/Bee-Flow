@@ -8,6 +8,7 @@ import {
     TYPE_GROUPS, typeGroupOf, typeColorVar, typeTint, typeTileStyle, cardChrome, cardRadius,
     STATUS_VAR, STATUS_BADGE, statusVar, miniMapColor, CARD_W, CARD_H,
 } from './nodeTypeColors';
+import { readAppCss, readStylesheet } from '../../../../test/appStylesheets';
 import { STATUS_TOKENS, tokenFor } from '../../../shared/statusTokens';
 
 /**
@@ -18,14 +19,19 @@ import { STATUS_TOKENS, tokenFor } from '../../../shared/statusTokens';
  * way — the forgotten type simply renders grey — so this file proves, for
  * every renderable type, that it names a family, that every family is used,
  * and that every CSS variable the module emits is actually declared in
- * src/index.css (an undeclared var() paints NOTHING, in every theme).
+ * the app stylesheets (an undeclared var() paints NOTHING, in every theme).
+ * Since issue 245 those are index.css (default dark :root + light), themes.css
+ * (the --type-* two-set blocks and the six alternate themes) and app.css (the
+ * rules, the pulse keyframe among them).
  */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const INDEX_CSS = fs.readFileSync(path.resolve(HERE, '../../../../index.css'), 'utf8');
+const APP_CSS = readAppCss();
+// The --type-* two-set blocks live in themes.css; the block assertions read it alone.
+const THEMES_CSS = readStylesheet('themes.css');
 const SELF = fs.readFileSync(path.join(HERE, 'nodeTypeColors.ts'), 'utf8');
 
-const declared = new Set([...INDEX_CSS.matchAll(/(--[a-z0-9-]+)\s*:/g)].map(m => m[1]));
+const declared = new Set([...APP_CSS.matchAll(/(--[a-z0-9-]+)\s*:/g)].map(m => m[1]));
 
 describe('nodeTypeColors — every step type has a family', () => {
     for (const type of NODE_TYPE_KEYS) {
@@ -70,7 +76,7 @@ describe('nodeTypeColors — every step type has a family', () => {
     });
 });
 
-describe('nodeTypeColors — every variable it emits is declared in src/index.css', () => {
+describe('nodeTypeColors — every variable it emits is declared in the app stylesheets', () => {
     it('the module names only declared custom properties', () => {
         const missing = new Set();
         for (const m of SELF.matchAll(/var\((--[a-z0-9-]+)/g)) {
@@ -83,8 +89,8 @@ describe('nodeTypeColors — every variable it emits is declared in src/index.cs
     });
 
     it('every family token is declared in BOTH the dark and the light set', () => {
-        const dark = INDEX_CSS.match(/:root,\n\[data-theme="glass-dark"\],\n\[data-theme="obsidian"\] \{[^}]*--type-trigger[^}]*\}/);
-        const light = INDEX_CSS.match(/\[data-theme="light"\],\n\[data-theme="glass"\],\n\[data-theme="high-contrast"\],\n\[data-theme="paper"\],\n\[data-theme="sepia"\] \{[^}]*--type-trigger[^}]*\}/);
+        const dark = THEMES_CSS.match(/:root,\n\[data-theme="glass-dark"\],\n\[data-theme="obsidian"\] \{[^}]*--type-trigger[^}]*\}/);
+        const light = THEMES_CSS.match(/\[data-theme="light"\],\n\[data-theme="glass"\],\n\[data-theme="high-contrast"\],\n\[data-theme="paper"\],\n\[data-theme="sepia"\] \{[^}]*--type-trigger[^}]*\}/);
         expect(dark, 'dark --type-* block').toBeTruthy();
         expect(light, 'light --type-* block').toBeTruthy();
         for (const fam of NODE_FAMILIES) {
@@ -92,20 +98,21 @@ describe('nodeTypeColors — every variable it emits is declared in src/index.cs
             expect(dark[0], `dark set lacks --type-${fam}`).toContain(`--type-${fam}:`);
             expect(light[0], `light set lacks --type-${fam}`).toContain(`--type-${fam}:`);
         }
-        expect(INDEX_CSS).toContain('--type-end: var(--text-primary)');
+        expect(APP_CSS).toContain('--type-end: var(--text-primary)');
     });
 
     it('--pinned is declared in every one of the eight theme blocks, like --error is', () => {
-        const errors = INDEX_CSS.match(/^ {4}--error: #/gm) || [];
-        const pinned = INDEX_CSS.match(/^ {4}--pinned: #/gm) || [];
+        const errors = APP_CSS.match(/^ {4}--error: #/gm) || [];
+        const pinned = APP_CSS.match(/^ {4}--pinned: #/gm) || [];
         expect(errors.length).toBe(8);
         expect(pinned.length).toBe(8);
     });
 
     it('the running pulse keyframe exists and animates only outline-color', () => {
-        const start = INDEX_CSS.indexOf('@keyframes bf-node-pulse');
+        const rules = readStylesheet('app.css');
+        const start = rules.indexOf('@keyframes bf-node-pulse');
         expect(start).toBeGreaterThan(0);
-        const body = INDEX_CSS.slice(start, INDEX_CSS.indexOf('@keyframes', start + 10));
+        const body = rules.slice(start, rules.indexOf('@keyframes', start + 10));
         expect(body).toContain('outline-color');
         expect(body).not.toMatch(/width|height|margin|padding|top:|left:/);
         // The COLOUR is the card's to choose: cardChrome hands the keyframe
