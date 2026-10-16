@@ -28,7 +28,7 @@ describe('statusTone — one tone pair per status word', () => {
 
     it('every token it names is declared in src/index.css (no --status-*, no hex)', () => {
         const css = fs.readFileSync(path.join(here, '..', '..', 'index.css'), 'utf8');
-        const src = fs.readFileSync(path.join(here, 'statusTone.js'), 'utf8');
+        const src = fs.readFileSync(path.join(here, 'statusTone.ts'), 'utf8');
         for (const m of src.matchAll(/var\((--[a-z-]+)\)/g)) {
             expect(css.includes(`${m[1]}:`), `${m[1]} declared in index.css`).toBe(true);
         }

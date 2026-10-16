@@ -14,6 +14,7 @@
  * the affordance instead of handing a visitor a 401 page. `downloadUrl` is
  * that switch; the pages already treat a null url as "no download button".
  */
+import type { AuthFetchOptions } from '../../../../utils/helpers';
 import { authFetch } from '../../../../utils/helpers';
 
 export const API = (import.meta.env.VITE_API_URL || '') + '/api/compliance';
@@ -36,7 +37,7 @@ export interface FetchJsonError extends Error {
  * with a `details` object (a 422 listing the missing field codes) hands that
  * over as `details`; anything else leaves it null.
  */
-export async function fetchJson(url: string, init?: RequestInit) {
+export async function fetchJson(url: string, init?: AuthFetchOptions) {
     const r = await authFetch(url, { ...OPTS, ...(init || {}) });
     if (!r.ok) {
         const err: FetchJsonError = new Error(`${r.status} ${r.statusText}`);

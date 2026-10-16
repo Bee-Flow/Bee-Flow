@@ -10,6 +10,7 @@
 // reaching for `authFetch` directly. The old direct-fetch call sites can
 // migrate file-by-file.
 
+import type { AuthFetchOptions } from '../utils/helpers';
 import { API_BASE, authFetch } from '../utils/helpers';
 
 export interface ApiErrorInit {
@@ -79,7 +80,7 @@ interface AttemptOptions extends RequestOptions {
 async function attempt<T>(method: string, path: string, opts: AttemptOptions = {}): Promise<T | null> {
     const { signal, body, query, headers } = opts;
     const url = buildUrl(path, query);
-    const init: RequestInit = { method, signal };
+    const init: AuthFetchOptions = { method, signal };
     if (body !== undefined && body !== null) {
         init.headers = { 'Content-Type': 'application/json', ...(headers || {}) };
         init.body = JSON.stringify(body);
@@ -199,9 +200,9 @@ export function createJsonResource(base = '', options: JsonResourceOptions = {})
         retry = false,
     } = options;
 
-    function toFetchInit(init: JsonResourceInit): RequestInit {
+    function toFetchInit(init: JsonResourceInit): AuthFetchOptions {
         const { body: rawBody, headers: callerHeaders, ...rest } = init;
-        const fetchInit: RequestInit = { ...rest };
+        const fetchInit: AuthFetchOptions = { ...rest };
         const hasBody = rawBody !== undefined;
         const form = isFormData(rawBody);
         const wantsJson = (contentType === 'json' && !form) || (contentType === 'body' && hasBody);

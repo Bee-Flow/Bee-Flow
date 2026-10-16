@@ -30,7 +30,7 @@ describe('the sections', () => {
 
 describe('the settings form', () => {
     it('has the web table’s groups, columns and kinds', () => {
-        const src = read(`${WEB}/pages/settings/settingsFields.js`);
+        const src = read(`${WEB}/pages/settings/settingsFields.ts`);
         const web = [...src.matchAll(/name: '([a-z0-9_]+)', kind: '([a-z]+)'/g)]
             .map((m) => [m[1], m[2]] as const)
             .filter(([, kind]) => kind !== 'userfill');

@@ -12,6 +12,8 @@ import { recentForms, rememberFormOpened } from '../../../utils/formRecents';
 import { STUDIO_RECENT_SOURCES } from '../../../utils/studioRecentSources';
 import { groupStudioApps, studioLockHint } from '../../admin/Studio/studioApps';
 import { studioLanding, studioSectionLabel } from '../../admin/Studio/studioNav';
+import type { StudioNavUser } from '../../admin/Studio/studioNav';
+import type { StudioNavDescriptor } from '../../admin/Studio/studioGates';
 import AppIconJs from '../../icons/AppIcon';
 import { kindColorVar } from '../../shared/kindColors';
 
@@ -43,6 +45,7 @@ export interface NavItem {
 /** A Studio section descriptor, as the registry (studioApps.jsx) declares it. */
 export interface StudioSection {
     id: string;
+    gate: StudioNavDescriptor['gate'];
     urlSegment: string;
     Icon?: NavItem['icon'];
     kind?: string;
@@ -147,7 +150,7 @@ export function studioFlyoutRow(app: StudioSection, c: StudioRowContext): NavIte
  * flat: Build · AI · Bundle for the first-party sections, Add-ons for
  * installed modules (declared in the registry, studioApps.jsx).
  */
-function studioNavItem(sections: StudioSection[], user: unknown, c: StudioRowContext): NavItem {
+function studioNavItem(sections: StudioSection[], user: StudioNavUser | null | undefined, c: StudioRowContext): NavItem {
     return {
         key: 'studio',
         label: c.t('studio.sidebar_link', 'Studio'),
@@ -259,7 +262,7 @@ function formsNavItem(publishedForms: PublishedForm[], t: Translate, onNavigate:
 export interface SecondaryNavOptions extends StudioRowContext {
     onOpenMarketplace?: (() => void) | null;
     showMarketplace: boolean;
-    user: unknown;
+    user: StudioNavUser | null | undefined;
     /** Studio sections this person sees; the row needs both the right and something in it. */
     studioSections: StudioSection[] | null;
     /** app_studio + use_apps, and at least one published app to open. */

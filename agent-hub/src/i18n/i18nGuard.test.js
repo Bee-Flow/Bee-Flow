@@ -264,7 +264,7 @@ const CARRIERS = [
  * and fixture files flip.
  */
 const FIELD_SELECTOR_FILES = [
-    'components/admin/Studio/AppStudio/runtime/componentRegistry.jsx',
+    'components/admin/Studio/AppStudio/runtime/componentRegistry.ts',
     'components/admin/Studio/AppStudio/state/sampleDefinitions.ts',
     'demo/fixtures/appStudio.js',
 ];
@@ -399,7 +399,7 @@ const KEY_TABLE_FILES = [
     // De statustabellen van de ISMS-registers (AUDIT_STATUS, FINDING_SEVERITY,
     // NC_STATUS, NC_SEVERITY, NC_SOURCE, OBJ_STATUS) — de opvolger van de
     // { key, en }-tabellen uit de oude AuditPage.jsx.
-    'components/admin/compliance/pages/audits/auditForms.js',
+    'components/admin/compliance/pages/audits/auditForms.ts',
     // The access log's event labels (ACTION_META), moved out of
     // AccessAuditPage.jsx. The same { key, en } shape has slipped past the
     // guard four times (labelKey in O4 and W5, the studio.ai.err_* table in
@@ -417,7 +417,7 @@ const KEY_TABLE_FILES = [
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
-    'components/admin/compliance/pages/settings/settingsFields.js',
+    'components/admin/compliance/pages/settings/settingsFields.ts',
     'components/automation/Builder/flow/nodeTypeColors.ts',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
@@ -473,8 +473,8 @@ const TEXT_HELPERS = [
     { rel: 'components/projects/relativeTime.ts', pending: 'PRJ — the same five sentences, copied' },
     { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.ts', pending: 'RUN — times, durations, expiry and the day buckets' },
     { rel: 'components/automation/taskFormatters.ts', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
-    { rel: 'pages/meeting-notes/lib/format.js', pending: 'MTG — the same ladder again' },
-    { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
+    { rel: 'pages/meeting-notes/lib/format.ts', pending: 'MTG — the same ladder again' },
+    { rel: 'utils/helpers.ts', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
     { rel: 'utils/dateFormatters.ts', pending: 'shared — durations and byte sizes; the unit suffix is copy too' },
     { rel: 'pages/settings/usage/format.ts', pending: 'USE — billing-period ranges, browser locale' },
     { rel: 'components/cowork/coworkSchedule.ts', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
@@ -493,7 +493,7 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
     { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
     { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.ts', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
-    { rel: 'components/admin/product-website/analytics/filters.js', pending: 'CMS — analytics filter names' },
+    { rel: 'components/admin/product-website/analytics/filters.ts', pending: 'CMS — analytics filter names' },
     { rel: 'components/admin/product-website/analytics/heatmap/model.js', pending: 'CMS — block-type names in the heatmap' },
     // Caught by the relative-time signature on the words "just now" in a
     // sentence that is not about time at all — which is the check doing its

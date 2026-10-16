@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-interface CmsSeo {
+export interface CmsSeo {
     metaTitle?: string;
     metaDescription?: string;
     ogImage?: string;

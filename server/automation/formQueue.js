@@ -41,37 +41,18 @@
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 
-const QUEUE_DEPTH = 25;
-// Cross-pod collision backoff. Three tries covers a normal run's length
-// without holding a browser's poll open indefinitely.
-const RETRY_DELAYS_MS = [1000, 3000, 9000];
-const CANCELLED_RE = /already running/i;
-// How long a pod owns work it has queued without renewing. Renewed every
-// LEASE_RENEW_MS while held, so only a dead (or wedged) pod lets it lapse.
-const LEASE_MS = 2 * 60_000;
-const LEASE_RENEW_MS = 40_000;
-// A first submission whose live attempt gave up (the automation stayed busy on
-// another pod) goes back to the sweep after this long rather than being lost.
-const RETRY_LATER_MS = 60_000;
-// How often the sweep may pick the same work up before it is given up on.
-const MAX_RECOVERIES = 3;
-const RECOVERY_BATCH = 25;
-
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-/**
- * Another pod held the automation's running marker, so this run did nothing.
- * Our own queue cannot see theirs, hence the back-off retry in runQueued.
- */
-function lostToConcurrency(run) {
-    return !!run && run.status === 'cancelled' && CANCELLED_RE.test(run.error || '');
-}
-
-/** The answers-table row this journey writes to (its id rides on the trigger headers). */
-function answersRefOf(session) {
-    const h = session?.triggerHeaders || {};
-    return h.answers_row_id ? { datatableId: h.answers_datatable_id || null, rowId: h.answers_row_id } : null;
-}
+const {
+    QUEUE_DEPTH,
+    RETRY_DELAYS_MS,
+    LEASE_MS,
+    RETRY_LATER_MS,
+    MAX_RECOVERIES,
+    sleep,
+    lostToConcurrency,
+} = require('./formQueueShared');
+const { createFormWork } = require('./formQueueWork');
+const { createFormLeases } = require('./formQueueLeases');
+const { createFormRecovery } = require('./formQueueRecovery');
 
 /**
  * One queue with its own state. The server uses the single instance this
@@ -90,172 +71,10 @@ function createFormQueue(overrides = {}) {
     /** automationId → { running: bool, items: [], reserved: number, current: item|null } */
     const queues = new Map();
     let stopping = false;
-    let renewTimer = null;
 
-    /**
-     * Close out the run the visitor just resumed.
-     *
-     * resumeFromStep starts a CHILD run and leaves the parent sitting in
-     * 'awaiting_form' forever — so reapExpiredFormWaits later flipped a form the
-     * visitor had actually COMPLETED to a "FormExpired" error, and the owner's run
-     * history recorded a failure for a submission that worked (W5-15). The
-     * approve-step endpoint has always finalised its parent this way; this is the
-     * same shape for the form pause: the parent's own portion, up to the pause,
-     * succeeded, and its summary points at the child that carries the continuation.
-     *
-     * The session is re-pointed at the child FIRST. It happens again in runQueued
-     * (idempotent), but doing it here closes a real window: the poll reads
-     * `session.runId`, and a parent flipped to 'success' while the session still
-     * pointed at it would answer `state: 'done'` — ending the visitor's journey
-     * before the child had a chance to serve the next page.
-     */
-    async function finaliseResumedParent(session, parentRunId, child) {
-        if (session?.id) await automationStore.attachFormSessionRun(session.id, child.id).catch(() => {});
-        await automationStore.updateRun(parentRunId, {
-            status: 'success',
-            summary: `Resumed from the form — see child run ${child.id}`,
-            finishedAt: new Date().toISOString(),
-            awaitingStepId: null,
-        }).catch(() => {});
-    }
+    const { makeItem, stopServingPage } = createFormWork({ automationStore, runner, formAnswers });
 
-    // ── The work itself ───────────────────────────────────
-    //
-    // Built from (automation, session, work) and nothing else, so the call a
-    // recovered row makes is exactly the call the original request would have
-    // made. `work` is what sits in pending_work:
-    //
-    //   { kind: 'submit', payload, submitterId }
-    //   { kind: 'resume', parentRunId, stepId, values, submitterId }
-
-    /** A first submission: start the automation with the visitor's answers. */
-    function submitThunk(automation, session, work) {
-        const answers = answersRefOf(session);
-        const submitterId = work.submitterId || null;
-        return () => runner().executeAutomation(automation, {
-            triggerKind: 'form',
-            triggerPayload: { ...(work.payload || {}) },
-            triggerHeaders: session.triggerHeaders,
-            rootStepId: session.rootStepId || null,
-            // Point the session at the run the MOMENT it exists, not when it
-            // returns. executeAutomation resolves only once the automation has
-            // paused or finished, so waiting for it left session.runId null for
-            // the whole first stretch — and the poll has nothing to report
-            // progress from without a run to read.
-            onRunCreated: async (r) => {
-                await automationStore.attachFormSessionRun(session.id, r.id);
-                // FRM-08: who submitted, on the run — and the run, on the row.
-                if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch(() => {});
-                if (answers) await formAnswers().attachRun({ automation, datatableId: answers.datatableId, rowId: answers.rowId, run: r });
-            },
-            // No more pages to answer: the journey is complete (an error is
-            // "complete" too — nothing further will be asked).
-            onRunFinished: answers
-                ? (r, { status }) => ((status === 'success' || status === 'error')
-                    ? formAnswers().markCompleted({ automation, datatableId: answers.datatableId, rowId: answers.rowId })
-                    : null)
-                : null,
-        });
-    }
-
-    /** Stop handing the answered page back while its resume is in flight (see formPublic.js). */
-    function stopServingPage(parentRunId) {
-        return automationStore.updateRun(parentRunId, { awaitingStepId: null }).catch(() => {});
-    }
-
-    /** A later page: resume the paused run with this page's answers. */
-    function resumeThunk(automation, session, work) {
-        const answersRef = answersRefOf(session);
-        const submitterId = work.submitterId || null;
-        const parentRunId = work.parentRunId;
-        const stepId = work.stepId;
-        const serveAgain = () => automationStore.updateRun(parentRunId, { awaitingStepId: stepId }).catch(() => {});
-        // The session is pointed at the child as soon as it exists (below), so
-        // a resume that never completed has to hand the pointer BACK — else the
-        // poll reads a dead child and shows a failure for an answer that is
-        // about to be retried.
-        const pointAtParent = () => automationStore.attachFormSessionRun(session.id, parentRunId).catch(() => {});
-        return async () => {
-            await stopServingPage(parentRunId);   // idempotent: runQueued may retry this thunk
-            let child;
-            try {
-                child = await runner().resumeFromStep(parentRunId, stepId, {
-                    decision: { ...(work.values || {}) },
-                    rootStepId: session.rootStepId,
-                    triggerHeaders: session.triggerHeaders,
-                    // Same reason as the first submission: the child is where
-                    // the work happens, and it must be readable while it
-                    // happens. finaliseResumedParent only runs once the child
-                    // is DONE, which is far too late to show progress.
-                    onRunCreated: async (r) => {
-                        await automationStore.attachFormSessionRun(session.id, r.id);
-                        if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch(() => {});
-                    },
-                    onRunFinished: answersRef
-                        ? (r, { status }) => ((status === 'success' || status === 'error')
-                            ? formAnswers().markCompleted({ automation, ...answersRef })
-                            : null)
-                        : null,
-                });
-            } catch (e) {
-                await pointAtParent();
-                await serveAgain();    // the answer never ran — let them retry
-                throw e;
-            }
-            // A lost cross-pod race is not a completed resume — leave the
-            // parent paused so runQueued's retry can try again.
-            if (child?.id && !lostToConcurrency(child)) {
-                await finaliseResumedParent(session, parentRunId, child);
-            } else {
-                await pointAtParent();
-                await serveAgain();
-            }
-            return child;
-        };
-    }
-
-    function makeItem(automation, session, work) {
-        const thunk = work.kind === 'resume' ? resumeThunk(automation, session, work) : submitThunk(automation, session, work);
-        return { automationId: automation.id, sessionId: session.id, kind: work.kind, thunk };
-    }
-
-    // ── Leases ────────────────────────────────────────────
-
-    function heldSessionIds() {
-        const ids = [];
-        for (const q of queues.values()) {
-            if (q.current) ids.push(q.current.sessionId);
-            for (const it of q.items) ids.push(it.sessionId);
-        }
-        return ids;
-    }
-
-    function ensureRenewal() {
-        if (renewTimer) return;
-        renewTimer = setInterval(() => {
-            const ids = heldSessionIds();
-            if (!ids.length) { clearInterval(renewTimer); renewTimer = null; return; }
-            automationStore.renewFormSessionLeases(ids, LEASE_MS)
-                .catch(e => log.warn('[automation/form] lease renewal failed:', e.message));
-        }, LEASE_RENEW_MS);
-        renewTimer.unref?.();
-    }
-
-    const clearPending = (sessionId) => automationStore.clearFormSessionPending(sessionId)
-        .catch(e => log.warn('[automation/form] could not clear finished form work:', e.message));
-
-    /**
-     * The work did not produce a run. A first submission goes back to the sweep
-     * (after `delayMs`), so a collision or a crash does not cost the visitor their
-     * answers. A resume is dropped: its thunk has already put the page back up,
-     * so the visitor answers again rather than having the old answer replayed
-     * behind their back.
-     */
-    async function settleUnfinished(item, delayMs) {
-        if (item.kind === 'resume') return clearPending(item.sessionId);
-        return automationStore.releaseFormSessionLeases([item.sessionId], delayMs)
-            .catch(e => log.warn('[automation/form] could not hand form work back:', e.message));
-    }
+    const { heldSessionIds, ensureRenewal, stopRenewal, clearPending, settleUnfinished } = createFormLeases({ automationStore, queues });
 
     // ── The FIFO ──────────────────────────────────────────
 
@@ -367,86 +186,11 @@ function createFormQueue(overrides = {}) {
         }
     }
 
-    // ── Recovery (the sweep) ──────────────────────────────
-
-    function isHeld(sessionId) {
-        return heldSessionIds().includes(sessionId);
-    }
-
-    /**
-     * Turn a claimed row back into a queue item, or settle it when there is
-     * nothing (left) to run. Never runs anything twice: a submission whose run
-     * already exists, or a resume whose child already exists, is only cleared.
-     */
-    async function itemFromRow(session) {
-        const work = session.pendingWork;
-        if (!work || (work.kind !== 'submit' && work.kind !== 'resume')) {
-            await clearPending(session.id);
-            return null;
-        }
-        const restorePage = async () => {
-            if (work.kind !== 'resume') return;
-            const parent = await automationStore.getRun(work.parentRunId).catch(() => null);
-            if (parent?.status === 'awaiting_form' && session.runId === work.parentRunId) {
-                await automationStore.updateRun(work.parentRunId, { awaitingStepId: work.stepId }).catch(() => {});
-            }
-        };
-        if ((session.pendingAttempts || 0) > MAX_RECOVERIES) {
-            log.warn(`[automation/form] gave up on queued form work for automation ${session.automationId} after ${MAX_RECOVERIES} recoveries`);
-            await restorePage();
-            await clearPending(session.id);
-            return null;
-        }
-        // The same gate a visitor meets (loadForm): a form that is closed or gone
-        // runs nothing.
-        const stored = await automationStore.getAutomation(session.automationId);
-        if (!stored || !stored.isActive || stored.isDraft) {
-            await restorePage();
-            await clearPending(session.id);
-            return null;
-        }
-        const automation = automationForRun(stored, { mode: 'live' });
-
-        if (work.kind === 'submit') {
-            // The run already exists (the pod died after creating it): done.
-            if (session.runId) {
-                const run = await automationStore.getRun(session.runId);
-                if (run && !lostToConcurrency(run)) { await clearPending(session.id); return null; }
-            }
-        } else {
-            // The child already exists, or the parent is no longer waiting for
-            // this answer (expired, cancelled, continued elsewhere): done.
-            if (session.runId !== work.parentRunId) { await clearPending(session.id); return null; }
-            const parent = await automationStore.getRun(work.parentRunId);
-            if (!parent || parent.status !== 'awaiting_form') { await clearPending(session.id); return null; }
-        }
-        return makeItem(automation, session, work);
-    }
-
-    /**
-     * Claim form work whose lease lapsed and queue it on this pod. Called from the
-     * runner's reaper tick and once shortly after boot. Returns how many units
-     * were queued.
-     */
-    async function recoverPending({ limit = RECOVERY_BATCH } = {}) {
-        if (stopping) return 0;
-        const rows = await automationStore.claimStaleFormSessionWork(limit, LEASE_MS);
-        let queued = 0;
-        for (const session of rows) {
-            if (isHeld(session.id)) continue;
-            try {
-                const item = await itemFromRow(session);
-                if (!item) continue;
-                push(item);
-                queued += 1;
-            } catch (e) {
-                // Left leased: it lapses again and the next sweep retries it.
-                log.warn('[automation/form] could not recover queued form work:', e.message);
-            }
-        }
-        if (queued) log.info(`[automation/form] recovered ${queued} queued form submission(s)`);
-        return queued;
-    }
+    // ── Recovery (the sweep) ──────────────────────────────  (formQueueRecovery.js)
+    const recovery = createFormRecovery({
+        automationStore, automationForRun, clearPending, makeItem, push, heldSessionIds,
+        isStopping: () => stopping,
+    });
 
     /**
      * Shutdown: take nothing more off the queue and hand everything still waiting
@@ -458,7 +202,7 @@ function createFormQueue(overrides = {}) {
      */
     async function stop() {
         stopping = true;
-        if (renewTimer) { clearInterval(renewTimer); renewTimer = null; }
+        stopRenewal();
         const waiting = [];
         for (const q of queues.values()) {
             for (const it of q.items) waiting.push(it.sessionId);
@@ -476,14 +220,14 @@ function createFormQueue(overrides = {}) {
     function _reset() {
         stopping = false;
         queues.clear();
-        if (renewTimer) { clearInterval(renewTimer); renewTimer = null; }
+        stopRenewal();
     }
 
     return {
         accept,
-        recoverPending,
         stop,
         stopServingPage,
+        ...recovery,
         _queues: queues,
         _reset,
     };

@@ -68,7 +68,7 @@ export default function ObjectiveDrawer({ objective: o, orgUsers = null, busy = 
     const { t, resolvedLocale } = useTranslation();
     const active = o.status === 'active';
     const statusLabel: string = labelOf(t, OBJ_STATUS, o.status);
-    const owner: string | null = userName(orgUsers, o.owner_user_id);
+    const owner: string | number | null = userName(orgUsers, o.owner_user_id);
 
     const footer = active ? (
         <DrawerFooter testId="objective-footer"

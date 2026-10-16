@@ -58,7 +58,7 @@ interface OutputChipProps {
  * not reshuffle between two loads of the same meeting. Knowledge bases first
  * (they change what colleagues can ask), then automations, then notebooks.
  */
-const ORDER = Object.freeze(['kb', 'automation', 'notebook']);
+const ORDER: readonly (string | null)[] = Object.freeze(['kb', 'automation', 'notebook']);
 
 export function orderRows(rows: UsageRow[] | null | undefined) {
     if (!Array.isArray(rows)) return [];
