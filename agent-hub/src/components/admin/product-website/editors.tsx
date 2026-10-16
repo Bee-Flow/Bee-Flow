@@ -49,6 +49,8 @@ export { GitHubStatsEditor } from './blockEditors/GitHubStatsEditor';
 export { ReleaseNotesEditor } from './blockEditors/ReleaseNotesEditor';
 export { LatestPostsEditor } from './blockEditors/LatestPostsEditor';
 export { TabsEditor } from './blockEditors/TabsEditor';
+export { StoryHeaderEditor } from './blockEditors/StoryHeaderEditor';
+export { CustomerStoriesEditor } from './blockEditors/CustomerStoriesEditor';
 
 // Registries.
 export { BLOCK_CATALOGUE, BLOCK_EDITORS, BLOCK_DEFAULTS } from './blockEditors/catalogue';

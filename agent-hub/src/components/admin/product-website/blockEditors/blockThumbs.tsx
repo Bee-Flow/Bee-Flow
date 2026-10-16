@@ -263,6 +263,32 @@ const THUMBS: Record<string, React.ReactElement> = {
             <Card x={66} y={30} w={40} h={26} />
         </Frame>
     ),
+    'story-header': (
+        <Frame>
+            <Line x={14} y={10} w={22} h={6} o={0.5} />
+            <Line x={14} y={21} w={70} h={5} o={0.7} />
+            <Line x={14} y={30} w={52} h={3} />
+            {[14, 44, 74].map(x => (
+                <g key={x}>
+                    <Line x={x} y={39} w={18} h={5} o={0.8} fill={ACCENT} />
+                    <Line x={x} y={47} w={24} h={3} o={0.4} />
+                </g>
+            ))}
+        </Frame>
+    ),
+    'customer-stories': (
+        <Frame>
+            {[10, 44, 78].map(x => (
+                <g key={x}>
+                    <Card x={x} y={14} w={32} h={40} />
+                    <Line x={x + 4} y={19} w={12} h={4} o={0.6} />
+                    <Line x={x + 4} y={28} w={24} h={3} />
+                    <Line x={x + 4} y={34} w={20} h={3} />
+                    <Line x={x + 4} y={44} w={10} h={4} o={0.8} fill={ACCENT} />
+                </g>
+            ))}
+        </Frame>
+    ),
 };
 
 export default function BlockThumb({ type }: { type: string }) {

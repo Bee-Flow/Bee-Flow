@@ -35,7 +35,7 @@ import Showcase     from './sections/Showcase';
 import FeatureDemo  from './sections/FeatureDemo';
 import Roadmap      from './sections/Roadmap';
 import CompareTable from './sections/CompareTable';
-import Tabs from './sections/Tabs';
+import { EXTRA_SECTIONS } from './sections/extraSections';
 import GitHubStats  from './sections/GitHubStats';
 import ReleaseNotes from './sections/ReleaseNotes';
 import Footer       from './sections/Footer';
@@ -121,7 +121,7 @@ export const SECTION_REGISTRY = {
     'github-stats': GitHubStats,
     'release-notes': ReleaseNotes,
     'blog-latest': LatestPosts,
-    tabs: Tabs,
+    ...EXTRA_SECTIONS,
 } as Record<string, SectionComponent>;
 
 const isPreviewMode = () =>

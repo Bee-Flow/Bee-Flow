@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Server-rendered marketing pages.
  *
@@ -174,8 +175,7 @@ router.get('/sitemap.xml', async (req, res, _next) => {
         const snapshot = await cmsStore.getPublishedSnapshot(siteId);
         if (!snapshot) return emptySitemap();
 
-        // Per-page when the snapshot carries it (see cmsStore.publishSite);
-        // the site-wide publish date is the fallback for older snapshots.
+        // Per-page when the snapshot carries it (cmsStore.publishSite), else the site-wide publish date.
         const lastmod = snapshot.publishedAt || null;
         const pages = (snapshot.site?.pages || [])
             .map(entry => {
@@ -188,8 +188,7 @@ router.get('/sitemap.xml', async (req, res, _next) => {
                 };
             });
 
-        // Blog: the index and every post visitors can see now, each in the
-        // languages it is translated into.
+        // Blog: the index and every visible post, in the languages it is translated into.
         const blogEntries = await blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod });
 
         res.type('application/xml').set('Cache-Control', 'public, max-age=600');
@@ -263,7 +262,7 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
         view: parsed.blog.view,
         postSlug: parsed.blog.postSlug,
         tag: q.get('tag') || '',
-        page: q.get('page') || 1,
+        page: Number.parseInt(q.get('page') || '1', 10) || 1,
         locale,
         siteLocales: locales,
     });
@@ -457,6 +456,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
             origin, slug: parsed.slug, locale, defaultLocale, locales: pageLocales,
             page: eff.page, design: eff.design || {}, siteName,
         });
+        await require('../stores/cms/stories').fillCustomerStories(siteId, eff.page, locale);
         const body = renderBlocks(eff.page.blocks, { fallbackTitle: eff.page.title, chrome: { header: eff.header, footer: eff.footer } });
 
         /* The same payload GET /api/cms/site would return, inlined.

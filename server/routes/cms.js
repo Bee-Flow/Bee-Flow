@@ -85,6 +85,7 @@ const { requireAdmin, attachSiteIdFromParam } = require('./cmsShared');
 const cmsAnalytics = require('./cmsAnalytics');
 const cmsMedia = require('./cmsMedia');
 const cmsBlog = require('./cmsBlog');
+const cmsStories = require('./cmsStories');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, typeError } = require('../core/http/schemaParts');
 
@@ -247,8 +248,9 @@ async function attachSiteId(req, res, next) {
 // GET /api/cms/site — the public read of the live site (./cmsPublicSite.js).
 router.get('/site', getPublicSite);
 
-// Public blog read for the "latest posts" block: GET /api/cms/blog/posts.
+// Public reads: GET /api/cms/blog/posts ("latest posts" block), GET /api/cms/stories (customer stories).
 router.use('/blog', cmsBlog.createPublicRouter());
+router.use('/stories', cmsStories.createPublicRouter());
 
 // Website forms, anonymous by design (./cmsForms.js lists what bounds them).
 router.use('/forms', require('./cmsForms').createDefaultPublicRouter());

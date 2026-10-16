@@ -35,7 +35,8 @@
 
 'use strict';
 
-const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS, TABS_MIN, TABS_MAX } = require('../i18n/defaults/cmsDefaults');
+const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
+const { checkTabs, checkStoryHeader } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
 const { checkPageMedia } = require('./validateMedia');
 
@@ -168,50 +169,6 @@ function walk(node, path, visit) {
     }
 }
 
-/**
- * Tabs block: 2-6 tabs, each with a label (the tab button), and unique
- * `tabId`s (the `?tab=` deep link). Warnings only; the renderer copes with
- * every one of these (a missing id falls back to the 1-based position).
- * @param {unknown} content
- * @param {string} path
- * @param {Array<Record<string, unknown>>} warnings
- */
-function checkTabs(content, path, warnings) {
-    const items = isPlainObject(content) && Array.isArray(content.items) ? content.items : [];
-    if (items.length < TABS_MIN || items.length > TABS_MAX) {
-        warnings.push({
-            code: 'tabs_count',
-            path: `${path}.items`,
-            message: `A tabs block has ${items.length} tab(s); it is designed for ${TABS_MIN}-${TABS_MAX}.`,
-            hint: items.length < TABS_MIN
-                ? 'With one tab there is nothing to switch between: use a media-text block, or add a second tab (send the complete items array).'
-                : `Split the content over two tabs blocks or drop tabs: more than ${TABS_MAX} tab buttons do not fit on a phone.`,
-        });
-    }
-    const seen = new Set();
-    items.forEach((item, idx) => {
-        const label = isPlainObject(item) && typeof item.label === 'string' ? item.label.trim() : '';
-        if (!label) {
-            warnings.push({
-                code: 'tabs_empty_label',
-                path: `${path}.items[${idx}].label`,
-                message: `Tab ${idx + 1} has no label, so its tab button is empty.`,
-                hint: 'Give every tab a short label (one or two words), e.g. "IT" or "Legal".',
-            });
-        }
-        const id = isPlainObject(item) && typeof item.tabId === 'string' ? item.tabId.trim() : '';
-        if (id && seen.has(id)) {
-            warnings.push({
-                code: 'tabs_duplicate_id',
-                path: `${path}.items[${idx}].tabId`,
-                message: `tabId ${JSON.stringify(id)} is used by more than one tab, so ?tab= can only reach the first.`,
-                hint: 'Give each tab its own tabId (lowercase letters, digits and dashes), e.g. "it", "legal".',
-            });
-        }
-        if (id) seen.add(id);
-    });
-}
-
 function validateSiteDraft(draftWrap) {
     const errors = [];
     const warnings = [];
@@ -337,6 +294,7 @@ function validateSiteDraft(draftWrap) {
                 }
             }
             if (b?.type === 'tabs') checkTabs(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
+            if (b?.type === 'story-header') checkStoryHeader(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             // Style v2 enum sanity — invalid values are ignored by the
             // renderer, so warnings only (the model self-corrects).
             const st = b?.style;

@@ -584,6 +584,46 @@ const BLOCK_DEFAULTS = {
         ],
     },
 
+    // Customer story: the header of a case-study PAGE. A story is an ordinary
+    // CMS page (own slug, SEO, translations, sitemap entry, publish snapshot)
+    // that starts with this block; the rest of the page is any other blocks.
+    // The "Customer stories" grid reads these headers from the live site's
+    // published pages (stores/cms/stories.js), so the facts below are written
+    // once. `metrics` holds 2-4 { stat, label } pairs ("60%", "less review time").
+    // `sectorId` (grid) / the sector text decide the filter; `title` is the
+    // story's headline and the page's h1.
+    'story-header': {
+        customer: 'Customer name',
+        sector: 'Sector',
+        title: 'How the customer reached the result',
+        lead: 'One or two sentences that summarise the story. They are also shown on the story card.',
+        logo: { src: '', srcDark: '', alt: '', frame: 'none', kind: 'image' },
+        quote: '',
+        quoteBy: '',
+        metrics: [
+            { stat: '60%', label: 'less time on review' },
+            { stat: '3 weeks', label: 'to go live' },
+        ],
+    },
+
+    // Grid of customer stories with a sector filter. Stores NO stories: they
+    // come from GET /api/cms/stories (the pages of the live site that carry a
+    // story-header block, as last published) and are inlined into the
+    // server-rendered HTML, like release-notes and blog-latest. `sectorId`
+    // pre-filters to one sector (its URL form; it ends in "Id", so it is never
+    // translated). Wording around the grid is block content and translates.
+    'customer-stories': {
+        eyebrow: '',
+        title: 'Customer stories',
+        lead: '',
+        limit: 6,
+        sectorId: '',
+        showFilter: true,
+        allLabel: 'All',
+        linkLabel: 'Read the story',
+        emptyText: '',
+    },
+
     // Live repository facts (stars, latest release) fetched client-side from
     // /api/public/github-stats. The block itself stores no numbers — stored
     // star counts would be stale the week after publishing.
@@ -678,12 +718,22 @@ const BLOCK_TYPES = [
     // Same rollback caveat: an export with this block imported into an older
     // deployment drops it.
     { type: 'tabs',          label: 'Tabs',             icon: 'Layers',           category: 'Content' },
+    // Same rollback caveat (customer stories): an export with these blocks
+    // imported into an older deployment drops them.
+    { type: 'story-header',     label: 'Customer story header', icon: 'Quote',  category: 'Trust' },
+    { type: 'customer-stories', label: 'Customer stories',      icon: 'Users',  category: 'Trust' },
 ];
 
 // Bounds of a tabs block. The editor stops at the maximum; the validator warns
 // outside the range (a stored block is never rewritten for being out of range).
 const TABS_MIN = 2;
 const TABS_MAX = 6;
+
+// Bounds of the customer-stories feature: metrics on a story header, and cards
+// in one grid.
+const STORY_METRICS_MIN = 2;
+const STORY_METRICS_MAX = 4;
+const STORY_GRID_MAX = 24;
 
 const BLOCK_TYPE_IDS = BLOCK_TYPES.map(t => t.type);
 
@@ -877,6 +927,7 @@ module.exports = {
     BLOCK_TYPES,
     BLOCK_TYPE_IDS,
     TABS_MIN, TABS_MAX,
+    STORY_METRICS_MIN, STORY_METRICS_MAX, STORY_GRID_MAX,
     BLOCK_VARIANTS,
     DEMO_FEATURE_IDS,
     DESIGN_DEFAULTS,

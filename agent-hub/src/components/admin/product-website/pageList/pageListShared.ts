@@ -17,7 +17,9 @@ export interface PageTemplate {
     name?: string;
     description?: string;
     blockCount?: number;
-    createdAt?: string;
+    createdAt?: string | null;
+    /** Ships with the product: can be applied, can not be deleted. */
+    builtin?: boolean;
 }
 
 export interface NewPageInput {

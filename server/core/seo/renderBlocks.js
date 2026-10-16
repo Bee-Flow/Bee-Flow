@@ -28,12 +28,14 @@ const SUBHEAD_KEYS = new Set(['subheading', 'sublabel']);
 const LEAD_KEYS = new Set(['lead', 'blurb', 'intro', 'description']);
 const BODY_KEYS = new Set(['body', 'answer', 'text', 'note', 'quote', 'example', 'disclaimer', 'footnote']);
 const EYEBROW_KEYS = new Set(['eyebrow']);
-const LABEL_KEYS = new Set(['label', 'name']);
+// customer-stories / story-header: who, in which sector, the attribution and the
+// headline figure of a metric ({ stat, label }).
+const LABEL_KEYS = new Set(['label', 'name', 'customer', 'sector', 'quoteBy', 'stat']);
 
 // Arrays worth recursing into. Anything else is structural.
 const CHILD_KEYS = new Set([
     'items', 'columns', 'elements', 'categories', 'links', 'cards',
-    'steps', 'features', 'plans', 'entries', 'rows', 'logos', 'tiers',
+    'steps', 'features', 'plans', 'entries', 'rows', 'logos', 'tiers', 'metrics',
 ]);
 
 // Never emitted, whatever they contain.

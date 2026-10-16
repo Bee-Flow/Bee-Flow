@@ -124,6 +124,8 @@ async function listTemplates(req, res) {
         description: t.description || '',
         createdAt:   t.createdAt,
         blockCount:  Array.isArray(t.blocks) ? t.blocks.length : 0,
+        // Shipped with the product: listed, applicable, not deletable.
+        ...(t.builtin ? { builtin: true } : {}),
     }));
     res.json({ templates: summary });
 }

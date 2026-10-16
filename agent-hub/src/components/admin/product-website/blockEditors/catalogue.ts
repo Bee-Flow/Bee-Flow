@@ -25,6 +25,8 @@ import { CompareTableEditor } from './CompareTableEditor';
 import { GitHubStatsEditor } from './GitHubStatsEditor';
 import { ReleaseNotesEditor } from './ReleaseNotesEditor';
 import { TabsEditor } from './TabsEditor';
+import { StoryHeaderEditor } from './StoryHeaderEditor';
+import { CustomerStoriesEditor } from './CustomerStoriesEditor';
 
 // ── Catalogue + registries ────────────────────────────────────────────
 //
@@ -79,6 +81,8 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     'release-notes': { type: 'release-notes', label: 'Release notes',    icon: 'ScrollText',       category: 'Trust' },
     'blog-latest':   { type: 'blog-latest',   label: 'Latest posts',     icon: 'Newspaper',        category: 'Content' },
     tabs:            { type: 'tabs',          label: 'Tabs',             icon: 'Layers',         category: 'Content' },
+    'story-header':     { type: 'story-header',     label: 'Customer story header', icon: 'Quote', category: 'Trust' },
+    'customer-stories': { type: 'customer-stories', label: 'Customer stories',      icon: 'Users', category: 'Trust' },
 };
 
 export const BLOCK_EDITORS = {
@@ -109,4 +113,6 @@ export const BLOCK_EDITORS = {
     'release-notes': { component: ReleaseNotesEditor, label: 'Release notes',    icon: 'ScrollText' },
     'blog-latest':   { component: LatestPostsEditor,  label: 'Latest posts',     icon: 'Newspaper' },
     tabs:            { component: TabsEditor,         label: 'Tabs',             icon: 'Layers' },
+    'story-header':     { component: StoryHeaderEditor,     label: 'Customer story header', icon: 'Quote' },
+    'customer-stories': { component: CustomerStoriesEditor, label: 'Customer stories',      icon: 'Users' },
 };

@@ -51,6 +51,7 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
                 templates: templates.map((t) => ({
                     id: t.id, name: t.name, description: t.description || '', createdAt: t.createdAt,
                     blockCount: Array.isArray(t.blocks) ? t.blocks.length : 0,
+                    ...(t.builtin ? { builtin: true } : {}),
                 })),
             },
         };
