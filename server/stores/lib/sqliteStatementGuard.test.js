@@ -52,6 +52,10 @@ const REFUSED = [
     `SELECT "load_extension"('x')`,
     `EXPLAIN SELECT 1`,
     `CREATE TRIGGER tr AFTER INSERT ON t BEGIN ATTACH 'x' AS y; END`,
+    // `trigger` used as a name must not start trigger-body parsing.
+    ...['CREATE TABLE x (trigger INT)', 'CREATE VIEW v AS SELECT 1 AS trigger', 'CREATE INDEX trigger ON t (a)',
+        'CREATE TEMP TABLE x (trigger INT)']
+        .flatMap((c) => [`${c}; PRAGMA user_version=99`, `${c}; PRAGMA journal_mode=WAL`]),
     ``,
     `   `,
     `-- only a comment`,
@@ -94,6 +98,9 @@ const ALLOWED = [
     `SELECT * FROM pragma_table_info('t')`,
     'SELECT name FROM pragma_index_list("t")',
     'CREATE TRIGGER tr AFTER INSERT ON t BEGIN UPDATE t SET a = CASE WHEN 1 THEN 2 ELSE 3 END; INSERT INTO log VALUES (1); END; SELECT 1',
+    'CREATE TEMP TRIGGER tr AFTER INSERT ON t BEGIN INSERT INTO log VALUES (1); END; SELECT 1',
+    'CREATE TEMPORARY TRIGGER IF NOT EXISTS tr AFTER INSERT ON t BEGIN SELECT 1; END',
+    'CREATE TABLE x (trigger INT); SELECT 1',
 ];
 
 for (const sql of ALLOWED) {

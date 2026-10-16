@@ -110,7 +110,7 @@ function tokenize(sql) {
             const word = sql.slice(i, j).toLowerCase();
             i = j;
             cur.push(word);
-            if (word === 'trigger' && cur[0] === 'create') inTrigger = true;
+            if (word === 'trigger' && startsTriggerDefinition(cur)) inTrigger = true;
             if (inTrigger) {
                 if (word === 'case') caseDepth++;
                 else if (word === 'end') {
@@ -127,6 +127,18 @@ function tokenize(sql) {
     }
     endStatement();
     return statements;
+}
+
+/**
+ * True when the word just pushed is the TRIGGER keyword of `CREATE [TEMP|TEMPORARY] TRIGGER`.
+ * Anywhere else (a column, alias or index called trigger) it is a name, and `;` keeps ending the
+ * statement, so every following statement still meets the allow-lists.
+ * @param {Array<string | { quoted: string }>} cur
+ */
+function startsTriggerDefinition(cur) {
+    if (cur[0] !== 'create') return false;
+    if (cur.length === 2) return true;
+    return cur.length === 3 && (cur[1] === 'temp' || cur[1] === 'temporary');
 }
 
 function identName(tok) {
