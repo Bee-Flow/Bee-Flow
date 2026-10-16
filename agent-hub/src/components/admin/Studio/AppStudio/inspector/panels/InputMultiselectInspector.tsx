@@ -4,10 +4,25 @@ import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { PrefillField } from './inputPanels';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 import { TextField , usePatch } from './kit';
 
 /** Content panel for input_multiselect. Props mirror componentSpecs.js (authoritative). */
-export default function InputMultiselectInspector({ node, definition, onCommit, disabled = false }) {
+/** One option of the list; the panel reads both members defensively. */
+interface MultiselectOption {
+    value?: string;
+    label?: string;
+}
+
+interface InputMultiselectInspectorProps extends CommonNodeProps {
+    name?: string;
+    label?: string;
+    options?: MultiselectOption[];
+    required?: boolean;
+}
+
+export default function InputMultiselectInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<InputMultiselectInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
