@@ -1,6 +1,5 @@
 /**
  * useTranslation — React hook for i18n
- * 
  * Usage:
  *   const { t, locale, setLocale, isLoading } = useTranslation();
  *   t('admin.dashboard_title')         → "Admin Dashboard" (en)
@@ -12,6 +11,7 @@ import { createContext, useContext, useState, useEffect, useEffectEvent, useCall
 import { API_BASE, authFetch } from '../utils/helpers';
 import { isPublicMarketingPath } from '../utils/cmsPublicRouting';
 import { demoLangOverride } from './demoLang';
+import { loadEnglishDefaults } from '../i18n/loadEnglishDefaults';
 import {
     buildStampedCacheKey,
     I18N_CACHE_PREFIX,
@@ -64,8 +64,8 @@ let defaultsPromise: Promise<void> | null = null;
 const defaultsListeners = new Set<() => void>();
 export function ensureI18nDefaults(): Promise<void> {
     if (!defaultsPromise) {
-        defaultsPromise = import('../i18n/en-defaults').then((m) => {
-            DEFAULTS = m.default || {};
+        defaultsPromise = loadEnglishDefaults().then((catalogue) => {
+            DEFAULTS = { ...DEFAULTS, ...catalogue };
             defaultsListeners.forEach((fn) => fn());
             defaultsListeners.clear();
         }).catch((e) => {

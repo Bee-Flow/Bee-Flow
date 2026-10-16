@@ -106,3 +106,44 @@ test('--check refuses a copy the server dictionary has moved on from, and a miss
     assert.strictEqual(run(dir, ['--check']).code, 1);
     assert.ok(!fs.existsSync(target(dir)), '--check never writes');
 });
+
+// ── per-namespace chunks (issue #252) ──────────────────────────────────
+// The demo pages load only the namespaces they use, not the whole 3.9 MB
+// dictionary, so the generator also writes one module per namespace.
+
+const chunkDir = (dir) => path.join(dir, 'agent-hub', 'src', 'i18n', 'en');
+const chunkFile = (dir, ns) => path.join(chunkDir(dir), `${ns}.generated.mjs`);
+
+test('one chunk per namespace, and together they hold exactly the full dictionary', async () => {
+    const dir = sandbox();
+    assert.strictEqual(run(dir).code, 0);
+    assert.deepStrictEqual(fs.readdirSync(chunkDir(dir)).sort(), ['_root.generated.mjs', 'a.generated.mjs', 'b.generated.mjs']);
+    const a = (await import(pathToFileURL(chunkFile(dir, 'a')).href)).default;
+    const b = (await import(pathToFileURL(chunkFile(dir, 'b')).href)).default;
+    const root = (await import(pathToFileURL(chunkFile(dir, '_root')).href)).default;
+    assert.deepStrictEqual(Object.keys(a), ['a.quotes', 'a.slash', 'a.newline']);
+    assert.deepStrictEqual({ ...b, ...a, ...root }, DICT);
+});
+
+test('--check refuses a hand-edited, missing or stray chunk', () => {
+    const dir = sandbox();
+    run(dir);
+    assert.strictEqual(run(dir, ['--check']).code, 0);
+
+    fs.writeFileSync(chunkFile(dir, 'a'), fs.readFileSync(chunkFile(dir, 'a'), 'utf8').replace('hi', 'ho'));
+    const edited = run(dir, ['--check']);
+    assert.strictEqual(edited.code, 1);
+    assert.match(edited.stderr, /a\.generated\.mjs/);
+    assert.strictEqual(run(dir).code, 0);
+
+    fs.rmSync(chunkFile(dir, 'b'));
+    assert.strictEqual(run(dir, ['--check']).code, 1);
+    assert.strictEqual(run(dir).code, 0);
+
+    fs.writeFileSync(chunkFile(dir, 'gone'), 'export default {};\n');
+    const stray = run(dir, ['--check']);
+    assert.strictEqual(stray.code, 1);
+    assert.match(stray.stderr, /gone\.generated\.mjs/);
+    assert.strictEqual(run(dir).code, 0);
+    assert.ok(!fs.existsSync(chunkFile(dir, 'gone')), 'a regenerate removes a chunk whose namespace is gone');
+});

@@ -6,6 +6,7 @@
     "src/**/*.test.{js,jsx,ts,tsx}",
     "src/editor/serialization/index.ts",
     "src/shared/expr/index.mjs",
+    "src/i18n/en/*.generated.mjs",
     "scripts/*.mjs",
     "vite.config.js",
     "vite.runtime.config.js"
