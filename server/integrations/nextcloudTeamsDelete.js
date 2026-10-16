@@ -61,7 +61,7 @@ async function deleteTeam(deps, args) {
     if (check.status === 401) return { error: authError };
     if (check.ok) {
         const level = Number.isFinite(check.level) ? check.level : null;
-        log.warn('[teams] delete answered success but the team still exists', { status: out.ocs?.meta?.statuscode ?? null, initiatorLevel: level });
+        log.warn('[teams] delete answered success but the team still exists', { status: out.ocs?.meta?.statuscode ?? null, message: extractReason(JSON.stringify({ ocs: { meta: { message: out.ocs?.meta?.message } } })).slice(0, 200), initiatorLevel: level });
         const why = level !== null && level < OWNER_LEVEL
             ? ' Only the owner of a team can delete it, and this account is not the owner (membership level ' + level + ').'
             : '';

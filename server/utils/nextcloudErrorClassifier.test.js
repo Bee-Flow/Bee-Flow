@@ -97,3 +97,11 @@ test('the runner passes the tool name: a non-Files permission error is worded fo
     assert.match(e.message, /Nextcloud Teams/);
     assert.doesNotMatch(e.message, /file or folder|Share the folder/);
 });
+
+test('nextcloud_list_groups and nextcloud_search are not worded as Files', () => {
+    const { nextcloudAppOf } = require('./nextcloudErrorClassifier');
+    assert.strictEqual(nextcloudAppOf('nextcloud_list_groups'), 'Groups');
+    assert.strictEqual(nextcloudAppOf('nextcloud_search'), 'Search');
+    assert.strictEqual(nextcloudAppOf('nextcloud_list_files'), 'Files');
+    assert.strictEqual(nextcloudAppOf('nextcloud_search_files'), 'Files');
+});

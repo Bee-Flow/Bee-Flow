@@ -49,8 +49,12 @@ const NC_APPS = {
     status: 'Status', teams: 'Teams', activity: 'Activity',
 };
 
+/** Tools whose first name segment is generic (list_*, search_*): matched by full name. */
+const TOOL_APPS = { nextcloud_list_groups: 'Groups', nextcloud_search: 'Search' };
+
 /** 'nextcloud_teams_get' -> 'Teams'; 'nextcloud_upload_file' (and any unknown prefix) -> 'Files'. */
 function nextcloudAppOf(tool) {
+    if (Object.hasOwn(TOOL_APPS, String(tool))) return TOOL_APPS[String(tool)];
     const seg = String(tool || '').replace(/^nextcloud_/, '').split('_')[0];
     return NC_APPS[seg] || 'Files';
 }
