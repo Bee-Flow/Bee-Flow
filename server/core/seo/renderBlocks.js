@@ -68,7 +68,13 @@ function imageTag(node) {
     const src = imageSrc(node.src);
     if (!src) return '';
     if (node.kind === undefined && typeof node.alt !== 'string') return '';
-    return `<img src="${esc(src)}" alt="${esc(node.alt || '')}" loading="lazy">`;
+    // Publish stores the intrinsic size (utils/mediaDims.js); stating it keeps the
+    // page from shifting when the image arrives. Only positive integers pass.
+    const dim = (/** @type {unknown} */ v) => (Number.isInteger(v) && /** @type {number} */ (v) > 0 ? String(v) : '');
+    const w = dim(node.width);
+    const h = dim(node.height);
+    const size = w && h ? ` width="${w}" height="${h}"` : '';
+    return `<img src="${esc(src)}" alt="${esc(node.alt || '')}"${size} loading="lazy">`;
 }
 
 /** An own-origin href on a link-carrying node (`link: { href }` after link resolution, or a bare `href`), else ''. */

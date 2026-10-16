@@ -77,3 +77,12 @@ test('disabled chrome (a whole footer, a group or an item) contributes no links'
 test('a page without blocks and without chrome still renders nothing', () => {
     assert.strictEqual(renderBlocks([]), '');
 });
+
+test('an image with stored dimensions carries width and height; bad values are dropped', () => {
+    const html = renderBlocks([block({ items: [
+        { media: { kind: 'image', src: '/a.png', alt: 'a', width: 1200, height: 630 } },
+        { media: { kind: 'image', src: '/b.png', alt: 'b', width: '12"x', height: -4 } },
+    ] })]);
+    assert.match(html, /<img src="\/a\.png" alt="a" width="1200" height="630" loading="lazy">/);
+    assert.match(html, /<img src="\/b\.png" alt="b" loading="lazy">/);
+});
