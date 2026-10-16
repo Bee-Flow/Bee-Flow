@@ -18,7 +18,7 @@ interface NewSkill {
 export default function SkillPicker({ skills, selectedIds, automations = [], search, onSearch, onClose, onToggle, onCreate, t }: {
     skills?: PickerSkill[] | null;
     selectedIds: string[];
-    automations?: Array<{ id: string; title?: string }> | null;
+    automations?: Array<{ id?: string; title?: string }> | null;
     search: string;
     onSearch: (value: string) => void;
     onClose: () => void;
