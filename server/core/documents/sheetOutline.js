@@ -35,6 +35,7 @@ function splitName(name) {
 function kindOf(raw, shown) {
     if (String(raw).startsWith('=')) return 'formula';
     if (typeof shown?.value === 'number') return 'number';
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- ISO_DATE is anchored, fixed length: linear
     if (ISO_DATE.test(String(raw).trim())) return 'date';
     return 'text';
 }

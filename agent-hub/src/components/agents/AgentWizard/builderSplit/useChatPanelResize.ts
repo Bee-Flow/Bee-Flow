@@ -24,6 +24,7 @@ export default function useChatPanelResize({ initial = 360, min = 300, max = 600
         dragStartX.current = e.clientX;
         dragStartW.current = chatWidth;
         document.body.style.cursor = 'col-resize';
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- the CSS user-select property, not a username
         document.body.style.userSelect = 'none';
         const onMove = (ev: MouseEvent) => {
             if (!isDragging.current) return;

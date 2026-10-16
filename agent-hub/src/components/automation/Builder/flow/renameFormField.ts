@@ -67,8 +67,10 @@ export function renameFieldPath(path: unknown, base: string, from: string, to: s
     const b = escapeRe(base);
     const f = escapeRe(from);
     const dotted = new RegExp(`^(${b})\\.${f}(?=$|[.[])`);
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, built from escaped literals with no quantifier: linear
     if (dotted.test(path)) return path.replace(dotted, `$1.${to}`);
     const bracketed = new RegExp(`^(${b})\\[(["'])${f}\\2\\]`);
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, built from escaped literals with no quantifier: linear
     if (bracketed.test(path)) return path.replace(bracketed, `$1[$2${to}$2]`);
     return path;
 }

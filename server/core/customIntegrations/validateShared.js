@@ -256,6 +256,7 @@ function checkCredentialList(r, creds, basePath, codePrefix) {
             r.pushE({ code: `${codePrefix}.credentials_invalid`, path: at, message: 'Each credential must be an object { key, label, description }.', hint: 'Example: { "key": "api_key", "label": "API key" }.' });
             return;
         }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, bounded quantifier: no backtracking
         if (typeof c.key !== 'string' || !CREDENTIAL_KEY_RE.test(c.key)) {
             r.pushE({ code: `${codePrefix}.credential_key_invalid`, path: `${at}.key`, message: `Credential key ${JSON.stringify(c.key)} must match ^[a-z][a-z0-9_]{0,40}$.`, hint: 'Lowercase snake_case, starting with a letter.' });
         } else if (declared.has(c.key)) {

@@ -39,6 +39,7 @@ export default function useValueFrom(node: { props?: { valueFrom?: BindingInput 
         if (value === undefined || value === null) return;
         let token: string | undefined;
         try { token = JSON.stringify(value); } catch { token = String(value); }
+        // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- a JSON change-detection key of a UI value, not a secret
         if (token === lastRef.current) return;
         lastRef.current = token;
         setValue(value);

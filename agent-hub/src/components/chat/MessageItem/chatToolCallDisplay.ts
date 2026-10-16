@@ -114,6 +114,7 @@ export function errorOf(result: unknown, preview?: unknown) {
         if (result.ok === false) return str(result.message) || str(result.reason) || JSON.stringify(result).slice(0, 120);
         return null;
     }
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored patterns whose whitespace runs are separated by literals: linear
     const text = str(result) || str(preview);
     if (!text) return null;
     if (/^\[Tool (input )?blocked/i.test(text)) return text.replace(/^\[|\]$/g, '');

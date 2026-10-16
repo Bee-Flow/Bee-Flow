@@ -43,6 +43,7 @@ function duplicateStepId(type: string | undefined, taken: Set<string>): string {
     for (let attempt = 0; attempt < 50; attempt += 1) {
         const rand = (typeof crypto !== 'undefined' && crypto.randomUUID)
             ? crypto.randomUUID().split('-')[0]
+            // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- fallback flow-node id for when crypto.randomUUID is absent; an id in the flow graph, not a secret or a token
             : Math.random().toString(36).slice(2, 10);
         const id = `${prefix}_${rand}`;
         if (!taken.has(id)) return id;

@@ -92,6 +92,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 function newBlockId() {
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a CMS block id, not a secret or a token
     return `blk_${Math.random().toString(36).slice(2, 10)}`;
 }
 

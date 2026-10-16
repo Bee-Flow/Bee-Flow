@@ -16,11 +16,13 @@ const DirectChatWelcome = ({ tiers, selectedTier, onTierChange, onPromptClick, c
     const { t } = useTranslation();
 
     const welcomeMsg = useMemo(() => {
+        // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- picks which welcome message to show, not a secret
         return WELCOME_MESSAGES[Math.floor(Math.random() * WELCOME_MESSAGES.length)];
     }, []);
 
     const prompts = useMemo(() => {
         // Randomly pick 3 prompts from the list of 100
+        // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- picks which sample prompts to show, not a secret
         return [...ALL_PROMPTS].sort(() => 0.5 - Math.random()).slice(0, 3);
     }, []);
 

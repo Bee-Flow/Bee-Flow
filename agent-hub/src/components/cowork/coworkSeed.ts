@@ -19,6 +19,7 @@
 export function appendAppSeed(current: string | null | undefined, seed: string | null | undefined): string {
     const text = String(seed || '');
     if (!text) return String(current ?? '');
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a single-character class at the end of the string: linear
     const base = String(current ?? '');
     if (!base.trim()) return text;
     return /\s$/.test(base) ? base + text : base + '\n' + text;

@@ -99,7 +99,9 @@ function prettyCall(span: { text: string; closed: boolean }): string {
  */
 function intraWordUnderscore(text: string, open: number, close: number, marker: string): boolean {
     if (marker[0] !== '_') return false;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a single-character class tested on one character: linear
     if (open > 0 && /\w/.test(text[open - 1])) return true;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a single-character class tested on one character: linear
     return close !== -1 && /\w/.test(text[close + marker.length] || '');
 }
 

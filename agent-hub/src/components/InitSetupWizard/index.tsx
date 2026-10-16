@@ -111,7 +111,7 @@ const InitSetupWizard = ({ onComplete }: { onComplete: () => void }) => {
         if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
             setError('Must contain uppercase, lowercase, and a number'); return;
         }
-        if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+        if (password !== confirmPassword) { setError('Passwords do not match'); return; } // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- compares the two password fields the person just typed (a typo check), not against a stored secret
         setStep(1);
     };
 

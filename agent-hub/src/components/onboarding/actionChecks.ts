@@ -305,7 +305,7 @@ export function rowOwnedBy(row: Record<string, unknown> | null | undefined, user
 export function resolveEndpoint(endpoint: string | undefined, ctx: CheckContext | null | undefined): string | null | undefined {
     const orgId = ctx?.user?.organizationId ?? ctx?.user?.orgId ?? null;
     if (!endpoint) return endpoint;
-    if (!/:(orgId|orgid|org|id)\b/i.test(endpoint)) return endpoint;
+    if (!/:(orgId|orgid|org|id)\b/i.test(endpoint)) return endpoint; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an alternation of literals: linear
     if (!orgId) return null;                       // no org → the check cannot run
     return endpoint.replace(/:(orgId|orgid|org|id)\b/gi, encodeURIComponent(orgId));
 }

@@ -179,6 +179,7 @@ const DOW_TOKENS: string[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
  * to the normal "now" path.
  */
 export function nextOccurrence(timeOfDay: unknown, daysOfWeek: unknown[] | null = null, { now = new Date() }: { now?: Date } = {}): Date | null {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, fixed length: linear
     if (typeof timeOfDay !== 'string' || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(timeOfDay)) return null;
     const [hh, mm] = timeOfDay.split(':').map(Number);
 

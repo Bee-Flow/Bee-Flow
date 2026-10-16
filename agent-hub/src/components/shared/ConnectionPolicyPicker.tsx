@@ -87,6 +87,7 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }: Connect
 
     const onChange = async (provider: string, value: string) => {
         setBusy(provider);
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
             const existing = grantByProvider[provider];
             // Revoke any current grant for this provider+resource first.

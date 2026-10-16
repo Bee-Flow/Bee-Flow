@@ -35,6 +35,7 @@ interface MessageBubbleProps {
  */
 // A brief inside the user pill is a document, but a small one: the headings
 // come down to the bubble's own size and the lists lose their fat margins.
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- Tailwind classes for the user message bubble, not a username
 const USER_MD = 'text-sm [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-1 [&_ol]:my-1 [&_ul]:pl-4 [&_ol]:pl-5 [&_li]:my-0.5 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_h1]:mt-0 [&_h2]:mt-0 [&_h1]:mb-1 [&_h2]:mb-1 [&_h3]:mb-1 [&_pre]:my-1';
 
 /**

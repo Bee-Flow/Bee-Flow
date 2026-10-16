@@ -152,6 +152,7 @@ async function sendHttp({ fetchImpl, sendUrl, method, headers, sendBody, signal,
 async function dispatchHttp(step, ctx, runState, mode, call) {
     const { req, sendUrl, sendBody, blockPrivateTargets, authInjectedHeaders, cache, guarded, httpMeta } = call;
     const { method, headers, authConnectionId } = req;
+    // nosemgrep: ajinabraham.njsscan.eval.eval_node.eval_nodejs -- setTimeout gets a function; the step value is only its numeric delay
     const timeoutMs = typeof step.timeoutMs === 'number' ? step.timeoutMs : 10_000;
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), timeoutMs);

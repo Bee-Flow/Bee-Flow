@@ -24,6 +24,7 @@ const {
 // org-administration powers. An org-admin can override the default via
 // org.nc_new_user_default_org_role and promote individual users later.
 const VALID_ORG_ROLES = new Set(Object.keys(orgRolesConfig));
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a default org role name, not a username or a credential
 const DEFAULT_NC_USER_ORG_ROLE = 'agent_editor';
 
 function resolveDefaultNcUserOrgRole(org) {

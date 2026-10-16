@@ -44,6 +44,7 @@ const SYSTEM_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'created_by', 
 
 function randHex(n: number): string {
     let s = '';
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a local schema id for a new field, not a secret or a token
     while (s.length < n) s += Math.floor(Math.random() * 16).toString(16);
     return s.slice(0, n);
 }

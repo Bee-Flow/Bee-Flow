@@ -386,7 +386,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
         const params = cols.map((c: DbColumn, i: number) => {
             const v = values[i];
             if (v === undefined || v === '') return null;
-            if (/^(INT|REAL|NUM)/i.test(c.type || '')) {
+            if (/^(INT|REAL|NUM)/i.test(c.type || '')) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored alternation of literals: linear
                 const n = Number(v);
                 return Number.isFinite(n) ? n : v;
             }
