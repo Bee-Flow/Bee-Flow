@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { joinsPreviousBlock } from './blockFlow';
+import { joinsPreviousBlock, skipsReveal, blockFlowOptions, FIRST_BLOCKS_WITHOUT_REVEAL } from './blockFlow';
 import type { CmsBlock } from './ProductWebsite.types';
 
 const block = (type: string, extra: Partial<CmsBlock> = {}): CmsBlock => ({ id: `${type}_1`, type, ...extra });
@@ -41,5 +41,21 @@ describe('joinsPreviousBlock', () => {
         expect(joinsPreviousBlock(block('steps'), block('faq'))).toBe(false);
         expect(joinsPreviousBlock(block('faq'), block('pricing'))).toBe(false);
         expect(joinsPreviousBlock(block('steps', { content: { backgroundVariant: 'default' } }), block('faq'))).toBe(true);
+    });
+});
+
+describe('first blocks do not reveal', () => {
+    it('keeps the first blocks out of the reveal animation so they reserve no invisible height', () => {
+        expect(skipsReveal(0)).toBe(true);
+        expect(skipsReveal(FIRST_BLOCKS_WITHOUT_REVEAL - 1)).toBe(true);
+        expect(skipsReveal(FIRST_BLOCKS_WITHOUT_REVEAL)).toBe(false);
+    });
+});
+
+describe('blockFlowOptions', () => {
+    it('combines the join and early flags for a position', () => {
+        const blocks = [block('features'), block('faq'), block('faq')];
+        expect(blockFlowOptions(blocks, 0)).toEqual({ joined: false, early: true });
+        expect(blockFlowOptions(blocks, 2)).toEqual({ joined: true, early: false });
     });
 });

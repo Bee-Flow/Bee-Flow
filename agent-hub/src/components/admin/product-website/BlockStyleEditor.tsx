@@ -11,6 +11,7 @@ import { FieldRow, Toggle } from './fields';
 import { SectionDivider, SegmentedControl } from './primitives';
 import type { SegmentedOption } from './primitives.types';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 
 /**
  * Per-block style overrides — Style sub-tab in pane B.
@@ -71,6 +72,7 @@ export interface BlockStyle {
     columns?: number | '';
     reveal?: 'on' | 'off';
     glow?: boolean;
+    rhythm?: 'tight' | 'compact' | 'spacious';
 }
 
 const COLOR_TOKENS = [
@@ -104,6 +106,14 @@ const COLUMN_OPTIONS: SegmentedOption<number | ''>[] = [
     { value: 4,  label: '4',    hint: '4 columns' },
 ];
 
+// '' = the site's rhythm (removes the key). Same four values as the store enum.
+const rhythmOptions = (t: TranslateFn): SegmentedOption<string>[] => [
+    { value: '',         label: t('cms_site.site.blockstyle.rhythm_default', 'Site default') },
+    { value: 'tight',    label: t('cms_site.site.blockstyle.rhythm_tight', 'Tight') },
+    { value: 'compact',  label: t('cms_site.site.blockstyle.rhythm_compact', 'Compact') },
+    { value: 'spacious', label: t('cms_site.site.blockstyle.rhythm_spacious', 'Spacious') },
+];
+
 interface BlockStyleEditorProps {
     style?: BlockStyle | null;
     enabled?: boolean;
@@ -132,6 +142,11 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
     const setMaxWidth  = (v: string)    => onChange({ ...s, maxWidth: v });
     const setAlign     = (v: string)    => onChange({ ...s, align: v });
     const setCssClass  = (v: string)    => onChange({ ...s, cssClass: v });
+    const setRhythm    = (v: string)    => {
+        const next = { ...s };
+        delete next.rhythm;
+        onChange(v ? { ...next, rhythm: v as NonNullable<BlockStyle['rhythm']> } : next);
+    };
 
     return (
         <div className="px-4 pt-3 pb-6">
@@ -168,6 +183,9 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
                 spacing={spacing}
                 onChange={(nextSpacing: Spacing) => onChange({ ...s, spacing: nextSpacing })}
             />
+
+            <SectionDivider label={t('cms_site.site.blockstyle.rhythm', 'Section rhythm')} />
+            <SegmentedControl options={rhythmOptions(t)} value={s.rhythm || ''} onChange={setRhythm} />
 
             <SectionDivider label={t('cms_site.site.blockstyle.background', 'Background')} />
             <BackgroundControl
@@ -288,6 +306,7 @@ function hasAnyOverride(s: BlockStyle | null | undefined) {
     if (s.columns) return true;
     if (s.reveal) return true;
     if (s.glow) return true;
+    if (s.rhythm) return true;
     return false;
 }
 

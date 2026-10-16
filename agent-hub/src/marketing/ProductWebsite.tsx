@@ -62,7 +62,7 @@ import { PreviewBlockChrome, InsertZone } from './components/PreviewBlockChrome'
 import { resolveAssetUrl } from './assetUrl';
 import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSection';
 import { designStyleClasses, designStyleVars } from './blockWrap';
-import { joinsPreviousBlock } from './blockFlow';
+import { blockFlowOptions } from './blockFlow';
 import { applyTypographyVars } from './designTypography';
 import { LOCALE_PREFIXES } from '../utils/cmsPublicRouting';
 import type {
@@ -525,7 +525,7 @@ const WRAPPER_REVEAL_TYPES = new Set<string | undefined>([
     'live-component', 'pricing', 'customer-support',
 ]);
 
-function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview, joined }: { type?: string; inPreview?: boolean; joined?: boolean } = {}) {
+function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview, joined, early }: { type?: string; inPreview?: boolean; joined?: boolean; early?: boolean } = {}) {
     const out = ['cms-block-wrap'];
     if (joined) out.push('cms-block-wrap--joined');
     const maxWidth = style?.maxWidth || 'full';
@@ -547,7 +547,7 @@ function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview, join
         out.push(`cms-rhythm--${(style as BlockStyle).rhythm}`);
     }
     if (style?.glow === true) out.push('cms-glow');
-    if (style?.reveal === 'off') {
+    if (style?.reveal === 'off' || early) {
         // Forces any internal .reveal elements visible (per-block motion off).
         out.push('cms-no-reveal');
     } else if (!inPreview && WRAPPER_REVEAL_TYPES.has(type)) {
@@ -938,7 +938,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                                     data-cms-block-id={b.id}
                                     // Read by analyticsEvents.js: attributes a CTA click to its block.
                                     data-cms-block-type={b.type}
-                                    className={`${blockWrapClasses(b.style, { type: b.type, inPreview, joined: joinsPreviousBlock(orderedBlocks[orderedIndex - 1], b) })}${isActive ? ' cms-block-active' : ''}`}
+                                    className={`${blockWrapClasses(b.style, { type: b.type, inPreview, ...blockFlowOptions(orderedBlocks, orderedIndex) })}${isActive ? ' cms-block-active' : ''}`}
                                     style={blockWrapStyle(b.style)}
                                     {...experimentAttrs(b.content as Record<string, unknown> | undefined, { preview: inPreview, type: b.type })} // A/B goal attrs, see track.ts
                                     // Clicking anywhere in the block (images,

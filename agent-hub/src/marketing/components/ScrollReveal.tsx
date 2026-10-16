@@ -22,6 +22,13 @@ import type { RefObject } from 'react';
  * already on screen at page load "animating in" is indistinguishable from
  * flicker.
  */
+/**
+ * A positive bottom margin makes the observer fire while the element is still
+ * below the viewport, so a block is already visible when it scrolls in (and a
+ * fast scroll or full-page capture does not show it as a blank gap).
+ */
+export const REVEAL_OBSERVER_OPTIONS = { threshold: 0.1, rootMargin: '0px 0px 15% 0px' };
+
 export function useScrollReveal(rootRef: RefObject<HTMLElement | null> | null | undefined, contentKey?: unknown) {
     useLayoutEffect(() => {
         const root = rootRef?.current || document;
@@ -60,7 +67,7 @@ export function useScrollReveal(rootRef: RefObject<HTMLElement | null> | null | 
                     observer.unobserve(entry.target);
                 }
             }
-        }, { threshold: 0.1, rootMargin: '0px 0px -10% 0px' });
+        }, REVEAL_OBSERVER_OPTIONS);
 
         below.forEach(el => observer.observe(el));
         return () => observer.disconnect();
