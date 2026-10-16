@@ -8,14 +8,24 @@
 // each extraction then queues a full prompt evaluation in front of the next
 // turn. A tiny dedicated model keeps the slot free.
 import React from 'react';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+interface MemoryExtractionModelSectionProps extends ModelPickerSource {
+    memoryModel: ModelSetting['model'];
+    setMemoryModel: ModelSetting['setModel'];
+    memoryModelSaving: ModelSetting['saving'];
+    memoryModelMessage: ModelSetting['message'];
+    saveMemoryModel: ModelSetting['save'];
+}
+
 export default function MemoryExtractionModelSection({
     memoryModel, setMemoryModel, memoryModelSaving, memoryModelMessage,
     saveMemoryModel, chatModels, byProvider, hiddenModelIds, toggleHiddenModel,
-}) {
+}: MemoryExtractionModelSectionProps) {
     const { t } = useTranslation();
     return (
             <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>

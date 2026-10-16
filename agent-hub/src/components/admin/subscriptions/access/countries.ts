@@ -115,12 +115,12 @@ export const EU_EEA = [
 ];
 
 const NAME_BY_CODE = Object.fromEntries(COUNTRIES.map(c => [c.code, c.name]));
-export function countryName(code) {
+export function countryName(code: string) {
     return NAME_BY_CODE[code] || code;
 }
 
 // Country code → flag emoji (same trick as serverGeoResolver.countryFlag).
-export function countryFlag(code) {
+export function countryFlag(code: string | null | undefined) {
     if (!code || code.length !== 2) return '🌐';
     return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
 }

@@ -2,14 +2,24 @@
 // verbatim from ChatModelTiersConfig.jsx; all bindings are threaded in as
 // props.
 import React from 'react';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+interface ClassifierModelSectionProps extends ModelPickerSource {
+    classifierModel: ModelSetting['model'];
+    setClassifierModel: ModelSetting['setModel'];
+    classifierSaving: ModelSetting['saving'];
+    classifierMessage: ModelSetting['message'];
+    saveClassifierModel: ModelSetting['save'];
+}
+
 export default function ClassifierModelSection({
     classifierModel, setClassifierModel, classifierSaving, classifierMessage,
     saveClassifierModel, chatModels, byProvider, hiddenModelIds, toggleHiddenModel,
-}) {
+}: ClassifierModelSectionProps) {
     const { t } = useTranslation();
     return (
             <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>

@@ -9,14 +9,24 @@
 // 26B chat model. Unset falls back to the Fast tier's model; the ai_step
 // override next to it is a separate lever and stays as it is.
 import React from 'react';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
+interface DataExtractionModelSectionProps extends ModelPickerSource {
+    dataExtractionModel: ModelSetting['model'];
+    setDataExtractionModel: ModelSetting['setModel'];
+    dataExtractionModelSaving: ModelSetting['saving'];
+    dataExtractionModelMessage: ModelSetting['message'];
+    saveDataExtractionModel: ModelSetting['save'];
+}
+
 export default function DataExtractionModelSection({
     dataExtractionModel, setDataExtractionModel, dataExtractionModelSaving, dataExtractionModelMessage,
     saveDataExtractionModel, chatModels, byProvider, hiddenModelIds, toggleHiddenModel,
-}) {
+}: DataExtractionModelSectionProps) {
     const { t } = useTranslation();
     return (
             <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>

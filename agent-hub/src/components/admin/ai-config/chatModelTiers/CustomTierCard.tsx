@@ -4,15 +4,29 @@
 import React from 'react';
 import { CUSTOM_TIER_DEFAULTS, TASK_TYPES } from './constants';
 import { clampToEfforts, getModelMeta, isClaudeAdaptiveOnly, isClaudeReasoning, isGpt5, isGpt5Pro, openAIEffortOptions, stampedEffortOptions } from './modelMeta';
+import type { ModelPickerSource } from './modelPicker.types';
+import type { CustomTier } from './tierTypes';
+import type { CustomTiersState } from './useCustomTiers';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
+
+interface CustomTierCardProps extends ModelPickerSource {
+    tier: CustomTier;
+    expandedCustomId: CustomTiersState['expandedCustomId'];
+    setExpandedCustomId: CustomTiersState['setExpandedCustomId'];
+    reasoningCapable: (id: string) => boolean;
+    updateCustomTier: CustomTiersState['updateCustomTier'];
+    renameCustomTier: CustomTiersState['renameCustomTier'];
+    removeCustomTier: CustomTiersState['removeCustomTier'];
+    toggleCustomTaskType: CustomTiersState['toggleCustomTaskType'];
+}
 
 export default function CustomTierCard({
     tier, expandedCustomId, setExpandedCustomId, chatModels, byProvider,
     hiddenModelIds, toggleHiddenModel, reasoningCapable,
     updateCustomTier, renameCustomTier, removeCustomTier, toggleCustomTaskType,
-}) {
+}: CustomTierCardProps) {
     const { t } = useTranslation();
         const isExpanded = expandedCustomId === tier.id;
         const selectedModel = chatModels.find(m => m.id === tier.modelId);

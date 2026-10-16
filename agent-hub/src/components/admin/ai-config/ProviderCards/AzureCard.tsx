@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import type { ProviderCardProps } from './ProviderApiKeyCard';
 import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import SecretInput from './shared/SecretInput';
 import ProviderCardShell, { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './shared/ProviderCardShell';
 import useProviderConfig from '../../../../hooks/useProviderConfig';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-const AzureConfigCard = ({ onMessage }) => {
+const AzureConfigCard = ({ onMessage }: ProviderCardProps) => {
     const { t } = useTranslation();
     const [endpoint, setEndpoint] = useState('');
     const [apiKey, setApiKey] = useState('');
@@ -26,7 +27,7 @@ const AzureConfigCard = ({ onMessage }) => {
 
     const handleSave = async () => {
         if (!endpoint.trim() && !apiKey.trim() && !models.trim()) return;
-        const body = {};
+        const body: Record<string, string> = {};
         if (endpoint.trim()) body.azureEndpoint = endpoint;
         if (apiKey.trim()) body.azureApiKey = apiKey;
         body.azureModels = models.trim();
@@ -60,7 +61,7 @@ const AzureConfigCard = ({ onMessage }) => {
     };
 
     const isConfigured = hasEndpoint && hasKey;
-    const modelCount = savedModels ? savedModels.split(',').filter(m => m.trim()).length : 0;
+    const modelCount = savedModels ? savedModels.split(',').filter((m: string) => m.trim()).length : 0;
 
     return (
         <ProviderCardShell
@@ -79,7 +80,7 @@ const AzureConfigCard = ({ onMessage }) => {
                 <input
                     type="text"
                     value={endpoint}
-                    onChange={e => setEndpoint(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndpoint(e.target.value)}
                     placeholder={hasEndpoint ? '••••••••••••••••' : 'https://your-resource.openai.azure.com'}
                     className={PROVIDER_INPUT_CLS}
                     style={PROVIDER_INPUT_STYLE}
@@ -100,7 +101,7 @@ const AzureConfigCard = ({ onMessage }) => {
                 <input
                     type="text"
                     value={models}
-                    onChange={e => setModels(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setModels(e.target.value)}
                     placeholder={t('admin_ai_config.azure_models_placeholder', 'Deployment names, e.g. gpt-5.6-terra, prod-chat=gpt-6-astra, gpt-4.1')}
                     className={PROVIDER_INPUT_CLS}
                     style={PROVIDER_INPUT_STYLE}
