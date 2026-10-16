@@ -1,8 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { LINK_TOOLS, createLinkHandlers, EXTERNAL_MAX_PER_WINDOW } = require('./linkHandlers');
-const { createTakeBudget } = require('./handlerKit');
+const { LINK_TOOLS, createLinkHandlers } = require('./linkHandlers');
+const { takeExternalRun, EXTERNAL_MAX_PER_WINDOW } = require('../../core/cms/linkCheckBudget');
 
 const cmsStore = {
     getAdminPayload: async () => ({ site: { pages: [{ id: 'pg_1', slug: 'home' }], footer: { l: { kind: 'page', pageId: 'gone' } } }, pages: [], localeOverrides: {} }),
@@ -14,7 +14,6 @@ const make = () => createLinkHandlers({
     deps: { audit: async (...a) => { audits.push(a); } },
     cmsStore,
     resolveSite: async () => ({ siteId: 'pj_aaaa' }),
-    takeBudget: createTakeBudget(() => 0),
 }).handlers.cms_check_links;
 const ctx = { userId: 'u1', orgId: 'o1', token: { name: 'tok' } };
 
@@ -35,7 +34,9 @@ test('reports internal problems and audits counts only', async () => {
 test('unknown fields are refused; external runs are rate limited per user', async () => {
     const check = make();
     assert.match((await check({ nope: 1 }, ctx)).result.error, /Unknown field/);
-    for (let i = 0; i < EXTERNAL_MAX_PER_WINDOW; i++) {
+    // The route draws on the same budget: one of the runs was used there.
+    assert.equal(takeExternalRun('u1'), true);
+    for (let i = 0; i < EXTERNAL_MAX_PER_WINDOW - 1; i++) {
         const out = await check({ external: true }, ctx);
         assert.equal(out.result.error, undefined);
     }

@@ -18,6 +18,8 @@ const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 const MAX_URLS = 50;
 const CONCURRENCY = 4;
 const TIMEOUT_MS = 5000;
+/** Redirect hops followed per request. */
+const MAX_HOPS = 5;
 const ALLOWED_PORTS = new Set(['', '80', '443', '8080', '8443']);
 const USER_AGENT = 'BeeFlow-LinkCheck/1.0';
 
@@ -43,18 +45,26 @@ function requestable(raw) {
 async function probeOne(raw, { fetchFn, timeoutMs }) {
     const url = requestable(raw);
     if (!url) return { error: 'invalid' };
-    /** @param {'HEAD' | 'GET'} method */
+    /** One request; redirects are followed here, each hop screened like the first URL. */
     const send = async (method) => {
-        const res = await fetchFn(url.href, {
-            method,
-            redirect: 'follow',
-            credentials: 'omit',
-            headers: { 'user-agent': USER_AGENT, accept: '*/*', ...(method === 'GET' ? { range: 'bytes=0-0' } : {}) },
-            signal: AbortSignal.timeout(timeoutMs),
-        });
-        // Only the status matters: never read a body of a third-party site.
-        await res.body?.cancel().catch(() => undefined);
-        return res.status;
+        let current = url;
+        for (let hop = 0; hop <= MAX_HOPS; hop++) {
+            const res = await fetchFn(current.href, {
+                method,
+                redirect: 'manual',
+                credentials: 'omit',
+                headers: { 'user-agent': USER_AGENT, accept: '*/*', ...(method === 'GET' ? { range: 'bytes=0-0' } : {}) },
+                signal: AbortSignal.timeout(timeoutMs),
+            });
+            // Only the status matters: never read a body of a third-party site.
+            await res.body?.cancel().catch(() => undefined);
+            const location = res.status >= 300 && res.status < 400 ? res.headers?.get?.('location') : null;
+            if (!location) return res.status;
+            const next = requestable(new URL(location, current).href);
+            if (!next) throw Object.assign(new Error('redirect target not allowed'), { code: 'EBADREDIRECT' });
+            current = next;
+        }
+        throw Object.assign(new Error('too many redirects'), { code: 'EBADREDIRECT' });
     };
     try {
         const head = await send('HEAD');
@@ -91,4 +101,4 @@ async function probeUrls(urls, options = {}) {
     return { results, skipped: Math.max(0, unique.length - max) };
 }
 
-module.exports = { probeUrls, probeOne, requestable, MAX_URLS, CONCURRENCY, TIMEOUT_MS };
+module.exports = { probeUrls, probeOne, requestable, MAX_URLS, CONCURRENCY, TIMEOUT_MS, MAX_HOPS };

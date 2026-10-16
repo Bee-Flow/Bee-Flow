@@ -23,6 +23,13 @@ describe('publish link pre-check', () => {
         expect(await fetchLinkErrors('pj_aaaa')).toEqual([]);
     });
 
+    it('gives the request a timeout, and an abort means no problems', async () => {
+        vi.mocked(mutate).mockImplementation(async () => { throw new DOMException('timed out', 'TimeoutError'); });
+        expect(await fetchLinkErrors('pj_aaaa')).toEqual([]);
+        const init = vi.mocked(mutate).mock.calls[0][1];
+        expect(init?.signal).toBeInstanceOf(AbortSignal);
+    });
+
     it('lists at most five problems, comma separated', () => {
         const many = Array.from({ length: 8 }, (_, i) => ({ ...error, url: `/p${i}`, severity: 'error' as const }));
         expect(describeLinkErrors(many).split(', ')).toHaveLength(5);

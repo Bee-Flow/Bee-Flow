@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { probeUrls, requestable } = require('./linkProbe');
+const { probeUrls, requestable, MAX_HOPS } = require('./linkProbe');
 const { isPrivateAddressError } = require('../../utils/ssrfGuard');
 
 const reply = (status) => ({ status, body: { cancel: async () => undefined } });
@@ -44,4 +44,36 @@ test('a private target is refused by the real guard, not requested', async () =>
 test('a network failure is unreachable', async () => {
     const { results } = await probeUrls(['https://example.org/'], { fetchFn: async () => { throw new Error('boom'); } });
     assert.deepEqual(results.get('https://example.org/'), { error: 'unreachable' });
+});
+
+const redirect = (to) => ({ status: 302, headers: new Map([['location', to]]), body: { cancel: async () => undefined } });
+const final = (status) => ({ status, headers: new Map(), body: { cancel: async () => undefined } });
+
+test('redirects are followed by hand and every hop is requested through the guard', async () => {
+    const seen = [];
+    const fetchFn = async (url, init) => {
+        seen.push([url, init.redirect]);
+        return url.endsWith('/a') ? redirect('/b') : final(200);
+    };
+    const { results } = await probeUrls(['https://example.org/a'], { fetchFn });
+    assert.deepEqual(results.get('https://example.org/a'), { status: 200 });
+    assert.deepEqual(seen.map((s) => s[0]), ['https://example.org/a', 'https://example.org/b']);
+    assert.ok(seen.every((s) => s[1] === 'manual'));
+});
+
+test('a redirect to another scheme, an odd port or credentials is not followed', async () => {
+    for (const to of ['ftp://example.org/x', 'https://other.example:2222/', 'https://u:p@other.example/']) {
+        const calls = [];
+        const fetchFn = async (url) => { calls.push(url); return redirect(to); };
+        const { results } = await probeUrls(['https://example.org/a'], { fetchFn });
+        assert.deepEqual(results.get('https://example.org/a'), { error: 'unreachable' }, to);
+        assert.ok(calls.every((c) => c === 'https://example.org/a'), to);
+    }
+});
+
+test('a redirect loop stops after the hop limit', async () => {
+    let n = 0;
+    const fetchFn = async () => { n++; return redirect('/loop'); };
+    await probeUrls(['https://example.org/loop'], { fetchFn });
+    assert.ok(n <= 2 * (MAX_HOPS + 1));
 });

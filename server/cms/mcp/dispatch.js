@@ -185,7 +185,7 @@ function createCmsMcp(deps) {
 
     const redirectHandlers = createRedirectHandlers({ cmsStore, resolveSite, audit: deps.audit }).handlers;
 
-    const linkHandlers = createLinkHandlers({ deps, cmsStore, resolveSite, takeBudget }).handlers;
+    const linkHandlers = createLinkHandlers({ deps, cmsStore, resolveSite }).handlers;
 
     const HANDLERS = {
         ...linkHandlers,

@@ -11,10 +11,8 @@
 const { err } = require('./handlerKit');
 const { runLinkCheck } = require('../../core/cms/linkReport');
 const { MAX_URLS } = require('../../core/cms/linkProbe');
+const { takeExternalRun, EXTERNAL_MAX_PER_WINDOW, EXTERNAL_WINDOW_MS } = require('../../core/cms/linkCheckBudget');
 
-/** External runs per user and window: each one makes up to MAX_URLS requests. */
-const EXTERNAL_MAX_PER_WINDOW = 5;
-const EXTERNAL_WINDOW_MS = 10 * 60 * 1000;
 
 /** @type {import('./tools').McpOnlyTool[]} */
 const LINK_TOOLS = [
@@ -33,18 +31,16 @@ const LINK_TOOLS = [
 ];
 
 /**
- * @param {{ deps: any, cmsStore: any, resolveSite: (args: any) => Promise<any>, takeBudget: Function }} kit
+ * @param {{ deps: any, cmsStore: any, resolveSite: (args: any) => Promise<any>, takeBudget?: Function }} kit
  */
-function createLinkHandlers({ deps, cmsStore, resolveSite, takeBudget }) {
-    const externalBudget = new Map();
-
+function createLinkHandlers({ deps, cmsStore, resolveSite }) {
     async function checkLinks(args, ctx) {
         const unknown = Object.keys(args).filter((k) => !['siteId', 'external'].includes(k));
         if (unknown.length) return err(`Unknown field: ${unknown.slice(0, 5).join(', ')}.`, { _fixHint: 'Send siteId and external.' });
         const external = args.external === true;
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
-        if (external && !takeBudget(externalBudget, ctx.userId, EXTERNAL_MAX_PER_WINDOW, EXTERNAL_WINDOW_MS)) {
+        if (external && !takeExternalRun(ctx.userId)) {
             return err(`External link checks are limited to ${EXTERNAL_MAX_PER_WINDOW} per ${EXTERNAL_WINDOW_MS / 60000} minutes. Ask again later, or run it without external.`);
         }
         const report = await runLinkCheck(site.siteId, { external }, { cmsStore });
@@ -58,4 +54,4 @@ function createLinkHandlers({ deps, cmsStore, resolveSite, takeBudget }) {
     return { handlers: { cms_check_links: checkLinks } };
 }
 
-module.exports = { LINK_TOOLS, createLinkHandlers, EXTERNAL_MAX_PER_WINDOW, EXTERNAL_WINDOW_MS };
+module.exports = { LINK_TOOLS, createLinkHandlers };

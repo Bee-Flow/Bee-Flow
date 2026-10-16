@@ -5,6 +5,8 @@ import { mutate } from '../../../../api/mutate';
 import { cmsApi } from '../cmsApi';
 import type { ConfirmOptions } from '../../../shared/useConfirm';
 
+const CHECK_TIMEOUT_MS = 8000;
+
 export interface LinkProblem {
     where: string;
     url: string;
@@ -26,6 +28,8 @@ export async function fetchLinkErrors(siteId: string): Promise<LinkProblem[]> {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({}),
+            // A hanging server must not hang Publish: an abort counts as "no problems".
+            signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
         });
         const data: unknown = await res.json();
         const problems = typeof data === 'object' && data !== null && 'problems' in data ? data.problems : [];
