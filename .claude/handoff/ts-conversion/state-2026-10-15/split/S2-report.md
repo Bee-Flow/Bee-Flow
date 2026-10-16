@@ -3,7 +3,8 @@
 - Branch: `ccr-ccac4823-i270ro`
 - BASE: `9c28cceaa` = `origin/ccr-28820270-xkvwp8` (a3afd896) + `--no-ff` merge of `origin/ts-local/prep2` (fe97b2c6)
 - Integration base: `80112891` = BASE + `--no-ff` merge of `origin/ccr-28820270-xkvwp8` @ 95b13ce7 (wave1, duplication and serverClosure fixes, at the integrator's request). The batch branches gate against BASE `9c28ccea`; the files in scope are identical in both.
-- Final commit: (filled at each push)
+- Final commit: see the last push of `ccr-ccac4823-i270ro` (this report is committed in it). Last code push: bfe9b80a (b2 retry);
+  the final push adds only the merge of the convert branch at 0ae29a17 (tree identical to it) and this report.
 
 ## Baseline measured on BASE (before any S2 work)
 - check:fast 39/39 pass; server typecheck 0 errors; gitleaks clean.
@@ -161,3 +162,16 @@ never returns; RoadmapEditor passes `checked=` to the fields Toggle whose prop i
 - Review: reviews/S2-compliance-retry.md (CHANGES REQUIRED small; required applied, recommended 4 applied, 5 left).
 - Full gate (push 4): check:fast 39/39; server tc 0; duplication 15315 ≤ 15383, test 26228 at budget; gitleaks clean;
   agent-hub tc 0, vitest 1848 files / 21690 pass (rc 0); mobile 13428 pass, tsc 0; server 28933 pass, 0 fail, no HUNG.
+
+## SWEEP-A (App Studio): not done by S2
+The integrator offered SWEEP-A (agent-hub/src/components/admin/Studio/AppStudio/**, 150 convertible JS files; uiBits.jsx,
+formContext.jsx and definitionOps.js stay JS by rule). S2 merged the convert branch at 0ae29a17 and started three drafters, then
+the user moved SWEEP-A to a laptop session: the drafters were stopped and NOTHING of SWEEP-A was committed or pushed.
+Notes for whoever takes it:
+- Base it on the convert branch at or after 0ae29a17. Duplication then measures 15100 against a budget of 15290 (190 lines of room),
+  and typed App Studio files tend to become text-identical to their mobile lockstep ports (mobile/src/features/app-studio/**):
+  measure after every batch and plan mirror entries (reviews/b2-B.md "Mirror plan").
+- Mobile tests load App Studio sources through mobile/src/features/app-studio/core/testing/loadWeb.ts (`loadWeb('runtime/x.ts')`)
+  and a few other lockstep tests; update their paths.
+- A natural split: runtime/components (45), the rest of runtime + state, rbac, variables, tables, bi, flow, chat, root files (47),
+  inspector + editor (58). The brief S2 wrote for it is reproduced in the session scratchpad only (not in the repo).
