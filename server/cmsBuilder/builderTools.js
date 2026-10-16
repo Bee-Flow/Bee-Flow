@@ -26,6 +26,7 @@
 
 const crypto = require('crypto');
 const cmsStore = require('../stores/cmsStore');
+const { validateStylePatch, STYLE_KEYS } = require('./blockStyle');
 const {
     BLOCK_DEFAULTS, BLOCK_TYPE_IDS,
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
@@ -82,11 +83,6 @@ const TYPOGRAPHY_ENUMS = {
 // DESIGN_DEFAULTS.darkColors) — every other colour must be a real hex.
 const BLANKABLE_DARK_COLORS = ['primary', 'accent'];
 
-const STYLE_MAX_WIDTHS = ['narrow', 'medium', 'wide', 'full'];
-const STYLE_ALIGNS = ['left', 'center', 'right'];
-const COLOR_TOKENS = ['primary', 'secondary', 'accent', 'background', 'surface', 'textPrimary', 'textSecondary'];
-const SPACING_KEYS = ['paddingTop', 'paddingBottom'];
-const STYLE_KEYS = ['colorOverrides', 'spacing', 'backgroundImage', 'backgroundOverlay', 'maxWidth', 'align', 'cssClass'];
 
 // ── Small helpers ────────────────────────────────────────────────────
 
@@ -425,61 +421,6 @@ async function applyAddBlocks(draftWrap, args) {
     return result;
 }
 
-/**
- * Shallow-validate a stylePatch against the block style wrapper shape.
- * Returns { style, hints } (validated patch + repair notes) or { error, _fixHint }.
- */
-function validateStylePatch(patch) {
-    if (!isPlainObject(patch)) return { error: 'stylePatch must be an object.' };
-    const out = {};
-    const hints = [];
-    for (const [key, value] of Object.entries(patch)) {
-        if (!STYLE_KEYS.includes(key)) {
-            hints.push(`stylePatch.${key}: unknown style key, dropped. Valid keys: ${STYLE_KEYS.join(', ')}.`);
-            continue;
-        }
-        if (key === 'maxWidth') {
-            if (!STYLE_MAX_WIDTHS.includes(value)) {
-                return { error: `stylePatch.maxWidth ${JSON.stringify(value)} is invalid.`, _fixHint: `Valid maxWidth values: ${STYLE_MAX_WIDTHS.join(', ')}.` };
-            }
-            out.maxWidth = value;
-        } else if (key === 'align') {
-            if (!STYLE_ALIGNS.includes(value)) {
-                return { error: `stylePatch.align ${JSON.stringify(value)} is invalid.`, _fixHint: `Valid align values: ${STYLE_ALIGNS.join(', ')}.` };
-            }
-            out.align = value;
-        } else if (key === 'colorOverrides') {
-            if (!isPlainObject(value)) {
-                return { error: 'stylePatch.colorOverrides must be an object of color tokens.', _fixHint: `Valid tokens: ${COLOR_TOKENS.join(', ')}.` };
-            }
-            const colors = {};
-            for (const [tok, col] of Object.entries(value)) {
-                if (!COLOR_TOKENS.includes(tok)) { hints.push(`colorOverrides.${tok}: unknown token, dropped. Valid tokens: ${COLOR_TOKENS.join(', ')}.`); continue; }
-                if (typeof col !== 'string') { hints.push(`colorOverrides.${tok}: must be a color string, dropped.`); continue; }
-                colors[tok] = col;
-            }
-            out.colorOverrides = colors;
-        } else if (key === 'spacing') {
-            if (!isPlainObject(value)) {
-                return { error: 'stylePatch.spacing must be an object.', _fixHint: `Valid spacing keys: ${SPACING_KEYS.join(', ')} (numbers).` };
-            }
-            const spacing = {};
-            for (const [sk, sv] of Object.entries(value)) {
-                if (!SPACING_KEYS.includes(sk)) { hints.push(`spacing.${sk}: unknown key, dropped. Valid keys: ${SPACING_KEYS.join(', ')}.`); continue; }
-                if (typeof sv !== 'number' || !Number.isFinite(sv)) { hints.push(`spacing.${sk}: must be a number, dropped.`); continue; }
-                spacing[sk] = sv;
-            }
-            out.spacing = spacing;
-        } else if (key === 'backgroundImage' || key === 'cssClass') {
-            if (typeof value !== 'string') { hints.push(`stylePatch.${key}: must be a string, dropped.`); continue; }
-            out[key] = value;
-        } else if (key === 'backgroundOverlay') {
-            if (typeof value !== 'number' && typeof value !== 'string') { hints.push('stylePatch.backgroundOverlay: must be a number or color string, dropped.'); continue; }
-            out.backgroundOverlay = value;
-        }
-    }
-    return { style: out, hints };
-}
 
 async function applyUpdateBlock(draftWrap, args) {
     const pageId = typeof args?.pageId === 'string' ? args.pageId : null;
@@ -1028,5 +969,5 @@ module.exports = {
     NAV_LIMITS,
     applyToolCall,
     // internals exposed for unit tests
-    _test: { deepMerge, validateStylePatch, resolveInsertIndex, summariseDesign, sanitizeHeaderNav, sanitizeDesignPatch },
+    _test: { deepMerge, validateStylePatch, STYLE_KEYS, resolveInsertIndex, summariseDesign, sanitizeHeaderNav, sanitizeDesignPatch },
 };

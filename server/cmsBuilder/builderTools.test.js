@@ -217,6 +217,46 @@ test('cms_add_blocks: position end / afterBlockId / index; unknown afterBlockId 
     assert.ok(bad.error && bad._fixHint.includes(heroId), JSON.stringify(bad));
 });
 
+test('cms_update_block: style v2 keys (band, rhythm, reveal, glow, columns) are persisted and validated', async () => {
+    const draft = await makeDraft();
+    const home = homeId(draft);
+    const added = await applyToolCall(draft, 'cms_add_blocks', { pageId: home, blocks: [{ type: 'features' }] });
+    const blockId = added.blockIds[0];
+
+    const ok = await applyToolCall(draft, 'cms_update_block', {
+        pageId: home, blockId,
+        stylePatch: { band: 'dark', rhythm: 'spacious', reveal: 'off', glow: true, columns: '3' },
+    });
+    assert.ok(!ok.error && !ok._hints, JSON.stringify(ok));
+    const saved = draft.pages.get(home).blocks[0];
+    assert.deepStrictEqual(
+        { band: saved.style.band, rhythm: saved.style.rhythm, reveal: saved.style.reveal, glow: saved.style.glow, columns: saved.style.columns },
+        { band: 'dark', rhythm: 'spacious', reveal: 'off', glow: true, columns: 3 },
+    );
+
+    for (const [patch, hint] of [
+        [{ band: 'neon' }, /default, surface, tint, dark, primary/],
+        [{ rhythm: 'tight' }, /compact, default, spacious/],
+        [{ reveal: true }, /on, off/],
+        [{ glow: 'yes' }, /true or false/],
+        [{ columns: 5 }, /2, 3, 4/],
+    ]) {
+        const bad = await applyToolCall(draft, 'cms_update_block', { pageId: home, blockId, stylePatch: patch });
+        assert.ok(bad.error, JSON.stringify(patch));
+        assert.match(bad._fixHint, hint);
+    }
+    assert.strictEqual(draft.pages.get(home).blocks[0].style.band, 'dark', 'a rejected patch changed nothing');
+});
+
+test('cms_update_block: the tool description and STYLE_KEYS list the same style keys', () => {
+    const schema = TOOL_SCHEMAS.find((s) => s.function.name === 'cms_update_block');
+    const text = schema.function.description.split('stylePatch merges into the block\'s style wrapper:')[1].split('enabled=false')[0];
+    // Keys are the words at the start of each comma-separated entry, outside any (...) / {...}.
+    const flat = text.replace(/\([^)]*\)|\{[^}]*\}/g, '');
+    const documented = flat.split(',').map((e) => e.trim().split(/\s/)[0]).filter(Boolean);
+    assert.deepStrictEqual([...documented].sort(), [..._test.STYLE_KEYS].sort());
+});
+
 test('cms_update_block: content deep-merge (arrays wholesale), style enums validated, enabled toggle', async () => {
     const draft = await makeDraft();
     const home = homeId(draft);
