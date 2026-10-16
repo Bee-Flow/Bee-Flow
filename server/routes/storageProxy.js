@@ -29,6 +29,7 @@
  */
 
 const express = require('express');
+const { sendStream } = require('../core/http/sendStream');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
@@ -74,7 +75,7 @@ router.get('/tmp/:token', async (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
 
         log.info(`[StorageProxy] Serving temp file: key=${key}, type=${contentType}, size=${contentLength || 'unknown'}`);
-        stream.pipe(res);
+        sendStream(stream, res);
     } catch (err) {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'File not found' });
@@ -151,7 +152,7 @@ router.get('/file/{*fileKey}', async (req, res) => {
         // Cache for 1 day — files are immutable (unique filenames)
         res.setHeader('Cache-Control', 'private, max-age=86400');
 
-        stream.pipe(res);
+        sendStream(stream, res);
     } catch (err) {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'File not found' });

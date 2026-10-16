@@ -6,6 +6,7 @@
  */
 
 const express = require('express');
+const { sendStream } = require('../../core/http/sendStream');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const path = require('path');
@@ -79,8 +80,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
                         res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${total}`);
                     }
                     if (contentLength) res.setHeader('Content-Length', String(contentLength));
-                    stream.on('error', next);
-                    stream.pipe(res);
+                    sendStream(stream, res, next);
                     return;
                 } catch (e) {
                     log.error('[Transcriptions] Object-storage audio fetch failed:', e.message);
@@ -123,13 +123,13 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
         res.status(206);
         res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${fileSize}`);
         res.setHeader('Content-Length', String(range.end - range.start + 1));
-        fs.createReadStream(audioPath, { start: range.start, end: range.end }).pipe(res);
+        sendStream(fs.createReadStream(audioPath, { start: range.start, end: range.end }), res);
         return;
     }
 
     // No range header — full file.
     res.setHeader('Content-Length', String(fileSize));
-    fs.createReadStream(audioPath).pipe(res);
+    sendStream(fs.createReadStream(audioPath), res);
 });
 
 module.exports = router;

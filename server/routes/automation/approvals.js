@@ -23,6 +23,7 @@
  */
 
 const express = require('express');
+const { sendStream } = require('../../core/http/sendStream');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const automationStore = require('../../stores/automationStore');
@@ -431,11 +432,10 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Content-Disposition', contentDisposition(snap.filename));
         if (streamed.contentLength != null) res.setHeader('Content-Length', streamed.contentLength);
-        streamed.stream.on('error', (e) => {
+        return sendStream(streamed.stream, res, (e) => {
             log.error(`[automation/approvals] app download stream failed: ${e.message}`);
             next(e);
         });
-        return streamed.stream.pipe(res);
     }
     const chainRoot = approval.rootRunId || approval.runId;
     if (!chainRoot) return res.status(404).json({ error: 'Not found' });
@@ -461,11 +461,10 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Disposition', contentDisposition(file.filename));
     if (streamed.contentLength != null) res.setHeader('Content-Length', streamed.contentLength);
-    streamed.stream.on('error', (e) => {
+    return sendStream(streamed.stream, res, (e) => {
         log.error(`[automation/approvals] download stream failed: ${e.message}`);
         next(e);
     });
-    return streamed.stream.pipe(res);
 });
 
 module.exports = router;

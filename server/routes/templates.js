@@ -14,6 +14,8 @@
  */
 
 const express = require('express');
+const fs = require('fs');
+const { sendStream } = require('../core/http/sendStream');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { requireBetaFeature } = require('../core/entitlements/betaFeatures');
@@ -181,7 +183,6 @@ router.post('/upload', requireAuth, upload.single('file'), validate({ body: Uplo
         log.info(`[Templates] Uploaded template to RustFS: ${storageKey}`);
     } else {
         // Fallback: store on local disk
-        const fs = require('fs');
         const path = require('path');
         const dir = path.join(__dirname, '..', 'data', 'templates', userId);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -269,7 +270,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
         if (result.storageKey && !result.storageKey.startsWith('local:')) {
             await storageStore.deleteFile(result.storageKey);
         } else if (result.storageKey?.startsWith('local:')) {
-            const fs = require('fs');
             const localPath = localTemplateFile(result.storageKey);
             if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
         }
@@ -288,20 +288,19 @@ router.get('/:id/download', requireAuth, async (req, res) => {
     if (!template) return res.status(404).json({ error: 'Template not found' });
 
     if (template.storageKey.startsWith('local:')) {
-        const fs = require('fs');
         const localPath = localTemplateFile(template.storageKey);
         let localExists = true;
         try { await fs.promises.access(localPath); } catch { localExists = false; }
         if (!localExists) return res.status(404).json({ error: 'File not found' });
         res.setHeader('Content-Disposition', contentDisposition(template.fileName));
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        return fs.createReadStream(localPath).pipe(res);
+        return sendStream(fs.createReadStream(localPath), res);
     }
 
     const { stream, contentType } = await storageStore.streamFile(template.storageKey);
     res.setHeader('Content-Disposition', contentDisposition(template.fileName));
     res.setHeader('Content-Type', contentType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    stream.pipe(res);
+    sendStream(stream, res);
 });
 
 // ── Fill template with values ────────────────────────────────────
@@ -313,7 +312,6 @@ router.get('/:id/download', requireAuth, async (req, res) => {
 async function renderTemplate(template, values) {
     let templateBuffer;
     if (template.storageKey.startsWith('local:')) {
-        const fs = require('fs');
         // localTemplateFile refuses any path outside data/templates.
         templateBuffer = await fs.promises.readFile(localTemplateFile(template.storageKey)); // nosemgrep: ajinabraham.njsscan.traversal.path_traversal.generic_path_traversal
     } else {
@@ -383,7 +381,6 @@ router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), as
         res.json({ downloadUrl: proxyPath, fileName: filledName });
     } else {
         // Fallback: store locally
-        const fs = require('fs');
         const path = require('path');
         const dir = path.join(__dirname, '..', 'data', 'templates_filled', userId);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -398,7 +395,6 @@ router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), as
 // ── Download filled document (local fallback) ────────────────────
 // Serves files stored locally when RustFS is not available.
 router.get('/download-filled/:filename', requireAuth, (req, res) => {
-    const fs = require('fs');
     const path = require('path');
     const userId = req.session.user.id;
     const filename = req.params.filename;
@@ -415,7 +411,7 @@ router.get('/download-filled/:filename', requireAuth, (req, res) => {
     log.info(`[Templates] Serving filled document: ${filePath}`);
     res.setHeader('Content-Disposition', contentDisposition(sanitized));
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    fs.createReadStream(filePath).pipe(res);
+    sendStream(fs.createReadStream(filePath), res);
 });
 
 async function generateTemplateContext(templateId, userId, text, parameters) {
@@ -828,7 +824,6 @@ Respond with ONLY a valid JSON array, no other text:
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
         log.info(`[Templates] Re-uploaded parameterized .docx to ${template.storageKey}`);
     } else if (template.storageKey?.startsWith('local:')) {
-        const fs = require('fs');
         await fs.promises.writeFile(localTemplateFile(template.storageKey), modifiedBuffer);
         log.info(`[Templates] Updated local parameterized .docx`);
     }

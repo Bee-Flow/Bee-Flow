@@ -17,6 +17,7 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const fs = require('fs');
 const path = require('path');
 const log = require('../telemetry/log');
+const { s3ClientConfig } = require('./storageClientConfig');
 
 const BUCKET = process.env.S3_BUCKET || 'beeflow-media';
 const DEFAULT_EXPIRY = 3600; // 1 hour
@@ -130,15 +131,7 @@ async function init() {
         }
     }
 
-    s3 = new S3Client({
-        endpoint,
-        region: 'us-east-1', // Required by SDK but ignored by RustFS
-        credentials: {
-            accessKeyId: accessKey,
-            secretAccessKey: secretKey,
-        },
-        forcePathStyle: true, // Required for non-AWS S3 (RustFS, MinIO)
-    });
+    s3 = new S3Client(s3ClientConfig(endpoint, accessKey, secretKey));
 
     // Ensure bucket exists
     try {

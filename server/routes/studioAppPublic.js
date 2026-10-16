@@ -55,6 +55,7 @@
  */
 
 const express = require('express');
+const { sendStream } = require('../core/http/sendStream');
 const crypto = require('crypto');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
@@ -572,8 +573,7 @@ router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireV
     const inline = /^image\//.test(mime) || mime === 'application/pdf';
     res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
     if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
-    obj.stream.on('error', next);
-    return obj.stream.pipe(res);
+    return sendStream(obj.stream, res, next);
 });
 
 // Re-picking a file three times must not leave three dead blobs charging

@@ -8,6 +8,7 @@
  */
 
 const multer = require('multer');
+const { sendStream } = require('../core/http/sendStream');
 const path = require('path');
 const { HttpError } = require('../core/http/errors');
 const storageStore = require('../stores/storageStore');
@@ -194,7 +195,7 @@ async function serveAsset(req, res) {
         }
         if (contentLength) res.setHeader('Content-Length', contentLength);
         res.setHeader('Cache-Control', 'public, max-age=3600');
-        stream.pipe(res);
+        sendStream(stream, res);
     } catch (err) {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'Asset not found' });
