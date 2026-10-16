@@ -8245,6 +8245,8 @@
    "unit",
    "arrayRef",
    "target",
+   "timezone",
+   "epochUnit",
    "label"
   ],
   "wait": [
