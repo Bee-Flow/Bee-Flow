@@ -149,3 +149,11 @@ test('row counts are keyed by table id whichever key the store used', () => {
     assert.deepEqual(mcpBuilder.normalizeRowCounts(model, null), {});
     assert.deepEqual(mcpBuilder.normalizeRowCounts(null, { tbl_a: 3 }), {});
 });
+
+test('app_set_plan over MCP succeeds as a no-op instead of failing', async () => {
+    const { result } = await mcpBuilder.callTool('app_set_plan', { appId: 'app_x', todos: [{ text: 'a' }] }, { userId: 'u1' });
+    assert.equal(result.ok, true);
+    assert.equal(result.error, undefined);
+    const tool = mcpBuilder.buildToolList().find((t) => t.name === 'app_set_plan');
+    assert.match(tool.description, /no-op/);
+});

@@ -48,6 +48,7 @@ const {
 const { canonicalizeAppDefinition } = require('./canonicalize');
 const { emptyDefinition } = require('./componentSpecs');
 const log = require('../telemetry/log');
+const { STUDIO_TOOLS } = require('./mcpStudioTools');
 
 // ── The gate ────────────────────────────────────────────────────────────────
 //
@@ -126,7 +127,9 @@ function toMcpTool(fn) {
 
     return {
         name: fn.name,
-        description: fn.description || '',
+        description: fn.name === 'app_set_plan'
+            ? 'Optional. Over MCP this is a no-op that returns ok: nothing is displayed and the app is not changed. Keep your own to-do list; you may skip this tool.'
+            : (fn.description || ''),
         inputSchema,
         annotations: {
             title: fn.name,
@@ -138,34 +141,6 @@ function toMcpTool(fn) {
         },
     };
 }
-
-/** The three MCP-only tools, in the same OpenAI shape as TOOL_SCHEMAS. */
-const STUDIO_TOOLS = [
-    {
-        name: 'studio_get_guide',
-        description: 'The App Studio builder guide: how to compose screens/sections/components, the full component catalog with every prop and style knob, the action and sequence-step vocabulary, binding kinds and the formula functions. CALL THIS FIRST, once per session, before authoring anything — the app_* tool descriptions teach the call protocol only, not the vocabulary, and ids/props invented without the catalog get rejected by the validator.',
-        parameters: { type: 'object', properties: {} },
-    },
-    {
-        name: 'studio_list_apps',
-        description: 'List the App Studio apps this token\'s user owns (id, name, description, version, published state, template provenance). Start here to find the appId to work on.',
-        parameters: { type: 'object', properties: {} },
-    },
-    {
-        name: 'studio_create_app',
-        description: 'Create a new, empty App Studio app owned by this token\'s user and return its appId. Optionally start from a built-in template (see app_list_templates for ids) — a template gives you screens, tables and seed rows to edit rather than a blank canvas.',
-        parameters: {
-            type: 'object',
-            properties: {
-                name: { type: 'string', description: 'App name (max 80 chars).' },
-                description: { type: 'string', description: 'One or two sentences on what the app does.' },
-                icon: { type: 'string', description: 'Lucide icon name, e.g. "ClipboardList".' },
-                templateId: { type: 'string', description: 'Optional template id to install into the new app (app_list_templates lists them).' },
-            },
-            required: ['name'],
-        },
-    },
-];
 
 /** The advertised tool list. Pure — no I/O, safe to call per request. */
 function buildToolList() {
@@ -392,6 +367,14 @@ async function callTool(name, rawArgs, { userId }) {
                 content: `Screenshot budget spent (${SHOT_MAX_PER_WINDOW} per ${SHOT_WINDOW_MS / 60000} minutes). Each render is a headless browser page. Keep building from app_dry_run's findings; the budget refills.`,
             },
         };
+    }
+
+    // The checklist lives in the in-product builder chat; over MCP there is
+    // nothing to render it on and the tool never touches the app. The guide
+    // still tells the agent to send it with its first build call, so answer
+    // with a success instead of an error that reads like a failed build step.
+    if (name === 'app_set_plan') {
+        return { result: { ok: true, note: 'Noted. Over MCP the checklist is not displayed anywhere and the app is unchanged; keep your own to-do list.' } };
     }
 
     const loaded = await loadDraft(appId, userId);
