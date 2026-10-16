@@ -29,7 +29,7 @@ import { useReducedMotion } from '../../../../../hooks/useReducedMotion';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import toast from '../../../../shared/Toast';
 import { planReveal as planRevealJs } from '../editor/revealQueue';
-import type { AppDefinition } from '../inspector/appDefinition';
+import type { AppDefinition, AppMeta } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';
 
 /** How a turn ended, for the host (Playbooks) and the canvas farewell. */
@@ -78,8 +78,6 @@ const planReveal = planRevealJs as unknown as (input: {
 interface DraftMeta {
     lastCall?: { added?: Array<{ id?: string } | null> } | null;
 }
-
-type DefMeta = { name?: string; description?: string; icon?: string };
 
 /** Adopt the turn's last draft: the server already persisted it, so autosave must not re-save. */
 function adoptDraft(chrome: EditorChrome | null, dispatch: Dispatch<AppEditorAction>, last: { definition: AppDefinition; version: unknown }) {
@@ -130,8 +128,8 @@ export function useBuilderTurn({ appId, t, dispatch, definitionRef, chromeRef, o
         // finalize) reach the editor chrome now, not on the next reload:
         // the header shows the app ROW's name, and syncCardMeta only updates
         // the row server-side.
-        const metaBefore = ((revealBaseline && revealBaseline.meta) || {}) as DefMeta;
-        const metaAfter = (def.meta || {}) as DefMeta;
+        const metaBefore: AppMeta = (revealBaseline && revealBaseline.meta) || {};
+        const metaAfter: AppMeta = def.meta || {};
         if ((['name', 'description', 'icon'] as const).some((k) => metaBefore[k] !== metaAfter[k])) {
             onAppUpdatedRef.current?.({ id: appId, name: metaAfter.name, description: metaAfter.description, icon: metaAfter.icon });
         }

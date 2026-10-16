@@ -1,3 +1,4 @@
+import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import { RESERVED_VARIABLE_NAMES, VARIABLE_NAME_RE } from '../runtime/appVariables';
 
 /**
@@ -18,10 +19,10 @@ import { RESERVED_VARIABLE_NAMES, VARIABLE_NAME_RE } from '../runtime/appVariabl
 // text — the same trick validate.js uses for currentUser.<attr>.
 const VARS_ATTR_RE = /\bvars\s*\.\s*([A-Za-z_$][\w$]*)/g;
 
-function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+function isObject(v: unknown): v is Record<string, unknown> { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 /** Every `vars.<name>` inside one expression string. */
-function namesIn(expr) {
+function namesIn(expr: unknown): string[] {
     if (typeof expr !== 'string' || !expr) return [];
     return [...expr.matchAll(VARS_ATTR_RE)].map((m) => m[1]);
 }
@@ -32,7 +33,7 @@ function namesIn(expr) {
  * but a formula is always `{kind:'formula', expr}` (or the legacy bare string
  * a filter may still carry).
  */
-function eachFormula(value, visit, depth = 0) {
+function eachFormula(value: unknown, visit: (expr: string) => void, depth = 0): void {
     if (depth > 12 || value == null) return;
     if (Array.isArray(value)) {
         for (const entry of value) eachFormula(entry, visit, depth + 1);
@@ -44,7 +45,7 @@ function eachFormula(value, visit, depth = 0) {
     for (const v of Object.values(value)) eachFormula(v, visit, depth + 1);
 }
 
-function walkSteps(steps, visit, depth = 0) {
+function walkSteps(steps: unknown, visit: (step: Record<string, unknown>) => void, depth = 0): void {
     if (!Array.isArray(steps) || depth > 12) return;
     for (const step of steps) {
         if (!isObject(step)) continue;
@@ -60,6 +61,24 @@ function walkSteps(steps, visit, depth = 0) {
     }
 }
 
+/** Where one `vars.<name>` is read or written; which members are set depends on the kind of site. */
+export interface UsageSite {
+    kind?: unknown;
+    label?: string;
+    screenId?: string;
+    screenName?: string;
+    nodeId?: string | null;
+    nodeType?: string;
+    actionId?: string;
+}
+
+export interface VariableUsage {
+    reads: Map<string, UsageSite[]>;
+    writes: Map<string, UsageSite[]>;
+    unknown: Set<string>;
+    countOf: (name: string) => number;
+}
+
 /**
  * collectVariableUsage(def) → { reads, writes, unknown, countOf }
  *
@@ -70,15 +89,15 @@ function walkSteps(steps, visit, depth = 0) {
  *
  * Site = { kind, label, screenId, screenName, nodeId, nodeType, actionId }
  */
-export function collectVariableUsage(def) {
-    const reads = new Map();
-    const writes = new Map();
+export function collectVariableUsage(def: AppDefinition | null | undefined): VariableUsage {
+    const reads = new Map<string, UsageSite[]>();
+    const writes = new Map<string, UsageSite[]>();
 
-    const add = (map, name, site) => {
+    const add = (map: Map<string, UsageSite[]>, name: string, site: UsageSite) => {
         if (!map.has(name)) map.set(name, []);
-        map.get(name).push(site);
+        (map.get(name) as UsageSite[]).push(site);
     };
-    const addReads = (expr, site) => {
+    const addReads = (expr: unknown, site: UsageSite) => {
         for (const name of namesIn(expr)) add(reads, name, site);
     };
     /**
@@ -90,7 +109,7 @@ export function collectVariableUsage(def) {
      * built on it silently stopped working. The legacy bare string is still
      * accepted, for a definition held in memory before its first save.
      */
-    const addFlagReads = (flag, site) => {
+    const addFlagReads = (flag: unknown, site: UsageSite) => {
         if (typeof flag === 'string') { addReads(flag, site); return; }
         eachFormula(flag, (expr) => addReads(expr, site));
     };
@@ -98,7 +117,7 @@ export function collectVariableUsage(def) {
     // ── components ──────────────────────────────────────────────────────────
     for (const screen of Array.isArray(def?.screens) ? def.screens : []) {
         const screenSite = { screenId: screen?.id, screenName: screen?.name || screen?.id };
-        const walk = (nodes, depth) => {
+        const walk = (nodes: AppNode[] | undefined, depth: number): void => {
             if (!Array.isArray(nodes) || depth > 12) return;
             for (const node of nodes) {
                 if (!isObject(node)) continue;
@@ -163,18 +182,18 @@ export function collectVariableUsage(def) {
             .filter((n) => typeof n === 'string' && n),
     );
 
-    const unknown = new Set();
+    const unknown = new Set<string>();
     for (const name of reads.keys()) {
         if (declared.has(name) || writes.has(name) || RESERVED_VARIABLE_NAMES.includes(name)) continue;
         unknown.add(name);
     }
 
-    const countOf = (name) => (reads.get(name)?.length || 0) + (writes.get(name)?.length || 0);
+    const countOf = (name: string) => (reads.get(name)?.length || 0) + (writes.get(name)?.length || 0);
 
     return { reads, writes, unknown, countOf };
 }
 
-function describeStep(step) {
+function describeStep(step: Record<string, unknown>): string {
     switch (step.kind) {
         case 'set_variable': return 'a "set a variable" step';
         case 'loop': return 'a loop';
@@ -190,12 +209,12 @@ function describeStep(step) {
  * A name that is not a legal identifier is excluded: declaring it would not
  * make the read work.
  */
-export function declarableUnknowns(usage) {
+export function declarableUnknowns(usage: Pick<VariableUsage, 'unknown'>): string[] {
     return [...usage.unknown].filter((n) => VARIABLE_NAME_RE.test(n)).sort();
 }
 
 /** One human sentence for a usage site, for the delete dialog. */
-export function describeSite(site) {
+export function describeSite(site: UsageSite | null | undefined): string {
     if (!site) return '';
     if (site.screenName && site.nodeType) {
         return `Screen “${site.screenName}” → ${String(site.nodeType).replace(/_/g, ' ')} → ${site.label}`;

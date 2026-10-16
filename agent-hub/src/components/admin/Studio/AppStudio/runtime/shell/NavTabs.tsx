@@ -2,6 +2,8 @@ import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
+import type { NavScreen } from './navModel';
+import type { NavigateFn } from '../actionRunner/runnerContext';
 
 /**
  * NavTabs — the top-bar tab row (nav.style 'tabs', the default). Groups are
@@ -17,13 +19,13 @@ import AppIcon from '../../../../../icons/AppIcon';
 
 const TAB_CLS = 'inline-flex items-center gap-1.5 px-3 text-sm font-medium self-stretch';
 
-function tabStyle(isActive) {
+function tabStyle(isActive: boolean) {
     return isActive
         ? { color: 'var(--app-primary)', boxShadow: 'inset 0 -2px 0 var(--app-primary)' }
         : { color: 'var(--text-secondary)' };
 }
 
-function TabLabel({ screen }) {
+function TabLabel({ screen }: { screen: NavScreen }) {
     return (
         <>
             {screen.icon ? <AppIcon name={screen.icon} className="w-3.5 h-3.5" /> : null}
@@ -32,12 +34,18 @@ function TabLabel({ screen }) {
     );
 }
 
-export default function NavTabs({ screens, screenId, onNavigate }) {
+interface NavTabsProps {
+    screens: NavScreen[];
+    screenId: string | null | undefined;
+    onNavigate?: NavigateFn | null;
+}
+
+export default function NavTabs({ screens, screenId, onNavigate }: NavTabsProps) {
     const { t } = useTranslation();
-    const navRef = useRef(null);
-    const measureRefs = useRef([]);
-    const moreMeasureRef = useRef(null);
-    const menuRef = useRef(null);
+    const navRef = useRef<HTMLElement | null>(null);
+    const measureRefs = useRef<Array<HTMLSpanElement | null>>([]);
+    const moreMeasureRef = useRef<HTMLSpanElement | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
     const [visibleCount, setVisibleCount] = useState(screens.length);
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -74,10 +82,10 @@ export default function NavTabs({ screens, screenId, onNavigate }) {
     // Close the overflow menu on outside pointerdown / Escape.
     useEffect(() => {
         if (!menuOpen) return undefined;
-        const onDown = (e) => {
-            if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+        const onDown = (e: PointerEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node | null)) setMenuOpen(false);
         };
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setMenuOpen(false);
         };
         document.addEventListener('pointerdown', onDown);

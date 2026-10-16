@@ -6,19 +6,13 @@
 import { ImagePlus, Send, Square } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ClipboardEvent, ChangeEvent, KeyboardEvent, RefObject } from 'react';
-import { IMAGE_ACCEPT_ATTR, MAX_IMAGES_PER_TURN, imageFilesFrom, prepareComposerImages as prepareComposerImagesJs } from './composerImages';
+import { IMAGE_ACCEPT_ATTR, MAX_IMAGES_PER_TURN, imageFilesFrom, prepareComposerImages } from './composerImages';
 import { StagedImages } from './TranscriptItems';
 import type { StagedImage } from './TranscriptItems';
 import type { ModelTierMap } from '../../../../../api/queries/modelTiers';
 import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import ModelTierSelector from '../../../../licensing/ModelTierSelector';
 import toast from '../../../../shared/Toast';
-
-// composerImages.js defaults `t` to null, which would type it as null-only.
-const prepareComposerImages = prepareComposerImagesJs as unknown as (
-    files: FileList | File[], alreadyStaged: number, t: TranslateFn,
-) => Promise<{ images: StagedImage[]; errors: string[] }>;
 
 interface BuilderComposerProps {
     initialPrompt: string;

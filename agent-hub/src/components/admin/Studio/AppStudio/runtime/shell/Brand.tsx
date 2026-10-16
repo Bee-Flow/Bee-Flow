@@ -1,4 +1,5 @@
 import AppIcon from '../../../../../icons/AppIcon';
+import type { AppDefinition } from '../../inspector/appDefinition';
 
 /**
  * Brand — the app's identity lockup, shared by both shell layouts (tabs top
@@ -6,7 +7,7 @@ import AppIcon from '../../../../../icons/AppIcon';
  * design layer carries a logoUrl the image replaces the icon tile (the name
  * stays, truncated, so an icon-only logo still reads).
  */
-export default function Brand({ definition }) {
+export default function Brand({ definition }: { definition?: Pick<AppDefinition, 'meta' | 'design'> | null }) {
     const meta = definition?.meta || {};
     const logoUrl = definition?.design?.logoUrl || null;
     return (

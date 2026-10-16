@@ -1,18 +1,8 @@
 import { Database, FileInput, Link2, Loader2, Plus, Table2 } from 'lucide-react';
-import type { ComponentType } from 'react';
-import TableDesignerJs from './TableDesigner';
+import TableDesigner from './TableDesigner';
 import { modeLabel, sourceIsWritable, sourceLabel } from './tablesManagerModel';
 import type { ModelTable, TableSource } from './tablesManagerModel';
 import useTranslation from '../../../../../hooks/useTranslation';
-
-// TableDesigner.jsx defaults `savedTable` to null, which would type it as null-only.
-const TableDesigner = TableDesignerJs as unknown as ComponentType<{
-    table: ModelTable;
-    tables: ModelTable[];
-    savedTable: ModelTable | null;
-    onChange: (table: ModelTable) => void;
-    disabled?: boolean;
-}>;
 
 const GEN_BTN = 'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)]';
 

@@ -4,6 +4,9 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import Modal from '../../../../../shared/Modal';
 import { useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';
+import type { ModalPlacement, ModalSize } from '../../../../../shared/Modal';
+import type { NodeStyle } from '../../inspector/appDefinition';
+import type { NodeProps } from './appNode.types';
 
 /**
  * App Studio runtime — 'modal' (container). Spec: server/appStudio/componentSpecs.js.
@@ -19,13 +22,22 @@ import { spaceSteps } from '../styleResolver';
 
 // Module-level open bus: modalId → Set<setOpen>. Lets an open_modal action (or a
 // test) open a modal without threading state through RuntimeContext.
-const openers = new Map();
+type SetOpen = (open: boolean) => void;
+
+interface ModalNodeProps {
+    title?: string | null;
+    size?: string;
+    placement?: string;
+    triggerLabel?: string | null;
+}
+
+const openers = new Map<string, Set<SetOpen>>();
 // Ids opened while NO instance was mounted (a modal living in an inactive tab,
 // or on a screen still rendering). The next instance to mount consumes the latch
 // and opens, so the action is deferred instead of silently dropped.
-const pendingOpen = new Set();
+const pendingOpen = new Set<string>();
 
-function subscribe(id, setOpen) {
+function subscribe(id: string | undefined, setOpen: SetOpen) {
     if (!id) return () => {};
     let set = openers.get(id);
     if (!set) { set = new Set(); openers.set(id, set); }
@@ -38,7 +50,7 @@ function subscribe(id, setOpen) {
 }
 
 /** Open the modal with this id (called by the open_modal action wiring / tests). */
-export function openAppModal(id) {
+export function openAppModal(id: string) {
     // A repeater mounts one instance PER ROW under the same node id; opening
     // them all stacks identical overlays, so only the first-mounted one opens.
     const first = openers.get(id)?.values().next().value;
@@ -46,17 +58,17 @@ export function openAppModal(id) {
     else pendingOpen.add(id);
 }
 /** Close the modal with this id. */
-export function closeAppModal(id) {
+export function closeAppModal(id: string) {
     pendingOpen.delete(id);
     (openers.get(id) || []).forEach((setOpen) => setOpen(false));
 }
 
-const MODAL_SIZE = { sm: 'sm', md: 'md', lg: 'lg' };
+const MODAL_SIZE: Record<string, ModalSize> = { sm: 'sm', md: 'md', lg: 'lg' };
 // Whitelist, not passthrough: an unknown stored value degrades to the classic
 // centered dialog instead of handing the shared component a class it lacks.
-const MODAL_PLACEMENT = { center: 'center', left: 'left', right: 'right', bottom: 'bottom' };
+const MODAL_PLACEMENT: Record<string, ModalPlacement> = { center: 'center', left: 'left', right: 'right', bottom: 'bottom' };
 
-export default function AppModal({ node, children }) {
+export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) {
     const { t } = useTranslation();
     const { mode } = useRuntime();
     const { title = null, size = 'md', placement = 'center', triggerLabel = null } = node.props || {};
@@ -64,7 +76,7 @@ export default function AppModal({ node, children }) {
 
     useEffect(() => subscribe(node.id, setOpen), [node.id]);
 
-    const gap = Number.isFinite(node.style?.gap) ? node.style.gap : 3;
+    const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     const grid = (
         <div
             className="app-grid"

@@ -5,10 +5,18 @@
 import { slugifyKey } from './TableDesigner';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 
-/** One field of a model table (TableDesigner owns the details). */
+/** One field of a model table, as the table designer edits it. */
 export interface ModelField {
+    id?: string;
     key?: string;
+    name?: string;
     type?: string;
+    required?: boolean;
+    unique?: boolean;
+    default?: string | number | null;
+    options?: unknown[];
+    relation?: { table?: string } | null;
+    computed?: { expr?: string } | null;
     [key: string]: unknown;
 }
 

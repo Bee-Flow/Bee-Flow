@@ -20,6 +20,13 @@ import { API_BASE } from '../../../../../utils/helpers';
  * written for the person reading it, so callers show it instead of inventing one.
  */
 
+/** One row of a saved table, as the record endpoints return it. */
+export interface RowRecord {
+    id: string;
+    updated_at?: string | null;
+    [key: string]: unknown;
+}
+
 const enc = encodeURIComponent;
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

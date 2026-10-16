@@ -1,9 +1,13 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';
+import type { NodeStyle } from '../../inspector/appDefinition';
+import type { BindingInput } from '../resolveBinding.types';
+import type { NodeProps } from './appNode.types';
 
 /**
  * App Studio runtime — 'page_header' (container). Spec: server/appStudio/componentSpecs.js.
@@ -39,7 +43,7 @@ import { spaceSteps } from '../styleResolver';
  */
 
 /** A bound value that is worth showing: a non-empty scalar. */
-function boundText(binding, deps) {
+function boundText(binding: BindingInput, deps: Parameters<typeof resolveBinding>[1]) {
     if (!binding) return null;
     const { value } = resolveBinding(binding, deps);
     if (value === null || value === undefined || value === '') return null;
@@ -74,7 +78,26 @@ const BAND_STYLES = {
     },
 };
 
-function IconBadge({ icon, size = 'h-9 w-9' }) {
+interface PageHeaderProps {
+    title?: string;
+    subtitle?: string | null;
+    titleFrom?: BindingInput;
+    subtitleFrom?: BindingInput;
+    icon?: string | null;
+    showDivider?: boolean;
+    look?: string;
+}
+
+/** What the look-specific headers receive from AppPageHeader. */
+interface HeaderParts {
+    icon: string | null;
+    title: string;
+    subtitle: string | null;
+    gap?: number;
+    kids: ReactNode[];
+}
+
+function IconBadge({ icon, size = 'h-9 w-9' }: { icon: string | null; size?: string }) {
     if (!icon) return null;
     return (
         <span
@@ -88,7 +111,7 @@ function IconBadge({ icon, size = 'h-9 w-9' }) {
 }
 
 /** look 'hero' — a tall, centered, primary-gradient opening with breathing room. */
-function HeroHeader({ icon, title, subtitle, gap, kids }) {
+function HeroHeader({ icon, title, subtitle, gap, kids }: HeaderParts) {
     return (
         <header
             className="w-full min-w-0 app-pageheader--hero"
@@ -119,7 +142,7 @@ function HeroHeader({ icon, title, subtitle, gap, kids }) {
 }
 
 /** look 'split' — title left, subtitle right-aligned and muted, hairline below. */
-function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }) {
+function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }: HeaderParts & { showDivider: boolean }) {
     return (
         <header
             className="w-full min-w-0 app-pageheader--split"
@@ -149,7 +172,7 @@ function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }) {
     );
 }
 
-export default function AppPageHeader({ node, children }) {
+export default function AppPageHeader({ node, children }: NodeProps<PageHeaderProps>) {
     const { t } = useTranslation();
     const {
         title = t('studio_apps_runtime.page_header.title', 'Page title'), subtitle = null, titleFrom = null, subtitleFrom = null,
@@ -161,7 +184,7 @@ export default function AppPageHeader({ node, children }) {
     // editor canvas and for the moment before data arrives.
     const shownTitle = boundText(titleFrom, deps) ?? title;
     const shownSubtitle = boundText(subtitleFrom, deps) ?? subtitle;
-    const gap = Number.isFinite(node.style?.gap) ? node.style.gap : 3;
+    const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     const kids = React.Children.toArray(children);
     const look = node.props?.look;
 
