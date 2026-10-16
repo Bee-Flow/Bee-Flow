@@ -111,3 +111,43 @@ test('a stylesheet whose layer order puts utilities before base fails the gate',
     assert.strictEqual(r.code, 1);
     assert.match(r.stderr, /utilities must come last/);
 });
+
+// ── demo entries (issue #252) ──────────────────────────────────────────
+// A public feature demo is its own document: the entry plus whatever its
+// lazy chunk pulls in statically. The registry chunk lists the demos as
+// dynamic imports; the heaviest closure beyond the entry is budgeted.
+
+const noise = (n) => crypto.randomBytes(n).toString('base64');
+
+function demoSandbox(budget) {
+    const dir = sandbox({ files: FILES, budget });
+    const assets = path.join(dir, 'pkg/dist/assets');
+    fs.writeFileSync(path.join(assets, 'registry-AAA.js'),
+        'const a={expectText:"x",C:()=>import(`./small-AAA.js`),F:()=>import(`./big-AAA.js`)};');
+    fs.writeFileSync(path.join(assets, 'small-AAA.js'), `export default "${noise(3_000)}";`);
+    fs.writeFileSync(path.join(assets, 'big-AAA.js'), `import"./shared-AAA.js";import"./vendor.js";export default "${noise(6_000)}";`);
+    fs.writeFileSync(path.join(assets, 'shared-AAA.js'), `export default "${noise(9_000)}";`);
+    return dir;
+}
+
+test('the heaviest demo closure beyond the entry is measured, shared chunks included, entry chunks not', () => {
+    const dir = demoSandbox(null);
+    assert.strictEqual(run(dir, ['--update']).code, 0);
+    const got = budgetOf(dir).demoJsGzip;
+    // big (6 KB random, base64) + shared (9 KB) is about 15 KB * 1.03; vendor.js (20 KB) is already in the entry.
+    assert.ok(got > 14_000 && got < 20_000, `demoJsGzip ${got}`);
+});
+
+test('a demo that grows past its budget fails and is named', () => {
+    const dir = demoSandbox({ blockingCssBytes: 9_000, blockingCssGzip: 9_000, entryJsGzip: 40_000, demoJsGzip: 10_000 });
+    const r = run(dir);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /demoJsGzip .* over the budget/);
+});
+
+test('a demo inside its budget passes, and a build without a demo registry skips the metric', () => {
+    const ok = run(demoSandbox({ blockingCssBytes: 9_000, blockingCssGzip: 9_000, entryJsGzip: 40_000, demoJsGzip: 40_000 }));
+    assert.strictEqual(ok.code, 0, ok.stderr);
+    const none = run(sandbox({ files: FILES, budget: { blockingCssBytes: 9_000, blockingCssGzip: 9_000, entryJsGzip: 40_000 } }));
+    assert.strictEqual(none.code, 0, none.stderr);
+});

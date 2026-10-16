@@ -1,6 +1,7 @@
 {
-  "_comment": "What the public entry (agent-hub/dist/index.html) loads before paint: render-blocking CSS (raw and gzipped bytes) and the module script plus modulepreloads (gzipped). Measurement plus 3%. `node scripts/entry-budget.mjs agent-hub --update` only lowers it; a raise is a deliberate edit with a reason in the commit message.",
+  "_comment": "What the public entry (agent-hub/dist/index.html) loads before paint: render-blocking CSS (raw and gzipped bytes) and the module script plus modulepreloads (gzipped), and demoJsGzip: the heaviest /__demo__ page (its lazy chunk's static closure beyond the entry, gzipped). Measurement plus 3%. `node scripts/entry-budget.mjs agent-hub --update` only lowers it; a raise is a deliberate edit with a reason in the commit message.",
   "blockingCssBytes": 148172,
   "blockingCssGzip": 27071,
-  "entryJsGzip": 199091
+  "entryJsGzip": 199091,
+  "demoJsGzip": 1200882
 }

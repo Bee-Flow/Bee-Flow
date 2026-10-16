@@ -10,6 +10,10 @@
  *
  *   blockingCss*  every <link rel="stylesheet"> (render-blocking), raw and gzipped
  *   entryJsGzip   the module script plus every modulepreload, gzipped
+ *   demoJsGzip    the heaviest public feature demo (/__demo__/<id>, issue 252): the
+ *                 static closure of one lazy demo chunk, minus what the entry
+ *                 already loads, gzipped. Measured from the demo registry chunk's
+ *                 dynamic imports; skipped when the build has none.
  *
  * against <package>/.entry-budget.json. The budget is the measurement plus 3%
  * (ordinary edits fit); `--update` creates it when missing and otherwise only ever LOWERS it, so a win is locked in
@@ -88,6 +92,46 @@ const measured = {
     blockingCssGzip: sum(css, 'gzip'),
     entryJsGzip: sum(js, 'gzip'),
 };
+
+/** Static `import`/`from "./x.js"` and dynamic `import("./x.js")` targets of one built chunk. */
+function chunkImports(file) {
+    const src = fs.readFileSync(path.join(dir, 'dist', 'assets', file), 'utf8');
+    const dynamic = new Set([...src.matchAll(/import\(\s*["`]\.\/([^"`]+\.js)["`]\s*\)/g)].map((m) => m[1]));
+    const all = new Set([...src.matchAll(/(?:from|import)\s*["`]\.\/([^"`]+\.js)["`]/g)].map((m) => m[1]));
+    return { statics: [...all].filter((f) => !dynamic.has(f)), dynamic: [...dynamic] };
+}
+
+function staticClosure(roots) {
+    const seen = new Set();
+    const stack = [...roots];
+    while (stack.length) {
+        const f = stack.pop();
+        if (seen.has(f) || !fs.existsSync(path.join(dir, 'dist', 'assets', f))) continue;
+        seen.add(f);
+        stack.push(...chunkImports(f).statics);
+    }
+    return seen;
+}
+
+/**
+ * Gzipped bytes of the heaviest demo beyond the entry, or null when the build
+ * has no demo registry chunk (a chunk named registry-*.js that lists demos as
+ * dynamic imports and carries their `expectText`).
+ */
+function heaviestDemoGzip(entryHrefs) {
+    const assets = path.join(dir, 'dist', 'assets');
+    const files = fs.existsSync(assets) ? fs.readdirSync(assets).filter((f) => /^registry-.*\.js$/.test(f)) : [];
+    const registry = files.find((f) => chunkImports(f).dynamic.length > 0 && fs.readFileSync(path.join(assets, f), 'utf8').includes('expectText'));
+    if (!registry) return null;
+    const inEntry = staticClosure(entryHrefs.map((h) => h.split('/').pop()));
+    let heaviest = 0;
+    for (const target of chunkImports(registry).dynamic) {
+        const extra = [...staticClosure([target])].filter((f) => !inEntry.has(f));
+        heaviest = Math.max(heaviest, extra.reduce((n, f) => n + sizeOf(`/assets/${f}`).gzip, 0));
+    }
+    return heaviest;
+}
+const demoJsGzip = heaviestDemoGzip(js.map((r) => r.href));
 const kb = (n) => `${(n / 1024).toFixed(1)} KiB`;
 
 if (list) {
@@ -114,12 +158,17 @@ if (update) {
         const target = Math.round(measured[m] * HEADROOM);
         next[m] = existing && Number.isFinite(existing[m]) ? Math.min(existing[m], target) : target;
     }
+    if (demoJsGzip !== null) {
+        const target = Math.round(demoJsGzip * HEADROOM);
+        next.demoJsGzip = Number.isFinite(next.demoJsGzip) ? Math.min(next.demoJsGzip, target) : target;
+    }
     const out = {
         _comment: `What the public entry (${pkg}/dist/index.html) loads before paint: render-blocking CSS (raw and gzipped bytes) and the module script plus modulepreloads (gzipped). Measurement plus 3%. \`node scripts/entry-budget.mjs ${pkg} --update\` only lowers it; a raise is a deliberate edit with a reason in the commit message.`,
         ...Object.fromEntries(METRICS.map((m) => [m, next[m]])),
+        ...(Number.isFinite(next.demoJsGzip) ? { demoJsGzip: next.demoJsGzip } : {}),
     };
     fs.writeFileSync(budgetFile, `${JSON.stringify(out, null, 2)}\n`);
-    console.log(`Entry budget written to ${path.relative(ROOT, budgetFile)}: ${METRICS.map((m) => `${m} ${kb(out[m])}`).join(', ')}`);
+    console.log(`Entry budget written to ${path.relative(ROOT, budgetFile)}: ${[...METRICS, 'demoJsGzip'].filter((m) => out[m] !== undefined).map((m) => `${m} ${kb(out[m])}`).join(', ')}`);
     process.exit(0);
 }
 
@@ -145,6 +194,13 @@ function layerOrderProblems() {
 }
 
 const over = METRICS.filter((m) => measured[m] > existing[m]).map((m) => `${m} ${kb(measured[m])} is over the budget of ${kb(existing[m])}`);
+if (Number.isFinite(existing.demoJsGzip)) {
+    if (demoJsGzip === null) {
+        console.error('entry-budget: the budget has demoJsGzip but this build has no demo registry chunk (registry-*.js): the demos moved or the budget is stale');
+        process.exit(2);
+    }
+    if (demoJsGzip > existing.demoJsGzip) over.push(`demoJsGzip ${kb(demoJsGzip)} is over the budget of ${kb(existing.demoJsGzip)} (the heaviest /__demo__ page)`);
+}
 over.push(...layerOrderProblems());
 if (over.length) {
     console.error(`❌ ${pkg}: ${over.join('; ')}. Keep new CSS/JS out of the public entry (lazy-load it, or import it from the chunk that needs it); \`--list\` shows what the entry loads.`);
