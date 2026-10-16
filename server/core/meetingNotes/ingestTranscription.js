@@ -26,7 +26,7 @@ async function chooseProvider(requestedProvider, transcriptResponse) {
     return provider;
 }
 
-/** Voxtral, the default (other cloud providers are reachable via manual upload). */
+/** Voxtral, the fallback when no other engine is chosen. */
 async function transcribeWithVoxtral({ filePath, fileName, language, contextTerms }) {
     const apiKey = await configStore.getSecret('mistral_api_key');
     if (!apiKey) {
@@ -47,13 +47,13 @@ async function transcribeWithVoxtral({ filePath, fileName, language, contextTerm
 
 /**
  * Transcribe with the chosen provider.
- * @returns {Promise<{ response: { text, segments }, voiceprint: { mapping, roster, ruledOut, info } }>}
+ * @returns {Promise<{ response: { text, segments }, truncated: ?{ atSeconds: number }, voiceprint: { mapping, roster, ruledOut, info } }>}
  *   `voiceprint` is filled by the pyannote provider only.
  */
 async function transcribe(provider, { filePath, fileName, language, contextTerms, orgId, userId, participantNames, transcriptResponse }) {
     const voiceprint = { mapping: null, roster: [], ruledOut: null, info: null };
     if (transcriptResponse) {
-        return { response: { text: transcriptResponse.text || '', segments: transcriptResponse.segments || [] }, voiceprint };
+        return { response: { text: transcriptResponse.text || '', segments: transcriptResponse.segments || [] }, voiceprint, truncated: null };
     }
     if (provider === 'local') {
         const { transcribeLocally } = require('../voice/localWhisper');
@@ -62,10 +62,23 @@ async function transcribe(provider, { filePath, fileName, language, contextTerms
             safeUnlink(filePath);
             throw new IngestError('Local transcription unavailable. Pick a cloud provider.', { code: 'local_whisper_unavailable', status: 503 });
         }
-        return { response: { text: local.text, segments: local.segments }, voiceprint };
+        return { response: { text: local.text, segments: local.segments }, voiceprint, truncated: null };
     }
-    if (provider === 'whisperx') return { response: await transcribeWithWhisperX(filePath, fileName, language, contextTerms || ''), voiceprint };
-    if (provider === 'scaleway') return { response: await transcribeWithScaleway(filePath, fileName, language, contextTerms || ''), voiceprint };
+    if (provider === 'whisperx') return { response: await transcribeWithWhisperX(filePath, fileName, language, contextTerms || ''), voiceprint, truncated: null };
+    if (provider === 'scaleway') return { response: await transcribeWithScaleway(filePath, fileName, language, contextTerms || ''), voiceprint, truncated: null };
+    if (provider === 'azure') {
+        // Azure AI Speech, same call as the upload route; a partial transcript
+        // carries `truncated`, which becomes a notice on the summary.
+        const { transcribeWithAzureSpeech } = require('../voice/azureSpeech');
+        const az = await transcribeWithAzureSpeech(filePath, { language, contextTerms: contextTerms || '' });
+        return { response: { text: az.text, segments: az.segments }, voiceprint, truncated: az.truncated || null };
+    }
+    if (provider === 'whisper_azure') {
+        // Azure Whisper Batch: raw segments, the shared post-processing does the rest.
+        const { runAzureWhisperBatch } = require('../voice/azureWhisperBatch');
+        const w = await runAzureWhisperBatch({ filePath, fileName, language });
+        return { response: { text: w.text, segments: w.segments }, voiceprint, truncated: null };
+    }
     if (provider === 'pyannote') {
         // Self-staging via pyannote's own media store — works for auto-import
         // paths too (no public URL needed, unlike whisper_azure).
@@ -78,10 +91,11 @@ async function transcribe(provider, { filePath, fileName, language, contextTerms
         });
         return {
             response: p,
+            truncated: null,
             voiceprint: { mapping: p.voiceprintMapping, roster: p.voiceprintRoster || [], ruledOut: p.voiceprintRuledOut, info: p.voiceprintInfo },
         };
     }
-    return { response: await transcribeWithVoxtral({ filePath, fileName, language, contextTerms }), voiceprint };
+    return { response: await transcribeWithVoxtral({ filePath, fileName, language, contextTerms }), voiceprint, truncated: null };
 }
 
 module.exports = { chooseProvider, transcribe };

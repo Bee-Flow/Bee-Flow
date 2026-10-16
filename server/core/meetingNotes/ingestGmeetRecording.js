@@ -140,7 +140,6 @@ async function ingestGmeetRecording(opts) {
         userId, orgId, filePath: audioPath,
         fileName: baseName ? `${baseName}.m4a` : path.basename(audioPath),
         language,
-        provider: 'whisperx', // pinned for gmeet (owner decision)
         contextTerms, titleHint: title,
         participantNames, source: 'gmeet', sourceUri,
         extraStoreFields: { meetMeetingCode: meetingCode, sharedWith },
