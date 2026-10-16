@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Email/ticket text utilities — HTML→text cleanup, PII redaction, and the
  * KB-article merge prompt.

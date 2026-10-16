@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which organisation's ceiling applies to a Nextcloud scope check.
  * Split out of ncScopeGuard.js (file budget); behaviour unchanged.

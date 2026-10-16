@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ingestRecordingCore — provider-agnostic middle of the Meeting Notes ingest
  * pipeline. Takes a recording that already sits on local disk and turns it
@@ -100,6 +101,7 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     // fell over or could not be parsed then produced a finished note claiming
     // nothing was agreed, and an auto-import has no other channel at all to
     // report that — there was no screen watching.
+    /** @type {{ ok?: boolean, actionItems?: any[], decisions?: any[], questions?: any[], tags?: string[] }} */
     const artifacts = await extractMeetingArtifacts(transcript, language, orgId, {
         meetingDateIso: new Date().toISOString().slice(0, 10),
         personNames: [...named.speakers.map((s) => s.id), ...(participantNames || [])],

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const { listPlaceholders, fillDocumentBody, _test: { lookup } } = require('./documentTemplate');
@@ -18,12 +19,49 @@ function validateCondition(rule, depth = 0) {
         children.forEach(r => { if (!r || typeof r !== 'object') throw bad('Invalid condition in rule group.'); validateCondition(r, depth + 1); });
     } else if (!safePath(rule.parameter) || !OPERATORS.includes(rule.operator)) throw bad('Invalid section rule.');
 }
+/**
+ * @typedef {object} ContractParameter
+ * @property {string} key
+ * @property {string} type
+ * @property {string} label
+ * @property {boolean} required
+ * @property {string} summary
+ * @property {string} instructions
+ * @property {any} [example]
+ * @property {any} [default]
+ * @property {string[]} [options]
+ * @property {ContractParameter[]} [fields]
+ * @property {boolean} [inferred]
+ * @property {string[]} [usedInSections]
+ * @property {string[]} [conditionForSections]
+ * @property {boolean} [usedOutsideSections]
+ */
+
+/**
+ * @typedef {object} ContractSection
+ * @property {string} id
+ * @property {string} title
+ * @property {string} summary
+ * @property {any} condition
+ * @property {{ documentId: string, versionId: string }} [source]
+ * @property {string|null} [parentId]
+ */
+
+/**
+ * @param {{ parameters?: any[], sections?: any[], instructions?: any }} [raw]
+ * @returns {{ schemaVersion: number, instructions: string, parameters: ContractParameter[], sections: ContractSection[] }}
+ */
 function normalizeContract(raw = {}) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw bad('Expected a document contract.');
     const parameters = raw.parameters || [];
     const sections = raw.sections || [];
     if (!Array.isArray(parameters) || parameters.length > 200 || !Array.isArray(sections) || sections.length > 100) throw bad('Maximum 200 parameters and 100 sections.');
     const keys = new Set();
+    /**
+     * @param {any} p
+     * @param {boolean} [nested]
+     * @returns {ContractParameter}
+     */
     function parameter(p, nested = false) {
         if (!p || !safePath(p.key) || !TYPES.includes(p.type)) throw bad('Each parameter needs a safe key and a supported type.');
         if (!nested && keys.has(p.key)) throw bad(`Duplicate parameter: ${p.key}`);
@@ -186,7 +224,10 @@ function prepareDocument(doc, supplied = {}, overrides = {}) {
     }
     let bodyHtml = doc.bodyHtml || '';
     let $;
-    if (contract.sections.length) $ = require('cheerio').load(bodyHtml, { xmlMode: true, decodeEntities: false }, false);
+    // A variable, not a literal: `decodeEntities` is passed through to the parser
+    // but is not a declared CheerioOptions key (excess-property check).
+    const loadOptions = { xmlMode: true, decodeEntities: false };
+    if (contract.sections.length) $ = require('cheerio').load(bodyHtml, loadOptions, false);
     const originalCounts = new Map(contract.sections.map(s=>[s.id,$(`[data-doc-section="${s.id}"]`).length]));
     const sections = contract.sections.map(s => {
         const choice = overrides?.[s.id];

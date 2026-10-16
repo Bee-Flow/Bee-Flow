@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ncScopeGuard — server-side enforcement of the per-user Nextcloud scope.
  *
@@ -516,6 +517,8 @@ function invalidateScopeCache(userId) {
 /**
  * Gate one Nextcloud tool call. Returns null when allowed, or the structured
  * { error } the dispatcher should hand back to the model.
+ *
+ * @param {{ toolName: string, toolArgs?: Record<string, any>, userId?: string|null, orgId?: string|null, agentId?: string|null, session?: any }} call
  */
 async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, agentId = null, session = null }) {
     const integrationId = integrationIdForTool(toolName);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The transcription step of the Meeting Notes ingest (./ingestRecordingCore.js):
  * which provider runs (request → admin config → voxtral), and the call to it.
@@ -47,7 +48,7 @@ async function transcribeWithVoxtral({ filePath, fileName, language, contextTerm
 
 /**
  * Transcribe with the chosen provider.
- * @returns {Promise<{ response: { text, segments }, truncated: ?{ atSeconds: number }, voiceprint: { mapping, roster, ruledOut, info } }>}
+ * @returns {Promise<{ response: { text?: string, segments?: any[] }, truncated: ?{ atSeconds: number }, voiceprint: { mapping, roster, ruledOut, info } }>}
  *   `voiceprint` is filled by the pyannote provider only.
  */
 async function transcribe(provider, { filePath, fileName, language, contextTerms, orgId, userId, participantNames, transcriptResponse }) {
