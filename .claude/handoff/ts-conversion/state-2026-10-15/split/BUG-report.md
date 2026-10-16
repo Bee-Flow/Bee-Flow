@@ -1,19 +1,61 @@
-Status: 5 fixes pushed (#158, #159, #160, #162, #175); #163 and #165 were already fixed; #174 is left open (owner decision 2026-10-16).
-Done: 5 fixed + 2 already fixed / 8 open bugs
-Next: check for new `bug` issues every 30 min.
+Status: 44 bug issues closed (fixed on ts-bugs/fixes or the hardening branch); 7 open with a reason; #201 in its security round.
+Done: 44 closed / 51 handled (158-217)
+Next: #201 (caller connections) after its security fixes; owner decisions below; the automatic check picks up new and reopened issues every 30 min.
 
-Branch `ts-bugs/fixes`, base `origin/ccr-28820270-xkvwp8` @ cfb10394c. One commit per issue, each
-reviewed by a separate read-only Opus subagent (security review for #162). Reviews are in
-`../reviews/BUG-*.md`. Gates before every push: tests next to the changed files, server typecheck,
-`check:fast`, `duplication-ratchet`, `lint:budget` and `lint:gitleaks`. No ratchet was `--update`d.
+Branch `ts-bugs/fixes` (tip in `git log -1 origin/ts-bugs/fixes`), based on `origin/ccr-28820270-xkvwp8`.
+One commit per issue (a few follow-up commits for reopened issues), each reviewed by a separate read-only
+Opus subagent (security review for signing, scope, redaction, credentials, SQL scoping). Gates before
+every push: tests next to the changed files, server + agent-hub typecheck, `check:fast`,
+`duplication-ratchet`, `lint:budget`, `lint:gitleaks`. No ratchet was `--update`d.
+Separate branch `ts-bugs/sec-webpage-sqlite` (on top of ts-bugs/fixes): page database statement
+guard, spreadsheet cell values, memory prompt framing, plus #210. No public issue for the first three.
 
-| # | Title | Status | Commit | Test file | Review | Behaviour notes |
-|---|---|---|---|---|---|---|
-| 158 | Teams meeting marked 'record' never imported with autoImport off | fixed | 4cd7286ad | server/core/meetingNotes/teamsAutoImport.test.js, server/routes/transcriptions/teams.test.js, server/stores/meetingPrefsOptIn.test.js | reviews/BUG-158-159.md | Opt-in queries are in the new stores/meetingPrefsOptIn.js. The mark is checked before any token refresh, DB write or Graph call. Series marks always count; event marks count for 10 days. Inactive or deleted users are skipped. A user's own mark now imports that meeting even when org autoImport is off; an opt-out still wins. The failed-import UI ("Related") is left out: it needs a new UI surface. |
-| 159 | Teams list shows 'No recording' while processing | fixed | fcb063b0d | same as #158, plus agent-hub TeamsImportPanel.test.tsx | reviews/BUG-158-159.md | New `processing` state within a 48 h deadline (was 24 h); a meeting Graph does not know reads as `none`; the configured lookback is unchanged; new i18n key `meetings.teams_recording_processing`. |
-| 160 | Meeting imports ignore Azure engines | fixed | 304e39752 | server/core/meetingNotes/ingestRecordingCore.test.js, ingestGmeetRecording.test.js | reviews/BUG-160.md | runAzureWhisperBatch moved to core/voice/azureWhisperBatch.js (re-exported from integrations). Meet follows the workspace engine (the whisperx pin is gone). An Azure-truncated transcript is noted in the summary. |
-| 162 | KB detail shows 0 documents for pre-source-model docs | fixed | e06395996 | server/stores/kb/adoptOrphanDocuments.test.js, server/routes/knowledgeBases/sources.validation.test.js | reviews/BUG-162.md (security) | Lazy adoption on GET /:id/sources, scoped to that KB, under a per-KB advisory lock; skipped for system, project-files and managed (stage) bases. The migration stays manual. The SQL was checked by hand against the DDL but has only run against fakes: watch the CI Postgres tests. |
-| 163 | Chat cannot give an .xlsx file | already fixed on the convert branch | 389d441fe | server/integrations/officeFileDelivery.test.js (7/7), core/integrations/integrationToolMap.test.js (12/12) | – | create_spreadsheet plus officeFileDelivery (download / OneDrive / Nextcloud). Issue commented. |
-| 165 | Reopened chat shows hex ciphertext | already fixed on the convert branch | 0067e08b0, 1dd7564d7 | server/stores/agent/tokenDisplay.test.js, core/privacy/piiDetection.restore.test.js (20/20) | – | stores/agent/tokenDisplay.js reads the decrypted map; only `[bracketed]` keys; pii_token_map is no longer in the payload. Issue commented. |
-| 174 | Connector mode: WebDAV MOVE/COPY 403 | left open (owner, 2026-10-16) | (draft ea5261ea1 on local ts-bugs/wip-174, not pushed) | nextcloud-connector/test/ncProxyDestination.test.js | – | The draft only accepts a Destination on the request's own Host with a `/nc/` path prefix. In production the callback URL is Nextcloud's AppAPI proxy (`https://<nc>/index.php/apps/app_api/proxy/<app>/nc/...`), so the Destination carries Nextcloud's host and that prefix, and the draft would 400 every real MOVE/COPY. Correct fix: cut at the first `/nc/` and drop the host check (the upstream origin is always config.nextcloudUrl; traversal and allow-list checks stay). The auto-mode classifier blocked removing the host check as "security weaken", so it waits for the owner. |
-| 175 | Dry run fails on reads of files from simulated steps | fixed | 90999caa9 | server/core/automationRunner/simulatedPaths.test.js, aiStepModel.test.js | reviews/BUG-175.md | ctx._simulatedPaths is created eagerly in buildRunContext (shared across loop and parallel copies); not-found is detected via classifyNextcloudError; the pre-egress path is compared; a typo path still fails. |
+## Closed (fixed)
+| # | Area | Commit(s) |
+|---|---|---|
+| 158 | Teams "record" mark imports with autoImport off | 4cd7286ad |
+| 159 | Teams list "processing" state, 48 h deadline | fcb063b0d |
+| 160 | Meeting imports follow the Azure engines | 304e39752 |
+| 162 | KB legacy documents adopted into sources | e06395996 |
+| 163, 165 | already fixed on the convert branch | 389d441fe; 0067e08b0, 1dd7564d7 |
+| 175 | dry run: simulated paths (+ implied parents after reopen) | 90999caa9, bec6631cb |
+| 177 | connector HMAC canonical query (c1 marker, backward compatible) | a65bdf059 |
+| 178 | ? # % in names over the connector hop | 81c0daa91 |
+| 179 | upload creates missing parents | fbed997b0 |
+| 180 | Files tools (+ folder_tree missing path after reopen) | a6b657f17, 62ea9c446 |
+| 181-184 | contacts, calendar (TZID kept), tasks, Deck (+ move via target-stack PUT after reopen) | 0186058f0, f092695b6, 539a8fa7d, aebfd7c39, 9483155b4 |
+| 185-188 | Tables values, Notes/Forms, status, Teams add_members | ce992b2e6, 6e10abc10, 60a6efcef, eac335d06 (rebased: see git log) |
+| 189, 190 | Mail (linear HTML→text), Talk/Notifications/Activity | cefe5fb21, 6a591be23 |
+| 192, 194 | trigger double-fire, builder trigger warnings | 812db7763, 2067efd80 |
+| 196 | org scope ceiling on MCP (fail closed) | 20d7cf433 |
+| 197 | 401/403/404 mapping (+ app-specific wording after reopen) | 8be287e9c, 413cc8f5c |
+| 199 | Talk room token readable via provenance | 542db0a5e |
+| 202 | failed-run banner | b298fb2fb |
+| 203-207 | App Studio MCP dry run, query data, set_plan, documents (allow-list), inspection | 21d1d6fa8, f9f53a7ce, 3ebc4364d, 49446fcd1, 543f0a9a1, bc76b3175, be2882b12 |
+| 208, 211 | notebook tools hidden on /mcp; webpage/fireflies tools | 0c2c2d25e, 388c8c54a |
+| 210 | XML-invalid chars, sheet names, deck edge cases (on the hardening branch) | 470e582ef |
+| 212 | builder_read_document kept across MCP calls | dfc59defb |
+| 213 | iteration caps reported (run stays success) | 64f3b4b86 |
+| 214, 215 | dateAdd/dateDiff; datetime step timezone/strict dates/epoch | 7ae9f6164, 06e10499f |
+| 216 | engine defects (+ len/count, builder wording) | 78a597e60, 7bc59b3b2 |
+| 217 | fill_document numeric strings | ce79fdcaf |
+
+## Open
+| # | Why |
+|---|---|
+| 174 | owner decision (Destination host check); another branch fix/174-destination-proxy-prefix exists |
+| 191 | needs a per-subscriber Nextcloud access check that does not exist yet |
+| 193 | partly fixed (a9cd0b501): canonical payload, tagId by name, upcoming multi-calendar open |
+| 195 | partly fixed (eddaf601f): ~100 output schemas have no source to generate from |
+| 198 | no bug found on our side; three live checks requested in the issue |
+| 200 | mostly fixed (1d87bc53b): knowledge_write, approval, datatable, App Studio, AI tool loop open |
+| 209 | partly fixed (76811f031): edit/delete tools need a decision (memory tools reach every agent) |
+| 201 | enhancement, in its security fix round (caller ∩ owner rights, starter-only run details) |
+
+## Owner decisions pending
+- #209: expose memory edit/delete tools, and to whom.
+- #213: should an implicit iteration cap fail the run.
+- Stored memories: run notes through an injection check before storing (no classifier exists).
+- #177 follow-up: legacy-signed requests with several query params remain swappable on a new connector (pre-existing; closing it breaks old servers' special-character queries).
+
+Reviews: `../reviews/BUG-*.md` (first round); later reviews were reported in the session and applied before each push.
