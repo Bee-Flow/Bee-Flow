@@ -1,6 +1,6 @@
 /**
  * Simple / All options — how MUCH of a step's form shows. The pure half of the
- * web's flow/settings/formDensity.js (which also holds a React context, so it
+ * web's flow/settings/formDensity.ts (which also holds a React context, so it
  * cannot be required here); pinned by density.lockstep.test.ts.
  *
  * In Simple, a section is left out when the type's nodeDefs `simpleSections`

@@ -1,6 +1,6 @@
 /**
  * What colour a connection is drawn in — the web builder's flow/edgeColors.js
- * and the "branches" half of flow/edgeColoring.js (the canvas's default
+ * and the "branches" half of flow/edgeColoring.ts (the canvas's default
  * "Colour lines by" mode), pinned by edgeColors.lockstep.test.ts.
  *
  * A connection's persisted `color` is a palette key, never a hex, and it
@@ -69,7 +69,7 @@ export interface EdgeInk {
 const done = (row: RunRowLike | null | undefined) => row?.status === 'success' || row?.status === 'pinned';
 
 /**
- * The stroke after the last test run (edgeColoring.js decorateRunEdges,
+ * The stroke after the last test run (edgeColoring.ts decorateRunEdges,
  * without the in-flight animation — the phone shows a finished run): a
  * failure beats even a picked colour, because it must be findable.
  */

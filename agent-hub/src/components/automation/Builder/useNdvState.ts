@@ -1,10 +1,7 @@
 import { useCallback, useState } from 'react';
 import scopedStorage from '../../../utils/scopedStorage';
-import { densityForOpen as densityForOpenJs } from './flow/settings/formDensity';
+import { densityForOpen } from './flow/settings/formDensity';
 import useFormModePreference from './flow/settings/useFormModePreference';
-
-// formDensity.js is untyped; its `remembered = null` default reads as "always null".
-const densityForOpen = densityForOpenJs as (requested: unknown, remembered?: string | null) => 'quick' | 'full';
 
 /**
  * Which step's editor drawer is open, and how much of it shows. Split out of

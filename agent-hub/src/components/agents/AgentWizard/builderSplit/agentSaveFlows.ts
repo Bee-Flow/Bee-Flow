@@ -82,7 +82,7 @@ export function conflictHandlers(d: AgentSaveDeps, c: ConflictCtx) {
             if (!mountedRef.current) return;
             if (res.ok) {
                 if (res.updated) d.setAgent(res.updated);
-                if (Number.isInteger(res.version)) d.setBaseVersion(res.version);
+                if (Number.isInteger(res.version)) d.setBaseVersion(res.version as number);
                 c.hookMarkSaved(res.updated, res.version);
                 dirtyRef.current = false; d.setDirty(false);
                 setConflict(null);

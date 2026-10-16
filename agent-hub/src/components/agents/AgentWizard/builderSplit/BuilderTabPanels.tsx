@@ -4,7 +4,6 @@
  * verbatim from BuilderSplit; every value comes in as a prop.
  */
 import { FlaskConical, Sparkles, X } from 'lucide-react';
-import type { ComponentProps, ComponentType } from 'react';
 import EmptyState from '../../../shared/EmptyState';
 import UsedByTab from '../../../shared/UsedByTab';
 import { READ } from '../canUse/canUseFacts';
@@ -15,14 +14,6 @@ import TestSetCard from '../tests/TestSetCard';
 
 // The editor's state is server JSON and untyped JS callbacks, passed through as is.
 type Loose = any;
-// The JS cards infer their READ-state props from the `= READ.OK` default; they
-// take every READ value.
-type ReadStateProp = typeof READ.OK;
-// SkillsCard.jsx also reads its `onRetry` as required (no default); this panel
-// never passed one. Same component, with the props it really takes.
-const SkillsCardTyped = SkillsCard as unknown as ComponentType<
-    Omit<ComponentProps<typeof SkillsCard>, 'onRetry' | 'state'> & { onRetry?: () => void; state?: string }
->;
 
 /**
  * Plan-limit warning: a prominent, dismissible banner shown when a save is
@@ -83,7 +74,7 @@ export function CanUseTabPanel({
                 onNavigate={onNavigate}
                 tipKbId={knowledgeBaseIds[0] || null}
             />
-            <SkillsCardTyped
+            <SkillsCard
                 t={t}
                 ro={ro}
                 rows={attachedSkillRows}
@@ -102,7 +93,7 @@ export function CanUseTabPanel({
                 lentState={lentState}
                 onRetryLent={refetchLent}
                 automationRows={grantedAutomationRows}
-                automationsState={(grantedAutomationRows.some((r: { readable?: boolean }) => !r.readable) ? READ.ERROR : READ.OK) as ReadStateProp}
+                automationsState={(grantedAutomationRows.some((r: { readable?: boolean }) => !r.readable) ? READ.ERROR : READ.OK)}
                 onChangeConfirm={onChangeConfirm}
                 onChangeActAs={onChangeActAs}
                 onOpenChooser={openChooser}
