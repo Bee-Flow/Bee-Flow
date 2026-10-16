@@ -14,10 +14,60 @@
  * replaces, and keys mean the row answers in Dutch with the rest of the pane.
  */
 
+import type { LucideIcon } from 'lucide-react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { getComponentEntry } from '../runtime/componentRegistry';
 
+interface Verb {
+    key: string;
+    en: string;
+}
+
+/** The verbs by tool name; the add-components one is read by name, the rest by lookup. */
+interface VerbTable {
+    app_add_components: Verb;
+    [toolName: string]: Verb | undefined;
+}
+
+/** One thing a tool call put on the app, as the server's `tool_call` lists it. */
+export interface AddedItem {
+    id?: string | number;
+    type?: string;
+    label?: string;
+}
+
+/** A builder tool call as the stream delivers it; the bounded `arguments`/`result` are free-form JSON. */
+export interface AppToolCall {
+    name?: string;
+    ok?: boolean;
+    added?: AddedItem[];
+    error?: string;
+    hint?: string;
+    summary?: string;
+    arguments?: unknown;
+    result?: unknown;
+}
+
+/** A landed thing with the name the row shows for it. */
+export interface LandedItem {
+    id: string | number | null;
+    type: string | null;
+    label: string | null;
+    title: string;
+}
+
+export interface AppToolCallRow {
+    status: 'ok' | 'failed';
+    title: string;
+    detail: string | null;
+    added: LandedItem[];
+    error: string | null;
+    hint: string | null;
+    verbLabel: string | null;
+}
+
 /** Past tense, product wording — the same convention as the automation builder's VERBS. */
-export const VERBS = {
+export const VERBS: VerbTable = {
     app_set_meta: { key: 'app_studio.builder.act.set_meta', en: 'Named the app' },
     app_set_theme: { key: 'app_studio.builder.act.set_theme', en: 'Picked the look' },
     app_set_nav_groups: { key: 'app_studio.builder.act.set_nav_groups', en: 'Regrouped the menu' },
@@ -62,11 +112,11 @@ export const VERBS = {
 const ONE_COMPONENT = { key: 'app_studio.builder.act.add_component_one', en: 'Added 1 component' };
 const REFUSED = { key: 'app_studio.builder.act.refused', en: 'Not applied' };
 
-const str = (v) => (typeof v === 'string' && v ? v : null);
-const tr = (t, { key, en }, params) => (t ? t(key, en, params) : (params ? en.replace(/\{(\w+)\}/g, (_, k) => (params[k] !== undefined ? String(params[k]) : `{${k}}`)) : en));
+const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+const tr = (t: TranslateFn | null, { key, en }: Verb, params?: Record<string, unknown>): string => (t ? t(key, en, params) : (params ? en.replace(/\{(\w+)\}/g, (_, k) => (params[k] !== undefined ? String(params[k]) : `{${k}}`)) : en));
 
 /** A readable name for a landed thing: the component type's label, "Screen", "Table", "Action". */
-export function landedTypeLabel(type, t) {
+export function landedTypeLabel(type: unknown, t: TranslateFn | null): string {
     const ty = str(type);
     if (!ty) return '';
     if (ty === 'screen') return tr(t, { key: 'app_studio.builder.act.kind_screen', en: 'Screen' });
@@ -77,21 +127,18 @@ export function landedTypeLabel(type, t) {
 }
 
 /** The lucide icon for a landed thing (a component type's palette icon), or null. */
-export function landedIcon(type) {
+export function landedIcon(type: unknown): LucideIcon | null {
     const entry = getComponentEntry(str(type));
     return entry ? entry.icon || null : null;
 }
 
-/**
- * @returns {{ status:'ok'|'failed', title:string, detail:string|null, added:Array<{id,type,label,title}>, error:string|null, hint:string|null }}
- */
-export function describeAppToolCall(tc, t = null) {
+export function describeAppToolCall(tc: AppToolCall | null | undefined, t: TranslateFn | null = null): AppToolCallRow {
     const name = str(tc && tc.name) || '';
     const failed = tc && tc.ok === false;
-    const added = (Array.isArray(tc && tc.added) ? tc.added : [])
+    const added = (Array.isArray(tc && tc.added) ? (tc as { added: AddedItem[] }).added : [])
         .filter((a) => a && typeof a === 'object')
         .map((a) => ({ id: a.id ?? null, type: str(a.type), label: str(a.label), title: str(a.label) || landedTypeLabel(a.type, t) }));
-    let title;
+    let title: string;
     if (failed) {
         title = tr(t, REFUSED);
     } else if (name === 'app_add_components') {
@@ -103,7 +150,7 @@ export function describeAppToolCall(tc, t = null) {
     }
     // The detail line: what landed, by name; a refusal's error; else the
     // server's one-line summary (the legacy field).
-    let detail = null;
+    let detail: string | null = null;
     if (failed) detail = str(tc.error) || str(tc.summary);
     else if (added.length === 1 && name !== 'app_add_components') detail = added[0].title;
     else if (added.length > 1) detail = added.map((a) => a.title).filter(Boolean).join(' · ');
@@ -120,7 +167,7 @@ export function describeAppToolCall(tc, t = null) {
 }
 
 /** The payload behind "details": the call's own arguments and result, already bounded by the server. */
-export function appDetailPayload(tc) {
-    const parse = (v) => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return v; } };
+export function appDetailPayload(tc: AppToolCall | null | undefined): { args: unknown; result: unknown } {
+    const parse = (v: unknown): unknown => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return v; } };
     return { args: parse(tc && tc.arguments), result: parse(tc && tc.result) };
 }

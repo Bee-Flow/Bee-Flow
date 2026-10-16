@@ -1,4 +1,25 @@
+import type { StagedImage } from './TranscriptItems';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { readAsDataUrl, resizeImageForUpload } from '../../../../../utils/imageResize';
+
+/** A staged image with what the size and type checks measured. */
+export interface PreparedImage extends StagedImage {
+    mimeType: string;
+    bytes: number;
+}
+
+interface PreparedFiles {
+    images: PreparedImage[];
+    errors: string[];
+}
+
+type StageResult = { error: string; image?: undefined } | { error?: undefined; image: PreparedImage };
+
+/** What a paste/drop DataTransfer offers: items first, files as the fallback. */
+interface ImageTransfer {
+    items?: ArrayLike<{ kind?: unknown; type?: unknown; getAsFile?: () => File | null }> | null;
+    files?: ArrayLike<File> | null;
+}
 
 /**
  * Staging images for the AI builder composer — paste (Ctrl+V of a screenshot,
@@ -14,7 +35,7 @@ export const MAX_IMAGES_PER_TURN = 4;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /** Decoded byte length of a base64 data URL's payload (no buffer allocated). */
-export function dataUrlBytes(dataUrl) {
+export function dataUrlBytes(dataUrl: string): number {
     const comma = typeof dataUrl === 'string' ? dataUrl.indexOf(',') : -1;
     if (comma < 0) return 0;
     const b64 = dataUrl.slice(comma + 1);
@@ -22,12 +43,12 @@ export function dataUrlBytes(dataUrl) {
     return Math.floor((b64.length * 3) / 4) - pad;
 }
 
-const isImageFile = (f) => !!f && typeof f.type === 'string' && f.type.startsWith('image/');
+const isImageFile = (f: { type?: unknown } | null | undefined): boolean => !!f && typeof f.type === 'string' && f.type.startsWith('image/');
 
 /** DataTransferItemList / FileList are array-LIKE — index them, never for..of. */
-function indexed(arrayLike) {
-    const out = [];
-    for (let i = 0; i < (arrayLike?.length || 0); i++) out.push(arrayLike[i]);
+function indexed<T>(arrayLike: ArrayLike<T> | null | undefined): T[] {
+    const out: T[] = [];
+    for (let i = 0; i < (arrayLike?.length || 0); i++) out.push((arrayLike as ArrayLike<T>)[i]);
     return out;
 }
 
@@ -36,12 +57,12 @@ function indexed(arrayLike) {
  * first (a pasted screenshot only ever shows up there) and falls back to
  * `.files` for browsers/tests that only populate that.
  */
-export function imageFilesFrom(dataTransfer) {
+export function imageFilesFrom(dataTransfer: ImageTransfer | null | undefined): File[] {
     if (!dataTransfer) return [];
     const fromItems = indexed(dataTransfer.items)
         .filter((item) => item && item.kind === 'file' && isImageFile(item))
         .map((item) => item.getAsFile?.())
-        .filter(Boolean);
+        .filter(Boolean) as File[];
     if (fromItems.length) return fromItems;
     return indexed(dataTransfer.files).filter(isImageFile);
 }
@@ -49,11 +70,11 @@ export function imageFilesFrom(dataTransfer) {
 let seq = 0;
 
 /** English fallback when no translator is passed (tests, non-React callers). */
-const tr = (t, key, en, params) => (t
+const tr = (t: TranslateFn | null, key: string, en: string, params?: Record<string, unknown>): string => (t
     ? t(key, en, params)
     : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
 
-const BAD_TYPE = (t, name) => tr(t, 'studio_apps_edit.composer_images.bad_type', '{name} isn\'t a supported image — use PNG, JPEG, WebP or GIF.', { name });
+const BAD_TYPE = (t: TranslateFn | null, name: string): string => tr(t, 'studio_apps_edit.composer_images.bad_type', '{name} isn\'t a supported image — use PNG, JPEG, WebP or GIF.', { name });
 
 // The downscale path decodes the image through the browser. A decode that
 // neither loads nor errors (a corrupt paste, a headless/odd environment) would
@@ -61,10 +82,10 @@ const BAD_TYPE = (t, name) => tr(t, 'studio_apps_edit.composer_images.bad_type',
 // so it gets a hard budget and we fall back to the raw bytes.
 const RESIZE_BUDGET_MS = 6000;
 
-function withBudget(promise, ms) {
+function withBudget<T>(promise: Promise<T>, ms: number): Promise<T | null> {
     return Promise.race([
         promise,
-        new Promise((resolve) => { setTimeout(() => resolve(null), ms); }),
+        new Promise<null>((resolve) => { setTimeout(() => resolve(null), ms); }),
     ]);
 }
 
@@ -77,7 +98,7 @@ function withBudget(promise, ms) {
  *
  * → { dataUrl, mimeType } or null when the file cannot be read at all.
  */
-async function toDataUrl(file, fallbackType) {
+async function toDataUrl(file: File, fallbackType: string): Promise<{ dataUrl: string; mimeType: string } | null> {
     try {
         const resized = await withBudget(resizeImageForUpload(file), RESIZE_BUDGET_MS);
         if (resized?.dataUrl) {
@@ -98,7 +119,7 @@ async function toDataUrl(file, fallbackType) {
 }
 
 /** One file → a staged image, or an error line. */
-async function stageOne(file, t) {
+async function stageOne(file: File, t: TranslateFn | null): Promise<StageResult> {
     const name = file?.name || tr(t, 'studio_apps_edit.composer_images.that_image', 'That image');
     const type = String(file?.type || '').toLowerCase();
     if (!IMAGE_MIME_ALLOWLIST.includes(type)) return { error: BAD_TYPE(t, file?.name || tr(t, 'studio_apps_edit.composer_images.that_file', 'That file')) };
@@ -124,10 +145,10 @@ async function stageOne(file, t) {
  * Never throws: a file that cannot be read becomes an error line, and the rest
  * still stage.
  */
-export async function prepareComposerImages(files, alreadyStaged = 0, t = null) {
+export async function prepareComposerImages(files: ArrayLike<File> | Iterable<File> | null | undefined, alreadyStaged = 0, t: TranslateFn | null = null): Promise<PreparedFiles> {
     const list = Array.from(files || []);
-    const images = [];
-    const errors = [];
+    const images: PreparedImage[] = [];
+    const errors: string[] = [];
     const room = Math.max(0, MAX_IMAGES_PER_TURN - alreadyStaged);
     if (!list.length) return { images, errors };
     if (room === 0) {
@@ -142,7 +163,7 @@ export async function prepareComposerImages(files, alreadyStaged = 0, t = null) 
     for (const file of list.slice(0, room)) {
         const result = await stageOne(file, t);
         if (result.error) errors.push(result.error);
-        else images.push(result.image);
+        else images.push(result.image as PreparedImage);
     }
     return { images, errors };
 }
