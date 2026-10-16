@@ -42,7 +42,7 @@ import { formatDuration, formatSpeakerLabel } from './format';
 import { segmentSpeakerId } from './playerData';
 
 /** The three things a line can be marked as, and the order they chip in. */
-export const LINE_KINDS = Object.freeze(['action', 'decision', 'question']);
+export const LINE_KINDS = Object.freeze<LineKind[]>(['action', 'decision', 'question']);
 
 /** Which meeting field each kind lives in. */
 export const LINE_KIND_FIELD = Object.freeze({
@@ -51,8 +51,40 @@ export const LINE_KIND_FIELD = Object.freeze({
     question: 'questions',
 });
 
+/** A segment as the transcript carries it; only the fields this module reads. */
+export interface LineSegment {
+    text?: unknown;
+    start?: unknown;
+}
+
+/** One entry of the artifact lists (actions, decisions, questions) on a meeting. */
+export interface LineArtifact {
+    id?: unknown;
+    text?: unknown;
+    segmentIndex?: unknown;
+    open?: unknown;
+}
+
+/** The meeting fields this module reads. */
+export interface LineMeeting {
+    id?: unknown;
+    title?: unknown;
+    actionItems?: unknown;
+    decisions?: unknown;
+    questions?: unknown;
+}
+
+export type LineKind = 'action' | 'decision' | 'question';
+
+export interface LineMark {
+    kind: LineKind;
+    id: string;
+    text: string;
+    open?: boolean;
+}
+
 /** A trimmed string, or '' for anything that is not text. */
-function str(value) {
+function str(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
 }
 
@@ -63,7 +95,7 @@ function str(value) {
  * first line of the meeting for every item that has no anchor at all, which
  * is every item written before M4.
  */
-export function anchorOf(item) {
+export function anchorOf(item?: { segmentIndex?: unknown } | null): number | null {
     const raw = item?.segmentIndex;
     if (typeof raw !== 'number' && typeof raw !== 'string') return null;
     const index = Number(raw);
@@ -71,7 +103,7 @@ export function anchorOf(item) {
 }
 
 /** `mm:ss` for a segment's start — the timestamp the artifact carries. */
-export function lineTimestamp(segment) {
+export function lineTimestamp(segment?: LineSegment | null): string {
     return formatDuration(Number(segment?.start) || 0);
 }
 
@@ -84,22 +116,21 @@ export function lineTimestamp(segment) {
  * remains the one place that counts follow-ups, and nothing here re-derives
  * "how many are open", because two counts of the same thing drift.
  *
- * @returns {Map<number, Array<{kind: string, id: string, text: string, open?: boolean}>>}
  */
-export function buildLineMarks(meeting) {
-    const marks = new Map();
+export function buildLineMarks(meeting?: LineMeeting | null): Map<number, LineMark[]> {
+    const marks = new Map<number, LineMark[]>();
     for (const kind of LINE_KINDS) {
         const list = meeting?.[LINE_KIND_FIELD[kind]];
         if (!Array.isArray(list)) continue;
-        for (const item of list) {
+        for (const item of list as LineArtifact[]) {
             const index = anchorOf(item);
             if (index === null) continue;
-            const mark = { kind, id: str(item.id), text: str(item.text) };
+            const mark: LineMark = { kind, id: str(item.id), text: str(item.text) };
             // An answered question still marks its line — it says what the
             // line was, not what is still outstanding.
             if (kind === 'question') mark.open = item.open !== false;
             if (!marks.has(index)) marks.set(index, []);
-            marks.get(index).push(mark);
+            (marks.get(index) as LineMark[]).push(mark);
         }
     }
     return marks;
@@ -112,7 +143,7 @@ export function buildLineMarks(meeting) {
  * at no point in time, and the two are exactly what makes it checkable back
  * against the recording.
  */
-export function lineQuote(segment, { speakerLabel = '' } = {}) {
+export function lineQuote(segment?: LineSegment | null, { speakerLabel = '' }: { speakerLabel?: unknown } = {}): string {
     const body = str(segment?.text);
     if (!body) return '';
     const who = str(speakerLabel) || formatSpeakerLabel(segmentSpeakerId(segment));
@@ -126,7 +157,7 @@ export function lineQuote(segment, { speakerLabel = '' } = {}) {
  * owing the work, and guessing wrong writes somebody's name next to a task
  * that is not theirs. The person can fill it in on the card.
  */
-export function buildLineActionItem(segment, index) {
+export function buildLineActionItem(segment: LineSegment | null | undefined, index: unknown) {
     const body = str(segment?.text);
     if (!body || anchorOf({ segmentIndex: index }) === null) return null;
     return {
@@ -139,7 +170,7 @@ export function buildLineActionItem(segment, index) {
 }
 
 /** A decision made out of a line. Same rule, one list over. */
-export function buildLineDecision(segment, index) {
+export function buildLineDecision(segment: LineSegment | null | undefined, index: unknown) {
     const body = str(segment?.text);
     if (!body || anchorOf({ segmentIndex: index }) === null) return null;
     return {
@@ -163,7 +194,12 @@ export function buildLineDecision(segment, index) {
  * The server refuses a body under three characters, so a line with nothing in
  * it answers `null` here rather than a request that 400s.
  */
-export function buildLineKbSource(segment, index, meeting, { speakerLabel = '', labels = {} } = {}) {
+export function buildLineKbSource(
+    segment: LineSegment | null | undefined,
+    index: unknown,
+    meeting?: LineMeeting | null,
+    { speakerLabel = '', labels = {} }: { speakerLabel?: unknown; labels?: Record<string, string | undefined> } = {},
+) {
     const body = str(segment?.text);
     if (body.length < 3) return null;
     const meetingTitle = str(meeting?.title);
@@ -193,7 +229,7 @@ export function buildLineKbSource(segment, index, meeting, { speakerLabel = '', 
  * transcription, would make "this line is already filed" true for lines nobody
  * filed. The server allow-lists the same two fields on the way in.
  */
-function lineOrigin(meeting, index) {
+function lineOrigin(meeting: LineMeeting | null | undefined, index: unknown) {
     const transcriptionId = str(meeting?.id);
     const segmentIndex = anchorOf({ segmentIndex: index });
     if (!transcriptionId || segmentIndex === null) return null;
@@ -209,7 +245,7 @@ function lineOrigin(meeting, index) {
  * empty value out entirely. A second builder here would be a second place for
  * that narrowing to be forgotten.
  */
-export function lineAsActionRecord(segment, { speakerLabel = '' } = {}) {
+export function lineAsActionRecord(segment?: LineSegment | null, { speakerLabel = '' }: { speakerLabel?: unknown } = {}) {
     return {
         text: str(segment?.text),
         assignee: str(speakerLabel) || formatSpeakerLabel(segmentSpeakerId(segment)),
@@ -226,7 +262,7 @@ export function lineAsActionRecord(segment, { speakerLabel = '' } = {}) {
  * very thing this stage exists to protect. A `null` item answers the list
  * unchanged, so a line with no text can never truncate it either.
  */
-export function appendArtifact(list, item) {
+export function appendArtifact<T>(list: T[] | null | undefined, item: T | null | undefined): T[] {
     const current = Array.isArray(list) ? list : [];
     if (!item) return current;
     return [...current, item];
