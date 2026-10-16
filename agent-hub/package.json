@@ -47,7 +47,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "node --max-old-space-size=6144 ./node_modules/typescript/bin/tsc --noEmit",
+    "typecheck": "node ./node_modules/typescript-7/bin/tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -117,6 +117,7 @@
     "tailwindcss": "^4.3.3",
     "topojson-client": "^3.1.0",
     "typescript": "^6.0.3",
+    "typescript-7": "npm:typescript@7.0.2",
     "typescript-eslint": "^8.71.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.4",
