@@ -130,6 +130,34 @@ test('sanitizeDesign: heading weight 800/900 and the display tracking enum', () 
     assert.strictEqual(sanitizeDesign({}).typography.displayTracking, 'default');
 });
 
+// ── Hero decor, card fill, trust label style, dark band fill ────────
+
+test('block style: decor, cardFill and labelStyle accept their enum and drop anything else', () => {
+    const ok = validateStylePatch({ decor: 'none', cardFill: 'white', labelStyle: 'plain' });
+    assert.deepStrictEqual(ok.style, { decor: 'none', cardFill: 'white', labelStyle: 'plain' });
+    for (const patch of [{ decor: 'blur(9px)' }, { cardFill: '#fff' }, { labelStyle: 'uppercase; x' }]) {
+        const res = validateStylePatch(patch);
+        assert.ok(res.error && res._fixHint, JSON.stringify(patch));
+    }
+    assert.deepStrictEqual(
+        sanitizeBlockDesignStyle({ decor: 'none', cardFill: 'url(x)', labelStyle: 3, band: 'dark' }),
+        { decor: 'none', band: 'dark' },
+    );
+});
+
+test('sanitizeDesign + cms_update_design: darkBand is palette | secondary', async () => {
+    const { sanitizeDesign } = require('../stores/cms/shared');
+    assert.strictEqual(sanitizeDesign({}).darkBand, 'palette');
+    assert.strictEqual(sanitizeDesign({ darkBand: 'secondary' }).darkBand, 'secondary');
+    assert.strictEqual(sanitizeDesign({ darkBand: '#000' }).darkBand, 'palette');
+    const draft = await makeDraft();
+    const ok = await applyToolCall(draft, 'cms_update_design', { darkBand: 'secondary' });
+    assert.ok(!ok.error, JSON.stringify(ok));
+    assert.strictEqual(draft.site.design.darkBand, 'secondary');
+    const bad = await applyToolCall(draft, 'cms_update_design', { darkBand: 'red' });
+    assert.ok(bad.error);
+});
+
 // ── Per-language media ──────────────────────────────────────────────
 
 test('safeMediaRef: asset keys, site paths and http(s) pass; script/data URLs and markup do not', () => {

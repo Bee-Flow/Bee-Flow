@@ -196,7 +196,9 @@ function applyDesignToRoot(rootEl: HTMLElement | null, design: SiteDesign | null
     // per-block 'dark' band (style.band) is always palette-consistent
     // with the site's dark mode, even on a light page.
     const bandDk = design.darkColors || {};
-    if (bandDk.background)    style.setProperty('--band-dark-bg',             bandDk.background);
+    // design.darkBand = 'secondary': the dark band takes the theme's secondary colour instead.
+    const bandBg = design.darkBand === 'secondary' && c.secondary ? c.secondary : bandDk.background;
+    if (bandBg)               style.setProperty('--band-dark-bg',             bandBg);
     if (bandDk.surface)       style.setProperty('--band-dark-surface',        bandDk.surface);
     if (bandDk.textPrimary)   style.setProperty('--band-dark-text',           bandDk.textPrimary);
     if (bandDk.textSecondary) style.setProperty('--band-dark-text-secondary', bandDk.textSecondary);

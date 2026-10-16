@@ -921,6 +921,7 @@ const DESIGN_DEFAULTS = {
         bodySize:      16,      // 16 | 17 | 18 (px)
     },
     motion: 'full',             // 'none' | 'subtle' | 'full'
+    darkBand: 'palette',        // 'palette' | 'secondary' — what the dark band (style.band = 'dark') is filled with
     grain:  false,              // subtle page-wide noise overlay
 
     // ── Component shape + size ───────────────────────────────────────
@@ -970,6 +971,8 @@ const DESIGN_THEMES   = ['light', 'dark'];
 // Templates of the generated share image (core/seo/ogCard.js pins its own list to this one).
 const SHARE_IMAGE_TEMPLATES = ['light', 'dark', 'brand'];
 const DESIGN_MOTIONS  = ['none', 'subtle', 'full'];
+// 'palette' = the dark-mode background colour (darkColors.background); 'secondary' = the theme's secondary colour.
+const DARK_BANDS = ['palette', 'secondary'];
 const DISPLAY_SIZES   = ['md', 'lg', 'xl'];
 const HEADING_WEIGHTS = [500, 600, 700, 800, 900];
 // Letter-spacing of the display headline. 'default' emits nothing (the
@@ -998,4 +1001,4 @@ const DESIGN_FONTS = [
     'Satoshi', 'Cabinet Grotesk', 'General Sans', 'Clash Display', 'Clash Grotesk',
 ];
 
-export { SITE_DEFAULTS, BLOCK_DEFAULTS, BLOCK_TYPES, BLOCK_TYPE_IDS, TABS_MIN, TABS_MAX, STORY_METRICS_MIN, STORY_METRICS_MAX, STORY_GRID_MAX, BLOCK_VARIANTS, DEMO_FEATURE_IDS, DESIGN_DEFAULTS, DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, SHARE_IMAGE_TEMPLATES, DESIGN_MOTIONS, DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS };
+export { SITE_DEFAULTS, BLOCK_DEFAULTS, BLOCK_TYPES, BLOCK_TYPE_IDS, TABS_MIN, TABS_MAX, STORY_METRICS_MIN, STORY_METRICS_MAX, STORY_GRID_MAX, BLOCK_VARIANTS, DEMO_FEATURE_IDS, DESIGN_DEFAULTS, DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, SHARE_IMAGE_TEMPLATES, DESIGN_MOTIONS, DARK_BANDS, DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS };

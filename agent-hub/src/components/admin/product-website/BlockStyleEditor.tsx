@@ -2,6 +2,7 @@ import React from 'react';
 import BackgroundControl from './controls/BackgroundControl';
 import BackgroundPlacementControl from './controls/BackgroundPlacementControl';
 import MotifControl from './controls/MotifControl';
+import LookControls from './controls/LookControls';
 import ColorControl from './controls/ColorControl';
 import SpacingStepper from './controls/SpacingStepper';
 import type { Spacing } from './controls/SpacingStepper';
@@ -61,6 +62,9 @@ export interface BlockStyle {
     motif?: string;
     motifSide?: string;
     motifTiles?: boolean;
+    decor?: string;
+    cardFill?: string;
+    labelStyle?: string;
     maxWidth?: string;
     align?: string;
     cssClass?: string;
@@ -181,6 +185,9 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
 
             <SectionDivider label={t('cms_site.site.blockstyle.motif', 'Brand motif')} />
             <MotifControl value={s} onChange={(patch) => onChange({ ...s, ...patch })} />
+
+            <SectionDivider label={t('cms_site.site.blockstyle.look', 'Look')} />
+            <LookControls value={s} onChange={(patch) => onChange({ ...s, ...patch })} />
 
             <SectionDivider label={t('cms_site.site.blockstyle.layout', 'Layout')} />
             <FieldRow label={t('cms_site.site.blockstyle.max_width', 'Max width')}>

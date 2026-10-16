@@ -10,6 +10,7 @@ import useConfirm from '../../shared/useConfirm';
 // previews render in the chosen face. Same CSS file the iframe imports via ProductWebsite.tsx.
 import '../../../marketing/self-hosted-fonts.css';
 import DisplayTrackingControl from './controls/DisplayTrackingControl';
+import DarkBandControl from './controls/DarkBandControl';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { DesignColors, DesignEditorProps, EditableDesign, ThemePreset } from './DesignEditor.types';
 
@@ -60,6 +61,7 @@ const FALLBACK_DESIGN = {
     preset:   'custom',
     typography: { displaySize: 'lg', headingWeight: 600, displayTracking: 'default', bodySize: 16 },
     motion:   'full',
+    darkBand: 'palette',
     grain:    false,
     // Identity values — these emit no CSS at all (see SHAPE_MAPS in
     // marketing/ProductWebsite.jsx), so a site without them renders
@@ -169,10 +171,10 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                 <ColorRow label="Text"           value={dk.textPrimary   || ''} onChange={v => setDarkColor('textPrimary',   v)} hint="Dark-mode body copy" />
                 <ContrastBadge fg={dk.textPrimary} bg={dk.background} label="Dark body text on dark background" />
                 <ColorRow label="Text secondary" value={dk.textSecondary || ''} onChange={v => setDarkColor('textSecondary', v)} hint="Dark-mode muted copy" />
-                {/* These two were already in the schema, sanitized and honored
-                    by the renderer, but had no control until now. */}
+                {/* In the schema and honored by the renderer; these are their controls. */}
                 <ColorRow label="Primary override" value={dk.primary || ''} onChange={v => setDarkColor('primary', v)} hint="Optional. Leave empty to reuse the light-mode Primary in dark mode." />
                 <ColorRow label="Accent override"  value={dk.accent  || ''} onChange={v => setDarkColor('accent',  v)} hint="Optional. Leave empty to reuse the light-mode Accent." />
+                <DarkBandControl value={d.darkBand} onChange={v => onChange({ ...d, darkBand: v })} />
 
                 <SectionDivider label="Fonts" />
                 <FontRow label="Heading font" value={d.fonts.heading} onChange={v => setFont('heading', v)} sample="The quick brown fox jumps" weight={600} />

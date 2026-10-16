@@ -30,7 +30,7 @@ const cmsStore = require('../stores/cmsStore');
 const { validateStylePatch, STYLE_KEYS } = require('./blockStyle');
 const {
     BLOCK_DEFAULTS, BLOCK_TYPE_IDS,
-    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
+    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
     DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS, THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
@@ -909,6 +909,12 @@ function sanitizeDesignPatch(args) {
         }
         patch.motion = args.motion;
     }
+    if (args.darkBand !== undefined) {
+        if (!DARK_BANDS.includes(args.darkBand)) {
+            return bad(`darkBand ${JSON.stringify(args.darkBand ?? null)} is invalid. Valid: ${DARK_BANDS.join(', ')}.`);
+        }
+        patch.darkBand = args.darkBand;
+    }
     for (const flag of ['grain', 'gradient']) {
         if (args[flag] === undefined) continue;
         if (typeof args[flag] !== 'boolean') return bad(`${flag} must be true or false.`);
@@ -916,7 +922,7 @@ function sanitizeDesignPatch(args) {
     }
 
     if (!Object.keys(patch).length) {
-        return bad('Nothing to change — pass at least one of: preset, colorsPatch, darkColorsPatch, fontsPatch, typographyPatch, componentsPatch, layoutPatch, radius, theme, motion, grain, gradient.');
+        return bad('Nothing to change — pass at least one of: preset, colorsPatch, darkColorsPatch, fontsPatch, typographyPatch, componentsPatch, layoutPatch, radius, theme, motion, darkBand, grain, gradient.');
     }
     return { patch };
 }

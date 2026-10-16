@@ -6,7 +6,7 @@
 'use strict';
 
 const {
-    BG_POSITIONS, BG_REPEATS, BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, MOTIFS, MOTIF_SIDES,
+    BG_POSITIONS, BG_REPEATS, BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, MOTIFS, MOTIF_SIDES, DECORS, CARD_FILLS, LABEL_STYLES,
     BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize,
 } = require('../i18n/defaults/blockStyleEnums');
 
@@ -36,6 +36,9 @@ const DESIGN_ENUMS = {
     backgroundRepeat: BG_REPEATS,
     motif: MOTIFS,
     motifSide: MOTIF_SIDES,
+    decor: DECORS,
+    cardFill: CARD_FILLS,
+    labelStyle: LABEL_STYLES,
 };
 
 /**

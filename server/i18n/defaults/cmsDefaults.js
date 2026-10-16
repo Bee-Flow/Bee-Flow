@@ -920,6 +920,7 @@ const DESIGN_DEFAULTS = {
         bodySize:      16,      // 16 | 17 | 18 (px)
     },
     motion: 'full',             // 'none' | 'subtle' | 'full'
+    darkBand: 'palette',        // 'palette' | 'secondary' — what the dark band (style.band = 'dark') is filled with
     grain:  false,              // subtle page-wide noise overlay
 
     // ── Component shape + size ───────────────────────────────────────
@@ -969,6 +970,8 @@ const DESIGN_THEMES   = ['light', 'dark'];
 // Templates of the generated share image (core/seo/ogCard.js pins its own list to this one).
 const SHARE_IMAGE_TEMPLATES = ['light', 'dark', 'brand'];
 const DESIGN_MOTIONS  = ['none', 'subtle', 'full'];
+// 'palette' = the dark-mode background colour (darkColors.background); 'secondary' = the theme's secondary colour.
+const DARK_BANDS = ['palette', 'secondary'];
 const DISPLAY_SIZES   = ['md', 'lg', 'xl'];
 const HEADING_WEIGHTS = [500, 600, 700, 800, 900];
 // Letter-spacing of the display headline. 'default' emits nothing (the
@@ -1012,6 +1015,7 @@ module.exports = {
     DESIGN_THEMES,
     SHARE_IMAGE_TEMPLATES,
     DESIGN_MOTIONS,
+    DARK_BANDS,
     DISPLAY_SIZES,
     HEADING_WEIGHTS,
     DISPLAY_TRACKINGS,

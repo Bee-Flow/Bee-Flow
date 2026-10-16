@@ -73,6 +73,7 @@ export interface SiteDesign {
     gradient?: boolean;
     grain?: boolean;
     motion?: string;
+    darkBand?: string;
     preset?: string;
     logo?: string;
     favicon?: string;
@@ -102,6 +103,9 @@ export interface BlockStyle {
     motif?: string;
     motifSide?: string;
     motifTiles?: boolean;
+    decor?: string;
+    cardFill?: string;
+    labelStyle?: string;
     band?: string;
     rhythm?: string;
     glow?: boolean;

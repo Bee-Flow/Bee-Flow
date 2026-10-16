@@ -3938,3 +3938,34 @@ section.customer-support-block {
 /* Placeholder of a lazily loaded section (sections/lazySection.tsx) while its
    chunk loads: about the height of the motion blocks, so little shifts. */
 .marketing-root .cms-lazy-section { min-height: 480px; }
+
+/* Look switches of a block (style.decor / cardFill / labelStyle). Fixed
+   classes from blockWrap.ts; a stored value never reaches the CSS. */
+
+/* Hero blur blobs off. */
+.marketing-root .cms-decor-none .hero::before,
+.marketing-root .cms-decor-none .hero::after,
+.marketing-root .cms-decor-none.hero::before,
+.marketing-root .cms-decor-none.hero::after {
+    display: none;
+}
+
+/* Card fill: white, or none (transparent, the hairline stays). The default
+   tint has no class. The cards read --card-bg / --card-hover-bg. */
+.marketing-root .cms-cardfill-white :is(.cms-card, .feature-card, .security-card, .testimonial-card, .pricing-card, .arch-layer) {
+    --card-bg: #fff;
+    --card-hover-bg: #fff;
+}
+.marketing-root .cms-cardfill-none :is(.cms-card, .feature-card, .security-card, .testimonial-card, .pricing-card, .arch-layer) {
+    --card-bg: transparent;
+    --card-hover-bg: transparent;
+}
+
+/* Trust-band chip labels in plain sentence case in the body font. */
+.marketing-root .cms-label-plain .trust-chip-label {
+    font-family: var(--font-body);
+    font-size: var(--text-small);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+}

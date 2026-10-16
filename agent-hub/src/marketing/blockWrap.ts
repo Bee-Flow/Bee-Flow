@@ -1,5 +1,5 @@
-// The design part of a block's style wrapper: background placement and the
-// built-in brand motif. The renderer (ProductWebsite) calls these two
+// The design part of a block's style wrapper: background placement, the
+// built-in brand motif and the look switches (hero decor, card fill, label style). The renderer (ProductWebsite) calls these two
 // functions and adds the result to the wrapper; nothing here ever builds CSS
 // from a stored value. Every class name is assembled from a value that
 // survived the shared whitelist (blockStyleEnums.generated.mjs, the same file
@@ -29,6 +29,9 @@ export function designStyleClasses(style: BlockStyle): string[] {
         out.push(`cms-motif--${typeof s.motifSide === 'string' ? s.motifSide : 'right'}`);
         if (s.motifTiles === true) out.push('cms-motif--tiles');
     }
+    if (s.decor === 'none') out.push('cms-decor-none');
+    if (s.cardFill === 'white' || s.cardFill === 'none') out.push(`cms-cardfill-${s.cardFill}`);
+    if (s.labelStyle === 'plain') out.push('cms-label-plain');
     return out;
 }
 

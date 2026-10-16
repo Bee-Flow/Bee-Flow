@@ -10,6 +10,7 @@ const {
     DESIGN_COMPONENT_ENUMS,
     DESIGN_LAYOUT_ENUMS, SHARE_IMAGE_TEMPLATES,
     HEADING_WEIGHTS,
+    DARK_BANDS,
     DISPLAY_TRACKINGS,
 } = require('../../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../../i18n/defaults/themePresets');
@@ -171,6 +172,7 @@ function sanitizeDesign(input) {
         },
         motion: oneOf(d.motion, ['none', 'subtle', 'full'], DESIGN_DEFAULTS.motion),
         grain:  d.grain === true,
+        darkBand: oneOf(d.darkBand, DARK_BANDS, DESIGN_DEFAULTS.darkBand),
         components: sanitizeEnumGroup(d.components, DESIGN_COMPONENT_ENUMS, DESIGN_DEFAULTS.components),
         layout:     sanitizeEnumGroup(d.layout,     DESIGN_LAYOUT_ENUMS,    DESIGN_DEFAULTS.layout),
         // The generated share image of pages without an og:image (core/seo/ogCard.js).

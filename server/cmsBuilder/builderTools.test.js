@@ -584,7 +584,7 @@ test('cms_update_design: schema in the roster; deep-merge patch persists through
     // logo/favicon are uploaded asset keys — never settable by the model.
     const props = Object.keys(schema.function.parameters.properties).sort();
     assert.deepStrictEqual(props, [
-        'colorsPatch', 'componentsPatch', 'darkColorsPatch', 'fontsPatch', 'gradient',
+        'colorsPatch', 'componentsPatch', 'darkBand', 'darkColorsPatch', 'fontsPatch', 'gradient',
         'grain', 'layoutPatch', 'motion', 'preset', 'radius', 'theme', 'typographyPatch',
     ], props.join(','));
     assert.deepStrictEqual(schema.function.parameters.properties.preset.enum, THEME_PRESET_IDS);

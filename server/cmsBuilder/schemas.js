@@ -17,7 +17,7 @@
 'use strict';
 
 const {
-    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
+    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
     DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
@@ -43,7 +43,7 @@ const DESIGN_HINT = [
     `typographyPatch: displaySize (${DISPLAY_SIZES.join('|')}), headingWeight (${HEADING_WEIGHTS.join('|')}), displayTracking (${DISPLAY_TRACKINGS.join('|')}), bodySize (${BODY_SIZES.join('|')}).`,
     `componentsPatch: ${enumList(DESIGN_COMPONENT_ENUMS)}.`,
     `layoutPatch: ${enumList(DESIGN_LAYOUT_ENUMS)}.`,
-    `theme (${DESIGN_THEMES.join('|')}), motion (${DESIGN_MOTIONS.join('|')}), grain and gradient are booleans.`,
+    `theme (${DESIGN_THEMES.join('|')}), motion (${DESIGN_MOTIONS.join('|')}), darkBand (${DARK_BANDS.join('|')} — what a block with band 'dark' is filled with: the dark-mode background colour, or the theme's secondary colour), grain and gradient are booleans.`,
     `preset: one of ${THEME_PRESET_IDS.join(', ')}.`,
 ].join(' ');
 
@@ -166,7 +166,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_update_block',
-            description: `Edit one block in place. contentPatch DEEP-MERGES into the block's content (arrays replace wholesale — resend the whole array to change one item). stylePatch merges into the block's style wrapper: colorOverrides {primary,secondary,accent,background,surface,textPrimary,textSecondary}, spacing {paddingTop,paddingBottom}, backgroundImage, backgroundOverlay, backgroundSize (cover|contain|auto|a width such as "480px" — placement of backgroundImage), backgroundPosition (top-left|top|top-right|left|center|right|bottom-left|bottom|bottom-right), backgroundRepeat (no-repeat|repeat|repeat-x|repeat-y), backgroundHideMobile (boolean — hide the background image on phones), motif (none|honeycomb — the built-in brand honeycomb pattern in the brand colours, no upload needed), motifSide (right|left|center — where the motif sits), motifTiles (boolean — add filled hexagon tiles to the motif), maxWidth (narrow|medium|wide|full), align (left|center|right), cssClass, band (default|surface|tint|dark|primary — section background treatment, works on every type; 'dark' is the premium charcoal band), rhythm (compact|default|spacious — vertical padding preset), reveal (on|off — entrance animation), glow (boolean — soft accent glow behind the block), columns (2|3|4 — card-grid column count; features/steps/security/techStats only). enabled=false hides the block without deleting it. ${LINK_HINT}`,
+            description: `Edit one block in place. contentPatch DEEP-MERGES into the block's content (arrays replace wholesale — resend the whole array to change one item). stylePatch merges into the block's style wrapper: colorOverrides {primary,secondary,accent,background,surface,textPrimary,textSecondary}, spacing {paddingTop,paddingBottom}, backgroundImage, backgroundOverlay, backgroundSize (cover|contain|auto|a width such as "480px" — placement of backgroundImage), backgroundPosition (top-left|top|top-right|left|center|right|bottom-left|bottom|bottom-right), backgroundRepeat (no-repeat|repeat|repeat-x|repeat-y), backgroundHideMobile (boolean — hide the background image on phones), motif (none|honeycomb — the built-in brand honeycomb pattern in the brand colours, no upload needed), motifSide (right|left|center — where the motif sits), motifTiles (boolean — add filled hexagon tiles to the motif), decor (default|none — none switches off the hero's blurred colour blobs), cardFill (tint|white|none — fill of the cards inside the block; white makes cards stand out on a tinted band), labelStyle (mono|plain — trust-band chip labels: monospace uppercase, or plain sentence case in the body font), maxWidth (narrow|medium|wide|full), align (left|center|right), cssClass, band (default|surface|tint|dark|primary — section background treatment, works on every type; 'dark' is the premium charcoal band), rhythm (compact|default|spacious — vertical padding preset), reveal (on|off — entrance animation), glow (boolean — soft accent glow behind the block), columns (2|3|4 — card-grid column count; features/steps/security/techStats only). enabled=false hides the block without deleting it. ${LINK_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -304,6 +304,7 @@ const TOOL_SCHEMAS = [
                     radius: { type: 'number', description: 'Global corner radius in px, 0-24.' },
                     theme: { type: 'string', enum: DESIGN_THEMES, description: 'Which palette the public site renders by default.' },
                     motion: { type: 'string', enum: DESIGN_MOTIONS, description: 'Animation level.' },
+                    darkBand: { type: 'string', enum: DARK_BANDS, description: "Fill of blocks with style.band 'dark': the dark-mode background colour (palette) or the theme's secondary colour." },
                     grain: { type: 'boolean', description: 'Subtle film-grain texture overlay.' },
                     gradient: { type: 'boolean', description: 'Gradient treatment on primary surfaces/CTAs.' },
                 },

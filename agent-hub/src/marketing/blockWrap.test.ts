@@ -37,6 +37,16 @@ describe('designStyleClasses', () => {
     });
 });
 
+describe('look switches', () => {
+    it('maps decor, cardFill and labelStyle to fixed class names; identity values add none', () => {
+        expect(designStyleClasses({ decor: 'none', cardFill: 'white', labelStyle: 'plain' }))
+            .toEqual(['cms-decor-none', 'cms-cardfill-white', 'cms-label-plain']);
+        expect(designStyleClasses({ cardFill: 'none' })).toEqual(['cms-cardfill-none']);
+        expect(designStyleClasses({ decor: 'default', cardFill: 'tint', labelStyle: 'mono' })).toEqual([]);
+        expect(designStyleClasses({ decor: 'blur(9px)', cardFill: '#fff', labelStyle: 'x y' })).toEqual([]);
+    });
+});
+
 describe('displayTrackingEm', () => {
     it('maps the three tracking names and nothing inherited from Object.prototype', () => {
         expect(displayTrackingEm('tighter')).toBe('-0.045em');

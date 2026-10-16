@@ -27,6 +27,12 @@ const BG_REPEATS = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 // The built-in decorative pattern. 'none' is the identity value.
 const MOTIFS = ['none', 'honeycomb'];
 const MOTIF_SIDES = ['right', 'left', 'center'];
+// Hero blur blobs: 'default' keeps them, 'none' switches them off.
+const DECORS = ['default', 'none'];
+// Fill of the cards inside a block: 'tint' (the theme's card tint) is the identity value.
+const CARD_FILLS = ['tint', 'white', 'none'];
+// Trust-band chip labels: 'mono' (monospace, uppercase, tracked) is the identity value.
+const LABEL_STYLES = ['mono', 'plain'];
 
 // Bento feature cards: the height box and the fit of an item's media
 // (`items[].mediaHeight` / `items[].mediaFit`). 'auto' / 'natural' are the
@@ -72,6 +78,9 @@ function sanitizeBlockDesignStyle(style) {
         backgroundRepeat: BG_REPEATS,
         motif: MOTIFS,
         motifSide: MOTIF_SIDES,
+        decor: DECORS,
+        cardFill: CARD_FILLS,
+        labelStyle: LABEL_STYLES,
     };
     for (const [key, allowed] of Object.entries(enums)) {
         if (key in out && !allowed.includes(/** @type {string} */ (out[key]))) delete out[key];
@@ -84,7 +93,7 @@ function sanitizeBlockDesignStyle(style) {
 
 const BLOCK_DESIGN_STYLE_KEYS = [
     'backgroundSize', 'backgroundPosition', 'backgroundRepeat', 'backgroundHideMobile',
-    'motif', 'motifSide', 'motifTiles',
+    'motif', 'motifSide', 'motifTiles', 'decor', 'cardFill', 'labelStyle',
 ];
 
-export { BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, BG_POSITIONS, BG_REPEATS, MOTIFS, MOTIF_SIDES, MEDIA_HEIGHTS, MEDIA_FITS, BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize, backgroundSizePx, sanitizeBlockDesignStyle };
+export { BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, BG_POSITIONS, BG_REPEATS, MOTIFS, MOTIF_SIDES, DECORS, CARD_FILLS, LABEL_STYLES, MEDIA_HEIGHTS, MEDIA_FITS, BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize, backgroundSizePx, sanitizeBlockDesignStyle };
