@@ -108,7 +108,7 @@ test('cms_update_page_meta: unknown page → hint with known ids; reserved slug 
     assert.ok(bad.error && bad._fixHint.includes('Known page ids'), JSON.stringify(bad));
 
     const home = homeId(draft);
-    const reserved = await applyToolCall(draft, 'cms_update_page_meta', { pageId: home, slug: 'privacy' });
+    const reserved = await applyToolCall(draft, 'cms_update_page_meta', { pageId: home, slug: 'login' });
     assert.ok(reserved.error && /reserved/i.test(reserved.error), JSON.stringify(reserved));
 
     const ok = await applyToolCall(draft, 'cms_update_page_meta', { pageId: home, title: 'Start', hideFooter: true });
@@ -892,10 +892,10 @@ test('validateSiteDraft: duplicate + reserved slugs surface as errors (legacy/im
     // Corrupt the index directly (imports/legacy data can carry collisions
     // the store would never mint itself).
     draft.site.pages[1].slug = 'home';
-    draft.site.pages.push({ id: 'pg_legacy1', slug: 'privacy', title: 'Old', isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false });
+    draft.site.pages.push({ id: 'pg_legacy1', slug: 'login', title: 'Old', isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false });
     const v = validateSiteDraft(draft);
     assert.ok(v.errors.some((e) => e.code === 'duplicate_slug'), JSON.stringify(v.errors));
-    assert.ok(v.errors.some((e) => e.code === 'reserved_slug' && e.message.includes('privacy')), JSON.stringify(v.errors));
+    assert.ok(v.errors.some((e) => e.code === 'reserved_slug' && e.message.includes('login')), JSON.stringify(v.errors));
 });
 
 test('validateSiteDraft: stored slugs the router cannot reach are reported (underscore, locale prefix)', async () => {
