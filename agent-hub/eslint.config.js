@@ -193,6 +193,15 @@ export default [
             ...sizeComplexityRules,
         },
     },
+    {
+        // rules-of-hooks on TS source (real bugs; 0 hits when added). Test
+        // harnesses call hooks from helper functions, so tests stay out;
+        // exhaustive-deps on TS waits for its own budget.
+        files: ['**/*.{ts,tsx}'],
+        ignores: ['**/*.test.{ts,tsx}'],
+        plugins: { 'react-hooks': reactHooks },
+        rules: { 'react-hooks/rules-of-hooks': 'error' },
+    },
     // NOTE: scoping 'react-hooks/exhaustive-deps' to error inside src/hooks/
     // was attempted, but useChatEngine has intentional dep omissions
     // (documented inline) that the rule flags. Promote per-file once the
