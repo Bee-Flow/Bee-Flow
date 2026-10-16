@@ -843,7 +843,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_query_data',
-            description: 'Read rows from the app\'s data (owner-scoped, never mutates) — verify seeds landed, inspect real values, or check what a dataset returns. Pass tableId for raw rows (with optional filter/sort) OR datasetId for a saved aggregation.',
+            description: 'Read rows from the app\'s data (owner-scoped, never mutates) — verify seeds landed, inspect real values, or check what a dataset returns. Pass tableId for raw rows (with optional filter/sort) OR datasetId for a saved aggregation, not both. More rows than one page: the answer has more:true and a nextCursor to pass back.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -854,8 +854,9 @@ const TOOL_SCHEMAS = [
                         description: `Optional literal filters: [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}.`,
                         items: { type: 'object' },
                     },
-                    sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" }.' },
-                    limit: { type: 'number', description: 'Max rows (default 5, max 20).' },
+                    sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },
+                    limit: { type: 'number', description: 'Max rows per call (default 5, max 20; a larger value is clamped and the answer says limitClamped).' },
+                    cursor: { type: 'string', description: 'The nextCursor of the previous answer, to read the next page.' },
                 },
             },
         },

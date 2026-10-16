@@ -10,7 +10,6 @@ const { pickClosestId } = require('../../automation/validate/helpers');
 const { MAX_SEED_RECORDS } = require('./schemas');
 const {
     FIELD_TYPES,
-    FILTER_OPS,
     AGG_FNS,
     DATA_LIMITS,
     SYSTEM_COLUMNS,
@@ -23,6 +22,7 @@ const {
     migrationPlan,
 } = require('../dataModel');
 const { adoptCanonical } = require('./shared');
+const { parseQueryArgs, shapeRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { persistDraft } = require('./persistence');
 const { isDatatableBacked } = require('../datatableSource');
 const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
@@ -67,7 +67,6 @@ function linkedTableRefusal(table, what) {
 // actionExecutor.writeRecord — THE record-write choke point (RLS + quotas).
 
 const DATA_CONFLICT_ERROR = 'The data model changed in another tab (version conflict) — the draft state now shows the latest tables; retry the operation against them.';
-const MAX_QUERY_LIMIT = 20;
 const MAX_ROLES = 20;
 
 /** The draft's data model as a mutable copy (empty model when none yet). */
@@ -834,69 +833,58 @@ async function applyQueryData(draftWrap, args) {
     if (!draftWrap.appId || !model || !Array.isArray(model.tables) || !model.tables.length) {
         return { error: 'The app has no data tables yet — create one with app_upsert_table and seed it first.' };
     }
-    const limit = Math.max(1, Math.min(MAX_QUERY_LIMIT, parseInt(args?.limit, 10) || 5));
+    const parsed = parseQueryArgs(args);
+    if (parsed.error) return { ...parsed, ...(parsed._fixHint ? {} : { _fixHint: tableIdHint(model) }) };
+    const { tableId, datasetId, limit, filter, sort, cursor } = parsed;
     const studioAppStore = require('../../stores/studioAppStore');
     let app = null;
     try { app = await studioAppStore.getStudioApp(draftWrap.appId); } catch (_) { app = null; }
     if (!app) return { error: 'This app no longer exists — it may have been deleted in another tab.' };
 
+    let linked = false;
     try {
-        if (args?.datasetId) {
+        if (datasetId) {
+            if (filter || sort) {
+                return { error: 'filter and sort apply to raw table rows (tableId); a saved dataset returns its own aggregation.', _fixHint: 'Page through a dataset with cursor, or query its source table with tableId.' };
+            }
             const studioAppDataStore = require('../../stores/studioAppDataStore');
-            const ds = await studioAppDataStore.getDataset(args.datasetId, draftWrap.appId, draftWrap.userId);
+            const ds = await studioAppDataStore.getDataset(datasetId, draftWrap.appId, draftWrap.userId);
             if (!ds) {
                 const known = (draftWrap.datasetIds || []).map((d) => (d && d.id) || d).filter(Boolean);
-                return { error: `Unknown datasetId ${JSON.stringify(args.datasetId)}.`, _fixHint: `Known datasets: ${known.join(', ') || '(none)'}.` };
+                return { error: `Unknown datasetId ${JSON.stringify(datasetId)}.`, _fixHint: `Known datasets: ${known.join(', ') || '(none)'}.` };
             }
             const datasetCache = require('../datasetCache');
             const out = await datasetCache.runDataset(app, model, ds, { id: draftWrap.userId, role: 'owner' });
-            const rows = Array.isArray(out.rows) ? out.rows : [];
-            return { rows: rows.slice(0, limit), rowCount: rows.length };
+            const page = pageDatasetRows(Array.isArray(out.rows) ? out.rows : [], cursor, limit);
+            return { ...page, ...pageMeta({}, parsed) };
         }
-        const table = findModelTable(model, args?.tableId);
+        const table = findModelTable(model, tableId);
         if (!table) {
-            return { error: `Unknown tableId ${JSON.stringify(args?.tableId)}.`, _fixHint: tableIdHint(model) };
+            return { error: `Unknown tableId ${JSON.stringify(tableId)}.`, _fixHint: tableIdHint(model) };
         }
-        if (isDatatableBacked(table)) {
-            // The rows are in the Studio table, not the per-app database: read
-            // them the way the app runtime does (grade-checked, stale-while-
-            // serve for a Nextcloud mirror). A peek at five real rows is what a
-            // small model needs before it binds.
-            const dataReadRunner = require('../dataReadRunner');
-            const ctx = { app, ownerScope: app.userId, viewerId: draftWrap.userId, role: 'owner', viewer: { id: draftWrap.userId, role: 'owner' }, model };
-            try {
-                const out = await dataReadRunner.runRecordList(ctx, table, {
-                    filters: Array.isArray(args?.filter) ? args.filter : undefined,
-                    sort: args?.sort,
-                    limit,
-                });
-                const rows = Array.isArray(out.records) ? out.records : [];
-                return { rows, rowCount: rows.length, ...(out.nextCursor ? { more: true } : {}), linked: true };
-            } catch (e) {
-                return {
-                    error: `The linked Studio table could not be read: ${e.safe || e.message}`,
-                    _fixHint: 'This is an access or availability problem with the Studio table, not your arguments — bind the table anyway; the app reads it live.',
-                };
-            }
-        }
-        const queryCompiler = require('../queryCompiler');
-        const rlsGateway = require('../rlsGateway');
-        const studioAppDbStore = require('../../stores/studioAppDbStore');
-        const accessFilter = rlsGateway.compileAccessFilter(table, 'owner', { id: draftWrap.userId }, 'read');
-        const { sql, params } = queryCompiler.compileRecordList(table, {
-            filters: Array.isArray(args?.filter) ? args.filter : undefined,
-            sort: args?.sort,
-            limit,
-        }, accessFilter);
-        const out = await studioAppDbStore.query(draftWrap.userId, draftWrap.appId, sql, params);
-        const all = Array.isArray(out.rows) ? out.rows : [];
-        const rows = all.slice(0, limit); // compileRecordList fetches one probe row
-        return { rows, rowCount: rows.length, ...(all.length > limit ? { more: true } : {}) };
-    } catch (e) {
-        return {
-            error: `Query failed: ${e.message}`,
-            _fixHint: `filter is [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}; fields must exist on the table (or be system columns).`,
+        // One read path for both kinds of table: the app runtime's own runner
+        // (access filter, owner-scoped handle, keyset cursor). A linked table's
+        // rows live in a Studio table, read grade-checked and stale-while-serve.
+        linked = isDatatableBacked(table);
+        const dataReadRunner = require('../dataReadRunner');
+        const ctx = {
+            app,
+            ownerScope: linked ? app.userId : draftWrap.userId,
+            viewerId: draftWrap.userId,
+            role: 'owner',
+            viewer: { id: draftWrap.userId, role: 'owner' },
+            model,
         };
+        const out = await dataReadRunner.runRecordList(ctx, table, { filters: filter, sort, cursor, limit });
+        const rows = (Array.isArray(out.records) ? out.records : []).map(shapeRow);
+        return {
+            rows,
+            rowCount: rows.length,
+            ...pageMeta({ more: !!out.nextCursor, nextCursor: out.nextCursor }, parsed),
+            ...(linked ? { linked: true } : {}),
+        };
+    } catch (e) {
+        return queryFailure(e, { appId: draftWrap.appId, linked });
     }
 }
 
