@@ -55,6 +55,7 @@ import { PreviewBlockChrome, InsertZone } from './components/PreviewBlockChrome'
 import { resolveAssetUrl } from './assetUrl';
 import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSection';
 import { designStyleClasses, designStyleVars } from './blockWrap';
+import { cleanAnchor } from './blockStyleEnums.generated.mjs';
 import { blockFlowOptions } from './blockFlow';
 import { applyTileVars, TILE_VAR_PROPS } from './designTiles';
 import { applyBrandVars, BRAND_VAR_PROPS, roleColor } from './designBrand';
@@ -546,7 +547,7 @@ function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview, join
     return out.join(' ');
 }
 
-function blockWrapStyle(style: BlockStyle | undefined): CSSProperties | undefined {
+export function blockWrapStyle(style: BlockStyle | undefined): CSSProperties | undefined {
     if (!style || typeof style !== 'object') return undefined;
     const css: CSSProperties & Record<`--${string}`, string | number> = {};
 
@@ -580,6 +581,8 @@ function blockWrapStyle(style: BlockStyle | undefined): CSSProperties | undefine
         css['--cms-bg-overlay'] = style.backgroundOverlay;
     }
     Object.assign(css, designStyleVars(style));
+    // An anchor target stops below the sticky header when a link jumps to it.
+    if (cleanAnchor(style.anchor)) css.scrollMarginTop = '5rem';
 
     return Object.keys(css).length ? css : undefined;
 }
@@ -923,6 +926,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                                 {overrideCss ? <style>{overrideCss}</style> : null}
                                 <div
                                     data-cms-block-id={b.id}
+                                    id={cleanAnchor(b.style?.anchor) ?? undefined}
                                     // Read by analyticsEvents.js: attributes a CTA click to its block.
                                     data-cms-block-type={b.type}
                                     className={`${blockWrapClasses(b.style, { type: b.type, inPreview, ...blockFlowOptions(orderedBlocks, orderedIndex) })}${isActive ? ' cms-block-active' : ''}`}

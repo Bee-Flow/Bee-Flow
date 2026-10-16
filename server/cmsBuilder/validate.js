@@ -37,7 +37,7 @@
 
 'use strict';
 
-const { sanitizeBlockDesignStyle, BLOCK_DESIGN_STYLE_KEYS, MEDIA_HEIGHTS, MEDIA_FITS } = require('../i18n/defaults/blockStyleEnums');
+const { sanitizeBlockDesignStyle, cleanAnchor, BLOCK_DESIGN_STYLE_KEYS, MEDIA_HEIGHTS, MEDIA_FITS } = require('../i18n/defaults/blockStyleEnums');
 const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
 const { checkTabs, checkStoryHeader, checkScrollStory, checkFeatureDemo } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
@@ -365,6 +365,18 @@ function validateSiteDraft(draftWrap) {
                         message: `style.${key} ${JSON.stringify(st[key])} is not a known value and is dropped on save.`,
                         hint: 'backgroundSize: cover | contain | auto | "<n>px"; backgroundPosition: the nine anchors (top-left … bottom-right); backgroundRepeat: no-repeat | repeat | repeat-x | repeat-y; motif: none | honeycomb; motifSide: right | left | center; decor: default | none; cardFill: tint | white | none; labelStyle: mono | plain; backgroundHideMobile / motifTiles: true | false.',
                     });
+                }
+                if (st.anchor !== undefined) {
+                    const slug = cleanAnchor(st.anchor);
+                    const twin = slug ? blocks.findIndex((o) => o?.style?.anchor === st.anchor) : -1;
+                    if (!slug || (twin >= 0 && twin < i)) {
+                        warnings.push({
+                            code: slug ? 'duplicate_anchor' : 'unknown_style_value',
+                            path: `pages.${entry.id}.blocks[${i}].style.anchor`,
+                            message: slug ? `style.anchor ${JSON.stringify(st.anchor)} is already used by an earlier block on this page.` : `style.anchor ${JSON.stringify(st.anchor)} is not a valid slug.`,
+                            hint: 'Anchors are unique per page: lowercase letters, digits and single hyphens, starting with a letter.',
+                        });
+                    }
                 }
                 if (st.columns !== undefined && ![2, 3, 4].includes(Number(st.columns))) {
                     warnings.push({

@@ -24,3 +24,14 @@ describe('BlockStyleEditor section rhythm', () => {
         expect(onChange).toHaveBeenCalledWith({});
     });
 });
+
+describe('BlockStyleEditor anchor id', () => {
+    afterEach(() => cleanup());
+
+    it('writes a slug and removes the key when emptied', async () => {
+        const user = userEvent.setup();
+        const onChange = mount({ band: 'dark' });
+        await user.type(screen.getByPlaceholderText('install'), 'A');
+        expect(onChange).toHaveBeenCalledWith({ band: 'dark', anchor: 'a' });
+    });
+});

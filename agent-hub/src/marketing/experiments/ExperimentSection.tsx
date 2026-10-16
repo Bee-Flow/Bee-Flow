@@ -2,12 +2,13 @@ import React from 'react';
 import type { ComponentType } from 'react';
 import ExperimentMark from './ExperimentMark';
 import { experimentAttrs, resolveBlock } from './experiment';
+import { withBandPrecedence } from '../bandPrecedence';
 
 export { experimentAttrs };
 
 interface ExperimentSectionProps {
     Comp: ComponentType<{ data: Record<string, unknown> }>;
-    block: { type?: string; enabled?: boolean; content?: object };
+    block: { type?: string; enabled?: boolean; content?: object; style?: { band?: unknown } };
     preview: boolean;
 }
 
@@ -21,7 +22,7 @@ interface ExperimentSectionProps {
  */
 export default function ExperimentSection({ Comp, block, preview }: ExperimentSectionProps) {
     const { content, experiment } = resolveBlock(block.content as Record<string, unknown> | undefined, { preview, type: block.type });
-    const section = <Comp data={{ enabled: block.enabled !== false, ...content }} />;
+    const section = <Comp data={{ enabled: block.enabled !== false, ...withBandPrecedence(content, block.style) }} />;
     if (!experiment) return section;
     return (
         <>

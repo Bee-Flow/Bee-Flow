@@ -22,6 +22,7 @@
 
 const { esc } = require('./html');
 const { variantSrcSet, columnSizes, preloadLink, DEFAULT_SIZES } = require('../cms/imageDelivery');
+const { cleanAnchor } = require('../../i18n/defaults/blockStyleEnums');
 
 /** The LCP candidate is looked for in this many leading blocks. */
 const HERO_BLOCKS = 2;
@@ -286,7 +287,9 @@ function renderBlocksWithHints(blocks, { fallbackTitle = '', chrome = null } = {
         const before = out.length;
         walk(block.content || {}, out, 1, state);
         if (out.length > before) {
-            out.splice(before, 0, `<section data-block="${esc(block.type || '')}">`);
+            const anchor = cleanAnchor(block.style && block.style.anchor);
+            const idAttr = anchor ? ` id="${esc(anchor)}"` : '';
+            out.splice(before, 0, `<section${idAttr} data-block="${esc(block.type || '')}">`);
             out.push('</section>');
         }
         state.blockIndex++;

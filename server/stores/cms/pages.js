@@ -166,9 +166,16 @@ function sanitizeBlocks(blocks) {
     if (!Array.isArray(blocks)) return { blocks: [], dropped: [] };
     const out = [];
     const dropped = [];
+    const anchors = new Set();
     blocks.forEach((b, index) => {
         const res = normalizeBlockRecord(b, index);
-        if (res.block) out.push(res.block);
+        if (res.block) {
+            // An anchor is unique per page: the first block keeps it.
+            const anchor = res.block.style.anchor;
+            if (anchor && anchors.has(anchor)) delete res.block.style.anchor;
+            else if (anchor) anchors.add(anchor);
+            out.push(res.block);
+        }
         if (res.dropped) dropped.push(res.dropped);
     });
     return { blocks: out, dropped };

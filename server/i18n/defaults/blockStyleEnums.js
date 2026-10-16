@@ -62,6 +62,26 @@ function backgroundSizePx(clean) {
     return m ? Number(m[1]) : null;
 }
 
+// A block's anchor id (`style.anchor`): the `id` of its section, so a link can
+// jump to it (`/page#install`). Lowercase letters, digits and single hyphens,
+// starting with a letter, at most 64 characters: nothing a selector, a URL or
+// an attribute would need escaping for. `main` is the page's landmark id.
+const ANCHOR_MAX = 64;
+const ANCHOR_RESERVED = ['main'];
+
+/**
+ * Normalise an anchor id: trimmed and lowercased. Returns the clean slug, or
+ * null when it is not legal.
+ * @param {unknown} v
+ * @returns {string | null}
+ */
+function cleanAnchor(v) {
+    if (typeof v !== 'string') return null;
+    const s = v.trim().toLowerCase();
+    if (s.length > ANCHOR_MAX || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(s)) return null;
+    return ANCHOR_RESERVED.includes(s) ? null : s;
+}
+
 /**
  * Copy of `style` in which every design key of this file is either legal or
  * gone. Other keys pass through untouched (they have their own validators).
@@ -84,6 +104,10 @@ function sanitizeBlockDesignStyle(style) {
     for (const [key, allowed] of Object.entries(enums)) {
         if (key in out && !allowed.includes(/** @type {string} */ (out[key]))) delete out[key];
     }
+    if ('anchor' in out) {
+        const anchor = cleanAnchor(out.anchor);
+        if (anchor) out.anchor = anchor; else delete out.anchor;
+    }
     for (const key of ['backgroundHideMobile', 'motifTiles']) {
         if (key in out && typeof out[key] !== 'boolean') delete out[key];
     }
@@ -99,5 +123,5 @@ module.exports = {
     BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, BG_POSITIONS, BG_REPEATS, MOTIFS, MOTIF_SIDES,
     DECORS, CARD_FILLS, LABEL_STYLES,
     MEDIA_HEIGHTS, MEDIA_FITS,
-    BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize, backgroundSizePx, sanitizeBlockDesignStyle,
+    BLOCK_DESIGN_STYLE_KEYS, ANCHOR_MAX, cleanAnchor, cleanBackgroundSize, backgroundSizePx, sanitizeBlockDesignStyle,
 };

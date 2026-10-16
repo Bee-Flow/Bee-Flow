@@ -120,6 +120,7 @@ export interface BlockStyle {
     rhythm?: string;
     glow?: boolean;
     reveal?: string;
+    anchor?: string;
     cssClass?: string;
     columns?: number | string;
     spacing?: { paddingTop?: string; paddingBottom?: string };

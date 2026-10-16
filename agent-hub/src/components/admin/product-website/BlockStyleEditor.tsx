@@ -4,6 +4,7 @@ import BackgroundPlacementControl from './controls/BackgroundPlacementControl';
 import MotifControl from './controls/MotifControl';
 import LookControls from './controls/LookControls';
 import ColorControl from './controls/ColorControl';
+import AnchorField from './controls/AnchorField';
 import SpacingStepper from './controls/SpacingStepper';
 import type { Spacing } from './controls/SpacingStepper';
 import { getCapabilities } from './controls/styleCapabilities';
@@ -69,6 +70,7 @@ export interface BlockStyle {
     maxWidth?: string;
     align?: string;
     cssClass?: string;
+    anchor?: string;
     columns?: number | '';
     reveal?: 'on' | 'off';
     glow?: boolean;
@@ -142,6 +144,11 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
     const setMaxWidth  = (v: string)    => onChange({ ...s, maxWidth: v });
     const setAlign     = (v: string)    => onChange({ ...s, align: v });
     const setCssClass  = (v: string)    => onChange({ ...s, cssClass: v });
+    const setAnchor    = (v: string)    => {
+        const next = { ...s };
+        delete next.anchor;
+        onChange(v ? { ...next, anchor: v } : next);
+    };
     const setRhythm    = (v: string)    => {
         const next = { ...s };
         delete next.rhythm;
@@ -217,6 +224,7 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
             <CapabilityKnobs caps={caps} style={s} onChange={onChange} />
 
             <SectionDivider label={t('cms_site.site.blockstyle.advanced_section', 'Advanced')} />
+            <AnchorField value={s.anchor} onChange={setAnchor} />
             <FieldRow
                 label={
                     <span className="flex items-center gap-1.5">
@@ -303,6 +311,7 @@ function hasAnyOverride(s: BlockStyle | null | undefined) {
     if (s.maxWidth) return true;
     if (s.align) return true;
     if (s.cssClass) return true;
+    if (s.anchor) return true;
     if (s.columns) return true;
     if (s.reveal) return true;
     if (s.glow) return true;

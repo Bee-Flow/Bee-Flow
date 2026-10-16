@@ -39,3 +39,14 @@ describe('ExperimentSection', () => {
         expect(wrapped({ title: 'Control' }).dataset.cmsExperiment).toBeUndefined();
     });
 });
+
+describe('ExperimentSection under a saturated band', () => {
+    const Probe = ({ data }: { data: Record<string, unknown> }) => <p data-testid="variant">{String(data.backgroundVariant)}</p>;
+
+    it('ignores a dark section variant when the block band is dark', () => {
+        const { getByTestId } = render(
+            <ExperimentSection Comp={Probe} block={{ enabled: true, content: { backgroundVariant: 'dark' }, style: { band: 'dark' } }} preview={false} />,
+        );
+        expect(getByTestId('variant').textContent).toBe('default');
+    });
+});

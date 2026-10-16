@@ -7,7 +7,7 @@
 
 const {
     BG_POSITIONS, BG_REPEATS, BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, MOTIFS, MOTIF_SIDES, DECORS, CARD_FILLS, LABEL_STYLES,
-    BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize,
+    BLOCK_DESIGN_STYLE_KEYS, ANCHOR_MAX, cleanAnchor, cleanBackgroundSize,
 } = require('../i18n/defaults/blockStyleEnums');
 
 function isPlainObject(v) {
@@ -27,7 +27,7 @@ const STYLE_ENUMS = {
 const STYLE_COLUMNS = [2, 3, 4];
 const STYLE_KEYS = [
     'colorOverrides', 'spacing', 'backgroundImage', 'backgroundOverlay', 'maxWidth', 'align', 'cssClass',
-    'band', 'rhythm', 'reveal', 'glow', 'columns',
+    'band', 'rhythm', 'reveal', 'glow', 'columns', 'anchor',
     ...BLOCK_DESIGN_STYLE_KEYS,
 ];
 // Design keys with a closed enum: the key, its legal values, and the label of the fix hint.
@@ -92,6 +92,15 @@ function validateStylePatch(patch) {
                 return { error: `stylePatch.${key} ${JSON.stringify(value ?? null)} is invalid.`, _fixHint: `Valid ${key} values: ${allowed.join(', ')}.` };
             }
             out[key] = value;
+        } else if (key === 'anchor') {
+            const anchor = cleanAnchor(value);
+            if (!anchor) {
+                return {
+                    error: `stylePatch.anchor ${JSON.stringify(value ?? null)} is invalid.`,
+                    _fixHint: `anchor is a slug: lowercase letters, digits and single hyphens, starting with a letter, at most ${ANCHOR_MAX} characters ("install", "get-started"). "main" is reserved.`,
+                };
+            }
+            out.anchor = anchor;
         } else if (key === 'glow') {
             if (typeof value !== 'boolean') {
                 return { error: `stylePatch.glow ${JSON.stringify(value ?? null)} is invalid.`, _fixHint: 'glow is true or false.' };
@@ -131,4 +140,22 @@ function validateStylePatch(patch) {
     return { style: out, hints };
 }
 
-module.exports = { validateStylePatch, STYLE_KEYS };
+/**
+ * Why `anchor` cannot go on a block: another block on the page already has it.
+ * Returns the problem and its fix hint, or null when the anchor is free.
+ * @param {Array<{ id?: string, style?: { anchor?: unknown } }>} blocks
+ * @param {string | null} ownId the block being edited (may keep its own anchor)
+ * @param {unknown} anchor
+ * @returns {{ error: string, _fixHint: string } | null}
+ */
+function anchorConflict(blocks, ownId, anchor) {
+    if (!anchor) return null;
+    const hit = (blocks || []).find((b) => b && b.id !== ownId && b.style && b.style.anchor === anchor);
+    if (!hit) return null;
+    return {
+        error: `style.anchor ${JSON.stringify(anchor)} is already used by block ${hit.id} on this page.`,
+        _fixHint: 'Anchors are unique per page: pick another slug.',
+    };
+}
+
+module.exports = { validateStylePatch, anchorConflict, STYLE_KEYS };

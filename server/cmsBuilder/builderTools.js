@@ -28,7 +28,7 @@
 const crypto = require('crypto');
 const cmsStore = require('../stores/cmsStore');
 const { sanitizeNavIcon } = require('./navIcon');
-const { validateStylePatch, STYLE_KEYS } = require('./blockStyle');
+const { validateStylePatch, anchorConflict, STYLE_KEYS } = require('./blockStyle');
 const {
     BLOCK_DEFAULTS, BLOCK_TYPE_IDS,
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
@@ -412,6 +412,11 @@ async function applyAddBlocks(draftWrap, args) {
                 return;
             }
             style = validated.style;
+            const clash = anchorConflict([...(doc.blocks || []), ...minted], null, style.anchor);
+            if (clash) {
+                dropped.push({ index: i, type: entry.type, reason: 'invalid-style', message: clash.error, _fixHint: clash._fixHint });
+                return;
+            }
             for (const h of validated.hints) warnings.push(`blocks[${i}]: ${h}`);
         }
         minted.push({ id: newBlockId(), type, enabled: true, content, style });
@@ -486,6 +491,8 @@ async function applyUpdateBlock(draftWrap, args) {
         if (validated.error) return validated;
         styleHints = validated.hints;
         validatedStyle = validated.style;
+        const clash = anchorConflict(doc.blocks, blockId, validatedStyle.anchor);
+        if (clash) return clash;
     }
     // Applied to the block as stored NOW, so a patch on one field never undoes
     // a patch another call made to the same block a moment ago.
