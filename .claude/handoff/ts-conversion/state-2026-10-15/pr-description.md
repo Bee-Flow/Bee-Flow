@@ -29,11 +29,18 @@ agent-hub (the React frontend) moves from JavaScript to TypeScript. The server s
   number of runtime-equivalent rewrites (each with an equivalence argument and a test that passes before and after),
   and bug fixes with their own tests.
 - No `any`, `@ts-ignore` or `@ts-expect-error` were added. A file that could not be typed honestly stayed JavaScript,
-  byte-identical. [INTEGRATOR: fill in after fix-b2/fix-b3 land: the final review (reviews/final-1-agent-hub.md) found
-  ~165 caught-error casts, 9 non-null `!` and ~51 `as unknown as` shims over modules that are now TypeScript; state the
-  counts that remain vs main and where (the boundary shims over still-JS modules are listed as follow-up).]
-- `scripts/ts-equivalence.mjs` now checks every rename in a range (it silently checked 28 of 1,310 on main..convert
-  before the rename-limit fix); the final run over the whole PR is [INTEGRATOR: result].
+  byte-identical. The final review found caught-error casts, non-null `!` and stale `as unknown as` shims that earlier
+  batches had left; they were fixed in this PR (types only, Opus-reviewed):
+  - caught-error casts (`(e as Error)` and the like): 67 on main, none left. The 13 `(e as …)` that remain are not caught
+    errors: 11 DOM-event casts (`CustomEvent`) in listeners, one JSON error body and one array behind its guard;
+  - non-null `!`: none added (the 2 left were already on main);
+  - `as unknown as`: 193 on main, 217 now. The 51 shims that hid real type errors behind modules that are now TypeScript
+    are gone (36 type errors fixed). Most of the rest sit at boundaries to modules that are still JavaScript, or are
+    newer shims over now-TS modules; a follow-up PR removes those.
+- `scripts/ts-equivalence.mjs` now checks every rename in a range: before the rename-limit fix it silently checked 28 of
+  1,310 on main..convert. The final run over the whole PR: **940 of 1,310 converted files compile identical**. The 370
+  that differ are all accounted for: the inline-style → Tailwind sweep, the caught-error helper substitutions, and the
+  documented runtime cases, moves and splits (each with a test).
 - Not type-only, and called out here so it gets a look: the inline-style sweep (`style={{…}}` from 9,313 to 5,647)
   moves static styles to Tailwind classes on the same theme variables. A scan of the 4,857 added classes found no
   precedence conflict; it has no visual review.
@@ -44,7 +51,7 @@ The server is CommonJS (~3,400 files). It already gets most of the benefit throu
 work in this branch (5xx handling, import cycles, long functions) is in JavaScript.
 
 **Where we end up**
-agent-hub non-test source: 63% TypeScript at the start of this round, ~83% now; the rest is either a file with a
+agent-hub non-test source: 63% TypeScript at the start of this round, 83.6% now (611 JS / 3,120 TS); the rest is either a file with a
 react-hooks eslint exception (stays JS by rule) or listed as follow-up because it needs a small runtime change first.
 
 ## Behaviour changes (client-visible)
@@ -63,7 +70,7 @@ react-hooks eslint exception (stays JS by rule) or listed as follow-up because i
   on the Stripe webhook (generic 500), `detail` on mcp_registry_unavailable.
 - The error log names the route pattern (`/api/auth/invite/:token`), never a token in the path or query.
 
-**Spreadsheets (feat/164, the chart-data-loss fixes)** [INTEGRATOR: move this block to the top of the PR body]
+**Spreadsheets (feat/164, the chart-data-loss fixes)**
 - Adding, renaming or removing a tab keeps the sheet's charts; removing a tab removes the charts pinned to it; orphaned
   charts are cleaned on the next tab write. Duplicating a sheet copies its charts.
 - Chat `document_write` updates only charts on its tab, refuses an id updated twice or both updated and removed, counts a
