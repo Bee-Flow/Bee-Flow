@@ -88,6 +88,15 @@ mock('../stores/configStore', {
     setConfig: async () => {},
 });
 
+// The tokenize action is licensed (pii_tokenize), judged on the org: the test
+// org is granted it through the resolver's licence seam; `granted` flips it.
+let granted = true;
+require('./privacy/orgShield')._deps.license = () => ({
+    hasFeature: async (_scope, feature) => granted && feature === 'pii_tokenize',
+    resolveTier: async () => 'community',
+    tiers: { tierHasFeature: () => false },
+});
+
 mock('../stores/automationStore', {
     initDB: async () => {},
     createRun: async (o) => ({ id: 'run-1', ...o }),
@@ -297,6 +306,20 @@ test('redact really redacts: the third party gets a mask, not the value, and not
     assert.doesNotMatch(JSON.stringify(send.args), /Jan de Vries|jan@acme\.nl/,
         'redact used to tokenize and then restore, i.e. protect nothing');
     assert.doesNotMatch(JSON.stringify(send.args), /_\d\]/, 'a mask carries no counter');
+});
+
+test('an org without the pii_tokenize licence gets block, not tokenize', async () => {
+    resetCaptures();
+    granted = false;
+    try {
+        shieldDoc = SHIELD();
+        await runner.executeAutomation(automation(), { triggerKind: 'manual', mode: 'live' });
+    } finally {
+        granted = true;
+    }
+    assert.strictEqual(captured.toolCalls.filter(c => c.name === 'gmail_send_email').length, 0,
+        'a saved tokenize is ignored without the licence, so the send is blocked');
+    assert.ok(captured.guardrailEvents.some(e => e.action_taken === 'blocked'));
 });
 
 test('block stops the send and leaves an audit row behind', async () => {
