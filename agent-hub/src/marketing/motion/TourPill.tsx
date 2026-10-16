@@ -1,7 +1,6 @@
 import { lazy, Suspense, useRef, useState } from 'react';
 import { Play } from 'lucide-react';
 import type { TourData } from './motion.types';
-import './tour.css';
 
 /**
  * Product tour: a "Watch product tour · 4 minutes" pill that opens the full
