@@ -1,8 +1,28 @@
 import { AlertTriangle, Check, Database, ExternalLink, Loader2, Sparkles, Workflow, X, LayoutGrid } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { TONES } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { isResolvable, linkFor, severityTone, severityWord, targetWords } from './complianceView';
+import type { ComplianceFacts, Finding, ResolvePlan } from './compliance.types';
+
+interface FindingRowProps {
+    finding: Finding;
+    facts?: ComplianceFacts | null;
+    t: TranslateFn;
+    presenter?: boolean;
+    onNavigate?: ((to: string) => void) | null;
+    keepChecked?: boolean;
+    onKeepChange?: ((code: string, on: boolean) => void) | null;
+    showKeep?: boolean;
+    onResolve?: ((code: string) => unknown) | null;
+    onApply?: ((code: string, plan: ResolvePlan) => unknown) | null;
+    plan?: ResolvePlan | null;
+    planBusy?: boolean;
+    planError?: string | null;
+    applying?: boolean;
+}
 
 /**
  * One thing the review wants tidied up.
@@ -19,13 +39,13 @@ import { isResolvable, linkFor, severityTone, severityWord, targetWords } from '
  * server what it would change, the change appears here in words, and only
  * Apply writes anything.
  */
-const KIND_ICON = { table: Database, automation: Workflow, app: LayoutGrid };
+const KIND_ICON: Record<string, LucideIcon> = { table: Database, automation: Workflow, app: LayoutGrid };
 
 export default function FindingRow({
     finding, facts, t, presenter = false, onNavigate = null,
     keepChecked = false, onKeepChange = null, showKeep = false,
     onResolve = null, onApply = null, plan = null, planBusy = false, planError = null, applying = false,
-}) {
+}: FindingRowProps) {
     const tone = severityTone(finding.severity);
     const isHigh = finding.severity === 'high';
     const target = targetWords(finding, t);
