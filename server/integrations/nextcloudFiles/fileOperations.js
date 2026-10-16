@@ -101,6 +101,15 @@ async function executeFileOperationTool(toolName, args, ctx) {
             });
             if (res.status === 401) return { error: authError };
             if (res.status === 404) {
+                // The route answers 404 for a missing PATH too. Probe the root once:
+                // if that works the endpoint exists and the path is what is missing.
+                if (args.path) {
+                    const probe = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files/api/v1/folder-tree?depth=1`, {
+                        headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' },
+                    });
+                    if (probe.status === 401) return { error: authError };
+                    if (probe.ok) return { error: `Folder not found: ${args.path}` };
+                }
                 return { error: 'The folder-tree endpoint is unavailable on this Nextcloud (needs 31+). Use nextcloud_list_files instead.' };
             }
             if (!res.ok) return { error: `Nextcloud folder tree failed (${res.status})` };

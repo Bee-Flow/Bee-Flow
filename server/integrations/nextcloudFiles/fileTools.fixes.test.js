@@ -108,3 +108,19 @@ test('folder_tree writes the full path on every node, relative to the start fold
     assert.deepStrictEqual(res.tree.map((n) => n.path), ['/Shared/Secret']);
     assert.strictEqual(res.tree[0].children[0].path, '/Shared/Secret/x');
 });
+
+test('folder_tree: a 404 for a missing path is "not found", not a missing endpoint', async () => {
+    const { ctx, calls } = ctxFor((url) => (url.includes('path=') ? reply(404, '') : reply(200, [])));
+    const res = await executeFileOperationTool('nextcloud_folder_tree', { path: '/does-not-exist' }, ctx);
+    assert.match(res.error, /not found/i);
+    assert.doesNotMatch(res.error, /unavailable/);
+    assert.strictEqual(calls.length, 2, 'one probe on the root');
+});
+
+test('folder_tree: a 404 on the root probe too means the endpoint is unavailable', async () => {
+    const { ctx } = ctxFor(() => reply(404, ''));
+    const res = await executeFileOperationTool('nextcloud_folder_tree', { path: '/x' }, ctx);
+    assert.match(res.error, /unavailable/);
+    const noPath = await executeFileOperationTool('nextcloud_folder_tree', {}, ctx);
+    assert.match(noPath.error, /unavailable/);
+});
