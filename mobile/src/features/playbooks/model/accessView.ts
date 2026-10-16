@@ -1,5 +1,5 @@
 /**
- * What the access phase SAYS — a port of the web's stages/accessView.js
+ * What the access phase SAYS — a port of the web's stages/accessView.ts
  * (where the app stands, what a role means, every change Approve would make,
  * why Approve is grey), pinned by accessView.lockstep.test.ts: both run on
  * the same plans with a `t` that echoes its English.
