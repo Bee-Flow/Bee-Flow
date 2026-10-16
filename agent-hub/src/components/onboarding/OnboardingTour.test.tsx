@@ -143,6 +143,17 @@ describe('OnboardingTour: stepping', () => {
         startTour();
         await waitFor(() => expect(card()).toHaveFocus());
     });
+
+    it('moves focus back to the card on every step', async () => {
+        resolveLessonSteps.mockReturnValue([step('a'), step('b')]);
+        const u = userEvent.setup();
+        renderTour();
+        startTour();
+        await waitFor(() => expect(card()).toHaveFocus());
+        await u.click(screen.getByRole('button', { name: 'Next' }));
+        expect(card()).not.toHaveFocus();
+        await waitFor(() => expect(card()).toHaveFocus());
+    });
 });
 
 describe('OnboardingTour: finishing', () => {
@@ -396,7 +407,7 @@ describe('OnboardingTour: interactive steps', () => {
     });
 
     it('advances on a window event whose detail passes the predicate', async () => {
-        resolveLessonSteps.mockReturnValue([interactive({ advanceOn: { event: 'app:thing', predicate: (detail) => (detail as unknown as { good?: boolean })?.good === true } }), step('b')]);
+        resolveLessonSteps.mockReturnValue([interactive({ advanceOn: { event: 'app:thing', predicate: (event) => 'good' in event && event.good === true } }), step('b')]);
         renderTour();
         startTour();
         await screen.findByRole('dialog');

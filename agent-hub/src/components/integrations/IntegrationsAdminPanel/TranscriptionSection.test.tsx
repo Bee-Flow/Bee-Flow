@@ -247,6 +247,16 @@ describe('TranscriptionSection: WhisperX', () => {
         expect(screen.queryByText('URL saved 🔒')).toBeNull();
     });
 
+    it('does not mark a token as saved when only the URL was sent', async () => {
+        const user = userEvent.setup();
+        renderSection();
+        await user.type(box().getByPlaceholderText('http://whisperx:9000'), 'http://w');
+        await user.click(save());
+        await waitFor(() => expect(setMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' })));
+        expect(box().getByPlaceholderText('Leave empty if your server is internal-only')).toBeInTheDocument();
+        expect(box().getByPlaceholderText('••••••••••••••••')).toBeInTheDocument();
+    });
+
     it('reports a request that throws', async () => {
         authFetch.mockImplementation(() => Promise.reject(new Error('x')));
         const user = userEvent.setup();
