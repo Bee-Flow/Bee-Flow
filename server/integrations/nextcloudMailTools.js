@@ -25,6 +25,7 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { mailError, normaliseRole, mailBodyText } = require('./nextcloudMailShapes');
 
 const MAIL_API_BASE = '/index.php/apps/mail/api';
 const MAX_BODY_BYTES = 200 * 1024;
@@ -42,7 +43,7 @@ const NEXTCLOUD_MAIL_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_mail_list_mailboxes',
-            description: 'List mailboxes (folders) on a Nextcloud Mail account: Inbox, Sent, Drafts, Archive, custom labels. Returns each mailbox\'s id, name (e.g. "INBOX"), displayName, unreadMessages, totalMessages, special-use role.',
+            description: 'List mailboxes (folders) on a Nextcloud Mail account: Inbox, Sent, Drafts, Archive, custom labels. Returns each mailbox\'s id, name (e.g. "INBOX"), displayName, unreadMessages, special-use role (inbox, sent, drafts, ...). Mail does not report a message count per mailbox.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -56,7 +57,7 @@ const NEXTCLOUD_MAIL_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_mail_search',
-            description: 'Search messages in a mailbox by free-text query (subject, sender, body, attachment names). Returns id, from, subject, dateInt (unix seconds), preview, hasAttachments, flags. Use the inbox mailboxId from list_mailboxes for the most common case.',
+            description: 'Search messages in a mailbox by free-text query (subject, sender, body, attachment names). Returns id (use it as messageId in the other Mail tools), messageIdHeader (the RFC Message-ID, informational only), from, subject, dateInt (unix seconds), preview, hasAttachments, flags. Use the inbox mailboxId from list_mailboxes for the most common case.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -186,15 +187,19 @@ const baseHeaders = {
 };
 
 function summariseMessage(m) {
+    const header = m.messageId ?? (typeof m.id === 'string' && m.id.startsWith('<') ? m.id : null);
     return {
-        id: m.id ?? m.messageId,
+        // The database id: the only one the other Mail tools accept. `id` is an
+        // RFC Message-ID string in some answers, so it is the last resort.
+        id: m.databaseId ?? m.id,
+        messageIdHeader: typeof header === 'string' ? header : null,
         threadRootId: m.threadRootId ?? null,
         from: Array.isArray(m.from) ? m.from.map(addr => addr.email || addr.label).join(', ') : (m.from?.email || m.from || null),
         to: Array.isArray(m.to) ? m.to.map(addr => addr.email || addr.label).join(', ') : null,
         subject: m.subject || '',
         dateInt: m.dateInt ?? m.date ?? null,
         preview: m.preview || m.previewText || null,
-        hasAttachments: !!m.hasAttachments,
+        hasAttachments: !!(m.hasAttachments || m.flags?.hasAttachments),
         flags: m.flags || {},
         mailboxId: m.mailboxId ?? null,
     };
@@ -225,9 +230,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
     switch (toolName) {
         case 'nextcloud_mail_list_accounts': {
             const res = await ncFetch(api(baseUrl, '/accounts'), { headers: baseHeaders });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: 'Nextcloud Mail app is not installed/enabled on this server.' };
-            if (!res.ok) return { error: `Mail accounts list failed (${res.status})` };
+            if (!res.ok) return mailError(res, authError, 'account list');
             const data = await readJsonSafe(res);
             const accounts = Array.isArray(data) ? data : [];
             return {
@@ -245,9 +248,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
             if (args.accountId == null) return { error: 'accountId is required' };
             const url = api(baseUrl, `/mailboxes?accountId=${encodeURIComponent(args.accountId)}`);
             const res = await ncFetch(url, { headers: baseHeaders });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Mail account not found: ${args.accountId}` };
-            if (!res.ok) return { error: `Mailbox list failed (${res.status})` };
+            if (!res.ok) return mailError(res, authError, 'mailbox list');
             const data = await readJsonSafe(res);
             const mailboxes = Array.isArray(data) ? data : (data?.mailboxes || []);
             return {
@@ -257,8 +258,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
                     name: m.name || null,
                     displayName: m.displayName || m.name,
                     unreadMessages: m.unread ?? m.unreadMessages ?? 0,
-                    totalMessages: m.messages ?? m.total ?? null,
-                    specialRole: m.specialRole || m.specialUse || null,
+                    specialRole: normaliseRole(m),
                 })),
             };
         }
@@ -277,14 +277,20 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
             };
             if (args.query) body.query = String(args.query);
 
-            const res = await ncFetch(api(baseUrl, `/mailboxes/${encodeURIComponent(args.mailboxId)}/sync`), {
-                method: 'POST',
-                headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Mailbox not found: ${args.mailboxId}` };
-            if (!res.ok) return { error: `Mail search failed (${res.status})` };
+            let res;
+            try {
+                res = await ncFetch(api(baseUrl, `/mailboxes/${encodeURIComponent(args.mailboxId)}/sync`), {
+                    method: 'POST',
+                    headers: { ...baseHeaders, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+            } catch (e) {
+                if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+                    return { error: 'Mail search timed out: the mailbox is large. Narrow it with a query (for example from:, subject: or has:attachment) and a smaller limit.' };
+                }
+                throw e;
+            }
+            if (!res.ok) return mailError(res, authError, 'search');
             const data = await readJsonSafe(res);
             const newMessages = data?.newMessages || data?.messages || (Array.isArray(data) ? data : []);
             const messages = newMessages.slice(0, limit).map(summariseMessage);
@@ -296,16 +302,15 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
             const res = await ncFetch(api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/body`), {
                 headers: baseHeaders,
             });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Message not found: ${args.messageId}` };
-            if (!res.ok) return { error: `Mail read failed (${res.status})` };
+            if (!res.ok) return mailError(res, authError, 'read');
             const m = await readJsonSafe(res);
             if (!m || typeof m !== 'object') return { error: 'Unexpected Mail response' };
             const attachments = Array.isArray(m.attachments) ? m.attachments.map(summariseAttachment) : [];
-            const bodyText = m.body || m.bodyPlain || '';
+            const bodyText = mailBodyText(m);
             const truncated = (bodyText || '').length > MAX_BODY_BYTES;
             return {
-                id: m.id ?? args.messageId,
+                id: m.databaseId ?? args.messageId,
+                messageIdHeader: typeof m.messageId === 'string' ? m.messageId : null,
                 from: m.from || null,
                 to: m.to || null,
                 cc: m.cc || null,
@@ -322,9 +327,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
             if (args.messageId == null || !args.attachmentId) return { error: 'messageId and attachmentId are required' };
             const url = api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/attachment/${encodeURIComponent(args.attachmentId)}`);
             const res = await ncFetch(url, { headers: { ...baseHeaders, 'Accept': '*/*' } });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: 'Attachment not found.' };
-            if (!res.ok) return { error: `Attachment download failed (${res.status})` };
+            if (!res.ok) return mailError(res, authError, 'attachment download');
             const contentType = res.headers.get('content-type') || 'application/octet-stream';
             const buf = Buffer.from(await res.arrayBuffer());
             const filename = args.filename || `attachment-${args.attachmentId}`;
@@ -382,13 +385,8 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
                 headers: { ...baseHeaders, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ targetPath: args.targetPath }),
             });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: 'Message or attachment not found.' };
             if (res.status === 409) return { error: `Target folder doesn't exist: ${args.targetPath}. Create it first with nextcloud_create_folder.` };
-            if (!res.ok) {
-                const detail = await readJsonSafe(res);
-                return { error: `Save attachment failed (${res.status})`, detail };
-            }
+            if (!res.ok) return mailError(res, authError, 'attachment save');
             return {
                 success: true,
                 messageId: args.messageId,
@@ -455,9 +453,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
                 headers: { ...baseHeaders, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ flags }),
             });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Message not found: ${args.messageId}` };
-            if (!res.ok) return { error: `Set flags failed (${res.status})` };
+            if (!res.ok) return mailError(res, authError, 'set flags');
             return { success: true, messageId: args.messageId, flags };
         }
 
@@ -470,12 +466,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
                 headers: { ...baseHeaders, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ destMailboxId: args.destMailboxId }),
             });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: 'Message or destination mailbox not found.' };
-            if (!res.ok) {
-                const detail = await readJsonSafe(res);
-                return { error: `Mail move failed (${res.status})`, detail };
-            }
+            if (!res.ok) return mailError(res, authError, 'move');
             return { success: true, messageId: args.messageId, destMailboxId: args.destMailboxId };
         }
 

@@ -87,6 +87,30 @@ function classifyNextcloudError(input) {
             'Nextcloud is rate-limiting requests.',
             'This is temporary — the automation will retry automatically.');
     }
+    // A Mail tool's own wording ("Permission denied for mail read ..."): the
+    // Files advice (share the folder) does not apply to a mail account or message.
+    const isMail = /\b(?:nextcloud )?mail (account|mailbox|search|read|move|set flags|attachment)\b/i.test(text)
+        && !/propfind|webdav|remote\.php/i.test(lower);
+    if (isMail && /timed out|timeout/i.test(lower)) {
+        return make('TIMEOUT', 'transient', 'TimeoutError',
+            'The mail search timed out: the mailbox is large.',
+            'Narrow the search with a query (from:, subject:, has:attachment) and a smaller limit.');
+    }
+    if (isMail && status === 409) {
+        return make('MAILBOX_BUSY', 'transient', 'TransientError',
+            'The mailbox is busy (still syncing).',
+            'Wait a moment and retry.');
+    }
+    if (isMail && (status === 403 || NO_ACCESS_RE.test(lower))) {
+        return make('NO_ACCESS', 'permission', 'PermissionError',
+            'The account this step uses has no access to this mail account, mailbox or message.',
+            'Check the account, mailbox and message ids come from the Mail list tools and belong to the connected user.');
+    }
+    if (isMail && (status === 404 || /not found/i.test(lower))) {
+        return make('NOT_FOUND', 'precondition', 'IntegrationError',
+            'The mail account, mailbox, message or attachment was not found.',
+            'Use ids from nextcloud_mail_search / list_mailboxes (the numeric id, not the Message-ID header).');
+    }
     if (/timeout|timed out|aborted/i.test(lower) || status === 408 || status === 504) {
         return make('TIMEOUT', 'transient', 'TimeoutError',
             'Nextcloud did not respond in time.',
