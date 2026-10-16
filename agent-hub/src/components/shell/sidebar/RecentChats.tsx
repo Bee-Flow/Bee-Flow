@@ -1,38 +1,20 @@
 // The sidebar's "Chats" section: the conversations, grouped by date. Split out
 // of Sidebar.jsx without a change in behaviour.
 import { Pin } from 'lucide-react';
-import type { ComponentType } from 'react';
 import ConvRowJs from './ConvRow';
+import type { ConvRowProps } from './ConvRow';
 import { agentBadgeFor, conversationActions, groupConversationsByDate } from './sidebarConversations';
-import type { AgentBadge, SidebarAgent, SidebarConversation } from './sidebarConversations';
+import type { SidebarAgent, SidebarConversation } from './sidebarConversations';
 import { SECTION_LBL } from './sidebarTokens';
 
 type Translate = (key: string, fallback?: string) => string;
 
-// ConvRow is JavaScript; these are the props this list hands it.
-const ConvRow = ConvRowJs as unknown as ComponentType<ConvRowHandlers & {
-    conv: SidebarConversation;
-    t: Translate;
-    active: boolean;
-    selectConv: (c: SidebarConversation) => unknown;
-    deleteConv: (c: SidebarConversation) => unknown;
-    agentBadge: AgentBadge | null;
-}>;
+// ConvRow is TypeScript now; the alias keeps the compiled text.
+const ConvRow = ConvRowJs;
 
 /** What ConvRow's menu does with a conversation (rename, pin, label, file). */
-export interface ConvRowHandlers {
-    conversationLabels: unknown[];
-    projects: unknown[];
-    activeProjectId?: string;
-    onRenameConversation?: unknown;
-    onPinConversation?: unknown;
-    onLabelConversation?: unknown;
-    onDeleteLabel?: unknown;
-    onEditLabel?: unknown;
-    onCreateLabel?: unknown;
-    onMoveToProject?: unknown;
-    onShareToProject?: unknown;
-}
+export type ConvRowHandlers = Required<Pick<ConvRowProps, 'conversationLabels' | 'projects'>>
+    & Pick<ConvRowProps, 'activeProjectId' | 'onRenameConversation' | 'onPinConversation' | 'onLabelConversation' | 'onDeleteLabel' | 'onEditLabel' | 'onCreateLabel' | 'onMoveToProject' | 'onShareToProject'>;
 
 export interface RecentChatsProps {
     t: Translate;

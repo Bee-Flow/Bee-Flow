@@ -12,7 +12,7 @@ interface BuilderActivityProps {
     running?: boolean;
     liveRun?: LiveRunFocus | null;
     t?: Translator | null;
-    onFocusStep?: ((id: string | number) => void) | null;
+    onFocusStep?: ((id: string) => void) | null;
 }
 
 interface RowGlyphProps {
@@ -27,7 +27,7 @@ interface ActivityRowProps {
     tc: ToolCall | null;
     active: boolean;
     live?: boolean;
-    onFocusStep?: ((id: string | number) => void) | null;
+    onFocusStep?: ((id: string) => void) | null;
     t?: Translator | null;
 }
 
@@ -206,7 +206,7 @@ function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t =
             </summary>
 
             <div className="px-1 pb-1.5 pl-9">
-                {(tc?.result?.added?.id || tc?.arguments?.stepId) && onFocusStep && <button type="button" onClick={() => onFocusStep((tc?.result?.added?.id || tc?.arguments?.stepId) as string | number)} className="mb-2 rounded-lg px-2 py-1 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">{t ? t('automations.assistant.show_step', 'Show step') : 'Show step'}</button>}
+                {(tc?.result?.added?.id || tc?.arguments?.stepId) && onFocusStep && <button type="button" onClick={() => onFocusStep((tc?.result?.added?.id || tc?.arguments?.stepId) as string)} className="mb-2 rounded-lg px-2 py-1 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">{t ? t('automations.assistant.show_step', 'Show step') : 'Show step'}</button>}
                 {/* A refusal says what is wrong in words; the payload is for
                     when the words are not enough. Showing the reason without a
                     click is the whole point of surfacing failures at all. */}

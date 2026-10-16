@@ -21,6 +21,7 @@ import type { AppEditorAction } from '../../state/appEditorState';
 import { findNode, moveNode } from '../../state/definitionOps';
 import { computeDragEnd, resolveDrop, screenIdFromScreenTabDroppable } from '../dnd';
 import { computeDropHint } from '../dropHint';
+import type { DropHint } from '../dropHint';
 
 /** The DragOverlay chip: always a compact icon + label, never the live component. */
 export interface ActiveDrag {
@@ -43,7 +44,7 @@ interface CanvasDragInputs {
     commitDefinition: (def: AppDefinition) => void;
     streamLock: boolean;
     setActiveDrag: Dispatch<SetStateAction<ActiveDrag | null>>;
-    setDropHint: Dispatch<SetStateAction<unknown>>;
+    setDropHint: Dispatch<SetStateAction<DropHint | null>>;
 }
 
 type DragData = { type?: string; componentType?: string; node?: { type?: string } };

@@ -3,18 +3,16 @@
  * button, and the table /inspect proposes for the owner to confirm.
  */
 import { AlertTriangle, CornerDownRight, Database, Loader2, Table2, Zap } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { incrementalModeCopy } from './syncModel';
 import type { ProposedSetTable, SyncProposal } from './syncModel';
 import type { SyncActions, SyncConnector } from './useSyncActions';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import type { TranslateFn, TranslateParams } from '../../../../../../hooks/useTranslation';
 import { runWithSave as runWithSaveJs, saveFirstLabel } from '../saveGate';
 import { tRich as tRichJs } from '../tRich';
 
-// Typed views of two .js helpers.
-const tRich = tRichJs as unknown as (t: TranslateFn, key: string, english: string, params: TranslateParams | null, nodes: Record<string, ReactNode>) => ReactNode;
-const runWithSave = runWithSaveJs as unknown as (options: { dirty: boolean; onSave: (() => unknown) | null | undefined; action: () => unknown }) => Promise<unknown>;
+// Aliases that keep the compiled text of the two helper imports.
+const tRich = tRichJs;
+const runWithSave = runWithSaveJs;
 
 /** A red alert line under the panel. */
 export function SyncError({ error, className = '' }: { error: string; className?: string }) {

@@ -6,7 +6,7 @@ import TableDetail, { NoTableSelected } from './TableDetail';
 import { ManagerTabBar, PeopleTab, TableList } from './TablesManagerParts';
 import { tableSourceOf } from './tablesManagerModel';
 import type { DataModelState } from './useDataModel';
-import type { ModelConnector, ModelTable } from './tablesManagerModel';
+import type { ModelTable } from './tablesManagerModel';
 import { useDataModel } from './useDataModel';
 import useTranslation from '../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
@@ -47,18 +47,7 @@ const RelationshipsTab = lazy(() => import('./RelationshipsTab'));
 type Generated = { node: unknown; actions?: Record<string, AppAction> };
 const buildFormForTable = buildFormJs as unknown as (table: ModelTable, opts: { taken: unknown }) => Generated;
 const buildGridForTable = buildGridJs as unknown as (table: ModelTable, opts: { taken: unknown }) => Generated;
-// ConnectorsManager speaks the editor's own Connector/SyncTable shapes; the
-// model's rows are read looser (an optional kind, a required table key).
-const ConnectorsManager = ConnectorsManagerJs as unknown as ComponentType<{
-    connectors: ModelConnector[] | undefined;
-    onChange: (connectors: ModelConnector[]) => void;
-    disabled?: boolean;
-    appId?: string | null;
-    tables?: ModelTable[];
-    onCreateTable: DataModelState['createTableForConnector'];
-    saved?: boolean;
-    onSave?: (() => Promise<boolean>) | null;
-}>;
+const ConnectorsManager = ConnectorsManagerJs;
 const RowsTab = RowsTabJs as unknown as ComponentType<{ appId: string; table: ModelTable; tables: ModelTable[]; fieldsUnsaved: boolean }>;
 
 export interface TablesManagerProps {

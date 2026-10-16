@@ -10,17 +10,8 @@ import useConfirm from '../../../shared/useConfirm';
 import { AppIcon } from '../blog/jsComponents';
 import { cmsApi } from '../cmsApi';
 
-interface SlugIssue {
-    kind: 'reserved' | 'duplicate' | 'unroutable';
-    blocking: boolean;
-    message: string;
-}
-
-// cmsPublicRouting is plain JS; its `= null` option defaults read as "always null".
-const slugIssues = slugIssuesJs as unknown as (
-    slug: string,
-    opts?: { existingSlugs?: Array<string | undefined> | null; currentSlug?: string | null },
-) => SlugIssue | null;
+// cmsPublicRouting is TypeScript now; the alias keeps the compiled text.
+const slugIssues = slugIssuesJs;
 
 const FLYOUT_W = 280;
 

@@ -24,6 +24,8 @@ interface KbDocumentRow extends KbDocument {
 }
 
 interface KnowledgePanelProps {
+    /** Accepted, never read: see the note below. */
+    agentId?: string;
     API_BASE: string;
     strictKnowledge?: boolean;
     onStrictKnowledgeChange?: (strict: boolean) => void;

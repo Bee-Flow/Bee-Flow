@@ -15,9 +15,8 @@ import { studioAppsApi } from '../studioAppsApi';
 /** 'tables' | 'rows' | 'connectors' | 'relations' | 'people' */
 export type ManagerTab = 'tables' | 'rows' | 'connectors' | 'relations' | 'people';
 
-// The model's connector rows are read looser than the editor's own Connector
-// type (their kind is optional on a row the server sent).
-const connectorProblem = connectorProblemJs as unknown as (connector: ModelConnector) => string | null;
+// ConnectorsManager.tsx is TypeScript now; the alias keeps the compiled text.
+const connectorProblem = connectorProblemJs;
 
 /**
  * The first connector that would fail the WHOLE save server-side (422), as

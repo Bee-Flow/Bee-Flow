@@ -8,6 +8,7 @@ import { AppWindow, Globe, Mail, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { TranslateFn, TranslateParams } from '../../../../../../hooks/useTranslation';
 import { missingRequiredParams as missingRequiredParamsJs } from '../ActionParamsForm';
+import type { SyncBlock } from '../sync/syncModel';
 
 /** One viewer param a connector declares. */
 export interface ConnectorParam {
@@ -19,7 +20,8 @@ export interface ConnectorParam {
 /** An owner-authored external data source (server/appStudio/connectors.js). */
 export interface Connector {
     id: string;
-    kind: string;
+    /** A row the server sent may carry none. */
+    kind?: string;
     name?: string;
     tool?: string;
     integrationId?: string;
@@ -39,7 +41,7 @@ export interface Connector {
     address?: string;
     folder?: string;
     query?: string;
-    sync?: { tableId?: string; children?: Array<{ tableId?: string } | null>; [key: string]: unknown } | null;
+    sync?: SyncBlock | null;
     [key: string]: unknown;
 }
 
@@ -75,7 +77,7 @@ export interface ChainSuggestion {
     why: string;
 }
 
-const missingRequiredParams = missingRequiredParamsJs as unknown as (action: CatalogAction, connector: Connector) => string[];
+const missingRequiredParams = missingRequiredParamsJs;
 
 export interface KindOption {
     value: string;
@@ -131,7 +133,7 @@ function randHex(n: number): string {
 }
 export function newConnectorId(): string { return `conn_${randHex(6)}`; }
 
-export function labelForKind(kind: string, t: TranslateFn): string {
+export function labelForKind(kind: string | undefined, t: TranslateFn): string | undefined {
     return kinds(t).find((k) => k.value === kind)?.tag || kind;
 }
 
@@ -192,7 +194,7 @@ export function groupConnectors(list: Connector[], catalog: IntegrationCatalog, 
             ? t('studio_apps_bi.connectors.group_other', 'Automations & web addresses')
             : (catalog.lookup(c.tool)?.app?.label || c.integrationId || appId);
         if (!groups.has(appId)) groups.set(appId, { appId, label, items: [] });
-        groups.get(appId)!.items.push(c);
+        (groups.get(appId) as ConnectorGroup).items.push(c);
     }
     return [...groups.values()].sort((a, b) => (a.appId === 'other' ? 1 : 0) - (b.appId === 'other' ? 1 : 0)
         || a.label.localeCompare(b.label));

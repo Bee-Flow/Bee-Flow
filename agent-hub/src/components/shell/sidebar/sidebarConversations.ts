@@ -105,6 +105,9 @@ export function groupConversationsByDate(convs: SidebarConversation[], t: Transl
     return out.filter(g => g.items.length > 0);
 }
 
+/** What a delete handler answers: `false` when the conversation is still there, nothing when it cannot say. */
+export type DeleteResult = Promise<boolean | void> | boolean | void;
+
 export interface ConversationHandlers {
     chatHistoryMode: string;
     directChatMode?: boolean;
@@ -113,8 +116,8 @@ export interface ConversationHandlers {
     onSelectConversation: (c: SidebarConversation) => unknown;
     onSelectDirectConversation: (c: SidebarConversation) => unknown;
     onSelectAllChatsConversation?: ((c: SidebarConversation) => unknown) | null;
-    onDeleteConversation: (id: string, agentId?: string) => unknown;
-    onDeleteDirectConversation?: ((id: string) => unknown) | null;
+    onDeleteConversation: (id: string, agentId?: string) => DeleteResult;
+    onDeleteDirectConversation?: ((id: string) => DeleteResult) | null;
 }
 
 /** Which row is open, and what opening and deleting one does in each mode. */

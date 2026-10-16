@@ -1,9 +1,10 @@
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ComponentType, Context, ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import CanvasJs from './Canvas';
 import canvasCollision from './collision';
 import { DropHintContext as DropHintContextJs } from './dropHint';
+import type { DropHint } from './dropHint';
 import { EditorChromeContext as EditorChromeContextJs } from './EditorChromeContext';
 import { BuildCueContext as BuildCueContextJs } from './BuildCueContext';
 import { ScreenValuesContext as ScreenValuesContextJs, useScreenValuesStore } from './ScreenValuesContext';
@@ -22,7 +23,6 @@ import { readPresenter, writePresenter } from '../../../../shared/builder/presen
 import useDraftHistory from '../../../../../hooks/useDraftHistory';
 import type { UseDraftHistoryReturn } from '../../../../../hooks/useDraftHistory';
 import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import scopedStorage from '../../../../../utils/scopedStorage';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { AppEditorProvider } from '../state/AppEditorContext';
@@ -61,24 +61,16 @@ export interface AppEditorShellProps {
 
 // Typed views of .jsx/.js siblings whose defaults would mistype their props.
 const Canvas = CanvasJs as unknown as ComponentType<{ app: HeaderApp; onCommit: (def: AppDefinition) => void; editActionState: Record<string, unknown> }>;
-const CanvasPlanPanel = CanvasPlanPanelJs as unknown as ComponentType<{ todos: unknown[]; running: boolean; t: TranslateFn; idPrefix: string; placement: string }>;
+const CanvasPlanPanel = CanvasPlanPanelJs;
 // inspector/InspectorPanel.tsx is TypeScript now; the alias keeps the compiled text.
 const InspectorPanel = InspectorPanelJs;
-const useEditorHotkeys = useEditorHotkeysJs as unknown as (options: {
-    enabled: boolean;
-    onUndo: () => void;
-    onRedo: () => void;
-    onFlush: () => unknown;
-    onCommit: (def: AppDefinition) => void;
-    onCommandPalette: () => void;
-    onTogglePresenter: () => void;
-}) => void;
+const useEditorHotkeys = useEditorHotkeysJs;
 
-// The contexts are created in .js modules with a `null` default.
-const ScreenValuesContext = ScreenValuesContextJs as unknown as Context<ReturnType<typeof useScreenValuesStore> | null>;
-const EditorChromeContext = EditorChromeContextJs as unknown as Context<object | null>;
-const BuildCueContext = BuildCueContextJs as unknown as Context<BuildCue | null>;
-const DropHintContext = DropHintContextJs as unknown as Context<unknown>;
+// The context modules are TypeScript now; the aliases keep the compiled text.
+const ScreenValuesContext = ScreenValuesContextJs;
+const EditorChromeContext = EditorChromeContextJs;
+const BuildCueContext = BuildCueContextJs;
+const DropHintContext = DropHintContextJs;
 
 export default function AppEditorShell({ app, onClose, onAppUpdated, chatSlot }: AppEditorShellProps) {
     return (
@@ -107,14 +99,14 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }: AppEditorShellPr
         [dispatch],
     );
     const history = useDraftHistory({ currentDraft: definition, apply });
-    const commitDefinition = history.commit as (def: AppDefinition) => void;
+    const commitDefinition = history.commit;
 
     // Set for the whole duration of a drag (it also drives the DragOverlay chip
     // below); declared up here because autosave has to see it.
     const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
     // Where the drag would land, so the canvas can draw a line there. Without
     // it a reorder inside one container showed nothing at all until you let go.
-    const [dropHint, setDropHint] = useState<unknown>(null);
+    const [dropHint, setDropHint] = useState<DropHint | null>(null);
 
     // Paused during an AI turn: the builder route persists every draft itself,
     // so autosaving mid-stream would double-write (and race the version).
@@ -228,7 +220,7 @@ interface EditorCenterProps {
     editorView: HeaderView;
     setEditorView: (view: HeaderView) => void;
     buildCue: BuildCue | null;
-    dropHint: unknown;
+    dropHint: DropHint | null;
     drag: ReturnType<typeof useCanvasDrag>;
     activeDrag: ActiveDrag | null;
     testActionState: Record<string, unknown>;

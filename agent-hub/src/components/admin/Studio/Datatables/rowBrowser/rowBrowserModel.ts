@@ -76,31 +76,8 @@ export interface ApiError {
     body?: { limit?: number } | null;
 }
 
-interface ListRowsQuery {
-    limit: number;
-    cursor: string | null;
-    sort: string | null;
-    dir: 'asc' | 'desc' | null;
-    q: string | null;
-    filters: RowFilter[];
-    match: string;
-}
-
-/**
- * The datatables API calls the browser makes, typed. datatablesApi.js
- * destructures its options with `= null` defaults, which TypeScript would
- * read as null-only.
- */
-export const rowsApi = datatablesApi as unknown as {
-    getSchema: (id: string) => Promise<{ fields?: DtColumn[] }>;
-    listRows: (id: string, query: ListRowsQuery) => Promise<RowPage>;
-    addRow: (id: string, values: Record<string, unknown>) => Promise<{ renumbered?: boolean } | null>;
-    updateRow: (id: string, rowId: string, values: Record<string, unknown>, expectedUpdatedAt: unknown) => Promise<{ renumbered?: boolean } | null>;
-    deleteRow: (id: string, rowId: string) => Promise<{ renumbered?: boolean } | null>;
-    bulkDeleteRows: (id: string, ids: string[]) => Promise<{ deleted?: number } | null>;
-    bulkImport: (id: string, rows: unknown) => Promise<unknown>;
-    exportCsv: (id: string) => Promise<string>;
-};
+/** The datatables API calls the browser makes (datatablesApi.ts types them). */
+export const rowsApi = datatablesApi;
 
 export const PAGE = 50;
 /** The server's own cap on one bulk delete (413 `too_many_ids` above it). */

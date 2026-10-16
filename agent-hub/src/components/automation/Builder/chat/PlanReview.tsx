@@ -22,7 +22,7 @@ interface PlanTable {
     fields?: PlanField[];
 }
 
-interface ReviewPlan extends InlinePlan {
+export interface ReviewPlan extends InlinePlan {
     goal?: string | null;
     steps?: string[] | null;
     assumptions?: string[] | null;

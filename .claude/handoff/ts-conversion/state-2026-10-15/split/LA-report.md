@@ -1,6 +1,6 @@
-Status: L-A sweep complete; all four rounds merged and pushed, every check green; nothing running
-Done: 63/153 App Studio files converted (153 JS at BASE → 90 JS now), 4 packages merged (rounds 1-4), 6 Opus reviews; the 90 remaining JS files each have a recorded reason below
-Next: integrator merges ts-laptop/sweep-a; follow-ups need runtime rewrites (list below) or out-of-scope blockers (ConditionBuilder.jsx, VariablePicker.jsx, shared/AppActionPicker.jsx, shared/Toggle.tsx hint)
+Status: fix-b2 (final-review B2 + non-null part of B3) pushed on ts-laptop/fix-b2; fix-b3 (B3 caught-error casts, 4 areas merged) under Opus review on ts-laptop/fix-b3; LF-A3 parked (replaced by the integrator)
+Done: App Studio sweep 63/153 (ts-laptop/sweep-a, merged); fix-b2: 50/51 stale shims removed, 6/9 non-null `!` removed, emit identical
+Next: fix-b3 review fixes + full checks, push ts-laptop/fix-b3 (ETA ~1 h)
 
 # L-A report: App Studio sweep (agent-hub/src/components/admin/Studio/AppStudio/**)
 
@@ -10,6 +10,22 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 Scope (user decision, mid-session): only types-only and caught-error-recipe conversions. No new runtime-equivalent rewrites; a file that needs one stays JS byte-identical and is listed under "Follow-up: needs runtime rewrite". A drafted `MAP[k]` rewrite package was stopped before it committed anything.
 
 Method: packages by dependency layer. Where a JS module must stay JS (react-hooks disable, runtime blocker) but blocks its TS callers through inferred `= null` prop types, it gets JSDoc only (comments, plus a sibling `*.types.ts` where .file-budget.json leaves no room), reviewed against body and callers (checkJs is off, so tsc does not verify JSDoc).
+
+## fix-b2: final-review B2 (stale `as unknown as` shims) + non-null part of B3
+Branch `ts-laptop/fix-b2`, BASE 060da5ca (origin/ts-int/staging), origin/ts-int/staging 0058a60e merged before the push. Commits: 2d8c732b (B2), 7b5985fb (B3 `!`), 703440ca (review fixes). Review: reviews/LA-fix-b2.md (Opus, approve with fixes → applied).
+- Types only: emitted JS of every modified .ts/.tsx identical to 060da5ca (esbuild compare, 53/53 + review fixes); `ts-equivalence 060da5ca HEAD` 0 different (no renames). No file deleted.
+- Shims: 50 of 51 removed (ts_shims.txt has 46 lines; 5 more named in the review were added: EditorNodeWrapper useRuntime(), AgentDesigner useAgentApi, ToolsSection, BehaviorSection, useAgentState). `git grep "as unknown as"` in agent-hub/src 486 → 436. A shim `const X = XJs as unknown as T` became the plain alias `const X = XJs` (keeps the emitted code byte-identical).
+- The 36 hidden errors are fixed with types: ConnectorsManager lookup/siblingsOf take `string | undefined`; SyncBlock is the one home of connector.sync (tableId optional); runWithSave onSave admits null; AppEditorShell context types (EditorChrome.commitTurn/markSaved/publishBuildCue typed, BuildCue = BuildCueValue, dropHint DropHint | null); LogicMark = LogicSummaryMark; ModelConnector = Connector (kind optional), SyncTable = ModelTable; InspectorHost.activePageId string | null, DesignInspector.design optional; KnowledgePanelProps gains an unread optional agentId (DesignerPanels passes it; removing the attribute would change the output); AgentDesigner DesignerState/DesignerApi/SharedProps derived from the hooks; AssistantColumn onApplyProposal(excluded: Set<string>) required, liveRunFocus/realOutputById nullable; BuildCanvas BuilderPlan extends ReviewPlan, onBuildLayer/onRefineLayer Fn<…, Promise<boolean>>; buildTabTypes BuilderMessage reuses the stream hook's type; onFocusStep (id: string); MessageBody ToolDecisionHandler; RecentChats DeleteResult.
+- Non-null: 6 of 9 removed as guarded casts (sitemapGraph.ts 81, 107, 133, 190, 192; connectorModel.ts:195 — each right after has/set on the same local Map).
+- **Needs integrator (runtime change required, left as is, confirmed by the reviewer):**
+  - EditorNodeWrapper.tsx nodeLogicSummary shim: `(id) => automationTitles[id]` indexes with `string | undefined` (TS2538); needs a guard or `String(id)`.
+  - sitemapGraph.ts:156 `rank.get(id)!` (no guard at the site): `const idRank = rank.get(id); if (idRank === undefined) continue;`.
+  - sitemapGraph.ts:212 `byRank.get(r)!`: iterate byRank entries instead of ranks.
+  - PromptEditor.tsx:151 `d.promptIds![0]` read in a later closure: capture `const ids = d.promptIds` before it.
+- Checks at 35d2eeb9: check:fast 39/39; server typecheck 0 (1081 files); duplication 15165 ≤ 15290 / 26188 ≤ 26228; gitleaks clean; agent-hub typecheck 0; vitest 1864 files, 22004 pass, 0 errors; mobile tsc 0, jest 762 suites / 13428 pass; server 2593 files, 29101 pass, 0 fail.
+
+## LF-A3 (parked)
+Replaced by fix-b2 at the integrator's request. Local branch ts-laptop/lf-a3 (not pushed) holds the characterisation commit 8bfc277b (App, AgentHub, useAgentHubData) on 7fb0743c, unreviewed; the split was not started.
 
 ## Status per package
 | Package | Converted | Status | Gate | Review |

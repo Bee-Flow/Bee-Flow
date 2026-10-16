@@ -4,7 +4,7 @@ import CreateLabelInline from './CreateLabelInline';
 import DeleteConversationDialog from './DeleteConversationDialog';
 import EditLabelInline from './EditLabelInline';
 import type { ConvLabel } from './EditLabelInline';
-import type { SidebarConversation } from './sidebarConversations';
+import type { DeleteResult, SidebarConversation } from './sidebarConversations';
 import { ACCENT_BAR_CONV, CONV_ROW, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
 import type { Project } from '../../../api/queries/projects';
 import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
@@ -18,12 +18,12 @@ type ConvRowConversation = SidebarConversation & {
     shared_scope?: string | null;
 };
 
-interface ConvRowProps {
+export interface ConvRowProps {
     conv: ConvRowConversation;
     t: TranslateFn;
     active: boolean;
     selectConv: (conv: ConvRowConversation) => unknown;
-    deleteConv: (conv: ConvRowConversation) => Promise<boolean | void>;
+    deleteConv: (conv: ConvRowConversation) => DeleteResult;
     conversationLabels?: ConvLabel[];
     projects?: Project[];
     activeProjectId?: string;

@@ -13,6 +13,7 @@ import { CompactionDivider, RemovedUserMessage } from './MessageNotices';
 import type { ChatMessage } from './messageTypes';
 import type { SkillSummary } from '../../../hooks/useChatEngine/types';
 import ToolOutput from './ToolOutput';
+import type { ToolDecisionHandler } from './ToolConfirmCard';
 import { useMessageActions, useMessageFeedback } from './useMessageActions';
 import type { FeedbackAgent, FeedbackContext } from './useMessageActions';
 import { useMessageEdit, useSimpleMode } from './useMessageEdit';
@@ -84,7 +85,7 @@ export interface MessageItemProps {
      * WITHOUT a handler ToolConfirmCard renders no buttons: a surface where a
      * yes leads nowhere should not show one.
      */
-    onToolDecision?: unknown;
+    onToolDecision?: ToolDecisionHandler | null;
     /**
      * { [callId or argsKey]: 'approve'|'decline' } — what was already clicked
      * this session, so the card does not jump back while the next turn is on
@@ -163,7 +164,7 @@ const MessageItem = (props: MessageItemProps) => {
 
     // ToolOutput is called as a function, so its useState is this
     // component's — it must run before any early return.
-    const { renderToolOutput } = (ToolOutput as unknown as (p: { msg: ChatMessage }) => { renderToolOutput: () => React.ReactNode })({ msg });
+    const { renderToolOutput } = (ToolOutput)({ msg });
 
     // BFSF-307: the retained compaction summary. Everything before it was
     // folded away and is gone from the database, so a normal bubble would be a

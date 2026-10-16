@@ -18,7 +18,7 @@ interface CardProposal {
 }
 
 /** The real run / pinned outputs by step id; `get` takes the optional id of `trigger?.id`. */
-interface OutputLookup extends Iterable<[string, unknown]> {
+export interface OutputLookup extends Iterable<[string, unknown]> {
     get(id: string | undefined): unknown;
 }
 

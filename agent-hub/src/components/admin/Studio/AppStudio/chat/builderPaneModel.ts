@@ -4,6 +4,7 @@
  * build farewell reports, and the table a selection is bound to.
  */
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { BuildCueValue } from '../editor/BuildCueContext';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { findNode } from '../state/definitionOps';
 
@@ -12,11 +13,11 @@ import { findNode } from '../state/definitionOps';
  * member is optional: the pane also mounts outside the shell (Playbooks).
  */
 export interface EditorChrome {
-    commitTurn?: (definition: unknown) => void;
-    markSaved?: (definition: unknown, version: unknown) => void;
+    commitTurn?: (definition: AppDefinition | null | undefined) => void;
+    markSaved?: (definition: AppDefinition | null | undefined, version: unknown) => void;
     flush?: () => unknown;
     undoTurn?: () => void;
-    publishBuildCue?: (cue: unknown) => void;
+    publishBuildCue?: (cue: BuildCueValue | null) => void;
     focusAiChat?: () => void;
 }
 

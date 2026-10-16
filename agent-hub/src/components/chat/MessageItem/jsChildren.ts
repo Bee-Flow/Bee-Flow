@@ -20,21 +20,9 @@ export const ChatActivity = ChatActivityJs as unknown as ComponentType<{
     t?: Translate | null;
 }>;
 
-export const ToolConfirmCard = ToolConfirmCardJs as unknown as ComponentType<{
-    calls: unknown[] | undefined;
-    onDecide: unknown;
-    decided?: Record<string, string>;
-    t?: Translate;
-}>;
+export const ToolConfirmCard = ToolConfirmCardJs;
 
-export const AnswerChips = AnswerChipsJs as unknown as ComponentType<{
-    msg: ChatMessage;
-    sessionSkills?: unknown[];
-    onCitationClick?: ((source: unknown) => void) | null;
-    showSources?: boolean;
-    showProcess?: boolean;
-    t?: Translate;
-}>;
+export const AnswerChips = AnswerChipsJs;
 
 export const TokenisedBadge = TokenisedBadgeJs as unknown as ComponentType<{
     warnings?: unknown[];

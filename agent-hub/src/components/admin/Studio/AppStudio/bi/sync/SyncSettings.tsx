@@ -152,7 +152,7 @@ function RunOutcome({ runResult }: { runResult: RunResult }) {
 interface SyncSettingsProps {
     connector: SyncConnector;
     sync: SyncBlock;
-    tableName: string;
+    tableName: string | undefined;
     actions: SyncActions;
     appId: string | null;
     disabled?: boolean;

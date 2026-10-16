@@ -49,9 +49,12 @@ export interface ToolConfirmCall extends ConfirmCall {
     [key: string]: unknown;
 }
 
+/** Called with the verdict on one pending call. */
+export type ToolDecisionHandler = (argsKey: string | undefined, decision: 'approve' | 'decline', call: ToolConfirmCall) => void;
+
 interface ToolConfirmCardProps {
     calls?: ToolConfirmCall[] | null;
-    onDecide?: (argsKey: string | undefined, decision: 'approve' | 'decline', call: ToolConfirmCall) => void;
+    onDecide?: ToolDecisionHandler | null;
     decided?: ConfirmBook;
     t?: (key: string, fallback: string, params?: Record<string, unknown>) => string;
 }

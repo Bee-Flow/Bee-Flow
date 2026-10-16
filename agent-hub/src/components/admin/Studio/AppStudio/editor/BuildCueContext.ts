@@ -6,7 +6,7 @@ import type { BuilderEngine, BuilderTodo, BuilderTurn } from '../../../../../hoo
 export interface BuildCueCall {
     name?: string;
     title?: string;
-    detail?: string;
+    detail?: string | null;
     added?: unknown;
     ok?: boolean;
 }

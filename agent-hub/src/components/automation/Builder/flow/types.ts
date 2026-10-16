@@ -55,6 +55,7 @@ export interface FlowDefinition {
 /** One step's row in a run, as the builder keeps them in memory. */
 export interface RunStepRow {
     stepId?: string;
+    status?: string;
     output?: unknown;
     [key: string]: unknown;
 }

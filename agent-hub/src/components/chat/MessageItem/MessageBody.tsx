@@ -11,6 +11,7 @@ import EmailDraftCard from './EmailDraftCard';
 import { GeneratedImages, GeneratedAudio, GeneratedVideos, GeneratedFiles } from './GeneratedMedia';
 import HowIGotThisAnswer from './HowIGotThisAnswer';
 import { AnswerChips, ChatActivity, ToolConfirmCard } from './jsChildren';
+import type { ToolDecisionHandler } from './ToolConfirmCard';
 import KeepDraftCard from './KeepDraftCard';
 import LinkedInDraftCard from './LinkedInDraftCard';
 import type { ChatMessage, MapEmbed } from './messageTypes';
@@ -37,7 +38,7 @@ export interface PreambleProps {
     liveCompletedSkillIds: unknown;
     liveCompletions: unknown;
     reasoningVisible: boolean;
-    onToolDecision: unknown;
+    onToolDecision: ToolDecisionHandler | null;
     toolDecisions: Record<string, string>;
     t: Translate;
 }
