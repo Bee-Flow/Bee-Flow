@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useStat
 import AppRefBreadcrumb from './AppRefBreadcrumb';
 import BuilderShellLayout from './BuilderShellLayout';
 import BuildTab from './BuildTab';
+import { headerStatus, secondaryTriggerOptions } from './builderHeaderState';
 import { followUpPlanId } from './chat/planBuild';
 import { triggerAppRef } from './flow/appRefLabel';
 import { normalizeDefinitionShape, isBlankDefinition } from './flow/normalizeDefinition';
 import { triggerTypeLabel } from './flow/triggerLabels';
-import RunsTab from './runs/RunsTab';
 import useAutoLabelSteps from './useAutoLabelSteps';
 import useAutomationPersistence, { makeBlockSkeleton } from './useAutomationPersistence';
 import useBuilderChatPanel from './useBuilderChatPanel';
@@ -16,11 +16,13 @@ import useBuilderLifecycle from './useBuilderLifecycle';
 import useBuilderReview from './useBuilderReview';
 import useBuilderRuns from './useBuilderRuns';
 import useBuilderTabUrl from './useBuilderTabUrl';
+import { useAssistantAsk, useSettingsSection, useWorkModePrefs } from './useBuilderShellState';
 import UsedByButtonsCapsule from './UsedByButtonsCapsule';
 import useFlowletActions from './useFlowletActions';
 import useFlowletScope from './useFlowletScope';
 import useManagedPart from './useManagedPart';
 import useNdvState from './useNdvState';
+import RunsTab from './runs/RunsTab';
 import usePatternOrigin from './usePatternOrigin';
 import VersionsTab from './versions/VersionsTab';
 import { useOrgGroupsQuery } from '../../../api/queries/orgGroups';
@@ -135,42 +137,16 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     } = useBuilderChatPanel({ forceAssistantOpen, initialChatInput, forcedTier, running: state.running });
 
     const { t } = useTranslation();
-    const modeStorageKey = `automationWorkMode:${automationId || 'new'}`;
-    const [workMode, setWorkMode] = useState(() => {
-        if (autoSendInput || forcedTier) return 'build';
-        const saved = scopedStorage.getItem(modeStorageKey);
-        return ['discuss', 'approve', 'plan', 'build'].includes(saved) ? saved : 'approve';
+    const { workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge } = useWorkModePrefs({
+        automationId, streamAutomationId: state.automationId, startInBuild: !!(autoSendInput || forcedTier),
     });
-    useEffect(() => { scopedStorage.setItem(`automationWorkMode:${state.automationId || automationId || 'new'}`, workMode); }, [workMode, state.automationId, automationId]);
-    const [alwaysPlanLarge, setAlwaysPlanLarge] = useState(() => scopedStorage.getItem(`automationLargePlan:${automationId || 'new'}`) !== 'false');
-    useEffect(() => { scopedStorage.setItem(`automationLargePlan:${state.automationId || automationId || 'new'}`, String(alwaysPlanLarge)); }, [alwaysPlanLarge, state.automationId, automationId]);
-    const [assistantContext, setAssistantContext] = useState(null);
-    const askAssistant = useCallback((stepId = null, field = null) => {
-        // The AI builder writes the definition: not on a managed automation.
-        if (readOnlyRef.current) return;
-        setTab('build');
-        setAssistantOpen(true);
-        const step = stepByIdForAssistant.current?.(stepId || ndvStepId);
-        if (step) setAssistantContext({ id: step.id, label: step.label || step.type || step.kind });
-        if (field) setChatInput(t('automations.assistant.map_prompt', 'Help me map the field "{field}". It expects {kind}. Current binding: {binding}.', {
-            field: field.label || '', kind: field.expectKind || 'a value', binding: JSON.stringify(field.value ?? null),
-        }));
-    }, [ndvStepId, setTab, setAssistantOpen, setChatInput, t]);
-    const stepByIdForAssistant = useRef(null);
+    const { assistantContext, setAssistantContext, askAssistant, stepByIdForAssistant } = useAssistantAsk({
+        readOnlyRef, ndvStepId, setTab, setAssistantOpen, setChatInput, t,
+    });
 
-    // The Settings section to open at (handoff 5): a 409
-    // ai_act_check_required from Activate / Make vN live sends the person to
-    // the AI Act section. Cleared when they leave Settings.
-    const [settingsSection, setSettingsSection] = useState(null);
-    useEffect(() => {
-        if (tab !== 'settings') setSettingsSection(null);
-    }, [tab]);
-    // Open Settings at one section: the AI Act refusal below, and the
-    // canvas's "Not in Files yet · add" tip (Start, with the Files dialog open).
-    const openSettingsAt = useCallback((section) => {
-        setSettingsSection(section || null);
-        setTab('settings');
-    }, [setTab]);
+    // A 409 ai_act_check_required from Activate / Make vN sends the person to the AI Act section.
+    const { settingsSection, openSettingsAt } = useSettingsSection(tab, setTab);
+
 
     // Step mode: the sharing menu offers "specific groups" within the org, so
     // load the caller's org groups (same /auth/groups endpoint as KBs/Agents).
@@ -199,9 +175,9 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // the one that has to lead back.
     const appRef = initialAppRef || triggerAppRef(effectiveDef);
 
-    // Het id dat de SERVER kent. De usage-capsule vraagt de index om deze
-    // automatisering, en die index bestaat pas als de automatisering bestaat — een builder
-    // die nog aan het maken is heeft niets te vragen.
+    // The id the SERVER knows. The usage capsule asks the index about this
+    // automation, and that index only exists once the automation does — a
+    // builder that is still creating has nothing to ask.
     const persistedAutomationId = state.automationId || automationId || serverAutomation?.id || null;
 
 
@@ -374,12 +350,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // Diagnose button only makes sense for app_event triggers — schedule
     // and manual triggers have nothing to probe externally.
     const isAppEventTrigger = effectiveDef?.trigger?.kind === 'app_event';
-    const statusLabel = isDraft ? 'Draft' : (isActive ? 'Live' : 'Paused');
-    const statusBadgeClass = isDraft
-        ? 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-        : isActive
-            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-            : 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
+    const { statusLabel, statusBadgeClass } = headerStatus(isDraft, isActive);
 
     const { applyingProposal, catalogNonce, clearReview, applyProposal } = useBuilderReview({
         state, serverAutomation, effectiveDef, dismissPlan, dismissProposal, onVisualEditRoot, onSaveAutomation, t,
@@ -400,9 +371,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
 
     // The "Start from" choice in the header's run menu: every additional
     // trigger by name, plus what to call the primary one.
-    const secondaryTriggerOptions = useMemo(() => (Array.isArray(effectiveDef?.triggers) ? effectiveDef.triggers : [])
-        .filter(t => t && typeof t.id === 'string' && t.id)
-        .map(t => ({ id: t.id, label: t.label || triggerTypeLabel(t), kind: t.kind || 'manual' })), [effectiveDef]);
+    const secondaryTriggers = useMemo(() => secondaryTriggerOptions(effectiveDef), [effectiveDef]);
     const primaryTriggerLabel = effectiveDef?.trigger?.label || triggerTypeLabel(effectiveDef?.trigger);
 
     // Header props bundled so the SAME header renders either at the shell level
@@ -414,7 +383,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onExportJson: isStep ? null : onExportJson, onActivate, onDeactivate,
         onDryRun, onRunLive, onDiagnose, onRename, mode,
         onAssistant: isStep || readOnly ? null : () => askAssistant(), assistantOpen: assistantOpen && !readOnly,
-        triggers: secondaryTriggerOptions, primaryTriggerLabel,
+        triggers: secondaryTriggers, primaryTriggerLabel,
         step: isStep ? serverAutomation : null, orgGroups, onPublishStep,
         onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory, scope, onExitScope,
         onDeleteLayer, diagnoseAnchorRef, savingState, tab, onTabChange: setTab,
@@ -430,23 +399,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         // Rendered by the header itself, so the strip follows the bar into
         // BuildTab's ribbon instead of only existing on the other views.
         //
-        // Twee stroken, en ze beantwoorden verschillende vragen: de kruimel
-        // zegt "hier kwam je vandaan" (één knop, uit de URL of uit de trigger),
-        // de capsule zegt "hier wordt dit door gedraaid" (élke app-knop, uit de
-        // index). Een automatisering die je via een link opende hoort allebei te
-        // tonen; eentje die je uit de lijst opende alleen de tweede.
-        //
-        // Niet voor een herbruikbare Step: die wordt door AUTOMATISERINGEN aangeroepen,
-        // niet door app-knoppen, en `automation_usage` gaat daar niet over.
-        breadcrumbSlot: (appRef || (!isStep && persistedAutomationId) || readOnly) ? (
-            <>
-                {readOnly ? <ManagedPartBanner managed={managedPart} notDeployed={managedNotDeployed} /> : null}
-                {appRef ? <AppRefBreadcrumb appRef={appRef} /> : null}
-                {!isStep && persistedAutomationId
-                    ? <UsedByButtonsCapsule automationId={persistedAutomationId} />
-                    : null}
-            </>
-        ) : null,
+        breadcrumbSlot: breadcrumbSlot({ appRef, isStep, persistedAutomationId, readOnly, managedPart, managedNotDeployed }),
     };
 
     return (
@@ -535,26 +488,15 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                 <VersionsTab automation={serverAutomation} onRestored={syncServerRow} />
             )}
             // Mounted HIDDEN by the layout rather than conditionally, see there.
-            history={aidForHistory && !isStep ? (
-                <RunsTab
-                    automationId={aidForHistory}
-                    active={tab === 'history'}
-                    initialRunId={initialRunId}
-                    initialStepId={initialRunStepId}
-                    onRunStateChange={reportBuilderState}
-                    onOpenEditor={(sid) => { setTab('build'); if (sid) openNdv(sid); }}
-                />
-            ) : aidForHistory ? (
-                <ExecutionsPanel
-                    scope="step"
-                    stepId={aidForHistory}
-                    active={tab === 'history'}
-                    initialRunId={initialRunId}
-                    initialStepId={initialRunStepId}
-                    onRunStateChange={reportBuilderState}
-                    onOpenEditor={() => setTab('build')}
-                />
-            ) : null}
+            history={historySlot({
+                automationId: aidForHistory,
+                isStep,
+                active: tab === 'history',
+                initialRunId,
+                initialRunStepId,
+                onRunStateChange: reportBuilderState,
+                onOpenEditor: (sid) => { setTab('build'); if (sid) openNdv(sid); },
+            })}
         />
     );
 }
@@ -564,3 +506,56 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
 // instead of a top-of-canvas row that pushes content down.
 
 function noop() { /* the AI builder has no way in on a managed automation */ }
+/**
+ * The strips the header renders itself, so they follow the bar into BuildTab's
+ * ribbon instead of only existing on the other views.
+ *
+ * Two strips that answer different questions: the breadcrumb says "you came
+ * from here" (one button, from the URL or from the trigger), the capsule says
+ * "this is run by these" (every app button, from the index). An automation
+ * opened through a link shows both; one opened from the list shows only the
+ * second.
+ *
+ * Not for a reusable Step: AUTOMATIONS call it, not app buttons, and
+ * `automation_usage` is not about that.
+ */
+function breadcrumbSlot({ appRef, isStep, persistedAutomationId, readOnly, managedPart, managedNotDeployed }) {
+    if (!(appRef || (!isStep && persistedAutomationId) || readOnly)) return null;
+    return (
+        <>
+            {readOnly ? <ManagedPartBanner managed={managedPart} notDeployed={managedNotDeployed} /> : null}
+            {appRef ? <AppRefBreadcrumb appRef={appRef} /> : null}
+            {!isStep && persistedAutomationId
+                ? <UsedByButtonsCapsule automationId={persistedAutomationId} />
+                : null}
+        </>
+    );
+}
+
+/** A Step lists its executions, an automation its runs; neither before it has an id. */
+function historySlot({ automationId, isStep, active, initialRunId, initialRunStepId, onRunStateChange, onOpenEditor }) {
+    if (!automationId) return null;
+    if (!isStep) {
+        return (
+            <RunsTab
+                automationId={automationId}
+                active={active}
+                initialRunId={initialRunId}
+                initialStepId={initialRunStepId}
+                onRunStateChange={onRunStateChange}
+                onOpenEditor={onOpenEditor}
+            />
+        );
+    }
+    return (
+        <ExecutionsPanel
+            scope="step"
+            stepId={automationId}
+            active={active}
+            initialRunId={initialRunId}
+            initialStepId={initialRunStepId}
+            onRunStateChange={onRunStateChange}
+            onOpenEditor={() => onOpenEditor()}
+        />
+    );
+}
