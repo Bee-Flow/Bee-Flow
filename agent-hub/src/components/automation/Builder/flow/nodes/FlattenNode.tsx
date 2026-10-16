@@ -1,22 +1,16 @@
 import { Rows3 } from 'lucide-react';
-import type { ComponentType } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { flattenSummary } from '../nodeSummaries';
 import StepNodeBaseJs from './StepNodeBase';
+import type { StepNodeData } from './nodeProps';
 
-// Untyped JS component; its props are checked there.
-const StepNodeBase = StepNodeBaseJs as unknown as ComponentType<Record<string, unknown>>;
+const StepNodeBase = StepNodeBaseJs;
 
+/** flattenSummary (nodeSummaries.js) types its label map without `null`. */
 interface FlattenNodeProps {
     id: string;
-    data: {
-        step: { label?: string; arrayRef?: string };
-        runStep?: unknown;
-        issues?: unknown;
-        onAddAfter?: unknown;
-        stepLabelById?: Map<string, string>;
-    };
+    data: StepNodeData & { stepLabelById?: Map<string, string> };
 }
 
 /** The canvas card: "One row per attachment", "Flatten a list", "From Read many ▸ Messages". */

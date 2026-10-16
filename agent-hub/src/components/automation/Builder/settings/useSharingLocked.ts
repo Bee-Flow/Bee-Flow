@@ -6,9 +6,7 @@ import { useEntitlements } from '../../../licensing/EntitlementsContext';
  * usable and the server has the last word.
  */
 export function useSharingLocked(): boolean {
-    const { lockReason, loading, error } = useEntitlements() as unknown as {
-        lockReason?: (id: string) => string | null; loading?: boolean; error?: unknown;
-    };
+    const { lockReason, loading, error } = useEntitlements();
     if (loading || error || typeof lockReason !== 'function') return false;
     return lockReason('automation_sharing') != null;
 }

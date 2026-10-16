@@ -20,9 +20,12 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const SAVE_DELAY_MS = 500;
 
-// The editor and the renderer are JavaScript whose props TypeScript infers from
-// their defaults (`= null` becomes the type `null`), so they are typed here.
+// The editor is JavaScript whose props TypeScript infers from their defaults
+// (`= null` becomes the type `null`), so it is typed here.
 const Fields = FormBuilderFields as unknown as React.ComponentType<Record<string, unknown>>;
+// KEPT: the preview config carries `theme` as `unknown` (a stored form's theme is
+// not typed at this boundary); typing the renderer's `form` needs a guard on the
+// theme first, which is a runtime change and so not part of a types-only commit.
 const Renderer = PublicFormRenderer as unknown as React.ComponentType<Record<string, unknown>>;
 const EndingView = FormEndingView as unknown as React.ComponentType<Record<string, unknown>>;
 

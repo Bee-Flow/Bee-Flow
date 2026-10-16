@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import FieldKindIconJs from '../mapping/FieldKindIcon';
 import { kindOfValue as kindOfValueJs } from '../mapping/fieldKinds';
 import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';
@@ -11,7 +10,7 @@ import SmartTable from './SmartTable';
 import type { OutputColumnsState } from './useOutputColumns';
 import { isPlainObject, type PlainObject } from './valueHelpers';
 
-const FieldKindIcon = FieldKindIconJs as unknown as ComponentType<{ kind: string; size?: number; className?: string }>;
+const FieldKindIcon = FieldKindIconJs;
 const kindOfValue = kindOfValueJs as (v: unknown) => string;
 const humanizeFieldKey = humanizeFieldKeyJs as (key: string) => string;
 

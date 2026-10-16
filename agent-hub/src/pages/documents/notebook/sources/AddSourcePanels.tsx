@@ -9,7 +9,7 @@ import MeetingPickerJs from '../../../../components/meeting-picker/MeetingPicker
 import useTranslation from '../../../../hooks/useTranslation';
 import { useCapture } from '../../../meeting-notes/capture/CaptureContext';
 
-const MeetingPicker = MeetingPickerJs as unknown as React.ComponentType<any>;
+const MeetingPicker = MeetingPickerJs;
 
 /** Max characters for a pasted-text source (the server re-validates on ingest). */
 export const PASTE_MAX_CHARS = 500000;

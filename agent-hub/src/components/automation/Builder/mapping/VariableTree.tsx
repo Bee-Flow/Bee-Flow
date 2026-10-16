@@ -17,7 +17,7 @@ import type { FieldDescription } from './fieldKinds';
 /** A row's field: the picker's `Field`, with the sample optional. */
 type RowField = Omit<Field, 'sample' | 'children'> & { sample?: unknown; children?: RowField[] };
 
-type InsertHandler = (path: string, opts?: { raw: boolean }) => void;
+export type InsertHandler = (path: string, opts?: { raw: boolean }) => void;
 
 // Resolve the value to SHOW for a path: prefer the real last-run / pinned
 // value (from previewSample) so the user sees actual data, falling back to the

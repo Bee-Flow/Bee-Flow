@@ -7,10 +7,8 @@ import IntegrationLogo from '../../../automation/Builder/flow/nodes/IntegrationL
 import { StepIcon } from '../../../automation/Builder/flow/stepIcons';
 import { flowSummaryOf, stripModelOf } from './overviewModel';
 
-// The JS components declare `fallback` as null-only in JSDoc; they take any node.
-type WithFallback = ComponentType<Record<string, unknown>>;
-const Logo = IntegrationLogo as unknown as WithFallback;
-const Icon = StepIcon as unknown as WithFallback;
+const Logo = IntegrationLogo;
+const Icon = StepIcon;
 
 type IconType = ComponentType<{ size?: number; className?: string; 'aria-hidden'?: boolean }>;
 

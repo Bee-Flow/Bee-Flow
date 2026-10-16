@@ -1,14 +1,13 @@
 import { RefreshCw } from 'lucide-react';
-import type { ComponentType } from 'react';
 import { ClearFilters, FilterMenu, JumpBox, JumpButton, SECONDARY_DEFAULTS, SecondarySelects, narrowedWords } from './RunLogFilterControls';
 import type { AutomationOption, RunLogFilters, SecondaryFilterProps } from './RunLogFilterControls';
 import { runIdFromText } from './runLanguage';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import FilterPillsJs from '../../../shared/FilterPills';
+import type { PillTone } from '../../../shared/FilterPills';
 
-// A .jsx module whose `= undefined` defaults would type its props as undefined-only.
-const FilterPills = FilterPillsJs as unknown as ComponentType<Record<string, unknown>>;
+const FilterPills = FilterPillsJs;
 
 type Facets = { status?: Record<string, number>; triggerKind?: Record<string, number> } | null | undefined;
 
@@ -42,7 +41,7 @@ function statusCount(facets: Facets, key: string): number | undefined {
 
 /** The status pills, in the builder Runs tab's words; a tone only when there is something in it. */
 function statusOptions(t: TranslateFn, facets: Facets) {
-    const pill = (value: string, label: string, hotTone?: string) => {
+    const pill = (value: string, label: string, hotTone?: PillTone) => {
         const count = statusCount(facets, value);
         return { value, label, count, tone: hotTone && (count || 0) > 0 ? hotTone : 'neutral' };
     };

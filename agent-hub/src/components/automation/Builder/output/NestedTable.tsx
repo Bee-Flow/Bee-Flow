@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import FieldKindIconJs from '../mapping/FieldKindIcon';
@@ -8,7 +7,7 @@ import { fieldText } from './cellSummary';
 import { isTechnicalKey } from './columns';
 import { isPlainObject, scalarText, type PlainObject } from './valueHelpers';
 
-const FieldKindIcon = FieldKindIconJs as unknown as ComponentType<{ kind: string; size?: number; className?: string }>;
+const FieldKindIcon = FieldKindIconJs;
 const humanizeFieldKey = humanizeFieldKeyJs as (key: string) => string;
 
 /** Rows and columns of a nested table the row details preview. */

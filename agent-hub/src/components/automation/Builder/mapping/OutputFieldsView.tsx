@@ -3,12 +3,13 @@ import { sampleToFields } from './upstream';
 import { fieldFor } from './upstream/fieldTree';
 import type { Field } from './upstream/fieldTree';
 import { FieldRow } from './VariableTree';
+import type { InsertHandler } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface OutputFieldsViewProps {
     value?: unknown;
     basePath?: string;
-    onInsert?: ((path: string) => void) | null;
+    onInsert?: InsertHandler | null;
 }
 
 /**
@@ -27,7 +28,7 @@ interface OutputFieldsViewProps {
  *   value     — the output (an object; anything else is handed back as one
  *               "output" row)
  *   basePath  — `steps.<id>.output`, so a row can still be dragged as a path
- *   onInsert  — optional (path) => void; absent, clicking a row does nothing
+ *   onInsert  — optional (path, opts?) => void; absent, clicking a row does nothing
  */
 export default function OutputFieldsView({ value, basePath = '', onInsert = null }: OutputFieldsViewProps) {
     const { t } = useTranslation();

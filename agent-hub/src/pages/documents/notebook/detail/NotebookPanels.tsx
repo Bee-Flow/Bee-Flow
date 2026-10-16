@@ -19,7 +19,7 @@ export function NotebookSourcesPanel({ sources, readOnly, showMeetingNotes }: {
     showMeetingNotes: boolean;
 }) {
     const [dragOver, setDragOver] = useState(false);
-    const Sources = NotebookSources as unknown as React.ComponentType<any>;
+    const Sources = NotebookSources;
     return (
         <Sources
             sources={sources.sources}

@@ -37,7 +37,7 @@ function pickSelected(rows: VersionRow[], selectedId: string | null): VersionRow
 /** The restore question, then the restore; resets the selection on success. */
 function useRestoreFlow(automation: AutomationLike | null | undefined, onRestored: Props['onRestored'], onDone: () => void) {
     const { t } = useTranslation();
-    const confirmAction = useBuilderConfirm() as unknown as Confirm | null;
+    const confirmAction = useBuilderConfirm();
     const restore = useRestoreVersionMutation(automation?.id ?? '');
     const run = async (target: VersionRow) => {
         const params = { version: target.version };

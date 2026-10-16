@@ -1,13 +1,16 @@
 import { FolderOpen, MessageSquare, Upload } from 'lucide-react';
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useState } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import PublishMenuJsx from '../../../agents/AgentWizard/pickers/PublishMenu';
+import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
 
-// A .jsx component: its prop types are inferred from defaults (`[]` → never[]).
-const PublishMenu = PublishMenuJsx as unknown as ComponentType<Record<string, unknown>>;
+const PublishMenu = PublishMenuJsx;
 
 /** The reusable Step (kind='block') row fields the header reads. */
 export interface StepRow {
+    id?: string;
+    name?: string;
+    title?: string;
     icon?: string | null;
     category?: string | null;
     publishedVersion?: number | null;
@@ -49,7 +52,7 @@ export function CategoryField({ value, onCommit }: { value: string; onCommit?: (
 interface StepActionClusterProps {
     busy?: boolean;
     step: StepRow | null;
-    orgGroups?: unknown[];
+    orgGroups?: readonly OrgGroup[];
     onPublishStep?: (() => void) | null;
     onSetStepSharing?: ((s: StepSharing) => void) | null;
     onSetStepExpose?: ((on: boolean) => void) | null;

@@ -1,11 +1,10 @@
 import { History, Package, Trash2 } from 'lucide-react';
-import type { ComponentType, KeyboardEvent } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { StepIcon as StepIconJs } from '../../../automation/Builder/flow/stepIcons';
 
-// A .jsx module whose `fallback = null` default would type the prop as null-only.
-const StepIcon = StepIconJs as unknown as ComponentType<Record<string, unknown>>;
+const StepIcon = StepIconJs;
 
 /** One reusable Step (an automation of kind 'block') as the list reads it. */
 export interface StepRowData {

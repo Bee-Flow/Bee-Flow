@@ -50,10 +50,10 @@ export interface NotebookEditorViewProps {
 }
 
 const TOC_AUTO_OPEN_AT = 3;
-// Untyped JS components: their props are documented where they are defined.
+// Untyped JS components: their props are documented where they are defined (NotebookTOC is typed).
 const NotebookWorkspace = NotebookWorkspaceJs as unknown as React.ComponentType<any>;
 const RichTextEditor = RichTextEditorJs as unknown as React.ComponentType<any>;
-const NotebookTOC = NotebookTOCJs as unknown as React.ComponentType<any>;
+const NotebookTOC = NotebookTOCJs;
 
 export default function NotebookEditorView({ data, user, onBack, onListChanged, onOpenProject, onReload }: NotebookEditorViewProps) {
     const { t, locale } = useTranslation();

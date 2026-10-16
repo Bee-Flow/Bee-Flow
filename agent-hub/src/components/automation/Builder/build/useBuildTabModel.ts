@@ -18,6 +18,7 @@ import { toast } from '../../../shared/Toast';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
 import { layerKeysThatReach, listLayers } from '../flow/flowletScope';
 import { isInlineId, parseInlineId } from '../flow/inlineFlowlets';
+import type { PaletteLayer } from '../flow/stepPalette.types';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 import useWaitingFormUrlJs from '../flow/useWaitingFormUrl';
 import { buildRealOutputMap } from '../mapping/realOutputs';
@@ -111,7 +112,7 @@ function positionedPaletteScope(palette: ContextPalette, scopeKey: string | null
  * the mode is 'step' whenever we're scoped.
  */
 function paletteScopes({ catalog, paletteLayers, scopeKey, scopedDef, flatDef, palette, isBlockRoot, smart, t }: {
-    catalog: Catalog; paletteLayers: unknown[]; scopeKey: string | null; scopedDef: FlowDefinition | null;
+    catalog: Catalog; paletteLayers: PaletteLayer[]; scopeKey: string | null; scopedDef: FlowDefinition | null;
     flatDef: FlowDefinition | null; palette: ContextPalette; isBlockRoot: boolean;
     smart: { frequentItems: unknown[]; suggestedItems: unknown[] }; t: TranslateFn;
 }) {

@@ -4,16 +4,13 @@
 // that acts on the selected documents (move to a folder, categorise).
 
 import { Archive, Search } from 'lucide-react';
-import React, { useState, type ComponentType } from 'react';
+import React, { useState } from 'react';
 import FilterPillsJs from '../../../components/shared/FilterPills';
 import useTranslation from '../../../hooks/useTranslation';
 import type { Folder } from '../documentQueries';
 import { formatApplies, type LibraryFormat, type LibraryKind, type useLibraryFilters } from './useLibrary';
 
-// The pills are plain JS (untyped props): typed here for what the library passes.
-const FilterPills = FilterPillsJs as unknown as ComponentType<{
-    value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }>; ariaLabel: string; testId?: string;
-}>;
+const FilterPills = FilterPillsJs;
 
 const CONTROL = 'h-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 text-xs min-w-0 text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent-primary)]';
 const BUTTON = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-[var(--border-default)] text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50';

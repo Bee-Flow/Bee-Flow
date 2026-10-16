@@ -12,7 +12,7 @@ import { apiClient } from '../../../api/client';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import EncryptionSetupJs from '../../EncryptionSetup';
 
-const EncryptionSetup = EncryptionSetupJs as unknown as React.ComponentType<{ mode: 'unlock'; onComplete: () => void }>;
+const EncryptionSetup = EncryptionSetupJs;
 
 export const KEY_UNAVAILABLE = 'document_encryption_key_unavailable';
 
