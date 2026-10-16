@@ -4,7 +4,8 @@ import ShareImageSettings from './ShareImageSettings';
 import type { EditableDesign } from '../../../../marketing/ProductWebsite.types';
 
 interface DesignInspectorProps {
-    design: EditableDesign;
+    /** DesignEditor falls back to its own defaults while the site has none. */
+    design?: EditableDesign | null;
     onChange: (design: EditableDesign) => void;
 }
 
@@ -21,7 +22,7 @@ export default function DesignInspector({ design, onChange }: DesignInspectorPro
             <div className="flex-1 min-h-0">
                 <DesignEditor design={design} onChange={onChange} />
             </div>
-            <ShareImageSettings design={design} onChange={onChange} />
+            <ShareImageSettings<EditableDesign> design={design ?? ({} as EditableDesign)} onChange={onChange} />
         </div>
     );
 }
