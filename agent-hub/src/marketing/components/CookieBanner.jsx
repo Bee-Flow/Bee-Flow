@@ -38,6 +38,7 @@ const DEFAULT_TEXT = {
     },
 };
 
+/** @param {{ enabled?: boolean, language?: string, text?: Record<string, Record<string, string> | undefined> }} [props] */
 export default function CookieBanner({
     enabled = true,
     language = 'en',

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import './marketing.css';
 // Self-hosted Fontshare families — registers @font-face for Satoshi,
 // Cabinet Grotesk, General Sans, Clash Display, Clash Grotesk. No CDN
@@ -62,6 +63,10 @@ import { BlockIdContext } from './components/EditableText';
 import { PreviewBlockChrome, InsertZone } from './components/PreviewBlockChrome';
 import { resolveAssetUrl } from './assetUrl';
 import { LOCALE_PREFIXES } from '../utils/cmsPublicRouting';
+import type {
+    BlockStyle, CmsActiveState, CmsBlock, DesignComponents, DesignLayout,
+    DesignTypography, PreviewMessage, ProductWebsiteProps, SectionComponent, SiteContent, SiteDesign,
+} from './ProductWebsite.types';
 
 // Resolve which language the cookie banner / announcement bar should show.
 // Their `text` blobs carry every locale, so we pick one at render time.
@@ -118,7 +123,7 @@ export const SECTION_REGISTRY = {
     'github-stats': GitHubStats,
     'release-notes': ReleaseNotes,
     'blog-latest': LatestPosts,
-};
+} as Record<string, SectionComponent>;
 
 const isPreviewMode = () =>
     typeof window !== 'undefined' &&
@@ -137,7 +142,7 @@ const isPreviewMode = () =>
 // We mirror each design field to a CSS custom property on .marketing-root
 // via inline style. The CSS file already declares fallbacks for every
 // token, so a missing/null design just means "use the file's defaults".
-function applyDesignToRoot(rootEl, design, effectiveTheme) {
+function applyDesignToRoot(rootEl: HTMLElement | null, design: SiteDesign | null, effectiveTheme: string | null) {
     if (!rootEl) return;
     const style = rootEl.style;
     if (!design || typeof design !== 'object') {
@@ -204,13 +209,13 @@ function applyDesignToRoot(rootEl, design, effectiveTheme) {
     }
 
     // Typography v2 — display cap (64/80/96px), heading weight, body size.
-    const ty = design.typography || {};
-    const displayMax = { md: '4rem', lg: '5rem', xl: '6rem' }[ty.displaySize];
+    const ty: DesignTypography = design.typography || {};
+    const displayMax = ({ md: '4rem', lg: '5rem', xl: '6rem' } as Record<string, string | undefined>)[ty.displaySize as string];
     if (displayMax) style.setProperty('--display-max', displayMax);
-    if ([500, 600, 700].includes(ty.headingWeight)) {
+    if ([500, 600, 700].includes(ty.headingWeight as number)) {
         style.setProperty('--heading-weight', String(ty.headingWeight));
     }
-    if ([16, 17, 18].includes(ty.bodySize)) {
+    if ([16, 17, 18].includes(ty.bodySize as number)) {
         style.setProperty('--text-body', `${ty.bodySize}px`);
     }
 
@@ -221,8 +226,8 @@ function applyDesignToRoot(rootEl, design, effectiveTheme) {
     // field, an unknown field and an explicit default all render
     // identically. Applied AFTER the scalar tokens above so the
     // "sharp implies flat" coupling can override the shadow level.
-    const comp = design.components || {};
-    const lay  = design.layout || {};
+    const comp: DesignComponents = design.components || {};
+    const lay: DesignLayout = design.layout || {};
     applyEnum(style, SHAPE_MAPS.buttonShape,     comp.buttonShape);
     applyEnum(style, SHAPE_MAPS.buttonSize,      comp.buttonSize);
     applyEnum(style, SHAPE_MAPS.navHeight,       comp.navHeight);
@@ -312,20 +317,20 @@ const SHAPE_MAPS = {
     },
 };
 
-function applyEnum(style, map, value) {
-    const props = map && map[value];
+function applyEnum(style: CSSStyleDeclaration, map: Record<string, Record<string, string>> | undefined, value: string | undefined) {
+    const props = map && map[value as string];
     if (!props) return;
     for (const [prop, v] of Object.entries(props)) style.setProperty(prop, v);
 }
 
 // sRGB relative luminance (WCAG). Local to the marketing bundle on purpose —
 // the admin panel's colorUtils lives across the app boundary.
-function relativeLuminance(hex) {
+function relativeLuminance(hex: string | undefined) {
     const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex || '').trim());
     if (!m) return 0;
     let h = m[1];
     if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    const chan = (i) => {
+    const chan = (i: number) => {
         const c = parseInt(h.slice(i * 2, i * 2 + 2), 16) / 255;
         return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
     };
@@ -355,7 +360,7 @@ const CSS_VAR_PROPS = [
 // (self-hosted-fonts.css); slotting it right after the web font means text
 // that paints before the WOFF2 arrives already occupies the web font's
 // geometry, so the swap moves nothing. See fallbackFaceFor in googleFonts.js.
-function cssMonoStack(name) {
+function cssMonoStack(name: string | undefined) {
     const safe = String(name || '').replace(/"/g, '');
     const quoted = /\s/.test(safe) ? `"${safe}"` : safe;
     const fb = fallbackFaceFor(safe);
@@ -363,7 +368,7 @@ function cssMonoStack(name) {
     return `${quoted}${metric}, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
 }
 
-function cssFontStack(name) {
+function cssFontStack(name: string | undefined) {
     // Quote names that contain spaces; always include system fallbacks
     // so the page renders before the font file has finished loading.
     const safe = String(name || '').replace(/"/g, '');
@@ -413,7 +418,10 @@ const FONT_HREFS_CACHE_KEY = 'cms.fontHrefs';
     } catch { /* corrupt cache — ignore, ensureFontsLink rebuilds it */ }
 })();
 
-function ensureFontsLink(doc, headingFont, bodyFont, extras = [], headingWeight = 600) {
+function ensureFontsLink(
+    doc: Document | null | undefined, headingFont: string | undefined, bodyFont: string | undefined,
+    extras: (string | undefined)[] = [], headingWeight = 600,
+) {
     if (!doc) return;
 
     // Drop the legacy single-source <link> from older builds. Idempotent
@@ -422,7 +430,7 @@ function ensureFontsLink(doc, headingFont, bodyFont, extras = [], headingWeight 
     if (legacy) legacy.remove();
 
     const families = new Set();
-    const add = (raw) => {
+    const add = (raw: unknown) => {
         if (typeof raw !== 'string') return;
         const f = raw.trim();
         if (f) families.add(f);
@@ -458,7 +466,7 @@ function ensureFontsLink(doc, headingFont, bodyFont, extras = [], headingWeight 
     }
 
     for (const { id, href } of hrefs) {
-        let link = doc.getElementById(id);
+        let link = doc.getElementById(id) as HTMLLinkElement | null;
         if (!link) {
             link = doc.createElement('link');
             link.id = id;
@@ -475,9 +483,9 @@ function ensureFontsLink(doc, headingFont, bodyFont, extras = [], headingWeight 
 // non-Design font for e.g. the brand title saves correctly but the
 // browser falls back to a system font because the family is never
 // downloaded.
-function collectCustomFontFamilies(content) {
-    const out = [];
-    const push = (v) => { if (typeof v === 'string' && v.trim()) out.push(v.trim()); };
+function collectCustomFontFamilies(content: SiteContent) {
+    const out: string[] = [];
+    const push = (v: unknown) => { if (typeof v === 'string' && v.trim()) out.push(v.trim()); };
     if (!content || typeof content !== 'object') return out;
 
     const header = content.header || {};
@@ -516,12 +524,12 @@ function collectCustomFontFamilies(content) {
 // wrapper supplies the entrance animation so every block type animates
 // uniformly. Never applied in preview (contentEditable focus + the
 // editing chrome must not sit inside an opacity transition).
-const WRAPPER_REVEAL_TYPES = new Set([
+const WRAPPER_REVEAL_TYPES = new Set<string | undefined>([
     'socialProof', 'content', 'media-text', 'cta-banner',
     'live-component', 'pricing', 'customer-support',
 ]);
 
-function blockWrapClasses(style, { type, inPreview } = {}) {
+function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview }: { type?: string; inPreview?: boolean } = {}) {
     const out = ['cms-block-wrap'];
     const maxWidth = style?.maxWidth || 'full';
     out.push(`cms-block-wrap--${['narrow', 'medium', 'wide', 'full'].includes(maxWidth) ? maxWidth : 'full'}`);
@@ -533,12 +541,12 @@ function blockWrapClasses(style, { type, inPreview } = {}) {
     }
     // ── style v2 (all optional; absent = today's rendering) ─────────
     // band: works on EVERY type via the retheme-scope rule in tokens.css.
-    if (['surface', 'tint', 'dark', 'primary'].includes(style?.band)) {
-        out.push(`cms-band--${style.band}`);
+    if ((['surface', 'tint', 'dark', 'primary'] as (string | undefined)[]).includes(style?.band)) {
+        out.push(`cms-band--${(style as BlockStyle).band}`);
     }
     // rhythm: re-declares --section-y for the wrapped section.
-    if (['compact', 'spacious'].includes(style?.rhythm)) {
-        out.push(`cms-rhythm--${style.rhythm}`);
+    if ((['compact', 'spacious'] as (string | undefined)[]).includes(style?.rhythm)) {
+        out.push(`cms-rhythm--${(style as BlockStyle).rhythm}`);
     }
     if (style?.glow === true) out.push('cms-glow');
     if (style?.reveal === 'off') {
@@ -553,9 +561,9 @@ function blockWrapClasses(style, { type, inPreview } = {}) {
     return out.join(' ');
 }
 
-function blockWrapStyle(style) {
+function blockWrapStyle(style: BlockStyle | undefined): CSSProperties | undefined {
     if (!style || typeof style !== 'object') return undefined;
-    const css = {};
+    const css: CSSProperties & Record<`--${string}`, string | number> = {};
 
     // NOTE: color overrides are NOT set inline here. They're emitted as a
     // dedicated <style> rule (see buildBlockOverrideCss) targeting the
@@ -608,7 +616,7 @@ function blockWrapStyle(style) {
 // where set, inherited otherwise). --accent-gradient additionally depends
 // on the .cms-gradient class on .marketing-root — both flavors are emitted
 // so only the matching one applies.
-function buildBlockOverrideCss(blockId, style) {
+function buildBlockOverrideCss(blockId: string | undefined, style: BlockStyle | undefined) {
     const co = style?.colorOverrides;
     if (!co || typeof co !== 'object' || !blockId) return null;
     const decls = [];
@@ -685,9 +693,9 @@ export { resolveAssetUrl };
  *     old SectionFrame hover toolbar keyed on type and never resolved
  *     (see components/SectionFrame.jsx).
  */
-export default function ProductWebsite({ content: initialContent, analytics = null }) {
-    const rootRef = useRef(null);
-    const [content, setContent] = useState(initialContent || {});
+export default function ProductWebsite({ content: initialContent, analytics = null }: ProductWebsiteProps) {
+    const rootRef = useRef<HTMLDivElement>(null);
+    const [content, setContent] = useState<SiteContent>(initialContent || {});
 
     // Automatic interaction events (CTA clicks, outbound links, downloads, form
     // submits). No consent logic of its own: it calls window.umami.track, which
@@ -702,29 +710,29 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
     //   1. cms-preview postMessage (preview mode, live editor)
     //   2. content.design embedded by the public route (synthesizeLegacyContent)
     //   3. null → CSS file defaults take over
-    const [design, setDesign] = useState(initialContent?.design || null);
+    const [design, setDesign] = useState<SiteDesign | null>(initialContent?.design || null);
     // Preview mode: 'chrome' renders header/footer with a neutral placeholder
     // body so the user can edit site chrome in isolation. Null/'page' renders
     // the page's blocks normally. Only set in admin preview (postMessage).
-    const [previewMode, setPreviewMode] = useState(null);
+    const [previewMode, setPreviewMode] = useState<string | null>(null);
     // Latest cms-active payload from the panel (admin preview only).
     // Selection state LIVES in the panel — this is a read-only mirror the
     // block chrome renders from: blockId = the active block's id (never
     // type), locked = AI stream lock, labels = { [type]: label } so block
     // pills get human names without importing admin code.
-    const [cmsActive, setCmsActive] = useState({ blockId: null, locked: false, labels: {} });
+    const [cmsActive, setCmsActive] = useState<CmsActiveState>({ blockId: null, locked: false, labels: {} });
 
     // Visitor theme override — null = follow design.theme; 'light'/'dark'
     // force a mode. Persisted across visits in localStorage when the site
     // exposes the footer theme toggle.
-    const [themeOverride, setThemeOverrideState] = useState(() => {
+    const [themeOverride, setThemeOverrideState] = useState<string | null>(() => {
         if (typeof window === 'undefined') return null;
         try {
             const v = window.localStorage.getItem('cms.themeOverride');
             return v === 'light' || v === 'dark' ? v : null;
         } catch { return null; }
     });
-    const setThemeOverride = (next) => {
+    const setThemeOverride = (next: string | null) => {
         setThemeOverrideState(next);
         try {
             if (next) window.localStorage.setItem('cms.themeOverride', next);
@@ -752,7 +760,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
         // parent frame could inject arbitrary content + design (CSS vars
         // including font URLs) into our DOM via postMessage.
         const expectedOrigin = window.location.origin;
-        const onMessage = (e) => {
+        const onMessage = (e: MessageEvent<PreviewMessage>) => {
             if (e.origin !== expectedOrigin) return;
             if (e.data?.type === 'cms-preview') {
                 if (e.data.content) setContent(e.data.content);
@@ -789,11 +797,11 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
         // inside EditableText / form fields, so contentEditable and
         // input/textarea targets are left alone (no preventDefault, no
         // forward). Shift+Z / Y = redo. Same expectedOrigin as above.
-        const onKeyDown = (e) => {
+        const onKeyDown = (e: KeyboardEvent) => {
             if (!(e.ctrlKey || e.metaKey)) return;
             const k = (e.key || '').toLowerCase();
             if (k !== 'z' && k !== 'y') return;
-            const t = e.target;
+            const t = e.target as HTMLElement | null;
             if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
             e.preventDefault();
             const action = (k === 'y' || (k === 'z' && e.shiftKey)) ? 'redo' : 'undo';
@@ -848,7 +856,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
     // order so the preview reflects the editor's block list. Otherwise fall
     // back to the legacy keyed shape so the public site at "/" keeps working.
     const orderedBlocks = Array.isArray(content.blocks)
-        ? content.blocks.filter(b => {
+        ? content.blocks.filter((b: CmsBlock) => {
             const keep = b && b.enabled !== false && SECTION_REGISTRY[b.type];
             // Dev-only: an unknown block type renders nothing. Warn so the
             // "empty page" cause is visible during development (production
@@ -910,14 +918,14 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                 <BlogView blog={content.blog} />
             ) : orderedBlocks ? (
                 <>
-                    {orderedBlocks.map(b => {
+                    {orderedBlocks.map((b: CmsBlock) => {
                         const Comp = SECTION_REGISTRY[b.type];
                         const overrideCss = buildBlockOverrideCss(b.id, b.style);
                         // Chrome positions are computed against the FULL
                         // blocks array — orderedBlocks filters out disabled/
                         // unknown blocks, so its own indices would make the
                         // panel splice new sections in the wrong slot.
-                        const srcIndex = content.blocks.indexOf(b);
+                        const srcIndex = (content.blocks as CmsBlock[]).indexOf(b);
                         const isActive = inPreview && cmsActive.blockId === b.id;
                         return (
                             <React.Fragment key={b.id}>
@@ -958,7 +966,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                                             label={cmsActive.labels[b.type] || b.type}
                                             locked={cmsActive.locked}
                                             isFirst={srcIndex === 0}
-                                            isLast={srcIndex === content.blocks.length - 1}
+                                            isLast={srcIndex === (content.blocks as CmsBlock[]).length - 1}
                                         />
                                     ) : null}
                                 </div>
@@ -967,7 +975,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                     })}
                     {/* Insert-after-last zone (preview only). */}
                     {inPreview
-                        ? <InsertZone index={content.blocks.length} locked={cmsActive.locked} />
+                        ? <InsertZone index={(content.blocks as CmsBlock[]).length} locked={cmsActive.locked} />
                         : null}
                 </>
             ) : (
