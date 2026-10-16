@@ -29,7 +29,7 @@ const page = { translations: ['en', 'nl'] };
 const MOCKS = {
     '../stores/cmsStore': {
         getDefaultLocale: async () => 'en',
-        getEffectivePublished: async (siteId, slug) => ({
+        getEffectivePublished: async (siteId, slug) => (slug === 'missing' || slug === 'retired-page' ? { found: false } : {
             found: true, design: {}, header: {},
             page: { id: 'p1', slug, title: 'Pricing', blocks: [], isHomepage: false },
         }),
@@ -43,7 +43,7 @@ const MOCKS = {
     '../core/seo/inject': { injectIntoShell: (shell, { body }) => shell.replace('<div id="root"></div>', `<div id="root">${body}</div>`) },
     '../core/seo/sitemap': { buildSitemap: () => '', buildRobots: () => '', buildLlmsTxt: () => '' },
     '../core/seo/locales': { localesForPage: () => page.translations },
-    '../core/seo/legacySlugs': { LEGACY_SLUGS: {} },
+    '../core/seo/legacySlugs': { LEGACY_SLUGS: {}, GONE_SLUGS: new Set(['retired-page']) },
     '../core/cms/legacyContent': { synthesizeLegacyContent: () => ({}) },
 };
 
@@ -137,4 +137,16 @@ test('/privacy and /terms are served from the CMS like any other page', async ()
         assert.strictEqual(res.statusCode, 200, p);
         assert.match(res.body, /<main>Pricing<\/main>/);
     }
+});
+
+test('a URL no page ever had answers 404, flagged for nginx so it is not turned into a 200 shell', async () => {
+    const res = await get('/missing');
+    assert.strictEqual(res.statusCode, 404);
+    assert.strictEqual(res.headers['x-beeflow-render'], 'not-found');
+});
+
+test('only a slug on the retired list answers 410', async () => {
+    const res = await get('/nl/retired-page');
+    assert.strictEqual(res.statusCode, 410);
+    assert.strictEqual(res.headers['x-beeflow-render'], 'not-found');
 });

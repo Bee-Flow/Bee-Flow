@@ -49,8 +49,9 @@ const { getShell } = require('../core/seo/shell');
 const { injectIntoShell } = require('../core/seo/inject');
 const { buildSitemap, buildRobots, buildLlmsTxt } = require('../core/seo/sitemap');
 const { localesForPage } = require('../core/seo/locales');
-const { LEGACY_SLUGS } = require('../core/seo/legacySlugs');
+const { LEGACY_SLUGS, GONE_SLUGS } = require('../core/seo/legacySlugs');
 const { jsonForScript } = require('../core/seo/html');
+const { sendNotFound } = require('../core/seo/notFound');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
 const { buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries } = require('../core/seo/blog');
 const log = require('../telemetry/log');
@@ -270,14 +271,9 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
     if (parsed.blog.view === 'index' && (eff.pages || []).some(p => p.slug === 'blog')) return false;
 
     if (!eff.found || (!eff.blog?.post && parsed.blog.view === 'post')) {
-        const shell410 = await getShell();
-        if (!shell410) return false;
-        res.status(410).type('html').set('Cache-Control', 'no-store');
-        res.send(injectIntoShell(shell410, {
-            head: ['<title>Page not found — Bee Flow</title>', '<meta name="robots" content="noindex, follow">'].join('\n    '),
-            body: '',
-            lang: locale,
-        }));
+        const notFoundShell = await getShell();
+        if (!notFoundShell) return false;
+        sendNotFound(res, notFoundShell, locale, false);
         return true;
     }
 
@@ -408,31 +404,23 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
            V1 pages above are still listed months after they stopped existing.
            A status code is the only way to say "stop listing this".
 
-           410 rather than 404, for a mechanical reason: nginx's @render block
-           maps `error_page 404 … = @shell`, so a 404 from here is swallowed and
-           reappears as a 200 shell — the very thing being fixed. That mapping
-           is load-bearing (it is how genuine app routes reach the SPA when this
-           route declines them), so the fix must not disturb it. 410 is not in
-           that list, passes through untouched, and Google documents it as
-           equivalent to 404 for removal, only acted on slightly sooner. Which
-           is honest here: these are pages that are gone, not pages that never
-           were.
+           404, except for a slug on GONE_SLUGS (deleted on purpose), which is
+           410: Google drops a 410 quickly, so it must not be the answer for
+           typos or a page that is only unpublished for a while.
+
+           nginx's @render block maps `error_page 404 … = @shell`, which would
+           turn this 404 back into a 200 shell. sendNotFound therefore sets
+           `X-Beeflow-Render: not-found`, and @shell (agent-hub/nginx.conf.template)
+           keeps the 404 for responses that carry it, while a plain 404 (a genuine
+           app route this renderer declines) still reaches the SPA as before.
 
            Reserved and multi-segment paths never get here — parsePublicPath
            returned null for those above, and they still fall through to the
            SPA exactly as before. */
         if (!eff || !eff.found || !eff.page) {
-            const shell410 = await getShell();
-            if (!shell410) return next();
-            res.status(410).type('html').set('Cache-Control', 'no-store');
-            return res.send(injectIntoShell(shell410, {
-                head: [
-                    '<title>Page not found — Bee Flow</title>',
-                    '<meta name="robots" content="noindex, follow">',
-                ].join('\n    '),
-                body: '',
-                lang: locale,
-            }));
+            const notFoundShell = await getShell();
+            if (!notFoundShell) return next();
+            return sendNotFound(res, notFoundShell, locale, GONE_SLUGS.has(parsed.slug));
         }
 
         const shell = await getShell();

@@ -449,6 +449,9 @@ server {
         proxy_read_timeout 5s;
 
         proxy_intercept_errors on;
+        # Needed so @shell can hand a genuine not-found to @shell_not_found
+        # (nginx allows only one error_page hop per request otherwise).
+        recursive_error_pages on;
         error_page 404 500 502 503 504 = @shell;
 
         # No Cache-Control here on purpose — the renderer sets its own and it
@@ -473,6 +476,12 @@ server {
     # router then resolves it client-side exactly as it always did.
     location @shell {
         root /usr/share/nginx/html;
+        # The renderer marks a marketing URL that has no page with
+        # `X-Beeflow-Render: not-found` (routes/publicRender.js). That is the
+        # one 404 that must stay a 404: every other 404 from the backend means
+        # "not mine, let the app router decide" and gets the shell with 200.
+        error_page 404 @shell_not_found;
+        if ($upstream_http_x_beeflow_render = "not-found") { return 404; }
         try_files /index.html =404;
 
         add_header Cache-Control "no-store, no-cache, must-revalidate" always;
@@ -482,6 +491,22 @@ server {
         add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
         add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
         # CSP for the SPA document — defined once at server level ($csp).
+        add_header Content-Security-Policy $csp always;
+    }
+
+    # The shell with a 404 status, for a URL the renderer says has no page.
+    # Same body and headers as @shell, so a visitor still gets the app (which
+    # shows its own not-found view) while crawlers read an honest 404.
+    location @shell_not_found {
+        root /usr/share/nginx/html;
+        rewrite ^ /index.html break;
+
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header X-Frame-Options         "SAMEORIGIN" always;
+        add_header X-XSS-Protection        "0" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
         add_header Content-Security-Policy $csp always;
     }
 
