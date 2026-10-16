@@ -11,6 +11,7 @@ import { API_BASE, authFetch, isDemoPath } from '../../utils/helpers';
 import WallpaperLayer from './WallpaperLayer';
 import { applyThemeToDocument } from '../theme/applyTheme';
 import type { PreviewMode, ThemeContextValue, ThemeOption, ThemeProviderProps, ThemeSettings, ThemeState } from './ThemeContext.types';
+import { messageOf } from '../../utils/caughtError';
 
 /**
  * ThemeContext — single source of truth for the active theme + branding.
@@ -246,7 +247,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
         } catch (e) {
             if (!mountedRef.current) return;
             console.warn('[ThemeProvider] reload failed', e);
-            setState((s: ThemeState) => ({ ...s, loading: false, error: (e as Error).message || 'theme fetch failed' }));
+            setState((s: ThemeState) => ({ ...s, loading: false, error: messageOf(e, 'theme fetch failed') }));
         }
     }, []);
 
@@ -405,5 +406,4 @@ export const FONT_OPTIONS: ThemeOption[] = [
     { id: 'plex', label: 'IBM Plex Sans' },
     { id: 'geist', label: 'Geist' },
 ];
-
 export default ThemeContext;

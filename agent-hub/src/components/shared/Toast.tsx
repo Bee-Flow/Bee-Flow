@@ -28,7 +28,7 @@ const MAX_TOASTS = 4;
 interface ToastItem {
     id: number;
     kind: ToastKind;
-    message: string;
+    message: string | undefined;
     duration: number;
     /** How many times this exact message has arrived; 1 = shown once. */
     count?: number;
@@ -48,7 +48,7 @@ function emit(item: ToastItem): void {
     window.dispatchEvent(new CustomEvent<ToastEventDetail>(EVENT, { detail: { item } }));
 }
 
-function push(kind: ToastKind, message: string, duration?: number): number {
+function push(kind: ToastKind, message: string | undefined, duration?: number): number {
     const id = nextId++;
     emit({ id, kind, message, duration: duration ?? (kind === 'error' ? 6000 : 3000) });
     return id;
@@ -86,7 +86,7 @@ interface UndoableOptions {
 
 export const toast = {
     success: (message: string, duration?: number) => push('success', message, duration),
-    error: (message: string, duration?: number) => push('error', message, duration),
+    error: (message: string | undefined, duration?: number) => push('error', message, duration),
     info: (message: string, duration?: number) => push('info', message, duration),
     /** One toast with an Undo button. Exactly one of onUndo / onExpire runs, once. */
     undoable: ({ message, undoLabel, onUndo, onExpire, ms = 8000 }: UndoableOptions): number => {

@@ -64,19 +64,19 @@ export interface SchemaTabProps {
     schema: DbSchema | null;
     onRefresh: () => void;
     busy: boolean;
-    onError: (message: string) => void;
+    onError: (message: string | undefined) => void;
     unreadable?: boolean;
 }
 
 export interface BrowseTabProps {
     webpageId?: string;
     schema: DbSchema | null;
-    onError: (message: string) => void;
+    onError: (message: string | undefined) => void;
 }
 
 export interface SqlTabProps {
     webpageId?: string;
-    onError: (message: string) => void;
+    onError: (message: string | undefined) => void;
     onSchemaChanged?: () => void;
 }
 

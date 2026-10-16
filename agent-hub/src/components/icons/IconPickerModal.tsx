@@ -7,6 +7,7 @@ import { toast } from '../shared/Toast';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { EmojiClickData } from 'emoji-picker-react';
 import type { CustomIcon } from '../../hooks/useIconPack';
+import { errorMessage } from '../../utils/caughtError';
 
 interface IconPickerModalProps {
     isOpen: boolean;
@@ -89,7 +90,7 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
             }
         } catch (err) {
             console.error('Generate Error:', err);
-            toast.error('Generation failed: ' + (err as Error).message);
+            toast.error('Generation failed: ' + errorMessage(err));
         }
         setGenerating(false);
     };

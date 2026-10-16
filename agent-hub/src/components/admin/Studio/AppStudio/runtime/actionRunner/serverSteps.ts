@@ -7,6 +7,7 @@ import { parseSseStream } from '../sseStream';
 import { BROWSE_STEP_DEADLINE_MS, STEP_DEADLINE_MS, quotaToast, readJson } from './core';
 import type { EffectObject, Translate, Vars } from './core';
 import type { RunnerContext } from './runnerContext';
+import { errorName } from '../../../../../../utils/caughtError';
 
 /** A running sequence's state, threaded (and mutated) through its steps. */
 export interface SeqState {
@@ -42,7 +43,7 @@ async function postStep(url: string, body: Record<string, unknown>, deadlineMs: 
     try {
         return await postJson(url, body, deadlineMs);
     } catch (err) {
-        const name = (err as { name?: unknown } | null)?.name;
+        const name = errorName(err);
         if (name === 'TimeoutError' || name === 'AbortError') throw new Error(tooLong());
         throw err;
     }

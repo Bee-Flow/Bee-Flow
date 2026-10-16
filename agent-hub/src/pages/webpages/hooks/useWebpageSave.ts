@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MutableRefObject } from 'react';
 import type { ExtraContents, PrimaryContent } from '../webpageEditorTypes';
+import { errorMessage } from '../../../utils/caughtError';
 
 /** The /api/webpages client, as far as saving needs it. */
 type SaveApi = (path: string, opts?: { method?: string; body?: string }) => Promise<unknown>;
@@ -320,7 +321,7 @@ export function useWebpageChatPersistence({ webpageId, chatMessages, chatLoading
                 });
                 lastSavedChatRef.current = serialized;
             } catch (err) {
-                console.warn('[Webpages] Chat save failed:', (err as Error).message);
+                console.warn('[Webpages] Chat save failed:', errorMessage(err));
             }
         }, debounceMs);
         return () => {
@@ -343,7 +344,7 @@ export function useWebpageChatPersistence({ webpageId, chatMessages, chatLoading
         try {
             await api(`/${webpageId}/chat`, { method: 'DELETE' });
         } catch (err) {
-            console.warn('[Webpages] Chat clear failed:', (err as Error).message);
+            console.warn('[Webpages] Chat clear failed:', errorMessage(err));
         }
     }, [api, webpageId, markSaved]);
 

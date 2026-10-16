@@ -3,6 +3,7 @@ import { Video, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { LANGS, Toggle, Row, Select } from '../../pages/settings/shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
+import { errorMessage } from '../../utils/caughtError';
 
 const MEET_GREEN = '#00832D';
 
@@ -19,7 +20,7 @@ interface GoogleMeetConfig {
 
 interface SaveMessage {
     type: 'success' | 'error';
-    text: string;
+    text: string | undefined;
 }
 
 /**
@@ -53,7 +54,7 @@ export default function GoogleMeetAdminPanel({ user }: GoogleMeetAdminPanelProps
             });
             if (res.ok) setMessage({ type: 'success', text: t('common.saved', 'Saved') });
             else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
-        } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
+        } catch (e) { setMessage({ type: 'error', text: errorMessage(e) }); }
         finally { setSaving(false); }
     };
 

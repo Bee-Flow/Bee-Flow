@@ -11,6 +11,7 @@ import SSOSection from './SSOSection';
 import DocProcessingSection from './DocProcessingSection';
 import loadChatModels from './loadChatModels';
 import type { ProviderModel } from './loadChatModels';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface GroupSyncSettings {
     destructiveSync: boolean;
@@ -47,7 +48,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     // ── Microsoft SSO ──
     const [ssoClientId, setSsoClientId] = useState('');
@@ -118,7 +119,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
                 setAzureEmbedModel(d.azureEmbedModel || 'text-embedding-3-small');
             }
         } catch (err) {
-            setError((err as Error).message);
+            setError(errorMessage(err));
         }
         // Every connected provider's chat models: the tiers saved here are the
         // platform's, which any provider may serve, not only Azure.
@@ -148,7 +149,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
                 setError(d.error || 'Failed to save');
             }
         } catch (err) {
-            setError((err as Error).message);
+            setError(errorMessage(err));
         }
         setSaving(false);
     };

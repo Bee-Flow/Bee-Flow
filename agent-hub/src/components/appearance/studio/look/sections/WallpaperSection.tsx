@@ -9,6 +9,7 @@ import { useTheme } from '../../../ThemeContext';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import { messageOf } from '../../../../../utils/caughtError';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -44,7 +45,7 @@ export default function WallpaperSection({ form, setForm, saving }: LookSectionP
             await theme.uploadWallpaper(file);
             toast.success('Wallpaper uploaded');
         } catch (e) {
-            toast.error((e as Error)?.message || 'Upload failed');
+            toast.error(messageOf(e, 'Upload failed'));
         } finally {
             setUploading(false);
         }
@@ -56,7 +57,7 @@ export default function WallpaperSection({ form, setForm, saving }: LookSectionP
             await theme.deleteWallpaper();
             toast.success('Wallpaper removed');
         } catch (e) {
-            toast.error((e as Error)?.message || 'Delete failed');
+            toast.error(messageOf(e, 'Delete failed'));
         }
     }, [theme, confirm]);
 

@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
 
 export default function SupportToolsTab() {
     const { t } = useTranslation();
     const [v2Enabled, setV2Enabled] = useState(false);
     const [threshold, setThreshold] = useState(0.78);
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
@@ -20,7 +21,7 @@ export default function SupportToolsTab() {
                     setV2Enabled(!!d.v2Enabled);
                     setThreshold(d.autoResolveThreshold ?? 0.78);
                 }
-            } catch (e) { setError((e as Error).message); }
+            } catch (e) { setError(errorMessage(e)); }
         })();
     }, []);
 
@@ -33,7 +34,7 @@ export default function SupportToolsTab() {
             });
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Save failed'); }
             setSaved(true);
-        } catch (e) { setError((e as Error).message); }
+        } catch (e) { setError(errorMessage(e)); }
         finally { setBusy(false); }
     };
 

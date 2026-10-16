@@ -7,6 +7,7 @@ import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
 import { listGoogleMeetRecordings } from '../lib/transcriptionsApi';
 import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface MeetRecording {
     eventId: string;
@@ -46,12 +47,12 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
     const { importFromGoogleMeet, settings, uploading, uploadStage, uploadError, clearError } = useRecorder();
     const { needsReconsent } = useGoogleMeetConnected(true);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
+    const [error, setError] = useState<unknown>(null);
     const [items, setItems] = useState<MeetRecording[]>([]);
     const [busyKey, setBusyKey] = useState<string | null | undefined>(null);
     const [reauthorized, setReauthorized] = useState(false);
     const [reauthBusy, setReauthBusy] = useState(false);
-    const [reauthError, setReauthError] = useState<Error | null>(null);
+    const [reauthError, setReauthError] = useState<unknown>(null);
 
     const load = async () => {
         setLoading(true);
@@ -60,7 +61,7 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
             const data = await listGoogleMeetRecordings();
             setItems(Array.isArray(data?.items) ? data.items : []);
         } catch (err) {
-            setError(err as Error);
+            setError(err);
         } finally {
             setLoading(false);
         }
@@ -89,7 +90,7 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
                 load();
             }
         } catch (err) {
-            setReauthError(err as Error);
+            setReauthError(err);
         } finally {
             setReauthBusy(false);
         }
@@ -108,8 +109,8 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
                 <div className="text-xs max-w-sm text-[var(--text-muted)]">
                     {t('meetings.gmeet_reconsent_desc', 'Your Google account was connected before Meet recordings were supported. Re-authorize to let Bee Flow list and import your Meet recordings — your other Google integrations keep working.')}
                 </div>
-                {reauthError && (
-                    <div className="text-xs text-[var(--error)]">{reauthError.message}</div>
+                {Boolean(reauthError) && (
+                    <div className="text-xs text-[var(--error)]">{errorMessage(reauthError)}</div>
                 )}
                 <button
                     type="button"
@@ -149,10 +150,10 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
                 </div>
             )}
 
-            {!loading && error && (
+            {!loading && Boolean(error) && (
                 <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs" style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}>
                     <div className="font-semibold">{t('meetings.talk_load_failed', 'Couldn’t load recordings')}</div>
-                    <div className="text-[var(--text-secondary)]">{error.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(error)}</div>
                 </div>
             )}
 
@@ -225,10 +226,10 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
                 </div>
             )}
 
-            {uploadError && (
+            {Boolean(uploadError) && (
                 <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs" style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}>
                     <div className="font-semibold">{t('meetings.import_failed', 'Import failed')}</div>
-                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>
                     <button
                         type="button"
                         onClick={clearError}

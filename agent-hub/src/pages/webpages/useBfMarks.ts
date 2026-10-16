@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './webpagesApi';
+import { messageOf } from '../../utils/caughtError';
 
 /**
  * The bf-marks of one page, read from `GET /api/webpages/:id/bindings`.
@@ -54,7 +55,7 @@ export function useBfMarks(webpageId: string | null | undefined, { enabled = tru
             const body = await api(`/${encodeURIComponent(webpageId)}/bindings`);
             setState({ loading: false, error: null, data: body && body.elements ? body.elements : null });
         } catch (e) {
-            setState({ loading: false, error: (e as Error | null)?.message || 'failed', data: null });
+            setState({ loading: false, error: messageOf(e, 'failed'), data: null });
         }
     }, [webpageId]);
 

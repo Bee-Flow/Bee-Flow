@@ -1,6 +1,7 @@
 import { useCallback, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { API_BASE, ApiError, mutate } from '../../../api/mutate';
 import type { WebpagePatch, WebpageRow } from '../webpageEditorTypes';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface PublishingDeps {
     pageId: string;
@@ -9,7 +10,7 @@ interface PublishingDeps {
     onMetaChange?: (id: string, patch: WebpagePatch) => void;
     flushNow: () => Promise<unknown>;
     mountedRef: RefObject<boolean>;
-    setError: (message: string | null) => void;
+    setError: (message: string | null | undefined) => void;
 }
 
 /**
@@ -54,7 +55,7 @@ export default function useWebpagePublishing({ pageId, page, setPage, onMetaChan
             setPage(prev => prev ? { ...prev, ...patch } : prev);
             onMetaChange?.(pageId, patch);
         } catch (err) {
-            if (mountedRef.current) setError((err as Error).message);
+            if (mountedRef.current) setError(errorMessage(err));
         }
     }, [pageId, onMetaChange, mountedRef, setPage, setError]);
 

@@ -6,6 +6,7 @@ import WallpaperPresets from '../../components/appearance/WallpaperPresets';
 import { toast } from '../../components/shared/Toast';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ThemeSettings } from '../../components/appearance/ThemeContext.types';
+import { messageOf } from '../../utils/caughtError';
 
 /**
  * AppearanceSection — user-facing theme overrides. End users pick a theme
@@ -61,7 +62,7 @@ export default function AppearanceSection() {
             await theme.setUserOverride(patch);
             if (message) toast.success(message);
         } catch (e) {
-            toast.error((e as Error)?.message || 'Could not save');
+            toast.error(messageOf(e, 'Could not save'));
         } finally {
             setBusy(false);
         }

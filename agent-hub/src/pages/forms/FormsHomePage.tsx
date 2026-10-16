@@ -6,6 +6,7 @@ import useAutomationApi from '../../hooks/useAutomationApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { rememberFormOpened } from '../../utils/formRecents';
 import type { OrgFormRow } from './FormsHomePage.types';
+import { messageOf } from '../../utils/caughtError';
 
 interface FormCardProps {
     form: OrgFormRow;
@@ -131,7 +132,7 @@ export default function FormsHomePage({ onNavigate = null }: Pick<FormCardProps,
             // the flag is one the gate lets through.
             setForms((Array.isArray(res?.forms) ? res.forms : []).filter((f: OrgFormRow) => f && f.canOpen !== false));
         } catch (err) {
-            setError((err as Error | null)?.message || 'Could not load the forms.');
+            setError(messageOf(err, 'Could not load the forms.'));
         } finally {
             setLoading(false);
         }

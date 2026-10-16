@@ -4,6 +4,7 @@ import { AssetPickerDialog } from './jsDeps';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { uploadCmsFile } from '../cmsUpload';
+import { errorMessage } from '../../../../utils/caughtError';
 
 /**
  * Resolve a stored image value to a displayable URL: full http(s) URLs and
@@ -117,7 +118,7 @@ export function ImageField({
     const { t } = useTranslation();
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState<number | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [browsing, setBrowsing] = useState(false);
     const libraryAvailable = useAssetLibraryAvailable(allowBrowse);
 
@@ -129,7 +130,7 @@ export function ImageField({
         try {
             onChange(await uploadAsset(file, uploadPath, setProgress, (status) => t('cms_site.site.fields.upload_failed', 'Upload failed ({status})', { status })));
         } catch (err) {
-            setError((err as Error).message);
+            setError(errorMessage(err));
         } finally {
             setUploading(false);
             setProgress(null);

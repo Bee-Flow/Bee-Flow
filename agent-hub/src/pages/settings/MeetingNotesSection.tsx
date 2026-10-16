@@ -3,6 +3,7 @@ import { MessageSquare } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { NC_BLUE, LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
+import { errorMessage } from '../../utils/caughtError';
 
 interface TalkNotesConfig {
     autoTranscribe: boolean;
@@ -16,7 +17,7 @@ interface TalkNotesConfig {
 
 interface SaveMessage {
     type: 'success' | 'error';
-    text: string;
+    text: string | undefined;
 }
 
 /**
@@ -59,7 +60,7 @@ export default function MeetingNotesSection() {
             });
             if (res.ok) setMessage({ type: 'success', text: t('settings.talk_notes.saved', "Saved") });
             else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
-        } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
+        } catch (e) { setMessage({ type: 'error', text: errorMessage(e) }); }
         finally { setSaving(false); }
     };
 

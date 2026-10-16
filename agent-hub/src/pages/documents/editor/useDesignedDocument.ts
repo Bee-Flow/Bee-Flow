@@ -11,6 +11,7 @@ import { extractSections } from '../canvasBridge';
 import { downloadPdf, downloadPptx, fetchPreviewHtml, fetchRendered, getDocument, updateDocument } from '../documentsApi';
 import type { StudioDocument } from '../documentQueries';
 import useDocumentAutosave, { readDraft, type Draft } from '../useDocumentAutosave';
+import { messageOf, errorStatus } from '../../../utils/caughtError';
 
 export interface WorkspaceHandle { flush?: () => Promise<void> }
 
@@ -29,7 +30,7 @@ function useErrorText() {
     return useCallback((e: unknown): string => {
         if (!e) return '';
         if (typeof e === 'string') return e;
-        return projectErrorText(t, e as Error) || (e as Error).message || t('documents.save_failed', 'Could not save your changes.');
+        return projectErrorText(t, e) || messageOf(e, t('documents.save_failed', 'Could not save your changes.'));
     }, [t]);
 }
 
@@ -190,7 +191,7 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
 
     const output = useDocumentOutput({ id: initial.id, docRef, before: async () => { await workspaceRef.current?.flush?.(); await flushEditor(); }, setError, setNotice, errorText });
 
-    const onChatError = useCallback((err: unknown) => { if ((err as { status?: number })?.status !== 409) setError(errorText(err)); }, [errorText]);
+    const onChatError = useCallback((err: unknown) => { if (errorStatus(err) !== 409) setError(errorText(err)); }, [errorText]);
     useChatUpdates(initial.id, reload, onChatError);
 
     const autosaveError = autosave.error ? errorText(autosave.error) : null;

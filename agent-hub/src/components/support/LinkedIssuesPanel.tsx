@@ -5,6 +5,7 @@ import StateChip from './IssueStateChip';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import useConfirm from '../shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
+import { errorMessage } from '../../utils/caughtError';
 
 /**
  * The YouTrack issues attached to one support ticket.
@@ -185,7 +186,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
     const [loading, setLoading] = useState<boolean>(false);
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [status, setStatus] = useState<YouTrackStatus | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [open, setOpen] = useState<boolean>(false);
     const [reverseFor, setReverseFor] = useState<string | null>(null);
     const [reverse, setReverse] = useState<ReverseThread[]>([]);
@@ -200,7 +201,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
                 setIssues(d.issues || []);
             }
         } catch (e) {
-            console.warn('[Support] linked issues:', (e as Error).message);
+            console.warn('[Support] linked issues:', errorMessage(e));
         } finally {
             setLoading(false);
         }
@@ -231,7 +232,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
             const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}/issues/${issueId}`, { method: 'DELETE' });
             if (res.ok) { await load(); onChanged?.(); }
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
         }
     };
 
@@ -244,7 +245,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
             if (!res.ok) { setError(d.error || 'Refresh failed'); return; }
             setIssues(d.issues || []);
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
         } finally {
             setRefreshing(false);
         }

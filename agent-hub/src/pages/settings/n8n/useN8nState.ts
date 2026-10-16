@@ -5,6 +5,7 @@ import {
     type DiscoveredWorkflow, type FlashMessage, type N8nDiagnostics, type N8nInput, type N8nWorkflow,
     type PermissionSummary, type TestResult,
 } from './n8nModel';
+import { errorMessage } from '../../../utils/caughtError';
 
 /** The status line's message, and clearing it after a while. */
 export function useFlashMessage() {
@@ -128,7 +129,7 @@ function useN8nDiagnostics({ setMessage, clearAfter }: Flash) {
             if (res.ok) setDiag(await res.json());
             else setDiag({ ok: false, error: 'Failed to load diagnostics' });
         } catch (e) {
-            setDiag({ ok: false, error: (e as Error).message });
+            setDiag({ ok: false, error: errorMessage(e) });
         }
         setDiagLoading(false);
     };
@@ -217,7 +218,7 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
             }, 'POST');
             setTestResult(await res.json());
         } catch (e) {
-            setTestResult({ ok: false, error: (e as Error).message });
+            setTestResult({ ok: false, error: errorMessage(e) });
         }
         setTesting(false);
     };
@@ -241,7 +242,7 @@ export function useN8nPermissions({ setMessage, clearAfter }: Flash) {
             if (res.ok) setPermSummary(await res.json());
             else setPermSummary({ error: 'Failed to load permissions' });
         } catch (e) {
-            setPermSummary({ error: (e as Error).message });
+            setPermSummary({ error: errorMessage(e) });
         }
         setPermLoading(false);
     };

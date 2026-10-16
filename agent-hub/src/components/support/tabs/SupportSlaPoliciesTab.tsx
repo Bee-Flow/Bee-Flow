@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Save } from 'lucide-react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface SlaPolicy {
     priority: string;
@@ -35,7 +36,7 @@ export default function SupportSlaPoliciesTab() {
     const { t } = useTranslation();
     const [rows, setRows] = useState<Record<string, SlaPolicy>>({});
     const [busy, setBusy] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     const load = useCallback(async () => {
         try {
@@ -45,7 +46,7 @@ export default function SupportSlaPoliciesTab() {
             const map: Record<string, SlaPolicy> = {};
             for (const p of policies || []) map[p.priority] = p;
             setRows(map);
-        } catch (e) { setError((e as Error).message); }
+        } catch (e) { setError(errorMessage(e)); }
     }, []);
     useEffect(() => { load(); }, [load]);
 
@@ -60,7 +61,7 @@ export default function SupportSlaPoliciesTab() {
             });
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Save failed'); }
             await load();
-        } catch (e) { setError((e as Error).message); }
+        } catch (e) { setError(errorMessage(e)); }
         finally { setBusy(null); }
     };
 

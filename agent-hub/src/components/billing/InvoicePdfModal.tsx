@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, Download } from 'lucide-react';
 import Modal from '../shared/Modal';
 import { useTranslation } from '../../hooks/useTranslation';
+import { messageOf } from '../../utils/caughtError';
 
 interface Props {
     open: boolean;
@@ -42,7 +43,7 @@ export default function InvoicePdfModal({ open, onClose, invoice, pdfFetcher }: 
                 urlRef.current = objectUrl;
                 setUrl(objectUrl);
             } catch (e) {
-                if (alive) setError((e as Error)?.message || t('billing.invoice_pdf_failed', 'Failed to load the invoice PDF. Try again.'));
+                if (alive) setError(messageOf(e, t('billing.invoice_pdf_failed', 'Failed to load the invoice PDF. Try again.')));
             } finally {
                 if (alive) setLoading(false);
             }

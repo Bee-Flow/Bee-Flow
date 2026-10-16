@@ -4,6 +4,7 @@ import { toast } from '../components/shared/Toast';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { mutate } from '../api/mutate';
 import type { TranslateFn } from '../hooks/useTranslation';
+import { errorMessage } from '../utils/caughtError';
 
 /** One row of a conversation list, as the hub's lists carry it. */
 export interface ConversationRow {
@@ -158,7 +159,7 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to rename conversation:', e);
-            toast.error((e as Error).message);
+            toast.error(errorMessage(e));
         }
     };
 
@@ -183,7 +184,7 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to pin/unpin conversation:', e);
-            toast.error((e as Error).message);
+            toast.error(errorMessage(e));
         }
     };
 
@@ -212,7 +213,7 @@ const useConversationMeta = ({
             }
         } catch (e) {
             console.error('Failed to update conversation labels:', e);
-            toast.error((e as Error).message);
+            toast.error(errorMessage(e));
         }
     };
 
@@ -239,7 +240,7 @@ const useConversationMeta = ({
             setConversationLabels(prev => prev.filter(l => l.id !== labelId));
         } catch (e) {
             console.error('Failed to delete label:', e);
-            toast.error((e as Error).message);
+            toast.error(errorMessage(e));
         }
     };
 

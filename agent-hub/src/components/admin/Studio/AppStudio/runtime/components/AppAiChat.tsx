@@ -7,6 +7,7 @@ import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
 import type { AppNode } from '../../inspector/appDefinition';
 import { parseSseStream } from '../sseStream';
+import { messageOf } from '../../../../../../utils/caughtError';
 
 /**
  * App Studio runtime — 'ai_chat'. Spec: server/appStudio/componentSpecs.js.
@@ -110,7 +111,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                 });
             }
         } catch (e) {
-            setError((e as Error)?.message || t('studio_apps_runtime.ai_chat.failed', 'The assistant failed to respond.'));
+            setError(messageOf(e, t('studio_apps_runtime.ai_chat.failed', 'The assistant failed to respond.')));
             setMessages((m) => m.slice(0, -1)); // drop the pending assistant bubble
         } finally {
             setBusy(false);

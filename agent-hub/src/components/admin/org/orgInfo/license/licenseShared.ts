@@ -77,7 +77,7 @@ export interface ChangePreview {
 /** A subscription action's outcome, shown inline until dismissed. */
 export interface SubMessage {
     type: 'success' | 'error';
-    text: string;
+    text: string | undefined;
 }
 
 /** The org form's fields this page touches (the usage-sharing toggle). */

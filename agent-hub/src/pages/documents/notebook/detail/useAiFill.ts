@@ -11,12 +11,13 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import useTranslation from '../../../../hooks/useTranslation';
 import type { NotebookEditorHandle } from './editorHandle';
 import { editorHtml } from './editorHandle';
+import { errorMessage } from '../../../../utils/caughtError';
 
 interface Options {
     notebookId: string;
     modelTier: string;
     editorRef: MutableRefObject<NotebookEditorHandle | null>;
-    onError: (message: string) => void;
+    onError: (message: string | undefined) => void;
     /** The filled document is in the editor (HTML): save it (a live session shares it by itself). */
     onApplied: (html: string) => void;
 }
@@ -79,7 +80,7 @@ export default function useAiFill({ notebookId, modelTier, editorRef, onError, o
             const applied = editorHtml(editorRef.current);
             if (applied != null) onApplied(applied);
         } catch (e) {
-            onError((e as Error).message);
+            onError(errorMessage(e));
         } finally {
             setAiFilling(false);
         }

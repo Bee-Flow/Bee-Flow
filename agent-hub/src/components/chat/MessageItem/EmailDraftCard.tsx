@@ -3,6 +3,7 @@ import { Mail, Send, Loader, FileText, X, ExternalLink } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import type { DraftStatusMap } from '../../../hooks/useDraftAction';
 import useTranslation from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface EmailDraft {
     to?: string;
@@ -46,7 +47,7 @@ export default function EmailDraftCard({ msg, emailDraftStatuses, setEmailDraftS
                 setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${errorMsg}` }));
             }
         } catch (err) {
-            setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${(err as Error).message}` }));
+            setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${errorMessage(err)}` }));
         }
     };
 
@@ -71,7 +72,7 @@ export default function EmailDraftCard({ msg, emailDraftStatuses, setEmailDraftS
                 setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${errorMsg}` }));
             }
         } catch (err) {
-            setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${(err as Error).message}` }));
+            setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${errorMessage(err)}` }));
         }
     };
 

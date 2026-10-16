@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { messageOf } from '../../../utils/caughtError';
 
 interface PairingCode {
     id: string;
@@ -50,7 +51,7 @@ const OrgNcPairingPanel = () => {
             const data = await res.json();
             setCodes(data.codes || []);
         } catch (e) {
-            setError((e as Error).message || 'Failed to load pairing codes');
+            setError(messageOf(e, 'Failed to load pairing codes'));
         } finally {
             setLoading(false);
         }
@@ -71,7 +72,7 @@ const OrgNcPairingPanel = () => {
             if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
             await reload();
         } catch (e) {
-            setError((e as Error).message || 'Failed to generate pairing code');
+            setError(messageOf(e, 'Failed to generate pairing code'));
         } finally {
             setGenerating(false);
         }
@@ -84,7 +85,7 @@ const OrgNcPairingPanel = () => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             await reload();
         } catch (e) {
-            setError((e as Error).message || 'Failed to revoke');
+            setError(messageOf(e, 'Failed to revoke'));
         }
     };
 

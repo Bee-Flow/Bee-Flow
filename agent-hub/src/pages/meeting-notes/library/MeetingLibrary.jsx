@@ -6,6 +6,7 @@ import MeetingRow from './MeetingRow';
 import LibraryFilters from './LibraryFilters';
 import LibraryEmptyState from './LibraryEmptyState';
 import ReportModal from './ReportModal';
+import { messageOf } from '../../../utils/caughtError';
 
 const REPORT_MAX_NOTES = 10;
 
@@ -148,7 +149,7 @@ export default function MeetingLibrary({
                             {t('meetings.list_failed', 'Couldn’t load your meetings')}
                         </p>
                         <p className="text-xs max-w-xs text-[var(--text-tertiary)]">
-                            {error.message || t('meetings.something_wrong', 'Something went wrong.')}
+                            {messageOf(error, t('meetings.something_wrong', 'Something went wrong.'))}
                         </p>
                         {onRetry && (
                             <button

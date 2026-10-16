@@ -8,6 +8,7 @@ import RecoveryCodes from '../../components/mfa/RecoveryCodes';
 import SecurityKeyEnrolment from '../../components/mfa/SecurityKeyEnrolment';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { errorMessage } from '../../utils/caughtError';
 
 /** POST /auth/mfa/setup: the enrollment secret and how to hand it to an app. */
 interface MfaSetupData {
@@ -45,7 +46,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
     const [code, setCode] = useState('');
     const [newCodes, setNewCodes] = useState<string[] | null>(null);   // recovery codes shown once
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState<string | undefined>('');
     // A security key instead of the app: either one satisfies the duty.
     const [withKey, setWithKey] = useState(false);
 
@@ -71,7 +72,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
                 const data = await _setupInFlight;
                 if (alive) setSetupData(data);
             } catch (e) {
-                if (alive) setError((e as Error).message);
+                if (alive) setError(errorMessage(e));
             } finally {
                 if (alive) setBusy(false);
             }
@@ -85,7 +86,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
             const data = await post('enable', { code: code.trim() });
             setNewCodes(data.recoveryCodes || []);
             setCode('');
-        } catch (e) { setError((e as Error).message); }
+        } catch (e) { setError(errorMessage(e)); }
         finally { setBusy(false); }
     };
 

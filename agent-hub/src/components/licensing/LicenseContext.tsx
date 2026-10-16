@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useEntitlements } from './EntitlementsContext';
 import UpgradePrompt from '../billing/UpgradePrompt';
+import { isAbortError, messageOf } from '../../utils/caughtError';
 
 /** A licence or subscription row as /api/license/status returns it. */
 export interface LicenseRecord {
@@ -159,7 +160,7 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             if (!mountedRef.current) return;
             console.warn('[LicenseProvider] reload failed', e);
-            setState(s => ({ ...s, loading: false, error: (e as Error).message || 'license fetch failed' }));
+            setState(s => ({ ...s, loading: false, error: messageOf(e, 'license fetch failed') }));
         }
     }, []);
 
@@ -226,7 +227,7 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
                 }
                 if (Object.keys(patch).length > 0) setState(s => ({ ...s, ...patch }));
             } catch (e) {
-                if ((e as Error).name === 'AbortError') return;
+                if (isAbortError(e)) return;
                 console.warn('[LicenseProvider] setup-status fetch failed', e);
             }
         })();

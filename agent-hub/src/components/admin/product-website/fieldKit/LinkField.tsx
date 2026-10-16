@@ -2,6 +2,7 @@ import { createContext, useContext, useRef, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { FieldRow, inputClass } from './basicFields';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
 
 /** A link value object, by kind. */
 export interface CmsLink {
@@ -92,7 +93,7 @@ function useNewPageForm(link: CmsLink, set: PageSelectorProps['set']) {
             set({ pageId: result.id });
             setCreating(false);
         } catch (err) {
-            setCreateError((err as Error)?.message || t('cms_site.site.fields.create_failed', 'Failed to create page'));
+            setCreateError(messageOf(err, t('cms_site.site.fields.create_failed', 'Failed to create page')));
         } finally {
             setSubmitting(false);
         }

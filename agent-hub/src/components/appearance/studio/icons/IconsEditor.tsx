@@ -12,6 +12,7 @@ import Modal from '../../../shared/Modal';
 import useConfirm from '../../../shared/useConfirm';
 import type { CustomIcon } from '../../../../hooks/useIconPack';
 import type { AddPackModalProps, BulkGenerateModalProps, BulkOptions, BulkResult, IconCategory, IconCellProps, IconEntry, IconPack, PackEditorProps, PackListItemProps } from './IconsEditor.types';
+import { errorMessage } from '../../../../utils/caughtError';
 
 const API = `${API_BASE}/api/icons`;
 
@@ -428,7 +429,7 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
                 setBulkResult({ ok: false, message: data.error || 'Failed' });
             }
         } catch (e) {
-            setBulkResult({ ok: false, message: (e as Error).message });
+            setBulkResult({ ok: false, message: errorMessage(e) });
         }
         setBulkRunning(false);
     };
@@ -665,7 +666,6 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }: Bulk
                     <input type="checkbox" checked={overwrite} onChange={e => setOverwrite(e.target.checked)} />
                     {t('appearance.icons_editor_overwrite_existing_customised_icons', 'Overwrite existing customised icons ({custom_count} currently set)', { custom_count: customCount })}
                 </label>
-
                 <div className="flex gap-2">
                     <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
                         {t('appearance.icons_editor_cancel', 'Cancel')}

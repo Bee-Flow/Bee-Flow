@@ -6,6 +6,7 @@ import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { slugIssues as slugIssuesJs } from '../../../../utils/cmsPublicRouting';
 import { authFetch } from '../../../../utils/helpers';
+import { errorMessage } from '../../../../utils/caughtError';
 import useConfirm from '../../../shared/useConfirm';
 import { AppIcon } from '../blog/jsComponents';
 import { cmsApi } from '../cmsApi';
@@ -102,7 +103,7 @@ function useSitemapPageActions({ page, site, siteId, onChanged }: Pick<SettingsF
         });
     };
 
-    return { busy, error: error as Error | null, saveMeta, toggleNav, setHomepage, deletePage, confirmDialog };
+    return { busy, error, saveMeta, toggleNav, setHomepage, deletePage, confirmDialog };
 }
 
 function NavSwitch({ on, busy, onToggle }: { on: boolean; busy: boolean; onToggle: () => void }) {
@@ -230,7 +231,7 @@ export default function SettingsFlyout({ page, pages, site, siteId, anchorPos, c
                     ) : null}
                 </label>
                 <NavSwitch on={inNav} busy={busy} onToggle={() => toggleNav(!inNav)} />
-                {error ? <p className="text-xs text-red-400">{error.message}</p> : null}
+                {error ? <p className="text-xs text-red-400">{errorMessage(error)}</p> : null}
 
                 <div className="flex items-center gap-2 pt-1">
                     <button

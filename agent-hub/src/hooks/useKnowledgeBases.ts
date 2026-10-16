@@ -39,6 +39,7 @@ import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowled
 import { toast } from '../components/shared/Toast';
 import useConfirm from '../components/shared/useConfirm';
 import { API_BASE, authFetch, mutate } from '../api/mutate';
+import { errorMessage } from '../utils/caughtError';
 
 /** A knowledge base row. Consumers render more of it than this hook reads. */
 export interface KnowledgeBase {
@@ -307,7 +308,7 @@ export default function useKnowledgeBases({
             if (selectedKB?.id === kbId) { setSelectedKB(null); setKbDocs([]); }
             fetchKBs();
             onKBDeleted?.(kbId);
-        } catch (e) { console.error('Failed to delete KB:', e); toast.error((e as Error).message); }
+        } catch (e) { console.error('Failed to delete KB:', e); toast.error(errorMessage(e)); }
     }
 
     async function fetchKBDocs(
@@ -356,7 +357,7 @@ export default function useKnowledgeBases({
             await mutate(`${API_BASE}/api/kb/${selectedKB.id}/documents/${docId}`, { method: 'DELETE' });
             fetchKBDocs(selectedKB.id, { offset: 0 });
             fetchKBs();
-        } catch (e) { console.error('Failed to delete doc:', e); toast.error((e as Error).message); }
+        } catch (e) { console.error('Failed to delete doc:', e); toast.error(errorMessage(e)); }
     }
 
     // ── Bulk doc selection (paginated consumers) ─────────────────────
@@ -582,7 +583,6 @@ export default function useKnowledgeBases({
         } catch (e) { setKbIngestStatus(''); toast.error('Failed: ' + failureText(e)); }
         finally { setKbIngesting(false); }
     }
-
     return {
         // list
         kbs, loadingKbs, selectedKB, setSelectedKB, fetchKBs,

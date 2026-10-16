@@ -10,6 +10,7 @@ import {
     type EventSettings, type NotificationEvent, type NotificationSettings,
 } from './notificationSettings';
 import { SectionHeading, withDefinition, type SaveFn, type SettingsAutomation } from './settingsUi';
+import { messageOf } from '../../../../utils/caughtError';
 
 /*
  * The overview folds by its OWN width (@container/notify). Wide: the matrix of
@@ -48,7 +49,7 @@ export default function NotificationsSection({ automation, onSave }: { automatio
         try {
             await onSave(withDefinition(automation, 'notificationSettings', next));
         } catch (e) {
-            setError((e as Error)?.message || t('automations.settings.save_failed', 'Could not save this change.'));
+            setError(messageOf(e, t('automations.settings.save_failed', 'Could not save this change.')));
         }
     };
     const setEvent = (event: NotificationEvent, value: EventSettings) => commit({ ...settings, [event]: value });

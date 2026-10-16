@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
 import { copyText } from '../../../../utils/copyText';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
+import { errorMessage, messageOf } from '../../../../utils/caughtError';
 
 /** One inbound webhook row, as the server lists it. */
 export interface Webhook {
@@ -55,7 +56,7 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
     const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({}); // id → secret (in-memory only)
     const [visibleSecretIds, setVisibleSecretIds] = useState<Record<string, boolean>>({}); // id → currently shown vs masked
     const [copied, setCopied] = useState<string | null>(null); // key of the control just copied
-    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [errorMsg, setErrorMsg] = useState<string | null | undefined>(null);
 
     // Auto-mask timers — one per webhook id whose secret is currently shown. We
     // keep secrets in memory but re-mask them after a window so the panel
@@ -100,7 +101,7 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
             });
             return list;
         } catch (e) {
-            setErrorMsg((e as Error).message);
+            setErrorMsg(errorMessage(e));
             return [];
         } finally {
             setLoading(false);
@@ -139,7 +140,7 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
             await reload();
             return wh || null;
         } catch (e) {
-            setErrorMsg((e as Error).message);
+            setErrorMsg(errorMessage(e));
             return null;
         } finally {
             setCreating(false);
@@ -160,7 +161,7 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
             rememberSecret(wh.id, (r as { webhook?: Webhook } | null)?.webhook?.secret);
             await reload();
         } catch (e) {
-            setErrorMsg((e as Error).message);
+            setErrorMsg(errorMessage(e));
         }
     }, [api, automation?.id, rememberSecret, reload, confirmAction]);
 
@@ -177,7 +178,7 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
             await api.deleteWebhook((automation as { id: string }).id, wh.id);
             await reload();
         } catch (e) {
-            setErrorMsg((e as Error).message);
+            setErrorMsg(errorMessage(e));
         }
     }, [api, automation?.id, reload, confirmAction]);
 
@@ -197,7 +198,7 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
             setTimeout(() => setCopied((c) => (c === copyKey ? null : c)), 1500);
             setErrorMsg(null);
         } catch (e) {
-            setErrorMsg(`Copy failed: ${(e as Error).message || 'clipboard access denied'}. Select the text manually to copy.`);
+            setErrorMsg(`Copy failed: ${messageOf(e, 'clipboard access denied')}. Select the text manually to copy.`);
         }
     }, []);
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { inputClass } from './formPrimitives';
+import { errorMessage } from '../../../../../utils/caughtError';
 
 type JsonObject = Record<string, unknown>;
 
@@ -65,7 +66,7 @@ function JsonConfigEditor({ draft, onApply, onClose }: EditorProps) {
     const apply = () => {
         let parsed: unknown;
         try { parsed = JSON.parse(text); } catch (e) {
-            setError(`Invalid JSON: ${(e as Error).message}`);
+            setError(`Invalid JSON: ${errorMessage(e)}`);
             return;
         }
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {

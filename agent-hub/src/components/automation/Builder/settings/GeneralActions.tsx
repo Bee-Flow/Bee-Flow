@@ -7,6 +7,7 @@ import { downloadAutomationExport, saveAsTemplate, trashAutomation } from '../..
 import { useBuilderConfirm } from '../BuilderConfirmContext';
 import { LINK_BTN, SECONDARY_BTN } from './settingsUi';
 import type { SettingsAutomation } from './settingsUi';
+import { errorMessage } from '../../../../utils/caughtError';
 
 type ActionKey = 'duplicate' | 'export' | 'template' | 'delete';
 
@@ -37,7 +38,7 @@ export default function GeneralActions({ automation, onAutomationChange }: {
     const run = async (key: ActionKey | 'restore', work: () => Promise<Notice | null>) => {
         setBusy(key);
         setNotice(null);
-        try { setNotice(await work()); } catch (e) { setNotice({ tone: 'error', text: (e as Error)?.message || String(e) }); }
+        try { setNotice(await work()); } catch (e) { setNotice({ tone: 'error', text: errorMessage(e) || String(e) }); }
         setBusy(null);
     };
 

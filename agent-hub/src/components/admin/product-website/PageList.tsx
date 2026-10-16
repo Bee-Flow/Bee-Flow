@@ -21,6 +21,7 @@ import PageRow from './pageList/PageRow';
 import type { PageRowCallbacks } from './pageList/PageRow';
 import { AddPageDialog, TemplatesManagerDialog } from './pageList/TemplateDialogs';
 import type { NewPageInput, PageListPage, PageTemplate } from './pageList/pageListShared';
+import { describeError } from '../../../utils/caughtError';
 
 // The dialogs moved to ./pageList/TemplateDialogs; re-exported so the
 // import path the panel uses stays stable.
@@ -145,7 +146,7 @@ function ImportInput({ inputRef, onImportPage }: { inputRef: RefObject<HTMLInput
                     const parsed = await importPage(file);
                     onImportPage(parsed);
                 } catch (err) {
-                    toast.error((err as Error | null)?.message || String(err));
+                    toast.error(describeError(err));
                 }
             }}
         />

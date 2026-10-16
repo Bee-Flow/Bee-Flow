@@ -23,6 +23,7 @@ import { useEntitlements } from '../licensing/EntitlementsContext';
 import type {
     CoworkAgent, CoworkItem, CoworkPayload, CoworkSpec, WhenState,
 } from './cowork.types';
+import { messageOf } from '../../utils/caughtError';
 
 export interface UseCoworkComposerOptions {
     enabled?: boolean;
@@ -173,7 +174,7 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
             if (onCreated) onCreated(created, payload, spec);
             return created;
         } catch (err) {
-            setError((err as Error).message || t('cowork.error.create_failed', 'Could not create this work'));
+            setError(messageOf(err, t('cowork.error.create_failed', 'Could not create this work')));
             return null;
         } finally {
             setSubmitting(false);

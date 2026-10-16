@@ -5,6 +5,7 @@ import { STARTER_SETS } from './starterSets';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { TIER_META, configuredTierKeys } from '../../../../licensing/tierMeta';
 import { apiJson, generateRegexWithAi } from '../api/guardrailsApi';
+import { errorMessage } from '../../../../../utils/caughtError';
 
 type StarterSet = (typeof STARTER_SETS)[number];
 
@@ -111,7 +112,7 @@ export function AiGenerate({ setRules, setCollections, onSaved }: AiGenerateProp
                 setAiMessage({ type: 'error', text: data?.error || 'Failed to generate rules' });
             }
         } catch (e) {
-            setAiMessage({ type: 'error', text: 'Error communicating with AI: ' + (e as Error).message });
+            setAiMessage({ type: 'error', text: 'Error communicating with AI: ' + errorMessage(e) });
         } finally {
             setAiGenerating(false);
         }

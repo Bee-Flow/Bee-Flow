@@ -3,12 +3,12 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { createPortal } from 'react-dom';
 import mermaid, { type MermaidConfig } from 'mermaid';
 import { Maximize2, X, Download } from 'lucide-react';
-
+import { errorMessage, messageOf } from '../../utils/caughtError';
 let instanceCounter = 0;
 
 /** Detect errors caused by stale Vite chunks after redeployment */
-const isStaleChunkError = (err?: Error | null) => {
-    const msg = (err?.message || err || '').toString();
+const isStaleChunkError = (err?: unknown) => {
+    const msg = String(errorMessage(err) || err || '');
     return (
         msg.includes('Failed to fetch dynamically imported module') ||
         msg.includes('dynamically imported module') ||
@@ -118,7 +118,7 @@ const MermaidOverlay = ({ code, onClose }: { code: string; onClose: () => void }
             } catch (err) {
                 console.error('Mermaid overlay render error:', err);
                 if (containerRef.current) {
-                    if (isStaleChunkError(err as Error)) {
+                    if (isStaleChunkError(err)) {
                         containerRef.current.innerHTML = `
                             <div style="color: #94a3b8; padding: 20px; text-align: center;">
                                 <div style="font-weight: 600; margin-bottom: 8px;">🔄 New version available</div>
@@ -285,10 +285,10 @@ const MermaidRenderer = ({ code }: { code: string }) => {
                 }
             } catch (err) {
                 console.error('Mermaid render error:', err);
-                if (isStaleChunkError(err as Error)) {
+                if (isStaleChunkError(err)) {
                     setError('__STALE_CHUNK__');
                 } else {
-                    setError((err as Error).message || 'Failed to render diagram');
+                    setError(messageOf(err, 'Failed to render diagram'));
                 }
                 // Clean up any error elements mermaid may have injected
                 const errorEl = document.getElementById('d' + id);

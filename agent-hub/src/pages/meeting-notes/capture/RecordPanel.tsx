@@ -4,6 +4,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 import { formatDuration } from '../lib/format';
+import { errorMessage } from '../../../utils/caughtError';
 
 /**
  * Live recording. Every colour is a theme token — the recording ring and the
@@ -125,13 +126,13 @@ export default function RecordPanel({ onComplete }: { onComplete?: () => void })
                 </div>
             )}
 
-            {uploadError && (
+            {Boolean(uploadError) && (
                 <div
                     className="w-full flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs"
                     style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}
                 >
                     <div className="font-semibold">{t('meetings.failed_title', 'Transcription failed')}</div>
-                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>
                     <div className="flex items-center gap-2">
                         {canRetry && (
                             <button

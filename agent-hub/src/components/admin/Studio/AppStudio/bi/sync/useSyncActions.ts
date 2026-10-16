@@ -8,6 +8,7 @@ import type { SyncBlock, SyncPlan, SyncProposal, SyncTableDraft } from './syncMo
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import { studioAppsApi } from '../../studioAppsApi';
 import { getSyncStatus, postConnector } from '../connectors/connectorHttp';
+import { messageOf } from '../../../../../../utils/caughtError';
 
 /** The connector as the sync panel reads it. */
 export interface SyncConnector {
@@ -95,7 +96,7 @@ export function useSyncActions({ connector, appId, tables, t, onCreateTable, onC
             }
             return body;
         } catch (e) {
-            setError((e as { message?: string }).message || t('studio_apps_bi.sync.err_unreachable', 'Could not reach the server.'));
+            setError(messageOf(e, t('studio_apps_bi.sync.err_unreachable', 'Could not reach the server.')));
             return null;
         } finally {
             setBusy(null);
@@ -124,7 +125,7 @@ export function useSyncActions({ connector, appId, tables, t, onCreateTable, onC
             if (!templates?.message) throw new Error(t('studio_apps_bi.sync.err_no_mailbox_tables', 'This server does not describe the mailbox tables.'));
             applyPlan(mailboxSyncPlan(templates, connector.groupIntoThreads === true, tables), { onCreateTable, onCreateTables });
         } catch (e) {
-            setError((e as { message?: string }).message || t('studio_apps_bi.sync.err_create_table', 'Could not create the table.'));
+            setError(messageOf(e, t('studio_apps_bi.sync.err_create_table', 'Could not create the table.')));
         } finally {
             setBusy(null);
         }

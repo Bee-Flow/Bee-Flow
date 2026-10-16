@@ -20,6 +20,7 @@
  * above can be read (and corrected) on their own.
  */
 import { logger } from '../../../utils/logger';
+import { errorMessage } from '../../../utils/caughtError';
 
 /** Extract files from clipboardData (sync — classic approach) */
 export function extractPasteFiles(clipboardData: DataTransfer | null | undefined): File[] {
@@ -116,7 +117,7 @@ export async function readClipboardAsync(): Promise<File[]> {
         logger.debug(`[Paste] navigator.clipboard.read() found ${files.length} image(s)`);
         return files;
     } catch (err) {
-        console.warn('[Paste] navigator.clipboard.read() failed:', (err as Error).message);
+        console.warn('[Paste] navigator.clipboard.read() failed:', errorMessage(err));
         return [];
     }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { errorMessage, isAbortError, messageOf } from '../../../utils/caughtError';
 
 /** The selection the preview's bridge script posts back. */
 export interface PreviewSelection {
@@ -56,9 +57,8 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
                 setDbToken(data.token);
                 setDbTokenExpiresAt(data.expiresAt || 0);
             } catch (err) {
-                const e = err as { name?: string; message?: string };
-                if (e?.name === 'AbortError') return;
-                console.warn('[WebpagePreview] preview-token fetch failed:', e.message);
+                if (isAbortError(err)) return;
+                console.warn('[WebpagePreview] preview-token fetch failed:', errorMessage(err));
                 if (!cancelled) { setDbToken(null); setDbTokenExpiresAt(0); }
             }
         })();
@@ -99,7 +99,7 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
                 }
                 respond({ token: body.token, expiresAt: body.expiresAt || 0 });
             } catch (err) {
-                respond({ error: (err as Error).message || 'token refresh failed' });
+                respond({ error: messageOf(err, 'token refresh failed') });
             }
         };
         window.addEventListener('message', handler);

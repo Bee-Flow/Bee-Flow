@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { errorMessage, isAbortError } from '../../../utils/caughtError';
 
 /**
  * Page-scope guards of the open webpage editor. `mountedRef` is what makes a
@@ -12,7 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * in `error`, the banner under the header.
  */
 export default function usePageGuards(pageId: string) {
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const mountedRef = useRef(true);
     const inflightAbortRef = useRef<AbortController | null>(null);
     useEffect(() => {
@@ -25,9 +26,8 @@ export default function usePageGuards(pageId: string) {
     }, []);
     const isStillCurrent = useCallback((targetId: string) => mountedRef.current && targetId === pageId, [pageId]);
     const reportHandlerError = useCallback((targetId: string, err: unknown) => {
-        const e = err as { name?: string; message?: string } | null | undefined;
-        if (e?.name === 'AbortError') return;
-        if (isStillCurrent(targetId)) setError(e?.message ?? null);
+        if (isAbortError(err)) return;
+        if (isStillCurrent(targetId)) setError(errorMessage(err) ?? null);
     }, [isStillCurrent]);
     return { error, setError, mountedRef, inflightAbortRef, isStillCurrent, reportHandlerError };
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, AlertTriangle, Copy, Check, X } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
 
 export interface PendingNcBinding {
     id: string;
@@ -80,7 +81,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }: NcBin
             }
             onResolved?.(action);
         } catch (e) {
-            setError((e as Error).message || String(e));
+            setError(errorMessage(e) || String(e));
         } finally {
             setSubmitting(false);
         }

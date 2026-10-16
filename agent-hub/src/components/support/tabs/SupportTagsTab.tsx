@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface SupportTag {
     id: string;
@@ -15,14 +16,14 @@ export default function SupportTagsTab() {
     const [tags, setTags] = useState<SupportTag[]>([]);
     const [name, setName] = useState('');
     const [color, setColor] = useState('#64748b');
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [busy, setBusy] = useState(false);
 
     const load = useCallback(async () => {
         try {
             const res = await authFetch(`${API_BASE}/api/support/tags`);
             if (res.ok) setTags((await res.json()).tags || []);
-        } catch (e) { setError((e as Error).message); }
+        } catch (e) { setError(errorMessage(e)); }
     }, []);
     useEffect(() => { load(); }, [load]);
 
@@ -37,7 +38,7 @@ export default function SupportTagsTab() {
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Create failed'); }
             setName('');
             await load();
-        } catch (e) { setError((e as Error).message); }
+        } catch (e) { setError(errorMessage(e)); }
         finally { setBusy(false); }
     };
 

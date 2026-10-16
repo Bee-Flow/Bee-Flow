@@ -38,6 +38,7 @@ import useAiFill from './useAiFill';
 import { isEmptyDocument, useMarkNotebookSeen, useNotebookShortcuts } from './notebookBehaviour';
 import { useImportFile } from './useImportFile';
 import type { NotebookEditorHandle } from './editorHandle';
+import { errorMessage } from '../../../../utils/caughtError';
 
 export interface NotebookEditorViewProps {
     data: NotebookDetailData;
@@ -63,7 +64,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
     const me = user?.id ? { id: String(user.id), name: user.name || user.displayName || undefined, email: user.email || undefined } : null;
 
     const [notice, setNotice] = useState<NoticeWithAction | null>(null);
-    const showError = useCallback((message: string) => setNotice({ kind: 'error', message }), []);
+    const showError = useCallback((message: string | undefined) => setNotice({ kind: 'error', message }), []);
     const [panel, setPanel] = useState<'versions' | 'comments' | null>(null);
     const [tocItems, setTocItems] = useState<any[]>([]);
     const [tocOpen, setTocOpen] = useState(false);
@@ -112,7 +113,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         if (!next || next === nb.name) return;
         rename.mutateAsync(next).then(
             () => onListChanged(),
-            (e: unknown) => showError(t('notebooks.rename_failed', 'The name could not be saved: {message}', { message: (e as Error).message })),
+            (e: unknown) => showError(t('notebooks.rename_failed', 'The name could not be saved: {message}', { message: errorMessage(e) })),
         );
     }, [rename, nb.name, onListChanged, showError, t]);
     useMarkNotebookSeen(nb.projectId, nb.id);

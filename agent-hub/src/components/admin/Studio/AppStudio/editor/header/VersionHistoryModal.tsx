@@ -6,6 +6,7 @@ import Modal from '../../../../../shared/Modal';
 import toast from '../../../../../shared/Toast';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import { studioAppsApi } from '../../studioAppsApi';
+import { errorMessage } from '../../../../../../utils/caughtError';
 
 /** One saved version, as listVersions returns it (legacy snake_case included). */
 interface VersionEntry {
@@ -32,7 +33,7 @@ interface VersionHistoryModalProps {
 }
 
 function errorText(err: unknown): string | undefined {
-    const message = (err as { message?: unknown } | null)?.message;
+    const message = errorMessage(err);
     return typeof message === 'string' && message ? message : undefined;
 }
 

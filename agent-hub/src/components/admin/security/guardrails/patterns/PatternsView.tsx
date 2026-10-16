@@ -7,6 +7,7 @@ import { applyStarterSet } from './starterSets';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { toast } from '../../../../shared/Toast';
 import { saveRegexGuardrails } from '../api/guardrailsApi';
+import { messageOf } from '../../../../../utils/caughtError';
 
 interface PatternsViewProps extends PatternLibraryProps {
     onSaved?: () => void;
@@ -45,7 +46,7 @@ const PatternsView = ({ rules, setRules, collections, setCollections, onSaved }:
             toast.success(t('admin.guard_saved'));
             onSaved?.();
         } catch (e) {
-            toast.error((e as Error).message || 'Failed to save');
+            toast.error(messageOf(e, 'Failed to save'));
         } finally {
             setSaving(false);
         }

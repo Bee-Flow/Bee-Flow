@@ -9,6 +9,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { copyText } from '../../../../../utils/copyText';
 import type { FormEditorContext } from './FormPageEditor';
 import type { TriggerAutomation } from './triggerEditors.types';
+import { errorMessage } from '../../../../../utils/caughtError';
 
 /**
  * The authoring surface for a hosted form trigger (`kind: 'form'`) — page one
@@ -108,7 +109,7 @@ export function FormTriggerUrlPanel({ automation, stepId }: { automation?: Trigg
     const [page, setPage] = useState<PublicFormPage | null>(null);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     const persistedTrigger = useMemo(() => {
         const def = automation?.definition;
@@ -130,7 +131,7 @@ export function FormTriggerUrlPanel({ automation, stepId }: { automation?: Trigg
             const created = await api.createFormPage(automation.id) as { form?: PublicFormPage };
             setPage(created.form || null);
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
         } finally {
             setBusy(false);
         }
@@ -145,7 +146,7 @@ export function FormTriggerUrlPanel({ automation, stepId }: { automation?: Trigg
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         } catch (e) {
-            setError(`Copy failed: ${(e as Error).message}. Select the text to copy it manually.`);
+            setError(`Copy failed: ${errorMessage(e)}. Select the text to copy it manually.`);
         }
     };
 
@@ -165,7 +166,7 @@ export function FormTriggerUrlPanel({ automation, stepId }: { automation?: Trigg
             const r = await api.rotateFormPage((automation as TriggerAutomation).id as string, page.id) as { form?: PublicFormPage };
             setPage(r.form || null);
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
         } finally {
             setBusy(false);
         }

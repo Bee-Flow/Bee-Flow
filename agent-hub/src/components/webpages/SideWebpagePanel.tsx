@@ -5,6 +5,7 @@ import WebpagePreview from '../../pages/webpages/WebpagePreview';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ExtraFileMeta, PrimaryContent, WebpageRow } from '../../pages/webpages/webpageEditorTypes';
 import type { PreviewSelection } from '../../pages/webpages/preview/usePreviewToken';
+import { errorMessage } from '../../utils/caughtError';
 
 interface WebpageBundle {
     webpage?: WebpageRow;
@@ -14,7 +15,7 @@ interface WebpageBundle {
 
 interface PanelState {
     loading: boolean;
-    error: string | null;
+    error: string | null | undefined;
     data: WebpageBundle | null;
 }
 
@@ -80,7 +81,7 @@ export default function SideWebpagePanel({
                 }
             } catch (err) {
                 if (!cancelled) {
-                    setState({ loading: false, error: (err as Error).message, data: null });
+                    setState({ loading: false, error: errorMessage(err), data: null });
                     if (typeof onLoadedRef.current === 'function') onLoadedRef.current(null);
                     if (typeof onFilesLoadedRef.current === 'function') onFilesLoadedRef.current(null);
                 }

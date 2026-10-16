@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import composeWebpageDocument from '../../../utils/composeWebpageDocument';
 import type { ExtraContents, ExtraFileMeta, PrimaryContent } from '../webpageEditorTypes';
+import { errorMessage, describeError } from '../../../utils/caughtError';
 
 /** Friendly placeholder for a React project stranded in vanilla (plain-HTML) mode. */
 function strandedReactDoc(): string {
@@ -66,7 +67,7 @@ function useReactBuild(enabled: boolean, inputs: PreviewDocumentInputs, extras: 
             } catch (err) {
                 if (!cancelled) {
                     console.error('[WebpagePreview] react preview build failed:', err);
-                    const msg = String((err as Error)?.message || err).replace(/[<>&]/g, '');
+                    const msg = describeError(err).replace(/[<>&]/g, '');
                     setReactDoc(`<!DOCTYPE html><html><body style="font:13px/1.5 ui-monospace,monospace;color:#b91c1c;padding:24px">Preview build failed: ${msg}</body></html>`);
                 }
             } finally {

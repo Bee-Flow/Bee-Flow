@@ -8,6 +8,7 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { isTruncatedOutput } from '../mapping/realOutputs';
 import { MAX_PINNED_BYTES, jsonByteLength, safeJsonText } from '../outputDrafts';
 import OutputEditorPanel from '../OutputEditorPanel';
+import { errorMessage, messageOf } from '../../../../utils/caughtError';
 
 const isTruncated = isTruncatedOutput as (v: unknown) => boolean;
 
@@ -48,7 +49,7 @@ export default function useOutputEditor({
     const apply = async () => {
         let parsed: unknown;
         try { parsed = JSON.parse(text); } catch (e) {
-            setError(t('automations.ndv.err_invalid_json', 'Invalid JSON: {message}', { message: (e as Error).message }));
+            setError(t('automations.ndv.err_invalid_json', 'Invalid JSON: {message}', { message: errorMessage(e) }));
             return;
         }
         if (parsed === null) {
@@ -77,7 +78,7 @@ export default function useOutputEditor({
             setOpen(false);
             setError(null);
         } catch (e) {
-            setError((e as Error)?.message || t('automations.ndv.save_failed', 'Save failed'));
+            setError(messageOf(e, t('automations.ndv.save_failed', 'Save failed')));
         }
     };
     const remove = async () => {

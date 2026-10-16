@@ -11,6 +11,7 @@ import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import toast from '../../../../shared/Toast';
 import { connectorProblem as connectorProblemJs } from '../bi/ConnectorsManager';
 import { studioAppsApi } from '../studioAppsApi';
+import { errorStatus, messageOf } from '../../../../../utils/caughtError';
 
 /** 'tables' | 'rows' | 'connectors' | 'relations' | 'people' */
 export type ManagerTab = 'tables' | 'rows' | 'connectors' | 'relations' | 'people';
@@ -86,8 +87,8 @@ export function useDataModel(appId: string | null | undefined, open: boolean, t:
             setModel(blank);
             setModelVersion(0);
             setSavedSnapshot(JSON.stringify(blank));
-            const e = err as { status?: number; message?: string } | null;
-            if (e?.status && e.status !== 404) toast.error(e.message || t('studio_apps_tables.manager.load_failed', 'Could not load the data model.'));
+            const status = errorStatus(err);
+            if (status && status !== 404) toast.error(messageOf(err, t('studio_apps_tables.manager.load_failed', 'Could not load the data model.')));
         } finally {
             setLoading(false);
         }
@@ -184,7 +185,7 @@ export function useDataModel(appId: string | null | undefined, open: boolean, t:
             }
             reportRefusal(res, t, load);
         } catch (err) {
-            toast.error((err as { message?: string } | null)?.message || t('studio_apps_tables.manager.save_failed', 'Saving the data model failed.'));
+            toast.error(messageOf(err, t('studio_apps_tables.manager.save_failed', 'Saving the data model failed.')));
         } finally {
             setSaving(false);
         }

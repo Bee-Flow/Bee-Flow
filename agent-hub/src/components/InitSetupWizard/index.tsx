@@ -12,7 +12,7 @@ import StepTiers from './StepTiers';
 import StepSso from './StepSso';
 import { TIERS, type TierConfig, type TierKey } from './StepTiers';
 import { useTranslation } from '../../hooks/useTranslation';
-
+import { messageOf } from '../../utils/caughtError';
 const INPUT_CLASS = "w-full px-4 py-3 rounded-xl border-2 outline-none text-sm transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] placeholder:text-gray-400";
 const INPUT_STYLE = { background: '#fff', borderColor: '#d1d5db', color: '#1f2937', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' };
 
@@ -212,7 +212,7 @@ const InitSetupWizard = ({ onComplete }: { onComplete: () => void }) => {
             // Done — if no recovery key, go straight to login
             if (!setupData.recoveryKey) onComplete();
         } catch (e) {
-            setError((e as Error).message || 'Setup failed');
+            setError(messageOf(e, 'Setup failed'));
         }
         setSaving(false);
     };

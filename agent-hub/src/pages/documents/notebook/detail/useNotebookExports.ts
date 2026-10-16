@@ -12,8 +12,9 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { embedImagesAsBase64 } from '../../../../utils/imageEmbedding';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../MermaidBlock';
 import useTranslation, { type TranslateFn } from '../../../../hooks/useTranslation';
+import { errorMessage } from '../../../../utils/caughtError';
 
-export interface NotebookNotice { kind: 'error' | 'success' | 'info'; message: string; link?: { href: string; label: string } | null }
+export interface NotebookNotice { kind: 'error' | 'success' | 'info'; message: string | undefined; link?: { href: string; label: string } | null }
 
 interface Options {
     notebookId: string;
@@ -66,7 +67,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
     const { t } = useTranslation();
     const [exporting, setExporting] = useState<string | null>(null);
     const [signSending, setSignSending] = useState(false);
-    const [signError, setSignError] = useState<string | null>(null);
+    const [signError, setSignError] = useState<string | null | undefined>(null);
     const [nextcloudExporting, setNextcloudExporting] = useState(false);
 
     const post = useCallback((path: string, body: unknown) => authFetch(`${API_BASE}/api/notebooks/${notebookId}${path}`, {
@@ -112,7 +113,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
                 : null);
         } catch (e) {
             console.error('[Notebooks] Export failed:', e);
-            onNotice({ kind: 'error', message: (e as Error).message });
+            onNotice({ kind: 'error', message: errorMessage(e) });
         } finally {
             setExporting(null);
         }
@@ -129,7 +130,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
             return await res.json();
         } catch (e) {
             // Inside the dialog: a banner behind its backdrop would go unseen.
-            setSignError((e as Error).message);
+            setSignError(errorMessage(e));
             return null;
         } finally {
             setSignSending(false);
@@ -152,7 +153,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
                 link: data.folderUrl ? { href: data.folderUrl, label: t('notebooks.open_folder', 'Open folder') } : null,
             });
         } catch (e) {
-            onNotice({ kind: 'error', message: (e as Error).message });
+            onNotice({ kind: 'error', message: errorMessage(e) });
         } finally {
             setNextcloudExporting(false);
         }

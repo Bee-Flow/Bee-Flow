@@ -8,6 +8,7 @@ import DescriptionSuggestion from './DescriptionSuggestion';
 import GeneralActions from './GeneralActions';
 import { FIELD, FieldGrid, FieldLabel, ReadOnlyFieldset, SELECT, SectionHeading, useDebouncedSave } from './settingsUi';
 import type { SaveFn, SettingsAutomation } from './settingsUi';
+import { messageOf } from '../../../../utils/caughtError';
 
 // The picker is JS with a `null` placeholder default; typed loosely, as in BuilderHeader.
 const IconPicker = IconPickerJsx as unknown as ComponentType<Record<string, unknown>>;
@@ -42,7 +43,7 @@ export default function GeneralSection({ automation, onSave, onAutomationChange,
 
     const save = async (patch: Record<string, unknown>) => {
         setError(null);
-        try { await onSave(patch); } catch (e) { setError((e as Error)?.message || t('automations.settings.save_failed', 'Could not save this change.')); }
+        try { await onSave(patch); } catch (e) { setError(messageOf(e, t('automations.settings.save_failed', 'Could not save this change.'))); }
     };
     // A name is required (the server refuses a blank one): an emptied field
     // saves nothing and falls back to the stored name when it loses focus.

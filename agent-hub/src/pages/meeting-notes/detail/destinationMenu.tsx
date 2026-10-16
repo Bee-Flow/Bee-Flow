@@ -9,9 +9,9 @@ import { ACTION_FIELD_IDS, defaultRowMapping, writableColumns } from '../lib/act
 import type { DatatableField } from '../lib/actionDestinations';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
+import { messageOf } from '../../../utils/caughtError';
 
 type ViewName = typeof VIEW[keyof typeof VIEW];
-type ThrownError = { message?: string } | null;
 type BranchKey = keyof typeof BRANCH_KIND;
 
 /** One pickable row of a branch list: an automation (`title`), a table or a knowledge base (`name`). */
@@ -167,7 +167,7 @@ export function useDestinationBranches({ t }: { t: TranslateFn }) {
             const rows = await loadBranch(branch, api);
             if (alive.current) setLists((prev: BranchLists) => ({ ...prev, [branch]: rows }));
         } catch (e) {
-            if (alive.current) setError((e as ThrownError)?.message || t('meetings.dest_lists_failed', 'Could not load the list.'));
+            if (alive.current) setError(messageOf(e, t('meetings.dest_lists_failed', 'Could not load the list.')));
         } finally {
             if (alive.current) setLoading(false);
         }
@@ -182,7 +182,7 @@ export function useDestinationBranches({ t }: { t: TranslateFn }) {
             setMapping(defaultRowMapping(schema?.fields || []));
             setView(VIEW.COLUMNS);
         } catch (e) {
-            if (alive.current) setError((e as ThrownError)?.message || t('meetings.dest_lists_failed', 'Could not load the list.'));
+            if (alive.current) setError(messageOf(e, t('meetings.dest_lists_failed', 'Could not load the list.')));
         } finally {
             if (alive.current) setLoading(false);
         }
@@ -195,7 +195,7 @@ export function useDestinationBranches({ t }: { t: TranslateFn }) {
             if (alive.current) onSuccess?.();
         } catch (e) {
             if (alive.current) {
-                setError(t('meetings.dest_failed', 'Could not send this action: {message}', { message: (e as ThrownError)?.message || 'error' }));
+                setError(t('meetings.dest_failed', 'Could not send this action: {message}', { message: messageOf(e, 'error') }));
                 setBusy(false);
             }
         }

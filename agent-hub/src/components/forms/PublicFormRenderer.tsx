@@ -7,6 +7,7 @@ import useTranslation from '../../hooks/useTranslation';
 import themeVars from '../admin/Studio/AppStudio/runtime/themeVars';
 import { Field, INPUT_CLASS, inputStyle } from '../admin/Studio/AppStudio/runtime/uiBits';
 import { normaliseOptions } from './formOptions';
+import { messageOf } from '../../utils/caughtError';
 import type { FormChangeHandler, FormErrorHandler, AppPick, AppPickFieldProps, AppPickRow, FileFieldProps, FormEndingViewProps, FormExportBarProps, FormFieldDef, FormFieldProps, FormRichTextProps, FormUpload, FormValue, FormValues, FormWaitingViewProps, MdProps, PublicFormRendererProps, SubmitError } from './PublicFormRenderer.types';
 /**
  * Renders one form-trigger form. Used by the PUBLIC hosted page and by the
@@ -43,7 +44,6 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
     const { t } = useTranslation();
     const fields = form?.fields || [];
     const theme = form?.theme || {};
-
     const [values, setValues] = useState<FormValues>(() => initialValues(fields));
     const [errors, setErrors] = useState<Record<string, string | null>>({});
     const [formError, setFormError] = useState<string | null>(null);
@@ -77,11 +77,11 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
             await onSubmit({ ...values, website_url: honeypot });
             if (showSuccess) setDone(true);
         } catch (err) {
-            const perField = (err as SubmitError)?.fields;
+            const perField = typeof err === 'object' && err !== null && 'fields' in err ? err.fields : undefined;
             if (Array.isArray(perField) && perField.length) {
                 setErrors(Object.fromEntries(perField.map(f => [f.field, f.message])));
             } else {
-                setFormError((err as SubmitError)?.message || 'Something went wrong. Please try again.');
+                setFormError(messageOf(err, 'Something went wrong. Please try again.'));
             }
         } finally {
             setBusy(false);
@@ -390,7 +390,7 @@ function FormExportBar({ text, title, onDownloadAs, onSaveToNotebook, onSaveAsWe
             await action();
             if (!navigates) setBusy(null);
         } catch (e) {
-            setActionError((e as Error)?.message || t('forms.result.failed'));
+            setActionError(messageOf(e, t('forms.result.failed')));
             setBusy(null);
         }
     };
@@ -623,7 +623,7 @@ function FormOpenInNotebooks({ field, onOpen }: { field: FormFieldDef; onOpen?: 
         try {
             await onOpen(field);
         } catch (e) {
-            setError((e as Error)?.message || 'Could not open this in Notebooks.');
+            setError(messageOf(e, 'Could not open this in Notebooks.'));
             setBusy(false);
         }
         // No setBusy(false) on success: the page is navigating away, and
@@ -808,7 +808,7 @@ function AppPickField({ field, value, disabled, onChange, onSearch }: AppPickFie
             } catch (err) {
                 if (!live) return;
                 setResults([]);
-                setNote((err as Error)?.message || 'That app could not be searched.');
+                setNote(messageOf(err, 'That app could not be searched.'));
             } finally {
                 if (live) setSearching(false);
             }
@@ -950,7 +950,7 @@ function FileField({ field, value, disabled, onChange, onUpload, onError }: File
             const uploaded = await onUpload(file, field.name);
             onChange({ kind: 'form_upload', fileId: uploaded.fileId, filename: uploaded.filename, size: uploaded.size });
         } catch (err) {
-            onError((err as Error)?.message || 'That file could not be uploaded.');
+            onError(messageOf(err, 'That file could not be uploaded.'));
         } finally {
             setUploading(false);
         }

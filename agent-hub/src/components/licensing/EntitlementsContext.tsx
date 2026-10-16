@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { errorMessage } from '../../utils/caughtError';
 
 export interface CapabilitySets {
     core: string[];
@@ -24,7 +25,7 @@ interface EntitlementsState {
     ceiling: CapabilitySets;
     reasons: Record<string, string>;
     registry: CapabilityRegistryEntry[];
-    error: string | null;
+    error: string | null | undefined;
 }
 
 export interface EntitlementsValue {
@@ -110,7 +111,7 @@ export function EntitlementsProvider({ children }: EntitlementsProviderProps) {
                 error: null,
             });
         } catch (e) {
-            setState((s: EntitlementsState) => ({ ...s, loading: false, error: (e as Error).message }));
+            setState((s: EntitlementsState) => ({ ...s, loading: false, error: errorMessage(e) }));
         }
     }, []);
 

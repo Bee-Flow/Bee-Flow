@@ -121,7 +121,7 @@ interface VersionViewerProps {
     viewing: ViewedVersion;
     viewSlot: PrimaryFile;
     onSlot: (slot: PrimaryFile) => void;
-    viewError: string | null;
+    viewError: string | null | undefined;
     onBack: () => void;
 }
 

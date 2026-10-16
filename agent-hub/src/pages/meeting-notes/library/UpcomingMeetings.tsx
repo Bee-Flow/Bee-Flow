@@ -8,7 +8,8 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import TagRow from '../detail/TagRow';
 import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../lib/transcriptionsApi';
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices } from '../lib/upcomingMeta';
-import type { TranscriptionsApiError, DateBlockProps, GmeetData, GmeetMeeting, ProviderChipProps, SourceState, StatusChipProps, TalkData, TalkMeeting, TeamsData, TeamsMeeting, ToggleProps, UpcomingMeetingRowProps, UpcomingMeetingsProps, UpcomingRow } from './UpcomingMeetings.types';
+import type { DateBlockProps, GmeetData, GmeetMeeting, ProviderChipProps, SourceState, StatusChipProps, TalkData, TalkMeeting, TeamsData, TeamsMeeting, ToggleProps, UpcomingMeetingRowProps, UpcomingMeetingsProps, UpcomingRow } from './UpcomingMeetings.types';
+import { messageOf, errorCode, errorMessage } from '../../../utils/caughtError';
 
 /**
  * "Upcoming" (Gepland): the calendar meetings with a Talk room or a Meet
@@ -245,17 +246,17 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
     const loadTalk = async () => {
         setTalk(s => ({ ...s, loading: true, error: null }));
         try { setTalk({ loading: false, error: null, data: await listTalkMeetings() }); }
-        catch (err) { setTalk(s => ({ ...s, loading: false, error: err as TranscriptionsApiError })); }
+        catch (err) { setTalk(s => ({ ...s, loading: false, error: err })); }
     };
     const loadGmeet = async () => {
         setGmeet(s => ({ ...s, loading: true, error: null }));
         try { setGmeet({ loading: false, error: null, data: await listGoogleMeetMeetings() }); }
-        catch (err) { setGmeet(s => ({ ...s, loading: false, error: err as TranscriptionsApiError })); }
+        catch (err) { setGmeet(s => ({ ...s, loading: false, error: err })); }
     };
     const loadTeams = async () => {
         setTeams(s => ({ ...s, loading: true, error: null }));
         try { setTeams({ loading: false, error: null, data: await listTeamsMeetings() }); }
-        catch (err) { setTeams(s => ({ ...s, loading: false, error: err as TranscriptionsApiError })); }
+        catch (err) { setTeams(s => ({ ...s, loading: false, error: err })); }
     };
     const load = () => { setGmeetRowErrors({}); setTeamsRowErrors({}); setOverridden({}); loadTalk(); loadGmeet(); loadTeams(); };
     useEffect(() => { load(); }, []);
@@ -364,7 +365,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
                 },
             } : s);
         } catch (err) {
-            if ((err as TranscriptionsApiError)?.code) setGmeetRowErrors(prev => ({ ...prev, [m.eventId]: (err as TranscriptionsApiError).message || t('meetings.upcoming_update_failed', "Couldn't update this meeting.") }));
+            if (errorCode(err)) setGmeetRowErrors(prev => ({ ...prev, [m.eventId]: messageOf(err, t('meetings.upcoming_update_failed', "Couldn't update this meeting.")) }));
             // revert by reloading the Meet slice
             await loadGmeet();
         } finally {
@@ -394,7 +395,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
                 },
             } : s);
         } catch (err) {
-            if ((err as TranscriptionsApiError)?.code) setTeamsRowErrors(prev => ({ ...prev, [m.eventId]: (err as TranscriptionsApiError).message || t('meetings.upcoming_update_failed', "Couldn't update this meeting.") }));
+            if (errorCode(err)) setTeamsRowErrors(prev => ({ ...prev, [m.eventId]: messageOf(err, t('meetings.upcoming_update_failed', "Couldn't update this meeting.")) }));
             await loadTeams();
         } finally {
             setBusyKey(null);
@@ -490,24 +491,24 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
                     </div>
                 )}
 
-                {!talk.loading && talk.error && (
+                {!talk.loading && Boolean(talk.error) && (
                     <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER}>
                         <div className="font-semibold">{t('meetings.upcoming_talk_failed', "Couldn't load Nextcloud Talk meetings")}</div>
-                        <div className="text-[var(--text-secondary)]">{talk.error.message}</div>
+                        <div className="text-[var(--text-secondary)]">{errorMessage(talk.error)}</div>
                     </div>
                 )}
 
-                {!gmeet.loading && gmeet.error && (
+                {!gmeet.loading && Boolean(gmeet.error) && (
                     <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER}>
                         <div className="font-semibold">{t('meetings.upcoming_meet_failed', "Couldn't load Google Meet meetings")}</div>
-                        <div className="text-[var(--text-secondary)]">{gmeet.error.message}</div>
+                        <div className="text-[var(--text-secondary)]">{errorMessage(gmeet.error)}</div>
                     </div>
                 )}
 
-                {!teams.loading && teams.error && (
+                {!teams.loading && Boolean(teams.error) && (
                     <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER}>
                         <div className="font-semibold">{t('meetings.upcoming_teams_failed', "Couldn't load Microsoft Teams meetings")}</div>
-                        <div className="text-[var(--text-secondary)]">{teams.error.message}</div>
+                        <div className="text-[var(--text-secondary)]">{errorMessage(teams.error)}</div>
                     </div>
                 )}
 
@@ -572,7 +573,6 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
                     />
                 ))}
             </div>
-
             {notices.length > 0 && (
                 <div className="px-3 py-2 border-t flex flex-col gap-1 text-[11px] flex-shrink-0 border-[var(--border-default)] text-[var(--text-tertiary)]" data-testid="upcoming-notice">
                     {notices.map(n => <span key={n.key}>{t(n.key, n.en)}</span>)}
