@@ -7,6 +7,16 @@ import { getComponentEntry } from '../../runtime/componentRegistry';
 import { insertNode, removeNode, updateNodeProps } from '../../state/definitionOps';
 import { registerInspector } from '../registry';
 import { IconField, TextField, SelectField, usePatch } from './kit';
+import type { AppNode, PanelProps } from '../appDefinition';
+
+interface TabsProps {
+    look?: string;
+}
+
+interface TabProps {
+    label?: string;
+    icon?: string | null;
+}
 
 // Mirror of the tabs `look` enum (componentSpecs.js, authoritative — first
 // value is the default: the bottom-ruled strip with a primary underline on
@@ -24,7 +34,7 @@ function newTabNode() {
 }
 
 /** Content panel for the `tabs` container — its look, plus add / rename / remove its tabs. */
-export function TabsInspector({ node, definition, onCommit, disabled = false }) {
+export function TabsInspector({ node, definition, onCommit, disabled = false }: PanelProps<TabsProps>) {
     const { t } = useTranslation();
     const LOOKS = [
         { value: 'underline', label: t('studio_apps_panels.tabs.look_underline', 'Underline') },
@@ -39,7 +49,7 @@ export function TabsInspector({ node, definition, onCommit, disabled = false }) 
         const { def, nodeId } = insertNode(definition, { parentId: node.id, node: newTabNode() });
         if (nodeId) onCommit(def);
     };
-    const renameTab = (tabId, label) => {
+    const renameTab = (tabId: string, label: string) => {
         const next = updateNodeProps(definition, tabId, { label });
         if (next !== definition) onCommit(next);
     };
@@ -47,16 +57,16 @@ export function TabsInspector({ node, definition, onCommit, disabled = false }) 
     // anything (InspectorPanel's ConfirmDialog); this row did not, and it is the
     // faster route — a "Details" tab with a ten-field form vanished on one click
     // with nothing but the editor-wide undo to get it back.
-    const [confirmTabId, setConfirmTabId] = useState(null);
+    const [confirmTabId, setConfirmTabId] = useState<string | null>(null);
     const confirmTab = tabs.find((tb) => tb.id === confirmTabId) || null;
     const childCount = Array.isArray(confirmTab?.children) ? confirmTab.children.length : 0;
 
-    const doDeleteTab = (tabId) => {
+    const doDeleteTab = (tabId: string | null) => {
         setConfirmTabId(null);
         const next = removeNode(definition, tabId);
         if (next !== definition) onCommit(next);
     };
-    const deleteTab = (tab) => {
+    const deleteTab = (tab: AppNode) => {
         const hasChildren = Array.isArray(tab?.children) && tab.children.length > 0;
         if (hasChildren) setConfirmTabId(tab.id);
         else doDeleteTab(tab.id);
@@ -112,7 +122,7 @@ export function TabsInspector({ node, definition, onCommit, disabled = false }) 
 }
 
 /** Content panel for a single `tab` — its label + icon. */
-export function TabInspector({ node, definition, onCommit, disabled = false }) {
+export function TabInspector({ node, definition, onCommit, disabled = false }: PanelProps<TabProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

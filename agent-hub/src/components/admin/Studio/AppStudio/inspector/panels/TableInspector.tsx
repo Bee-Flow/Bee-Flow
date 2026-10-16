@@ -5,8 +5,25 @@ import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { registerInspector } from '../registry';
 import BindingField from './BindingField';
 import { FieldKeyField, TextField, SelectField, usePatch } from './kit';
+import type { PanelProps } from '../appDefinition';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { FieldKeyFieldProps } from './kit';
 
-function getLooksOptions(t) {
+interface TableColumn {
+    key?: string;
+    label?: string;
+    format?: string;
+}
+
+interface TableProps {
+    source?: FieldKeyFieldProps['source'];
+    columns?: TableColumn[];
+    look?: string;
+    emptyText?: string;
+    rowLimit?: number;
+}
+
+function getLooksOptions(t: TranslateFn) {
     return [
         { value: 'default', label: t('studio_apps_panels.common.look_default', 'Default') },
         { value: 'striped', label: t('studio_apps_panels.data_grid.look_striped', 'Striped') },
@@ -14,7 +31,7 @@ function getLooksOptions(t) {
     ];
 }
 
-function getFormatLabels(t) {
+function getFormatLabels(t: TranslateFn): Record<string, string> {
     return {
         text: t('studio_apps_panels.data_grid.format_text', 'Text'),
         number: t('studio_apps_panels.data_grid.format_number', 'Number'),
@@ -51,7 +68,7 @@ const FORMATS = [
 
 // Mirror of the table `look` enum (componentSpecs.js, authoritative — first
 // value is the default and renders exactly what table always rendered).
-export default function TableInspector({ node, definition, onCommit, disabled = false }) {
+export default function TableInspector({ node, definition, onCommit, disabled = false }: PanelProps<TableProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
@@ -120,7 +137,7 @@ export default function TableInspector({ node, definition, onCommit, disabled = 
             />
             <Slider
                 label={t('studio_apps_panels.table.row_limit', 'Row limit')}
-                value={Number.isFinite(props.rowLimit) ? props.rowLimit : 25}
+                value={Number.isFinite(props.rowLimit) ? props.rowLimit as number : 25}
                 onChange={(v) => patch({ rowLimit: Math.max(1, Math.min(100, Math.round(v))) })}
                 min={1}
                 max={100}

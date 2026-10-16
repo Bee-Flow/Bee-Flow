@@ -6,8 +6,28 @@ import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { registerInspector } from '../registry';
 import { COLOR_ROLES } from '../styleKnobMeta';
+import type { PanelProps } from '../appDefinition';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { FieldKeyFieldProps } from './kit';
 
-function getCardLooksOptions(t) {
+interface KanbanColumn {
+    value?: string;
+    label?: string;
+    color?: string;
+}
+
+interface KanbanProps {
+    source?: FieldKeyFieldProps['source'];
+    groupByField?: string;
+    columns?: KanbanColumn[];
+    titleKey?: string;
+    subtitleKey?: string | null;
+    badgeKey?: string | null;
+    cardLook?: string;
+    allowDrag?: boolean;
+}
+
+function getCardLooksOptions(t: TranslateFn) {
     return [
         { value: 'default', label: t('studio_apps_panels.common.look_default', 'Default') },
         { value: 'tinted', label: t('studio_apps_panels.common.look_tinted', 'Tinted') },
@@ -15,7 +35,7 @@ function getCardLooksOptions(t) {
     ];
 }
 
-function getColorLabels(t) {
+function getColorLabels(t: TranslateFn): Record<string, string> {
     return {
         primary: t('studio_apps_panels.kanban.color_primary', 'Primary'),
         neutral: t('studio_apps_panels.kanban.color_neutral', 'Neutral'),
@@ -38,7 +58,7 @@ function getColorLabels(t) {
  * carrying { item: <moved row>, value: <target column value> } as form values.
  */
 
-export default function KanbanInspector({ node, definition, onCommit, disabled = false }) {
+export default function KanbanInspector({ node, definition, onCommit, disabled = false }: PanelProps<KanbanProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const CARD_LOOKS = getCardLooksOptions(t);

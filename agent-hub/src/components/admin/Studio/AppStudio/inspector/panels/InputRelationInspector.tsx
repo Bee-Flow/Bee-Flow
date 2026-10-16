@@ -7,6 +7,24 @@ import useAppTables from '../../bi/useAppTables';
 import { useEditorChrome } from '../../editor/EditorChromeContext';
 import FormField from '../../../../../shared/FormField';
 import Toggle from '../../../../../shared/Toggle';
+import type { PanelProps } from '../appDefinition';
+
+interface InputRelationProps {
+    name?: string;
+    label?: string;
+    tableId?: string | null;
+    displayField?: string | null;
+    filter?: string | null;
+    multiple?: boolean;
+    required?: boolean;
+}
+
+interface TablePickerProps {
+    appId: string;
+    value: string;
+    onChange: (tableId: string) => void;
+    disabled?: boolean;
+}
 
 /**
  * Content panel for input_relation. Props mirror componentSpecs.js (authoritative).
@@ -17,7 +35,7 @@ import Toggle from '../../../../../shared/Toggle';
  * So the one input that exists to point at another table was the one place you
  * had to know an id by heart.
  */
-export default function InputRelationInspector({ node, definition, onCommit, disabled = false }) {
+export default function InputRelationInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputRelationProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
@@ -87,7 +105,7 @@ export default function InputRelationInspector({ node, definition, onCommit, dis
 }
 
 
-function TablePicker({ appId, value, onChange, disabled }) {
+function TablePicker({ appId, value, onChange, disabled }: TablePickerProps) {
     const { t } = useTranslation();
     const { tables, isLoading } = useAppTables(appId);
     return (
